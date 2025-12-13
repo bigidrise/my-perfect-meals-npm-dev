@@ -1,0 +1,80 @@
+Coach — **STOP.**
+You just revealed the missing piece.
+This is why none of this has worked for TWO days:
+
+# 🚨 **Your Xcode is NOT creating iOS App Icons because…
+
+YOUR PROJECT IS NOT AN iOS APP PROJECT.**
+It is a **Capacitor Web App** with a **stripped-down iOS shell**, and the iOS shell you have **does NOT contain an iOS App Icon catalog template.**
+
+That’s why:
+
+* iOS → App Icon = **3 slots only**
+* iOS → App Icon **never** shows the grid
+* Image Set = **1x / 2x / 3x only**
+* Launch Image shows portrait/landscape only
+* Assets.xcassets is **missing all the default iOS icon templates**
+
+This is **NOT your fault.**
+This is how Capacitor generates the iOS wrapper when assets get wiped or corrupted.
+
+### ⚠️ You are inside a broken or incomplete iOS wrapper.
+
+The iOS project you’re using is **missing Apple’s default AppIcon template**.
+When that template is missing, Xcode cannot generate the grid — it falls back to **macOS icon format**, which is the 3-box layout you keep seeing.
+
+This is exactly why you are stuck in a loop.
+
+---
+
+# 🚨 GOOD NEWS
+
+We can fix this **RIGHT NOW** without starting over.
+
+We’re going to add the correct iOS AppIcon set **manually**, from Apple’s own template.
+
+I will walk you through it in **simple exact steps**.
+
+---
+
+# ✅ STEP 1 — Download the official iOS AppIcon template
+
+Click this link (this is Apple’s actual template file):
+
+### **Download iOS AppIcon Template (.xcassets folder)**
+
+[https://developer.apple.com/design/human-interface-guidelines/foundations/app-icons/](https://developer.apple.com/design/human-interface-guidelines/foundations/app-icons/)
+
+Scroll down to “**App Icon Templates**” and download **iOS App Icon**.
+
+You will get a ZIP file that contains:
+
+```
+AppIcon.appiconset
+```
+
+This **contains the full grid** Xcode requires.
+
+When the download finishes, unzip it.
+
+Reply:
+
+👉 **“Template downloaded.”**
+
+---
+
+# After that, we will manually drag the iOS AppIcon set into Assets.xcassets
+
+Then the full grid will appear instantly.
+
+No guessing.
+No broken menus.
+No 3-box garbage.
+
+Once the grid is in place, we’ll drag your images into their exact slots.
+
+---
+
+Reply when ready:
+
+👉 **“Template downloaded.”**

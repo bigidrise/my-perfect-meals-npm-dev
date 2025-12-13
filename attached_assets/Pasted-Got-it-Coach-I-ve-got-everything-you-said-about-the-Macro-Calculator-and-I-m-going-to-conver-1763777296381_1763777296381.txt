@@ -1,0 +1,276 @@
+Got it, Coach.
+I’ve got **everything** you said about the Macro Calculator, and I’m going to convert it into ALL FOUR Copilot intelligence layers just like the others:
+
+### ✅ Walkthrough UI tags
+
+### ✅ Knowledge Engine entry
+
+### ✅ Walkthrough spotlight script
+
+### ✅ Voice query intents
+
+When this is installed, Chef Copilot will be able to **teach**, **guide**, **explain**, and **talk through** the entire Macro Calculator like a real coach.
+
+Let’s build it clean and tight.
+
+---
+
+# ✅ **1. DATA-WT TAGS for Macro Calculator**
+
+These tags connect the UI elements to Copilot.
+
+```
+mc-goal-selector
+mc-bodytype-selector
+mc-bodytype-info
+mc-units-selector
+mc-gender-selector
+mc-age-input
+mc-height-feet-input
+mc-height-inches-input
+mc-weight-input
+mc-activity-selector
+mc-sync-weight-button
+
+mc-targets-card
+mc-targets-calories
+mc-targets-protein
+mc-targets-starchycarbs
+mc-targets-fibrouscarbs
+mc-targets-fat
+
+mc-set-targets-button
+```
+
+These correspond to every interactive part of your macro calculator.
+
+---
+
+# 🎯 **2. Knowledge Engine Entry: `macro-calculator`**
+
+Put this in your Knowledge Registry so Copilot can explain the feature:
+
+```ts
+"macro-calculator": {
+  id: "macro-calculator",
+  title: "Macro Calculator",
+  description:
+    "Use this page to calculate your ideal calories and macro targets based on your goal, body type, and personal stats.",
+  howTo: [
+    "Choose your goal: Cut for fat loss, Maintain for stable weight, or Gain for muscle growth.",
+    "Select your body type — Ectomorph, Mesomorph, or Endomorph — each description explains how your body responds to food.",
+    "Choose your units: US Standard or Metric.",
+    "Select your sex: Male or Female.",
+    "Enter your age, height, and weight.",
+    "Choose your activity level from sedentary to extra active.",
+    "Tap Sync Your Weight to pull your latest weight from the Biometrics page.",
+    "Scroll to see your calculated macro targets — calories, proteins, starchy carbs, fibrous carbs, and fats.",
+    "Tap Set Macro Targets to send these to your Biometrics page so you always know your daily goals.",
+  ],
+  tips: [
+    "Update your weight weekly and sync it here for more accurate calories.",
+    "If you're between two body types, choose the one that best matches your metabolism.",
+    "Activity level has a big impact — choose the one that realistically matches your weekly movement.",
+  ],
+  relatedCommands: [
+    "macro.setGoal",
+    "macro.setBodyType",
+    "macro.syncWeight",
+    "macro.calculate",
+    "macro.setTargets",
+  ],
+}
+```
+
+---
+
+# 🧭 **3. Walkthrough Script (Spotlight Guidance)**
+
+Drop this into your walkthrough config:
+
+```ts
+export const macroCalculatorWalkthrough = [
+  { target: "mc-goal-selector", text: "Choose whether you're cutting, maintaining, or gaining." },
+  
+  { target: "mc-bodytype-selector", text: "Select your body type: Ectomorph, Mesomorph, or Endomorph." },
+  { target: "mc-bodytype-info", text: "Tap to read the descriptions and learn which body type fits you best." },
+
+  { target: "mc-units-selector", text: "Choose US Standard or Metric for your measurements." },
+  { target: "mc-gender-selector", text: "Select your biological sex for accurate calculations." },
+
+  { target: "mc-age-input", text: "Enter your age." },
+  { target: "mc-height-feet-input", text: "Enter your height (feet)." },
+  { target: "mc-height-inches-input", text: "Enter inches here." },
+  { target: "mc-weight-input", text: "Enter your current weight." },
+
+  { target: "mc-activity-selector", text: "Pick your weekly activity level — this affects your calorie needs." },
+  { target: "mc-sync-weight-button", text: "Tap to sync your latest weight from the Biometrics page." },
+
+  { target: "mc-targets-card", text: "Here are your calculated daily macro targets." },
+  { target: "mc-targets-calories", text: "This is your total daily calorie target." },
+  { target: "mc-targets-protein", text: "Your daily protein target in grams." },
+  { target: "mc-targets-starchycarbs", text: "Your starchy carb target for the day." },
+  { target: "mc-targets-fibrouscarbs", text: "Your fibrous carb target for the day." },
+  { target: "mc-targets-fat", text: "Your daily fat target in grams." },
+
+  { target: "mc-set-targets-button", text: "Tap here to save your targets to the Biometrics page." },
+];
+```
+
+Now Copilot can literally *walk users through* the whole calculator.
+
+---
+
+# 🎤 **4. Voice Commands (Natural Language Intents)**
+
+Add these to `handleVoiceQuery()`.
+
+### **Start Walkthrough**
+
+```ts
+if (
+  lower.includes("teach me macros") ||
+  lower.includes("teach me the macro calculator") ||
+  lower.includes("how do i use macros") ||
+  lower.includes("show me macro calculator")
+) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["walkthrough.start.macro-calculator"]();
+  return;
+}
+```
+
+---
+
+### **Explain Macro Calculator**
+
+```ts
+if (
+  lower.includes("what is the macro calculator") ||
+  lower.includes("explain macro calculator") ||
+  lower.includes("what are macro targets")
+) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["explain.macro-calculator"]();
+  return;
+}
+```
+
+---
+
+### **Select goals**
+
+```ts
+if (
+  lower.includes("i want to cut") ||
+  lower.includes("set my goal to cut")
+) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.setGoal"]({ goal: "cut" });
+  return;
+}
+
+if (lower.includes("maintain")) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.setGoal"]({ goal: "maintain" });
+  return;
+}
+
+if (lower.includes("gain")) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.setGoal"]({ goal: "gain" });
+  return;
+}
+```
+
+---
+
+### **Body type**
+
+```ts
+if (lower.includes("ectomorph")) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.setBodyType"]({ type: "ectomorph" });
+  return;
+}
+
+if (lower.includes("mesomorph")) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.setBodyType"]({ type: "mesomorph" });
+  return;
+}
+
+if (lower.includes("endomorph")) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.setBodyType"]({ type: "endomorph" });
+  return;
+}
+```
+
+---
+
+### **Sync weight**
+
+```ts
+if (
+  lower.includes("sync my weight") ||
+  lower.includes("update my weight")
+) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.syncWeight"]();
+  return;
+}
+```
+
+---
+
+### **Calculate macros**
+
+```ts
+if (
+  lower.includes("calculate my macros") ||
+  lower.includes("show my macros")
+) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.calculate"]();
+  return;
+}
+```
+
+---
+
+### **Set targets**
+
+```ts
+if (
+  lower.includes("save my macro targets") ||
+  lower.includes("set macro targets")
+) {
+  lastActiveFeature = "macro-calculator";
+  await Commands["macro.setTargets"]();
+  return;
+}
+```
+
+---
+
+# ⭐ You’re Done — Macro Calculator is Now Fully Copilot-Aware
+
+Copilot can now:
+
+* Teach users how to fill it out
+* Explain each concept
+* Walk them step by step
+* Respond to voice commands
+* Speak back in ElevenLabs voice
+
+This is top-tier product behavior.
+
+---
+
+When you’re ready for the next feature, just say:
+
+👉 **“Next is ______.”**
+
+(Or if we need to wire agent prompts for this one, just say:
+**“Give me the Agent Prompt for Macro Calculator tags.”**)

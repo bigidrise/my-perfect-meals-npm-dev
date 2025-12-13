@@ -1,0 +1,252 @@
+Perfect — now we lock this down clean, fast, and correctly.
+
+You’ve already completed:
+
+* **Anti-Inflammatory**
+* **Diabetic**
+* **BeachBody (with phases)**
+* **General Nutrition**
+
+Which means the next REQUIRED guardrail system is:
+
+# 🔥 **PHASE 3.3 — GLP-1 GUARDRAILS (Pending Implementation)**
+
+This is the last *medical* guardrail system before we move into:
+
+* **Performance/Competition (Phase 3.6)**
+* **ProCare (Phase 3.7)**
+
+You already approved the GLP-1 specifications earlier — so here is the **architect prompt packaged in final ready-to-run format**, containing ONLY what the architect needs to implement GLP-1 guardrails cleanly.
+
+This version is optimized for execution — no fluff, no narrative, just rules and instructions.
+
+---
+
+# ✅ **ARCHITECT PROMPT — PHASE 3.3 GLP-1 GUARDRAILS (IMPLEMENT NOW)**
+
+**Architect — Anti-Inflammatory, Diabetic, BeachBody, and General Nutrition guardrails are complete.
+Begin Phase 3.3: GLP-1 Guardrails.
+Load the full Create With Chef + Snack Creator + unified MealCard context.**
+
+---
+
+# 🎯 **GOAL**
+
+Ensure all AI-generated meals/snacks inside the **GLP-1 Meal Builder** comply with:
+
+* Small portions
+* Low-calorie density
+* Low-fat
+* High-protein
+* Gentle textures
+* Easy digestion
+* No “heavy meals”
+* No high-volume foods
+* No greasy foods
+* No nausea triggers
+
+---
+
+# ❌ **ABSOLUTE FORBIDDEN INGREDIENTS**
+
+Architect MUST filter these out BEFORE generation:
+
+### Heavy fats
+
+* Butter, cream, cheese, mayonnaise
+* Fried foods
+* Oils except spray
+* High-fat beef, pork, lamb
+* Sausage, bacon
+
+### High volume meals
+
+* Giant salads
+* Large bowls of rice/pasta
+* Thick smoothies
+* Multi-cup fruit blends
+
+### Hard-to-digest items
+
+* Raw cruciferous vegetables
+* Beans/lentils (large amounts)
+* Tough meats
+
+### Ultra-sweet foods
+
+* Honey
+* Syrup
+* Desserts
+* Sugary sauces
+* Most high-sugar fruits
+  (berries are allowed)
+
+### Carbonation
+
+Never allowed as “snack ideas.”
+
+---
+
+# ✔️ **PRIORITIZED / APPROVED FOODS**
+
+Meals should emphasize:
+
+* Lean proteins (chicken breast, turkey, fish, eggs, Greek yogurt)
+* Soft-texture meals (scrambles, wraps, bowls, soups)
+* Hydrating ingredients
+* Small portions
+* Gentle carbs (oats, rice in small portions)
+* Steamed or sautéed vegetables
+* Light, simple seasoning
+* Low/no fat preparation
+
+---
+
+# 📊 **MACRO RULES FOR GLP-1 MEALS**
+
+Architect MUST apply:
+
+* **High protein**
+* **Low fat**
+* **Low carb to moderate carb**
+* **Low calorie density**
+* **Small portion sizes**
+* **Low volume**
+
+Meals must NEVER be large or heavy.
+
+---
+
+# 🔧 **IMPLEMENTATION DETAILS**
+
+## 1️⃣ Detect GLP-1 builder context
+
+Use:
+
+```
+dietType: "glp1"
+```
+
+All generation requests inside GLP-1 builder must include this.
+
+---
+
+## 2️⃣ Rewrite prompt for GLP-1 safety
+
+The prompt MUST tell the model:
+
+* “User is on GLP-1 medication.”
+* “Generate small, low-fat, high-protein, easy-to-digest meals.”
+* “Avoid heavy foods, fried foods, creamy foods, high-fat meats.”
+* “Avoid large portions or high-volume meals.”
+* “Keep textures soft, light, and gentle on the stomach.”
+* “Use hydration-friendly ingredients.”
+
+---
+
+## 3️⃣ Apply pre- and post-filters
+
+### Pre-filter:
+
+Remove forbidden ingredients.
+
+### Post-filter:
+
+If the AI returns anything heavy, high-fat, high-carb, or high-volume → **reject and regenerate**.
+
+---
+
+## 4️⃣ Snack Creator guardrails
+
+GLP-1 snack rules:
+
+### Allowed:
+
+* Greek yogurt (plain, minimal sweetness)
+* Berries
+* Cottage cheese
+* Protein shakes (NOT thick or huge)
+* Light protein snacks
+* Soft fruits
+* Rice cakes (single portion)
+
+### Forbidden:
+
+* Candy
+* Chips
+* Pastries
+* Heavy nuts
+* Sweetened yogurt
+* Thick smoothies
+* High-fat snacks
+
+Snack Creator MUST behave like “gentle GLP-1 nutrition.”
+
+---
+
+## 5️⃣ MealCard Formatting
+
+NO display changes.
+
+Meals and snacks must still include:
+
+* Image
+* Ingredients
+* Expanded ingredient lists
+* Step-by-step instructions
+* Full macros
+* Correct schema
+
+Guardrails only affect **what** is generated, not **how it’s shown**.
+
+---
+
+## 6️⃣ Builders affected
+
+Apply GLP-1 guardrails ONLY to:
+
+* **GLP1MealBuilder**
+* Snack rows inside GLP-1 builder
+
+NOT to Weekly, General Nutrition, Anti-Inflammatory, Diabetes, BeachBody, Performance, or ProCare.
+
+---
+
+# 🎯 **SUCCESS CRITERIA (GLP-1 Complete)**
+
+Inside the GLP-1 Builder:
+
+### ✔ Every meal is small, gentle, easy to digest
+
+### ✔ Every meal is low-fat, high-protein
+
+### ✔ No heavy dishes
+
+### ✔ No high-sugar foods
+
+### ✔ No high-volume meals
+
+### ✔ Snacks follow GLP-1 rules
+
+### ✔ MealCards are fully complete
+
+### ✔ No missing instructions, images, or macros
+
+### ✔ Output is consistent between Create With Chef & Snack Creator
+
+---
+
+# 🏁 Architect — begin Phase 3.3 (GLP-1 Guardrails) now.
+
+Confirm when GLP-1 guardrails are fully active for meals AND snacks.
+
+---
+
+Coach — after GLP-1 is done, we move to:
+
+🔹 **Phase 3.6 — Performance & Competition Guardrails**
+🔹 **Phase 3.7 — ProCare (doctor + trainer preset) Guardrails**
+
+Just say:
+
+**“Next.”**

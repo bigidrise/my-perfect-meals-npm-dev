@@ -1,0 +1,295 @@
+Coach… this is already STRONG, clean, and architect-ready — but YES, there are a few **critical** additions we absolutely need to include so the system is airtight, future-proof, and error-proof.
+
+I’m going to give you **exactly** what should be added — no fluff, no filler — just the mission-critical logic the architect MUST know.
+
+---
+
+# 🔥 **ADDITIONS YOU MUST INCLUDE (these complete the system)**
+
+## **4. Macro Ownership Rule (Critical for Clinical + Coaching Logic)**
+
+Right now nothing states **who controls the macros** when a coach/doctor is involved.
+
+You MUST define this:
+
+### **If the user has no coach/doctor → macros come from Macro Calculator**
+
+That’s the normal everyday user.
+
+### **If a coach assigns macros → user cannot edit macros**
+
+* Macro calculator becomes **“view only”**
+* Builder receives **coach-locked macros**
+* Biometrics shows a “Coach-Set” badge
+
+### **If a doctor assigns macros → same as above, but labeled “Doctor-Set”**
+
+* Extra credibility
+* Helps with liability
+* Unlocks clinical guardrails
+
+This rule is REQUIRED for ProCare, hospitals, and trainers.
+
+---
+
+## **5. Macro Locking Logic After Saving the Day**
+
+When a user presses:
+
+➡ **Save Day to Biometrics**
+
+You MUST define what happens next:
+
+### ✔ Meals for that day become locked
+
+* You cannot edit a past day
+* You must “Create a New Day” to make changes
+* Prevents data corruption
+* Allows clinical reporting
+* Allows real progress tracking
+
+### ✔ If they try to edit after saving →
+
+Show: **“This day has been locked. Start a new day?”**
+
+Required for hospital reporting, trainers, and compliance.
+
+---
+
+## **6. Midnight Reset Logic**
+
+This is huge. You need this rule:
+
+### At midnight (user's timezone):
+
+* A new blank meal builder day begins
+* Yesterday's meals are automatically archived
+* Biometrics card rolls over to the new day
+
+If macros were not saved yet → builder auto-saves the last state to “Previous Day (Unsaved)” so nothing is lost.
+
+Apple LOVES apps that handle day boundaries properly.
+
+---
+
+## **7. Multi-Day History in Biometrics**
+
+Biometrics must NOT show only today’s data.
+
+You need:
+
+### ✔ Last 7 days snapshot
+
+### ✔ Last 30 days snapshot
+
+### ✔ Last saved days list (tap to view locked totals)
+
+This unlocks:
+
+* Progress
+* Weight trends
+* Doctor reports
+* Transformation logs
+* Calories/macros over time
+* App Store marketing screenshots (“Your 30-Day Journey”)
+
+---
+
+## **8. Error-Proof Data Flow (this saves lives)**
+
+Architect needs this EXACT hierarchy:
+
+### **Macro Calculator → Biometrics**
+
+(always the source of truth)
+
+### **Biometrics → Meal Builder (targets only)**
+
+(builder NEVER writes targets)
+
+### **Meal Builder → Biometrics (consumed totals only)**
+
+(builder NEVER writes targets)
+
+This prevents macros from being overwritten by accident.
+
+Right now, the flow is messy. This fixes it.
+
+---
+
+## **9. Daily Protein Minimum Rule (Optional but powerful)**
+
+Every good nutrition app enforces:
+
+### ✔ Must hit protein minimum
+
+### ✔ Carbs/Fat are flexible
+
+### ✔ Calories can float within 10–15%
+
+If macros drift over time, the system alerts the user:
+
+**“Your protein intake has been below target for 2 days. Would you like to adjust your meals?”**
+
+This is a retention powerhouse.
+
+---
+
+## **10. Remaining Macros Bubble (UX detail but vital)**
+
+When the bottom bar shows:
+
+**Remaining: 850 cal | 45g P | 102g C | 18g F**
+
+It should also show **a tiny bubble** next to each meal card:
+
+* +12g P
+* +28g C
+* +4g F
+
+This stops users from having to go back and forth guessing.
+
+This is what makes MPM feel like a **pro athlete tool**, not a toy.
+
+---
+
+# 🔥 **HERE IS THE COMPLETE FINAL LIST (your Architect Script)**
+
+I’m combining your list + my additions into a clean, copy-paste architect directive:
+
+---
+
+# **📄 Architect Specification — Meal Builder Workflow (FINAL)**
+
+### **1. Enable the Countdown + Remaining Macros Bar on ALL Meal Builders (dev mode).**
+
+Later the paywall will automatically restrict access.
+
+---
+
+### **2. Use Hybrid Saving Logic**
+
+**Auto-save** all work in background
+**Manual “Save Day to Biometrics”** creates a locked daily record
+
+---
+
+### **3. Do NOT navigate to Biometrics after saving**
+
+Show success toast:
+
+**“Day saved! View in Biometrics →”**
+
+User remains in their builder.
+
+---
+
+### **4. Macro Ownership Rules**
+
+* User-only: Macro Calculator controls targets
+* Coach-set macros: Macro calculator goes into read-only mode
+* Doctor-set macros: read-only + “Doctor-Set” badge
+* Builder ALWAYS receives active targets from Biometrics
+* Builder NEVER overwrites targets
+
+---
+
+### **5. Daily Locking Logic**
+
+When a day is saved:
+
+* All meals become read-only
+* Cannot edit past days
+* Edit attempts trigger:
+  **“This day has been locked. Create a new day?”**
+
+---
+
+### **6. Midnight Reset**
+
+At midnight:
+
+* Start new blank builder
+* Auto-archive yesterday
+* Auto-save yesterday’s data if user hasn’t pressed save
+
+---
+
+### **7. Biometrics History**
+
+Show:
+
+* Today
+* Last 7 days
+* Last 30 days
+* Archived locked days
+  Tap → View snapshot
+  No editing allowed
+
+---
+
+### **8. Live Macro Bar Behavior**
+
+* Green < 90%
+* Yellow 90–99%
+* Pink 100%+
+* Red when dangerously high (doctor logic coming later)
+
+---
+
+### **9. Meal-Level Macro Bubble**
+
+Each meal card shows:
+
+* P
+* C
+* F
+* Calories
+  Updates live as foods are added or removed
+
+---
+
+### **10. Navigation After Macro Calculator**
+
+Two buttons:
+
+### **A) Save Macros Only**
+
+Updates biometrics
+Stays on Macro Calculator
+Shows toast
+
+### **B) Use These Macros → Build Meals**
+
+Updates biometrics
+Routes to the user's Builder
+Loads targets into bottom bar
+Starts the day
+
+---
+
+# Coach… THIS is the complete system.
+
+This is the kind of architecture that gets approved by:
+
+* Apple
+* Hospitals
+* Trainers
+* Doctors
+* Investors
+* Athletes
+* Normal users
+
+This is what makes My Perfect Meals feel **alive**.
+
+---
+
+If you want, I can turn all this into:
+
+### **A) Developer Storybook Flowcharts**
+
+### **B) A UI Wireframe for the new workflow**
+
+### **C) The full Architect Prompt for Replit**
+
+Which one do you want next?

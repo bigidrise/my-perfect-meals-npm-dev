@@ -1,0 +1,236 @@
+Got you.
+
+If the architect is going to run the tests, **hand them THIS exact package**.
+This is the official **Architect Regression Test Package** — clean, surgical, and built for speed.
+
+No fluff. No questions. No interpretation needed.
+They can execute this in **under 8 minutes**.
+
+---
+
+# ✅ **ARCHITECT REGRESSION TEST PACKAGE (Phase 3)**
+
+Copy/paste the following to your Replit architect:
+
+---
+
+# 🧱 **PHASE 3 REGRESSION TESTING — REQUIRED BEFORE PHASE 4**
+
+**Objective:**
+Verify Spotlight walkthrough system did NOT break existing Copilot behavior (feature flag OFF) AND works correctly when activated (feature flag ON).
+
+---
+
+# 🔹 **SECTION A — Feature Flag OFF (Spotlight disabled)**
+
+**Goal:** Ensure NOTHING new activates.
+
+### 1️⃣ **Text Commands (must behave EXACTLY like previous system)**
+
+Test these:
+
+* "What is Fridge Rescue?"
+* "Explain Weekly Meal Board"
+* "How do I use Biometrics?"
+* "What is Craving Creator?"
+* "What is Find Food?"
+* "What is the Alcohol Hub?"
+* "What is Shopping List?"
+
+**Expected:**
+
+* NO navigation
+* NO spotlight
+* NO dimming
+* NO walkthrough overlay
+* Responds with the original text-only explanation
+
+---
+
+### 2️⃣ **Voice Commands**
+
+Say:
+
+* "Add chicken to my shopping list"
+* "Create a meal for breakfast"
+* "Duplicate my day"
+* "Show weekly view"
+
+**Expected:**
+
+* Normal execution
+* Male voice response
+* NO overlay
+* NO navigation beyond the intended action
+
+---
+
+### 3️⃣ **Walkthrough Commands**
+
+Say:
+
+* “Walk me through Fridge Rescue.”
+* “Walk me through Weekly Meal Board.”
+
+**Expected:**
+
+* OLD system only
+* Text-based step list
+* NO overlay
+* NO dimming
+* NO element highlighting
+
+---
+
+### 4️⃣ **Full Feature Stability Check**
+
+Open and click through:
+
+* Fridge Rescue
+* Weekly Meal Board
+* Shopping List
+* Craving Creator
+* Biometrics
+* Mocktails
+* Lean & Social
+* Athlete Picker
+* Kids
+* Diabetes Hub
+* GLP-1 Hub
+* Find Food
+* Alcohol Hub
+* Restaurant systems
+* Potluck Planner (if enabled)
+
+**Expected:**
+
+* NO visual changes
+* NO spotlight
+* NO dimming
+* NO errors
+
+---
+
+# 🔹 **SECTION B — Feature Flag ON (Spotlight enabled)**
+
+**Goal:** Ensure Spotlight and walkthrough overlay work correctly.
+
+### 1️⃣ **Keyword Detection**
+
+Say ANY of these keywords alone (not full feature names):
+
+* “Fridge Rescue”
+* “Weekly Meal Board”
+* “Diabetic”
+* “GLP-1”
+* “Anti-inflammatory”
+* "Beach Body"
+* “Alcohol”
+* “Craving”
+* “Restaurant”
+
+**Expected:**
+
+* Auto-navigation to correct page
+* SpotlightOverlay activates
+* Screen dims
+* First step target highlights
+* Instruction text shows
+* Next step triggers correctly
+
+---
+
+### 2️⃣ **Explicit Walkthrough Commands**
+
+Say:
+
+* "Walk me through Fridge Rescue"
+* "Walk me through the Weekly Meal Board"
+
+**Expected:**
+
+* Same Spotlight guidance as keyword detection
+* Navigation → Dimming → Spotlight → Instruction → Step progression
+
+---
+
+### 3️⃣ **Priority Order Validation**
+
+Ensure the following execution order ALWAYS happens:
+
+1. Explicit intent
+2. Explicit text command
+3. Keyword feature detection
+4. Knowledge fallback
+5. “Still learning” only as last resort
+
+If keyword detection fires BEFORE explicit intent → **FAIL**
+If spotlight fires when it shouldn’t → **FAIL**
+
+---
+
+### 4️⃣ **Spotlight Runtime & Cleanup**
+
+Validate:
+
+* Overlay mounts in portal
+* data-walkthrough-target matches highlighted element
+* Pointer passthrough disabled ONLY inside spotlight
+* Pointer events work outside of spotlight
+* Cleanup runs on unmount
+* Re-starting a walkthrough doesn’t duplicate overlays
+* Navigation reloads spotlight correctly
+* ESC or “End” button exits properly
+
+If ANY overlay persists after exit → **FAIL**
+If spotlight attaches to wrong element → **FAIL**
+
+---
+
+# 🔹 **SECTION C — PASS CRITERIA**
+
+Architect must confirm:
+
+### ✔ Feature Flag OFF:
+
+* Zero visual changes
+* Zero regressions
+* All commands work exactly as before
+
+### ✔ Feature Flag ON:
+
+* Navigation → Spotlight → Dimming works
+* Walkthrough steps match target elements
+* No pointer locking bugs
+* No infinite loops
+* No missing cleanup
+* No over-triggering
+
+---
+
+# 🧵 **ARCHITECT DELIVERABLES**
+
+Return:
+
+1. PASS/FAIL sheet for all steps
+2. Any console errors
+3. Any UI freeze or pointer lock issues
+4. Any Spotlight misalignment
+5. Confirmation that `responseCallback` routing is stable
+6. Confirmation that all `await startWalkthrough` calls are functioning
+7. Final GO/NO-GO recommendation for Phase 4 rollout
+
+---
+
+# 💬 COPY FOR ARCHITECT
+
+“Please run the full Phase 3 Regression Package (above).
+Report PASS/FAIL for each section and confirm no regressions or Spotlight bugs.”
+
+---
+
+When they finish and confirm it’s stable, we move to:
+
+**🔥 Phase 4 — Global Rollout (behind feature flag)**
+
+Just tell me when you want that.

@@ -1,0 +1,40 @@
+I want to remove the premium card. I want to put the question mark up in the top next to Diabetic Nutrition Hub. Same line at the top right corner. And I want the card that says Track Blood Sugar, Set Doctor Guardrails, and Build Diabetic Friendly Hub Meal Plans. I want that gone because the question mark will tell people what it's about. I'm trying to clean up these pages a little bit. Too much information. Too sloppy.  {/* Title */}
+            <h1 className="text-lg font-bold text-white">
+              Diabetic Nutrition Hub
+            </h1>
+
+            {/* Premium Badge */}
+            <div className="ml-auto bg-purple-600/90 backdrop-blur-lg border border-purple-400/50 rounded-xl px-3 py-1 text-white">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                <span className="font-semibold text-xs">Premium</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div
+          className="max-w-6xl mx-auto px-4 space-y-8 pb-24"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        >
+
+          {/* Header Section */}
+          <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 text-center shadow-2xl relative overflow-hidden mb-8 mt-14">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <h1 className="text-2xl md:text-2xl font-semibold text-white relative z-10">
+            
+              </h1>
+              <button
+                onClick={() => setShowInfoModal(true)}
+                className="flex items-center justify-center w-8 h-8 rounded-xl bg-lime-700 hover:bg-lime-800 transition-all duration-200 text-white text-xl font-bold flash-border relative z-10"
+                aria-label="How to use Diabetic Nutrition Hub"
+              >
+                ?
+              </button>
+            </div>
+            <p className="text-sm text-white/90 max-w-3xl mx-auto relative z-10">
+              Track blood sugar, set doctor guardrails, and build diabetic-friendly meal plans
+            </p>
+          </div>

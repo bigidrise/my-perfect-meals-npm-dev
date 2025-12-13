@@ -1,0 +1,307 @@
+aiPremadesDinner
+
+client/src/data/aiPremadeDinnerHighProteinPlates.ts
+
+export const AI_PREMADE_DINNER_HIGH_PROTEIN_PLATES = [
+  {
+    id: "d3-01",
+    name: "Baked Cod Protein Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Cod", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-02",
+    name: "Baked Egg White Protein Stack",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" }
+    ]
+  },
+  {
+    id: "d3-03",
+    name: "Baked Halibut Medallions",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Halibut", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-04",
+    name: "Baked Turkey Cutlets",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-05",
+    name: "Blackened Chicken Breast Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-06",
+    name: "Broiled Flank Steak Strips",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Flank Steak", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-07",
+    name: "Cajun Salmon Protein Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Salmon", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-08",
+    name: "Chicken Breast Medallions",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-09",
+    name: "Chicken Cutlet Protein Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-10",
+    name: "Egg White Omelet (Plain Protein)",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" }
+    ]
+  },
+  {
+    id: "d3-11",
+    name: "Garlic Grilled Chicken Breast",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-12",
+    name: "Garlic Herb Turkey Slices",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-13",
+    name: "Grilled Chicken Tenders (Lean)",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-14",
+    name: "Grilled Shrimp Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Shrimp", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-15",
+    name: "Lean Beef Patty (No Bun)",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Beef (96% lean)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-16",
+    name: "Lemon Pepper Chicken Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-17",
+    name: "Lemon Tilapia Fillet",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Tilapia", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-18",
+    name: "Pan-Seared Chicken Strips",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-19",
+    name: "Pan-Seared Halibut Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Halibut", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-20",
+    name: "Pan-Seared Lean Ground Turkey",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-21",
+    name: "Plain Chicken Breast Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-22",
+    name: "Plain Salmon Fillet",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Salmon", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-23",
+    name: "Plain Steak Bites",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Steak (sirloin)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-24",
+    name: "Protein Egg Plate (Whole Eggs)",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Egg Whites", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "d3-25",
+    name: "Roasted Chicken Breast Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-26",
+    name: "Simple Grilled Steak Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Steak (sirloin)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-27",
+    name: "Simple Shrimp Skillet Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Shrimp", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-28",
+    name: "Slow-Cooked Turkey Breast",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-29",
+    name: "Steamed White Fish Plate",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "steamed",
+    ingredients: [
+      { item: "White Fish", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "d3-30",
+    name: "Turkey Burger Patty (No Bun)",
+    category: "high-protein-plates",
+    mealType: "dinner",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 6, unit: "oz" }
+    ]
+  }
+];

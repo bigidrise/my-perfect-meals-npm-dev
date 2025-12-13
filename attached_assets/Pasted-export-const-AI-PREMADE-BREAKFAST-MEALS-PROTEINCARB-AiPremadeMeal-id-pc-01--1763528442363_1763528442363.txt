@@ -1,0 +1,429 @@
+export const AI_PREMADE_BREAKFAST_MEALS_PROTEINCARB: AiPremadeMeal[] = [
+  {
+    id: "pc-01",
+    name: "Bagel Thin & Egg Whites",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Bagel Thin", quantity: 1, unit: "piece" },
+      { item: "Egg Whites", quantity: 5, unit: "large" }
+    ]
+  },
+  {
+    id: "pc-02",
+    name: "Banana & Protein Shake",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Banana", quantity: 1, unit: "medium" },
+      { item: "Protein Powder", quantity: 1, unit: "scoop" },
+      { item: "Water", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-03",
+    name: "Breakfast Burrito (Egg Whites + Tortilla)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Whole Wheat Tortilla", quantity: 1, unit: "large" },
+      { item: "Egg Whites", quantity: 5, unit: "large" },
+      { item: "Bell Peppers", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-04",
+    name: "Chicken Breast & Oatmeal",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 4, unit: "oz" },
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-05",
+    name: "Chicken Sausage & Roasted Potatoes",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Sausage", quantity: 2, unit: "links" },
+      { item: "Potatoes", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-06",
+    name: "Cottage Cheese & Pineapple",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Cottage Cheese", quantity: 1, unit: "cup" },
+      { item: "Pineapple (fresh)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-07",
+    name: "Cream of Wheat (Plain Bowl)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Cream of Wheat (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-08",
+    name: "Cream of Wheat & Egg Whites",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Cream of Wheat (cooked)", quantity: 0.5, unit: "cup" },
+      { item: "Egg Whites", quantity: 4, unit: "large" }
+    ]
+  },
+  {
+    id: "pc-09",
+    name: "Egg Whites & English Muffin",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 5, unit: "large" },
+      { item: "English Muffin (whole wheat)", quantity: 1, unit: "piece" }
+    ]
+  },
+  {
+    id: "pc-10",
+    name: "Egg Whites & Sweet Potato Mash",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 5, unit: "large" },
+      { item: "Sweet Potato", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-11",
+    name: "Egg Whites & White Rice",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 5, unit: "large" },
+      { item: "White Rice (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-12",
+    name: "Grits (Plain Bowl)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Grits (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-13",
+    name: "Grits & Egg Whites",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Grits (cooked)", quantity: 0.5, unit: "cup" },
+      { item: "Egg Whites", quantity: 4, unit: "large" }
+    ]
+  },
+  {
+    id: "pc-14",
+    name: "Greek Yogurt & Banana",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Greek Yogurt (2%)", quantity: 1, unit: "cup" },
+      { item: "Banana", quantity: 1, unit: "medium" }
+    ]
+  },
+  {
+    id: "pc-15",
+    name: "Greek Yogurt & Berries",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Greek Yogurt (2%)", quantity: 1, unit: "cup" },
+      { item: "Mixed Berries", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-16",
+    name: "Greek Yogurt & Granola (Light)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Greek Yogurt (2%)", quantity: 1, unit: "cup" },
+      { item: "Granola", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-17",
+    name: "Ham Slices & Toast",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Ham (lean)", quantity: 4, unit: "oz" },
+      { item: "Whole Wheat Bread", quantity: 1, unit: "slice" }
+    ]
+  },
+  {
+    id: "pc-18",
+    name: "Oatmeal (Plain Bowl)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" },
+      { item: "Water", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-19",
+    name: "Oatmeal & Peanut Butter (Light)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" },
+      { item: "Peanut Butter", quantity: 1, unit: "tbsp" }
+    ]
+  },
+  {
+    id: "pc-20",
+    name: "Oatmeal & Protein Scoop",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" },
+      { item: "Protein Powder", quantity: 1, unit: "scoop" }
+    ]
+  },
+  {
+    id: "pc-21",
+    name: "Over-Easy Eggs & Potatoes",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Potatoes", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-22",
+    name: "Over-Hard Eggs & Whole Wheat Toast",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Whole Wheat Bread", quantity: 1, unit: "slice" }
+    ]
+  },
+  {
+    id: "pc-23",
+    name: "Protein Pancake (Oats + Egg Whites)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" },
+      { item: "Egg Whites", quantity: 4, unit: "large" }
+    ]
+  },
+  {
+    id: "pc-24",
+    name: "Protein Shake & Apple Slices",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Protein Powder", quantity: 1, unit: "scoop" },
+      { item: "Apple", quantity: 1, unit: "medium" },
+      { item: "Water", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-25",
+    name: "Protein Shake & Rice Cake",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Protein Powder", quantity: 1, unit: "scoop" },
+      { item: "Rice Cakes", quantity: 2, unit: "pieces" },
+      { item: "Water", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-26",
+    name: "Ricotta Cheese & Berries",
+    category: "protein-carb",
+    mealType: "breakfast",
+    ingredients: [
+      { item: "Ricotta Cheese (part-skim)", quantity: 0.75, unit: "cup" },
+      { item: "Mixed Berries", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-27",
+    name: "Salmon Scramble & Potatoes",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Salmon", quantity: 3, unit: "oz" },
+      { item: "Potatoes", quantity: 3, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-28",
+    name: "Scrambled Eggs & Bagel Thin",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Bagel Thin", quantity: 1, unit: "piece" }
+    ]
+  },
+  {
+    id: "pc-29",
+    name: "Scrambled Eggs & Grits",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Grits (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-30",
+    name: "Scrambled Eggs & Oatmeal",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-31",
+    name: "Scrambled Eggs & Potato Wedges",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Potatoes", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-32",
+    name: "Scrambled Eggs & Rice Cakes",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Rice Cakes", quantity: 2, unit: "pieces" }
+    ]
+  },
+  {
+    id: "pc-33",
+    name: "Steak Bites & Potatoes",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Steak (sirloin)", quantity: 4, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-34",
+    name: "Sweet Potato & Turkey Sausage",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Sausage", quantity: 2, unit: "links" },
+      { item: "Sweet Potato", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-35",
+    name: "Tilapia & Rice (Breakfast Style)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Tilapia", quantity: 4, unit: "oz" },
+      { item: "White Rice (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-36",
+    name: "Turkey Bacon & Pancake (Light)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Turkey Bacon", quantity: 3, unit: "strips" },
+      { item: "Pancake (whole wheat)", quantity: 1, unit: "medium" }
+    ]
+  },
+  {
+    id: "pc-37",
+    name: "Turkey Breast & Hash Browns",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 4, unit: "oz" },
+      { item: "Potatoes (hash brown style)", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "pc-38",
+    name: "Turkey Sausage & Belgian Waffle (Light)",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Sausage", quantity: 2, unit: "links" },
+      { item: "Belgian Waffle (whole grain)", quantity: 1, unit: "small" }
+    ]
+  },
+  {
+    id: "pc-39",
+    name: "Turkey Sausage & Grits",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Sausage", quantity: 2, unit: "links" },
+      { item: "Grits (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "pc-40",
+    name: "Turkey Sausage & Oatmeal",
+    category: "protein-carb",
+    mealType: "breakfast",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Sausage", quantity: 2, unit: "links" },
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" }
+    ]
+  }
+];

@@ -1,0 +1,108 @@
+Coach, **you do NOT need to redo anything.**
+You can absolutely **add more details**, and I will integrate them directly into:
+
+### ✅ The Knowledge Engine
+
+### ✅ The Walkthrough System
+
+### ✅ The Voice Intent System
+
+### ✅ The Context Logic
+
+### AND
+
+### Apply the rules to *every single meal board* without repeating yourself.
+
+You DO NOT start over.
+You DO NOT re-explain everything.
+You just tell me the **extra pieces** and I plug them in cleanly.
+
+---
+
+# ✅ HOW THIS WORKS (Super Simple)
+
+## **You give me:**
+
+“Here are 3 more things Weekly Meal Board needs to teach…”
+
+Or:
+
+“Here are 2 steps I forgot…”
+
+Or:
+
+“Here’s something the Copilot should explain when someone asks about Weekly Meal Board…”
+
+Anything like that.
+
+## **I will:**
+
+### 1️⃣ Insert those new instructions into:
+
+* `explain.weekly-board`
+* `walkthrough.start.weekly-board`
+* Voice intents (“teach me weekly board”, etc.)
+
+### 2️⃣ Expand the `weekly-board` entry in the Knowledge Map:
+
+```ts
+weekly-board: {
+  howTo: [...],
+  tips: [...],
+}
+```
+
+### 3️⃣ Apply the same structure to:
+
+* Breakfast Board
+* Lunch Board
+* Dinner Board
+* Snacks Board
+* Kids Meal Board
+* Athlete Board
+* Any other Meal Board you build
+
+**…automatically.**
+
+No repeats.
+No retyping.
+No re-explaining.
+
+I’ll hook the system so **one master Weekly Meal Board walkthrough** powers **ALL** meal boards unless you override something special.
+
+---
+
+# 🔥 SO JUST DO THIS RIGHT NOW
+
+Tell me:
+
+### 👉 “Here are the additional steps for Weekly Meal Board: …”
+
+Just talk naturally again like before:
+
+> “When the AI generates a meal, you can delete it with the trash icon…
+> You can rearrange the days…
+> You can send individual meals to macros…
+> You can generate multiple meals per day…”
+
+Whatever you forgot — **just talk**.
+
+I will parse it.
+I will tag it.
+I will insert it.
+I will update the Copilot logic.
+I will expand the walkthrough.
+I will sync your voice intents.
+
+No rewriting the whole file. No repeating anything.
+
+---
+
+# 🧠 You have a Copilot Brain now
+
+The more instructions you give me,
+the smarter I make it.
+
+Just say:
+
+👉 **“Here’s the extra stuff for Weekly Meal Board…”**

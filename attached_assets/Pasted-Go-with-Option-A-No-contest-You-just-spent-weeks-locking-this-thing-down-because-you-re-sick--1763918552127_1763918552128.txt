@@ -1,0 +1,84 @@
+Go with **Option A**. No contest.
+
+You just spent weeks locking this thing down because you’re sick of surprise breakage.
+Spotlight is global UI + event listeners + routing = **high-risk if rushed**.
+So we treat it like a surgical operation, not a TikTok hack.
+
+Here’s what you can paste to the architect so there’s zero confusion:
+
+---
+
+**REPLY TO ARCHITECT (PASTE THIS):**
+
+Go with **Option A – full phased approach with safety measures.**
+
+Non-negotiables:
+
+1. **Lockdown Respect**
+
+   * Do **not** modify any locked features outside the Copilot / walkthrough system.
+   * No changes to individual feature logic (Fridge Rescue, Weekly Meal Board, Beach Body, etc.).
+   * Only touch:
+
+     * Copilot engine files
+     * Walkthrough engine/registry
+     * Spotlight overlay
+     * Keyword/feature mapping
+     * Minimal page hooks to start a walkthrough
+
+2. **Feature Flag It**
+
+   * Add a **single feature flag**, e.g. `FEATURES.copilotSpotlight`.
+   * Default: `false` in production, `true` ONLY in my dev/staging environment.
+   * All Spotlight behavior (overlay, auto-nav, step highlight) must be gated behind this flag.
+
+3. **Phase 1 – Architecture Doc (Required)**
+
+   * I want a short **ARCHITECTURE.md** in the copilot folder that spells out:
+
+     * Overlay lifecycle (mount, update, unmount)
+     * How it avoids blocking pointer events outside spotlighted step
+     * Keyword routing order:
+
+       1. Explicit intents (existing voice commands)
+       2. THEN keyword detection (feature names)
+       3. THEN knowledge fallback
+     * Event listener scoping and cleanup rules
+     * Navigation timing + retry strategy
+
+4. **Phase 2 – Prototype in Dev Only**
+
+   * Build SpotlightOverlay + updated WalkthroughEngine **behind the feature flag**.
+   * Use **portals** so the overlay is isolated and doesn’t break app layout.
+   * Use **data attributes** (`data-walkthrough-target`, etc.), not hardcoded IDs.
+   * I want:
+
+     * Screen dimmed
+     * Target area highlighted
+     * Short, 1–2 sentence instruction
+     * Advance on user action or “Next” button
+
+5. **Phase 3 – Regression Testing**
+
+   * After wiring:
+
+     * Test ALL existing Copilot commands (voice + text).
+     * Confirm that when Spotlight feature flag is OFF, the app behaves **exactly like today**.
+     * Confirm that keyword detection NEVER overrides explicit existing voice intents.
+
+6. **Phase 4 – Rollout Plan**
+
+   * Keep Spotlight behind feature flag until I approve.
+   * I will test:
+
+     * “Fridge Rescue” → navigate + spotlight
+     * “Weekly Meal Board” → navigate + spotlight
+     * “Diabetic” / “GLP-1” / “Alcohol” → correct hub + spotlight
+   * Once I’m happy, we flip the flag ON for staging, then later for production.
+
+**Bottom line:**
+I want the **full Spotlight system**, but **implemented safely**, behind a **feature flag**, with an **architecture doc** and **no surprise behavior** outside Copilot.
+
+---
+
+If you paste that, you’re telling them exactly who’s driving: you.

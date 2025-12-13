@@ -1,0 +1,549 @@
+Good—that’s the registry answer you needed.
+
+Next move is: give you **alias packs per feature** so you can wire them into `CanonicalAliasRegistry.ts` (or hand them to the architect) without guessing.
+
+Below is **exactly what you asked for**: each feature with
+
+* **canonical name** (what the app calls it)
+* **unique trigger token** (the “one word no one else uses”)
+* **aliases / short phrases** (for fuzzy matching)
+* **example voice phrases** (for testing)
+
+You or the architect can map these into whatever structure the registry uses (e.g. `aliases`, `keywords`, `voicePhrases` fields).
+
+---
+
+## 1. Core Utility Pages
+
+### MASTER SHOPPING LIST
+
+* **Canonical**: `Master Shopping List`
+* **Unique token**: `master`
+* **Alias tokens**:
+  `["master list", "shopping list", "master shopping", "list master", "grocery list", "grocery master"]`
+* **Example phrases**:
+
+  * “Open my **master list**”
+  * “Take me to the **master shopping list**”
+  * “Show my **grocery list**”
+
+---
+
+### MACRO CALCULATOR
+
+* **Canonical**: `Macro Calculator`
+* **Unique token**: `macro`
+* **Alias tokens**:
+  `["macro calculator", "macro counter", "macros", "macro setup", "macro goals"]`
+* **Example phrases**:
+
+  * “Open the **macro calculator**”
+  * “Help me set my **macros**”
+  * “Take me to **macro counter**”
+
+---
+
+### MY BIOMETRICS
+
+* **Canonical**: `My Biometrics`
+* **Unique token**: `biometrics`
+* **Alias tokens**:
+  `["my biometrics", "biometrics", "body stats", "progress stats", "measurements"]`
+* **Example phrases**:
+
+  * “Open **biometrics**”
+  * “Show **my biometrics** page”
+  * “Take me to my **body stats**”
+
+---
+
+### GET INSPIRATION
+
+* **Canonical**: `Get Inspiration`
+* **Unique token**: `inspiration`
+* **Alias tokens**:
+  `["get inspiration", "inspiration", "ideas", "meal ideas", "motivation"]`
+* **Example phrases**:
+
+  * “Open **Get Inspiration**”
+  * “Give me **meal ideas**”
+  * “Take me to the **inspiration** page”
+
+---
+
+### WEEKLY MEAL BUILDER
+
+* **Canonical**: `Weekly Meal Builder`
+* **Unique token**: `weekly`
+* **Alias tokens**:
+  `["weekly meal builder", "weekly board", "weekly meals", "meal planner", "week planner", "weekly"]`
+* **Example phrases**:
+
+  * “Open the **weekly meal builder**”
+  * “Take me to the **weekly board**”
+  * “Plan my **week** of meals”
+
+---
+
+## 2. Condition / Goal Meal Builders
+
+### DIABETIC HUB
+
+* **Canonical**: `Diabetic Hub`
+* **Unique token**: `diabetic`
+* **Alias tokens**:
+  `["diabetic hub", "diabetes hub", "diabetic", "diabetes support", "sugar control"]`
+* **Example phrases**:
+
+  * “Open the **diabetic hub**”
+  * “Take me to the **diabetes** section”
+
+---
+
+### DIABETIC MEAL BUILDER
+
+* **Canonical**: `Diabetic Meal Builder`
+* **Unique token**: `d-build`
+* **Alias tokens**:
+  `["diabetic builder", "diabetic meals", "diabetic meal builder", "diabetes meals"]`
+* **Example phrases**:
+
+  * “Open the **diabetic meal builder**”
+  * “Show me **diabetes meals**”
+
+---
+
+### GLP-1 HUB
+
+* **Canonical**: `GLP-1 Hub`
+* **Unique token**: `glp`
+* **Alias tokens**:
+  `["glp one hub", "g l p one", "glp hub", "glp-1 hub", "weight loss meds"]`
+* **Example phrases**:
+
+  * “Open the **GLP hub**”
+  * “Take me to the **GLP-1** section”
+
+---
+
+### GLP-1 MEAL BUILDER
+
+* **Canonical**: `GLP-1 Meal Builder`
+* **Unique token**: `glp-build`
+* **Alias tokens**:
+  `["glp one builder", "glp meal builder", "glp menu", "glp-1 meals"]`
+* **Example phrases**:
+
+  * “Open the **GLP meal builder**”
+  * “Build **GLP meals** for me”
+
+---
+
+### ANTI-INFLAMMATORY MEAL BUILDER
+
+* **Canonical**: `Anti-Inflammatory Meal Builder`
+* **Unique token**: `anti`
+* **Alias tokens**:
+  `["anti inflammatory", "anti-inflam", "inflammation builder", "joint builder", "anti plan"]`
+* **Example phrases**:
+
+  * “Open the **anti-inflammatory** builder”
+  * “Take me to the **inflammation** meals”
+
+---
+
+### BEACHBODY MEAL BUILDER
+
+* **Canonical**: `Beach Body Meal Builder`
+* **Unique token**: `beach`
+* **Alias tokens**:
+  `["beach body", "beachbody builder", "summer shred", "lean out", "beach meals"]`
+* **Example phrases**:
+
+  * “Open the **beach body** builder”
+  * “Help me **lean out for summer**”
+
+---
+
+### GENERAL NUTRITION BUILDER
+
+* **Canonical**: `General Nutrition Builder`
+* **Unique token**: `general`
+* **Alias tokens**:
+  `["general builder", "everyday meals", "normal meals", "basic builder"]`
+* **Example phrases**:
+
+  * “Open the **general nutrition builder**”
+  * “Show me **everyday meals**”
+
+---
+
+### PERFORMANCE & COMPETITION BUILDER
+
+* **Canonical**: `Performance & Competition Builder`
+* **Unique token**: `performance`
+* **Alias tokens**:
+  `["performance builder", "competition builder", "athlete builder", "performance meals", "prep builder"]`
+* **Example phrases**:
+
+  * “Open **performance builder**”
+  * “Take me to the **competition** meals”
+
+---
+
+## 3. Cravings & Fridge
+
+### CRAVING CREATOR HUB
+
+* **Canonical**: `Craving Creator Hub`
+* **Unique token**: `craving-hub`
+* **Alias tokens**:
+  `["craving hub", "cravings hub", "craving creator hub", "craving center"]`
+* **Example phrases**:
+
+  * “Open the **craving hub**”
+  * “Take me to **cravings**”
+
+---
+
+### CRAVING CREATOR
+
+* **Canonical**: `Craving Creator`
+* **Unique token**: `creator`
+* **Alias tokens**:
+  `["craving creator", "create craving", "custom craving", "make my craving"]`
+* **Example phrases**:
+
+  * “Open **Craving Creator**”
+  * “Help me **create a craving meal**”
+
+---
+
+### CRAVING PREMADES
+
+* **Canonical**: `Craving Premades`
+* **Unique token**: `premades`
+* **Alias tokens** (aggressive like you asked):
+  `["craving premades", "premades", "pre-mades", "pre made", "pre maid", "pro maids", "maids"]`
+* **Example phrases**:
+
+  * “Open **Craving Premades**”
+  * “Show me **premade cravings**”
+
+---
+
+### FRIDGE RESCUE
+
+* **Canonical**: `Fridge Rescue`
+* **Unique token**: `rescue`
+* **Alias tokens**:
+  `["fridge rescue", "fridge", "what can I make", "empty fridge", "clean out fridge"]`
+* **Example phrases**:
+
+  * “Open **Fridge Rescue**”
+  * “What can I make with what’s in my **fridge**?”
+
+---
+
+## 4. Socializing & Restaurants
+
+### SOCIALIZING HUB
+
+* **Canonical**: `Socializing Hub`
+* **Unique token**: `social`
+* **Alias tokens**:
+  `["social hub", "socializing hub", "going out", "night out", "social plans"]`
+* **Example phrases**:
+
+  * “Open the **socializing hub**”
+  * “Help me with **going out** tonight”
+
+---
+
+### RESTAURANT GUIDE
+
+* **Canonical**: `Restaurant Guide`
+* **Unique token**: `restaurant`
+* **Alias tokens**:
+  `["restaurant guide", "restaurant helper", "eat out", "ordering out", "restaurant menu help"]`
+* **Example phrases**:
+
+  * “Open the **restaurant guide**”
+  * “Help me **order at a restaurant**”
+
+---
+
+### FIND MEALS NEAR ME
+
+* **Canonical**: `Find Meals Near Me`
+* **Unique token**: `nearby`
+* **Alias tokens**:
+  `["meals near me", "nearby meals", "nearby food", "find meals", "local meals"]`
+* **Example phrases**:
+
+  * “Find **meals near me**”
+  * “Show **nearby food options**”
+
+---
+
+## 5. Kids & Family
+
+### KIDS MEALS HUB
+
+* **Canonical**: `Kids Meals Hub`
+* **Unique token**: `kids-hub`
+* **Alias tokens**:
+  `["kids hub", "kids meals hub", "children hub", "kids section"]`
+* **Example phrases**:
+
+  * “Open the **Kids Hub**”
+  * “Take me to **kids meals hub**”
+
+---
+
+### KIDS MEALS
+
+* **Canonical**: `Kids Meals`
+* **Unique token**: `big-kids`
+* **Alias tokens**:
+  `["kids meals", "big kids meals", "older kids", "school lunch"]`
+* **Example phrases**:
+
+  * “Show **kids meals**”
+  * “Help me plan **school lunch**”
+
+---
+
+### TODDLER MEALS
+
+* **Canonical**: `Toddler Meals`
+* **Unique token**: `toddler`
+* **Alias tokens**:
+  `["toddler meals", "toddlers", "little kids", "baby meals"]`
+* **Example phrases**:
+
+  * “Open **Toddler Meals**”
+  * “Show me **toddler food ideas**”
+
+---
+
+## 6. Spirits & Lifestyle Suite
+
+### SPIRITS & LIFESTYLE HUB
+
+* **Canonical**: `Spirits & Lifestyle Hub`
+* **Unique token**: `spirits-hub`
+* **Alias tokens**:
+  `["spirits hub", "alcohol hub", "drinks hub", "lifestyle drinks", "bar hub"]`
+* **Example phrases**:
+
+  * “Open the **Spirits and Lifestyle Hub**”
+  * “Take me to the **drinks hub**”
+
+---
+
+### ALCOHOL (main page)
+
+* **Canonical**: `Alcohol`
+* **Unique token**: `alcohol`
+* **Alias tokens**:
+  `["alcohol", "drinks", "booze", "cocktails", "hard drinks"]`
+* **Example phrases**:
+
+  * “Open the **alcohol** page”
+  * “Show me **drinks** I can have”
+
+---
+
+### LEAN & SOCIAL
+
+* **Canonical**: `Lean & Social`
+* **Unique token**: `lean`
+* **Alias tokens**:
+  `["lean and social", "lean social", "low cal drinks", "diet drinks", "lean drinks"]`
+* **Example phrases**:
+
+  * “Open **Lean and Social**”
+  * “Show **low-calorie drinks**”
+
+---
+
+### MOCKTAILS
+
+* **Canonical**: `Mocktails`
+* **Unique token**: `mocktails`
+* **Alias tokens**:
+  `["mocktails", "no alcohol drinks", "zero proof", "virgin drinks"]`
+* **Example phrases**:
+
+  * “Open **mocktails**”
+  * “Show **non-alcoholic drinks**”
+
+---
+
+### MEAL PAIRING
+
+* **Canonical**: `Meal Pairing`
+* **Unique token**: `pairing`
+* **Alias tokens**:
+  `["meal pairing", "pair my meal", "food pairing", "what to drink with", "pairing guide"]`
+* **Example phrases**:
+
+  * “Open **meal pairing**”
+  * “What should I drink **with this meal**?”
+
+---
+
+### WINE PAIRING
+
+* **Canonical**: `Wine Pairing`
+* **Unique token**: `wine`
+* **Alias tokens**:
+  `["wine pairing", "wine guide", "wine with dinner"]`
+* **Example phrases**:
+
+  * “Open **wine pairing**”
+  * “Which **wine** goes with this?”
+
+---
+
+### BEER PAIRING
+
+* **Canonical**: `Beer Pairing`
+* **Unique token**: `beer`
+* **Alias tokens**:
+  `["beer pairing", "beer guide", "beer with dinner"]`
+* **Example phrases**:
+
+  * “Open **beer pairing**”
+  * “Which **beer** fits this meal?”
+
+---
+
+### BOURBON PAIRING
+
+* **Canonical**: `Bourbon Pairing`
+* **Unique token**: `bourbon`
+* **Alias tokens**:
+  `["bourbon pairing", "whiskey pairing", "bourbon guide"]`
+* **Example phrases**:
+
+  * “Open **bourbon pairing**”
+  * “Help me pair **bourbon**”
+
+---
+
+### ALCOHOL LOG
+
+* **Canonical**: `Alcohol Log`
+* **Unique token**: `alog`
+* **Alias tokens**:
+  `["alcohol log", "drink log", "drinking log", "booze log"]`
+* **Example phrases**:
+
+  * “Open my **alcohol log**”
+  * “Let me log my **drinks**”
+
+---
+
+### WEANING OFF TOOLS
+
+* **Canonical**: `Weaning Off Tools`
+* **Unique token**: `wean`
+* **Alias tokens**:
+  `["weaning off", "cutting back", "quit drinking", "reduce alcohol"]`
+* **Example phrases**:
+
+  * “Open **Weaning Off** tools”
+  * “Help me **cut back on alcohol**”
+
+---
+
+## 7. ProCare, Lifestyle, Planner, Home
+
+*(These you said don’t need heavy Copilot intros, but they still need unique keywords if you decide to route to them.)*
+
+### PRO CARE PAGE
+
+* **Canonical**: `ProCare`
+* **Unique token**: `procare`
+* **Alias tokens**:
+  `["pro care", "procare", "care plan", "clinical plan"]`
+
+### LIFESTYLE PAGE
+
+* **Canonical**: `Lifestyle`
+* **Unique token**: `lifestyle`
+* **Alias tokens**:
+  `["lifestyle", "home lifestyle", "habit hub"]`
+
+### PLANNER PAGE
+
+* **Canonical**: `Planner`
+* **Unique token**: `planner`
+* **Alias tokens**:
+  `["planner", "plan page", "main planner"]`
+
+### HOME PAGE
+
+* **Canonical**: `Home`
+* **Unique token**: `home`
+* **Alias tokens**:
+  `["home", "dashboard", "main screen", "start page"]`
+
+---
+
+## 8. Trainer / Pro Side
+
+### TRAINER & PHYSICIAN PORTAL
+
+* **Canonical**: `Trainer & Physician Portal`
+* **Unique token**: `portal`
+* **Alias tokens**:
+  `["trainer portal", "physician portal", "coach portal", "doctor portal", "pro portal"]`
+
+---
+
+### SUPPLEMENT HUB
+
+* **Canonical**: `Supplement Hub`
+* **Unique token**: `supplements`
+* **Alias tokens**:
+  `["supplement hub", "supplements", "vitamins", "nutritional frontiers"]`
+
+---
+
+### CARE TEAM & PRO ACCESS
+
+* **Canonical**: `Care Team & Pro Access`
+* **Unique token**: `care-team`
+* **Alias tokens**:
+  `["care team", "pro access", "care access"]`
+
+---
+
+### PRO PORTAL CLIENTS
+
+* **Canonical**: `Pro Portal Clients`
+* **Unique token**: `pro-clients`
+* **Alias tokens**:
+  `["client portal", "pro clients", "trainer clients"]`
+
+---
+
+### CLIENT DASHBOARD
+
+* **Canonical**: `Client Dashboard`
+* **Unique token**: `client-dash`
+* **Alias tokens**:
+  `["client dashboard", "client home", "client screen"]`
+
+---
+
+## How to use this with CanonicalAliasRegistry
+
+Hand this to the architect and tell them:
+
+> “For each feature, add the **unique token** + **aliases** into `CanonicalAliasRegistry.ts` so that any of these tokens/phrases can trigger the route and/or walkthrough. Use the unique token as the distinguishing word when there’s overlap.”
+
+If you want, next step I can take **one example** (like Craving Premades or Weekly Meal Builder) and show you **exactly how that entry should look in TS** so you can copy the pattern for others.

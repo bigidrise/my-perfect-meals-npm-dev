@@ -1,0 +1,247 @@
+Locked in, Coach.
+Moving to DIABETIC → BREAKFAST → CATEGORY 3 → egg-based
+30 meals
+Alphabetical
+Production-ready JSON
+Matches your premade system exactly.
+
+Here we go.
+
+🔥 DIABETIC – BREAKFAST – egg-based (Category 3)
+30 Meals — Alphabetical — JSON
+{
+  "egg-based": [
+    {
+      "title": "Avocado Egg White Scramble",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Bell Pepper Egg White Cups",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Broccoli Egg White Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cottage Cheese Egg Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Creamy Egg White Frittata",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Diced Turkey Egg Scramble",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg & Asparagus Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg & Spinach Power Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg White & Chicken Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg White & Ham Scramble",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg White & Mushroom Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg White & Turkey Sausage Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg White Breakfast Flat",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg White Garden Skillet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Egg White Spinach Quiche",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Green Pepper Egg Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "High-Protein Egg Muffins",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Kale & Egg White Skillet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Low-Carb Veggie Egg Bake",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Mushroom Egg White Scramble",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Onion & Spinach Egg Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Peppers & Egg White Scramble",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Protein Egg Veggie Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Simple Egg White Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Spinach & Turkey Egg Bake",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Spinach Mushroom Egg Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Tomato Basil Egg Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Turkey Sausage Egg Omelet",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Veggie Egg White Mini Bake",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    }
+  ]
+}

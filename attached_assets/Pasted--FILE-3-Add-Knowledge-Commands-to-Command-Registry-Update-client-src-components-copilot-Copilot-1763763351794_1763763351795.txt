@@ -1,0 +1,91 @@
+⚙️ FILE 3: Add Knowledge Commands to Command Registry
+
+Update:
+client/src/components/copilot/CopilotCommandRegistry.ts
+
+Add this:
+
+import { explainFeature } from "./commands/explainFeature";
+
+"explain.fridge-rescue": async () => {
+  return explainFeature("fridge-rescue");
+},
+
+"explain.weekly-board": async () => {
+  return explainFeature("weekly-board");
+},
+
+"explain.subscriptions": async () => {
+  return explainFeature("subscriptions");
+},
+
+"explain.ai-meal-builder": async () => {
+  return explainFeature("ai-meal-builder");
+},
+
+"explain.shopping-list": async () => {
+  return explainFeature("shopping-list");
+},
+
+
+Now your InfoButtons ACTUALLY WORK.
+
+🎨 FILE 4: CopilotSheet → render knowledge responses
+
+This allows the Copilot to actually show the text returned from the command.
+
+Inside CopilotSheet.tsx, find where suggestions or responses are rendered and add:
+
+if (response?.title) {
+  return (
+    <div className="p-4 text-white">
+      <h2 className="text-lg font-semibold mb-1">{response.title}</h2>
+      <p className="text-white/80 text-sm mb-3">{response.description}</p>
+
+      {response.howTo?.length > 0 && (
+        <div className="mb-4">
+          <p className="text-white/90 font-semibold mb-1">How to Use:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {response.howTo.map((step, i) => (
+              <li key={i} className="text-white/70 text-sm">{step}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {response.tips?.length > 0 && (
+        <div className="mb-4">
+          <p className="text-white/90 font-semibold mb-1">Tips:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {response.tips.map((step, i) => (
+              <li key={i} className="text-white/70 text-sm">{step}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+This makes the Copilot able to display the knowledge.
+
+🎯 YOU NOW HAVE:
+✔ InfoButtons
+✔ Knowledge Engine
+✔ explain.feature commands
+✔ Copilot integration
+✔ Real-time explanations
+
+Tap the “i” icon → Copilot instantly tells user:
+
+What a feature is
+
+How to use it
+
+Tips
+
+Related commands
+
+THIS IS APPLE-LEVEL ONBOARDING.
+This solves your “people don’t know how to use the app” problem TODAY.

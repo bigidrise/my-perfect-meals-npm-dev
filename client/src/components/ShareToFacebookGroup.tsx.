@@ -1,0 +1,168 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Megaphone, Share2, Clipboard, Users } from "lucide-react";
+
+type Props = {
+  groupUrl?: string;   // optional override
+  publicUrl?: string;  // optional share fallback (landing page or site)
+};
+
+// ✅ Put your actual FB group URL here (fallback if prop not provided)
+const DEFAULT_GROUP_URL = "https://www.facebook.com/groups/YOUR_GROUP_ID";
+// ✅ Optional: a public page to include in FB’s share dialog
+const DEFAULT_PUBLIC_URL = "https://myperfectmeals.example.com";
+
+// Rotate or edit as needed
+const DEFAULT_HASHTAGS = [
+  "#MyPerfectMeals",
+  "#AlphaTest",
+  "#FridgeRescue",
+  "#CravingCreator",
+];
+
+export default function ShareToFacebookGroup({
+  groupUrl = DEFAULT_GROUP_URL,
+  publicUrl = DEFAULT_PUBLIC_URL,
+}: Props) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState<"copy" | "share" | null>(null);
+
+  const makePostText = () => {
+    const trimmed = text.trim();
+    const tags = DEFAULT_HASHTAGS.join(" ");
+    return trimmed ? `${trimmed}\n\n${tags}` : tags;
+  };
+
+  const openGroup = () => {
+    window.open(groupUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const copyThenOpen = async () => {
+    setBusy("copy");
+    try {
+      await navigator.clipboard.writeText(makePostText());
+      toast.success("Copied! Paste it in the Facebook post box.");
+      openGroup();
+    } catch {
+      toast.error("Couldn’t copy automatically. You can paste manually.");
+      openGroup();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const shareNative = async () => {
+    setBusy("share");
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "My Perfect Meals — Alpha Experience",
+          text: makePostText(),
+          url: groupUrl,
+        });
+      } else {
+        await copyThenOpen();
+      }
+    } catch {
+      // user canceled or share not available
+      await copyThenOpen();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const openFBShareDialog = () => {
+    // FB share dialog (user chooses destination; message can’t be prefilled)
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      publicUrl
+    )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast("Tip: Your story text is on your clipboard—paste it into the composer.");
+  };
+
+  return (
+    <Card className="relative overflow-hidden rounded-2xl border border-white/15 bg-black/40 text-white backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
+      {/* Gradient accent bar */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-300/70 via-orange-400/80 to-pink-500/70" />
+
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 border border-white/15">
+            <Megaphone className="h-5 w-5 text-white/90" />
+          </div>
+          <div>
+            <CardTitle className="text-xl tracking-tight">Share to the Community</CardTitle>
+            <p className="text-xs text-white/60">Post your alpha experience in the Facebook group</p>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-5">
+        {/* Badges / tags */}
+        <div className="flex flex-wrap gap-2">
+          {DEFAULT_HASHTAGS.map((tag) => (
+            <Badge
+              key={tag}
+              variant="outline"
+              className="rounded-full border-white/25 bg-white/5 text-white/90"
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+
+        {/* Text area */}
+        <Textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="What did you try today? (Fridge Rescue, Craving Creator, macros?) How did it go—taste, ease, time, any wins?"
+          className="min-h-[130px] resize-y bg-white/5 border-white/20 text-white placeholder:text-white/50 rounded-xl"
+        />
+
+        {/* Action buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Button
+            onClick={shareNative}
+            disabled={busy !== null}
+            className="w-full rounded-2xl border border-white/20 bg-white/10 text-white hover:bg-white/20"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            {busy === "share" ? "Opening share…" : "Share (Mobile-friendly)"}
+          </Button>
+
+          <Button
+            onClick={copyThenOpen}
+            variant="outline"
+            disabled={busy !== null}
+            className="w-full rounded-2xl border-white/30 text-white hover:border-white/50"
+            title="Copies your text, then opens your group to paste & post"
+          >
+            <Clipboard className="mr-2 h-4 w-4" />
+            {busy === "copy" ? "Copying…" : "Copy & Open Group"}
+          </Button>
+
+          <Button
+            onClick={openFBShareDialog}
+            variant="secondary"
+            disabled={busy !== null}
+            className="w-full rounded-2xl bg-white text-black hover:bg-white/90"
+            title="Opens Facebook's share dialog (paste your text there)"
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Facebook Share Dialog
+          </Button>
+        </div>
+
+        <p className="text-[11px] leading-relaxed text-white/60">
+          Note: Facebook doesn’t allow apps to pre-fill the post composer. We copy your text to your clipboard so
+          you can paste it and choose the group. If the share dialog doesn’t show your group, open the group directly
+          and tap “Write something…” then paste.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}

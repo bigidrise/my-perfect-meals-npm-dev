@@ -1,0 +1,126 @@
+Here is the **exact prompt** you should give your Replit *Architect* — clean, clear, and engineered to make them generate the full implementation plan for you without breaking anything in the app.
+
+Copy/paste this **exactly**:
+
+---
+
+# 🚧 **PROMPT FOR ARCHITECT — Meal Reminder Notification System (Simple, Stable, Low Logic)**
+
+We need to add a **meal reminder notification system** to the app.
+This must follow these rules:
+
+### **1. Keep it extremely simple and extremely stable**
+
+No heavy backend logic.
+No queueing systems.
+No cron jobs.
+No complex scheduling.
+No new database tables unless absolutely required.
+
+The goal is to protect app stability while adding high-impact functionality.
+
+### **2. System should use LOCAL notifications, not push notifications**
+
+We want the **device** to schedule and fire the notifications.
+
+* The reminders should work offline
+* No backend calls after initial setup
+* No database sync required
+* No dependence on the Replit backend
+* Only use local device scheduling (Expo Notifications or similar)
+
+### **3. UX placement**
+
+Add this as a **collapsible “Meal Reminder Settings” block** inside the *Meal Builder* page.
+
+NOT onboarding.
+NOT Home.
+NOT in Account Settings.
+
+The block should contain:
+
+* “Enable Meal Reminders” toggle
+* “How many meals per day?” dropdown
+* Time pickers for each meal slot (Meal 1, Meal 2, Meal 3, etc.)
+
+When the user selects times, the app should schedule notifications.
+
+### **4. Data storage**
+
+Use **local storage only** (AsyncStorage or secure equivalent).
+
+Do *not* store meal times in the database for now.
+
+Store:
+
+```
+{
+  enabled: boolean,
+  mealsPerDay: number,
+  times: ["07:00", "12:30", "16:45"]
+}
+```
+
+### **5. Notification scheduling logic**
+
+Architect should create a new isolated module:
+
+```
+src/notifications/notificationScheduler.ts
+```
+
+With 3 functions:
+
+```
+requestPermissions()
+scheduleMealNotifications(times: string[])
+clearMealNotifications()
+```
+
+The Meal Builder will import and call these functions but will not contain any scheduling logic itself.
+
+### **6. Triggering the schedule**
+
+When the user updates times:
+
+* Save to local storage
+* Clear existing scheduled notifications
+* Re-schedule new notifications
+
+### **7. No backend involvement**
+
+This system MUST NOT:
+
+* touch the Express backend
+* interfere with Copilot
+* depend on user plan tier
+* involve Stripe
+* interfere with feature locking
+* require new Drizzle tables
+* impact stability
+
+All logic must be confined to the client.
+
+### **8. Deliverables from the Architect**
+
+Please provide:
+
+1. A clean architecture diagram (client components + notification module)
+2. A file structure update
+3. A list of new files and modified files
+4. A technical sequence flow (what fires when)
+5. The safest possible implementation route to avoid regressions
+6. A step-by-step Replit task breakdown for the agent
+
+---
+
+**Goal:**
+A lightweight, zero-risk, device-based reminder system that helps users remember to eat without destabilizing the app.
+
+---
+
+Give me the full implementation plan following this prompt.
+
+---
+
+Copy/paste that to the Architect exactly as written, Coach.
