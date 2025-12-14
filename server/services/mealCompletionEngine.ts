@@ -1,8 +1,16 @@
 import OpenAI from "openai";
 import { smartCategorizationEngine } from "./smartCategorization";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 export interface MealAnalysis {
   completeMeals: Array<{
@@ -48,7 +56,7 @@ export class MealCompletionEngine {
       // Get ingredient analysis for better meal suggestions
       const ingredientAnalyses = await smartCategorizationEngine.analyzeIngredients(ingredients);
       
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
@@ -109,7 +117,7 @@ export class MealCompletionEngine {
     nutritionSummary: any;
   }> {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {

@@ -4,7 +4,16 @@ import { learnToCookChallenges, learnToCookEntries, learnToCookVotes, userBadges
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { format, addDays, setDate, setHours, setMinutes, setSeconds } from 'date-fns';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 // AI Challenge Generation Prompts
 const CHALLENGE_THEMES = [
@@ -32,7 +41,7 @@ export class LearnToCookService {
       const theme = CHALLENGE_THEMES[Math.floor(Math.random() * CHALLENGE_THEMES.length)];
       
       // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-5",
         messages: [
           {

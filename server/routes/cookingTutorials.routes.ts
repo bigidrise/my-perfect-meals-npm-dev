@@ -7,9 +7,17 @@ const r = Router();
 const TEST_USER_ID = "test-user-123";
 
 // Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
+
 
 // AI-powered feedback for user-created recipes
 r.post("/get-recipe-feedback", async (req, res) => {
@@ -40,7 +48,7 @@ Please provide feedback on:
 Format your response as constructive, encouraging feedback that helps the cook improve their skills.
 `;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
@@ -142,7 +150,7 @@ Generate a JSON response with:
 }
 `;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {

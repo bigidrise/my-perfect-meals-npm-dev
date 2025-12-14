@@ -4,7 +4,17 @@ import OpenAI from "openai";
 import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY environment variable is not set. Please configure it to use AI meal generation features.");
+    }
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+}
 
 // Convert decimal to fraction for display
 function formatFraction(decimal: number): string {
@@ -45,7 +55,7 @@ export type FinalMeal = {
 // Generate DALL-E image
 async function generateImageFromDalle(prompt: string): Promise<string | null> {
   try {
-    const response = await openai.images.generate({
+    const response = await getOpenAI().images.generate({
       model: "dall-e-3",
       prompt: prompt,
       n: 1,
@@ -63,7 +73,7 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
 export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq>): Promise<FinalMeal> {
   console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
 
-  const gptResponse = await openai.chat.completions.create({
+  const gptResponse = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     temperature: 0.4,
     messages: [

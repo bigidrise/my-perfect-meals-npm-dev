@@ -3,9 +3,17 @@ import OpenAI from 'openai';
 import { buildMealImageCacheKey } from '../lib/mealImageCacheKey';
 import { checkImageExists, uploadImageToPermanentStorage } from './permanentImageStorage';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
+
 
 // 🔒 PROTECTED: Image cache to avoid regenerating the same images
 const imageCache = new Map<string, string>();
@@ -102,7 +110,7 @@ async function generateDalleImage(options: ImageGenerationOptions): Promise<stri
   try {
     const prompt = createImagePrompt(options);
     
-    const response = await openai.images.generate({
+    const response = await getOpenAI().images.generate({
       model: "dall-e-3",
       prompt,
       n: 1,

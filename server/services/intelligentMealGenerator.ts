@@ -4,7 +4,16 @@ import OpenAI from "openai";
 import { storage } from "../storage";
 import { enforceMeasuredIngredients } from "./mealgenV2";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 export interface IntelligentMealRequest {
   userId: string;
@@ -102,7 +111,7 @@ ${request.preferences ? `Preferences: ${JSON.stringify(request.preferences)}` : 
 Please generate a personalized meal recommendation with a conversational response.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         { role: "system", content: systemPrompt },
@@ -123,7 +132,7 @@ Please generate a personalized meal recommendation with a conversational respons
     // Generate image if requested
     if (request.mode === "generate" && result.meal) {
       try {
-        const imageResponse = await openai.images.generate({
+        const imageResponse = await getOpenAI().images.generate({
           model: "dall-e-3",
           prompt: `Professional food photography of ${result.meal.name}: ${result.meal.description}. Clean, appetizing, restaurant-quality presentation.`,
           size: "1024x1024",
@@ -181,7 +190,7 @@ Respond conversationally and helpfully. If the user wants to modify the meal, pr
   ];
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages,
       temperature: 0.8,
@@ -242,7 +251,7 @@ MEAL: ${JSON.stringify(mealData)}
 Provide a brief, friendly explanation focusing on health benefits and how it fits their dietary needs.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,

@@ -4,7 +4,23 @@ import OpenAI from "openai";
 const DEFAULT_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS ?? 25000);
 const MAX_RETRIES = Number(process.env.LLM_MAX_RETRIES ?? 2);
 
-export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+let _openai: OpenAI | null = null;
+
+export function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY environment variable is not set. Please configure it to use AI features.");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
+
+// Legacy export for backward compatibility - use getOpenAI() for new code
+export const openai = {
+  get chat() { return getOpenAI().chat; },
+  get images() { return getOpenAI().images; },
+};
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 

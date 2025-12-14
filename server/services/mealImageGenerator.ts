@@ -7,9 +7,17 @@ import crypto from 'crypto';
 import { uploadImageToPermanentStorage, checkImageExists } from './permanentImageStorage';
 import { getStaticSnackImage, DEFAULT_SNACK_IMAGE, isLikelySnack } from '../../shared/staticSnackMappings';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
+
 
 export interface MealImageRequest {
   mealName: string;
@@ -111,7 +119,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   
   try {
     // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-    const response = await openai.images.generate({
+    const response = await getOpenAI().images.generate({
       model: "dall-e-3",
       prompt,
       n: 1,

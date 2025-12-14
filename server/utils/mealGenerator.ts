@@ -7,7 +7,16 @@ import { pickImageForMeal } from "./images";
 import { OnboardingProfile, MealRequest, MealResult } from "../types";
 import { storage } from "../storage";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 export async function generateMeal(req: MealRequest): Promise<MealResult> {
   console.log(`🎯 Generating meal using AI with user onboarding data for user ${req.userId}`);
@@ -104,7 +113,7 @@ Return ONLY valid JSON - no explanations or extra text.`;
 
   console.log(`🤖 Generating AI meal with GPT-4o for ${mealType || 'meal'}${cravingText}`);
   
-  const resp = await openai.chat.completions.create({
+  const resp = await getOpenAI().chat.completions.create({
     model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     temperature: 0.7,
     messages: [

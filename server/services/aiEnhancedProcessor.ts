@@ -1,7 +1,15 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 interface ProcessedIngredient {
   name: string;
@@ -34,7 +42,7 @@ class EnhancedIngredientProcessor {
   // AI-powered ingredient processing with ChatGPT-level intelligence
   async processRawInput(rawInput: string): Promise<ProcessedIngredient> {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
@@ -90,7 +98,7 @@ class EnhancedIngredientProcessor {
   // Advanced ingredient consolidation using AI reasoning
   async intelligentConsolidate(ingredients: Array<{name: string, amount: number, unit: string}>): Promise<SmartConsolidation[]> {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
@@ -137,7 +145,7 @@ class EnhancedIngredientProcessor {
     suggestions: string[];
   }> {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
@@ -183,7 +191,7 @@ class EnhancedIngredientProcessor {
     nutritionBalance: string;
   }> {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {

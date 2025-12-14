@@ -2,7 +2,17 @@ import express from "express";
 import { OpenAI } from "openai";
 
 const router = express.Router();
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 router.post("/meal-summarize", async (req, res) => {
   try {
@@ -27,7 +37,7 @@ Output: "Grilled chicken with quinoa and roasted broccoli (dinner)"
 Text: """${text}"""
 Return ONLY the one-line summary.`;
 
-    const resp = await openai.chat.completions.create({
+    const resp = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini", // fast, cheap, good at text
       temperature: 0.1,
       messages: [
