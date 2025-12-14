@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
@@ -10,67 +11,6 @@ function getOpenAI(): OpenAI {
   }
   return _openai;
 }
-
-interface ProcessedIngredient {
-  name: string;
-  category: string;
-  standardizedQuantity?: { amount: number; unit: string };
-  nutritionScore?: number;
-  seasonality?: string[];
-  storageAdvice?: string;
-  substitutions?: string[];
-  enhancements: {
-    aiCategorized: boolean;
-    standardized: boolean;
-    nutritionAnalyzed: boolean;
-    smartSubstitutions: boolean;
-  };
-}
-
-interface SmartConsolidation {
-  canonical: string;
-  variations: string[];
-  totalQuantity: { amount: number; unit: string };
-  confidence: number;
-  reasoning: string;
-}
-
-class EnhancedIngredientProcessor {
-  private categoryCache = new Map<string, string>();
-  private nutritionCache = new Map<string, any>();
-
-  // AI-powered ingredient processing with ChatGPT-level intelligence
-  async processRawInput(rawInput: string): Promise<ProcessedIngredient> {
-    try {
-      const response = await getOpenAI().chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are a culinary AI expert specializing in ingredient analysis and shopping optimization. 
-            Parse and enhance grocery items with professional-grade categorization, standardization, and nutritional insights.
-            
-            Categories: Produce, Meats, Dairy, Grains, Pantry, Frozen, Bakery, Beverages, Condiments, Snacks, Personal Care, Household
-            
-            Provide detailed analysis including:
-            - Standardized name (remove brand names, standardize format)
-            - Precise category classification
-            - Quantity parsing and unit standardization
-            - Nutrition score (1-10, 10 being healthiest)
-            - Seasonal availability
-            - Storage recommendations
-            - Smart substitution suggestions
-            
-            Respond in JSON format matching the ProcessedIngredient interface.`
-          },
-          {
-            role: "user",
-            content: `Analyze and enhance this grocery item: "${rawInput}"`
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1 // Low temperature for consistent, accurate results
-      });
 
       const analysis = JSON.parse(response.choices[0].message.content || '{}');
       

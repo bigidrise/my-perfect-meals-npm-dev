@@ -13,7 +13,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 // Robust content extraction for OpenAI responses
 type AnyObj = Record<string, any>;
 

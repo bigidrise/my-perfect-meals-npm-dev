@@ -11,7 +11,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 interface FamilyRecipeInput {
   name: string;
   description: string;

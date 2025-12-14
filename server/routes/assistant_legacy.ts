@@ -12,7 +12,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 /**
  * Legacy Avatar Assistant Handler
  * 

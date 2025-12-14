@@ -14,7 +14,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 // 🔒 PROTECTED: Image cache to avoid regenerating the same images
 const imageCache = new Map<string, string>();
 

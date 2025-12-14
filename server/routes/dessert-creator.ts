@@ -17,7 +17,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 const dessertCreatorRouter = Router();
 
 const SERVING_MULTIPLIERS: Record<string, { count: number; label: string }> = {

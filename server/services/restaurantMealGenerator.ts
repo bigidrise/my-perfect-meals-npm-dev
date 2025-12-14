@@ -17,7 +17,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 interface RestaurantMealRequest {
   restaurantName: string;
   cuisine: string;

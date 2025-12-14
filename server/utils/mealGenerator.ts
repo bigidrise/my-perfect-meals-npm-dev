@@ -17,39 +17,6 @@ function getOpenAI(): OpenAI {
   }
   return _openai;
 }
-
-export async function generateMeal(req: MealRequest): Promise<MealResult> {
-  console.log(`🎯 Generating meal using AI with user onboarding data for user ${req.userId}`);
-  
-  // Get user's onboarding data from storage
-  const user = await storage.getUser(req.userId);
-  if (!user) {
-    throw new Error(`User ${req.userId} not found`);
-  }
-  
-  // Build comprehensive onboarding profile from user data
-  const onboarding: OnboardingProfile = {
-    dietType: user.dietType || user.fitnessGoal || undefined, // Use actual dietType field from user profile
-    allergies: user.allergies || [],
-    dislikes: user.dislikedFoods || [],
-    healthConditions: user.healthConditions || [],
-    dietaryRestrictions: user.dietaryRestrictions || [],
-    activityLevel: user.activityLevel || undefined,
-    fitnessGoal: user.fitnessGoal || undefined,
-    dailyCalorieTarget: user.dailyCalorieTarget || undefined,
-    weight: user.weight || undefined,
-    height: user.height || undefined,
-    age: user.age || undefined
-  };
-  
-  // Handle diet type preference hierarchy: medical override > temporary preference > onboarding default
-  const baseDietType = onboarding.dietType || 'Balanced';
-  const effectiveDietType = req.tempMedicalOverride || req.tempDietPreference || baseDietType;
-  
-  console.log(`📋 User profile loaded: diet=${baseDietType} (effective: ${effectiveDietType}), allergies=${onboarding.allergies?.length || 0}, restrictions=${onboarding.dietaryRestrictions?.length || 0}`);
-  
-  // Generate meal using AI with user's profile
-  const meal = await gptFallback({ ...req, onboarding });
   
   // Fix units
   meal.ingredients = meal.ingredients.map(normalizeUnits);

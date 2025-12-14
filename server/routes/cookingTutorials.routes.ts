@@ -18,7 +18,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 // AI-powered feedback for user-created recipes
 r.post("/get-recipe-feedback", async (req, res) => {
   try {

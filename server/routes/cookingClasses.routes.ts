@@ -26,7 +26,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 // Get all classes by track (beginner, intermediate, advanced)
 router.get('/tracks/:track', async (req, res) => {
   try {

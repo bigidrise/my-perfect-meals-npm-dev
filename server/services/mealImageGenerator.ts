@@ -18,7 +18,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-
 export interface MealImageRequest {
   mealName: string;
   ingredients: string[];

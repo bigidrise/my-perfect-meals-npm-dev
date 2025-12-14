@@ -21,7 +21,6 @@ router.post("/meal-summarize", async (req, res) => {
       return res.status(400).json({ error: "Text required" });
     }
 
-    // Minimal, deterministic summary
     const prompt = `
 Summarize this freeform meal description into ONE concise line.
 - Keep only the foods and basic prep.
@@ -38,7 +37,7 @@ Text: """${text}"""
 Return ONLY the one-line summary.`;
 
     const resp = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini", // fast, cheap, good at text
+      model: "gpt-4o-mini",
       temperature: 0.1,
       messages: [
         {
