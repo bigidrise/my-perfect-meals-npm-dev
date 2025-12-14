@@ -7,9 +7,25 @@ import { PLAN_ENTITLEMENTS, PlanKey, getEntitlementsForPlan } from "../entitleme
 
 const router = express.Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-09-30.clover",
-});
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-09-30.clover",
+  });
+}
+
+function requireStripe(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (!stripe) {
+    return res.status(503).json({ error: "Payment system not configured" });
+  }
+  next();
+}
+
+function getStripe(): Stripe {
+  return stripe!;
+}
+
+router.use(requireStripe);
 
 router.post("/create-checkout-session", async (req, res) => {
   try {
@@ -19,7 +35,7 @@ router.post("/create-checkout-session", async (req, res) => {
       return res.status(400).json({ error: "Missing priceLookupKey" });
     }
 
-    const prices = await stripe.prices.list({
+    const prices = await getStripe().prices.list({
       lookup_keys: [priceLookupKey],
       active: true,
       limit: 1,
@@ -36,7 +52,7 @@ router.post("/create-checkout-session", async (req, res) => {
     const successUrl = process.env.APP_SUCCESS_URL || `${req.protocol}://${req.get("host")}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = process.env.APP_CANCEL_URL || `${req.protocol}://${req.get("host")}/pricing?cancel=1`;
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: price.id, quantity: 1 }],
       customer_email: customerEmail,
@@ -66,7 +82,7 @@ router.post("/create-portal-session", async (req, res) => {
 
     const defaultReturnUrl = process.env.APP_SUCCESS_URL || `${req.protocol}://${req.get("host")}/settings/billing`;
 
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const portalSession = await getStripe().billingPortal.sessions.create({
       customer: customerId,
       return_url: returnUrl || defaultReturnUrl,
     });
@@ -88,7 +104,7 @@ router.get("/checkout-success", async (req, res) => {
     }
 
     // Retrieve the checkout session with expanded data
-    const session = await stripe.checkout.sessions.retrieve(session_id as string, {
+    const session = await getStripe().checkout.sessions.retrieve(session_id as string, {
       expand: ["subscription", "line_items.data.price"],
     });
 
@@ -165,7 +181,7 @@ router.get("/subscription-status", async (req, res) => {
     if (user.subscriptionStatus === "active" && user.stripeSubscriptionId) {
       // Verify with Stripe that subscription is still active
       try {
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        const subscription = await getStripe().subscriptions.retrieve(user.stripeSubscriptionId);
         
         if (subscription.status === "active" || subscription.status === "trialing") {
           return res.json({
@@ -182,7 +198,7 @@ router.get("/subscription-status", async (req, res) => {
     // If user has Stripe customer ID, check for any active subscriptions
     if (user.stripeCustomerId) {
       try {
-        const subscriptions = await stripe.subscriptions.list({
+        const subscriptions = await getStripe().subscriptions.list({
           customer: user.stripeCustomerId,
           status: "active",
           limit: 1,
@@ -224,14 +240,14 @@ router.get("/subscription-status", async (req, res) => {
     // Check by email as fallback
     if (user.email) {
       try {
-        const customers = await stripe.customers.list({
+        const customers = await getStripe().customers.list({
           email: user.email,
           limit: 1,
         });
 
         if (customers.data.length > 0) {
           const customer = customers.data[0];
-          const subscriptions = await stripe.subscriptions.list({
+          const subscriptions = await getStripe().subscriptions.list({
             customer: customer.id,
             status: "active",
             limit: 1,
