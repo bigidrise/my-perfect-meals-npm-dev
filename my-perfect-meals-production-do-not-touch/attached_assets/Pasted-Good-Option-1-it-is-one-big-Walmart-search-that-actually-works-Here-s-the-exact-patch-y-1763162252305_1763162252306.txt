@@ -1,0 +1,278 @@
+Good. Option **1** it is — one big Walmart search that actually works.
+
+Here’s the **exact patch** your Replit Agent + architect should apply to wire this up cleanly, without touching your aesthetics or breaking anything.
+
+---
+
+## 🧠 Architect Overview (What We’re Doing)
+
+**Goal:**
+From the Master Shopping List, let users tap **“Shop at Walmart”** and open **one Walmart search URL** containing all **unchecked** list items.
+
+**Key constraints:**
+
+* No backend changes
+* No Walmart API keys
+* No cart API / OPD yet
+* Only front-end: build a Walmart search URL and `window.open()` it
+* Must **not** change card layout or black-glass styling
+* Must leave the **$29.99 Shopping Delivery card** alone
+
+---
+
+## 1️⃣ New Utility: `client/src/lib/walmartLinkBuilder.ts`
+
+**Task for Agent:**
+Replace the **entire content** of `client/src/lib/walmartLinkBuilder.ts` with this:
+
+```ts
+// client/src/lib/walmartLinkBuilder.ts
+
+export interface WalmartSearchItem {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  notes?: string;
+  category?: string;
+}
+
+const WALMART_SEARCH_BASE = "https://www.walmart.com/search?q=";
+
+/**
+ * Normalize a shopping list item into a compact Walmart search term.
+ * We keep it simple and robust:
+ * - lowercase
+ * - strip punctuation
+ * - collapse whitespace
+ * - optionally add unit to help Walmart find the right size
+ */
+function normalizeSearchTerm(item: WalmartSearchItem): string {
+  let term = (item.name || "").toLowerCase();
+
+  // strip most punctuation, keep alphanumerics and spaces
+  term = term
+    .replace(/[\r\n]+/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!term) return "";
+
+  // For some items, adding unit helps (oz, lb, cup, etc.)
+  if (item.unit) {
+    const unit = item.unit.toLowerCase().trim();
+    if (unit && !["each", "unit"].includes(unit)) {
+      term += " " + unit;
+    }
+  }
+
+  return term;
+}
+
+/**
+ * Build a Walmart search URL that includes all items in a single query.
+ * Example: https://www.walmart.com/search?q=chicken+breast,greek+yogurt,broccoli
+ */
+export function buildWalmartSearchUrl(items: WalmartSearchItem[]): string {
+  if (!items || items.length === 0) {
+    return "https://www.walmart.com/";
+  }
+
+  const terms: string[] = [];
+
+  for (const item of items) {
+    const term = normalizeSearchTerm(item);
+    if (!term) continue;
+
+    // avoid duplicates
+    if (!terms.includes(term)) {
+      terms.push(term);
+    }
+
+    // crude guard against absurdly long URLs
+    const joined = terms.join(", ");
+    if (joined.length > 400) {
+      break;
+    }
+  }
+
+  if (terms.length === 0) {
+    return "https://www.walmart.com/";
+  }
+
+  const query = encodeURIComponent(terms.join(", "));
+  return `${WALMART_SEARCH_BASE}${query}`;
+}
+```
+
+Notes for architect:
+
+* This utility is **pure**, front-end only.
+* No side effects, safe to reuse anywhere.
+* Designed to handle your current `ShoppingListItem` shape (name, quantity, unit, notes, category).
+
+---
+
+## 2️⃣ Wire It Into `ShoppingListMasterView.tsx`
+
+**File:** `client/src/pages/ShoppingListMasterView.tsx`
+
+### 2.1 Add Import
+
+At the top, with the other imports, add:
+
+```ts
+import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
+```
+
+Make sure it’s **not duplicated** and path matches your alias setup.
+
+---
+
+### 2.2 Add the Walmart Handler
+
+Inside `ShoppingListMasterView` (after your existing callbacks like `onCopyToClipboard`, before the `uncheckedItems` / `checkedItems` `useMemo`s), add this:
+
+```ts
+  const handleShopAtWalmart = useCallback(() => {
+    const activeItems = items.filter(i => !i.isChecked);
+
+    if (activeItems.length === 0) {
+      toast({
+        title: "No items to send",
+        description: "Add items to your shopping list before sending to Walmart.",
+      });
+      return;
+    }
+
+    const url = buildWalmartSearchUrl(activeItems);
+
+    // fail-safe: if something goes wrong, just land them on walmart.com
+    if (!url || typeof url !== "string") {
+      window.open("https://www.walmart.com/", "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [items, toast]);
+```
+
+This:
+
+* Uses existing `items` from `useShoppingListStore`
+* Only sends **unchecked** items
+* Gives user feedback if the list is empty
+* Opens Walmart in a **new tab** safely
+
+---
+
+### 2.3 Hook Up the Walmart Card Button
+
+Now update the **Walmart UI section**.
+
+You currently have either:
+
+* The old multi-partner **Grocery Delivery Options** dropdown, or
+* A new simplified **Walmart “Coming Soon” card** (depending on recent changes).
+
+We want a **single Walmart card with a real working button**.
+
+Inside `ShoppingListMasterView.tsx`, find the **Walmart card** block (whatever the current structure is) and make sure it includes a button like this:
+
+```tsx
+{/* Walmart Card - Single Integration */}
+<div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5">
+  <div className="flex items-center justify-between gap-3">
+    <div>
+      <div className="text-lg font-semibold">Walmart Grocery</div>
+      <div className="text-xs inline-flex items-center gap-2 mt-1">
+        <span className="rounded-full px-2 py-0.5 bg-yellow-500/20 border border-yellow-300/40 text-yellow-200 text-[11px]">
+          Live — Search on Walmart
+        </span>
+        <span className="text-white/60 text-[11px]">
+          Full cart & delivery integration pending Walmart approval
+        </span>
+      </div>
+      <div className="text-xs text-white/70 mt-2 max-w-md">
+        Tap the button below to open your shopping list as a search on Walmart.com.
+        You can choose your preferred brands, add to cart, and complete pickup or delivery
+        inside Walmart.
+      </div>
+    </div>
+
+    <Button
+      onClick={handleShopAtWalmart}
+      className="rounded-xl px-4 py-2 border border-white/40 bg-blue-600/30 hover:bg-blue-600/40 text-white text-sm whitespace-nowrap"
+      data-testid="button-walmart-search"
+    >
+      Shop this list on Walmart
+    </Button>
+  </div>
+</div>
+```
+
+📌 **Important:**
+
+* Keep your **$29.99 / month Shopping Delivery** card **unchanged** above this card (as you requested).
+* Remove any remaining multi-partner dropdown (Instacart, Kroger, Target, Amazon, Shipt) if it still exists — they are dead weight and not functional.
+
+---
+
+## 3️⃣ What the User Experience Looks Like
+
+1. User builds shopping list from:
+
+   * Diabetic Hub
+   * GLP-1
+   * Kids / Toddler
+   * Weekly meals
+   * Cravings, etc.
+
+2. On **Master Shopping List**, they see:
+
+   * $29.99 Shopping Delivery card (future service)
+   * Walmart Grocery card with **“Shop this list on Walmart”** button
+
+3. They tap the button →
+
+   Browser opens:
+
+   `https://www.walmart.com/search?q=chicken+breast,avocado,greek+yogurt,broccoli,...`
+
+4. They pick exact items they want, using Walmart’s normal interface, and check out however they normally do (pickup / delivery / EBT / Walmart+ etc.).
+
+No fake integrations. No promises you can’t keep. But **something real actually works**.
+
+---
+
+## 4️⃣ What the Agent Should Run After Patch
+
+For the Replit Agent / Architect checklist:
+
+1. **Typecheck & Lint**
+
+   * `npm run lint` (or `pnpm lint` / `yarn lint`, whatever you use)
+   * `npm run build` on frontend if you have it
+
+2. **Manual Test**
+
+   * Start dev app
+   * Add 3–5 items to shopping list
+   * Click **“Shop this list on Walmart”**
+   * Verify Walmart opens with **all items in a single search**
+
+3. **Edge Cases**
+
+   * Test with **no items** → should show toast “No items to send”
+   * Test with **checked items only** → should treat that as “no items to send”
+   * Test with very long lists → should still open, URL not insane
+
+---
+
+You picked the right option here — this gives you a **real, working Walmart experience now**, while we wait for the full-blown API/OPD approval.
+
+If you want, next step after this patch is live can be:
+
+* Add a tiny **“What happens when I tap this?”** info popover so users understand exactly what’s going on.
+
+But first: have the agent apply this patch exactly as written.

@@ -1,0 +1,138 @@
+Here you go, Coach — a clean, architect-ready prompt you can paste straight into Replit.
+
+It’s firm, clear, directive, and structured in phases exactly the way your engineering system expects.
+
+⸻
+
+✅ ARCHITECT PROMPT — “Create With Chef” System (AI Premades Replacement)
+
+Architect, load full project context.
+A new system change is being initiated.
+This prompt defines the official replacement for AI Premades and establishes a new global feature called:
+
+Create With Chef
+
+⸻
+
+🧩 Overview of What Is Changing
+
+The existing AI Premades feature is being retired because combinations consistently confuse the model and break the meal-card generation pipeline.
+
+We are replacing AI Premades with a new, universal feature called Create With Chef, which behaves like a simplified “Fridge Rescue” engine (free-form text → full meal card) and will exist inside every meal generator across the entire app.
+
+Snacks will get a variant that behaves more like Craving Creator (craving → healthy transformation).
+
+This requires a global UI update, new modal logic, and a re-wire of the backend prompts.
+
+⸻
+
+🔥 High-Level Requirements
+
+1. Create With Chef (Main Version)
+	•	Replaces AI Premades everywhere.
+	•	Appears as a button on every meal generator (Breakfast, Lunch, Dinner).
+	•	Pressing the button opens a simple modal window (no steps, no complexity).
+	•	Modal includes:
+	•	A short placeholder example (ex: “Describe what you want: ‘something sweet with strawberries,’ ‘high-protein eggs,’ ‘low-carb tacos,’ etc.”)
+	•	One text input.
+	•	One “Generate” button.
+	•	Submits request to the same engine pipeline used by Fridge Rescue:
+	•	Free-form input → guardrails → unified meal card → return.
+	•	Output is a standard meal card, identical to Fridge Rescue outputs.
+
+⸻
+
+2. Create With Chef — Snack Version
+	•	Behavior mirrors Craving Creator rules (craving → healthy makeover meal).
+	•	Also uses the same modal UI.
+	•	Placeholder example tailored to cravings:
+	•	“Tell me what you’re craving: crunchy, fruity, chocolate, salty, etc.”
+	•	Output is a Snacks Meal Card, generated through the healthy-version transformation logic.
+
+⸻
+
+🔧 Architect — Implementation Phases
+
+PHASE 1 — Replace AI Premades With Create With Chef (Meals Only)
+
+Objective:
+Implement Create With Chef in every meal generator (breakfast, lunch, dinner) and remove AI Premades logic.
+
+Requirements:
+	•	Remove all references to “AI Premades” from components, routes, and prompts.
+	•	Add a global component: <CreateWithChefButton />.
+	•	Add a global modal: <CreateWithChefModal />.
+	•	Modal should call a new backend endpoint (or repurpose existing Fridge Rescue adapter) that accepts a single string and returns a meal card.
+	•	Inject this feature into:
+	•	Weekly Meal Builder
+	•	General Nutrition Builder
+	•	Performance & Competition Builder
+	•	Clinical Builders (Diabetic, GLP-1, Anti-Inflammatory)
+	•	Beachbody / Body Physique Builder
+	•	All Professional / ProCare boards
+	•	Ensure output goes through the unified meal-card pipeline.
+	•	Ensure macros propagate correctly into Today’s Macros and biometrics.
+
+Completion Definition:
+	•	Every meal generator has a working “Create With Chef.”
+	•	It opens → user types → presses generate → meal card appears.
+	•	No snack logic yet.
+
+⸻
+
+PHASE 2 — Add Create With Chef (Snack Version)
+
+Objective:
+Implement snack-specific version using Craving Creator logic.
+
+Requirements:
+	•	Globally add <CreateWithChefSnackButton /> where snacks are generated.
+	•	Modal is identical UI but uses the “Craving Creator” healthy-version prompt template.
+	•	Output must be formatted using the Snacks MealCard template.
+	•	Ensure snack macros feed into today’s totals.
+
+Completion Definition:
+	•	Snacks now accept craving descriptions.
+	•	The system outputs healthy snack cards consistently.
+
+⸻
+
+PHASE 3 — Global Harmonization & Cleanup
+
+Objective:
+Ensure every subsystem is aligned with the new architecture.
+
+Tasks:
+	•	Confirm that all former “AI Premade” routes, prompts, components, and unused data structures are removed or deprecated.
+	•	Confirm feature flags/PhaseGate entries are updated.
+	•	Confirm Create With Chef is globally available anywhere meals are created.
+	•	Update naming conventions and shared components to reflect new system.
+
+Completion Definition:
+	•	No remaining AI Premade codepaths.
+	•	All builders show “Create With Chef.”
+	•	Snacks use the craving transformation model.
+	•	Pipeline is stable and consistent across all hubs.
+
+⸻
+
+🎯 Architect — Goals of This Change
+	•	Remove unreliable premade-combo confusion.
+	•	Give users total freedom: “Tell the chef what you want.”
+	•	Unify the meal-creation UX across all builders.
+	•	Make snacks behave like cravings, not meals.
+	•	Make the system simple:
+Press → Describe → Generate → Eat.
+
+⸻
+
+🏁 **Architect — Begin With PHASE 1.
+
+Acknowledge when the phase plan is loaded.**
+
+⸻
+
+Coach, this is airtight.
+This tells the architect EXACTLY what we’re doing, WHY we’re doing it, and HOW to execute it cleanly in staged implementation.
+
+If you want, I can also write the UI prompt, the backend prompt, or the Replit agent prompt if you want to kick implementation off instantly.

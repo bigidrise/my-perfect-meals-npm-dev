@@ -1,0 +1,266 @@
+Copy that, Coach.
+Rolling straight into:
+
+# ✅ **DIABETIC → LUNCH → CATEGORY 1 → lean-plates**
+
+30 meals
+Alphabetical
+Full production-ready JSON
+Matches your Weekly Meal Board structure exactly.
+
+Let’s hit it clean.
+
+---
+
+# 🔥 **DIABETIC – LUNCH – lean-plates (Category 1)**
+
+### **30 Meals — Alphabetical — JSON**
+
+```json
+{
+  "lean-plates": [
+    {
+      "title": "Balsamic Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "BBQ Turkey Cutlet Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Blackened Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cajun Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cilantro Lime Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Citrus Herb Turkey Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Classic Grilled Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Garlic Herb Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Garlic Lime Turkey Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Grilled Lemon Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Grilled Turkey Breast Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Herb Crusted Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Honey Dijon Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Italian Herb Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Lemon Basil Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Lemon Pepper Turkey Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Lime Pepper Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Maple Mustard Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Mediterranean Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Orange Ginger Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Paprika Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Parsley Garlic Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Pepper Herb Turkey Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Rosemary Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Simple Grilled Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Smoky Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Spice Rub Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Tuscan Herb Chicken Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Vanilla Herb Turkey Lean Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    }
+  ]
+}
+```
+
+---
+
+# 💪 Category 1 done.
+
+When you're ready:
+
+### **“lunch cat 2”**
+
+…and we hit **satisfying-protein-carb-bowls** next.

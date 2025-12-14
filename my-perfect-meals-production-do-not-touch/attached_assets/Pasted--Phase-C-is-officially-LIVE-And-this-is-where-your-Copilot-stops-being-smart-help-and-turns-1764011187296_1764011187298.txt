@@ -1,0 +1,181 @@
+🔥 **Phase C is officially LIVE.**
+And this is where your Copilot stops being “smart help” and turns into a **full-blown guided experience AI** inside the app.
+No questions. No slowing down. Straight execution.
+
+Below is the **exact Phase C architect-ready build plan**.
+This is what you’ll give to the architect next — but ONLY after I generate the full implementation package for you.
+
+First, here’s what Phase C *is*:
+
+* Spotlight-based, step-by-step guided walkthroughs
+* Full dark-screen isolation mode
+* Highlighted UI elements
+* Instruction popups tied to real UI elements
+* Hub and subpage navigation logic
+* Required-step enforcement ("press this button first")
+* Automatic stop/cancel/reset
+* Text + voice unified flow
+
+We already built the foundation in Phase B.
+Now we build the actual **guided tours** for each feature.
+
+---
+
+# ✅ **PHASE C — WHAT WE BUILD RIGHT NOW**
+
+Phase C is split into **four sub-phases**, and we’re doing **C.1 right now**.
+
+### **C.1 — Walkthrough Script System Finalization**
+
+Every feature gets a script:
+
+* Step 1: Highlight UI element
+* Step 2: Speak + Show text instruction
+* Step 3: Wait for user to complete action
+* Step 4: Move spotlight to next target
+* Step 5: Repeat
+
+You already said you want:
+
+* Screen dimmed
+* Only the active UI element lit
+* Instruction card at top or bottom
+* Voice + text working together
+* User can press Copilot again at any time to continue
+
+**So Phase C.1 = build the scripting engine + template.**
+
+### **C.2 — Attach scripts to every feature**
+
+Weekly Meal Builder
+Craving Creator
+Craving Premades
+Fridge Rescue
+Alcohol Hub + all subpages
+Kids Hub + subpages
+Shopping List
+Macro Calculator
+Biometrics
+etc.
+
+### **C.3 — Tune speech + fallback logic**
+
+* If voice isn’t clear → switch to text input
+* If text isn’t clear → clarify options visually
+* Create mishear coverage per-page
+* Tune “step retry” logic
+
+### **C.4 — UX polish**
+
+* Animations
+* Glow intensity
+* Spotlight travel timing
+* Escape hatches
+* Error fallback (“I didn’t catch that, pick your option on screen.”)
+
+---
+
+# 🚀 **RIGHT NOW — Phase C.1 Implementation Package**
+
+This is the architect prompt we start with for Phase C.1.
+DO NOT send it yet — I need your approval to finalize it.
+
+---
+
+# 📦 **PHASE C.1 — ARCHITECT IMPLEMENTATION PROMPT (DRAFT)**
+
+**BEGIN PROMPT**
+
+Implement Phase C.1 of the Spotlight Guided Walkthrough System.
+All Phase B files remain locked unless explicitly unlocked during this task.
+
+### **1. Walkthrough Script Engine**
+
+Create a new module:
+
+`client/src/components/copilot/walkthrough/WalkthroughScriptEngine.ts`
+
+This engine handles:
+
+* Accepting a script (array of steps)
+* Each step has:
+
+  ```ts
+  {
+    id: string;
+    target: string; // CSS selector or data attribute
+    description: string; // instruction text
+    speak?: string; // optional voice script
+    waitForAction?: "click" | "input" | "navigation" | "none";
+  }
+  ```
+* SpotlightOverlay listens for activeTarget updates
+* Script engine manages:
+
+  * currentStep
+  * nextStep()
+  * wait until user action resolves
+  * move spotlight
+  * end script
+  * cancel/reset
+
+### **2. Register Script Engine into WalkthroughEngine**
+
+Connect the new script engine to the existing WalkthroughEngine:
+
+* When a walkthrough starts → load script
+* WalkthroughEngine delegates step-by-step logic to the ScriptEngine
+* SpotlightOverlay highlights based on ScriptEngine.activeTarget
+
+### **3. Create a global type for Walkthrough Scripts**
+
+New file:
+
+`client/src/components/copilot/walkthrough/WalkthroughTypes.ts`
+
+### **4. Add sample scripts for ONE feature (Weekly Meal Builder only)**
+
+This is just an example script to verify the system is working.
+
+Do not build other scripts yet.
+
+### **5. Add integration into CopilotCommandRegistry**
+
+When user says:
+
+* “walk me through weekly meal builder”
+* “help me with weekly board”
+* “guide me through this page”
+
+→ Start script engine with that feature’s script.
+
+### **6. Add safety + error handling**
+
+* Null element fallback
+* “Retry step”
+* “Skip step”
+* Cancel walkthrough
+* Dark-screen cleanup
+
+### **7. Do not modify Phase B routing**
+
+Maintain hub navigation behavior from Phase B.
+
+When complete:
+
+Respond with
+**"Phase C.1 engine built and ready for script authoring."**
+
+**END PROMPT**
+
+---
+
+# 🎯 **YOUR MOVE**
+
+Do you want me to finalize the architect prompt and make it ready to paste?
+
+Say:
+
+👉 **“Approve C.1 architect prompt”**
+
+And I’ll produce the final paste-ready version.

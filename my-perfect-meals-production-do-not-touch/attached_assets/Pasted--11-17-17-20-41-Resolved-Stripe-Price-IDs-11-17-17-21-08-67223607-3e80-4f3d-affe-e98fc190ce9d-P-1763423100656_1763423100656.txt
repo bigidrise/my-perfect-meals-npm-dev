@@ -1,0 +1,114 @@
+
+11-17 17:20:41
+✅ Resolved Stripe Price IDs: {
+11-17 17:21:08
+67223607-3e80-4f3d-affe-e98fc190ce9d POST /api/stripe/checkout 404 3ms
+11-17 17:21:08
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:21:08
+cc74c089-a30f-4119-9001-3f9ac6155bea POST /api/stripe/checkout 404 1ms
+11-17 17:21:08
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:21:08
+189335ff-008b-402b-8036-242d2d30bfd0 POST /api/stripe/checkout 404 2ms
+11-17 17:21:09
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:21:09
+64623569-71f4-4dc6-8919-2adf0afee917 POST /api/stripe/checkout 404 2ms
+11-17 17:21:14
+f6f1c767-882b-41cd-ad64-45d1235e1016 GET /pricing 200 8ms
+11-17 17:21:15
+4d72bc30-5cb6-469b-adde-189c59dfd2df GET /manifest.json 200 6ms
+11-17 17:21:43
+system: received signal terminated
+11-17 17:21:57
+a16add85-b8da-44dc-8df5-345ee587123d GET /api/users/1 304 1ms
+11-17 17:21:57
+6c50f316-42ee-4952-8fc4-15a0d9c4d865 GET /sounds/music-loop.mp3 206 3ms
+11-17 17:21:57
+7ea53162-0a6c-4451-b77c-8f7433fba0c4 GET /version.json?t=1763421717066 200 2ms
+11-17 17:22:27
+system: received signal terminated
+11-17 17:22:38
+❌ Keepalive ping failed (pool will reconnect)
+11-17 17:22:47
+❌ Keepalive ping failed (pool will reconnect)
+11-17 17:23:21
+139595fc-784c-442a-a9a2-9fb35efa95f1 GET /version.json?t=1763421800800 200 2ms
+11-17 17:24:13
+20fbe50d-c8a3-4897-90c4-e71fff8b105d GET /version.json?cache=1763421853695 200 5ms
+11-17 17:24:14
+d1f4fd48-b05b-4c34-bf8f-5170a4b7e9e0 GET /pricing 200 4ms
+11-17 17:24:14
+95cc29c5-d7de-4b2f-8b06-014d9769df89 GET /assets/index-C9reNh2Y.js 200 6ms
+11-17 17:24:14
+401a384a-fc8c-4e34-b6c3-cb91ed558d14 GET /assets/app-entry-DD3GZ_ic.js 200 65ms
+11-17 17:24:14
+4eb2cc2f-7339-4d57-9e43-8cecfcab5636 GET /version.json?t=1763421854309 200 4ms
+11-17 17:24:15
+9efa712e-edd1-4e6f-9eac-28c64031b258 GET /sw.js 304 1ms
+11-17 17:26:57
+652d8188-e44b-434c-b623-3422123e4c77 GET /version.json?t=1763422017072 200 2ms
+11-17 17:26:57
+d789166a-4780-4084-9368-b41491430986 GET /api/users/1 304 1ms
+11-17 17:29:15
+9e9be895-a728-486c-b4e5-5aadc2447325 GET /version.json?t=1763422154821 200 2ms
+11-17 17:29:20
+490f3f93-6764-44ff-9649-08bfb5ab84a6 GET /version.json?t=1763422160831 200 1ms
+11-17 17:31:57
+f117a075-7be6-45e6-b5d3-b1ef8b33b49b GET /api/users/1 304 0ms
+11-17 17:31:57
+e0da864d-fd85-4a0a-8e0d-cf78c185d4dc GET /version.json?t=1763422317071 200 2ms
+11-17 17:34:16
+689ee437-ae4b-4ca5-a689-46c8d96d9bc0 GET /version.json?t=1763422455822 200 2ms
+
+11-17 17:35:21
+152d9031-ab00-42ed-912f-5347d50f43d8 GET /version.json?t=1763422520826 200 2ms
+11-17 17:35:37
+system: received signal terminated
+11-17 17:36:57
+af21e41d-1c49-4ae3-b1e3-9536f4724be0 GET /api/users/1 304 0ms
+11-17 17:36:57
+da6ca26f-f838-4426-bf27-1cb6922afef2 GET /version.json?t=1763422617070 200 5ms
+11-17 17:39:17
+6ba801c5-cfee-4d96-8081-9891e9292132 GET /version.json?t=1763422756823 200 2ms
+11-17 17:41:21
+fa1ea047-8c6e-4a6d-b8cd-4ed59e5b1a5f GET /version.json?t=1763422880843 200 2ms
+11-17 17:41:58
+8920dae6-1a70-48a9-b15b-f99322aaa983 GET /api/users/1 304 1ms
+11-17 17:41:58
+dd61ab15-456b-4488-b270-340e0108d242 GET /version.json?t=1763422917070 200 2ms
+11-17 17:42:09
+39a22269-f7b2-4b1c-8153-5aa7046c39d4 POST /api/stripe/checkout 404 1ms
+11-17 17:42:09
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:11
+efe4d161-9d4b-4d74-bd16-bb6314537f26 POST /api/stripe/checkout 404 2ms
+11-17 17:42:11
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:11
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:11
+4968c95d-9b88-402c-9bc9-8a7f8c8ceeeb POST /api/stripe/checkout 404 2ms
+11-17 17:42:12
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:12
+d8be454c-549d-4646-ac4d-62801fb7b3e9 POST /api/stripe/checkout 404 1ms
+11-17 17:42:12
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:12
+4dfba99b-c6e0-44cf-bae7-0fe3cbf82111 POST /api/stripe/checkout 404 2ms
+11-17 17:42:12
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:12
+19dc9ab7-63af-4d60-95c2-e03499657c89 POST /api/stripe/checkout 404 2ms
+11-17 17:42:12
+a3fdb3f7-a2ff-4bc8-9b65-8dd64df161da POST /api/stripe/checkout 404 2ms
+11-17 17:42:12
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:12
+🚫 API 404: POST /api/stripe/checkout
+11-17 17:42:12
+e5f0e4dc-e6af-4a19-9e43-cf4c0f6c8bc3 POST /api/stripe/checkout 404 2ms
+11-17 17:42:12
+🚫 API 404: POST /api/stripe/checkout

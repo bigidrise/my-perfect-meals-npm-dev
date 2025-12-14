@@ -1,0 +1,90 @@
+Great — now we move to PHASE 2, and I’ll give you a clean, strict Replit-ready prompt so nothing breaks or gets misinterpreted.
+
+This phase ONLY sets up the Meal Premade Picker and connects it to the new button on the Weekly Meal Board.
+NO food items, NO DALL·E, NO preparation system yet. Just UI + wiring.
+
+⸻
+
+✅ PHASE 2 — REPLIT INSTRUCTION PROMPT (Copy & Paste)
+
+Do NOT change anything outside these instructions.
+Do NOT add any features besides what is listed.
+This applies ONLY to the WEEKLY MEAL BOARD.
+
+⸻
+
+PHASE 2 — CREATE AND CONNECT “MEAL PREMADE PICKER”
+
+Your task is to duplicate the Snack Picker, rename it, strip snacks out of it, and wire it to the new “AI Premades” button.
+
+⸻
+
+⭐ Step 1 — Duplicate Snack Picker
+	1.	Find the existing Snack Picker component.
+	2.	Duplicate it exactly.
+	3.	Rename the duplicate to:
+MealPremadePicker
+	4.	Do NOT modify the original Snack Picker.
+	5.	Do NOT break or move the original file.
+
+⸻
+
+⭐ Step 2 — Clean the Duplicate
+
+Inside MealPremadePicker:
+	1.	Remove all snack categories.
+	2.	Remove all snack items.
+	3.	Remove any snack-specific logic.
+	4.	Leave the structure, styling, layout, and modal functionality EXACTLY the same.
+
+⸻
+
+⭐ Step 3 — Add Placeholder Tabs
+
+Inside the MealPremadePicker, add three tabs:
+	•	Breakfast (this should be the ONLY active/working tab)
+	•	Lunch (placeholder only — empty)
+	•	Dinner (placeholder only — empty)
+
+Inside the Breakfast tab:
+	•	Add a temporary placeholder text:
+“Breakfast Premade Options Coming Soon”
+
+The tab should visually function but contain no real items yet.
+
+⸻
+
+⭐ Step 4 — Connect the Modal to the New Button
+
+On the Weekly Meal Board only:
+	•	Make the new AI Premades button open the MealPremadePicker modal.
+	•	Ensure each card (Breakfast, Lunch, Dinner) opens the same modal for now.
+	•	NO data should be inserted into cards yet — this phase is only modal wiring.
+
+⸻
+
+⭐ Step 5 — Stop Here
+
+Once the modal opens correctly and shows the Breakfast placeholder:
+
+STOP.
+Do not add real meal choices.
+Do not connect to DALL·E.
+Do not add preparation systems.
+Do not modify anything else.
+
+⸻
+
+END OF PHASE 2 PROMPT
+
+⸻
+
+When you confirm Phase 2 is done and working, we move to:
+
+🔥 PHASE 3
+	•	Add real breakfast premade combinations
+	•	Add preparation details
+	•	Connect to DALL·E
+	•	Auto-populate the Weekly Meal Board cards
+
+Just tell me “Phase 2 completed” when you’re ready.

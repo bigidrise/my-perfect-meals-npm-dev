@@ -1,0 +1,215 @@
+Got it, Coach. I’ve parsed **everything** you said about Restaurant Guide — and I’m converting it into the four Copilot systems:
+
+### ✅ 1. Walkthrough UI tags (`data-wt="..."`)
+
+### ✅ 2. Knowledge Engine entry (`explain.restaurant-guide`)
+
+### ✅ 3. Walkthrough steps (spotlight / highlight popovers)
+
+### ✅ 4. Voice Query Intents (natural language commands)
+
+**You just talk. I structure. Copilot learns.**
+
+Let’s execute.
+
+---
+
+# ✅ **1. DATA-WT TAG SET for Restaurant Guide**
+
+These are the exact tags you’ll need for your UI:
+
+### **Find Meals Near Me section**
+
+```
+rg-find-nearby-button
+rg-craving-input
+rg-zipcode-input
+rg-search-button
+rg-results-list
+rg-restaurant-card
+rg-menu-option
+```
+
+### **Restaurant Guide section**
+
+```
+rg-guide-button
+rg-food-type-input
+rg-specific-restaurant-input
+rg-guide-search-button
+rg-guide-results-list
+rg-guide-restaurant-card
+rg-guide-menu-item
+```
+
+---
+
+# 🎯 **2. Knowledge Engine Entry: restaurant-guide**
+
+```ts
+"restaurant-guide": {
+  id: "restaurant-guide",
+  title: "Restaurant Guide",
+  description:
+    "Discover healthy meals at restaurants near you based on your cravings and location. Get real menu items tailored to what you want to eat.",
+  howTo: [
+    "Tap Find Meals Near Me to start searching nearby options.",
+    "Describe what you're craving — like steak, chicken, tacos, or sushi.",
+    "Enter your ZIP code so the system can locate restaurants near you.",
+    "Tap Find Meals to see three restaurants that fit your craving.",
+    "Each restaurant offers two menu items curated for you.",
+    "Use Restaurant Guide for more targeted searches.",
+    "Enter a type of food like Italian, Mexican, or breakfast.",
+    "Optionally, enter a specific restaurant name to focus results.",
+    "Press the search button to generate three meal recommendations from that restaurant.",
+  ],
+  tips: [
+    "Be specific with cravings for more accurate recommendations.",
+    "Use ZIP code search when traveling or in unfamiliar areas.",
+    "Try Restaurant Guide for a deeper dive into specific cuisines.",
+  ],
+  relatedCommands: [
+    "restaurant.searchNearby",
+    "restaurant.searchByCraving",
+    "restaurant.guideSearch",
+    "restaurant.openRestaurant",
+  ],
+}
+```
+
+This gives Copilot a full mental model of the feature.
+
+---
+
+# 🧭 **3. Walkthrough Script (Step-by-Step for both tools)**
+
+```ts
+export const restaurantGuideWalkthrough = [
+  { target: "rg-find-nearby-button", text: "Start here to find meals near your current location." },
+  { target: "rg-craving-input", text: "Describe what you want to eat — like steak, salmon, pasta, or chicken." },
+  { target: "rg-zipcode-input", text: "Enter your ZIP code so we can find restaurants near you." },
+  { target: "rg-search-button", text: "Tap this to generate your restaurant matches." },
+  { target: "rg-results-list", text: "Here are your nearby restaurants that fit your craving." },
+  { target: "rg-restaurant-card", text: "Tap a restaurant to see its recommended menu options." },
+  { target: "rg-menu-option", text: "Each restaurant gives you two curated meals to choose from." },
+
+  // Restaurant Guide section
+  { target: "rg-guide-button", text: "Use Restaurant Guide for more specific searches." },
+  { target: "rg-food-type-input", text: "Enter a food type, like Italian, Mexican, breakfast, or seafood." },
+  { target: "rg-specific-restaurant-input", text: "You can enter a specific restaurant name to narrow it down." },
+  { target: "rg-guide-search-button", text: "Tap to generate meals from the restaurant you chose." },
+  { target: "rg-guide-results-list", text: "Here are your hand-picked meals." },
+  { target: "rg-guide-restaurant-card", text: "Tap a restaurant to view its recommendations." },
+  { target: "rg-guide-menu-item", text: "These are the meals chosen from that restaurant." }
+];
+```
+
+Fully compatible with Copilot’s spotlight system.
+
+---
+
+# 🎤 **4. Voice Query Intents**
+
+Add these patterns into `handleVoiceQuery()`.
+
+### **Start Walkthrough**
+
+```ts
+if (
+  lower.includes("teach me restaurant guide") ||
+  lower.includes("how do i use restaurant guide") ||
+  lower.includes("show me restaurant guide")
+) {
+  lastActiveFeature = "restaurant-guide";
+  await Commands["walkthrough.start.restaurant-guide"]();
+  return;
+}
+```
+
+### **Explain**
+
+```ts
+if (
+  lower.includes("what is restaurant guide") ||
+  lower.includes("explain restaurant guide")
+) {
+  lastActiveFeature = "restaurant-guide";
+  await Commands["explain.restaurant-guide"]();
+  return;
+}
+```
+
+### **Nearby Search (Find Meals Near Me)**
+
+```ts
+if (
+  lower.includes("find meals near me") ||
+  lower.includes("find restaurants") ||
+  (lower.includes("find") && lower.includes("near me"))
+) {
+  lastActiveFeature = "restaurant-guide";
+  await Commands["restaurant.searchNearby"]();
+  return;
+}
+```
+
+### **Craving + ZIP Search**
+
+```ts
+if (
+  lower.includes("find me") && lower.includes("in zip")
+) {
+  lastActiveFeature = "restaurant-guide";
+  await Commands["restaurant.searchByCraving"]({ text: transcript });
+  return;
+}
+```
+
+### **Restaurant Guide direct search**
+
+```ts
+if (
+  lower.includes("find meals from") ||
+  lower.includes("find food at") ||
+  lower.includes("show meals from")
+) {
+  lastActiveFeature = "restaurant-guide";
+  await Commands["restaurant.guideSearch"]({ text: transcript });
+  return;
+}
+```
+
+### **Open a restaurant**
+
+```ts
+if (
+  lower.includes("open this restaurant") ||
+  lower.includes("show this restaurant")
+) {
+  lastActiveFeature = "restaurant-guide";
+  await Commands["restaurant.openRestaurant"]();
+  return;
+}
+```
+
+Now Copilot can handle natural speech like:
+
+* “Find meals near me.”
+* “I want steak in zip 85032.”
+* “Show me Italian restaurants.”
+* “Find food at Olive Garden.”
+* “Teach me how to use Restaurant Guide.”
+
+And it will respond correctly.
+
+---
+
+# ⭐ **NEXT STEP**
+
+Just tell me:
+
+👉 **“Give me the Replit agent prompt for Restaurant Guide.”**
+
+And I’ll generate the surgical, ready-to-paste prompt that tells the agent exactly how to insert all these UI tags in the correct places — no logic touched, no styling broken.
+
+Ready when you are.

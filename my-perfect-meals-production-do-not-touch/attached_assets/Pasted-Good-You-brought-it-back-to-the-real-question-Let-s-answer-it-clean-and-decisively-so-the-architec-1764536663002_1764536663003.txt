@@ -1,0 +1,195 @@
+Good. You brought it back to the real question. Let’s answer it clean and decisively so the architect can move.
+
+---
+
+## 1. Short answer: We **do NOT** do a full session refactor now.
+
+We also **do NOT** just “accept” the current `userId` pattern.
+
+We choose:
+
+> **Option C – Hardened token-based auth for this release.**
+
+* No full `express-session` refactor before January.
+* But we **stop trusting raw `userId` from the client** everywhere we care about money, trials, ProCare, or data.
+
+This keeps your January App Store timeline sane **and** gets you out of the “anyone can spoof any userId” hole.
+
+---
+
+## 2. What’s wrong right now (and the architect is right)
+
+Current pattern:
+
+```ts
+const userId = req.headers["x-user-id"] || req.query.userId;
+// ... trust this blindly
+```
+
+This means:
+
+* Anyone with basic dev tools can:
+
+  * Hit trial endpoints with another user’s id
+  * Hit Stripe checkout as another user
+  * Access care team / ProCare routes they don’t own
+  * Use premium/clinical endpoints by faking `userId`
+
+This is **not** acceptable for a paid health-related product, even for MVP.
+
+---
+
+## 3. The decision: **Token-based auth, not sessions, for V1**
+
+Here’s the architecture you tell the architect to implement:
+
+### 3.1. Add a server-issued `authToken` to users
+
+In the `users` table (or equivalent):
+
+```sql
+auth_token TEXT UNIQUE
+auth_token_created_at TIMESTAMP
+```
+
+On **login/signup**:
+
+1. Generate a long, random, unguessable token (e.g. 256-bit).
+2. Store it in `users.auth_token`.
+3. Return it to the client **once**.
+4. Client stores it (localStorage for web; Keychain/SecureStore for native).
+
+No sessions. No Redis. No `express-session`. Just one solid bearer token.
+
+---
+
+### 3.2. Add auth middleware on the server
+
+Single middleware, used by all sensitive routes:
+
+```ts
+// PSEUDO, NOT FULL CODE
+async function requireAuth(req, res, next) {
+  const token = req.headers["x-auth-token"];
+
+  if (!token) return res.status(401).json({ error: "Missing auth token" });
+
+  const user = await db.user.findFirst({ where: { authToken: token } });
+
+  if (!user) return res.status(401).json({ error: "Invalid auth token" });
+
+  // Attach to request, NEVER trust userId from client
+  (req as any).user = user;
+  next();
+}
+```
+
+From this point on, **all trusted user identity must come from `req.user`**, never from `x-user-id`, query params, or body.
+
+---
+
+### 3.3. Where to apply `requireAuth` **NOW** (for this release)
+
+These must be locked behind **verified auth token** immediately:
+
+* Trial / paywall endpoints
+* Subscription/Stripe checkout endpoints
+* Apple IAP verify/entitlement endpoints
+* ProCare routes
+* Care team routes
+* Shopping list CRUD
+* Saved meals / favorites
+* Any endpoint that:
+
+  * reads/writes user-specific data
+  * controls plan/entitlements
+  * touches money or clinical data
+
+Lower-risk “read-only” endpoints that return generic content can remain open for now if needed, but anything tied to **user identity or plan** must go through `requireAuth`.
+
+---
+
+### 3.4. Client-side change
+
+* Stop sending `x-user-id` or `?userId=` as a way to authenticate.
+* After login/signup, the client stores the `authToken`.
+* On every protected request, it sends:
+
+```http
+x-auth-token: <token>
+```
+
+All “who is this user?” logic happens server-side by looking up that token.
+
+---
+
+## 4. How this fits your priorities
+
+### Why NOT full `express-session` right now?
+
+Because that means:
+
+* Adding `express-session`
+* Setting up a session store (Redis/PG)
+* Updating **every** endpoint to use `req.session`
+* Updating mobile/web clients to rely on cookies instead of headers
+
+That’s a **deep refactor** across auth, routing, and front-end.
+Doing that right before App Store submission is how people blow deadlines.
+
+We don’t touch the whole house when the issue is the front door lock.
+
+### Why NOT leave it as-is (Option A)?
+
+Because:
+
+* It’s trivial to spoof `userId`.
+* It undermines your paywalls, trials, ProCare, and affiliate economics.
+* It looks bad if anyone audits security.
+* It’s beneath the standard of a paid health/nutrition app.
+
+---
+
+## 5. What you should send back to the architect (copy/paste)
+
+Here’s the message you can give them:
+
+> **Auth decision for MVP / App Store build**
+>
+> We’re **not** doing a full `express-session` / server-side session refactor before this release, but we are **not** comfortable continuing to trust `userId` from headers or query params.
+>
+> For this build, we’ll:
+>
+> 1. Add a server-issued `authToken` field to the `users` table.
+> 2. On login/signup, generate a secure random `authToken`, store it on the user, and return it to the client once.
+> 3. The client will send `x-auth-token` on all authenticated requests.
+> 4. Implement a `requireAuth` middleware that:
+>
+>    * Looks up the user by `authToken`
+>    * Attaches the user object to `req.user`
+>    * Rejects missing/invalid tokens with 401
+> 5. Refactor all sensitive endpoints (trials, paywalls, Stripe/IAP, care team, ProCare, shopping list, saved meals, anything plan-related) to ignore client-provided `userId` and instead use `req.user.id`.
+>
+> This keeps us aligned with the current architecture (no session store / cookies), but removes the ability to bypass paywalls or access another user’s data just by changing `userId`.
+> A full session-based auth system can be a phase-2 refactor after the App Store submission and launch.
+
+---
+
+## 6. One more thing: migration impact
+
+You should explicitly give the architect permission for this:
+
+* Existing test users will need to log in again once when authToken goes live. Totally fine.
+* After that, everything is stable.
+
+You can say:
+
+> It’s acceptable if existing testers have to log in one more time after the `authToken` change. Stability is more important than preserving the old localStorage mock auth.
+
+---
+
+If you want, next step I can:
+
+* Sketch the **exact middleware signature**
+* List out the **specific endpoints** to wrap with `requireAuth` first (prioritization)
+* And then do a second pass to line this up with your **paywall/affiliate/ProCare** rules so the whole system is consistent.

@@ -1,0 +1,134 @@
+Got you 100%, Coach.
+This is exactly the right call — DO NOT TOUCH ANY OF THE VOICE OR NAVIGATION SYSTEMS because they are finally stable.
+
+So here’s the refined plan (clean, simple, architect-ready) that:
+
+🔥 Keeps ALL voice navigation intact
+
+🔥 Does NOT touch CopilotSheet, TTS, routing, or speech
+
+🔥 Adds a SIMPLE, INDEPENDENT overlay system
+
+🔥 Works without breaking a single existing feature
+
+🔥 Does NOT require new engines or deep rewrites
+
+🔥 Will pass Apple review with ZERO risk
+
+This is the correct version to send to the Architect:
+
+⸻
+
+✅ ARCHITECT REVIEW REQUEST — Add Simple In-App Walkthrough (NO Impact On Voice Navigation)
+
+We want to add a lightweight, visual-only walkthrough system that works alongside Copilot, WITHOUT touching:
+	•	Copilot voice navigation
+	•	TTS
+	•	Existing walkthrough engine
+	•	ScriptRegistry
+	•	CanonicalAliasRegistry
+	•	Routing
+	•	SpotlightOverlay logic
+	•	App structure
+	•	Backend or APIs
+
+This new system must be completely independent and able to run even if voice fails.
+
+⸻
+
+🎯 GOAL
+
+When Copilot navigates to a page (voice is working as-is), the page should automatically display:
+
+✔ A highlight
+
+✔ Light screen dim
+
+✔ OPTIONAL small arrow
+
+✔ User tap = progresses to next highlight
+
+NO audio required.
+NO engine dependency.
+
+⸻
+
+🧩 REQUESTED SYSTEM (Pure Frontend Overlay)
+
+1. NEW Component
+
+SimpleStepOverlay.tsx
+
+Features:
+	•	Cuts out or highlights the target element
+	•	Dims the rest of the screen (opacity ~0.4)
+	•	Optional animated arrow
+	•	Tap anywhere on the highlight = next step
+
+2. NEW Hook
+
+useSimpleWalkthrough()
+
+Features:
+	•	Reads existing script steps
+	•	Waits for Copilot to finish navigation (voice system untouched)
+	•	Shows SimpleStepOverlay for each script step
+	•	Immediately moves to next after user tap
+	•	No TTS, no triggers, no events needed
+	•	Entirely isolated
+
+3. Integration
+
+In each walkthrough script handler:
+
+Instead of calling the complex Spotlight engine,
+call the new simple overlay:
+
+startSimpleWalkthrough(scriptId)
+
+4. ABSOLUTE REQUIREMENTS
+	•	🚫 Do NOT modify the voice system.
+	•	🚫 Do NOT modify existing CopilotSheet.
+	•	🚫 Do NOT modify TTS or ElevenLabs logic.
+	•	🚫 Do NOT modify WalkthroughScriptEngine.
+	•	🚫 Do NOT modify SpotlightOverlay.
+	•	🚫 Do NOT modify navigation.
+
+✔ Voice stays EXACTLY how it is now
+
+✔ Walkthrough is purely visual and completely independent
+
+⸻
+
+📦 ACCEPTANCE CRITERIA
+	•	Walkthrough shows immediately on page open
+	•	Voice navigation continues working exactly as before
+	•	No timing issues
+	•	User progress is tap-driven
+	•	Works offline
+	•	Does not require TTS or events
+	•	Does not block user interaction
+	•	No risk of breaking other builders
+	•	Apple reviewer can test without issues
+
+⸻
+
+🕒 TIME ESTIMATE REQUEST
+
+Architect must tell us:
+
+“How long to implement this minimal overlay system?”
+Goal: 1–3 hours max, not a full rewrite.
+
+⸻
+
+❓ Architect —
+
+Do you approve this simplified plan?
+
+⸻
+
+If you want, I’ll send this version cleanly to the Architect right now.
+
+Just say:
+“Send it”
