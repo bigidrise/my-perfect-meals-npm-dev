@@ -1,163 +1,116 @@
 // server/services/holidayFeastService.ts
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
-type Counts = {
-  appetizers: number;
-  mainDishes: number;
-  sideDishes: number;
-  desserts: number;
-};
-type FamilyRecipe = {
-  name: string;
-  ingredients?: Array<{
-    name: string;
-    quantity?: number;
-    unit?: string;
-    prep?: string;
-  }>;
-  mealType?: "appetizer" | "main" | "side" | "dessert";
-  servings?: number;
-  instructions?: string[];
-};
-
-type MealOut = {
+export type MealOut = {
   name: string;
   description?: string;
   course: "appetizers" | "mainDishes" | "sideDishes" | "desserts";
   servings: number;
-  ingredients: Array<{
-    name: string;
-    quantity?: number;
-    unit?: string;
-    prep?: string;
-  }>;
-  instructions: string[]; // steps only
-  nutrition?: {
-    calories?: number;
-    protein?: number;
-    carbs?: number;
-    fat?: number;
-  };
-  imageUrl?: string;
+  ingredients: { name: string; quantity?: number; unit?: string; prep?: string }[];
+  instructions: string[];
+  nutrition?: { calories?: number; protein?: number; carbs?: number; fat?: number };
   imagePrompt?: string;
+  imageUrl?: string;
 };
 
-export async function generateHolidayFeast(input: {
+export type HolidayFeastInput = {
   occasion: string;
   servings: number;
-  counts: Counts;
-  dietaryRestrictions: string[];
+  counts: {
+    appetizers: number;
+    mainDishes: number;
+    sideDishes: number;
+    desserts: number;
+  };
+  dietaryRestrictions?: string[];
   cuisineType?: string;
-  budgetLevel: "low" | "moderate" | "high";
-  familyRecipe?: FamilyRecipe;
-}): Promise<{
+  budgetLevel?: "low" | "moderate" | "high";
+  familyRecipe?: {
+    name: string;
+    ingredients?: { name: string; quantity?: number; unit?: string; prep?: string }[];
+    mealType?: "appetizer" | "main" | "side" | "dessert";
+    servings?: number;
+    instructions?: string[];
+  };
+};
+
+export type HolidayFeastOutput = {
   feast: MealOut[];
-  recipes: MealOut[]; // family recipe (if provided) returns here
+  recipes: MealOut[];
   colorTheme: { primary: string; secondary: string; accent: string };
-}> {
-  const {
-    occasion,
-    servings,
-    counts,
-    dietaryRestrictions,
-    cuisineType,
-    budgetLevel,
-    familyRecipe,
-  } = input;
+};
 
-  const total =
-    (counts.appetizers || 0) +
-    (counts.mainDishes || 0) +
-    (counts.sideDishes || 0) +
-    (counts.desserts || 0);
+export async function generateHolidayFeast(input: HolidayFeastInput): Promise<HolidayFeastOutput> {
+  const { occasion, servings, counts, dietaryRestrictions = [], cuisineType, budgetLevel = "moderate", familyRecipe } = input;
 
-  const system = `You are a professional recipe developer for large gatherings. 
-Return STRICT JSON. No prose. 
-All ingredients MUST be scaled for exactly ${servings} guests. 
-Instructions must be step-by-step, concrete cooking actions (no vague fluff, no serving tips).`;
+  const systemPrompt = `You are a professional chef specializing in holiday feast planning. Create delicious, practical recipes with accurate nutrition estimates. Respond ONLY with valid JSON.`;
 
-  const user = `
-Create a ${occasion} feast with EXACTLY these counts:
-- ${counts.appetizers} appetizers (course: "appetizers")
-- ${counts.mainDishes} main dishes (course: "mainDishes") 
-- ${counts.sideDishes} side dishes (course: "sideDishes")
-- ${counts.desserts} desserts (course: "desserts")
+  const userPrompt = `Create a ${occasion} feast menu for ${servings} guests.
 
-Cuisine focus: ${cuisineType || "any appropriate"}
-Dietary constraints (if any): ${dietaryRestrictions.join(", ") || "none"}
+Required dishes:
+- ${counts.appetizers} appetizers
+- ${counts.mainDishes} main dishes  
+- ${counts.sideDishes} side dishes
+- ${counts.desserts} desserts
+
+${dietaryRestrictions.length > 0 ? `Dietary restrictions: ${dietaryRestrictions.join(", ")}` : ""}
+${cuisineType ? `Cuisine preference: ${cuisineType}` : ""}
 Budget level: ${budgetLevel}
 
-ABSOLUTE REQUIREMENTS - FAILURE TO FOLLOW MEANS REJECTION:
-1. Generate EXACTLY ${counts.appetizers + counts.mainDishes + counts.sideDishes + counts.desserts} total dishes
-2. MUST have exactly ${counts.appetizers} dishes with "course": "appetizers"
-3. MUST have exactly ${counts.mainDishes} dishes with "course": "mainDishes"  
-4. MUST have exactly ${counts.sideDishes} dishes with "course": "sideDishes"
-5. MUST have exactly ${counts.desserts} dishes with "course": "desserts"
-6. Every dish MUST include "servings": ${servings} (number)
-7. Scale all ingredient quantities to ${servings} people
-8. Use common cooking units (g, kg, oz, lb, tsp, tbsp, cup, ml, l, piece)
-9. Provide only actionable cooking steps (array of strings), no commentary
-
-DISTRIBUTION VERIFICATION:
-Total dishes required: ${counts.appetizers + counts.mainDishes + counts.sideDishes + counts.desserts}
-Breakdown: ${counts.appetizers} appetizers + ${counts.mainDishes} mains + ${counts.sideDishes} sides + ${counts.desserts} desserts = ${counts.appetizers + counts.mainDishes + counts.sideDishes + counts.desserts} total
-
-JSON schema (STRICT):
+Respond with this exact JSON structure:
 {
   "feast": [
     {
-      "name": "string",
-      "description": "string",
-      "course": "appetizers" | "mainDishes" | "sideDishes" | "desserts",
-      "servings": ${servings},
+      "name": "Dish Name",
+      "description": "Brief description",
+      "course": "appetizers|mainDishes|sideDishes|desserts",
       "ingredients": [
-        { "name": "string", "quantity": number, "unit": "g"|"kg"|"oz"|"lb"|"tsp"|"tbsp"|"cup"|"ml"|"l"|"piece", "prep": "string" }
+        {"name": "ingredient", "quantity": 1, "unit": "cup", "prep": "chopped"}
       ],
-      "instructions": ["Step 1...", "Step 2..."],
-      "nutrition": { "calories": number, "protein": number, "carbs": number, "fat": number },
-      "imagePrompt": "short visual prompt"
+      "instructions": ["Step 1", "Step 2"],
+      "nutrition": {"calories": 250, "protein": 12, "carbs": 30, "fat": 8},
+      "imagePrompt": "food photography prompt for this dish"
     }
   ]
-}
-`.trim();
+}`;
 
-  const resp = await openai.chat.completions.create({
-    model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-    temperature: 1,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
+  const resp = await getOpenAI().chat.completions.create({
+    model: "gpt-4o",
+    temperature: 0.7,
     response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ],
   });
 
   const raw = resp.choices?.[0]?.message?.content || "{}";
   
-  // Log the raw response for debugging
-  console.log("🔍 Raw GPT-5 Response:");
+  console.log("🔍 Raw GPT Response:");
   console.log("Length:", raw.length);
-  console.log("Content:", raw);
   
   let parsed: any;
   try {
     parsed = JSON.parse(raw);
     console.log("✅ JSON parsed successfully");
   } catch (parseError: any) {
-    console.error("❌ JSON parsing failed:");
-    console.error("Error:", parseError.message);
-    console.error("Raw content:", raw);
-    
-    // Try to clean the response
+    console.error("❌ JSON parsing failed:", parseError.message);
     const cleaned = raw.trim().replace(/^[^{]*/, '').replace(/[^}]*$/, '');
-    console.log("🧹 Attempting to clean response:", cleaned);
-    
     try {
       parsed = JSON.parse(cleaned);
       console.log("✅ Cleaned JSON parsed successfully");
     } catch (cleanError) {
-      console.error("❌ Even cleaned JSON failed to parse");
       throw new Error(`Model returned invalid JSON: ${parseError.message}`);
     }
   }
@@ -166,34 +119,16 @@ JSON schema (STRICT):
     if (!u) return undefined;
     const key = u.toLowerCase();
     const map: Record<string, string> = {
-      grams: "g",
-      g: "g",
-      kilogram: "kg",
-      kilograms: "kg",
-      kg: "kg",
-      ounce: "oz",
-      ounces: "oz",
-      oz: "oz",
-      pound: "lb",
-      pounds: "lb",
-      lb: "lb",
-      lbs: "lb",
-      teaspoon: "tsp",
-      teaspoons: "tsp",
-      tsp: "tsp",
-      tablespoon: "tbsp",
-      tablespoons: "tbsp",
-      tbsp: "tbsp",
-      cup: "cup",
-      cups: "cup",
-      milliliter: "ml",
-      milliliters: "ml",
-      ml: "ml",
-      liter: "l",
-      liters: "l",
-      l: "l",
-      piece: "piece",
-      pieces: "piece",
+      grams: "g", g: "g",
+      kilogram: "kg", kilograms: "kg", kg: "kg",
+      ounce: "oz", ounces: "oz", oz: "oz",
+      pound: "lb", pounds: "lb", lb: "lb", lbs: "lb",
+      teaspoon: "tsp", teaspoons: "tsp", tsp: "tsp",
+      tablespoon: "tbsp", tablespoons: "tbsp", tbsp: "tbsp",
+      cup: "cup", cups: "cup",
+      milliliter: "ml", milliliters: "ml", ml: "ml",
+      liter: "l", liters: "l", l: "l",
+      piece: "piece", pieces: "piece",
     };
     return map[key] || u;
   };
@@ -204,9 +139,7 @@ JSON schema (STRICT):
   const coerceDish = (d: any): MealOut => ({
     name: String(d.name ?? "Untitled Dish"),
     description: d.description ? String(d.description) : undefined,
-    course: (["appetizers", "mainDishes", "sideDishes", "desserts"].includes(
-      d.course,
-    )
+    course: (["appetizers", "mainDishes", "sideDishes", "desserts"].includes(d.course)
       ? d.course
       : "sideDishes") as MealOut["course"],
     servings,
@@ -223,18 +156,10 @@ JSON schema (STRICT):
       : [],
     nutrition: d.nutrition
       ? {
-          calories: d.nutrition.calories
-            ? Math.round(Number(d.nutrition.calories))
-            : undefined,
-          protein: d.nutrition.protein
-            ? Math.round(Number(d.nutrition.protein))
-            : undefined,
-          carbs: d.nutrition.carbs
-            ? Math.round(Number(d.nutrition.carbs))
-            : undefined,
-          fat: d.nutrition.fat
-            ? Math.round(Number(d.nutrition.fat))
-            : undefined,
+          calories: d.nutrition.calories ? Math.round(Number(d.nutrition.calories)) : undefined,
+          protein: d.nutrition.protein ? Math.round(Number(d.nutrition.protein)) : undefined,
+          carbs: d.nutrition.carbs ? Math.round(Number(d.nutrition.carbs)) : undefined,
+          fat: d.nutrition.fat ? Math.round(Number(d.nutrition.fat)) : undefined,
         }
       : undefined,
     imagePrompt: d.imagePrompt ? String(d.imagePrompt) : undefined,
@@ -244,7 +169,6 @@ JSON schema (STRICT):
     ? parsed.feast.map(coerceDish)
     : [];
 
-  // Verify we got the right counts - log what we actually received
   const actualCounts = {
     appetizers: feast.filter(d => d.course === "appetizers").length,
     mainDishes: feast.filter(d => d.course === "mainDishes").length,
@@ -256,7 +180,6 @@ JSON schema (STRICT):
   console.log("🔍 Actual counts:", actualCounts);
   console.log("🔍 Total dishes generated:", feast.length);
   
-  // If counts don't match, we need to regenerate
   const totalExpected = counts.appetizers + counts.mainDishes + counts.sideDishes + counts.desserts;
   if (feast.length !== totalExpected) {
     console.warn(`⚠️ Generated ${feast.length} dishes but expected ${totalExpected}!`);
@@ -275,7 +198,7 @@ JSON schema (STRICT):
             : familyRecipe.mealType === "side"
               ? "sideDishes"
               : "desserts",
-      servings: input.servings, // force to event size so your UI stays consistent
+      servings: input.servings,
       ingredients: (familyRecipe.ingredients || []).map((i) => ({
         name: i.name,
         quantity: i.quantity,
@@ -288,7 +211,6 @@ JSON schema (STRICT):
     });
   }
 
-  // 🎨 Generate images for each dish using DALL-E
   console.log(`🎨 Generating images for ${feast.length} dishes...`);
   
   const { generateImage } = await import("./imageService");
@@ -312,7 +234,6 @@ JSON schema (STRICT):
     }
   }
 
-  // (Fun bit for your gradients – fixed palette per occasion)
   const colorTheme = paletteForOccasion(occasion);
 
   return { feast, recipes, colorTheme };

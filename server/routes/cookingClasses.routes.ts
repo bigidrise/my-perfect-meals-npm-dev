@@ -15,9 +15,16 @@ import OpenAI from 'openai';
 const router = express.Router();
 
 // Initialize OpenAI with API key
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 // Get all classes by track (beginner, intermediate, advanced)
 router.get('/tracks/:track', async (req, res) => {
@@ -271,7 +278,7 @@ async function evaluateSubmissionWithAI(photoUrl: string, blurb: string): Promis
   `;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
       messages: [
         {

@@ -2,76 +2,16 @@ import OpenAI from "openai";
 import { smartCategorizationEngine } from "./smartCategorization";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-export interface MealAnalysis {
-  completeMeals: Array<{
-    name: string;
-    ingredients: string[];
-    difficulty: 'Easy' | 'Medium' | 'Advanced';
-    cookTime: number;
-    servings: number;
-    cuisine: string;
-  }>;
-  partialMeals: Array<{
-    name: string;
-    availableIngredients: string[];
-    missingIngredients: string[];
-    completionPercentage: number;
-  }>;
-  suggestions: string[];
-  nutritionBalance: {
-    overall: 'Excellent' | 'Good' | 'Fair' | 'Poor';
-    protein: 'High' | 'Adequate' | 'Low';
-    vegetables: 'High' | 'Adequate' | 'Low';
-    variety: 'Excellent' | 'Good' | 'Limited';
-    recommendations: string[];
-  };
-  shoppingOptimization: {
-    missingEssentials: string[];
-    budgetFriendlyAlternatives: string[];
-    seasonalRecommendations: string[];
-  };
-}
-
-export class MealCompletionEngine {
-  private cache = new Map<string, MealAnalysis>();
-
-  async analyzeMealReadiness(ingredients: string[]): Promise<MealAnalysis> {
-    const cacheKey = ingredients.sort().join('|');
-    
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!;
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
     }
-
-    try {
-      // Get ingredient analysis for better meal suggestions
-      const ingredientAnalyses = await smartCategorizationEngine.analyzeIngredients(ingredients);
-      
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional chef and nutritionist. Analyze available ingredients and suggest complete meals, identify partial meals with missing ingredients, and provide nutrition balance assessment.
-
-            Focus on:
-            - Complete meals that can be made with available ingredients
-            - Partial meals showing what's missing and completion percentage
-            - Nutritional balance analysis (protein, vegetables, variety)
-            - Smart shopping suggestions for meal completion
-            
-            Consider cooking difficulty, time, and practical home cooking.
-            Respond in valid JSON matching the MealAnalysis interface.`
-          },
-          {
-            role: "user",
-            content: `Available ingredients: ${ingredients.join(', ')}\n\nAnalyze meal readiness and provide comprehensive suggestions.`
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3
-      });
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
       const analysis: MealAnalysis = JSON.parse(response.choices[0].message.content || '{}');
       
@@ -109,7 +49,7 @@ export class MealCompletionEngine {
     nutritionSummary: any;
   }> {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
