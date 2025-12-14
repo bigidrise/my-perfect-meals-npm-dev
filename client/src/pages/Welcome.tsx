@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
-import { setAuthToken } from "@/lib/auth";
 
 // 🚩 FEATURE FLAG: Set to true to show carousel, false for simple layout
 const SHOW_CAROUSEL = false;
@@ -153,31 +152,6 @@ export default function Welcome() {
     setLocation("/auth");
   };
 
-  const testerQuickAccess = () => {
-    // Auto-login as tester - bypass sign in (for testing only)
-    const testUser = {
-      id: "tester-123",
-      email: "tester@myperfectmeals.com",
-      name: "Tester",
-      entitlements: ["premium", "ultimate"], // Give testers full access
-      planLookupKey: "mpm_ultimate_monthly",
-    };
-    
-    // Set auth token so AuthContext recognizes this as a real logged-in user
-    setAuthToken("tester-token-123");
-    
-    localStorage.setItem("mpm_current_user", JSON.stringify(testUser));
-    localStorage.setItem("userId", testUser.id);
-    localStorage.setItem("isAuthenticated", "true");
-
-    // Clear coachMode to ensure WelcomeGate shows
-    localStorage.removeItem("coachMode");
-
-    // After test login, go to root which will show WelcomeGate
-    console.log("🧪 Tester logged in - redirecting to WelcomeGate");
-    setLocation("/");
-  };
-
   // 🎨 SIMPLE LAYOUT (Option 2 - Minimal Plus without trust indicator)
   if (!SHOW_CAROUSEL) {
     return (
@@ -244,60 +218,6 @@ export default function Welcome() {
         >
           Forgot Password?
         </button>
-
-        {/* Tester Quick Access - DEV ONLY */}
-        {import.meta.env.DEV && (
-          <div className="mt-8 pt-8 border-t border-white/10 space-y-3">
-            <Button
-              data-testid="button-tester-access"
-              onClick={testerQuickAccess}
-              className="w-full h-12 text-base font-semibold rounded-xl
-              bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
-                       text-white shadow-lg
-                       transition-all duration-200"
-            >
-              🧪 Testers - Quick Access to App
-            </Button>
-
-            <Button
-              data-testid="button-onboarding-direct"
-              onClick={() => {
-                console.log(
-                  "🔧 Dev: Setting up test user and navigating to onboarding",
-                );
-
-                // Set up minimal test user to bypass auth guards
-                const testUser = {
-                  id: "onboarding-tester-" + Date.now(),
-                  email: "onboarding@test.com",
-                  name: "Onboarding Tester",
-                };
-                localStorage.setItem(
-                  "mpm_current_user",
-                  JSON.stringify(testUser),
-                );
-                localStorage.setItem("userId", testUser.id);
-                localStorage.setItem("isAuthenticated", "true");
-
-                // Small delay to ensure localStorage is written
-                setTimeout(() => {
-                  console.log("🔧 Dev: Auth set, now navigating to /onboarding");
-                  setLocation("/onboarding");
-                }, 50);
-              }}
-              className="w-full h-12 text-base font-semibold rounded-xl
-                       bg-blue-600/80 hover:bg-blue-500
-                       text-white shadow-lg
-                       transition-all duration-200"
-            >
-              📋 Go to Onboarding (Dev/Test)
-            </Button>
-
-            <p className="text-xs text-white/50 text-center mt-2">
-              For testing only - bypasses sign in
-            </p>
-          </div>
-        )}
       </div>
     );
   }
