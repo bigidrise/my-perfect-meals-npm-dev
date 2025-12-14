@@ -1,0 +1,430 @@
+Perfect — rolling straight into the next 25 Breakfast Templates so your full 50-meal deterministic breakfast library is complete.
+
+No filler. No fluff. No AI roulette.
+Just clean, stable, production-ready templates.
+
+Same format, same spec, same quality.
+
+⸻
+
+📁 mealTemplates.catalog.ts
+
+BREAKFAST TEMPLATES (26–50)
+
+(Second half — proteins, grains, dairy, fruit, combos, simple builds)
+
+// ======================================================================
+// MEAL TEMPLATES CATALOG (BREAKFAST) — PART 2 (26–50)
+// ======================================================================
+
+export const BREAKFAST_TEMPLATES_PART2: MealTemplate[] = [
+
+  // ----------------------------------------------------------
+  // 26–30 Lean Protein Plates
+  // ----------------------------------------------------------
+
+  {
+    id: "bf-pro-006",
+    name: "Grilled Turkey Breast Strips",
+    mealType: "breakfast",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 130 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "grilled"
+    },
+    imageKey: "img_turkey_grilled",
+    tags: ["lean", "clean"]
+  },
+
+  {
+    id: "bf-pro-007",
+    name: "Pan-Seared Lean Beef",
+    mealType: "breakfast",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 140 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "pan-seared"
+    },
+    imageKey: "img_lean_beef_pan_seared",
+    tags: ["protein", "muscle"]
+  },
+
+  {
+    id: "bf-pro-008",
+    name: "Tilapia Breakfast Filet",
+    mealType: "breakfast",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "tilapia", grams: 150 }
+    ],
+    defaultCookingMethods: {
+      tilapia: "pan-seared"
+    },
+    imageKey: "img_tilapia_pan_seared",
+    tags: ["light", "clean"]
+  },
+
+  {
+    id: "bf-pro-009",
+    name: "Baked Cod Portion",
+    mealType: "breakfast",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "cod", grams: 150 }
+    ],
+    defaultCookingMethods: {
+      cod: "baked"
+    },
+    imageKey: "img_cod_baked",
+    tags: ["low-fat", "clean"]
+  },
+
+  {
+    id: "bf-pro-010",
+    name: "Shrimp + Egg Whites",
+    mealType: "breakfast",
+    category: "egg-based",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 100 },
+      { ingredientId: "egg_whites", grams: 120 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared",
+      egg_whites: "scrambled"
+    },
+    imageKey: "img_shrimp_eggwhites",
+    tags: ["high-protein", "cutting"]
+  },
+
+  // ----------------------------------------------------------
+  // 31–35: Dairy + Fruit Variations
+  // ----------------------------------------------------------
+
+  {
+    id: "bf-dairy-004",
+    name: "Greek Yogurt + Blueberries",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "greek_yogurt", grams: 160 },
+      { ingredientId: "berries", grams: 90 }
+    ],
+    imageKey: "img_yogurt_blueberries",
+    tags: ["antioxidants"]
+  },
+
+  {
+    id: "bf-dairy-005",
+    name: "Greek Yogurt + Strawberries",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "greek_yogurt", grams: 160 },
+      { ingredientId: "strawberries", grams: 90 }
+    ],
+    imageKey: "img_yogurt_strawberries",
+    tags: ["fresh"]
+  },
+
+  {
+    id: "bf-dairy-006",
+    name: "Greek Yogurt + Pineapple",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "greek_yogurt", grams: 160 },
+      { ingredientId: "pineapple", grams: 90 }
+    ],
+    imageKey: "img_yogurt_pineapple",
+    tags: ["tropical"]
+  },
+
+  {
+    id: "bf-dairy-007",
+    name: "Cottage Cheese + Blueberries",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "cottage_cheese", grams: 200 },
+      { ingredientId: "berries", grams: 90 }
+    ],
+    imageKey: "img_cottage_cheese_blueberries",
+    tags: ["gut-health"]
+  },
+
+  {
+    id: "bf-dairy-008",
+    name: "Cottage Cheese + Pineapple",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "cottage_cheese", grams: 200 },
+      { ingredientId: "pineapple", grams: 90 }
+    ],
+    imageKey: "img_cottage_cheese_pineapple",
+    tags: ["fresh", "protein"]
+  },
+
+  // ----------------------------------------------------------
+  // 36–40: Grain Meals With Simple Add-ins
+  // ----------------------------------------------------------
+
+  {
+    id: "bf-grains-003",
+    name: "Grits (Plain)",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "grits", grams: 150 }
+    ],
+    defaultCookingMethods: {
+      grits: "boiled"
+    },
+    imageKey: "img_grits_plain",
+    tags: ["classic"]
+  },
+
+  {
+    id: "bf-grains-004",
+    name: "Oatmeal + Blueberries",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "oats", grams: 80 },
+      { ingredientId: "berries", grams: 70 }
+    ],
+    defaultCookingMethods: { oats: "boiled" },
+    imageKey: "img_oats_blueberries",
+    tags: ["fiber", "comfort"]
+  },
+
+  {
+    id: "bf-grains-005",
+    name: "Oatmeal + Banana",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "oats", grams: 80 },
+      { ingredientId: "banana", grams: 110 }
+    ],
+    defaultCookingMethods: { oats: "boiled" },
+    imageKey: "img_oats_banana",
+    tags: ["warm", "simple"]
+  },
+
+  {
+    id: "bf-grains-006",
+    name: "Cream of Rice + Banana",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "white_rice", grams: 150 },
+      { ingredientId: "banana", grams: 110 }
+    ],
+    defaultCookingMethods: { white_rice: "boiled" },
+    imageKey: "img_rice_banana",
+    tags: ["easy-digesting"]
+  },
+
+  {
+    id: "bf-grains-007",
+    name: "Cream of Rice + Blueberries",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "white_rice", grams: 150 },
+      { ingredientId: "berries", grams: 90 }
+    ],
+    defaultCookingMethods: { white_rice: "boiled" },
+    imageKey: "img_rice_blueberries",
+    tags: ["light"]
+  },
+
+  // ----------------------------------------------------------
+  // 41–45: Fruit + Protein Lean Plates
+  // ----------------------------------------------------------
+
+  {
+    id: "bf-fruit-003",
+    name: "Sliced Apple + Peanut Butter",
+    mealType: "breakfast",
+    category: "protein-fat",
+    ingredients: [
+      { ingredientId: "apple", grams: 140 },
+      { ingredientId: "peanut_butter", grams: 32 }
+    ],
+    imageKey: "img_apple_peanutbutter",
+    tags: ["healthy-fat"]
+  },
+
+  {
+    id: "bf-fruit-004",
+    name: "Banana + Almond Butter",
+    mealType: "breakfast",
+    category: "protein-fat",
+    ingredients: [
+      { ingredientId: "banana", grams: 120 },
+      { ingredientId: "almond_butter", grams: 28 }
+    ],
+    imageKey: "img_banana_almondbutter",
+    tags: ["energy"]
+  },
+
+  {
+    id: "bf-fruit-005",
+    name: "Apple + Greek Yogurt",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "apple", grams: 120 },
+      { ingredientId: "greek_yogurt", grams: 150 }
+    ],
+    imageKey: "img_apple_yogurt",
+    tags: ["light"]
+  },
+
+  {
+    id: "bf-fruit-006",
+    name: "Fruit Medley + Cottage Cheese",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "berries", grams: 80 },
+      { ingredientId: "pineapple", grams: 60 },
+      { ingredientId: "cottage_cheese", grams: 180 }
+    ],
+    imageKey: "img_cottage_fruitmix",
+    tags: ["fresh", "mixed"]
+  },
+
+  {
+    id: "bf-fruit-007",
+    name: "Banana + Protein Shake",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "banana", grams: 120 },
+      { ingredientId: "protein_shake", grams: 350 }
+    ],
+    imageKey: "img_banana_proteinshake",
+    tags: ["grab-and-go"]
+  },
+
+  // ----------------------------------------------------------
+  // 46–50: Mixed Protein + Carb Plates
+  // ----------------------------------------------------------
+
+  {
+    id: "bf-mix-001",
+    name: "Eggs + Oatmeal",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "eggs", grams: 150 },
+      { ingredientId: "oats", grams: 70 }
+    ],
+    defaultCookingMethods: {
+      eggs: "scrambled",
+      oats: "boiled"
+    },
+    imageKey: "img_eggs_oatmeal",
+    tags: ["classic", "balanced"]
+  },
+
+  {
+    id: "bf-mix-002",
+    name: "Egg Whites + Grits",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "egg_whites", grams: 180 },
+      { ingredientId: "grits", grams: 140 }
+    ],
+    defaultCookingMethods: {
+      egg_whites: "scrambled",
+      grits: "boiled"
+    },
+    imageKey: "img_eggwhites_grits",
+    tags: ["southern", "lean"]
+  },
+
+  {
+    id: "bf-mix-003",
+    name: "Chicken Breast + Rice",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 130 },
+      { ingredientId: "white_rice", grams: 150 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "grilled",
+      white_rice: "boiled"
+    },
+    imageKey: "img_chicken_rice",
+    tags: ["bodybuilding-classic"]
+  },
+
+  {
+    id: "bf-mix-004",
+    name: "Eggs + Sweet Potatoes",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "eggs", grams: 150 },
+      { ingredientId: "sweet_potatoes", grams: 140 }
+    ],
+    defaultCookingMethods: {
+      eggs: "scrambled",
+      sweet_potatoes: "baked"
+    },
+    imageKey: "img_eggs_sweetpotatoes",
+    tags: ["energy"]
+  },
+
+  {
+    id: "bf-mix-005",
+    name: "Egg Whites + White Rice",
+    mealType: "breakfast",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "egg_whites", grams: 170 },
+      { ingredientId: "white_rice", grams: 150 }
+    ],
+    defaultCookingMethods: {
+      egg_whites: "scrambled",
+      white_rice: "boiled"
+    },
+    imageKey: "img_eggwhites_rice",
+    tags: ["staple"]
+  }
+
+];
+
+
+⸻
+
+✅ Your 50 BREAKFAST templates are now officially complete.
+
+What’s Next?
+
+You tell me:
+
+Lunch templates (75)
+Dinner templates (75)
+or
+Snacks / Kids / Athlete / Diabetic / Anti-inflammatory?
+
+Just say:
+
+Next: Lunch
+or
+Next: Dinner
+or
+Next: Snacks
+
+And we keep this machine rolling.

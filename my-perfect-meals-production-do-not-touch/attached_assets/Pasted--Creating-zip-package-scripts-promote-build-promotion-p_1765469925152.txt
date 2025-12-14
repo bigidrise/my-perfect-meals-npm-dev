@@ -1,0 +1,184 @@
+
+Creating zip package...
+./scripts/promote/build_promotion_package.sh: line 107: zip: command not found
+~/workspace$ ./scripts/promote/build_promotion_package.sh
+
+==========================================
+  BUILD PROMOTION PACKAGE
+==========================================
+
+No previous promotion found.
+
+Enter the number of commits to include (e.g., 1 for last commit, 5 for last 5 commits):
+10
+Using baseline: HEAD~10
+
+Identifying changed files...
+
+Files changed:
+----------------------------------------
+PRODUCTION_PROMOTION_CHECKLIST.md
+STAGING_TO_PROD_TRACKER.md
+attached_assets/Pasted--Creating-zip-package-scripts-promote-build-promotion-p_1765469870510.txt
+attached_assets/Pasted--STAGING-TO-PROD-TRACKER-md-attached-assets-Pasted-Coac_1765469810129.txt
+attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765466670984.txt
+attached_assets/Pasted-Coach-I-got-you-And-I-m-going-to-give-you-exactly-the-r_1765468527960.txt
+attached_assets/Pasted-t-forwards-in-git-push-help-for-details-workspace-git-p_1765467354280.txt
+client/index.html
+client/src/app-entry.tsx
+client/src/components/DisclaimerModal.tsx
+client/src/components/ProfileSheet.tsx
+client/src/lib/tts.ts
+client/src/main.tsx
+client/src/pages/CravingDessertCreator.tsx
+client/src/pages/MacroCounter.tsx
+client/src/pages/Welcome.tsx
+package-lock.json
+package.json
+scripts/promote/apply_promotion_package.sh
+scripts/promote/build_promotion_package.sh
+scripts/promote/promotion_payload/.flags
+scripts/promote/promotion_payload/MANIFEST.txt
+scripts/promote/promotion_payload/PRODUCTION_PROMOTION_CHECKLIST.md
+scripts/promote/promotion_payload/STAGING_TO_PROD_TRACKER.md
+scripts/promote/promotion_payload/attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765466670984.txt
+scripts/promote/promotion_payload/attached_assets/Pasted-Coach-I-got-you-And-I-m-going-to-give-you-exactly-the-r_1765468527960.txt
+scripts/promote/promotion_payload/attached_assets/Pasted-t-forwards-in-git-push-help-for-details-workspace-git-p_1765467354280.txt
+scripts/promote/promotion_payload/client/index.html
+scripts/promote/promotion_payload/client/public/version.json
+scripts/promote/promotion_payload/client/src/app-entry.tsx
+scripts/promote/promotion_payload/client/src/components/DisclaimerModal.tsx
+scripts/promote/promotion_payload/client/src/components/ProfileSheet.tsx
+scripts/promote/promotion_payload/client/src/lib/tts.ts
+scripts/promote/promotion_payload/client/src/main.tsx
+scripts/promote/promotion_payload/client/src/pages/CravingDessertCreator.tsx
+scripts/promote/promotion_payload/client/src/pages/MacroCounter.tsx
+scripts/promote/promotion_payload/client/src/pages/Welcome.tsx
+scripts/promote/promotion_payload/package-lock.json
+scripts/promote/promotion_payload/package.json
+scripts/promote/promotion_payload/scripts/promote/apply_promotion_package.sh
+scripts/promote/promotion_payload/scripts/promote/build_promotion_package.sh
+----------------------------------------
+
+Total files to package: 41
+
+Packaging files...
+  Copied: PRODUCTION_PROMOTION_CHECKLIST.md
+  Copied: STAGING_TO_PROD_TRACKER.md
+  Copied: attached_assets/Pasted--Creating-zip-package-scripts-promote-build-promotion-p_1765469870510.txt
+  Copied: attached_assets/Pasted--STAGING-TO-PROD-TRACKER-md-attached-assets-Pasted-Coac_1765469810129.txt
+  Copied: attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765466670984.txt
+  Copied: attached_assets/Pasted-Coach-I-got-you-And-I-m-going-to-give-you-exactly-the-r_1765468527960.txt
+  Copied: attached_assets/Pasted-t-forwards-in-git-push-help-for-details-workspace-git-p_1765467354280.txt
+  Copied: client/index.html
+  Copied: client/src/app-entry.tsx
+  Copied: client/src/components/DisclaimerModal.tsx
+  Copied: client/src/components/ProfileSheet.tsx
+  Copied: client/src/lib/tts.ts
+  Copied: client/src/main.tsx
+  Copied: client/src/pages/CravingDessertCreator.tsx
+  Copied: client/src/pages/MacroCounter.tsx
+  Copied: client/src/pages/Welcome.tsx
+  Copied: package-lock.json
+  Copied: package.json
+  Copied: scripts/promote/apply_promotion_package.sh
+  Copied: scripts/promote/build_promotion_package.sh
+  Skipped (deleted): scripts/promote/promotion_payload/.flags
+  Copied: scripts/promote/promotion_payload/MANIFEST.txt
+  Copied: scripts/promote/promotion_payload/PRODUCTION_PROMOTION_CHECKLIST.md
+  Copied: scripts/promote/promotion_payload/STAGING_TO_PROD_TRACKER.md
+  Copied: scripts/promote/promotion_payload/attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765466670984.txt
+  Copied: scripts/promote/promotion_payload/attached_assets/Pasted-Coach-I-got-you-And-I-m-going-to-give-you-exactly-the-r_1765468527960.txt
+  Copied: scripts/promote/promotion_payload/attached_assets/Pasted-t-forwards-in-git-push-help-for-details-workspace-git-p_1765467354280.txt
+  Copied: scripts/promote/promotion_payload/client/index.html
+  Skipped (deleted): scripts/promote/promotion_payload/client/public/version.json
+  Copied: scripts/promote/promotion_payload/client/src/app-entry.tsx
+  Copied: scripts/promote/promotion_payload/client/src/components/DisclaimerModal.tsx
+  Copied: scripts/promote/promotion_payload/client/src/components/ProfileSheet.tsx
+  Copied: scripts/promote/promotion_payload/client/src/lib/tts.ts
+  Copied: scripts/promote/promotion_payload/client/src/main.tsx
+  Copied: scripts/promote/promotion_payload/client/src/pages/CravingDessertCreator.tsx
+  Copied: scripts/promote/promotion_payload/client/src/pages/MacroCounter.tsx
+  Copied: scripts/promote/promotion_payload/client/src/pages/Welcome.tsx
+  Copied: scripts/promote/promotion_payload/package-lock.json
+  Copied: scripts/promote/promotion_payload/package.json
+  Copied: scripts/promote/promotion_payload/scripts/promote/apply_promotion_package.sh
+  Copied: scripts/promote/promotion_payload/scripts/promote/build_promotion_package.sh
+
+NOTE: package.json was modified - run 'npm install' in Production
+
+Creating zip package...
+  adding: promotion_payload/ (stored 0%)
+  adding: promotion_payload/MANIFEST.txt (deflated 75%)
+  adding: promotion_payload/PRODUCTION_PROMOTION_CHECKLIST.md (deflated 54%)
+  adding: promotion_payload/STAGING_TO_PROD_TRACKER.md (deflated 59%)
+  adding: promotion_payload/attached_assets/ (stored 0%)
+  adding: promotion_payload/attached_assets/Pasted--Creating-zip-package-scripts-promote-build-promotion-p_1765469870510.txt (deflated 70%)
+  adding: promotion_payload/attached_assets/Pasted--STAGING-TO-PROD-TRACKER-md-attached-assets-Pasted-Coac_1765469810129.txt (deflated 69%)
+  adding: promotion_payload/attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765466670984.txt (deflated 66%)
+  adding: promotion_payload/attached_assets/Pasted-Coach-I-got-you-And-I-m-going-to-give-you-exactly-the-r_1765468527960.txt (deflated 52%)
+  adding: promotion_payload/attached_assets/Pasted-t-forwards-in-git-push-help-for-details-workspace-git-p_1765467354280.txt (deflated 62%)
+  adding: promotion_payload/client/ (stored 0%)
+  adding: promotion_payload/client/index.html (deflated 56%)
+  adding: promotion_payload/client/src/ (stored 0%)
+  adding: promotion_payload/client/src/app-entry.tsx (deflated 50%)
+  adding: promotion_payload/client/src/components/ (stored 0%)
+  adding: promotion_payload/client/src/components/DisclaimerModal.tsx (deflated 69%)
+  adding: promotion_payload/client/src/components/ProfileSheet.tsx (deflated 69%)
+  adding: promotion_payload/client/src/lib/ (stored 0%)
+  adding: promotion_payload/client/src/lib/tts.ts (deflated 66%)
+  adding: promotion_payload/client/src/main.tsx (deflated 55%)
+  adding: promotion_payload/client/src/pages/ (stored 0%)
+  adding: promotion_payload/client/src/pages/CravingDessertCreator.tsx (deflated 76%)
+  adding: promotion_payload/client/src/pages/MacroCounter.tsx (deflated 79%)
+  adding: promotion_payload/client/src/pages/Welcome.tsx (deflated 69%)
+  adding: promotion_payload/package-lock.json (deflated 78%)
+  adding: promotion_payload/package.json (deflated 67%)
+  adding: promotion_payload/scripts/ (stored 0%)
+  adding: promotion_payload/scripts/promote/ (stored 0%)
+  adding: promotion_payload/scripts/promote/apply_promotion_package.sh (deflated 66%)
+  adding: promotion_payload/scripts/promote/build_promotion_package.sh (deflated 65%)
+  adding: promotion_payload/scripts/promote/promotion_payload/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/MANIFEST.txt (deflated 53%)
+  adding: promotion_payload/scripts/promote/promotion_payload/PRODUCTION_PROMOTION_CHECKLIST.md (deflated 54%)
+  adding: promotion_payload/scripts/promote/promotion_payload/STAGING_TO_PROD_TRACKER.md (deflated 59%)
+  adding: promotion_payload/scripts/promote/promotion_payload/attached_assets/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765466670984.txt (deflated 66%)
+  adding: promotion_payload/scripts/promote/promotion_payload/attached_assets/Pasted-Coach-I-got-you-And-I-m-going-to-give-you-exactly-the-r_1765468527960.txt (deflated 52%)
+  adding: promotion_payload/scripts/promote/promotion_payload/attached_assets/Pasted-t-forwards-in-git-push-help-for-details-workspace-git-p_1765467354280.txt (deflated 62%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/index.html (deflated 56%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/app-entry.tsx (deflated 50%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/components/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/components/DisclaimerModal.tsx (deflated 69%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/components/ProfileSheet.tsx (deflated 69%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/lib/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/lib/tts.ts (deflated 66%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/main.tsx (deflated 55%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/pages/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/pages/CravingDessertCreator.tsx (deflated 76%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/pages/MacroCounter.tsx (deflated 79%)
+  adding: promotion_payload/scripts/promote/promotion_payload/client/src/pages/Welcome.tsx (deflated 69%)
+  adding: promotion_payload/scripts/promote/promotion_payload/package-lock.json (deflated 78%)
+  adding: promotion_payload/scripts/promote/promotion_payload/package.json (deflated 67%)
+  adding: promotion_payload/scripts/promote/promotion_payload/scripts/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/scripts/promote/ (stored 0%)
+  adding: promotion_payload/scripts/promote/promotion_payload/scripts/promote/apply_promotion_package.sh (deflated 66%)
+  adding: promotion_payload/scripts/promote/promotion_payload/scripts/promote/build_promotion_package.sh (deflated 65%)
+  adding: promotion_payload/.flags (stored 0%)
+
+==========================================
+  PACKAGE CREATED SUCCESSFULLY
+==========================================
+
+Package location:
+  /home/runner/workspace/scripts/promote/promotion_package_20251211_161817.zip
+
+Next steps:
+  1. Download: promotion_package_20251211_161817.zip
+  2. Upload to Production Repl (scripts/promote/ folder)
+  3. In Production, run:
+     ./scripts/promote/apply_promotion_package.sh promotion_package_20251211_161817.zip
+
+~/workspace$ 

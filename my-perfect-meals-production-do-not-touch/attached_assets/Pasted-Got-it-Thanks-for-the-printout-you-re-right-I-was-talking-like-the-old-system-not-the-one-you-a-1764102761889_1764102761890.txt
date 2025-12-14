@@ -1,0 +1,310 @@
+Got it. Thanks for the printout — you’re right, I was talking like the old system, not the one you actually have now. Let’s fix that and stay **100% inside your current Copilot engine**:
+
+* ✅ `FlowOrchestrator`
+* ✅ `FLOW_SEQUENCES`
+* ✅ `simpleWalkthroughFlows.ts` (PageSegments)
+* ✅ `dispatchWalkthroughCompletion(eventName)`
+* ✅ `WalkthroughRegistry`
+* ✅ **CSS selectors**, not waitFor/testId logic
+* ❌ No `emitWalkthrough`, no state machine, no `walkthrough:event`
+
+Below is **exactly** what your architect needs to add the **CareTeam flow** end-to-end without breaking anything.
+
+---
+
+## 1️⃣ FlowOrchestrator – add CareTeam flow
+
+**File:** `client/src/components/copilot/FlowOrchestrator.ts`
+
+### a) Extend `FLOW_SEQUENCES`
+
+```ts
+const FLOW_SEQUENCES: FlowMap = {
+  onboarding: ['/macro-counter', '/my-biometrics', '/weekly-meal-board', '/shopping-list-v2'],
+  careteam: ['/care-team', '/pro/clients', '/pro/clients/:id', '/my-biometrics'], // NEW
+};
+```
+
+### b) Add listeners for CareTeam events
+
+In the constructor (where the other `addEventListener` calls live):
+
+```ts
+// CareTeam flow
+window.addEventListener('careteam:linked', () => {
+  this.handleFlowStepComplete('/care-team');
+});
+
+window.addEventListener('pro:clientOpened', () => {
+  this.handleFlowStepComplete('/pro/clients');
+});
+
+window.addEventListener('pro:macrosSent', () => {
+  this.handleFlowStepComplete('/pro/clients/:id');
+});
+
+window.addEventListener('biometrics:saved', () => {
+  this.handleFlowStepComplete('/my-biometrics');
+});
+```
+
+Names match what we’ll use in `simpleWalkthroughFlows.ts` **and** in `dispatchWalkthroughCompletion()`.
+
+---
+
+## 2️⃣ simpleWalkthroughFlows.ts – define `CARETEAM_FLOW`
+
+**File:** `client/src/components/copilot/simple-walkthrough/simpleWalkthroughFlows.ts`
+
+You already have `ONBOARDING_FLOW`. We’re adding this:
+
+```ts
+export const CARETEAM_FLOW: WalkthroughFlow = {
+  id: 'careteam',
+  name: 'Care Team Setup',
+  pages: [
+    // PAGE 1 – Client joins CareTeam with code
+    {
+      route: '/care-team',
+      pageId: 'careteam-join',
+      steps: [
+        {
+          selector: '[data-testid="input-careteam-code"], #careteam-code-input',
+          text: 'Enter the code your coach or doctor gave you.',
+          showArrow: true,
+        },
+        {
+          selector: '[data-testid="button-submit-code"], #careteam-submit-button',
+          text: 'Tap Connect to link your account to your professional.',
+          showArrow: true,
+        },
+      ],
+      completionEvent: 'careteam:linked',
+      nextRoute: '/pro/clients',
+      autoNavigate: true,
+    },
+
+    // PAGE 2 – Pro client list
+    {
+      route: '/pro/clients',
+      pageId: 'pro-clients-list',
+      steps: [
+        {
+          selector: '[data-testid="pro-client-row"], [data-walkthrough="pro-client-row"]',
+          text: 'This is your client list. Select the client you want to configure.',
+          showArrow: true,
+        },
+        {
+          selector: '[data-testid="button-open-client"], [data-walkthrough="button-open-client"]',
+          text: 'Tap Open to go to this client’s dashboard.',
+          showArrow: true,
+        },
+      ],
+      completionEvent: 'pro:clientOpened',
+      nextRoute: '/pro/clients/:id',
+      autoNavigate: true,
+    },
+
+    // PAGE 3 – Pro client dashboard (set macros and send to biometrics)
+    {
+      route: '/pro/clients/:id',
+      pageId: 'pro-client-dashboard',
+      steps: [
+        {
+          selector: '[data-testid="form-client-macros"], #client-macros-form',
+          text: 'Set your client’s calories, protein, carbs, and fats here.',
+          showArrow: true,
+        },
+        {
+          selector: '[data-testid="button-save-macros"], #button-save-macros',
+          text: 'Tap Save to store these targets.',
+          showArrow: true,
+        },
+        {
+          selector: '[data-testid="button-send-macros-to-biometrics"], #button-send-macros-to-biometrics',
+          text: 'Now push these macros into the client’s biometrics so the app can use them everywhere.',
+          showArrow: true,
+        },
+      ],
+      completionEvent: 'pro:macrosSent',
+      nextRoute: '/my-biometrics',
+      autoNavigate: true,
+    },
+
+    // PAGE 4 – Client biometrics (confirm + finish)
+    {
+      route: '/my-biometrics',
+      pageId: 'biometrics-careteam',
+      steps: [
+        {
+          selector: '[data-testid="section-biometrics-summary"], #biometrics-summary',
+          text: 'Review your biometrics and the targets your coach set.',
+          showArrow: true,
+        },
+        {
+          selector: '[data-testid="button-save-biometrics"], #save-biometrics-button',
+          text: 'Tap Save to confirm everything.',
+          showArrow: true,
+        },
+      ],
+      completionEvent: 'biometrics:saved',
+      // No nextRoute: flow ends here
+      autoNavigate: false,
+    },
+  ],
+};
+```
+
+### Add to ALL_FLOWS
+
+At the bottom where you export all flows:
+
+```ts
+export const ALL_FLOWS: Record<string, WalkthroughFlow> = {
+  onboarding: ONBOARDING_FLOW,
+  careteam: CARETEAM_FLOW, // NEW
+};
+```
+
+---
+
+## 3️⃣ WalkthroughRegistry – register CareTeam pages
+
+**File:** `client/src/components/copilot/WalkthroughRegistry.ts`
+
+You already have `registerWalkthrough` and onboarding registrations.
+
+Add:
+
+```ts
+export function registerCareTeamFlow(): void {
+  registerWalkthrough('/care-team', {
+    mode: 'flow',
+    flowId: 'careteam',
+    scriptId: 'careteam-join',
+    autoStartDelay: 500,
+  });
+
+  registerWalkthrough('/pro/clients', {
+    mode: 'flow',
+    flowId: 'careteam',
+    scriptId: 'pro-clients-list',
+    autoStartDelay: 500,
+  });
+
+  registerWalkthrough('/pro/clients/:id', {
+    mode: 'flow',
+    flowId: 'careteam',
+    scriptId: 'pro-client-dashboard',
+    autoStartDelay: 500,
+  });
+
+  registerWalkthrough('/my-biometrics', {
+    mode: 'flow',
+    flowId: 'careteam',
+    scriptId: 'biometrics-careteam',
+    autoStartDelay: 500,
+  });
+}
+
+// Ensure this gets called with your other registrations
+registerCareTeamFlow();
+```
+
+Yes, `/my-biometrics` is in both onboarding and careteam flows — the active flow is controlled by which flowId you start, not by route alone. Your Orchestrator already has that concept.
+
+---
+
+## 4️⃣ Pages – fire the right completion events
+
+**No new helpers.** Use your existing:
+
+```ts
+import { dispatchWalkthroughCompletion } from "@/components/copilot/simple-walkthrough/SimpleWalkthroughFlowController";
+```
+
+### A) `/care-team` – after code links successfully
+
+```ts
+async function handleConnectCode() {
+  await connectWithCode();
+  dispatchWalkthroughCompletion('careteam:linked');
+}
+```
+
+Matches:
+
+* `completionEvent: 'careteam:linked'`
+* Listener in `FlowOrchestrator`
+* First page of CARETEAM_FLOW
+
+---
+
+### B) `/pro/clients` – when a client is opened
+
+You can dispatch **on click** (simplest) or in the target page. For this flow, click is fine:
+
+```tsx
+<button
+  data-testid="button-open-client"
+  onClick={() => {
+    dispatchWalkthroughCompletion('pro:clientOpened');
+    navigate(`/pro/clients/${client.id}`);
+  }}
+>
+  Open
+</button>
+```
+
+Matches `completionEvent: 'pro:clientOpened'`.
+
+---
+
+### C) `/pro/clients/:id` – when macros are sent to biometrics
+
+Keep “save” separate from “send”:
+
+```ts
+async function handleSaveMacros() {
+  await saveMacros();
+  // Optional: you already have macro:saved in onboarding, but we don't tie it to careteam flow
+}
+
+async function handleSendToBiometrics() {
+  await sendMacrosToBiometrics();
+  dispatchWalkthroughCompletion('pro:macrosSent');
+}
+```
+
+Matches `completionEvent: 'pro:macrosSent'`.
+
+---
+
+### D) `/my-biometrics` – after biometrics saved
+
+```ts
+async function handleSaveBiometrics() {
+  await saveBiometrics();
+  dispatchWalkthroughCompletion('biometrics:saved');
+}
+```
+
+Matches `completionEvent: 'biometrics:saved'`.
+
+---
+
+## 5️⃣ Sanity check against your “Critical Requirements”
+
+* ✅ Uses **CSS selectors**, not `waitFor` or a custom event payload system
+* ✅ Uses **named CustomEvents** like `careteam:linked`, `pro:clientOpened`, etc.
+* ✅ Uses `dispatchWalkthroughCompletion(eventName)`
+* ✅ Adds routes to `FLOW_SEQUENCES`
+* ✅ Registers routes in `WalkthroughRegistry`
+* ✅ Follows the **same pattern as `ONBOARDING_FLOW`**
+* ❌ Does **not** introduce `emitWalkthrough`, `walkthrough:event`, or a new state machine
+
+This CareTeam pack now plugs cleanly into what you already have without trampling anything.
+
+---
+
+If you want, next move is we do **the same treatment for one builder** (Smart Menu or One-Pan) so your architect sees **CareTeam → Pro → Biometrics → Builder** all under this simple-walkthrough engine.

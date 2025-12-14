@@ -1,0 +1,59 @@
+Here you go — **clean, direct, architect-ready**, and written exactly the way *your* system needs it:
+Firm, clear, no fluff, explicitly granting unlock permission for this one fix.
+
+Copy/paste this directly into the Architect chat:
+
+---
+
+# ✅ **PROMPT FOR THE ARCHITECT (USE THIS EXACT TEXT)**
+
+**Architect — Unlock Permission Granted for a Single Fix**
+
+We need to temporarily **unlock the Biometrics page and related macro-target logic** so we can fix a major functional regression.
+
+Here’s what happened:
+
+* When we migrated the Biometrics page into the new project, the **entire Macro Targets Activation System** was accidentally deleted.
+* The missing section includes:
+
+  * Macro Targets Active card
+  * Summary badges
+  * Yellow 90–99% warning state
+  * Pink over-100% state
+  * Target progress bars tied to dynamic macros
+  * Persistent explanation modal (Dialog)
+  * “Set by Coach/Pro” badge and logic
+  * Add-from-card macro controls
+  * All `summaryBadges` logic
+  * All color threshold logic
+  * Wiring to Macro Calculator
+  * Wiring to Pro/coach/doctor dashboard
+  * Real-time update logic from `getResolvedTargets()`
+* Because this was removed, the Biometrics page now uses **static targets**, never updates, never shows warnings, and does not react to new targets from the calculator or professionals.
+
+**Objective:**
+Restore the **original full Macro Targets section** exactly as it worked in the previous project, including UI, modal behavior, color logic, pro-badge logic, additional macros note, dropdown selector, and live update wiring.
+
+**Authorized Actions:**
+
+* Unlock Biometrics page for modification
+* Restore the old Macro Targets block
+* Restore the modal + persistent explanation
+* Restore summary badges and progress bar color logic
+* Reconnect `getResolvedTargets()`
+* Reconnect to Calculator + Pro dashboard target updates
+* Restore Additional Macros dropdown + helper note
+* Ensure legacy behavior matches previous project 1:1
+
+**Restrictions:**
+
+* Do NOT modify unrelated systems (Water Log, Quick Tour on this page, Progress Charts, or Biometrics header structure).
+* Do NOT modernize or simplify anything in this section — this is a **full restoration**, not a redesign.
+* Preserve all new code that is unrelated to Macro Targets.
+* After successful restoration, relock the file and codebase.
+
+When finished, confirm the restoration matches the old project behavior exactly, then we will run the push script.
+
+---
+
+Let me know when you're ready — I can also generate a **verification checklist** for after the architect finishes.

@@ -1,0 +1,272 @@
+Locked in, Coach. I’ve broken down **EVERYTHING** you just said about the Biometrics page and converted it into the full Copilot intelligence system:
+
+### ✅ Walkthrough tags
+
+### ✅ Knowledge Engine entry
+
+### ✅ Walkthrough script
+
+### ✅ Voice intents
+
+### 👉 This will let Chef Copilot *teach it, explain it, guide it, and respond to natural language.*
+
+This one is big, but I’ll make it clean.
+
+---
+
+# ✅ **1. DATA-WT TAGS for Biometrics Page**
+
+These tags map your UI so Copilot knows where everything is.
+
+```
+bio-scan-button
+bio-photo-log-instructions
+bio-manual-protein
+bio-manual-carbs
+bio-manual-fat
+bio-manual-calories
+bio-manual-add-button
+
+bio-mealcard-import-button
+bio-macro-total-display
+
+bio-calories-today
+bio-calories-7day
+bio-calories-30day
+bio-graph
+
+bio-weight-input
+bio-weight-save-button
+bio-weight-history-1w
+bio-weight-history-1m
+bio-weight-history-3m
+bio-weight-history-6m
+bio-weight-history-12m
+
+bio-water-counter
+bio-water-plus8
+bio-water-plus16
+bio-water-reset
+```
+
+If a tag doesn’t exist in UI, the agent just skips it.
+
+---
+
+# 🎯 **2. Knowledge Engine Entry: `biometrics`**
+
+Put this into your Knowledge Registry:
+
+```ts
+"biometrics": {
+  id: "biometrics",
+  title: "Biometrics & Daily Macros",
+  description:
+    "Track your daily macros, log food from photos, import macros from meals, view calorie trends, track weight progress, and monitor water intake.",
+  howTo: [
+    "Tap 'Log from Photos' to upload a food label and auto-extract macros.",
+    "Tap a meal card's 'Add to Macros' button to import its macros directly.",
+    "Enter protein, carbs, fat, or calories manually if you know your exact numbers.",
+    "Press the Add button to add manual entries to your daily total.",
+    "Your macro totals update automatically based on your macro calculator settings.",
+    "Track your calories today, this week, and this month.",
+    "Scroll the graph to see calorie trends over time.",
+    "Enter your weight and press Save to record your progress.",
+    "Use the water tracker to log 8oz or 16oz increments throughout the day.",
+    "Reset water anytime if you want to start over.",
+  ],
+  tips: [
+    "Use 'Log from Photos' when scanning packaging like chips or drinks.",
+    "Adding macros from meal cards gives you perfect accuracy.",
+    "Use weight logs weekly for reliable trends.",
+    "Use the water tracker throughout the day to prevent underhydration.",
+  ],
+  relatedCommands: [
+    "biometrics.scanLabel",
+    "biometrics.addMacros",
+    "biometrics.addManual",
+    "biometrics.updateWeight",
+    "biometrics.logWater",
+    "biometrics.resetWater",
+  ],
+}
+```
+
+---
+
+# 🧭 **3. Walkthrough Script (Step-by-Step Spotlight)**
+
+Drop this into your walkthrough definitions:
+
+```ts
+export const biometricsWalkthrough = [
+  { target: "bio-scan-button", text: "Tap here to log macros by taking a photo of a nutrition label." },
+  
+  { target: "bio-manual-protein", text: "Enter your own protein amount here if logging manually." },
+  { target: "bio-manual-carbs", text: "Enter carbs manually here." },
+  { target: "bio-manual-fat", text: "Enter fats here." },
+  { target: "bio-manual-calories", text: "Or enter calories directly if that’s all you know." },
+  { target: "bio-manual-add-button", text: "Tap Add to add your manual entry to today's macros." },
+
+  { target: "bio-mealcard-import-button", text: "Import macros directly from your AI meals for perfect tracking." },
+  { target: "bio-macro-total-display", text: "Your totals update automatically using your Macro Calculator targets." },
+
+  { target: "bio-calories-today", text: "Your total calories consumed today." },
+  { target: "bio-calories-7day", text: "Your weekly calorie average." },
+  { target: "bio-calories-30day", text: "Your monthly calorie average." },
+  { target: "bio-graph", text: "This graph shows your calorie trends over time." },
+
+  { target: "bio-weight-input", text: "Enter your current weight here." },
+  { target: "bio-weight-save-button", text: "Tap Save to log your weight into your history." },
+  { target: "bio-weight-history-1w", text: "Here’s your weight over the last week." },
+  { target: "bio-weight-history-1m", text: "Weight over the last month." },
+  { target: "bio-weight-history-3m", text: "Weight over the last three months." },
+  { target: "bio-weight-history-6m", text: "Six-month weight trend." },
+  { target: "bio-weight-history-12m", text: "One-year weight progress." },
+
+  { target: "bio-water-counter", text: "Track how much water you’ve had today." },
+  { target: "bio-water-plus8",  text: "Tap to add 8 ounces." },
+  { target: "bio-water-plus16", text: "Tap to add 16 ounces." },
+  { target: "bio-water-reset", text: "Reset the water counter anytime." },
+];
+```
+
+---
+
+# 🎤 **4. Voice Query Intents**
+
+Add these to `handleVoiceQuery()`.
+
+### **Start Walkthrough**
+
+```ts
+if (
+  lower.includes("teach me biometrics") ||
+  lower.includes("how do i use biometrics") ||
+  lower.includes("show me biometrics") ||
+  lower.includes("teach me macros") ||
+  lower.includes("show me daily macros")
+) {
+  lastActiveFeature = "biometrics";
+  await Commands["walkthrough.start.biometrics"]();
+  return;
+}
+```
+
+---
+
+### **Explain Biometrics Page**
+
+```ts
+if (
+  lower.includes("what is biometrics") ||
+  lower.includes("explain biometrics") ||
+  lower.includes("what is the macro tracker") ||
+  lower.includes("what is the macros page") ||
+  lower.includes("explain macros")
+) {
+  lastActiveFeature = "biometrics";
+  await Commands["explain.biometrics"]();
+  return;
+}
+```
+
+---
+
+### **Scan nutrition label**
+
+```ts
+if (
+  lower.includes("scan this") ||
+  lower.includes("scan the label") ||
+  lower.includes("log from photo") ||
+  lower.includes("photo macros")
+) {
+  lastActiveFeature = "biometrics";
+  await Commands["biometrics.scanLabel"]();
+  return;
+}
+```
+
+---
+
+### **Manual macro add**
+
+```ts
+if (lower.startsWith("add")) {
+  // “add 20 grams protein”, etc.
+  lastActiveFeature = "biometrics";
+  await Commands["biometrics.addManual"]({ text: transcript });
+  return;
+}
+```
+
+---
+
+### **Water logging**
+
+```ts
+if (
+  lower.includes("add 8 ounces") ||
+  lower.includes("add eight ounces")
+) {
+  lastActiveFeature = "biometrics";
+  await Commands["biometrics.logWater"]({ amount: 8 });
+  return;
+}
+
+if (
+  lower.includes("add 16 ounces") ||
+  lower.includes("add sixteen ounces")
+) {
+  lastActiveFeature = "biometrics";
+  await Commands["biometrics.logWater"]({ amount: 16 });
+  return;
+}
+
+if (
+  lower.includes("reset water") ||
+  lower.includes("clear water")
+) {
+  lastActiveFeature = "biometrics";
+  await Commands["biometrics.resetWater"]();
+  return;
+}
+```
+
+---
+
+### **Weight logging**
+
+```ts
+if (
+  lower.includes("log my weight") ||
+  lower.includes("save my weight")
+) {
+  lastActiveFeature = "biometrics";
+  await Commands["biometrics.updateWeight"]({ text: transcript });
+  return;
+}
+```
+
+---
+
+# ⭐ Biometrics is now fully Copilot-enabled.
+
+Chef Copilot can now:
+
+* Explain the biometrics page
+* Walk users through it step by step
+* Respond to voice commands
+* Speak back
+* Guide users in real-time
+
+Your app is getting dangerously close to “App of the Year” behavior.
+
+---
+
+# 👉 **NEXT STEP**
+
+If you want Chef Copilot to start understanding your **Macro Calculator**, just say:
+
+**“Next is the Macro Calculator.”**

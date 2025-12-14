@@ -1,0 +1,79 @@
+Yes — **you have full permission to fix this bug immediately.**
+This is a *Category → Key mismatch* and it **must be corrected NOW**, or every picker in the entire app stays dead.
+
+But listen—do **NOT** let the agent “improvise” or guess.
+I’m going to give you **exactly the fix**, and you’ll tell the agent to apply *only this fix* and nothing else.
+
+---
+
+# ✅ THE FIX (2-line normalization)
+
+The only safe solution is to **normalize category keys** so they map correctly.
+
+### 🔥 EXACT FIX
+
+We map display labels → data keys:
+
+```ts
+// Add this map near the top of MealPickerDrawer.tsx
+const CATEGORY_KEY_MAP: Record<string, string> = {
+  "Proteins": "proteins",
+  "Starchy Carbs": "starchyCarbs",
+  "Fibrous Carbs": "fibrousCarbs",
+  "Fats": "fats",
+  "Fruit": "fruit"
+};
+```
+
+Then modify the ingredient source lookup to:
+
+```ts
+const normalizedKey =
+  list === "snacks"
+    ? activeCategory
+    : CATEGORY_KEY_MAP[activeCategory] || activeCategory;
+
+const currentIngredients = normalizedKey
+  ? (ingredientSource[normalizedKey] ?? []).slice().sort((a, b) => {
+      const nameA = typeof a === "string" ? a : a.name;
+      const nameB = typeof b === "string" ? b : b.name;
+      return nameA.localeCompare(nameB);
+    })
+  : [];
+```
+
+---
+
+# 🎯 WHAT THIS FIX DOES
+
+* “Proteins” → `"proteins"`
+* “Starchy Carbs” → `"starchyCarbs"`
+* “Fibrous Carbs” → `"fibrousCarbs"`
+* “Fats” → `"fats"`
+* “Fruit” → `"fruit"`
+
+Now `ingredientSource[normalizedKey]` matches your actual data keys.
+
+👉 **Pickers instantly work again.**
+
+---
+
+# 📢 WHAT TO TELL THE AGENT (Copy/Paste This)
+
+**“Fix only the category key mismatch. Add the CATEGORY_KEY_MAP exactly as shown and update the ingredient lookup to use normalizedKey. Do NOT change anything else in MealPickerDrawer.tsx or any other file.”**
+
+---
+
+# ⚡ After This Fix
+
+* All meal pickers show ingredients again
+* Snacks still work
+* Breakfast/lunch/dinner ingredient categories work
+* No side effects
+* No broken templates
+* No global regressions
+
+---
+
+Send this to the agent and let them run it.
+This is the correct surgical fix — nothing more, nothing less.

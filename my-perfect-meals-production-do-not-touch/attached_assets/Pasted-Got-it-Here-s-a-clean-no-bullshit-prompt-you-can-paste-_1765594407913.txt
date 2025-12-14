@@ -1,0 +1,139 @@
+Got it. Here’s a **clean, no-bullshit prompt** you can paste directly to the architect. It explains *exactly* what’s broken, what we tried, what worked, and what still isn’t acceptable — without dragging them into the chaos.
+
+---
+
+### **ARCHITECT PROMPT**
+
+You’re stepping into an iOS Capacitor + Vite + Replit backend situation that’s been a grind, so here’s the full context clearly and concisely.
+
+**Project:** My Perfect Meals (Capacitor iOS app, React/Vite frontend, Replit backend)
+
+---
+
+### **What IS working**
+
+* iOS app builds successfully via Capacitor
+* Splash screen now works correctly **in staging**
+
+  * Proper size (not oversized)
+  * Fast appearance (Apple-approved feel)
+* App loads fine after splash
+* Simulator and physical iPhone both run the app
+* This was achieved by:
+
+  * Using `@capacitor/assets`
+  * Providing a properly scaled `2732x2732` splash
+  * Running `npx @capacitor/assets generate --ios`
+  * Syncing with `npx cap sync ios`
+* CocoaPods issues were resolved by:
+
+  * Raising iOS deployment target
+  * Cleaning Pods + Podfile.lock
+  * Updating Capacitor config
+* So: **Capacitor + iOS pipeline itself is now solid**
+
+---
+
+### **What is NOT working (core blocker)**
+
+**Login fails on iOS only**
+Error presented in app: **“Load failed”**
+
+* Web works
+* Android works
+* iOS WebView loads UI but **API calls fail**
+* This blocks:
+
+  * App Store preview recordings
+  * Sign-in flow demo
+  * Copilot walkthrough video
+
+---
+
+### **Backend details**
+
+Replit backend URL currently used during testing:
+
+```
+https://2e4f029e-9abb-4b2b-a953-3126cde586ef-00-36heuk32mpfh5.worf.replit.dev
+```
+
+---
+
+### **What we’ve already tried**
+
+1. Building iOS with:
+
+   ```
+   VITE_API_BASE_URL=<replit-url> npm run build
+   npx cap sync ios
+   ```
+2. Rebuilding in Xcode
+3. Verifying splash / launch / Capacitor config
+4. Cleaning Pods, syncing repeatedly
+5. Attempting to commit splash assets (Git freezes due to repo size — avoiding Git for now)
+
+---
+
+### **Suspected root causes**
+
+One or more of the following:
+
+* `VITE_API_BASE_URL` not being baked into the iOS build correctly
+* iOS WebView not resolving env vars as expected
+* API base URL logic relying on browser-only assumptions
+* CORS / HTTPS / App Transport Security mismatch
+* Native vs web base URL detection not handled cleanly
+
+---
+
+### **Temporary workaround proposed**
+
+Hardcode backend URL **only for native platforms** (iOS) to unblock previews, e.g.:
+
+```ts
+const API_BASE_URL =
+  Capacitor.isNativePlatform()
+    ? 'https://<replit-backend>'
+    : import.meta.env.VITE_API_BASE_URL;
+```
+
+This is acceptable short-term for App Store previews but not ideal long-term.
+
+---
+
+### **What we want from you**
+
+* A **clean, architect-level recommendation** for:
+
+  * Proper environment handling for iOS builds
+  * Best-practice API base URL strategy for Capacitor + Vite
+  * Whether staging → production iOS should be separate projects
+* Ideally:
+
+  * A solution that avoids repeated rebuild hell
+  * A way to keep staging/prod cleanly separated
+  * Confirmation whether hardcoding for native is the *correct interim approach*
+
+---
+
+### **Constraints**
+
+* We are **not debugging splash anymore**
+* We are **not touching Git tonight**
+* Goal is **unblock iOS login so App Store previews can be recorded**
+* Stability > purity right now
+
+---
+
+Let me know your recommended path forward.
+
+---
+
+If you want, next I can:
+
+* Help you evaluate the architect’s response
+* Translate their advice into **exact code changes**
+* Or decide whether we lock in the native hardcode for App Store submission and clean it later
+
+You did the hard part already. The rest is just architecture polish.

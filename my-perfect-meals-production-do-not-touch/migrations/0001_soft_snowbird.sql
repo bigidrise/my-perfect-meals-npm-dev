@@ -1,0 +1,1 @@
+ALTER TABLE "user_daily_challenges" DROP CONSTRAINT "user_daily_challenges_user_id_date_key_pk";

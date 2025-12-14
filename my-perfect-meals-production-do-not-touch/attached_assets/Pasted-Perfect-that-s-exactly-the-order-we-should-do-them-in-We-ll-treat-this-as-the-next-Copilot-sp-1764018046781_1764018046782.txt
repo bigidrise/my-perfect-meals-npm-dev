@@ -1,0 +1,363 @@
+Perfect, that’s exactly the order we *should* do them in.
+
+We’ll treat this as the **next Copilot spotlight wave:**
+
+> **Macro Calculator → My Biometrics → Master Shopping List**
+
+Here’s the **architect-ready package** for all three. You can hand this straight to the Replit architect.
+
+---
+
+# 🧠 PHASE C.3 — WALKTHROUGHS FOR 3 CORE FEATURES
+
+## TARGET FEATURES
+
+1. **Macro Calculator**
+2. **My Biometrics**
+3. **Master Shopping List**
+
+Each feature gets:
+
+* A **Spotlight walkthrough script** (like Weekly Meal Builder)
+* **data-testid anchors** for the UI
+* **Event-driven auto-advance** where it makes sense
+
+---
+
+## 1️⃣ MACRO CALCULATOR WALKTHROUGH
+
+### A. Script + Routing
+
+**Script file (new):**
+
+* `client/src/components/copilot/walkthrough/scripts/MacroCalculatorScript.ts`
+
+**Script id:** `"macro-calculator-walkthrough"`
+**Feature id hook in CanonicalAliasRegistry:**
+
+* Feature: `MACRO_CALCULATOR`
+* Add: `walkthroughId: "macro-calculator-walkthrough"`
+
+**Status:**
+
+* Start as `uiReady: false` until testids are wired.
+* Then flip to `uiReady: true` once DOM is ready.
+
+---
+
+### B. Required `data-testid` Anchors
+
+Add these to the existing Macro Calculator UI:
+
+**Inputs:**
+
+* `data-testid="macro-goal-selector"` – Goal dropdown (fat loss / maintenance / muscle gain)
+* `data-testid="macro-current-weight-input"` – Current weight field
+* `data-testid="macro-goal-weight-input"` – Goal weight field (if present)
+* `data-testid="macro-height-input"` – Height field (if present)
+* `data-testid="macro-age-input"` – Age input (if present)
+* `data-testid="macro-gender-selector"` – Gender toggle/button
+* `data-testid="macro-activity-selector"` – Activity level dropdown
+
+**Macros Result / Sliders:**
+
+* `data-testid="macro-protein-target"` – Protein target display (g/day)
+* `data-testid="macro-carbs-target"` – Carb target display
+* `data-testid="macro-fat-target"` – Fat target display
+* `data-testid="macro-total-calories"` – Target calories
+
+**Controls:**
+
+* `data-testid="macro-calculate-button"` – Calculate/Update button
+* `data-testid="macro-save-profile-button"` – “Save” / “Apply” / “Use for app” button (if present)
+* `data-testid="macro-link-to-biometrics"` – Button/link that takes them to My Biometrics (if you have one; optional but ideal)
+
+**Events (optional but recommended):**
+
+* On calculate: dispatch `"ready"` from the totals container.
+* On save/apply: dispatch `"done"` from a hidden span inside the save area.
+
+Example pattern inside the totals block:
+
+```tsx
+useEffect(() => {
+  if (!totals) return;
+
+  const el = document.querySelector('[data-testid="macro-total-calories"]');
+  if (!el) return;
+
+  const timer = setTimeout(() => {
+    el.dispatchEvent(new CustomEvent("walkthrough", { detail: { type: "ready" } }));
+  }, 400);
+
+  return () => clearTimeout(timer);
+}, [totals]);
+```
+
+---
+
+### C. Macro Calculator Walkthrough Step Outline
+
+11-style flow, same vibe as Weekly Meal Builder:
+
+1. **Intro**
+
+   * Target: page header
+   * `targetTestId: "macro-goal-selector"` (first visible control)
+   * Explains: macro calculator sets your targets for the rest of the app.
+
+2. **Pick Your Goal**
+
+   * Focus: `macro-goal-selector`
+   * Instruct: choose fat loss / maintenance / muscle gain.
+
+3. **Enter Body Stats**
+
+   * Step cycles or highlights each key field:
+
+     * `macro-current-weight-input`
+     * `macro-goal-weight-input` (if present)
+     * `macro-height-input`, `macro-age-input`, `macro-gender-selector`
+   * You can do this as one step with copy like: “Fill out your current weight, goal, height, age, and gender.”
+
+4. **Set Activity Level**
+
+   * Focus: `macro-activity-selector`
+   * Explain: pick the level that matches most days.
+
+5. **Calculate Macros**
+
+   * Focus: `macro-calculate-button`
+   * Wait for click → `waitForEvent: { type: "click" }` OR `"ready"` from totals
+
+6. **Review Your Targets**
+
+   * Focus: totals area
+   * `macro-total-calories`, `macro-protein-target`, `macro-carbs-target`, `macro-fat-target`
+   * Explain how to read them.
+
+7. **Save / Apply to App**
+
+   * Focus: `macro-save-profile-button`
+   * Wait for `"done"` event to auto-advance.
+
+8. **Jump to Biometrics (Optional)**
+
+   * If `macro-link-to-biometrics` exists:
+   * Focus that link, explain “this sends you to My Biometrics so you can track against these targets.”
+
+---
+
+## 2️⃣ MY BIOMETRICS WALKTHROUGH
+
+### A. Script + Routing
+
+**Script file (new):**
+
+* `client/src/components/copilot/walkthrough/scripts/BiometricsWalkthroughScript.ts`
+
+**Script id:** `"biometrics-walkthrough"`
+**Feature id in CanonicalAliasRegistry:**
+
+* Feature: `MY_BIOMETRICS` (remember: route is `/my-biometrics`)
+* Add: `walkthroughId: "biometrics-walkthrough"`
+
+Start **`uiReady: false`**, flip to `true` after anchors are live.
+
+---
+
+### B. Required `data-testid` Anchors
+
+**Key Inputs:**
+
+* `data-testid="biometrics-weight-input"` – Weight field
+* `data-testid="biometrics-date-input"` – Date selector (or implied current date)
+* `data-testid="biometrics-progress-photo-button"` – “Add photo” / “Upload photo”
+* `data-testid="biometrics-measurements-toggle"` – Tab/toggle to open measurements area
+* `data-testid="biometrics-waist-input"`
+* `data-testid="biometrics-hips-input"`
+* `data-testid="biometrics-chest-input"` (if you’re tracking these)
+* `data-testid="biometrics-save-entry-button"` – Save/log button
+
+**History / Charts:**
+
+* `data-testid="biometrics-history-list"` – Table/list of past entries
+* `data-testid="biometrics-weight-trend-chart"` – Graph area for weight trend (if present)
+
+**Events:**
+
+* After saving: dispatch `"done"` from `biometrics-history-list`
+* After photo upload success: dispatch `"filled"` from `biometrics-progress-photo-button`
+
+---
+
+### C. Biometrics Step Outline
+
+Example 8-step flow:
+
+1. **Intro** – Explain this is where we track weight, photos, and measurements.
+2. **Enter Today’s Weight** – Focus: `biometrics-weight-input`.
+3. **Add Date (if needed)** – Focus: `biometrics-date-input`.
+4. **Add Progress Photo** – Focus: `biometrics-progress-photo-button`, wait for `"filled"`.
+5. **Open Measurements** – Focus: `biometrics-measurements-toggle`.
+6. **Log Measurements** – Highlight `waist/hips/chest` inputs with a single combined step.
+7. **Save Entry** – Focus: `biometrics-save-entry-button`, wait for `"done"`.
+8. **Review Progress** – Focus: `biometrics-weight-trend-chart` or `biometrics-history-list`.
+
+---
+
+## 3️⃣ MASTER SHOPPING LIST WALKTHROUGH
+
+### A. Script + Routing
+
+**Script file (new):**
+
+* `client/src/components/copilot/walkthrough/scripts/MasterShoppingListScript.ts`
+
+**Script id:** `"master-shopping-walkthrough"`
+**Feature id in CanonicalAliasRegistry:**
+
+* Feature: `MASTER_SHOPPING_LIST`
+* Add: `walkthroughId: "master-shopping-walkthrough"`
+
+Start as **`uiReady: false`**, then `true` once anchors and events are in.
+
+---
+
+### B. Required `data-testid` Anchors
+
+Your Master Shopping List has:
+
+* Items aggregated from week/day
+* Maybe manual “add item”
+* Category groupings
+* ShoppingAggregateBar at the bottom
+
+**Core Anchors:**
+
+* `data-testid="shopping-list-header"` – Page title region
+* `data-testid="shopping-list-filters"` – Any filter row (category dropdown, toggles)
+* `data-testid="shopping-list-items-container"` – Scroll container of aggregated items
+* `data-testid="shopping-list-item-row"` – Class/testid for each row (first row is enough for spotlight)
+* `data-testid="shopping-list-quantity-control"` – Quantity +/- on a row
+* `data-testid="shopping-list-checkoff-control"` – Checkbox / mark-done control
+
+**Controls:**
+
+* `data-testid="shopping-list-add-item-button"` – Manual “add item” button (if present)
+* `data-testid="shopping-list-add-item-input"` – Manual input (if present)
+* `data-testid="shopping-list-footer-bar"` – ShoppingAggregateBar wrapper
+* `data-testid="shopping-list-export-button"` – “Print / Send / Export” button
+
+**Events:**
+
+* After first item is checked off: dispatch `"filled"` from `shopping-list-items-container`
+* After export: dispatch `"done"` from `shopping-list-footer-bar`
+
+Example:
+
+```tsx
+const handleExport = () => {
+  // existing behavior...
+  const el = document.querySelector('[data-testid="shopping-list-footer-bar"]');
+  if (el) {
+    el.dispatchEvent(new CustomEvent("walkthrough", { detail: { type: "done" } }));
+  }
+};
+```
+
+---
+
+### C. Master Shopping List Step Outline
+
+1. **Intro** – Focus: `shopping-list-header`
+   Explain this is where entire week/day gets turned into one list.
+
+2. **Filters / View Options** – Focus: `shopping-list-filters`
+   Explain how to switch by category, store, etc (if applicable).
+
+3. **Review Items** – Focus: `shopping-list-item-row` (first one)
+   Show item name, quantity, unit.
+
+4. **Change Quantity** – Focus: `shopping-list-quantity-control`
+   Explain that they can add/remove quantity if they already have some at home.
+
+5. **Check Off Item** – Focus: `shopping-list-checkoff-control`
+   Wait for `"filled"` event when they mark something as done.
+
+6. **Add Custom Item (Optional)** – If you have manual add:
+   Focus: `shopping-list-add-item-button` and `shopping-list-add-item-input`.
+
+7. **Export / Use At Store** – Focus: `shopping-list-export-button`
+   Wait for `"done"` event.
+   Explain: “Use this while shopping or send/print/etc.”
+
+---
+
+## 4️⃣ IMPLEMENTATION CHECKLIST FOR ARCHITECT
+
+Here’s the **exact flow for the architect** so they don’t improvise:
+
+1. **Create 3 script files:**
+
+   * `MacroCalculatorScript.ts`
+   * `BiometricsWalkthroughScript.ts`
+   * `MasterShoppingListScript.ts`
+
+   All using the same pattern as `WeeklyMealBuilderScript.ts`:
+
+   * `id`, `featureId`, `title`, `description`, `uiReady`, `steps`
+
+2. **Register scripts in `ScriptRegistry.ts`:**
+
+   * Add imports
+   * Add entries to the registry map
+   * Match `id` strings exactly
+
+3. **Add `walkthroughId` to `CanonicalAliasRegistry.ts`** for:
+
+   * `MACRO_CALCULATOR`
+   * `MY_BIOMETRICS`
+   * `MASTER_SHOPPING_LIST`
+
+4. **Wire `data-testid` attributes** into the existing React components:
+
+   * Macro Calculator page component
+   * Biometrics page component
+   * Master Shopping List page component / ShoppingAggregateBar
+
+5. **Wire events**:
+
+   * Use the same `CustomEvent("walkthrough", { detail: { type: "..." } })` pattern as Weekly Meal Builder.
+   * Types: `"ready"`, `"filled"`, `"done"`.
+
+6. **Initially: keep `uiReady: false`** for each script until:
+
+   * All required testids exist
+   * Click + event flow verified in dev
+
+7. **When confirmed working:**
+
+   * Flip each `uiReady: true`
+   * Run `tsc` to confirm no type errors
+   * Test voice + text queries:
+
+     * “Macro calculator”
+     * “Macros”
+     * “Biometrics”
+     * “Track my weight”
+     * “Shopping list”
+     * “Grocery list”
+
+---
+
+If you want, next move after this is straightforward:
+
+* **Phase C.4:** Craving Creator (Hub + Creator + Premades)
+* **Phase C.5:** Diabetic / GLP-1 / Anti-inflammatory / Beach Body Builders (reuse 95% of Weekly script)
+
+For now, your order is locked in:
+
+> ✅ Next walk-throughs: **Macro Calculator → My Biometrics → Master Shopping List**
+
+No questions needed.
