@@ -33,6 +33,7 @@ export default defineConfig({
     hmr: false,         // ⬅️ Disable HMR WS
     strictPort: true,   // don't silently hop ports
     port: 5173,
+    allowedHosts: true, // Allow all hosts for Replit proxy
     proxy: {
       // Anything starting with /api in dev will be forwarded to the backend
       "/api": {
