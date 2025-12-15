@@ -376,7 +376,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build diabetic-friendly meals for your client using clinician-defined guardrails.",
     spokenText:
-      "This diabetic meal builder is designed for creating meals for your client under ProCare. All meals generated here follow the guardrails you've already set in the client dashboard, including carb limits, fiber minimums, glycemic targets, and meal frequency. Use the AI Meal Creator to select ingredients with the meal picker, or use Create With Chef to describe meals and snacks for your client. You can build one or multiple days and generate meals that align with the client's diabetic plan.",
+      "This diabetic meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
     autoClose: true,
   },
 
@@ -386,7 +386,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create GLP-1–aligned meals for your client using appetite-aware guardrails.",
     spokenText:
-      "The GLP-1 meal builder under ProCare is used to create meals for your client based on the GLP-1 guardrails you've set. Meals generated here follow portion, volume, protein, and digestion targets designed to support GLP-1 use. Use the AI Meal Creator to pick ingredients, or Create With Chef to describe meals and snacks for your client, then build meals that align with their current phase and goals.",
+      "The GLP-1 meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
     autoClose: true,
   },
 
@@ -396,7 +396,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build inflammation-conscious meals for your client using targeted guardrails.",
     spokenText:
-      "This anti-inflammatory meal builder lets you create meals for your client using guardrails focused on inflammation-friendly foods. Use the AI Meal Creator to choose ingredients with the meal picker, or Create With Chef to describe meals and snacks for your client. All meals generated here follow the parameters you've set in the client dashboard to support recovery and overall wellness.",
+      "This anti-inflammatory meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
     autoClose: true,
   },
 
@@ -406,7 +406,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create precision-based performance meals for your client using competition-level guardrails.",
     spokenText:
-      "The performance and competition meal builder under ProCare is designed for advanced, goal-driven nutrition. Meals created here follow the exact macros, carb directives, and performance targets you've set for your client. Use the AI Meal Creator to dial in ingredients, or Create With Chef to describe meals and snacks, then generate meals that support training, recovery, and competition demands.",
+      "The performance and competition meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
     autoClose: true,
   },
 
@@ -416,7 +416,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build balanced, everyday meals for your client using flexible nutrition guardrails.",
     spokenText:
-      "The general nutrition meal builder under ProCare is used to create balanced meals for your client while staying within the targets you've set. Use the AI Meal Creator to select ingredients with the meal picker, or Create With Chef to describe meals and snacks for your client. This builder offers flexibility while still respecting the client's macros and nutrition goals.",
+      "This general nutrition meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
     autoClose: true,
   },
 };
