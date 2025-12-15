@@ -350,8 +350,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/pro-portal": {
-    pageId: "pro-portal",
+  "/pro/clients": {
+    pageId: "pro-clients",
     title: "Pro Portal",
     description:
       "Your professional portal for managing clients and accessing their care dashboards.",
@@ -360,7 +360,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/pro-client-dashboard": {
+  "/pro/clients/:id": {
     pageId: "pro-client-dashboard",
     title: "Client Dashboard",
     description:
@@ -372,9 +372,27 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
-  return PAGE_EXPLANATIONS[pathname] || null;
+  // First try exact match
+  if (PAGE_EXPLANATIONS[pathname]) {
+    return PAGE_EXPLANATIONS[pathname];
+  }
+
+  // Try pattern matching for dynamic routes (e.g., /pro/clients/:id)
+  for (const [pattern, explanation] of Object.entries(PAGE_EXPLANATIONS)) {
+    if (pattern.includes(":")) {
+      // Convert pattern to regex: /pro/clients/:id -> /pro/clients/[^/]+
+      // But ensure exact match: /pro/clients/:id should NOT match /pro/clients/:id/something
+      const regexPattern = pattern.replace(/:[\w]+/g, "[^/]+");
+      const regex = new RegExp(`^${regexPattern}$`);
+      if (regex.test(pathname)) {
+        return explanation;
+      }
+    }
+  }
+
+  return null;
 }
 
 export function hasPageExplanation(pathname: string): boolean {
-  return pathname in PAGE_EXPLANATIONS;
+  return getPageExplanation(pathname) !== null;
 }
