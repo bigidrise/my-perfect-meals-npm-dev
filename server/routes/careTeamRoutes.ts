@@ -34,10 +34,19 @@ router.post("/invite", async (req, res) => {
   try {
     const userId = getUserId(req);
 
-    const { email, role, permissions } = req.body;
-    if (!email || !role || !permissions) {
+    const { email: rawEmail, role, permissions } = req.body;
+    if (!rawEmail || !role || !permissions) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+
+    // Sanitize and validate email format
+    const email = String(rawEmail).trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Invalid email format. Please enter a valid email address." });
+    }
+
+    console.log(`📧 Care Team invite request - email: "${email}", role: ${role}`);
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
     const expiresAt = new Date();
