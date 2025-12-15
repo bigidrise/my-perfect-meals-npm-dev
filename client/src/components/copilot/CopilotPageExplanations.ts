@@ -276,9 +276,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Weekly Meal Builder",
     description:
-    "Build meals across one or multiple days using structured or conversational meal tools guided by your goals.",
+      "Build meals across one or multiple days using structured or conversational meal tools guided by your goals.",
     spokenText:
-    "All meal builders work the same way, with guardrails based on the board you’re using. When building meals, you have three options. Use the AI Meal Creator if you want to pick specific ingredients using the meal picker. Use Create With Chef if you’d rather describe what you want and let the Chef build it for you. For snacks, you’ll also describe what you want and the Chef will create it. Choose how many days you want to build, create breakfast, lunch, dinner, and snacks, adjust servings, then send meals to your macro table or ingredients to your shopping list.",
+      "All meal builders work the same way, with guardrails based on the board you’re using. When building meals, you have three options. Use the AI Meal Creator if you want to pick specific ingredients using the meal picker. Use Create With Chef if you’d rather describe what you want and let the Chef build it for you. For snacks, you’ll also describe what you want and the Chef will create it. Choose how many days you want to build, create breakfast, lunch, dinner, and snacks, adjust servings, then send meals to your macro table or ingredients to your shopping list.",
     autoClose: true,
   },
 
@@ -286,9 +286,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "diabetic-hub",
     title: "Diabetic Hub",
     description:
-    "Build meals that support balanced blood sugar using diabetic-specific guardrails.",
+    "Your control center for managing blood sugar with clinician-style guardrails and daily glucose tracking.",
     spokenText:
-    "The Diabetic Meal Builder uses the same meal-building tools with guardrails designed for blood sugar support. Use the AI Meal Creator to pick ingredients with the meal picker, or use Create With Chef to describe your meals and snacks. Build one or multiple days, adjust servings, and send meals to your macro table or shopping list while staying within diabetic-friendly targets.",
+    "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. When you’re ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
     autoClose: true,
   },
 
@@ -296,9 +296,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Diabetic Meal Builder",
     description:
-      "Build carb-conscious meals that help you stay on track with your daily blood sugar goals.",
+    "Build meals that support balanced blood sugar using diabetic-specific guardrails.",
     spokenText:
-      "Diabetic Meal Builder — designed to help you create carb-conscious meals that support healthy blood sugar levels throughout the day. Here you’ll build your meals for the day using the AI Meal Creator or the AI Premades. Choose your meals, pick how you want them prepared, adjust servings, and generate your breakfast, lunch, dinner, and snacks. At the top, pick how many days you want to build — you can duplicate the same day across the week or customize each day differently. When you're done, you can send a single day to your Macro Table, or send everything to your shopping list for easy grocery planning. Check the bottom of the screen for your remaining macros — tap the Guide button for details.",
+    "The Diabetic Meal Builder uses the same meal-building tools with guardrails designed for blood sugar support. Use the AI Meal Creator to pick ingredients with the meal picker, or use Create With Chef to describe your meals and snacks. Build one or multiple days, adjust servings, and send meals to your macro table or shopping list while staying within diabetic-friendly targets.",
     autoClose: true,
   },
 
@@ -306,29 +306,27 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "glp1-hub",
     title: "Glp1 Hub",
     description:
-      "Your GLP-1 support hub. Track your weekly injection dose, timing, and injection site with saved history, set your guardrails, and move into the GLP-1 meal builder.",
+    "Your GLP-1 support hub for shot tracking, guardrails, and meal readiness.",
     spokenText:
-      "GLP-1 Hub — your space for tracking and managing your weekly injections. Enter your dose, day, time, and injection site, and I’ll save your history so you can monitor your progress. Set your doctor or coach guardrails, and when you’re ready, head to the GLP-1 Meal Builder.",
+    "The GLP-1 Hub is your support center for managing care alongside GLP-1 use. Here you can review how the app supports your care, track your GLP-1 shots by dosage and injection site, and set doctor-style guardrails using quick start presets like intro/ up-titration, maintenance, refeed/ strength focus. For custom goals you can adjust targets for meal volume, protein minimums, fat limits, fiber minimums, hydration goals, meals per day, digestion support, and limits on carbonation or alcohol, then save those guardrails. When everything is set, use the button at the bottom to move into the GLP-1 meal builder.",
     autoClose: true,
   },
 
   "/glp1-meal-builder": {
     pageId: "weekly-meal-board",
     title: "Glp1 Meal Builder",
-    description:
-    "Create portion-aware meals designed to support GLP-1 goals.",
+    description: "Create portion-aware meals designed to support GLP-1 goals.",
     spokenText:
-    "The GLP-1 Meal Builder follows the same process with guardrails designed for portion control and satiety. Use the AI Meal Creator if you want to select ingredients, or use Create With Chef to describe your meals and snacks. Portions are guided automatically, and you can send meals to your macro table or shopping list when finished.",
+      "The GLP-1 Meal Builder follows the same process with guardrails designed for portion control and satiety. Use the AI Meal Creator if you want to select ingredients, or use Create With Chef to describe your meals and snacks. Portions are guided automatically, and you can send meals to your macro table or shopping list when finished.",
     autoClose: true,
   },
 
   "/anti-inflammatory-menu-builder": {
     pageId: "anti-inflammatory-menu-builder",
     title: "Anti-Inflammatory Meal Builder",
-    description:
-    "Build meals focused on inflammation-friendly ingredients.",
+    description: "Build meals focused on inflammation-friendly ingredients.",
     spokenText:
-    "The Anti-Inflammatory Meal Builder uses the same tools with guardrails focused on inflammation-friendly choices. Build meals using the AI Meal Creator with the meal picker, or describe your meals and snacks using Create With Chef. Adjust servings, plan your days, and send meals to your macro table or shopping list.",
+      "The Anti-Inflammatory Meal Builder uses the same tools with guardrails focused on inflammation-friendly choices. Build meals using the AI Meal Creator with the meal picker, or describe your meals and snacks using Create With Chef. Adjust servings, plan your days, and send meals to your macro table or shopping list.",
     autoClose: true,
   },
 
@@ -336,29 +334,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "beach-body-meal-board",
     title: "Beach Body Meal Builder",
     description:
-    "Create structured meals designed for performance and body composition.",
+      "Create structured meals designed for performance and body composition.",
     spokenText:
-    "The Beachbody Meal Builder uses the same meal-building flow with performance-focused guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
-    autoClose: true,
-  },
-
-  "/general-nutrition-builder": {
-    pageId: "general-nutrition-builder",
-    title: "General Nutrition Builder",
-    description:
-    "Create balanced meals for everyday healthy eating.",
-    spokenText:
-    "The General Nutrition Builder uses the same meal-building flow with balanced nutrition guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
-    autoClose: true,
-  },
-
-  "/performance-competition-builder": {
-    pageId: "performance-competition-builder",
-    title: "Performance & Competition Builder",
-    description:
-    "Create meals optimized for athletic performance and competition prep.",
-    spokenText:
-    "The Performance and Competition Builder uses the same meal-building flow with performance-focused guardrails for athletes. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
+      "The Beachbody Meal Builder uses the same meal-building flow with performance-focused guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
     autoClose: true,
   },
 
