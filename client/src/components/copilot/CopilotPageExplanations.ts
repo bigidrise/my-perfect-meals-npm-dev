@@ -349,6 +349,26 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone’s team using an access code. Once connected, you’ll appear on each other’s active care team and can manage your support network anytime. Choose the option you need to get started.",
     autoClose: true,
   },
+
+  "/pro-portal": {
+    pageId: "pro-portal",
+    title: "Pro Portal",
+    description:
+      "Your professional portal for managing clients and accessing their care dashboards.",
+    spokenText:
+      "The Pro Portal is where you manage your clients and care relationships. From here, you can add a new client, accept an invitation, or open an existing client profile. Once a client is connected, tap Open to access their dashboard, where you'll set targets, apply protocols, and guide their nutrition plan.",
+    autoClose: true,
+  },
+
+  "/pro-client-dashboard": {
+    pageId: "pro-client-dashboard",
+    title: "Client Dashboard",
+    description:
+      "Set client targets, apply protocols, and guide meal generation from one dashboard.",
+    spokenText:
+      "The Client Dashboard is where you set and manage everything for your client. Here you can set macro targets and send them directly to the client's biometrics, apply focus options like high protein, carb cycling, or anti inflammatory protocols, and define carb directives such as starchy and fibrous carb targets. You can save these parameters, add coach or physician notes, and then move into the appropriate meal builders to generate meals that follow the guardrails you've set.",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
