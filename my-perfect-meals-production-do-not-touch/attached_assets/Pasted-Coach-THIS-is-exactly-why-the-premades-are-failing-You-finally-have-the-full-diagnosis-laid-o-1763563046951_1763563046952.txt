@@ -1,0 +1,118 @@
+Coach, **THIS is exactly why the premades are failing.**
+You finally have the full diagnosis laid out in front of you — and it’s dead-on.
+
+Now here’s the part you need next:
+
+# ✅ **THE REPLIT AGENT PROMPT TO FIX THIS ENTIRE MESS IN ONE PASS**
+
+This prompt tells the agent *exactly* what to do based on what you just discovered — align the Premade system with the known-working Meal Creator system.
+
+Drop this into Replit EXACTLY as-is:
+
+---
+
+# 🚨 **COPY + PASTE THIS INTO REPLIT AGENT** 🚨
+
+**“We need to fix the AI Premade Meal Generator by aligning it with the fully working AI Meal Creator system. Right now, the Premade system is calling the wrong endpoint (/api/meal-images/generate), sending the wrong request shape ({ prompt }), and receiving only an image instead of a complete meal.**
+
+**Here is exactly what to do:**
+
+### 1️⃣ Rewrite the Premade API call in
+
+**client/src/components/pickers/MealPremadePicker.tsx**
+
+Replace the current image-only fetch() with the same request style the working system uses:
+
+```
+POST /api/meals/fridge-rescue
+Content-Type: application/json
+
+{
+  fridgeItems: [...ingredients],
+  userId: 1
+}
+```
+
+### 2️⃣ The Premade Picker should send:
+
+* the premade meal’s ingredient list as `fridgeItems`
+* the userId (hardcode 1 for now)
+* NO prompt strings
+* NO DALL·E-specific request shape
+
+The backend AI system will generate:
+
+* full meal object
+* instructions
+* nutrition
+* image URL
+  …just like the working Fridge Rescue system.
+
+### 3️⃣ Update the backend Premade flow so it does **NOT** call `/api/meal-images/generate`.
+
+Premades should route into the SAME generator as AI Meal Creator:
+
+✔ server/routes/fridgeRescue.ts
+✔ server/services/fridgeRescueGenerator.ts
+
+### 4️⃣ Remove or disable the current failing logic in:
+
+* server/routes/mealImages.ts
+* any components using `{ prompt }` for premades
+* any unused image-generation-only routes
+
+### 5️⃣ Make sure ALL AI logic uses the SAME OpenAI client, SAME endpoint, SAME structure as the working system.
+
+### 6️⃣ After changes:
+
+Run the app and confirm:
+
+* Selecting a premade meal → creates a full AI meal object
+* Image appears
+* No 404 errors
+* No “prompt” missing errors
+* No shape mismatches
+* No crashes in the picker
+
+**Do NOT change the working AI Meal Creator. Only update the Premade system to match its architecture.”**
+
+---
+
+# 💥 WHAT THIS FIX ACCOMPLISHES
+
+### ✔ Premades finally return REAL meals
+
+—not just images.
+
+### ✔ No more missing endpoints
+
+The 404 hell is gone.
+
+### ✔ Both systems now speak the SAME language
+
+Same data shape
+Same model
+Same AI engine
+Same backend service
+Same image generator
+Same validation
+Same meal structure
+
+### ✔ ZERO more “it gave me scrambled when I asked for omelet” problems
+
+Because everything funnels through **one unified, stable generator**.
+
+---
+
+# If you want, I can also generate:
+
+🔥 A complete unified schema for ALL AI meal generation
+🔥 One universal `/api/ai` route
+🔥 A shared TypeScript type library
+🔥 A shared Prompt Library (JSON)
+🔥 A simplified “AI Engine” folder used by all features
+
+Just say the word.
+
+You nailed the diagnosis.
+Now the fix is one Replit prompt away.

@@ -1,0 +1,86 @@
+import { useLocation } from "wouter";
+import { Home, ShoppingBag, User2, Grid3X3 } from "lucide-react";
+import { CopilotButton } from "@/components/copilot/CopilotButton";
+
+export function BottomNav() {
+  const [, navigate] = useLocation();
+
+  return (
+    <nav className="
+      fixed bottom-0 left-0 right-0 z-40
+      border-t border-white/10
+      bg-black/70 backdrop-blur-xl
+      px-4 pt-2 pb-[env(safe-area-inset-bottom,0.75rem)]
+    ">
+      <div className="relative mx-auto max-w-md">
+        <div className="flex items-center justify-between">
+          {/* LEFT SIDE TABS */}
+          <div className="flex items-center gap-4">
+            <NavItem
+              icon={Home}
+              label="Home"
+              onClick={() => navigate("/")}
+            />
+            <NavItem
+              icon={Grid3X3}
+              label="Hubs"
+              onClick={() => navigate("/hubs")}
+            />
+          </div>
+
+          {/* RIGHT SIDE TABS */}
+          <div className="flex items-center gap-4">
+            <NavItem
+              icon={ShoppingBag}
+              label="Shopping"
+              onClick={() => navigate("/shopping")}
+            />
+            <NavItem
+              icon={User2}
+              label="Me"
+              onClick={() => navigate("/profile")}
+            />
+          </div>
+        </div>
+
+        {/* CENTER COPILOT BUTTON */}
+        <div className="absolute inset-x-0 -top-6 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto">
+            <CopilotButton
+              size="lg"
+              // if your CopilotButton already handles open(), just render it
+              className="
+                rounded-full
+                shadow-lg shadow-black/60
+              "
+            />
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+interface NavItemProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+}
+
+function NavItem({ icon: Icon, label, onClick }: NavItemProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="
+        flex flex-col items-center justify-center
+        text-[11px] font-medium
+        text-white/60
+        hover:text-white
+        transition-colors
+      "
+    >
+      <Icon className="h-5 w-5 mb-0.5" />
+      <span>{label}</span>
+    </button>
+  );
+}

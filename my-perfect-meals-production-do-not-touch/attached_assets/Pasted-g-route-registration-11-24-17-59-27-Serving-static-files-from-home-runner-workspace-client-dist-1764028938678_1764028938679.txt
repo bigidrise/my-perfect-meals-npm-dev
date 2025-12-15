@@ -1,0 +1,56 @@
+g route registration
+11-24 17:59:27
+📁 Serving static files from: /home/runner/workspace/client/dist
+11-24 17:59:27
+✅ Routes registered successfully
+11-24 17:59:27
+📍 Environment: production
+
+11-24 17:59:27
+🚀 Production server running on port 5000
+11-24 17:59:27
+🔗 Database: Connected
+11-24 17:59:27
+7fe1d762-4881-4c9e-a316-740f9573555b GET / 200 16ms
+11-24 17:59:37
+f3ac9f1b-39bc-4d0f-80d1-c6890c9cadc3 GET /api/users/1 304 5ms
+11-24 17:59:37
+27410ef6-8fa7-4f0f-b7bc-88bb4ecc6c98 GET /version.json?t=1764028777525 200 2ms
+11-24 17:59:37
+9894d7fd-52c0-4305-9a70-f22dc559951d GET /version.json?cache=1764028777526 200 8ms
+11-24 17:59:37
+692722b7-45ed-4c4e-83dd-9b7d7f4d45e6 GET /version.json?cache=1764028777526 200 2ms
+11-24 17:59:37
+35cadb25-e526-4ba6-b9c1-eb71000c5407 GET /dashboard 200 3ms
+11-24 17:59:37
+8dd2174c-f585-4b75-bccb-9956d5629924 GET /assets/index-B59VIi3c.js 200 4ms
+11-24 17:59:37
+39719cea-673a-47e9-897c-957998de8a0f GET /manifest.json 200 6ms
+11-24 17:59:38
+a52598ca-480e-45b6-8fcd-f1ea62430934 GET /assets/app-entry-SLS7wGlx.css 200 8ms
+11-24 17:59:38
+08bbb81e-094d-49fe-92ee-40c1a40573cf GET /assets/app-entry-Cy-w6N7r.js 200 22ms
+11-24 17:59:38
+2fff2e3b-9673-492d-aa83-72d5fe950619 GET /version.json?t=1764028778684 200 2ms
+11-24 17:59:38
+a3bb33a1-3e0e-4dfc-8a07-4ee24c430068 GET /api/users/1 304 2ms
+11-24 17:59:38
+2a6f5888-dfe6-4970-9827-1fc413f8cf0b GET /sw.js 200 7ms
+11-24 17:59:43
+🎤 Generating TTS for text: "Hello, and welcome! I'm your Perfect Copilot. Anyt..."
+11-24 17:59:43
+❌ ElevenLabs API error: 401 - {"detail":{"status":"detected_unusual_activity","message":"Unusual activity detected. Free Tier usage disabled. If you are using a proxy/VPN you might need to purchase a Paid Plan to not trigger our abuse detectors. Free Tier only works if users do not abuse it, for example by creating multiple free accounts. If we notice that many people try to abuse it, we will need to reconsider Free Tier altogether. \nPlease play fair and purchase any Paid Subscription to continue."}}
+11-24 17:59:43
+c19c466b-5f20-4c22-a69a-40ee67a7b76f POST /api/tts 401 352ms
+11-24 18:00:05
+🎤 Generating TTS for text: "Hello, and welcome! I'm your Perfect Copilot. Anyt..."
+11-24 18:00:05
+❌ ElevenLabs API error: 401 - {"detail":{"status":"detected_unusual_activity","message":"Unusual activity detected. Free Tier usage disabled. If you are using a proxy/VPN you might need to purchase a Paid Plan to not trigger our abuse detectors. Free Tier only works if users do not abuse it, for example by creating multiple free accounts. If we notice that many people try to abuse it, we will need to reconsider Free Tier altogether. \nPlease play fair and purchase any Paid Subscription to continue."}}
+11-24 18:00:05
+04fd09e6-72fd-450b-a527-98e893f6edd1 POST /api/tts 401 236ms
+11-24 18:00:57
+system: received signal terminated
+11-24 18:00:57
+system: received signal terminated
+11-24 18:00:57
+system: received signal terminated

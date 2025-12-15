@@ -1,0 +1,197 @@
+Alright Coach — here is the exact architect prompt you need.
+This explains the problem, the solution, and the mandate to convert our system into a GLOBAL MEAL GENERATOR SYSTEM, after Phase 1 finishes but before Phase 2 begins.
+
+This prompt gives the architect room to analyze conflicts and propose the cleanest architecture — WITHOUT rewriting your entire app, and without breaking Phase 1.
+
+This is the professional-level architectural correction that stops the one-by-one chaos forever.
+
+Copy/paste this directly to the architect or Replit agent:
+
+⸻
+
+✅ ARCHITECT — GLOBAL MEAL GENERATOR SYSTEM MANDATE (POST–PHASE 1 CORRECTION)
+
+Architect, load full project context.
+We are now issuing a corrective architecture update.
+Phase 1 is already underway. Do NOT undo Phase 1.
+
+When Phase 1 completes, you must refactor the meal-generator UI into a single global system so all future changes update automatically across ALL builders.
+
+⸻
+
+🚨 THE PROBLEM WE MUST FIX
+
+We currently have 7 meal builders:
+	•	Weekly Meal Builder
+	•	General Nutrition Builder
+	•	Diabetic Builder
+	•	GLP-1 Builder
+	•	Anti-Inflammatory Builder
+	•	Body Physique / Beachbody
+	•	Performance & Competition
+	•	ProCare professional boards
+
+Right now, each builder:
+	•	Has its own button set
+	•	Its own action bar
+	•	Its own wiring to Fridge Rescue, Premades, etc.
+	•	Its own copies of the same logic
+
+That means:
+
+Every update = 7 updates
+Every bug = 7 bugs
+Every new feature = 7 rewrites
+
+This is not scalable and will continuously cost money, time, and stability.
+
+⸻
+
+🎯 THE FIX: ONE GLOBAL MEAL GENERATOR SYSTEM
+
+We now require a single centralized system that controls:
+	•	The meal-action button row
+	•	The Create With Chef button
+	•	The Create With Chef modal
+	•	SnackCreator modal (Phase 2)
+	•	Any future actions (Fridge Rescue, Add Ingredient, etc.)
+
+Every builder must simply declare:
+
+<GlobalMealActionBar builderType="general" mealType="breakfast" />
+
+And that’s it.
+No more custom buttons per builder.
+No more custom modal calls.
+No more duplicated event handlers.
+No more local patching.
+
+⸻
+
+🧱 WHAT THE GLOBAL SYSTEM MUST CONTAIN
+
+1. GlobalMealActionBar
+	•	The button row that ALL builders use.
+	•	Contains all global actions:
+	•	Create With Chef
+	•	Fridge Rescue
+	•	Anything else defined globally
+	•	Should accept props:
+	•	builderType
+	•	mealType
+
+The button bar must dynamically adapt based on those props.
+
+⸻
+
+2. GlobalCreateWithChefButton
+
+One shared version.
+Styled once.
+Injected everywhere automatically.
+
+Uses the modal below.
+
+⸻
+
+3. GlobalCreateWithChefModal
+
+One modal.
+Globally controlled.
+Reusable across all builders.
+
+Connected to Create With Chef backend logic.
+
+⸻
+
+4. GlobalSnackCreatorModal (Phase 2)
+
+Same modal framework.
+Different backend hook (CravingCreator logic).
+
+⸻
+
+5. Global Backend Hook
+
+We should have ONE engine call for meal creation:
+
+generateMealFromPrompt(prompt, builderContext)
+
+Builder context informs guardrails.
+
+This endpoint will power:
+	•	Create With Chef
+	•	Fridge Rescue
+	•	Future generators
+
+⸻
+
+🔄 WHEN THIS REFACTOR HAPPENS
+
+Architect — DO NOT start this until Phase 1 is complete.
+
+We will then:
+
+✔ Integrate Create With Chef into the new global system
+
+✔ Remove (or convert) all individual builder button rows
+
+✔ Ensure all builders reference the global system
+
+✔ Preserve Phase 1 work while absorbing it into the global structure
+
+⸻
+
+🛑 ARCHITECT STOP CONDITION
+
+If any of the following happen, stop and report:
+	•	Builders have incompatible layouts that make global action bars impossible
+	•	Certain builders require micro-variations that a single system cannot fully abstract
+	•	Backend engines require additional context to unify
+	•	Guardrail conflicts occur between builder types
+	•	State management between modals and builders requires further design
+
+Architect must provide a recommended solution if a blocker is found.
+
+⸻
+
+📌 ARCHITECT GOALS
+	1.	Reduce maintenance cost by ~90%.
+	2.	Eliminate duplicated UI.
+	3.	Eliminate duplicated logic.
+	4.	Make future updates global-first.
+	5.	Ensure Create With Chef and SnackCreator integrate seamlessly.
+	6.	Keep architecture clean, stable, and scalable.
+
+⸻
+
+🧑‍🍳 NAMING MANDATE
+
+These names are now official brand signatures and must not be changed:
+	•	CreateWithChef (meals)
+	•	SnackCreator (snacks)
+	•	CravingCreator (existing)
+	•	DessertCreator (existing)
+
+The global system must support these as first-class features.
+
+⸻
+
+🧭 ARCHITECT ACTION REQUEST
+
+Architect, review this entire mandate.
+
+Then respond with:
+	1.	Feasibility confirmation
+	2.	Any detected conflicts
+	3.	Your recommended global architecture implementation plan
+	4.	Any code organization improvements needed to support this
+
+Do NOT execute until you provide this analysis.
+
+⸻
+
+Coach — this is exactly how a real CTO would direct a platform overhaul.
+This will save you thousands of dollars over the life of this app and make development 10× faster.
+
+Ready when you are for Phase 2 SnackCreator execution prompt once this global plan is approved.

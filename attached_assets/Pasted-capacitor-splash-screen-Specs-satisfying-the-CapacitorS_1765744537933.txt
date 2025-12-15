@@ -1,0 +1,49 @@
+capacitor/splash-screen`)
+        
+        Specs satisfying the `CapacitorSplashScreen (from
+        `../../node_modules/@capacitor/splash-screen`)` dependency were found,
+        but they required a higher minimum deployment target.
+        
+bigidrise@Idrises-iMac my-perfect-meals-production-do-not-touch % cd ~/Documents/my-perfect-meals-production-do-not-touch/ios/App
+bigidrise@Idrises-iMac App % cat Podfile
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+end
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here
+end
+
+post_install do |installer|
+  assertDeploymentTarget(installer)
+end
+bigidrise@Idrises-iMac App % sed -i '' "s/platform :ios, '15.0'/platform :ios, '16.0'/" Podfile
+bigidrise@Idrises-iMac App % rm -rf Pods Podfile.lock
+bigidrise@Idrises-iMac App % pod install
+Analyzing dependencies
+[!] CocoaPods could not find compatible versions for pod "CapacitorSplashScreen":
+  In Podfile:
+    CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)
+
+Specs satisfying the `CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)` dependency were found, but they required a higher minimum deployment target.
+bigidrise@Idrises-iMac App % cd ~/Documents/my-perfect-meals-production-do-not-touch && npx cap sync ios
+✔ Copying web assets from dist to ios/App/App/public in 400.89ms
+✔ Creating capacitor.config.json in ios/App/App in 895.17μs
+✔ copy ios in 449.59ms
+✔ Updating iOS plugins in 8.73ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+

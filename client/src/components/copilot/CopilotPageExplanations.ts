@@ -11,9 +11,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "my-biometrics",
     title: "My Biometrics",
     description:
-      "Use My Biometrics to keep your daily macros, log macros using our barcode photo logger, top off shortfalls with Additional Macros, keep track of your calories up to 30 days, keep track of your weight up to a year, and track your water with our water log tracker.",
+      "Use My Biometrics to set your daily macros, log meals and photos, track calories and body weight over time, and monitor your daily water intake.",
     spokenText:
-      "My Biometrics, log and keep your daily macros using our barcode photo scan logger, send over macros from your generated meal cards. If you're short on protein or carbs, use Additional Macros to top off — pick your food source like whey for a protein shake, and the right macro tails get applied automatically. Keep track of your calories from daily up to 30 days. Keep track of your weight daily up to a year. Track your daily water intake with our water log tracker",
+      "This is your Biometrics page. When you send your macros here from the macro calculator, they become your total daily targets. Everything you log on this page is tracked against those numbers for the day. You can add meals or macros manually, or bring them in from meal cards or photo logs. Once they appear, just tap add to include them in today’s totals. You can also delete or reset entries anytime. Your calories are tracked for today, the past seven days, and the past 30 days, so you can see trends over time. You can also log your body weight and view progress across one month, three months, six months, or up to a full year. At the bottom of the page, you’ll find your water log, where you can track your daily hydration throughout the day.",
     autoClose: true,
   },
 
@@ -21,7 +21,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-creator",
     title: "Craving Creator",
     description:
-      "Create healthy versions of whatever your craving. Describe the flavor, texture, or style you want, choose your servings and preferences, and let the app generate a personalized meal that matches your craving in a clean, goal-friendly way.",
+      "Use Craving Creator to describe what you’re in the mood for and get a personalized recipe that fits your taste, preferences, and lifestyle.",
     spokenText:
       "Craving Creator. Describe what you're craving. For example, say I want something sweet, crunchy, lowfat, low sugar, no gluten or I want a creamy shake, or something tangy and refreshing. Select your servings, press Create, and enjoy your personalized meal. You NEVER have to ignore your cravings again!",
     autoClose: true,
@@ -31,9 +31,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-desserts",
     title: "Dessert Creator",
     description:
-      "Describe your dessert, pick what type like pie or cake, choose flavor and texture, select servings and dietary requirements, then create your dessert.",
+      "Use Dessert Creator to build a dessert by choosing the type, flavor, texture, servings, and any dietary needs.",
     spokenText:
-      "Dessert Creator. Describe your dessert. Pick which type of dessert you want to make, from  pie, cake, cookies to smoothies, frozen desserts, and our fun choice, surprise me, which makes up a dessert for you. Pick your flavor or texture and how many servings. Choose dietary requirements if you have any, then create your dessert.",
+      "Dessert Creator lets you turn a sweet idea into a dessert made just for you. Start by choosing what kind of dessert you want, like cake, pie, cookies, smoothies, frozen treats, or let us surprise you. Pick the flavors or textures you’re in the mood for, choose how many servings you need, and add any dietary requirements if you have them. When you’re ready, tap create and enjoy a dessert that fits exactly what you were craving.",
     autoClose: true,
   },
 
@@ -41,9 +41,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-creator-landing",
     title: "Craving Creator Hub",
     description:
-      "Choose from three options: Creator for custom AI-generated cravings, Premades for ready-made craving recipes, or Dessert Creator for healthy desserts like pies, cakes, cookies, and more.",
+      "Choose how you want to satisfy a craving with custom creations, ready-made recipes, or healthier dessert options.",
     spokenText:
-      "Craving Creator Hub. You have three options here. Say Creator to build a custom craving with AI. Say Premades to browse ready-made craving recipes. Or say Dessert Creator to make healthy desserts like pies, cakes, cookies, brownies, and more.",
+      "Welcome to the Craving Creator Hub. From here, you’ve got three ways to go. Choose Craving Creator to build a custom craving using AI, Craving Premades to browse ready-made craving recipes, or Dessert Creator to make healthier desserts like cakes, cookies, brownies, and more. Pick the option that fits your mood and let’s get started.",
     autoClose: true,
   },
 
@@ -51,9 +51,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-presets",
     title: "Craving Premades",
     description:
-      "Browse our collection of ready-made craving meals. Tap any picture to see ingredients and nutrition info.",
+      "Browse ready-made craving meals and desserts, view nutrition details, and take action with just a tap.",
     spokenText:
-      "Craving Premades. Pick how many servings your preparing, choose your increment of measure, then browse our ready-made AI created dessert options. Tap any picture to see the ingredients, nutrition info, and cooking instructions. Send ingredients to the master shopping list, log your macros or both.",
+      "Craving Premades gives you a collection of ready-made craving meals to choose from. Start by selecting how many servings you’re preparing and your preferred measurement style, then browse through the options. Tap any image to see ingredients, nutrition information, and cooking instructions. From there, you can send ingredients to your master shopping list, log your macros, or do both.",
     autoClose: true,
   },
 
@@ -61,9 +61,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "fridge-rescue",
     title: "Fridge Rescue",
     description:
-      "Turn whatever’s in your fridge into real meals. Type or speak your ingredients, and let the app create three personalized meal ideas using what you’ve already got.",
+      "Turn the ingredients you already have into simple, personalized meal ideas.",
     spokenText:
-      "Fridge Rescue. Type or speak the ingredients you have at home, and I’ll create three personalized meal ideas using what you’ve already got. Add your items, press generate, and I’ll take it from there.",
+      "Fridge Rescue turns the ingredients you already have into real meal ideas. Just type or say what’s in your fridge, tap generate, and you’ll get three personalized meals built from what you have on hand. It’s an easy way to cook without extra shopping.",
     autoClose: true,
   },
 
@@ -71,9 +71,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "healthy-kids-meals",
     title: "Healthy Kids Meals Hub",
     description:
-      "Healthy, kid-friendly meals for ages 5–12. Tap any picture to see ingredients and cooking instructions, and send ingredients to your shopping list with one tap.",
+      "Browse healthy, kid-friendly meals designed for children ages five to twelve.",
     spokenText:
-      "Healthy Kids Meals. These meals are designed for kids ages four to twelve. Tap any picture to see the ingredients and cooking instructions, and you can send ingredients straight to your shopping list.",
+      "Healthy Kids Meals is a collection of balanced, kid-friendly meals made for ages five to twelve. Tap any meal to see ingredients and cooking instructions, and send what you need straight to your shopping list with one tap.",
     autoClose: true,
   },
 
@@ -81,9 +81,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "kids-meals",
     title: "Kids Meals",
     description:
-      "Choose between Kids Meals for ages 5–12 or Toddler Meals for little ones. Both include easy ingredient lists you can send to your shopping list.",
+      "Choose meals designed for kids or toddlers, with simple ingredients you can send to your shopping list.",
     spokenText:
-      "Kids Meals. These meals are designed for ages four to twelve. Pick your servings, choose your rounding — tenth, half, or whole — and tap any meal to open the picture. From there you can view the ingredients, see the cooking instructions, and send everything you need straight to the shopping list.",
+      "Kids Meals gives you meal options designed for children ages four to twelve. Start by picking your number of servings and your rounding preference, then tap any meal to open it. You can view the ingredients, see the cooking instructions, and send everything you need straight to your shopping list.",
     autoClose: true,
   },
 
@@ -91,9 +91,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "toddler-meals",
     title: "Toddler Meals",
     description:
-      "Simple, soft, and finger-friendly meals for toddlers. Tap a picture to view ingredients and instructions, and send ingredients to your shopping list instantly.",
+      "Browse soft, simple meals designed for toddlers, with easy ingredients you can send to your shopping list.",
     spokenText:
-      "Toddler Meals. These options are built for little ones that graze, with softer textures and finger-friendly foods. Pick your servings, choose your rounding, and tap any meal to open the picture. You’ll see the ingredients, the simple cooking instructions, and you can send everything you need directly to the shopping list.",
+      "Toddler Meals offers gentle, finger-friendly meal options made for little ones. Choose your number of servings and rounding preference, then tap any meal to open it. You’ll see the ingredients, simple cooking instructions, and can send everything you need straight to your shopping list.",
     autoClose: true,
   },
 
@@ -101,9 +101,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "social-hub",
     title: "Socializing Hub",
     description:
-      "Navigate dining out and social eating. Choose Restaurant Guide or Lean Social.",
+      "Navigate dining out and social eating. Choose Restaurant Guide or Find a Meals Near Me.",
     spokenText:
-      "Socializing Hub. In this feature, you have two ways to find healthy meals. Use Restaurant Guide when you already know where you’re eating — just tell me the restaurant and what you want. Or use Find Healthy Options to search by zip code and see what’s around you. Tap whichever one you need.",
+      "Socializing Hub. In this feature, you have two ways to find healthy meals. Use Restaurant Guide when you already know where you’re eating — just tell me the restaurant and what you want. Or use Find Meals Near Me to search by zip code and see what’s around you. Tap whichever one you need.",
     autoClose: true,
   },
 
@@ -111,9 +111,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "social-hub/restaurant-guide",
     title: "Restaurant Guide",
     description:
-      "Find healthy meals at any restaurant. Enter the restaurant name and what you want to eat, and the app will return three smart, goal-friendly options.",
+      "Find healthier meal options at restaurants based on what you want to eat.",
     spokenText:
-      "Restaurant Guide. Just type what you want to eat and the name of the restaurant, and I’ll show you three healthy options that fit your goals. ",
+      "Restaurant Guide helps you make better choices when eating out. Just describe what you’re craving, enter the restaurant name and a nearby zip code, and you’ll see meal options that match your goals and work where you’re eating.",
     autoClose: true,
   },
 
@@ -131,9 +131,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "alcohol-hub",
     title: "Spirits & Lifestyle Hub",
     description:
-      "Your complete alcohol and lifestyle guide. Explore wine, beer, and bourbon pairings, healthy low-calorie mixers, full meal-pairing suggestions, and a structured weaning-off system to help you drink smarter.",
+      "A guide to smarter drinking with pairings, mixers, meal matches, and tools to help you cut back.",
     spokenText:
-      "Spirits & Lifestyle Hub. This is your full guide to drinking smarter. Inside you’ll find wine, beer, and bourbon pairings, along with low-calorie mixers and mocktail options. You can also use the meal-pairing tool to match the best drink for what you’re eating. And if you’re cutting back, the weaning-off system helps you taper slowly and stay in control. Choose the section you want to explore and I’ll guide you through it.",
+      "Spirits and Lifestyle Hub helps you drink smarter without overthinking it. Here you can explore wine, beer, and bourbon pairings, find lower calorie mixers and mocktail ideas, match drinks to meals, or use the weaning off tools if you’re cutting back. Choose what you want to explore and I’ll guide you from there.",
     autoClose: true,
   },
 
@@ -141,9 +141,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "alcohol/lean-and-social",
     title: "Lean & Social",
     description:
-      "Smart strategies for eating well at parties, BBQs, and social events. Learn how to stay on track without feeling restricted, overwhelmed, or out of place.",
+      "Tips and strategies for eating well at parties, BBQs, and social events without feeling restricted.",
     spokenText:
-      "Lean & Social. This feature gives you simple strategies to stay in control when you're at parties, BBQs, or any social event. I’ll show you what to choose, how to portion it, and how to enjoy yourself without blowing your progress. Tap any section to get started.",
+      "Lean and Social helps you stay on track when food choices get tricky. Whether you’re at a party, a BBQ, or a social event, you’ll find simple strategies to help you choose smarter portions, enjoy what’s available, and still feel confident in your decisions. Tap a section to get started and I’ll walk you through it.",
     autoClose: true,
   },
 
@@ -151,19 +151,18 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "wine-pairing",
     title: "Wine Pairing",
     description:
-      "Find the best wine to match your meal. Browse by wine type or by the style of food you’re eating.",
+      "Find wines that pair well with your meal based on food style, occasion, or preference.",
     spokenText:
-      "Wine Pairing. Start by selecting your meal type, cuisine style, main ingredient, occasion, or price range. I’ll recommend wines that match your selection and help you choose the best fit.",
+      "Wine Pairing helps you find the right wine to match what you’re eating. Choose things like your meal type, cuisine style, main ingredient, occasion, or price range, and I’ll recommend wines that fit your selection and complement your meal.",
     autoClose: true,
   },
 
   "/beer-pairing": {
     pageId: "beer-pairing",
     title: "Beer Pairing",
-    description:
-      "Find the best beer to go with your food. Browse by beer style or meal type.",
+    description: "Discover beers that pair well with your meal or food style.",
     spokenText:
-      "Beer Pairing. Choose from meal type, cuisine, main ingredient, occasion, price, flavor bias, or alcohol range. I’ll narrow down the best beers that pair with your meal based on the options you select.",
+      "Beer Pairing makes it easy to find a beer that works with your food. Select options like meal type, cuisine, main ingredient, flavor preference, alcohol range, or price, and I’ll narrow down beers that pair well with what you’re eating.",
     autoClose: true,
   },
 
@@ -171,9 +170,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "bourbon-spirits",
     title: "Bourbon & Spirits",
     description:
-      "Pair bourbon and spirits with your meal for a sophisticated dining experience.",
+      "Match bourbon and spirits to your meal for balanced flavor pairings.",
     spokenText:
-      "Bourbon & Spirits Pairing. Select your meal type, cuisine style, main ingredient, occasion, or price range, and I’ll suggest the spirits that match those flavors best.",
+      "Bourbon and Spirits Pairing helps you match bold flavors the right way. Choose your meal type, cuisine style, main ingredient, occasion, or price range, and I’ll suggest bourbons or spirits that complement your food.",
     autoClose: true,
   },
 
@@ -181,9 +180,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "mocktails",
     title: "Mocktails",
     description:
-      "Delicious alcohol-free drinks and low-calorie mixers for any occasion.",
+      "Alcohol-free drinks and low-calorie mixers for lighter options.",
     spokenText:
-      "Mocktails. Browse refreshing alcohol-free drinks and low-calorie mixers. Tap any drink to see the ingredients, how to make it, and what you need to add to your shopping list.",
+      "Mocktails gives you refreshing alcohol-free drinks and lower calorie mixer options. Tap any drink to see the ingredients, how to make it, and quickly add what you need to your shopping list.",
     autoClose: true,
   },
 
@@ -191,29 +190,27 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "meal-pairing",
     title: "Meal Pairing",
     description:
-      "AI-powered suggestions for food and drink combinations that go perfectly together.",
+      "AI-powered food and drink pairings designed to work well together.",
     spokenText:
-      "Meal Pairing. Build the perfect pairing by choosing your drink category, picking a specific drink, selecting your meal style, and setting your cooking time. I’ll match everything together so your flavors line up the right way.",
+      "Meal Pairing helps you bring food and drinks together the right way. Choose your drink category, pick a specific drink, select your meal style, and set your cooking time, and I’ll match everything so the flavors line up naturally.",
     autoClose: true,
   },
 
   "/alcohol-log": {
     pageId: "alcohol-log",
     title: "Alcohol Log",
-    description:
-      "Track your drinks with simple entries. Log what you drink, how much, and when, and follow your trends over time.",
+    description: "Log your drinks and track alcohol trends over time.",
     spokenText:
-      "Alcohol Log. Enter the drink you had, how many ounces, and the date you had it. I’ll save the entry and show your 7-day, 30-day, and 90-day drinking trends along with your recent entries and a visual chart of your last 30 days.",
+      "Alcohol Log lets you keep track of what you drink and when. Enter the drink, the amount, and the date, and I’ll track your activity across seven, thirty, and ninety days, along with recent entries and a visual look at your last month.",
     autoClose: true,
   },
 
   "/weaning-off-tool": {
     pageId: "weaning-off-tool",
     title: "Weaning Off Tool",
-    description:
-      "A structured system to help you gradually reduce your alcohol intake at your own pace.",
+    description: "A guided plan to help you gradually reduce alcohol intake.",
     spokenText:
-      "Weaning-Off Tools. Start by entering your average drinks per day and per week, then choose your pace — gentle, standard, or custom — and generate your plan. You’ll see your weekly targets, your progress, and how many drinks you went over. You can pause the plan anytime, and I’ll keep your schedule updated as the weekly goals step down.",
+      "The Weaning Off Tool helps you cut back at your own pace. Enter your average drinks per day and per week, choose a gentle, standard, or custom pace, and generate your plan. You’ll see weekly targets, track your progress, pause anytime, and watch your drinking goals come to fruition over time.",
     autoClose: true,
   },
 
@@ -221,9 +218,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "planner",
     title: "Planner",
     description:
-      "Your complete meal-planning command center. Choose from all the meal builders — Weekly, Diabetic, GLP-1, Anti-Inflammatory, and Beachbody — and build the exact nutrition plan that fits your goals and your lifestyle.",
+      "Your central hub for building meal plans that match your goals, schedule, and lifestyle.",
     spokenText:
-      "Planner Page. Here you can choose from every meal builder we offer. Use the Weekly Meal Builder to plan your entire week, or pick the Diabetic, GLP-1, Anti-Inflammatory, or Beachbody builders to tailor your meals to your specific goal. Tap the builder you need and I’ll walk you through how to create your day.",
+      "This is the Planner page, where you can choose from all of our meal builders in one place. Use the Weekly Meal Builder to plan out your week, or select the Diabetic, GLP-1, Anti-Inflammatory, or Beachbody builders to focus on a specific goal. Tap the builder you want and I’ll guide you step by step through creating your plan.",
     autoClose: true,
   },
 
@@ -231,9 +228,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "lifestyle-landing",
     title: "Lifestyle",
     description:
-      "Your all-in-one lifestyle toolbox. Explore cravings, use what’s already in your fridge, find healthy options when you’re out, get kid-friendly meals, and make smarter drink choices — all from one place.",
+      "Your central hub for everyday food, lifestyle, and real-life eating decisions.",
     spokenText:
-      "Lifestyle Hub. Everything you need to navigate real life is right here. You can create healthy versions of your cravings, turn whatever you have in your fridge into meals, find smart options when you’re eating out, pick meals for kids or toddlers, and explore smarter drink choices in the Spirits and Lifestyle Hub. Choose what you need and I’ll walk you through it.",
+      "Welcome to the Lifestyle Hub, where everything comes together for real life. From here you can build healthier cravings, make meals from what’s in your fridge, find smarter options when eating out, choose meals for kids or toddlers, and explore better drink choices in the Spirits and Lifestyle Hub. Pick what you need and I’ll guide you through it.",
     autoClose: true,
   },
 
@@ -241,9 +238,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "procare-cover",
     title: "Procare",
     description:
-      "Your professional-grade support center. Access the Supplement Hub for performance and health optimization, and connect with your trainer or physician through the ProCare tools for personalized guidance and expert-driven nutrition setups.",
+      "Your professional support center for supplements and expert-guided nutrition tools.",
     spokenText:
-      "ProCare. This is your professional support center. Here you can access the Supplement Hub for targeted health and performance supplements, or connect with your trainer or physician through the ProCare tools to get expert guidance built around your goals. Select the option you need and I’ll walk you through it.",
+      "ProCare is your professional support center. From here, you can access the Supplement Hub for health and performance support, or connect with your trainer or physician using the ProCare tools for personalized guidance. Choose the option you need and I’ll walk you through it.",
     autoClose: true,
   },
 
@@ -251,27 +248,27 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "macro-counter",
     title: "Macro Calculator",
     description:
-      "Set your daily macro targets based on your goals. Choose your goal, pick your body type, enter your stats, select your activity level, and set your current weight. The calculator generates your daily protein, carb, and fat targets to guide your nutrition every day.",
+      "Calculate your daily protein, carb, and fat targets based on your goals and activity level.",
     spokenText:
-      "Macro Calculator. Start by choosing your goal and your body type, then enter your stats — gender, age, height, weight, and activity level. You’ll also set your weight here for the biometrics page. Once everything’s filled in, I’ll calculate your daily protein, carbs, and fat targets so you know exactly what to hit each day.",
+      "The Macro Calculator helps you set clear daily nutrition targets. Start by choosing your goal and body type, then enter your stats like age, height, weight, and activity level. You’ll also set your current weight for biometrics. Once everything’s filled in, I’ll calculate your daily protein, carbs, and fats so you know exactly what to aim for each day.",
     autoClose: true,
   },
   "/shopping-list-v2": {
     pageId: "shopping-list-v2",
     title: "Master Shopping List",
     description:
-      "Add items, check them off, or create a list for your next grocery run.",
+      "Create, manage, and check off items for your grocery trips and everyday shopping.",
     spokenText:
-      'The Master Shopping list. You can enter barcode, add by voice or bulk add for multiple items. Group items by aisle and exclude pantry staples. Use the "Add Other Items" feature, to add your non- food items like household, personal care, pets, pharmacy and other miscellaneous items by brand and units. Send to your preferred delivery service or check off the items as you shop.',
+      "The Master Shopping List helps you organize everything you need in one place. You can add items by barcode, voice, or bulk entry, group them by aisle, and exclude pantry staples. Use Add Other Items for non food needs like household, personal care, pets, or pharmacy items, then check things off as you shop or send your list to a delivery service.",
     autoClose: true,
   },
   "/get-inspiration": {
     pageId: "get-inspiration",
     title: "Get Inspiration",
     description:
-      "Get your daily motivational quotes and free your mind by speaking or typing your thoughts into the journal. A simple space to reset, reflect, and stay inspired.",
+      "Find daily inspiration and a simple space to reflect, reset, and clear your mind.",
     spokenText:
-      "Get Inspiration. Here you can tap Get New Inspiration for a fresh motivational quote, or use the journal to speak or type your thoughts when you need to clear your mind. Remember this, Free your mind and the rest will follow! ",
+      "Get Inspiration is a place to reset and refocus. You can tap for a new motivational quote anytime, or use the journal to speak or type your thoughts when you need to clear your head. Take a moment for yourself, always remember this - free your mind, and the rest will follow.",
     autoClose: true,
   },
 
@@ -279,9 +276,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Weekly Meal Builder",
     description:
-      "Review and manage your entire week of meals in one place. See each day’s breakfast, lunch, dinner, and snacks at a glance, make quick edits, swap meals, or jump into any builder to adjust your plan.",
+      "Build meals across one or multiple days using structured or conversational meal tools guided by your goals.",
     spokenText:
-      "Weekly Meal Board. Here you can view your entire week of meals at a glance. Tap any day to open it, make changes, swap meals, or jump into the meal builders to update your plan. Check the bottom of the screen for your remaining macros — tap the Guide button for details.",
+      "All meal builders work the same way, with guardrails based on the board you’re using. When building meals, you have three options. Use the AI Meal Creator if you want to pick specific ingredients using the meal picker. Use Create With Chef if you’d rather describe what you want and let the Chef build it for you. For snacks, you’ll also describe what you want and the Chef will create it. Choose how many days you want to build, create breakfast, lunch, dinner, and snacks, adjust servings, then send meals to your macro table or ingredients to your shopping list.",
     autoClose: true,
   },
 
@@ -289,9 +286,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "diabetic-hub",
     title: "Diabetic Hub",
     description:
-      "Your diabetic control center. Set your doctor or coach guardrails, log your blood sugar with fasting or meal timing, track your 7-day trends, and access the diabetic meal builder.",
+      "Your control center for managing blood sugar with clinician-style guardrails and daily glucose tracking.",
     spokenText:
-      "Diabetic Hub — your control center for managing blood sugar. Set your doctor or coach guardrails, log your readings with fasting or meal timing, and check your 7-day trend to stay on track. When you’re ready, tap the button below to build your diabetic meals.",
+      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. When you’re ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
     autoClose: true,
   },
 
@@ -299,9 +296,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Diabetic Meal Builder",
     description:
-      "Build carb-conscious meals that help you stay on track with your daily blood sugar goals.",
+      "Build meals that support balanced blood sugar using diabetic-specific guardrails.",
     spokenText:
-      "Diabetic Meal Builder — designed to help you create carb-conscious meals that support healthy blood sugar levels throughout the day. Here you’ll build your meals for the day using the AI Meal Creator or the AI Premades. Choose your meals, pick how you want them prepared, adjust servings, and generate your breakfast, lunch, dinner, and snacks. At the top, pick how many days you want to build — you can duplicate the same day across the week or customize each day differently. When you're done, you can send a single day to your Macro Table, or send everything to your shopping list for easy grocery planning. Check the bottom of the screen for your remaining macros — tap the Guide button for details.",
+      "The Diabetic Meal Builder uses the same meal-building tools with guardrails designed for blood sugar support. Use the AI Meal Creator to pick ingredients with the meal picker, or use Create With Chef to describe your meals and snacks. Build one or multiple days, adjust servings, and send meals to your macro table or shopping list while staying within diabetic-friendly targets.",
     autoClose: true,
   },
 
@@ -309,29 +306,27 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "glp1-hub",
     title: "Glp1 Hub",
     description:
-      "Your GLP-1 support hub. Track your weekly injection dose, timing, and injection site with saved history, set your guardrails, and move into the GLP-1 meal builder.",
+      "Your GLP-1 support hub for shot tracking, guardrails, and meal readiness.",
     spokenText:
-      "GLP-1 Hub — your space for tracking and managing your weekly injections. Enter your dose, day, time, and injection site, and I’ll save your history so you can monitor your progress. Set your doctor or coach guardrails, and when you’re ready, head to the GLP-1 Meal Builder.",
+      "The GLP-1 Hub is your support center for managing care alongside GLP-1 use. Here you can review how the app supports your care, track your GLP-1 shots by dosage and injection site, and set doctor-style guardrails using quick start presets like intro/ up-titration, maintenance, refeed/ strength focus. For custom goals you can adjust targets for meal volume, protein minimums, fat limits, fiber minimums, hydration goals, meals per day, digestion support, and limits on carbonation or alcohol, then save those guardrails. When everything is set, use the button at the bottom to move into the GLP-1 meal builder.",
     autoClose: true,
   },
 
   "/glp1-meal-builder": {
     pageId: "weekly-meal-board",
     title: "Glp1 Meal Builder",
-    description:
-      "Build balanced, appetite-friendly meals that support your GLP-1 routine and help you stay consistent.",
+    description: "Create portion-aware meals designed to support GLP-1 goals.",
     spokenText:
-      "GLP-1 Meal Builder — created to support your appetite-friendly, balanced-nutrition routine while you're on GLP-1 medications. Here you’ll build your meals for the day using the AI Meal Creator or the AI Premades. Choose your meals, pick how you want them prepared, adjust servings, and generate your breakfast, lunch, dinner, and snacks. At the top, pick how many days you want to build — you can duplicate the same day across the week or customize each day differently. When you're done, you can send a single day to your Macro Table, or send everything to your shopping list for easy grocery planning. Check the bottom of the screen for your remaining macros — tap the Guide button for details.",
+      "The GLP-1 Meal Builder follows the same process with guardrails designed for portion control and satiety. Use the AI Meal Creator if you want to select ingredients, or use Create With Chef to describe your meals and snacks. Portions are guided automatically, and you can send meals to your macro table or shopping list when finished.",
     autoClose: true,
   },
 
   "/anti-inflammatory-menu-builder": {
     pageId: "anti-inflammatory-menu-builder",
     title: "Anti-Inflammatory Meal Builder",
-    description:
-      "Create anti-inflammatory meals for the day with AI tools that keep your choices clean, simple, and inflammation-friendly.",
+    description: "Build meals focused on inflammation-friendly ingredients.",
     spokenText:
-      "Anti-Inflammatory Meal Builder — designed to help you create meals that reduce inflammation and keep your nutrition clean and consistent. Here you’ll build your meals for the day using the AI Meal Creator or the AI Premades. Choose your meals, pick how you want them prepared, adjust servings, and generate your breakfast, lunch, dinner, and snacks. At the top, pick how many days you want to build — you can duplicate the same day across the week or customize each day differently. When you're done, you can send a single day to your Macro Table, or send everything to your shopping list for easy grocery planning. Check the bottom of the screen for your remaining macros — tap the Guide button for details. ",
+      "The Anti-Inflammatory Meal Builder uses the same tools with guardrails focused on inflammation-friendly choices. Build meals using the AI Meal Creator with the meal picker, or describe your meals and snacks using Create With Chef. Adjust servings, plan your days, and send meals to your macro table or shopping list.",
     autoClose: true,
   },
 
@@ -339,9 +334,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "beach-body-meal-board",
     title: "Beach Body Meal Builder",
     description:
-      "Build fast, lean meals designed to get you event-ready—perfect for summer cuts, weddings, or any deadline.",
+      "Create structured meals designed for performance and body composition.",
     spokenText:
-      "Beachbody Meal Builder — perfect for getting event-ready fast. Whether you're prepping for summer, a wedding, or a big moment, this builder helps you create clean, lean meals that support rapid results. Here you’ll build your meals for the day using the AI Meal Creator or the AI Premades. Choose your meals, pick how you want them prepared, adjust servings, and generate your breakfast, lunch, dinner, and snacks. At the top, pick how many days you want to build — you can duplicate the same day across the week or customize each day differently. When you're done, you can send a single day to your Macro Table, or send everything to your shopping list for easy grocery planning. Check the bottom of the screen for your remaining macros — tap the Guide button for details. ",
+      "The Beachbody Meal Builder uses the same meal-building flow with performance-focused guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
     autoClose: true,
   },
 
@@ -349,9 +344,79 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "care-team",
     title: "Care Team & Pro Care",
     description:
-      "Connect with your personal care network. Invite trainers, physicians, or coaches by email, assign their role, or join someone’s team using their access code. ",
+      "Connect with trainers, physicians, or coaches to build and manage your personal care team.",
     spokenText:
-      "Care Team and ProAccess. Here you can invite your trainer, physician, coach, patient or client by email and assign their role, or join someone’s team using their access code. Once the connection is made, you’ll both appear on each other’s Active Care Team, and you can manage your list of people who support your goals. Choose the option you need to get started. ",
+      "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone’s team using an access code. Once connected, you’ll appear on each other’s active care team and can manage your support network anytime. Choose the option you need to get started.",
+    autoClose: true,
+  },
+
+  "/pro/clients": {
+    pageId: "pro-clients",
+    title: "Pro Portal",
+    description:
+      "Your professional portal for managing clients and accessing their care dashboards.",
+    spokenText:
+      "The Pro Portal is where you manage your clients and care relationships. From here, you can add a new client, accept an invitation, or open an existing client profile. Once a client is connected, tap Open to access their dashboard, where you'll set targets, apply protocols, and guide their nutrition plan.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id": {
+    pageId: "pro-client-dashboard",
+    title: "Client Dashboard",
+    description:
+      "Set client targets, apply protocols, and guide meal generation from one dashboard.",
+    spokenText:
+      "The Client Dashboard is where you set and manage everything for your client. Here you can set macro targets and send them directly to the client's biometrics, apply focus options like high protein, carb cycling, or anti inflammatory protocols, and define carb directives such as starchy and fibrous carb targets. You can save these parameters, add coach or physician notes, and then move into the appropriate meal builders to generate meals that follow the guardrails you've set.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/diabetic-builder": {
+    pageId: "procare-diabetic-builder",
+    title: "ProCare Diabetic Meal Builder",
+    description:
+      "Build diabetic-friendly meals for your client using clinician-defined guardrails.",
+    spokenText:
+      "This diabetic meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/glp1-builder": {
+    pageId: "procare-glp1-builder",
+    title: "ProCare GLP-1 Meal Builder",
+    description:
+      "Create GLP-1–aligned meals for your client using appetite-aware guardrails.",
+    spokenText:
+      "The GLP-1 meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/anti-inflammatory-builder": {
+    pageId: "procare-anti-inflammatory-builder",
+    title: "ProCare Anti-Inflammatory Meal Builder",
+    description:
+      "Build inflammation-conscious meals for your client using targeted guardrails.",
+    spokenText:
+      "This anti-inflammatory meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/performance-competition-builder": {
+    pageId: "procare-performance-competition-builder",
+    title: "ProCare Performance & Competition Meal Builder",
+    description:
+      "Create precision-based performance meals for your client using competition-level guardrails.",
+    spokenText:
+      "The performance and competition meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/general-nutrition-builder": {
+    pageId: "procare-general-nutrition-builder",
+    title: "ProCare General Nutrition Meal Builder",
+    description:
+      "Build balanced, everyday meals for your client using flexible nutrition guardrails.",
+    spokenText:
+      "This general nutrition meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
     autoClose: true,
   },
 };

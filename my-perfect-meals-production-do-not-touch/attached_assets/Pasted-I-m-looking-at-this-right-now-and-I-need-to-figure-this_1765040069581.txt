@@ -1,0 +1,15 @@
+I'm looking at this right now, and I need to figure this out. I look at the AI premades as something that you can have static images because they don't change, but the problem is that's not really true because of the preparation, okay? So if somebody says they want to bake potatoes and mash potatoes comes up on the image, that's not good. So we really can't use static because it doesn't, you know, but some of the images like cottage cheese or a protein shake by itself, a bowl of oatmeal by itself, a bowl of grits by itself, those type of things by themselves in the premades, yeah, we can have the same picture every single time. But in the AI meal creator, we can't do that because you mix and match all the time. But even in the premades, we do have, when it comes to certain foods, the meats and the chicken and all that, it depends on how you want it made. Eggs scramble sunny side up. So if they pick sunny side up and they get a scrambled egg, they know it's bullshit. So what's the best way to do this? Because it's taking too long to generate these meals. We have to shorten it up. It's just too long, especially with the AI premades. Just now I created with AI a berry swirl Greek yogurt parfait and it came up pretty quick. I was pretty happy with that. So we got, this is the problem. Okay. The architect identified the bottleneck:
+
+Why Premades Are Slow:
+Component	Create with AI	Premade Picker
+Endpoint	/api/meals/fridge-rescue	/api/meals/generate (unified pipeline)
+Image Generation	Static fallback (fast)	DALL-E generation every time (18-22 seconds)
+Pipeline	Lightweight	Heavy unified pipeline with full metadata
+The main culprit: Premade Picker forces DALL-E image generation for every meal, even when static images would work perfectly fine.
+
+Proposed Fix:
+Option 1 (Quick Fix): Change Premade Picker to use the same /api/meals/fridge-rescue endpoint that Create with AI uses - this skips DALL-E and uses static images.
+
+Option 2 (Better Long-term): Create a lightweight /api/meals/premade-static endpoint that returns pre-baked meal data with static images, no AI generation needed.
+
+Do you want me to proceed with Option 1 (quick fix)? This would make premades just as fast as Create with AI by using static images instead of generating DALL-E images.

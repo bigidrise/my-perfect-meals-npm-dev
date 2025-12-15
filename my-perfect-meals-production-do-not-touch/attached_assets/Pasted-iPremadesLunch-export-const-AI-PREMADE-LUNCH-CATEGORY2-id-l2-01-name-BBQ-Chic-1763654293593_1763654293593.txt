@@ -1,0 +1,342 @@
+iPremadesLunch
+
+export const AI_PREMADE_LUNCH_CATEGORY2 = [
+  {
+    id: "l2-01",
+    name: "BBQ Chicken & Brown Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 5, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-02",
+    name: "Beef Strips & Sweet Potato Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Beef (lean)", quantity: 5, unit: "oz" },
+      { item: "Sweet Potato", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "l2-03",
+    name: "Buffalo Chicken & Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 5, unit: "oz" },
+      { item: "White Rice (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-04",
+    name: "Chicken Breast & Couscous Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 5, unit: "oz" },
+      { item: "Couscous", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-05",
+    name: "Chicken Breast & Jasmine Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 5, unit: "oz" },
+      { item: "Jasmine Rice (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-06",
+    name: "Chicken Breast & Pasta Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 5, unit: "oz" },
+      { item: "Whole Wheat Pasta", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-07",
+    name: "Chicken Breast & Potatoes Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 5, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "l2-08",
+    name: "Chicken Breast & Quinoa Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 5, unit: "oz" },
+      { item: "Quinoa (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-09",
+    name: "Chicken Sausage & Gnocchi Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Chicken Sausage", quantity: 4, unit: "oz" },
+      { item: "Gnocchi", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-10",
+    name: "Chicken Sausage & Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Chicken Sausage", quantity: 4, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-11",
+    name: "Egg Whites & Bagel Thin Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" },
+      { item: "Bagel Thin", quantity: 1, unit: "piece" }
+    ]
+  },
+  {
+    id: "l2-12",
+    name: "Egg Whites & Grits Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" },
+      { item: "Grits (cooked)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-13",
+    name: "Egg Whites & Oatmeal Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" },
+      { item: "Oatmeal (dry)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-14",
+    name: "Egg Whites & Sweet Potato Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" },
+      { item: "Sweet Potato", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "l2-15",
+    name: "Ground Beef & Brown Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Beef (96% lean)", quantity: 5, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-16",
+    name: "Ground Beef & Pasta Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Beef (96% lean)", quantity: 5, unit: "oz" },
+      { item: "Whole Wheat Pasta", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-17",
+    name: "Ground Beef & Potatoes Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Beef (96% lean)", quantity: 5, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "l2-18",
+    name: "Ground Beef & Quinoa Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Beef (96% lean)", quantity: 5, unit: "oz" },
+      { item: "Quinoa", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-19",
+    name: "Ground Turkey & Brown Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 5, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-20",
+    name: "Ground Turkey & Couscous Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 5, unit: "oz" },
+      { item: "Couscous", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-21",
+    name: "Ground Turkey & Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 5, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-22",
+    name: "Ground Turkey & Sweet Potato Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 5, unit: "oz" },
+      { item: "Sweet Potato", quantity: 4, unit: "oz" }
+    ]
+  },
+  {
+    id: "l2-23",
+    name: "Salmon & Brown Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Salmon", quantity: 5, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-24",
+    name: "Salmon & Quinoa Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Salmon", quantity: 5, unit: "oz" },
+      { item: "Quinoa", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-25",
+    name: "Shrimp & Brown Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Shrimp", quantity: 5, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-26",
+    name: "Shrimp & Couscous Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Shrimp", quantity: 5, unit: "oz" },
+      { item: "Couscous", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-27",
+    name: "Shrimp & Jasmine Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Shrimp", quantity: 5, unit: "oz" },
+      { item: "Jasmine Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-28",
+    name: "Shrimp & Orzo Pasta Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Shrimp", quantity: 5, unit: "oz" },
+      { item: "Orzo Pasta", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-29",
+    name: "Tilapia & Brown Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Tilapia", quantity: 5, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "l2-30",
+    name: "Turkey Cutlets & Rice Bowl",
+    category: "satisfying-protein-carb-bowls",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 5, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" }
+    ]
+  }
+];
+
+
+
+// Helper: filter by category
+export function getLunchMealsByCategory(
+  category: LunchCategory
+): AiPremadeMeal[] {
+  return AI_PREMADE_LUNCH_MEALS.filter((meal) => meal.category === category);

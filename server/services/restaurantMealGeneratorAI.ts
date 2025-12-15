@@ -6,9 +6,16 @@ import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 interface RestaurantMealRequest {
   restaurantName: string;
@@ -153,7 +160,7 @@ Return ONLY a JSON array of 3 meals with this exact structure:
 
 Make the meals sound authentic to ${restaurantName}. Vary the protein sources and preparation methods across the 3 meals.`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini", // 10x faster than gpt-4
       messages: [
         {

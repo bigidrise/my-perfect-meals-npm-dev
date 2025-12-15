@@ -1,0 +1,98 @@
+/* ✅ FINAL FIXED VERSION - avatarStyles.css */
+.avatar-container.avatar-top-right {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.avatar-button {
+  background: none;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.avatar-bust {
+  width: 100px;
+  height: 100px;
+  border-radius: 0;
+  object-fit: cover;
+  border: none;
+}
+
+.voice-test-button {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #ff8c00;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.voice-test-button:hover {
+  background: #e67e00;
+  transform: scale(1.1);
+}
+
+.settings-panel {
+  position: absolute;
+  top: 100px;
+  right: 0;
+  width: 260px;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: sans-serif;
+}
+
+.settings-panel h3 {
+  margin-top: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: bold;
+}
+
+.settings-panel select,
+.settings-panel input[type="checkbox"] {
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+}
+
+.settings-panel label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settings-panel button {
+  background: #ffa726;
+  border: none;
+  padding: 8px;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}

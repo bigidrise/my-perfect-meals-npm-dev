@@ -1,0 +1,212 @@
+Alright, Coach — **we're doing A**.
+I'm building your **subtle gray info icon** with a soft orange glow EXACTLY how a premium Apple-tier app would do it.
+
+This icon will be:
+
+* Small
+* Clean
+* Neutral gray (so it doesn’t pollute your UI)
+* Black-glass friendly
+* With a **VERY subtle orange glow** on hover (or pulse)
+* A perfect trigger for the Copilot’s “explain this” command
+
+And you’re right — this is EXACTLY how people learn the app without clutter.
+
+We’ll also structure the component **properly** so your agent can route it into every screen FAST.
+
+Let’s build the component, make it animatable, and make it ready for Copilot integration.
+
+---
+
+# ✅ **FILE 1: InfoIcon.tsx**
+
+**Location:**
+`client/src/components/common/InfoIcon.tsx`
+
+This is your reusable “i” icon.
+
+### ✔ Subtle
+
+### ✔ Small
+
+### ✔ Gray
+
+### ✔ Optional orange glow (on hover or always)
+
+### ✔ Works everywhere in your UI
+
+### ✔ Click → triggers copilot explain command
+
+```tsx
+import React from "react";
+import { motion } from "framer-motion";
+
+interface InfoIconProps {
+  size?: number;
+  glow?: boolean;
+  onClick?: () => void;
+}
+
+export const InfoIcon: React.FC<InfoIconProps> = ({
+  size = 17,
+  glow = true,
+  onClick,
+}) => {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileTap={{ scale: 0.92 }}
+      whileHover={{ scale: 1.08 }}
+      className="relative flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      {/* BACKGROUND CIRCLE */}
+      <motion.div
+        className="absolute inset-0 rounded-full bg-gray-400/20 border border-white/15 backdrop-blur-sm"
+        animate={
+          glow
+            ? {
+                boxShadow: [
+                  "0 0 0px rgba(251,146,60,0.0)",
+                  "0 0 8px rgba(251,146,60,0.45)",
+                  "0 0 0px rgba(251,146,60,0.0)",
+                ],
+              }
+            : {}
+        }
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* INFO CHARACTER */}
+      <span
+        className="relative z-10 text-[11px] font-bold text-gray-200"
+        style={{ lineHeight: 1 }}
+      >
+        i
+      </span>
+    </motion.button>
+  );
+};
+```
+
+**This will look BEAUTIFUL** against your black-glass UI.
+
+Ultra-subtle.
+Professional.
+Zero clutter.
+Instantly recognizable.
+
+---
+
+# ✅ **FILE 2: InfoButton.tsx**
+
+This wraps the icon, giving you a clean API:
+
+**Location:**
+`client/src/components/common/InfoButton.tsx`
+
+```tsx
+import React from "react";
+import { InfoIcon } from "./InfoIcon";
+
+interface InfoButtonProps {
+  featureId: string; // e.g. "fridge-rescue"
+  size?: number;
+}
+
+import { useCopilot } from "@/components/copilot/CopilotContext";
+
+export const InfoButton: React.FC<InfoButtonProps> = ({
+  featureId,
+  size = 17,
+}) => {
+  const { runAction, open } = useCopilot();
+
+  const handleClick = () => {
+    open(); // open copilot sheet
+    runAction({
+      type: "run-command",
+      id: `explain.${featureId}`,
+    });
+  };
+
+  return <InfoIcon size={size} glow onClick={handleClick} />;
+};
+```
+
+### This does EXACTLY what you want:
+
+* Tap “i”
+  → Copilot opens
+  → Copilot explains the feature
+  → Copilot walks the user through the screen
+
+---
+
+# ✔️ HOW TO USE IT
+
+Inside ANY page or header:
+
+```tsx
+import { InfoButton } from "@/components/common/InfoButton";
+
+// Example inside Fridge Rescue page header
+<InfoButton featureId="fridge-rescue" />
+```
+
+Inside Weekly Board:
+
+```tsx
+<InfoButton featureId="weekly-board" />
+```
+
+Inside AI Meal Builder:
+
+```tsx
+<InfoButton featureId="ai-meal-builder" />
+```
+
+Inside Subscription screen:
+
+```tsx
+<InfoButton featureId="subscriptions" />
+```
+
+You will place these ONLY where you want help — not all over the place.
+
+---
+
+# 🚀 NEXT STEP: Knowledge Engine + Commands
+
+Once your InfoButtons exist, we create:
+
+1. **`explain.*` commands**
+   → These pull explanations from the App Knowledge Engine
+2. **The Knowledge Engine file**
+   → A dictionary of explanations
+3. **Copilot auto-guides user**
+   → “Show me how”
+4. **Optional: Highlight UI elements during walkthrough**
+
+THIS is the magic.
+
+---
+
+# 💬 So your next action:
+
+Tell me:
+
+## 👉 “Build the App Knowledge Engine.”
+
+And I will immediately create:
+
+* `AppKnowledgeRegistry.ts`
+* `explain.feature.*` commands
+* Copilot integration
+* Smart step-by-step guidance
+
+Then your copilot becomes:
+
+**a real teacher, a guide, an onboarding assistant, and an expert.**
+
+Whenever you’re ready — say the word.

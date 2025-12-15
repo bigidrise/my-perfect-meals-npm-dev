@@ -1,0 +1,549 @@
+Good. Old copilot’s in the grave. Time to bolt the brain into the new one.
+
+---
+
+## 1️⃣ Create the Copilot Brain Hook
+
+**File:** `client/src/components/copilot/useCopilotBrain.ts`
+
+This is the intelligence layer: it takes in app state (screen, persona, macros, recent meals, etc.), updates the copilot context, and generates smart suggestions.
+
+```tsx
+import { useEffect } from "react";
+import {
+  useCopilot,
+  CopilotPersona,
+  CopilotSuggestion,
+  CopilotContextInfo,
+} from "./CopilotContext";
+import { buildBaseSuggestions } from "./packs/basePacks";
+
+export type DayPhase = "morning" | "afternoon" | "evening" | "late-night";
+
+export interface MacroSnapshot {
+  calories?: number;
+  targetCalories?: number;
+  protein?: number;
+  targetProtein?: number;
+  carbs?: number;
+  targetCarbs?: number;
+  fats?: number;
+  targetFats?: number;
+}
+
+export interface MealSignal {
+  id: string;
+  name: string;
+  when?: "breakfast" | "lunch" | "dinner" | "snack";
+  tags?: string[]; // e.g. ["high-carb", "fried", "no-veggies"]
+  isDiabeticSafe?: boolean;
+  isGlp1Friendly?: boolean;
+}
+
+export interface CopilotBrainProps {
+  screenId: string;
+  persona: CopilotPersona;
+  tags?: string[];
+
+  macroSnapshot?: MacroSnapshot;
+  recentMeals?: MealSignal[];
+  timeOfDay?: DayPhase;
+  emotionFlags?: string[]; // e.g. ["stressed", "tired", "craving-sweet"]
+}
+
+const mergeSuggestions = (
+  base: CopilotSuggestion[],
+  dynamic: CopilotSuggestion[]
+): CopilotSuggestion[] => {
+  const seen = new Set<string>();
+  const all: CopilotSuggestion[] = [];
+
+  for (const s of [...dynamic, ...base]) {
+    if (seen.has(s.id)) continue;
+    seen.add(s.id);
+    all.push(s);
+  }
+
+  return all;
+};
+
+export const useCopilotBrain = (props: CopilotBrainProps) => {
+  const { setContextInfo, setSuggestions } = useCopilot();
+
+  const {
+    screenId,
+    persona,
+    tags = [],
+    macroSnapshot,
+    recentMeals = [],
+    timeOfDay,
+    emotionFlags = [],
+  } = props;
+
+  // 1) Keep copilot context in sync with where the user is
+  useEffect(() => {
+    const next: Partial<CopilotContextInfo> = {
+      screenId,
+      persona,
+      tags,
+    };
+    setContextInfo(next);
+  }, [screenId, persona, JSON.stringify(tags), setContextInfo]);
+
+  // 2) Build suggestions based on context + data
+  useEffect(() => {
+    const ctx: CopilotContextInfo = {
+      screenId,
+      persona,
+      tags,
+    };
+
+    // Base, context-aware packs
+    const base = buildBaseSuggestions(ctx);
+    const dynamic: CopilotSuggestion[] = [];
+
+    // === MACRO INTELLIGENCE ===
+    if (macroSnapshot && macroSnapshot.targetProtein && macroSnapshot.protein !== undefined) {
+      const ratio = macroSnapshot.protein / macroSnapshot.targetProtein;
+      if (ratio < 0.75) {
+        dynamic.push({
+          id: "brain-protein-boost",
+          label: "Boost protein in your next meal",
+          description:
+            "You’re running low on protein versus your target. Let’s add lean protein to your next meal.",
+          badge: "Macros",
+          emphasis: "high",
+          action: { type: "run-command", id: "macros.boostProteinNextMeal" },
+        });
+      }
+    }
+
+    if (
+      macroSnapshot &&
+      macroSnapshot.targetCalories &&
+      macroSnapshot.calories !== undefined
+    ) {
+      const calRatio = macroSnapshot.calories / macroSnapshot.targetCalories;
+      if (calRatio > 1.1 && (timeOfDay === "evening" || timeOfDay === "late-night")) {
+        dynamic.push({
+          id: "brain-calorie-throttle",
+          label: "Throttle dinner calories a bit",
+          description:
+            "You’re already above your daily calorie target. Let’s lighten dinner without feeling deprived.",
+          badge: "Macros",
+          emphasis: "medium",
+          action: { type: "run-command", id: "macros.lightenDinner" },
+        });
+      }
+    }
+
+    // === RECENT MEAL PATTERNS ===
+    const lastThree = recentMeals.slice(-3);
+    const highCarbCount = lastThree.filter((m) =>
+      (m.tags ?? []).some((t) => t === "high-carb" || t === "refined-carb")
+    ).length;
+    const noVegCount = lastThree.filter((m) =>
+      (m.tags ?? []).includes("no-veggies")
+    ).length;
+    const heavyFatCount = lastThree.filter((m) =>
+      (m.tags ?? []).some((t) => t === "fried" || t === "heavy-fat")
+    ).length;
+
+    if (highCarbCount >= 2 && persona === "diabetic") {
+      dynamic.push({
+        id: "brain-diabetic-carb-balance",
+        label: "Balance carbs for better blood sugar",
+        description:
+          "Your last few meals were carb heavy. Let’s build a lower-carb, fiber-rich option next.",
+        badge: "Diabetic",
+        emphasis: "high",
+        action: { type: "run-command", id: "diabetic.balanceNextMealCarbs" },
+      });
+    }
+
+    if (noVegCount >= 2) {
+      dynamic.push({
+        id: "brain-add-veggies",
+        label: "Add veggies without changing flavor",
+        description:
+          "You’ve had a few veggie-light meals. I can layer in vegetables without ruining your favorite flavors.",
+        badge: "Fiber",
+        emphasis: "medium",
+        action: { type: "run-command", id: "meals.addHiddenVeggies" },
+      });
+    }
+
+    if (persona === "glp1" && heavyFatCount >= 1) {
+      dynamic.push({
+        id: "brain-glp1-comfort",
+        label: "GLP-1 friendly comfort swap",
+        description:
+          "You picked some heavier fats. I can swap to a nausea-friendly version of this same vibe.",
+        badge: "GLP-1",
+        emphasis: "high",
+        action: { type: "run-command", id: "glp1.makeComfortSwap" },
+      });
+    }
+
+    // === EMOTION / CRAVING SIGNALS ===
+    const isStressed = emotionFlags.includes("stressed");
+    const isTired = emotionFlags.includes("tired");
+    const cravingSweet = emotionFlags.includes("craving-sweet");
+    const cravingSavory = emotionFlags.includes("craving-savory");
+
+    if (isStressed || isTired) {
+      dynamic.push({
+        id: "brain-stress-simplify",
+        label: "Simplify tonight with a low-effort plan",
+        description:
+          "You flagged stress or fatigue. I’ll keep this to one-pan, low-dish, low-decision meals.",
+        badge: "Emotion AI",
+        emphasis: "high",
+        action: { type: "run-command", id: "emotion.simplifyTonight" },
+      });
+    }
+
+    if (cravingSweet) {
+      dynamic.push({
+        id: "brain-craving-sweet",
+        label: "Give me a sweet-but-safe option",
+        description:
+          "You’re craving sweet. I’ll keep it macro-friendly and aligned with your plan.",
+        badge: "Cravings",
+        emphasis: "medium",
+        action: { type: "run-command", id: "cravings.sweetSafeOption" },
+      });
+    }
+
+    if (cravingSavory) {
+      dynamic.push({
+        id: "brain-craving-savory",
+        label: "Savory comfort without the crash",
+        description:
+          "You want savory comfort food. I can build a lighter version with the same flavor hit.",
+        badge: "Cravings",
+        emphasis: "medium",
+        action: { type: "run-command", id: "cravings.savoryComfort" },
+      });
+    }
+
+    // === TIME-OF-DAY SMARTNESS ===
+    if (timeOfDay === "late-night") {
+      dynamic.push({
+        id: "brain-late-night-guardrail",
+        label: "Late-night guardrail snack",
+        description:
+          "It’s late. I’ll keep this low-impact on blood sugar, digestion, and sleep quality.",
+        badge: "Night Mode",
+        emphasis: "medium",
+        action: { type: "run-command", id: "night.buildGuardrailSnack" },
+      });
+    }
+
+    const merged = mergeSuggestions(base, dynamic);
+    setSuggestions(merged);
+  }, [
+    screenId,
+    persona,
+    JSON.stringify(tags),
+    macroSnapshot,
+    JSON.stringify(recentMeals),
+    timeOfDay,
+    JSON.stringify(emotionFlags),
+    setSuggestions,
+  ]);
+};
+```
+
+---
+
+## 2️⃣ Optional: Tiny Wrapper Component
+
+If you prefer a drop-in component instead of calling the hook manually:
+
+**File:** `client/src/components/copilot/CopilotBrain.tsx`
+
+```tsx
+import React from "react";
+import { useCopilotBrain, CopilotBrainProps } from "./useCopilotBrain";
+
+export const CopilotBrain: React.FC<CopilotBrainProps> = (props) => {
+  useCopilotBrain(props);
+  return null;
+};
+```
+
+This just runs the brain and renders nothing.
+
+---
+
+## 3️⃣ Update CopilotSheet to Let the Brain Lead
+
+Right now `CopilotSheet` is generating suggestions itself using `buildBaseSuggestions`.
+We’re handing that job to the Brain.
+
+**Replace your current `CopilotSheet.tsx` with this version:**
+
+```tsx
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCopilot } from "./CopilotContext";
+import { ChefCapIcon } from "./ChefCapIcon";
+
+export const CopilotSheet: React.FC = () => {
+  const {
+    isOpen,
+    close,
+    mode,
+    setMode,
+    contextInfo,
+    suggestions,
+    runAction,
+    lastQuery,
+    setLastQuery,
+  } = useCopilot();
+
+  const handleSuggestionClick = (id: string) => {
+    const s = suggestions.find((s) => s.id === id);
+    if (!s) return;
+    setMode("thinking");
+    runAction(s.action);
+    setTimeout(() => setMode("idle"), 400);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lastQuery.trim()) return;
+    setMode("thinking");
+    // Wire this into your AI backend
+    console.log("[Copilot] user query:", lastQuery);
+    setTimeout(() => setMode("idle"), 600);
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={close}
+          />
+
+          <motion.div
+            className="fixed inset-x-0 bottom-0 z-50"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 260, damping: 30 }}
+          >
+            <div className="mx-auto mb-2 w-full max-w-xl px-3">
+              <div className="rounded-3xl border border-white/12 bg-gradient-to-br from-slate-950/95 via-black/95 to-slate-900/90 backdrop-blur-2xl shadow-2xl shadow-black/60">
+                <div className="flex justify-center pt-3">
+                  <div className="h-1 w-10 rounded-full bg-white/15" />
+                </div>
+
+                <div className="flex items-center gap-3 px-4 pt-3">
+                  <ChefCapIcon size={32} />
+                  <div className="flex flex-col">
+                    <span className="text-xs uppercase tracking-[0.16em] text-orange-300/90">
+                      My Perfect Meals Copilot
+                    </span>
+                    <span className="text-sm text-white/80">
+                      {mode === "thinking"
+                        ? "Tuning this to your lifestyle..."
+                        : "Your chef-coach for every screen."}
+                    </span>
+                  </div>
+                  <button
+                    onClick={close}
+                    className="ml-auto rounded-full bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 px-4 pt-3">
+                  {contextInfo.persona && (
+                    <span className="rounded-full border border-orange-400/40 bg-orange-500/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-orange-300">
+                      {contextInfo.persona === "default"
+                        ? "Food Lover"
+                        : contextInfo.persona.toUpperCase()}
+                    </span>
+                  )}
+                  {contextInfo.screenId && (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white/70">
+                      {contextInfo.screenId}
+                    </span>
+                  )}
+                  {(contextInfo.tags ?? []).slice(0, 3).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[11px] text-white/60"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-3 max-h-60 space-y-1 overflow-y-auto px-2 pb-2">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => handleSuggestionClick(s.id)}
+                      className="group flex w-full items-start gap-3 rounded-2xl border border-white/8 bg-white/3 px-3 py-2 text-left hover:border-orange-400/50 hover:bg-orange-500/5"
+                    >
+                      <div className="mt-1 h-6 w-6 flex-shrink-0 rounded-full bg-black/60 text-[11px] font-semibold uppercase tracking-wide text-orange-300 flex items-center justify-center border border-orange-400/40">
+                        {s.badge ? s.badge.charAt(0) : "AI"}
+                      </div>
+                      <div className="flex flex-1 flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-white">
+                            {s.label}
+                          </span>
+                          {s.badge && (
+                            <span className="rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] text-orange-300">
+                              {s.badge}
+                            </span>
+                          )}
+                        </div>
+                        {s.description && (
+                          <span className="mt-0.5 text-[11px] text-white/60">
+                            {s.description}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-[11px] text-white/40 group-hover:text-orange-300">
+                        •••
+                      </div>
+                    </button>
+                  ))}
+
+                  {suggestions.length === 0 && (
+                    <div className="px-3 py-4 text-center text-xs text-white/60">
+                      I’m ready when you are. Tell me what you want to fix,
+                      build, or simplify.
+                    </div>
+                  )}
+                </div>
+
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex items-center gap-2 border-t border-white/10 px-3 py-2"
+                >
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/70 text-[11px] text-white/70 hover:border-orange-400/60 hover:text-orange-300"
+                    onClick={() =>
+                      setMode((prev) =>
+                        prev === "listening" ? "idle" : "listening"
+                      )
+                    }
+                  >
+                    {mode === "listening" ? "••" : "🎙"}
+                  </button>
+                  <input
+                    className="flex-1 rounded-2xl border border-white/12 bg-black/60 px-3 py-1.5 text-xs text-white placeholder:text-white/35 focus:border-orange-400/70 focus:outline-none"
+                    placeholder="Ask your copilot: 'Fix this meal for GLP-1'..."
+                    value={lastQuery}
+                    onChange={(e) => setLastQuery(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-2xl bg-gradient-to-r from-orange-500/90 to-amber-400/90 px-3 py-1.5 text-xs font-semibold text-black shadow-md shadow-orange-900/50 hover:from-orange-400 hover:to-amber-300"
+                  >
+                    {mode === "thinking" ? "Thinking…" : "Send"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+```
+
+Now **CopilotSheet just renders whatever the Brain (or any other logic) pushes into `suggestions`.**
+
+---
+
+## 4️⃣ Wire the Brain into a Screen
+
+Here’s how you actually feed it data.
+
+Example: **Fridge Rescue**
+
+```tsx
+// client/src/pages/fridge-rescue.tsx
+import React from "react";
+import { CopilotBrain } from "@/components/copilot/CopilotBrain";
+import type { MacroSnapshot, MealSignal } from "@/components/copilot/useCopilotBrain";
+// import your real hooks/selectors here
+
+const FridgeRescuePage: React.FC = () => {
+  // These come from YOUR state/store – replace with real data.
+  const macroSnapshot: MacroSnapshot | undefined = undefined; // useMacroSnapshot()
+  const recentMeals: MealSignal[] = []; // useRecentMeals()
+  const emotionFlags: string[] = []; // e.g. ["stressed"] from your emotion gate
+  const timeOfDay: "morning" | "afternoon" | "evening" | "late-night" = "evening";
+
+  return (
+    <>
+      <CopilotBrain
+        screenId="FRIDGE_RESCUE"
+        persona="default"
+        tags={["dinner", "one-pan", "busy"]}
+        macroSnapshot={macroSnapshot}
+        recentMeals={recentMeals}
+        timeOfDay={timeOfDay}
+        emotionFlags={emotionFlags}
+      />
+
+      {/* your existing Fridge Rescue UI below */}
+      <div className="...">
+        {/* ... */}
+      </div>
+    </>
+  );
+};
+
+export default FridgeRescuePage;
+```
+
+Same pattern for Diabetic board, GLP-1 hub, Athlete hub, etc.
+You just change:
+
+* `screenId`
+* `persona`
+* `tags`
+* and feed real macros + recent meals when you’re ready.
+
+---
+
+## What You’ve Got Now
+
+* ✅ **Iconic chef-cap copilot UI** (black glass, App-of-the-Year level)
+* ✅ **Global copilot shell** wired correctly
+* ✅ **Brain hook** that:
+
+  * Reads macros
+  * Reads patterns from meals
+  * Reads persona
+  * Reads time of day
+  * Reads emotion flags
+  * Generates smart, labeled suggestions that map to `run-command` IDs
+
+Next move after this (once you’re ready):
+
+**We wire those `run-command` IDs into your real functions**
+`macros.boostProteinNextMeal`, `night.buildGuardrailSnack`, `glp1.makeComfortSwap`, etc.
+
+When you’re done dropping these files in and wiring the Brain into at least one page, tell me:
+
+> “Commands next.”
+
+Then we’ll map those IDs to real actions so the copilot doesn’t just *talk*—it actually **does the work**.

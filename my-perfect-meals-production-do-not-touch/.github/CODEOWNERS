@@ -1,0 +1,6 @@
+# Core Smart Shopping List System - Protected Features
+/client/src/pages/ShoppingListPage.tsx     @coach
+/client/src/lib/shoppingListApi.ts         @coach
+/server/routes/shoppingList.routes.ts      @coach
+/server/services/shoppingPipeline.ts       @coach
+/client/src/lib/sendToSmartList.ts         @coach

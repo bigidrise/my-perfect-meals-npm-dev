@@ -1,0 +1,335 @@
+🔥 **PHASE C.6 — UI IMPLEMENTATION + SCRIPT ACTIVATION**
+**This is the phase where we wire the missing `data-testid` anchors into the actual UI for all 12 subpages, flip all scripts to `uiReady: true`, and activate the walkthroughs.**
+
+I’m going to give you the **full architect-ready package** so you can hand it straight to the Architect with ZERO interpretation needed.
+
+This includes:
+
+1. **All required `data-testid` anchors for each subpage**
+2. **Event emitters needed for auto-advance steps**
+3. **Activation instructions (`uiReady: true`)**
+4. **Patch strategy (safe, minimal, isolated)**
+5. **Architect command prompt** (copy/paste directly)
+
+Ready? Here we go.
+
+---
+
+# ✅ **PHASE C.6 — UI IMPLEMENTATION PACKAGE**
+
+**Architect-ready. No back-and-forth. No clarifications required.**
+
+---
+
+# 🔶 OVERVIEW
+
+To activate all 12 subpage walkthroughs, the UI must implement:
+
+### **A. 18 Required `data-testid`s Across 12 Pages**
+
+### **B. 6 Standard Event Emitters (`filled`, `ready`, `chosen`, `done`, `opened`, `selected`)**
+
+### **C. Script activation (`uiReady: true`)**
+
+### **D. Architect safety checks (Phase B & C.1 compatibility)**
+
+---
+
+# 🟦 **A. REQUIRED DATA-TESTIDs (PER PAGE)**
+
+These are minimal, non-invasive anchors.
+They do NOT change UI layout or styling.
+
+---
+
+## **1️⃣ Craving Creator**
+
+```tsx
+data-testid="cravingcreator-input-box"
+data-testid="cravingcreator-create-button"
+data-testid="cravingcreator-results"
+```
+
+---
+
+## **2️⃣ Craving Premades**
+
+```tsx
+data-testid="cravingpremades-grid"
+data-testid="cravingpremades-card"
+```
+
+---
+
+## **3️⃣ Kids Meals**
+
+```tsx
+data-testid="kidsmeals-card"
+```
+
+---
+
+## **4️⃣ Toddler Meals**
+
+```tsx
+data-testid="toddlermeals-card"
+```
+
+---
+
+## **5️⃣ Lean & Social**
+
+```tsx
+data-testid="leansocial-card"
+data-testid="leansocial-detail"
+```
+
+---
+
+## **6️⃣ Mocktails**
+
+```tsx
+data-testid="mocktails-card"
+```
+
+---
+
+## **7️⃣ Wine Pairing**
+
+```tsx
+data-testid="winepairing-card"
+```
+
+---
+
+## **8️⃣ Beer Pairing**
+
+```tsx
+data-testid="beerpairing-card"
+```
+
+---
+
+## **9️⃣ Bourbon Pairing**
+
+```tsx
+data-testid="bourbonpairing-card"
+```
+
+---
+
+## **🔟 Alcohol Log**
+
+```tsx
+data-testid="alcohollog-add"
+```
+
+**Event needed:**
+`filled` → when a log entry is added
+
+---
+
+## **1️⃣1️⃣ Restaurant Guide**
+
+```tsx
+data-testid="restaurantguide-search"
+```
+
+**Event needed:**
+`ready` → when results appear
+
+---
+
+## **1️⃣2️⃣ Find Meals Near Me**
+
+```tsx
+data-testid="findmeals-search"
+```
+
+**Event needed:**
+`ready` → after location detection
+
+---
+
+# 🟧 **B. REQUIRED EVENT EMITTERS (6 TOTAL)**
+
+Add these anywhere appropriate in each page’s functional flow.
+
+---
+
+### **1. “filled”**
+
+Triggers when user completes input (adding drink, adding craving, etc.)
+
+```ts
+element.dispatchEvent(new Event("filled"));
+```
+
+---
+
+### **2. “ready”**
+
+Triggers when results / calculations complete.
+
+```ts
+window.dispatchEvent(new Event("ready"));
+```
+
+---
+
+### **3. “opened”**
+
+Triggers when detail modal opens.
+
+```ts
+window.dispatchEvent(new Event("opened"));
+```
+
+---
+
+### **4. “selected”**
+
+Triggers when user selects a card/option.
+
+```ts
+window.dispatchEvent(new Event("selected"));
+```
+
+---
+
+### **5. “done”**
+
+Triggers when export/submit completes.
+
+```ts
+window.dispatchEvent(new Event("done"));
+```
+
+---
+
+### **6. “chosen”**
+
+Used primarily in duplicator modals, kids menus, filters.
+
+```ts
+window.dispatchEvent(new Event("chosen"));
+```
+
+---
+
+# 🟩 **C. ACTIVATE SCRIPTS (`uiReady: true`)**
+
+After all anchors + events are implemented:
+
+Update each script:
+
+```ts
+uiReady: true
+```
+
+Scripts that must be updated:
+
+```
+CravingCreatorScript
+CravingPremadesScript
+KidsMealsScript
+ToddlerMealsScript
+LeanSocialScript
+MocktailsScript
+WinePairingScript
+BeerPairingScript
+BourbonPairingScript
+AlcoholLogScript
+RestaurantGuideScript
+FindMealsScript
+```
+
+---
+
+# 🟥 **D. ARCHITECT IMPLEMENTATION COMMAND (COPY/PASTE THIS)**
+
+Here is the **exact prompt** to give the Architect inside Replit:
+
+---
+
+### **ARCHITECT PROMPT — PHASE C.6 UI IMPLEMENTATION**
+
+```
+You are the Architect.
+
+Implement Phase C.6 exactly as follows:
+
+1. Add the following data-testid anchors to the correct UI elements on their respective pages:
+
+Craving Creator:
+- cravingcreator-input-box
+- cravingcreator-create-button
+- cravingcreator-results
+
+Craving Premades:
+- cravingpremades-grid
+- cravingpremades-card
+
+Kids Meals:
+- kidsmeals-card
+
+Toddler Meals:
+- toddlermeals-card
+
+Lean & Social:
+- leansocial-card
+- leansocial-detail
+
+Mocktails:
+- mocktails-card
+
+Wine Pairing:
+- winepairing-card
+
+Beer Pairing:
+- beerpairing-card
+
+Bourbon Pairing:
+- bourbonpairing-card
+
+Alcohol Log:
+- alcohollog-add
+
+Restaurant Guide:
+- restaurantguide-search
+
+Find Meals Near Me:
+- findmeals-search
+
+2. Implement event emitters where appropriate:
+- "filled"
+- "ready"
+- "opened"
+- "selected"
+- "chosen"
+- "done"
+
+Each event fires after the corresponding user action or DOM update completes.
+
+3. Do not modify any existing logic in CopilotCommandRegistry.
+Do not modify Phase B routing.
+Do not alter walk-through engine core logic.
+
+4. After anchors and events are complete:
+Set uiReady: true inside all 12 walkthrough scripts.
+
+5. Restart workflow and verify zero LSP errors.
+Provide a final diff summary.
+
+Begin.
+```
+
+---
+
+# 🧩 **READY FOR C.7: MULTI-HUB WALKTHROUGHS & BRANCH LOGIC**
+
+Just say:
+
+👉 **“Start C.7.”**
+
+Whenever you're ready.

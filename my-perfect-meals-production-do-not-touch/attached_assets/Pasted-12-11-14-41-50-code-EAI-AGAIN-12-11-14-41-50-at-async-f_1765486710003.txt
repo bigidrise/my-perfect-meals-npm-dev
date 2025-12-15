@@ -1,0 +1,81 @@
+12-11 14:41:50
+code: 'EAI_AGAIN',
+12-11 14:41:50
+at async file:///home/runner/workspace/dist/prod.js:22631:26 {
+12-11 14:41:50
+at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+12-11 14:41:50
+hostname: 'base'
+12-11 14:41:50
+errno: -3001,
+12-11 14:41:50
+dde151ae-1156-402c-ac7f-d0e340e408ca POST /api/auth/signup 500 10ms
+12-11 14:41:55
+at async file:///home/runner/workspace/dist/prod.js:22665:20 {
+12-11 14:41:55
+errno: -3001,
+12-11 14:41:55
+Login error: Error: getaddrinfo EAI_AGAIN base
+12-11 14:41:55
+hostname: 'base'
+12-11 14:41:55
+at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+12-11 14:41:55
+}
+12-11 14:41:55
+syscall: 'getaddrinfo',
+12-11 14:41:55
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+12-11 14:41:55
+at async file:///home/runner/workspace/node_modules/drizzle-orm/node-postgres/session.js:83:22
+12-11 14:41:55
+code: 'EAI_AGAIN',
+12-11 14:41:55
+86612fcb-9967-4bd8-a601-9e3363f5058d POST /api/auth/login 500 8ms
+12-11 14:43:41
+❌ Keepalive ping failed (pool will reconnect)
+12-11 14:45:24
+1aa90e2d-b605-4be3-968d-989a54ed4024 GET /version.json?t=1765485924267 200 3ms
+12-11 14:45:24
+12e75e48-32d0-4b7b-996a-30d072c165da GET /version.json?cache=1765485924278 200 3ms
+12-11 14:45:24
+3bddd02e-a386-4752-8159-25b516b34a0b GET /auth 200 3ms
+12-11 14:45:24
+0e1779e2-bd22-41f7-996d-e0f4613e9fc5 GET /version.json?t=1765485924606 200 2ms
+12-11 14:45:24
+1ec55555-2572-46ae-9dd6-3ee0f14c4d9c GET /sw.js 200 2ms
+12-11 14:45:24
+7d105b4e-7e13-4e60-9c3b-52f5cf1cdf83 GET / 200 2ms
+12-11 14:45:24
+5cd85bba-dbdb-47bb-8cee-ed83f905b190 GET /sounds/music-loop.mp3 206 2ms
+12-11 14:45:24
+27d274b4-a8ad-4821-a3e9-2eca73642e29 GET /favicon.ico 200 2ms
+12-11 14:45:24
+3dd4ca3b-4238-4cfe-a246-b3aeb36ca086 GET /index.html 200 3ms
+12-11 14:45:30
+a41f91e9-7a87-465a-b4cd-5b6138548381 GET /version.json?cache=1765485930363 200 1ms
+12-11 14:45:41
+❌ Keepalive ping failed (pool will reconnect)
+12-11 14:47:41
+❌ Keepalive ping failed (pool will reconnect)
+12-11 14:49:41
+❌ Keepalive ping failed (pool will reconnect)
+12-11 14:50:25
+543ade60-aee8-431a-8427-b7ca00d1afba GET /version.json?t=1765486225242 200 2ms
+12-11 14:51:41
+❌ Keepalive ping failed (pool will reconnect)
+12-11 14:53:41
+❌ Keepalive ping failed (pool will reconnect)
+12-11 14:53:59
+60faa9bc-f8dd-4dbc-9b25-8c5be875afad GET /version.json?t=1765486439422 200 4ms
+12-11 14:53:59
+0c3b3a07-d54d-4f0a-95b7-e482a7badff2 GET /version.json?cache=1765486439436 200 3ms
+12-11 14:55:26
+6b68db65-4c00-4746-aa50-b498674eee3c GET /version.json?t=1765486526239 200 5ms
+12-11 14:55:41
+❌ Keepalive ping failed (pool will reconnect)
+12-11 14:57:41
+❌ Keepalive ping failed (pool will reconnect)
+
+12-11 14:57:41
+❌ Keepalive ping failed (pool will reconnect)

@@ -1,0 +1,204 @@
+Here you go, Coach — **a clean, surgical Replit Agent prompt** that tells the assistant EXACTLY what to do, no confusion, no improvising, no “AI drift.”
+This is the prompt you hand directly to the agent.
+
+---
+
+# ✅ **REPLIT AGENT PROMPT — SOCIALIZING HUB IMPLEMENTATION**
+
+**SYSTEM-LEVEL INSTRUCTION:**
+Do **not** modify any locked files unless explicitly told. Follow this spec exactly. All new files must be created cleanly and must follow the existing black-glass UI, safe-area headers, and routing conventions of the app.
+
+---
+
+# 📌 **TASK: Replace Restaurant Guide with Socializing Hub (3-page system)**
+
+## **1. Replace the Lifestyle Hub button**
+
+In the Lifestyle page:
+
+* Find the button labeled **Restaurant Guide**
+* **Rename the label** to: **Socializing Hub**
+* **Update its route** to navigate to:
+
+  ```
+  /social-hub
+  ```
+
+No other UI changes needed.
+
+---
+
+# 📌 **2. Create NEW PAGE: `/social-hub` (Landing Hub)**
+
+**File:**
+
+```
+client/src/pages/SocializingHub.tsx
+```
+
+**Requirements:**
+
+### **A. Safe-area Header**
+
+* Use the same universal safe-area header system as the CravingHub and KidsMealHub pages.
+* Back button navigates to `/lifestyle`.
+* Title: **Socializing Hub**.
+
+### **B. Background + Layout**
+
+* Same dark gradient background as CravingHub (from black/60 to orange/600 to black/80).
+* Full safe area:
+
+  ```
+  paddingTop: calc(env(safe-area-inset-top) + 6rem)
+  ```
+
+### **C. HERO IMAGE SECTION**
+
+Insert a hero section container ABOVE the buttons:
+
+* Full-width Card (or div) styled same as other hero images.
+* Placeholder `<img src="/images/social-hero-placeholder.jpg" />`
+* Add overlay text (static for now, actual copy will be updated later):
+
+  ```
+  "Going out? Stay on track without missing the fun."
+  ```
+
+### **D. Two Card Buttons (same design as CravingHub)**
+
+Under the hero image, create two cards:
+
+---
+
+### **CARD 1: Restaurant Guide**
+
+* Title: **Restaurant Guide**
+* Description:
+  “Get AI-powered healthy options from any restaurant.”
+* Button → navigates to:
+
+  ```
+  /social-hub/restaurant-guide
+  ```
+
+---
+
+### **CARD 2: Find Meals Near Me**
+
+* Title: **Find Meals Near Me**
+* Description:
+  “Search local restaurants by craving and ZIP code.”
+* Button → navigates to:
+
+  ```
+  /social-hub/find
+  ```
+
+---
+
+# 📌 **3. Create NEW PAGE: `/social-hub/find`**
+
+This is simply the *existing* “Find Meals Near Me” page, extracted into a standalone file.
+
+**File:**
+
+```
+client/src/pages/SocialFindMeals.tsx
+```
+
+### Requirements:
+
+* Copy the entire code from the old **Find Meals Near Me** page.
+* DO NOT include or import any locked Restaurant Guide systems.
+* Ensure it has:
+
+  * Safe-area header
+  * Back button → `/social-hub`
+  * Title: **Find Meals Near Me**
+* NOTHING else changes.
+
+---
+
+# 📌 **4. Extract Restaurant Guide into NEW PAGE: `/social-hub/restaurant-guide`**
+
+**File:**
+
+```
+client/src/pages/SocialRestaurantGuide.tsx
+```
+
+### Requirements:
+
+* Take the **entire RestaurantGuidePage**, exactly as-is (lockdown code stays intact).
+* Only change:
+
+  * Route path
+  * Back button → `/social-hub`
+* Keep the lockdown comment block at the top.
+* No other modifications.
+
+---
+
+# 📌 **5. Routing**
+
+Add new routes:
+
+```
+<Route path="/social-hub" component={SocializingHub} />
+<Route path="/social-hub/find" component={SocialFindMeals} />
+<Route path="/social-hub/restaurant-guide" component={SocialRestaurantGuide} />
+```
+
+Remove or update the old Restaurant Guide route:
+
+```
+/restaurant-guide → /social-hub/restaurant-guide
+```
+
+---
+
+# 📌 **6. Confirm Safe-Area Rendering**
+
+Ensure all THREE new pages:
+
+* SocializingHub
+* SocialFindMeals
+* SocialRestaurantGuide
+
+use the same universal safe-area header component logic from:
+
+```
+CravingHub.tsx
+KidsMealsHub.tsx
+GLPHub.tsx
+```
+
+---
+
+# 📌 **7. Final QA Checklist Before Returning Code**
+
+* Landing page loads cleanly from `/lifestyle`.
+* Hero image loads with placeholder.
+* Buttons navigate correctly.
+* Both inner pages render with correct safe-area padding.
+* Restaurant Guide lockdown code remains untouched.
+* No nested header conflicts.
+* No missing imports, no undefined icons, no broken components.
+
+---
+
+# DONE
+
+Return the full file output for:
+
+* **SocializingHub.tsx**
+* **SocialFindMeals.tsx**
+* **SocialRestaurantGuide.tsx**
+* Updated LifestyleHub file
+* Updated routing file
+
+---
+
+Coach — this prompt is airtight.
+Hand this straight to the Replit agent and watch them snap it into place.

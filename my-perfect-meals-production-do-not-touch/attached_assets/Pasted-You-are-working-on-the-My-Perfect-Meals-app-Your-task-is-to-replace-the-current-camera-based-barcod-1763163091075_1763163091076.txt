@@ -1,0 +1,191 @@
+You are working on the My Perfect Meals app. Your task is to replace the current camera-based barcode scanner with a clean, manual barcode entry modal ONLY.
+
+⚠️ Critical rules:
+- DO NOT change any aesthetics or layout in any other file.
+- DO NOT modify ShoppingListMasterView.tsx except to keep it compiling with the new BarcodeScanner behavior (if needed).
+- All changes must be confined to: client/src/components/BarcodeScanner.tsx
+
+Goal:
+The current BarcodeScanner shows a camera and a fake scanning line that never actually decodes barcodes. We want a simple, honest manual entry modal instead.
+
+New behavior:
+- No camera access.
+- No BarcodeDetector usage.
+- No backend / API lookup.
+- User manually types a barcode string and taps “Add Item”.
+- The component calls the existing onItemScanned callback with:
+    - barcode as the first argument
+    - barcode again as productName (second argument)
+  so the parent can keep working without changes.
+- Then the modal closes.
+
+Parent contract (MUST KEEP):
+ShoppingListMasterView.tsx currently uses:
+
+  <BarcodeScanner
+    onItemScanned={handleBarcodeScanned}
+    onClose={() => setScannerOpen(false)}
+  />
+
+And handleBarcodeScanned looks like:
+
+  const handleBarcodeScanned = useCallback((barcode: string, productName: string) => {
+    addItem({
+      name: productName,
+      quantity: 1,
+      unit: '',
+      notes: `Barcode: ${barcode}`
+    });
+    setScannerOpen(false);
+    toast({ 
+      title: "Item added", 
+      description: `${productName} added to shopping list` 
+    });
+  }, [addItem, toast]);
+
+Do NOT change this signature. The new BarcodeScanner MUST call onItemScanned(barcode, productName) with both arguments.
+
+Task:
+1. Replace the entire contents of client/src/components/BarcodeScanner.tsx with the implementation below.
+2. Make sure there are NO references to:
+   - navigator.mediaDevices
+   - BarcodeDetector
+   - getUserMedia
+   - any video/canvas elements
+3. Ensure the component compiles cleanly and works on both desktop and mobile.
+
+Here is the NEW file content to use verbatim:
+
+----- FILE: client/src/components/BarcodeScanner.tsx -----
+import { useState, KeyboardEvent } from "react";
+import { motion } from "framer-motion";
+import { X, Barcode as BarcodeIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+interface BarcodeScannerProps {
+  onItemScanned: (barcode: string, productName: string) => void;
+  onClose: () => void;
+}
+
+/**
+ * Manual Barcode Entry Modal
+ *
+ * Phase 1 behavior:
+ * - No camera
+ * - No backend lookup
+ * - User types barcode manually
+ * - We call onItemScanned(barcode, barcode)
+ *   so the parent uses the barcode as both productName and notes.
+ */
+export default function BarcodeScanner({ onItemScanned, onClose }: BarcodeScannerProps) {
+  const [barcode, setBarcode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = () => {
+    const value = barcode.trim();
+    if (!value) return;
+
+    setSubmitting(true);
+    try {
+      // For now, use the barcode as both product name and barcode.
+      onItemScanned(value, value);
+    } finally {
+      setSubmitting(false);
+      onClose();
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }}
+        transition={{ duration: 0.25 }}
+        className="w-full max-w-md rounded-2xl border border-white/20 bg-black/80 p-5 shadow-2xl"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-white/10 p-2 border border-white/20">
+              <BarcodeIcon className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-white">
+                Enter barcode
+              </h2>
+              <p className="text-xs text-white/70">
+                Type any barcode from your product to add to your list.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white/80"
+            aria-label="Close barcode entry"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <Input
+            autoFocus
+            value={barcode}
+            onChange={(e) => setBarcode(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g. 012345678905"
+            className="bg-black/40 border-white/30 text-white placeholder:text-white/40"
+            data-testid="input-barcode-manual"
+          />
+          <p className="text-[11px] text-white/60">
+            Tip: You can always edit the item name later in your shopping list.
+          </p>
+
+          <div className="mt-3 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClose}
+              className="text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!barcode.trim() || submitting}
+              className="bg-blue-600/80 hover:bg-blue-600 text-white border border-blue-300/40"
+              data-testid="button-add-barcode-manual"
+            >
+              Add Item
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+----- END FILE -----
+
+After applying the change:
+1. Run the dev server.
+2. Open the Shopping List page.
+3. Click “Barcode Scanner”.
+4. Verify:
+   - A black-glass modal appears (no camera).
+   - Title: “Enter barcode”
+   - Subtitle: “Type any barcode from your product to add to your list.”
+   - Input accepts any text.
+   - “Add Item” button is disabled when empty, enabled when text is present.
+   - On submit, a new shopping list item appears with:
+        - name = the barcode text
+        - notes containing the barcode (handled in parent)
+   - Modal closes and no console errors appear.

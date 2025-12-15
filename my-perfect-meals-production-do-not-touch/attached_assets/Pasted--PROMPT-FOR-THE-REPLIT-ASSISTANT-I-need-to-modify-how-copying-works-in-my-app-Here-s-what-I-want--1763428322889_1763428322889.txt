@@ -1,0 +1,102 @@
+✅ PROMPT FOR THE REPLIT ASSISTANT
+“I need to modify how copying works in my app. Here’s what I want to do:
+
+
+Remove the copy button from the shopping aggregate bar entirely.
+The shopping aggregate bar should ONLY:
+
+
+Combine ingredients
+
+
+Send ingredients to the Shopping List
+
+
+Send the selected day or week to the Shopping List (for Meal Builder)
+
+
+
+
+Add a copy button to each individual meal card across the app, including:
+
+
+Craving Creator meals
+
+
+Fridge Rescue meals
+
+
+Any AI-generated meals
+
+
+Kids / Toddler meals
+
+
+Holiday hubs
+
+
+All regular meal cards in the Meal Builder
+
+
+Every hub that displays an individual meal card
+
+
+
+
+The copy button on each meal card needs to give me the full recipe, including:
+
+
+Recipe title
+
+
+Ingredients with amounts + units
+
+
+Instructions
+
+
+(Do NOT send this to the shopping list — copy only.)
+
+
+
+
+Provide me with ALL relevant files so ChatGPT can redesign this cleanly, specifically:
+
+
+The file where the shopping aggregate bar is defined
+
+
+The file where the copy action is currently implemented
+
+
+The file(s) where individual meal cards are defined
+
+
+Any shared components used for recipes, meals, or clipboard actions
+
+
+Any utility functions related to copying or exporting ingredients
+
+
+Any context/provider files handling meal or shopping logic
+
+
+
+
+Do NOT make any changes yet. Just show me all relevant files so ChatGPT can analyze the correct structure before we modify anything.”
+
+🔥 Coach — this prompt does EXACTLY what we need
+It will:
+✔ Reveal every file we must modify
+✔ Show where the current copy logic lives
+✔ Show where meal cards live
+✔ Show where the shopping aggregate bar lives
+✔ Prevent the assistant from touching anything prematurely
+✔ Give me EVERYTHING I need to build the new, perfect copy system
+✔ Keep your app safe and stable
+After it hands us the files, I’ll give you the clean, safe, step-by-step changes to:
+⭐ Remove copy from aggregate
+⭐ Add copy to every meal card
+⭐ Copy full recipe (title + ingredients w/ amounts + instructions)
+⭐ Keep your shopping list behavior intact
+Just send the assistant that exact prompt.

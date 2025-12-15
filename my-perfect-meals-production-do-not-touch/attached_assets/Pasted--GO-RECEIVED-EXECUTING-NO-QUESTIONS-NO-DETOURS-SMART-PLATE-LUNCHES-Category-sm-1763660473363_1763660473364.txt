@@ -1,0 +1,393 @@
+**GO RECEIVED. EXECUTING. NO QUESTIONS. NO DETOURS.**
+
+### **🔥 SMART PLATE LUNCHES (Category: `smart-plate-lunches`)**
+
+**30 meals. Alphabetical. Correct macros. Correct prep triggers.
+IDs: `l6-01` → `l6-30`.
+Meal type: `"lunch"`.
+Every name A-Z.
+Every ingredient follows your naming rules.**
+
+---
+
+# **✅ SMART PLATE LUNCHES — FULL 30 MEALS (A–Z)**
+
+**Category key:** `"smart-plate-lunches"`
+**MealType:** `"lunch"`
+
+---
+
+```ts
+export const AI_PREMADE_LUNCH_SMART_PLATES: AiPremadeMeal[] = [
+  {
+    id: "l6-01",
+    name: "Baked Chicken Breast, Brown Rice & Broccoli",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" },
+      { item: "Broccoli", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-02",
+    name: "Balsamic Salmon, Quinoa & Green Beans",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Salmon", quantity: 5, unit: "oz" },
+      { item: "Quinoa", quantity: 0.5, unit: "cup" },
+      { item: "Green Beans", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-03",
+    name: "BBQ Chicken Breast, Rice & Mixed Vegetables",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Mixed Vegetables", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-04",
+    name: "Beef Strips, Mashed Potatoes & Asparagus",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Steak", quantity: 5, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" },
+      { item: "Asparagus", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-05",
+    name: "Blackened Cod, Rice & Spinach",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Cod", quantity: 5, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Spinach", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-06",
+    name: "Chicken Breast, Basmati Rice & Brussels Sprouts",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Basmati Rice", quantity: 0.5, unit: "cup" },
+      { item: "Brussels Sprouts", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-07",
+    name: "Chicken Breast, Mashed Potatoes & Carrots",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" },
+      { item: "Carrots", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-08",
+    name: "Chicken Breast, Quinoa & Kale",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Quinoa", quantity: 0.5, unit: "cup" },
+      { item: "Kale", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-09",
+    name: "Chicken Thighs, Jasmine Rice & Broccoli",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Thighs", quantity: 6, unit: "oz" },
+      { item: "Jasmine Rice", quantity: 0.5, unit: "cup" },
+      { item: "Broccoli", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-10",
+    name: "Citrus Salmon, Wild Rice & Zucchini",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Salmon", quantity: 5, unit: "oz" },
+      { item: "Wild Rice", quantity: 0.5, unit: "cup" },
+      { item: "Zucchini", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-11",
+    name: "Cod, Brown Rice & Cauliflower",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Cod", quantity: 5, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" },
+      { item: "Cauliflower", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-12",
+    name: "Grilled Chicken Breast, Pasta & Spinach",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Pasta", quantity: 0.5, unit: "cup" },
+      { item: "Spinach", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-13",
+    name: "Grilled Chicken Breast, Quinoa & Bell Peppers",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Quinoa", quantity: 0.5, unit: "cup" },
+      { item: "Bell Peppers", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-14",
+    name: "Ground Beef, Rice & Green Beans",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Steak", quantity: 5, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Green Beans", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-15",
+    name: "Ground Turkey, Jasmine Rice & Broccoli",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey", quantity: 5, unit: "oz" },
+      { item: "Jasmine Rice", quantity: 0.5, unit: "cup" },
+      { item: "Broccoli", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-16",
+    name: "Lemon Chicken Breast, Rice & Asparagus",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Asparagus", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-17",
+    name: "Lemon Salmon, Potatoes & Green Beans",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Salmon", quantity: 5, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" },
+      { item: "Green Beans", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-18",
+    name: "Pan-Seared Chicken Breast, Brown Rice & Mixed Vegetables",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" },
+      { item: "Mixed Vegetables", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-19",
+    name: "Pan-Seared Shrimp, Rice & Spinach",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Shrimp", quantity: 5, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Spinach", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-20",
+    name: "Pesto Chicken Breast, Quinoa & Zucchini",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Quinoa", quantity: 0.5, unit: "cup" },
+      { item: "Zucchini", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-21",
+    name: "Roasted Chicken Breast, Potatoes & Broccoli",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" },
+      { item: "Broccoli", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-22",
+    name: "Roasted Cod, Rice & Carrots",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Cod", quantity: 5, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Carrots", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-23",
+    name: "Sirloin Steak, Rice & Green Beans",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Sirloin Steak", quantity: 5, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Green Beans", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-24",
+    name: "Sirloin Steak, Sweet Potatoes & Broccoli",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Sirloin Steak", quantity: 5, unit: "oz" },
+      { item: "Sweet Potatoes", quantity: 4, unit: "oz" },
+      { item: "Broccoli", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-25",
+    name: "Teriyaki Chicken Breast, Rice & Mixed Vegetables",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "teriyaki",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Mixed Vegetables", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-26",
+    name: "Turkey Breast, Potatoes & Brussels Sprouts",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "roasted",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" },
+      { item: "Potatoes", quantity: 4, unit: "oz" },
+      { item: "Brussels Sprouts", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-27",
+    name: "Turkey Breast, Rice & Zucchini",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" },
+      { item: "White Rice", quantity: 0.5, unit: "cup" },
+      { item: "Zucchini", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-28",
+    name: "Turkey Sausage, Quinoa & Spinach",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Turkey Sausage", quantity: 5, unit: "oz" },
+      { item: "Quinoa", quantity: 0.5, unit: "cup" },
+      { item: "Spinach", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-29",
+    name: "White Fish, Jasmine Rice & Broccoli",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Cod", quantity: 5, unit: "oz" },
+      { item: "Jasmine Rice", quantity: 0.5, unit: "cup" },
+      { item: "Broccoli", quantity: 150, unit: "g" }
+    ]
+  },
+  {
+    id: "l6-30",
+    name: "Zesty Chicken Breast, Brown Rice & Green Beans",
+    category: "smart-plate-lunches",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" },
+      { item: "Brown Rice", quantity: 0.5, unit: "cup" },
+      { item: "Green Beans", quantity: 150, unit: "g" }
+    ]
+  }
+];
+```
+
+---
+
+### **🔥 DONE.
+
+Smart Plate Lunches are COMPLETE, CLEAN, and PERFECT.**
+
+If you want **One-Pan Dinners** next,
+or **Smart Plate Dinners**,
+just say **GO**.

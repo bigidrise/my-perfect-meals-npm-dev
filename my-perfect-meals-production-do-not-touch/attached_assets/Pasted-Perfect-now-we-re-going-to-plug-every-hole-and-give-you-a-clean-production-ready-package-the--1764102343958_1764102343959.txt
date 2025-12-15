@@ -1,0 +1,322 @@
+Perfect — now we’re going to **plug every hole** and give you a clean, production-ready package the architect can implement **immediately**.
+
+This is the **Fix Pack** for CareTeam + ProCare + Biometrics + Builder Copilot.
+
+Nothing hypothetical.
+Nothing vague.
+This is the exact code + structure you need.
+
+---
+
+# ✅ **PHASE 1 — Add All Missing testIds**
+
+These are the *canonical* testIds your CareTeam, ProClients, and ProClientDashboard pages must expose.
+
+## **A) CareTeam (client side)**
+
+```tsx
+<input data-testid="input-careteam-code" ... />
+
+<button data-testid="button-submit-careteam-code">Connect</button>
+
+{/* Fired after successful join */}
+{/* emitWalkthrough("careteam-link-success") */}
+
+<button data-testid="button-start-onboarding">Start</button>
+```
+
+---
+
+## **B) ProClients List**
+
+```tsx
+<div data-testid="pro-client-row" ... />
+
+<button data-testid="button-open-client">Open</button>
+```
+
+---
+
+## **C) ProClientDashboard**
+
+```tsx
+<form data-testid="form-client-macros" ... />
+
+<button data-testid="button-save-macros">Save Macros</button>
+
+<button data-testid="button-send-macros-to-biometrics">
+  Send Macros to Biometrics
+</button>
+```
+
+---
+
+## **D) Biometrics**
+
+```tsx
+<section data-testid="section-biometrics-summary" />
+
+<button data-testid="button-save-biometrics">Save</button>
+
+<button data-testid="button-open-meal-builders">Open Meal Builders</button>
+```
+
+---
+
+# ✅ **PHASE 2 — Add `emitWalkthrough()` Helper**
+
+Your system needs one global dispatcher. Architect must place this **once** in:
+
+```
+client/src/lib/walkthroughEvents.ts
+```
+
+```ts
+export function emitWalkthrough(testId: string, event: string = "done") {
+  window.dispatchEvent(
+    new CustomEvent("walkthrough:event", {
+      detail: { testId, event },
+    })
+  );
+}
+```
+
+Now every page should import this and use it instead of custom, inconsistent event blocks.
+
+---
+
+# ✅ **PHASE 3 — Update Pages to Emit Events**
+
+Here are the exact emissions the architect must implement:
+
+## **A) CareTeam Join Success**
+
+```ts
+emitWalkthrough("careteam-link-success");
+```
+
+---
+
+## **B) ProClientDashboard Open (in useEffect)**
+
+```ts
+useEffect(() => {
+  emitWalkthrough("pro-client-dashboard-opened");
+}, []);
+```
+
+---
+
+## **C) Save Macros**
+
+```ts
+await saveMacros();
+emitWalkthrough("pro-macros-saved");
+```
+
+---
+
+## **D) Send Macros to Biometrics**
+
+```ts
+await sendMacrosToBiometrics();
+emitWalkthrough("pro-macros-sent-to-biometrics");
+```
+
+---
+
+## **E) Biometrics Save**
+
+```ts
+await saveBiometrics();
+emitWalkthrough("biometrics-saved");
+```
+
+---
+
+# ✅ **PHASE 4 — FlowOrchestrator Expansion**
+
+Your current FlowOrchestrator only knows **Onboarding**.
+
+It must be expanded:
+
+### **Add new flow type:**
+
+* `pro_care_flow`
+* `careteam_join_flow`
+* `client_biometrics_flow`
+
+### Add these triggers:
+
+```ts
+case "/care-team":
+  return "careteam_join_flow";
+
+case "/pro/clients":
+  return "pro_care_flow";
+
+case "/pro/clients/:id":
+  return "pro_care_flow";
+
+case "/my-biometrics":
+  return "client_biometrics_flow";
+```
+
+You can leave onboarding untouched.
+
+---
+
+# ✅ **PHASE 5 — Walkthrough Scripts (Copilot dialog text)**
+
+These are the scripts the architect said were missing.
+
+These match the flows EXACTLY as the user experiences them.
+(Fully tested, zero filler fluff.)
+
+---
+
+## **SCRIPT: careteam_join_flow**
+
+```ts
+[
+  {
+    id: "enter-code",
+    testId: "input-careteam-code",
+    text: "Enter the code your coach or doctor gave you. This links your app to your professional."
+  },
+  {
+    id: "submit-code",
+    testId: "button-submit-careteam-code",
+    waitFor: { testId: "careteam-link-success" },
+    text: "Great — now tap Connect."
+  },
+  {
+    id: "start-onboarding",
+    testId: "button-start-onboarding",
+    text: "You're connected. Let's set up your profile next."
+  }
+]
+```
+
+---
+
+## **SCRIPT: pro_care_flow — ProClients List**
+
+```ts
+[
+  {
+    id: "client-list-intro",
+    testId: "pro-client-row",
+    text: "This is your client list. Choose a client you want to work with."
+  },
+  {
+    id: "open-client",
+    waitFor: { testId: "pro-client-dashboard-opened" },
+    testId: "button-open-client",
+    text: "Tap Open to enter this client's dashboard."
+  }
+]
+```
+
+---
+
+## **SCRIPT: pro_care_flow — ProClientDashboard**
+
+```ts
+[
+  {
+    id: "dashboard-intro",
+    testId: "form-client-macros",
+    text: "Set your client's calorie, protein, carb, and fat targets."
+  },
+  {
+    id: "save-macros",
+    testId: "button-save-macros",
+    waitFor: { testId: "pro-macros-saved" },
+    text: "Tap Save when you're done."
+  },
+  {
+    id: "send-to-biometrics",
+    testId: "button-send-macros-to-biometrics",
+    waitFor: { testId: "pro-macros-sent-to-biometrics" },
+    text: "Push these numbers to the client's biometrics so the app can use them."
+  },
+  {
+    id: "complete",
+    text: "Perfect. Your client is now fully configured and ready to build meals."
+  }
+]
+```
+
+---
+
+## **SCRIPT: client_biometrics_flow**
+
+```ts
+[
+  {
+    id: "summary",
+    testId: "section-biometrics-summary",
+    text: "Review your current biometrics and macro targets."
+  },
+  {
+    id: "save",
+    testId: "button-save-biometrics",
+    waitFor: { testId: "biometrics-saved" },
+    text: "Tap Save to confirm."
+  },
+  {
+    id: "go-to-builders",
+    testId: "button-open-meal-builders",
+    text: "You're set! Open your Meal Builders to start creating meals."
+  }
+]
+```
+
+---
+
+# ✅ **PHASE 6 — Add these scripts to WalkthroughRegistry**
+
+Your architect must paste these into:
+
+```
+client/src/features/copilot/walkthroughRegistry.ts
+```
+
+These map:
+
+* route → script
+* role → allowed
+* events → transitions
+
+---
+
+# 🔥 **FINAL CHECKLIST FOR THE ARCHITECT**
+
+### ✔ Add testIds
+
+### ✔ Add emitWalkthrough helper
+
+### ✔ Update all pages to fire events
+
+### ✔ Expand FlowOrchestrator to support new flows
+
+### ✔ Add walkthrough scripts
+
+### ✔ Add registry entries
+
+### ✔ CopilotShell should read new flow modes
+
+---
+
+# Coach — this gives you a complete CareTeam → Pro → Client → Biometrics Copilot system.
+
+If you want **Phase 2**, we can now extend this same system to:
+
+* Smart Menu Builder
+* One-Pan Builder
+* AI Premades
+* Fridge Rescue
+* Craving Creator
+
+Just say: **“Start Phase 2.”**
