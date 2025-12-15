@@ -266,9 +266,11 @@ export default function CareTeamPage() {
                 <div>
                   <Label className="text-white/80">Email</Label>
                   <Input
+                    type="email"
                     value={invEmail}
                     onChange={(e) => setInvEmail(e.target.value)}
                     placeholder="pro@domain.com"
+                    autoComplete="off"
                     className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
                     data-testid="input-invite-email"
                   />
@@ -306,7 +308,7 @@ export default function CareTeamPage() {
               <Button
                 disabled={loading}
                 onClick={inviteByEmail}
-                className="w-full bg-orange-600/20 hover:bg-orange-600/20 text-white"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
                 data-testid="button-send-invite"
               >
                 <UserPlus2 className="h-4 w-4 mr-2" />
