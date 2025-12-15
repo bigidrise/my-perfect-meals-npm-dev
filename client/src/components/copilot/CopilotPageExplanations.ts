@@ -369,6 +369,56 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "The Client Dashboard is where you set and manage everything for your client. Here you can set macro targets and send them directly to the client's biometrics, apply focus options like high protein, carb cycling, or anti inflammatory protocols, and define carb directives such as starchy and fibrous carb targets. You can save these parameters, add coach or physician notes, and then move into the appropriate meal builders to generate meals that follow the guardrails you've set.",
     autoClose: true,
   },
+
+  "/pro/clients/:id/diabetic-builder": {
+    pageId: "procare-diabetic-builder",
+    title: "ProCare Diabetic Meal Builder",
+    description:
+      "Build diabetic-friendly meals for your client using clinician-defined guardrails.",
+    spokenText:
+      "This diabetic meal builder is designed for creating meals for your client under ProCare. All meals generated here follow the guardrails you've already set in the client dashboard, including carb limits, fiber minimums, glycemic targets, and meal frequency. Use the AI Meal Creator to select ingredients with the meal picker, or use Create With Chef to describe meals and snacks for your client. You can build one or multiple days and generate meals that align with the client's diabetic plan.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/glp1-builder": {
+    pageId: "procare-glp1-builder",
+    title: "ProCare GLP-1 Meal Builder",
+    description:
+      "Create GLP-1–aligned meals for your client using appetite-aware guardrails.",
+    spokenText:
+      "The GLP-1 meal builder under ProCare is used to create meals for your client based on the GLP-1 guardrails you've set. Meals generated here follow portion, volume, protein, and digestion targets designed to support GLP-1 use. Use the AI Meal Creator to pick ingredients, or Create With Chef to describe meals and snacks for your client, then build meals that align with their current phase and goals.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/anti-inflammatory-builder": {
+    pageId: "procare-anti-inflammatory-builder",
+    title: "ProCare Anti-Inflammatory Meal Builder",
+    description:
+      "Build inflammation-conscious meals for your client using targeted guardrails.",
+    spokenText:
+      "This anti-inflammatory meal builder lets you create meals for your client using guardrails focused on inflammation-friendly foods. Use the AI Meal Creator to choose ingredients with the meal picker, or Create With Chef to describe meals and snacks for your client. All meals generated here follow the parameters you've set in the client dashboard to support recovery and overall wellness.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/performance-competition-builder": {
+    pageId: "procare-performance-competition-builder",
+    title: "ProCare Performance & Competition Meal Builder",
+    description:
+      "Create precision-based performance meals for your client using competition-level guardrails.",
+    spokenText:
+      "The performance and competition meal builder under ProCare is designed for advanced, goal-driven nutrition. Meals created here follow the exact macros, carb directives, and performance targets you've set for your client. Use the AI Meal Creator to dial in ingredients, or Create With Chef to describe meals and snacks, then generate meals that support training, recovery, and competition demands.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:id/general-nutrition-builder": {
+    pageId: "procare-general-nutrition-builder",
+    title: "ProCare General Nutrition Meal Builder",
+    description:
+      "Build balanced, everyday meals for your client using flexible nutrition guardrails.",
+    spokenText:
+      "The general nutrition meal builder under ProCare is used to create balanced meals for your client while staying within the targets you've set. Use the AI Meal Creator to select ingredients with the meal picker, or Create With Chef to describe meals and snacks for your client. This builder offers flexibility while still respecting the client's macros and nutrition goals.",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
