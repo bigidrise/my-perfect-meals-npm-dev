@@ -286,9 +286,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "diabetic-hub",
     title: "Diabetic Hub",
     description:
-    "Your control center for managing blood sugar with clinician-style guardrails and daily glucose tracking.",
+      "Your control center for managing blood sugar with clinician-style guardrails and daily glucose tracking.",
     spokenText:
-    "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. When you’re ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
+      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. When you’re ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
     autoClose: true,
   },
 
@@ -296,9 +296,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Diabetic Meal Builder",
     description:
-    "Build meals that support balanced blood sugar using diabetic-specific guardrails.",
+      "Build meals that support balanced blood sugar using diabetic-specific guardrails.",
     spokenText:
-    "The Diabetic Meal Builder uses the same meal-building tools with guardrails designed for blood sugar support. Use the AI Meal Creator to pick ingredients with the meal picker, or use Create With Chef to describe your meals and snacks. Build one or multiple days, adjust servings, and send meals to your macro table or shopping list while staying within diabetic-friendly targets.",
+      "The Diabetic Meal Builder uses the same meal-building tools with guardrails designed for blood sugar support. Use the AI Meal Creator to pick ingredients with the meal picker, or use Create With Chef to describe your meals and snacks. Build one or multiple days, adjust servings, and send meals to your macro table or shopping list while staying within diabetic-friendly targets.",
     autoClose: true,
   },
 
@@ -306,9 +306,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "glp1-hub",
     title: "Glp1 Hub",
     description:
-    "Your GLP-1 support hub for shot tracking, guardrails, and meal readiness.",
+      "Your GLP-1 support hub for shot tracking, guardrails, and meal readiness.",
     spokenText:
-    "The GLP-1 Hub is your support center for managing care alongside GLP-1 use. Here you can review how the app supports your care, track your GLP-1 shots by dosage and injection site, and set doctor-style guardrails using quick start presets like intro/ up-titration, maintenance, refeed/ strength focus. For custom goals you can adjust targets for meal volume, protein minimums, fat limits, fiber minimums, hydration goals, meals per day, digestion support, and limits on carbonation or alcohol, then save those guardrails. When everything is set, use the button at the bottom to move into the GLP-1 meal builder.",
+      "The GLP-1 Hub is your support center for managing care alongside GLP-1 use. Here you can review how the app supports your care, track your GLP-1 shots by dosage and injection site, and set doctor-style guardrails using quick start presets like intro/ up-titration, maintenance, refeed/ strength focus. For custom goals you can adjust targets for meal volume, protein minimums, fat limits, fiber minimums, hydration goals, meals per day, digestion support, and limits on carbonation or alcohol, then save those guardrails. When everything is set, use the button at the bottom to move into the GLP-1 meal builder.",
     autoClose: true,
   },
 
@@ -344,9 +344,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "care-team",
     title: "Care Team & Pro Care",
     description:
-      "Connect with your personal care network. Invite trainers, physicians, or coaches by email, assign their role, or join someone’s team using their access code. ",
+      "Connect with trainers, physicians, or coaches to build and manage your personal care team.",
     spokenText:
-      "Care Team and ProAccess. Here you can invite your trainer, physician, coach, patient or client by email and assign their role, or join someone’s team using their access code. Once the connection is made, you’ll both appear on each other’s Active Care Team, and you can manage your list of people who support your goals. Choose the option you need to get started. ",
+      "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone’s team using an access code. Once connected, you’ll appear on each other’s active care team and can manage your support network anytime. Choose the option you need to get started.",
     autoClose: true,
   },
 };
