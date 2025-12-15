@@ -342,23 +342,23 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/beach-body-meal-board": {
-    pageId: "beach-body-meal-board",
-    title: "Beach Body Meal Builder",
+  "/general-nutrition-builder": {
+    pageId: "general-nutrition-builder",
+    title: "General Nutrition Builder",
     description:
-    "Create structured meals designed for performance and body composition.",
+    "Create balanced meals for everyday healthy eating.",
     spokenText:
-    "The Beachbody Meal Builder uses the same meal-building flow with performance-focused guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
+    "The General Nutrition Builder uses the same meal-building flow with balanced nutrition guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
     autoClose: true,
   },
 
-  "/beach-body-meal-board": {
-    pageId: "beach-body-meal-board",
-    title: "Beach Body Meal Builder",
+  "/performance-competition-builder": {
+    pageId: "performance-competition-builder",
+    title: "Performance & Competition Builder",
     description:
-    "Create structured meals designed for performance and body composition.",
+    "Create meals optimized for athletic performance and competition prep.",
     spokenText:
-    "The Beachbody Meal Builder uses the same meal-building flow with performance-focused guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
+    "The Performance and Competition Builder uses the same meal-building flow with performance-focused guardrails for athletes. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
     autoClose: true,
   },
 
