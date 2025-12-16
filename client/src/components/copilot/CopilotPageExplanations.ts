@@ -123,7 +123,7 @@ export const PAGE_EXPLANATIONS: Record<string, metricPageExplanation> = {
     description:
       "Discover healthy meals near you. Enter what your craving and your zip code, and the app will return three nearby restaurants with two meal options for you to choose from.",
     spokenText:
-      "Find Meals Near Me. Tell me what your craving and your zip code, and I’ll show you three restaurants in that area with healthy meal options from each one.",
+      "Find Meals Near Me. Tell me what you’re craving and your zip code, and I’ll show you nearby restaurants with two healthy meal options from each, along with simple guidance on how to order off the menu.",
     autoClose: true,
   },
 
