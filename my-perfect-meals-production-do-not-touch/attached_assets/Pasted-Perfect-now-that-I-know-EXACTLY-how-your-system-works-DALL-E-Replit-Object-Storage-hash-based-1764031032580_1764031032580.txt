@@ -1,0 +1,236 @@
+Perfect — now that I know EXACTLY how your system works (DALL·E → Replit Object Storage → hash-based permanent caching → static fallback mapping), I can write you **the precise Architect-grade prompt** to flip Snacks into **STATIC-IMAGE mode** *without breaking the DALL·E system for everything else*.
+
+This prompt will tell the Architect:
+
+* what files to inspect
+* what to modify
+* what NOT to touch
+* how to cleanly bypass AI for snacks
+* how to use static templates
+* how to future-proof the folder structure
+* how to integrate it safely with the existing caching system
+
+---
+
+# ✅ HERE IS YOUR ARCHITECT PROMPT
+
+Just copy/paste this into Replit for the **Architect**, not the Agent.
+
+---
+
+# 🧠 **ARCHITECT PROMPT: Convert Snacks to Static Images (No DALL·E Calls)**
+
+**SYSTEM GOAL:**
+Snacks no longer use DALL·E 3. They should use static images ONLY.
+The rest of the app continues using the DALL·E + Object Storage pipeline.
+
+---
+
+# ✅ **PHASE 1 — SYSTEM ANALYSIS**
+
+**Inspect these files (read-only first):**
+
+### 1. server/services/mealImageGenerator.ts
+
+* Find STATIC_SNACK_MAPPINGS
+* Find where snacks currently fall through to AI generation
+* Identify the switch logic for STATIC_TEMPLATE → AI
+
+### 2. server/services/permanentImageStorage.ts
+
+(no changes required, but understand the integration)
+
+### 3. client/src/components/pickers/SnackPickerDrawer.tsx
+
+* Confirm SnackCard rendering
+* Confirm how the image URL is resolved
+
+### 4. client/src/components/MealCard.tsx
+
+* See if snacks use MealCard or a snack-specific card
+
+### 5. server/routes/snacks.ts (if present)
+
+* Confirm server logic (optional)
+
+Do **not** modify anything yet.
+Just validate the entry points.
+
+---
+
+# ✅ **PHASE 2 — IMPLEMENTATION PLAN**
+
+Apply these exact changes:
+
+---
+
+## **Step A — Force Snacks into STATIC mode**
+
+Inside **mealImageGenerator.ts**, update the logic:
+
+### BEFORE:
+
+```ts
+if (STATIC_SNACK_MAPPINGS[name]) {
+    return STATIC_SNACK_MAPPINGS[name];
+}
+```
+
+### AFTER (more strict):
+
+```ts
+// Snacks ALWAYS use static images
+if (mealType === 'snack') {
+    return STATIC_SNACK_MAPPINGS[name] ?? STATIC_SNACK_MAPPINGS['default-snack'];
+}
+```
+
+This guarantees NO snack ever hits DALL·E.
+
+Also add:
+
+```ts
+// Fallback image for unknown snacks
+'default-snack': '/images/templates/snack-generic.jpg'
+```
+
+---
+
+## **Step B — Add a new static image folder**
+
+Add these to `/public/images/snacks/`:
+
+```
+/public/images/snacks/apple-slices.jpg
+/public/images/snacks/almonds.jpg
+/public/images/snacks/greek-yogurt.jpg
+/public/images/snacks/protein-shake.jpg
+/public/images/snacks/rice-cakes.jpg
+/public/images/snacks/hummus-veggies.jpg
+/public/images/snacks/snack-generic.jpg
+```
+
+(Use any temp images; I will replace later.)
+
+---
+
+## **Step C — Map snack names to static images**
+
+Inside **mealImageGenerator.ts**, update STATIC_SNACK_MAPPINGS:
+
+```ts
+const STATIC_SNACK_MAPPINGS: Record<string, string> = {
+    'apple slices': '/images/snacks/apple-slices.jpg',
+    'almonds': '/images/snacks/almonds.jpg',
+    'greek yogurt': '/images/snacks/greek-yogurt.jpg',
+    'protein shake': '/images/snacks/protein-shake.jpg',
+    'rice cakes': '/images/snacks/rice-cakes.jpg',
+    'hummus and veggies': '/images/snacks/hummus-veggies.jpg',
+
+    // fallback
+    'default-snack': '/images/snacks/snack-generic.jpg',
+};
+```
+
+---
+
+## **Step D — BLOCK DALL·E FOR SNACKS**
+
+Find the DALL·E generation function:
+
+```ts
+if (!STATIC_SNACK_MAPPINGS[name]) {
+     // AI generation happens here
+}
+```
+
+Modify:
+
+### BEFORE:
+
+snacks fall through to DALL·E.
+
+### AFTER:
+
+they never do:
+
+```ts
+if (mealType === 'snack') {
+    return STATIC_SNACK_MAPPINGS[name] ?? STATIC_SNACK_MAPPINGS['default-snack'];
+}
+```
+
+---
+
+## **Step E — Make Snack Picker always use static images**
+
+Inside **SnackPickerDrawer.tsx**, ensure images resolve like:
+
+```ts
+const imageUrl = snack.imageUrl; // static string from static mappings
+```
+
+If it currently calls an API endpoint:
+
+```ts
+/get-image?name=snack
+```
+
+swap to:
+
+```ts
+snack.staticImagePath
+```
+
+---
+
+## **Step F — DO NOT TOUCH**
+
+Do **NOT** modify:
+
+* DALL·E generator
+* Object Storage uploader
+* Permanent hash caching
+* Meal Builder logic
+* Fridge Rescue
+* Restaurant Guide
+* Premades
+* AI Creator
+
+Only modify snack image resolution logic.
+
+---
+
+# 🧪 **PHASE 3 — VERIFICATION TESTS**
+
+### After implementation, verify:
+
+1. Snack cards load instantly
+2. No network calls to `/api/image` when opening snack drawer
+3. No logs show DALL·E usage for snacks
+4. Static images display correctly
+5. Premades still hit AI
+6. Meal Builder still uses cached DALL·E images
+7. Fridge Rescue unaffected
+
+---
+
+# 🚀 FINAL STEP
+
+After architect finishes changes:
+
+Make sure to run:
+
+```
+./push.sh "Convert snacks to static images (no DALL·E usage)"
+```
+
+---
+
+# 🎉 READY
+
+Just say:
+
+**“Run this for the architect.”**
+
+And I’ll finalize formatting for immediate handoff.

@@ -1,0 +1,90 @@
+
+
+To verify files haven't changed, run:
+~/workspace$ ./push.sh "Remove redundant header cards from Restaurant Guide and Find Meals pages"eader cards f
+🔒 ENFORCED PRE-PUBLISH VALIDATIONs pages"
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+
+✅ All critical files unchanged!
+✅ No unexpected changes detected
+
+2️⃣ Verifying server is running...
+✅ Server is running on port 5000
+
+====================================
+✅ ALL VALIDATION CHECKS PASSED!
+====================================
+
+Publishing: Remove redundant header cards from Restaurant Guide and Find Meals pages
+
+[main 1f6f1a1] Remove redundant header cards from Restaurant Guide and Find Meals pages
+ 1 file changed, 5 deletions(-)
+✅ Changes committed
+
+Pushing to GitHub...
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (8/8), done.
+Writing objects: 100% (8/8), 1.01 KiB | 1.01 MiB/s, done.
+Total 8 (delta 6), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (6/6), completed with 6 local objects.
+To https://github.com/bigidrise/my-perfect-meals-clean-ai
+   e1e707b..1f6f1a1  main -> main
+branch 'main' set up to track 'origin/main'.
+✅ SUCCESSFULLY PUBLISHED!
+
+📋 What was published:
+commit 1f6f1a1b5c6ea22979c375c06296247880f6afee (HEAD -> main, origin/main, origin/HEAD)
+Author: Idrise Ward-EL <replit-override@example.com>
+Date:   Mon Nov 24 03:56:51 2025 +0000
+
+    Remove redundant header cards from Restaurant Guide and Find Meals pages
+
+ .../physician/DiabeticHub.tsx     | 5 -----
+ 1 file changed, 5 deletions(-)
+
+🔒 Freezing current state...
+🔒 Creating checksums of critical files...
+✅ Checksums saved to .critical-files-checksums
+
+To verify files haven't changed, run:
+  ./scripts/verify-critical-files.sh
+./push.sh "Implement three-layer lockdown protocol for meal pickers with automated SHA256 verification"verific
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+⚠️  CHANGED: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+
+⚠️  WARNING: Critical files have been modified!
+Review changes with: git diff
+
+❌ BLOCKED: Critical files have changed unexpectedly!
+
+Run this to see what changed:
+  git diff
+
+If changes are intentional, update checksums:
+  ./scripts/freeze-critical-files.sh
+
+~/workspace$ 

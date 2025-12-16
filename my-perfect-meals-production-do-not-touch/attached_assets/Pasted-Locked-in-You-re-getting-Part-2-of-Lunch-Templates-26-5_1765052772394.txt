@@ -1,0 +1,469 @@
+Locked in.
+You’re getting Part 2 of Lunch Templates (26–50) — same precision, same structure, same professionalism.
+This continues the catalog cleanly, so we end up with a perfect 75-meal lunch database.
+
+⸻
+
+📁 mealTemplates.catalog.ts
+
+LUNCH TEMPLATES (26–50)
+
+Part 2 of 3
+
+// ======================================================================
+// MEAL TEMPLATES CATALOG (LUNCH) — PART 2 (26–50)
+// ======================================================================
+
+export const LUNCH_TEMPLATES_PART2: MealTemplate[] = [
+
+  // ----------------------------------------------------------
+  // 26–30: Protein + Pasta / Noodles (simple, clean versions)
+  // ----------------------------------------------------------
+
+  {
+    id: "ln-pasta-001",
+    name: "Grilled Chicken + Whole Wheat Pasta",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 150 },
+      { ingredientId: "whole_wheat_pasta", grams: 180 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "grilled",
+      whole_wheat_pasta: "boiled"
+    },
+    imageKey: "img_chicken_wwpasta",
+    tags: ["balanced"]
+  },
+
+  {
+    id: "ln-pasta-002",
+    name: "Lean Beef + White Pasta",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 150 },
+      { ingredientId: "white_pasta", grams: 180 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "pan-seared",
+      white_pasta: "boiled"
+    },
+    imageKey: "img_beef_whitepasta",
+    tags: ["bulking"]
+  },
+
+  {
+    id: "ln-pasta-003",
+    name: "Shrimp + Rice Noodles",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 150 },
+      { ingredientId: "rice_noodles", grams: 180 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared",
+      rice_noodles: "boiled"
+    },
+    imageKey: "img_shrimp_noodles",
+    tags: ["light"]
+  },
+
+  {
+    id: "ln-pasta-004",
+    name: "Turkey Breast + Sourdough",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 150 },
+      { ingredientId: "sourdough_bread", grams: 70 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared"
+    },
+    imageKey: "img_turkey_sourdough",
+    tags: ["simple"]
+  },
+
+  {
+    id: "ln-pasta-005",
+    name: "Salmon + Quinoa Pasta",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 150 },
+      { ingredientId: "quinoa_pasta", grams: 180 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked",
+      quinoa_pasta: "boiled"
+    },
+    imageKey: "img_salmon_quinoapasta",
+    tags: ["high-protein"]
+  },
+
+  // ----------------------------------------------------------
+  // 31–35: Grain-Free / Low-Carb Plates
+  // ----------------------------------------------------------
+
+  {
+    id: "ln-lc-001",
+    name: "Chicken + Cauliflower Rice",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 150 },
+      { ingredientId: "cauliflower", grams: 150 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "grilled",
+      cauliflower: "fried"
+    },
+    imageKey: "img_chicken_cauliflowerrice",
+    tags: ["keto-friendly"]
+  },
+
+  {
+    id: "ln-lc-002",
+    name: "Beef + Zucchini Noodles",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 150 },
+      { ingredientId: "zucchini", grams: 150 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "grilled",
+      zucchini: "grilled"
+    },
+    imageKey: "img_beef_zoodles",
+    tags: ["low-carb"]
+  },
+
+  {
+    id: "ln-lc-003",
+    name: "Shrimp + Spinach Plate",
+    mealType: "lunch",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 150 },
+      { ingredientId: "spinach", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared",
+      spinach: "steamed"
+    },
+    imageKey: "img_shrimp_spinach",
+    tags: ["light", "cutting"]
+  },
+
+  {
+    id: "ln-lc-004",
+    name: "Salmon + Grilled Vegetables",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 150 },
+      { ingredientId: "zucchini", grams: 100 },
+      { ingredientId: "bell_peppers", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked",
+      zucchini: "grilled",
+      bell_peppers: "grilled"
+    },
+    imageKey: "img_salmon_grilledveg",
+    tags: ["clean", "anti-inflammatory"]
+  },
+
+  {
+    id: "ln-lc-005",
+    name: "Turkey Breast + Shredded Cabbage",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 150 },
+      { ingredientId: "cabbage", grams: 140 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared",
+      cabbage: "stir-fried"
+    },
+    imageKey: "img_turkey_cabbage",
+    tags: ["gut-health"]
+  },
+
+  // ----------------------------------------------------------
+  // 36–40: Bowls (More global flavors)
+  // ----------------------------------------------------------
+
+  {
+    id: "ln-bowl-006",
+    name: "Mediterranean Chicken Bowl",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 150 },
+      { ingredientId: "quinoa", grams: 160 },
+      { ingredientId: "cucumber", grams: 60 },
+      { ingredientId: "tomatoes", grams: 60 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "grilled",
+      quinoa: "boiled"
+    },
+    imageKey: "img_mediterranean_chicken",
+    tags: ["mediterranean"]
+  },
+
+  {
+    id: "ln-bowl-007",
+    name: "Asian Shrimp Bowl",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 150 },
+      { ingredientId: "rice", grams: 170 },
+      { ingredientId: "bok_choy", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared",
+      rice: "boiled",
+      bok_choy: "steamed"
+    },
+    imageKey: "img_asian_shrimpbowl",
+    tags: ["fresh"]
+  },
+
+  {
+    id: "ln-bowl-008",
+    name: "Beef Burrito Bowl",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 150 },
+      { ingredientId: "brown_rice", grams: 160 },
+      { ingredientId: "lettuce", grams: 60 },
+      { ingredientId: "tomatoes", grams: 50 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "pan-seared",
+      brown_rice: "boiled"
+    },
+    imageKey: "img_beef_burritobowl",
+    tags: ["high-energy"]
+  },
+
+  {
+    id: "ln-bowl-009",
+    name: "Turkey Power Bowl",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 150 },
+      { ingredientId: "white_rice", grams: 160 },
+      { ingredientId: "spinach", grams: 60 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared",
+      white_rice: "boiled"
+    },
+    imageKey: "img_turkey_powerbowl",
+    tags: ["lean"]
+  },
+
+  {
+    id: "ln-bowl-010",
+    name: "Salmon Greens Bowl",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 150 },
+      { ingredientId: "mixed_greens", grams: 80 },
+      { ingredientId: "zucchini", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked",
+      zucchini: "grilled"
+    },
+    imageKey: "img_salmon_greensbowl",
+    tags: ["anti-inflammatory"]
+  },
+
+  // ----------------------------------------------------------
+  // 41–45: Sandwiches / Wraps (clean bodybuilding versions)
+  // ----------------------------------------------------------
+
+  {
+    id: "ln-wr-001",
+    name: "Chicken Breast Wrap",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 130 },
+      { ingredientId: "whole_wheat_tortilla", grams: 60 },
+      { ingredientId: "lettuce", grams: 40 }
+    ],
+    defaultCookingMethods: { chicken_breast: "grilled" },
+    imageKey: "img_chicken_wrap",
+    tags: ["on-the-go"]
+  },
+
+  {
+    id: "ln-wr-002",
+    name: "Turkey Breast Wrap",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 130 },
+      { ingredientId: "whole_wheat_tortilla", grams: 60 },
+      { ingredientId: "spinach", grams: 40 }
+    ],
+    defaultCookingMethods: { turkey_breast: "pan-seared" },
+    imageKey: "img_turkey_wrap",
+    tags: ["lean"]
+  },
+
+  {
+    id: "ln-wr-003",
+    name: "Shrimp Wrap",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 140 },
+      { ingredientId: "whole_wheat_tortilla", grams: 60 },
+      { ingredientId: "lettuce", grams: 40 }
+    ],
+    defaultCookingMethods: { shrimp: "pan-seared" },
+    imageKey: "img_shrimp_wrap",
+    tags: ["light"]
+  },
+
+  {
+    id: "ln-wr-004",
+    name: "Beef Sourdough Sandwich",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 130 },
+      { ingredientId: "sourdough_bread", grams: 70 }
+    ],
+    defaultCookingMethods: { lean_beef: "grilled" },
+    imageKey: "img_beef_sandwich",
+    tags: ["bulking"]
+  },
+
+  {
+    id: "ln-wr-005",
+    name: "Salmon Greens Sandwich",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 130 },
+      { ingredientId: "sourdough_bread", grams: 70 },
+      { ingredientId: "lettuce", grams: 40 }
+    ],
+    defaultCookingMethods: { salmon: "baked" },
+    imageKey: "img_salmon_sandwich",
+    tags: ["fresh"]
+  },
+
+  // ----------------------------------------------------------
+  // 46–50: High-Volume “Cutting” Plates
+  // ----------------------------------------------------------
+
+  {
+    id: "ln-cut-001",
+    name: "Chicken + Broccoli + Zucchini",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 150 },
+      { ingredientId: "broccoli", grams: 110 },
+      { ingredientId: "zucchini", grams: 90 }
+    ],
+    defaultCookingMethods: { chicken_breast: "grilled" },
+    imageKey: "img_chicken_broc_zuc",
+    tags: ["cutting", "volume"]
+  },
+
+  {
+    id: "ln-cut-002",
+    name: "Turkey + Spinach + Mushrooms",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 150 },
+      { ingredientId: "spinach", grams: 90 },
+      { ingredientId: "mushrooms", grams: 80 }
+    ],
+    defaultCookingMethods: { turkey_breast: "pan-seared" },
+    imageKey: "img_turkey_spin_mush",
+    tags: ["lean", "volume"]
+  },
+
+  {
+    id: "ln-cut-003",
+    name: "Shrimp + Asparagus + Greens",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 140 },
+      { ingredientId: "asparagus", grams: 110 },
+      { ingredientId: "mixed_greens", grams: 60 }
+    ],
+    defaultCookingMethods: { shrimp: "pan-seared" },
+    imageKey: "img_shrimp_asparagus_greens",
+    tags: ["light"]
+  },
+
+  {
+    id: "ln-cut-004",
+    name: "Salmon + Broccoli + Spinach",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 150 },
+      { ingredientId: "broccoli", grams: 100 },
+      { ingredientId: "spinach", grams: 70 }
+    ],
+    defaultCookingMethods: { salmon: "baked" },
+    imageKey: "img_salmon_broc_spin",
+    tags: ["anti-inflammatory"]
+  },
+
+  {
+    id: "ln-cut-005",
+    name: "Beef + Green Beans + Mushrooms",
+    mealType: "lunch",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 150 },
+      { ingredientId: "green_beans", grams: 110 },
+      { ingredientId: "mushrooms", grams: 70 }
+    ],
+    defaultCookingMethods: { lean_beef: "grilled" },
+    imageKey: "img_beef_greens_mushrooms",
+    tags: ["muscle-cut"]
+  }
+
+];
+
+
+⸻
+
+🔥 LUNCH TEMPLATES (26–50) — COMPLETE
+
+Clean. Deterministic. No surprises.
+Ready for the hybrid engine.
+
+Next step?
+
+Say Next and I’ll deliver Lunch Templates (51–75) — the final block.
+
+OR
+If you want to switch gears and jump to Dinner afterward, just say the word.
+
+Your move.

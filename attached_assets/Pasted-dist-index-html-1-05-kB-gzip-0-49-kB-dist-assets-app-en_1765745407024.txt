@@ -1,0 +1,206 @@
+dist/index.html                                 1.05 kB │ gzip:   0.49 kB
+dist/assets/app-entry-C1bshRI8.css            219.05 kB │ gzip:  31.91 kB
+dist/assets/web-CstBa5tx.js                     0.12 kB │ gzip:   0.13 kB
+dist/assets/replacementContext-BQFSAKWh.js      0.19 kB │ gzip:   0.16 kB
+dist/assets/useWeeklyPlan-C3y9hPGd.js           0.52 kB │ gzip:   0.35 kB
+dist/assets/client-BXGftazS.js                  0.57 kB │ gzip:   0.38 kB
+dist/assets/index-CqGLbM2q.js                  18.79 kB │ gzip:   7.24 kB
+dist/assets/index-Bn6ZG6kJ.js                 133.96 kB │ gzip:  43.15 kB
+dist/assets/app-entry-Cs7BxO04.js           2,497.48 kB │ gzip: 614.34 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.19s
+
+> rest-express@1.0.0 build:server
+> esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap
+
+
+  dist/prod.js      1.2mb ⚠️
+  dist/prod.js.map  2.1mb
+
+⚡ Done in 60ms
+✔ Copying web assets from dist to ios/App/App/public in 311.46ms
+✔ Creating capacitor.config.json in ios/App/App in 657.21μs
+✔ copy ios in 361.37ms
+✔ Updating iOS plugins in 9.76ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+[error] Analyzing dependencies
+        [!] CocoaPods could not find compatible versions for pod
+        "CapacitorSplashScreen":
+        In Podfile:
+        CapacitorSplashScreen (from
+        `../../node_modules/@capacitor/splash-screen`)
+        
+        Specs satisfying the `CapacitorSplashScreen (from
+        `../../node_modules/@capacitor/splash-screen`)` dependency were found,
+        but they required a higher minimum deployment target.
+        
+bigidrise@Idrises-iMac my-perfect-meals-production-do-not-touch % cd ios/App
+
+# Update the Podfile minimum iOS version
+sed -i '' 's/platform :ios.*/platform :ios, '\''14.0'\''/' Podfile
+
+# Clean and reinstall pods
+rm -rf Pods Podfile.lock
+pod install
+
+cd ../..
+npx cap sync ios
+zsh: command not found: #
+zsh: command not found: #
+Analyzing dependencies
+[!] CocoaPods could not find compatible versions for pod "CapacitorSplashScreen":
+  In Podfile:
+    CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)
+
+Specs satisfying the `CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)` dependency were found, but they required a higher minimum deployment target.
+✔ Copying web assets from dist to ios/App/App/public in 609.87ms
+✔ Creating capacitor.config.json in ios/App/App in 741.88μs
+✔ copy ios in 659.58ms
+✔ Updating iOS plugins in 9.16ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+[error] Analyzing dependencies
+        [!] CocoaPods could not find compatible versions for pod
+        "CapacitorSplashScreen":
+        In Podfile:
+        CapacitorSplashScreen (from
+        `../../node_modules/@capacitor/splash-screen`)
+        
+        Specs satisfying the `CapacitorSplashScreen (from
+        `../../node_modules/@capacitor/splash-screen`)` dependency were found,
+        but they required a higher minimum deployment target.
+        
+bigidrise@Idrises-iMac my-perfect-meals-production-do-not-touch % cd ~/Documents/my-perfect-meals-production-do-not-touch/ios/App
+bigidrise@Idrises-iMac App % cat Podfile
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+end
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here
+end
+
+post_install do |installer|
+  assertDeploymentTarget(installer)
+end
+bigidrise@Idrises-iMac App % sed -i '' "s/platform :ios, '15.0'/platform :ios, '16.0'/" Podfile
+bigidrise@Idrises-iMac App % rm -rf Pods Podfile.lock
+bigidrise@Idrises-iMac App % pod install
+Analyzing dependencies
+[!] CocoaPods could not find compatible versions for pod "CapacitorSplashScreen":
+  In Podfile:
+    CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)
+
+Specs satisfying the `CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)` dependency were found, but they required a higher minimum deployment target.
+bigidrise@Idrises-iMac App % cd ~/Documents/my-perfect-meals-production-do-not-touch && npx cap sync ios
+✔ Copying web assets from dist to ios/App/App/public in 400.89ms
+✔ Creating capacitor.config.json in ios/App/App in 895.17μs
+✔ copy ios in 449.59ms
+✔ Updating iOS plugins in 8.73ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+^C
+bigidrise@Idrises-iMac my-perfect-meals-production-do-not-touch % cd ~/Documents/my-perfect-meals-production-do-not-touch/ios/App
+bigidrise@Idrises-iMac App % sed -i '' "s/platform :ios, '14.0'/platform :ios, '16.0'/" Podfile
+bigidrise@Idrises-iMac App % cat Podfile | grep platform
+platform :ios, '16.0'
+bigidrise@Idrises-iMac App % rm -rf Pods Podfile.lock
+bigidrise@Idrises-iMac App % pod install
+Analyzing dependencies
+Downloading dependencies
+Installing Capacitor (7.4.4)
+Installing CapacitorCordova (7.4.4)
+Installing CapacitorSplashScreen (8.0.0)
+Generating Pods project
+Integrating client project
+Pod installation complete! There are 3 dependencies from the Podfile and 3 total pods installed.
+bigidrise@Idrises-iMac App % cd ~/Documents/my-perfect-meals-production-do-not-touch && npx cap sync ios
+✔ Copying web assets from dist to ios/App/App/public in 657.47ms
+✔ Creating capacitor.config.json in ios/App/App in 788.42μs
+✔ copy ios in 707.83ms
+✔ Updating iOS plugins in 9.39ms
+✔ Updating iOS native dependencies with pod install in 10.43s
+[info] Found 1 Capacitor plugin for ios:
+       @capacitor/splash-screen@8.0.0
+✔ update ios in 10.55s
+[info] Sync finished in 11.636s
+bigidrise@Idrises-iMac my-perfect-meals-production-do-not-touch % cd ~/Documents/my-perfect-meals-production-do-not-touch
+rm -rf client/dist
+npm run build
+npx cap sync ios
+
+> rest-express@1.0.0 prebuild
+> npm run generate:version
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.14.1f9edaa
+   Path: /Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/client/public/version.json
+   Built at: 2025-12-14T20:46:24.501Z
+
+> rest-express@1.0.0 build
+> npm run generate:version && npm run build:client && npm run build:server
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.14.1f9edaa
+   Path: /Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/client/public/version.json
+   Built at: 2025-12-14T20:46:24.885Z
+
+> rest-express@1.0.0 build:client
+> cd client && vite build
+
+vite v5.4.21 building for production...
+transforming (109) ../node_modules/@tanstack/query-core/build/modern/subscr^R
+✓ 3303 modules transformed.
+x Build failed in 2m 25s
+error during build:
+src/pages/physician/DiabeticHub.tsx (28:9): "GLUCOSE_THRESHOLDS" is not exported by "src/content/diabetesEducation.ts", imported by "src/pages/physician/DiabeticHub.tsx".
+file: /Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/client/src/pages/physician/DiabeticHub.tsx:28:9
+
+26: } from "@/hooks/useDiabetes";
+27: import { useToast } from "@/hooks/use-toast";
+28: import { GLUCOSE_THRESHOLDS } from "@/content/diabetesEducation";
+             ^
+29: import { DIABETIC_PRESETS } from "@/data/diabeticPresets";
+30: import type { GlucoseContext } from "@/hooks/useDiabetes";
+
+    at getRollupError (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at Module.error (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:16956:16)
+    at Module.traceVariable (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:17412:29)
+    at ModuleScope.findVariable (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:15076:39)
+    at FunctionScope.findVariable (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:5649:38)
+    at FunctionBodyScope.findVariable (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:5649:38)
+    at MemberExpression.bind (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:7363:49)
+    at LogicalExpression.bind (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:2813:23)
+    at VariableDeclarator.bind (file:///Users/bigidrise/Documents/my-perfect-meals-production-do-not-touch/node_modules/rollup/dist/es/shared/node-entry.js:2813:23)
+[error] Could not find the web assets directory: ./client/dist.
+        Please create it and make sure it has an index.html file. You can change
+        the path of this directory in capacitor.config.ts (webDir option). You
+        may need to compile the web assets for your app (typically npm run
+        build). More info:
+        https://capacitorjs.com/docs/basics/workflow#sync-your-project
+bigidrise@Idrises-iMac my-perfect-meals-production-do-not-touch %               

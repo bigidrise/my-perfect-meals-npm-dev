@@ -1,0 +1,315 @@
+iPremadesLunch
+
+"wraps-sandwiches"
+
+client/src/data/aiPremadeLunchCategory3.ts
+
+  export const AI_PREMADE_LUNCH_CATEGORY3 = [
+  {
+    id: "l3-01",
+    name: "Baked Cod Protein Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Cod", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-02",
+    name: "Baked Turkey Breast Strips",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-03",
+    name: "BBQ Chicken Protein Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-04",
+    name: "Blackened Salmon Filet",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Salmon", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-05",
+    name: "Chicken Breast Medallions",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-06",
+    name: "Chicken Cutlet Protein Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-07",
+    name: "Egg White Protein Scramble",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" }
+    ]
+  },
+  {
+    id: "l3-08",
+    name: "Egg White Patty Stack",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" }
+    ]
+  },
+  {
+    id: "l3-09",
+    name: "Grilled Beef Tender Strips",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Beef (lean)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-10",
+    name: "Grilled Chicken Breast Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-11",
+    name: "Grilled Salmon Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Salmon", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-12",
+    name: "Grilled Shrimp Skewers",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Shrimp", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-13",
+    name: "Ground Beef Crumble Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Beef (96% lean)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-14",
+    name: "Ground Chicken Protein Crumbles",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Chicken (lean)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-15",
+    name: "Ground Turkey Crumble Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-16",
+    name: "Lemon Pepper Chicken Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-17",
+    name: "Mediterranean Salmon Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Salmon", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-18",
+    name: "Pan-Seared Halibut Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Halibut", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-19",
+    name: "Pan-Seared Steak Bites",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Steak (sirloin)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-20",
+    name: "Plain Chicken Breast Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-21",
+    name: "Plain Egg White Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Egg Whites", quantity: 8, unit: "large" }
+    ]
+  },
+  {
+    id: "l3-22",
+    name: "Roasted Chicken Breast Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-23",
+    name: "Roasted Turkey Breast Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-24",
+    name: "Simple Grilled Steak Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Steak (sirloin)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-25",
+    name: "Simple Shrimp Protein Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Shrimp", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-26",
+    name: "Tilapia Protein Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Tilapia", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-27",
+    name: "Turkey Burger Patty Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "Ground Turkey (99% lean)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-28",
+    name: "Turkey Cutlet Protein Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Turkey Breast", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-29",
+    name: "White Fish Protein Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "pan-seared",
+    ingredients: [
+      { item: "White Fish (cod/tilapia)", quantity: 6, unit: "oz" }
+    ]
+  },
+  {
+    id: "l3-30",
+    name: "Zesty Chicken Breast Plate",
+    category: "high-protein-plates",
+    mealType: "lunch",
+    defaultCookingMethod: "grilled",
+    ingredients: [
+      { item: "Chicken Breast", quantity: 6, unit: "oz" }
+    ]
+  }
+];
+
+
+// Helper: filter by category
+export function getLunchMealsByCategory(
+  category: LunchCategory
+): AiPremadeMeal[] {
+  return AI_PREMADE_LUNCH_MEALS.filter((meal) => meal.category === category);

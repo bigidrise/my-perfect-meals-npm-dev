@@ -7,40 +7,16 @@ import { pickImageForMeal } from "./images";
 import { OnboardingProfile, MealRequest, MealResult } from "../types";
 import { storage } from "../storage";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
-export async function generateMeal(req: MealRequest): Promise<MealResult> {
-  console.log(`🎯 Generating meal using AI with user onboarding data for user ${req.userId}`);
-  
-  // Get user's onboarding data from storage
-  const user = await storage.getUser(req.userId);
-  if (!user) {
-    throw new Error(`User ${req.userId} not found`);
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
-  
-  // Build comprehensive onboarding profile from user data
-  const onboarding: OnboardingProfile = {
-    dietType: user.dietType || user.fitnessGoal || undefined, // Use actual dietType field from user profile
-    allergies: user.allergies || [],
-    dislikes: user.dislikedFoods || [],
-    healthConditions: user.healthConditions || [],
-    dietaryRestrictions: user.dietaryRestrictions || [],
-    activityLevel: user.activityLevel || undefined,
-    fitnessGoal: user.fitnessGoal || undefined,
-    dailyCalorieTarget: user.dailyCalorieTarget || undefined,
-    weight: user.weight || undefined,
-    height: user.height || undefined,
-    age: user.age || undefined
-  };
-  
-  // Handle diet type preference hierarchy: medical override > temporary preference > onboarding default
-  const baseDietType = onboarding.dietType || 'Balanced';
-  const effectiveDietType = req.tempMedicalOverride || req.tempDietPreference || baseDietType;
-  
-  console.log(`📋 User profile loaded: diet=${baseDietType} (effective: ${effectiveDietType}), allergies=${onboarding.allergies?.length || 0}, restrictions=${onboarding.dietaryRestrictions?.length || 0}`);
-  
-  // Generate meal using AI with user's profile
-  const meal = await gptFallback({ ...req, onboarding });
+  return _openai;
+}
   
   // Fix units
   meal.ingredients = meal.ingredients.map(normalizeUnits);
@@ -104,7 +80,7 @@ Return ONLY valid JSON - no explanations or extra text.`;
 
   console.log(`🤖 Generating AI meal with GPT-4o for ${mealType || 'meal'}${cravingText}`);
   
-  const resp = await openai.chat.completions.create({
+  const resp = await getOpenAI().chat.completions.create({
     model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     temperature: 0.7,
     messages: [
