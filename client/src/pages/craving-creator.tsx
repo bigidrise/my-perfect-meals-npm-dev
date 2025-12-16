@@ -32,6 +32,9 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Brain, Target, Sparkles, Home, Users, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import {
   generateMedicalBadges,
@@ -134,10 +137,17 @@ function getMealNutrition(meal: any) {
   };
 }
 
+const CRAVING_TOUR_STEPS: TourStep[] = [
+  { title: "Describe Your Craving", description: "Tell us what you're in the mood for — sweet, crunchy, creamy, tangy, or any flavor you want." },
+  { title: "Select Servings", description: "Choose how many servings you need for your personalized meal." },
+  { title: "Create & Enjoy", description: "Press Create and get a recipe that fits your taste and lifestyle. You never have to ignore cravings again!" },
+];
+
 export default function CravingCreator() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { startWalkthrough } = useCopilot();
+  const quickTour = useQuickTour("craving-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
   const [cravingInput, setCravingInput] = useState("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
@@ -467,6 +477,9 @@ export default function CravingCreator() {
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white">Craving Creator</h1>
+
+            <div className="flex-grow" />
+            <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
 
@@ -1023,6 +1036,13 @@ export default function CravingCreator() {
             hideCopyButton={true}
           />
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Craving Creator"
+          steps={CRAVING_TOUR_STEPS}
+        />
       </motion.div>
     </PhaseGate>
   );

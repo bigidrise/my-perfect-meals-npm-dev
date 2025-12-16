@@ -21,6 +21,9 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 
 const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -72,9 +75,17 @@ const DIETARY_OPTIONS = [
   { value: "low-calorie", label: "Low calorie" },
 ];
 
+const DESSERT_TOUR_STEPS: TourStep[] = [
+  { title: "Choose Dessert Type", description: "Pick what kind of dessert you want — cake, pie, cookies, smoothies, frozen treats, or let us surprise you." },
+  { title: "Select Flavor & Servings", description: "Choose your favorite flavors or textures, and set how many servings you need." },
+  { title: "Add Dietary Needs", description: "Add any dietary requirements like low sugar, gluten-free, or high protein if you have them." },
+  { title: "Create & Enjoy", description: "Tap create and enjoy a dessert that fits exactly what you were craving." },
+];
+
 export default function DessertCreator() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const quickTour = useQuickTour("craving-desserts");
 
   const [dessertCategory, setDessertCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
@@ -218,6 +229,9 @@ export default function DessertCreator() {
             </button>
 
             <h1 className="text-lg font-bold text-white">Dessert Creator</h1>
+
+            <div className="flex-grow" />
+            <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
 
@@ -513,6 +527,13 @@ export default function DessertCreator() {
             </div>
           )}
         </div>
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Dessert Creator"
+          steps={DESSERT_TOUR_STEPS}
+        />
       </motion.div>
     </PhaseGate>
   );
