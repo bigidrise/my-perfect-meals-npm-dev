@@ -230,7 +230,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your central hub for everyday food, lifestyle, and real-life eating decisions.",
     spokenText:
-      "Welcome to the Lifestyle Hub, where everything comes together for real life. From here you can build healthier cravings, make meals from what’s in your fridge, find smarter options when eating out, choose meals for kids or toddlers, and explore better drink choices in the Spirits and Lifestyle Hub. Pick what you need and I’ll guide you through it.",
+    "Welcome to the Lifestyle Hub, where everything comes together for real life. From here you can enjoy your cravings in a healthier way, turn what’s in your fridge into meals, find smarter options when eating out, choose meals for kids or toddlers, and explore drink choices in the Spirits and Lifestyle Hub. This space is here to help you enjoy food, social time, and nights out without stress, guilt, or overthinking — so explore what you need and enjoy yourself.",
     autoClose: true,
   },
 
