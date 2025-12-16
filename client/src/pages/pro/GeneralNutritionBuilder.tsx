@@ -1241,7 +1241,7 @@ export default function WeeklyMealBoard() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
+                        className="text-white/80 hover:bg-black/50 border border-orange-400/40 text-xs font-medium flex items-center gap-1 flash-border"
                         onClick={() => {
                           setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
                           setCreateWithChefOpen(true);
