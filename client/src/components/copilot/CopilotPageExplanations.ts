@@ -6,14 +6,14 @@ export interface PageExplanation {
   autoClose: boolean;
 }
 
-export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
+export const PAGE_EXPLANATIONS: Record<string, metricPageExplanation> = {
   "/my-biometrics": {
     pageId: "my-biometrics",
     title: "My Biometrics",
     description:
       "Use My Biometrics to set your daily macros, log meals and photos, track calories and body weight over time, and monitor your daily water intake.",
     spokenText:
-      "This is your Biometrics page. When you send your macros here from the macro calculator, they become your total daily targets. Everything you log on this page is tracked against those numbers for the day. You can add meals or macros manually, or bring them in from meal cards or photo logs. Once they appear, just tap add to include them in today’s totals. You can also delete or reset entries anytime. Your calories are tracked for today, the past seven days, and the past 30 days, so you can see trends over time. You can also log your body weight and view progress across one month, three months, six months, or up to a full year. At the bottom of the page, you’ll find your water log, where you can track your daily hydration throughout the day.",
+      "This is your Biometrics page. When you send your macros here from the macro calculator, they become your total daily targets. Everything you log on this page is tracked against those numbers for the day. You can add meals or macros manually, or bring them in from meal cards or photo logs. Once they appear, just tap add to include them in today’s totals. You can also delete or reset entries anytime. We track your calories for today, the past seven days, and up to thirty days, so you can see how your intake changes over time and spot trends easily. You can also log your body weight and view progress across one month, three months, six months, or up to a full year. At the bottom of the page, you’ll find your water log, where you can track your daily hydration throughout the day.",
     autoClose: true,
   },
 
@@ -230,7 +230,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your central hub for everyday food, lifestyle, and real-life eating decisions.",
     spokenText:
-      "Welcome to the Lifestyle Hub, where everything comes together for real life. From here you can build healthier cravings, make meals from what’s in your fridge, find smarter options when eating out, choose meals for kids or toddlers, and explore better drink choices in the Spirits and Lifestyle Hub. Pick what you need and I’ll guide you through it.",
+      "Welcome to the Lifestyle Hub, where everything comes together for real life. From here you can enjoy your cravings in a healthy way, make meals from what’s in your fridge, find smarter options when eating out, choose meals for kids or toddlers, and explore better drink choices in the Spirits and Lifestyle Hub. Pick what you need and I’ll guide you through it.",
     autoClose: true,
   },
 
