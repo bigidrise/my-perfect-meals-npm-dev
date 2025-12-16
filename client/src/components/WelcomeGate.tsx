@@ -28,8 +28,8 @@ export default function WelcomeGate({ onComplete }: { onComplete: () => void }) 
           data-testid="welcome-gate"
         >
           <div className="text-center space-y-6 px-6 max-w-md">
-            <h1 className="text-2xl font-bold text-white">Choose How You’d Like to Begin Your Journey</h1>
-            <p className="text-sm text-white/80">Select the experience that best fits your style. You can switch modes anytime under Coach Settings.</p>
+            <h1 className="text-2xl font-bold text-white">Choose Your Journey</h1>
+            <p className="text-sm text-white/80">Select the experience that best fits your style. You can turn copilot on and off at anytime.</p>
             <p className="text-sm text-white/60">
               
             </p>
