@@ -106,6 +106,11 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
     title: "Shopping List",
     description: "Export ingredients for meal prep shopping runs.",
   },
+  {
+    icon: "6",
+    title: "Track Progress & Save Day",
+    description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
+  },
 ];
 
 // Week navigation utilities
