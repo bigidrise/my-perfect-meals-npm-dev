@@ -1207,7 +1207,7 @@ export default function WeeklyMealBoard() {
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-2">
+        <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           {/* Back to Planner */}
           <Button
             onClick={() => setLocation("/planner")}
@@ -1218,14 +1218,14 @@ export default function WeeklyMealBoard() {
           </Button>
 
           {/* Title */}
-          <h1 className="text-base font-bold text-white flex-shrink truncate" data-testid="weekly-builder-header">
+          <h1 className="text-base font-bold text-white flex-shrink truncate min-w-0" data-testid="weekly-builder-header">
             Weekly Meal Builder
           </h1>
 
           <div className="flex-grow" />
 
           {/* Quick Tour Help Button */}
-          <QuickTourButton onClick={quickTour.openTour} />
+          <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
         </div>
       </div>
 

@@ -1033,7 +1033,7 @@ export default function WeeklyMealBoard() {
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap">
             {/* Back Button */}
             <button
               onClick={() => setLocation(isProCareMode ? `/pro/clients/${clientId}` : "/dashboard")}
@@ -1050,7 +1050,7 @@ export default function WeeklyMealBoard() {
             </h1>
 
             {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} />
+            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
           </div>
 
           {/* Row 2: Client Dashboard Button (only in ProCare mode) */}
