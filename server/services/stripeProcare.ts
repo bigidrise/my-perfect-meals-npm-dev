@@ -1,19 +1,30 @@
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+let stripe: Stripe | null = null;
+
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-09-30.clover",
+  });
+} else {
+  console.warn("⚠️ STRIPE_SECRET_KEY not found - Payment features disabled");
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-09-30.clover",
-});
+function getStripe(): Stripe {
+  if (!stripe) {
+    throw new Error("Stripe is not configured. Please add STRIPE_SECRET_KEY.");
+  }
+  return stripe;
+}
+
+export { stripe };
 
 /**
  * Create or retrieve a Stripe Connect account for a pro user
  * Using Express account to enable automatic transfers
  */
 export async function createConnectAccount(email?: string): Promise<string> {
-  const account = await stripe.accounts.create({
+  const account = await getStripe().accounts.create({
     type: "express",
     email,
     capabilities: {
@@ -31,7 +42,7 @@ export async function createAccountLink(
   refreshUrl: string,
   returnUrl: string
 ): Promise<string> {
-  const link = await stripe.accountLinks.create({
+  const link = await getStripe().accountLinks.create({
     account: accountId,
     refresh_url: refreshUrl,
     return_url: returnUrl,
@@ -44,7 +55,7 @@ export async function createAccountLink(
  * Check if a Connect account has completed onboarding
  */
 export async function isAccountActive(accountId: string): Promise<boolean> {
-  const account = await stripe.accounts.retrieve(accountId);
+  const account = await getStripe().accounts.retrieve(accountId);
   return account.charges_enabled && account.details_submitted;
 }
 
@@ -66,7 +77,7 @@ export async function createCheckoutSession({
   cancelUrl: string;
   priceId: string;
 }): Promise<string> {
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
@@ -90,7 +101,7 @@ export async function transferToPro(
   amountCents: number,
   description: string
 ): Promise<string> {
-  const transfer = await stripe.transfers.create({
+  const transfer = await getStripe().transfers.create({
     amount: amountCents,
     currency: "usd",
     destination: accountId,
@@ -107,5 +118,5 @@ export function constructWebhookEvent(
   signature: string,
   secret: string
 ): Stripe.Event {
-  return stripe.webhooks.constructEvent(payload, signature, secret);
+  return getStripe().webhooks.constructEvent(payload, signature, secret);
 }

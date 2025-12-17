@@ -4,7 +4,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Wine } from "lucide-react";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+
+const LEAN_SOCIAL_TOUR_STEPS: TourStep[] = [
+  { title: "Browse Smart Drinks", description: "Find lower-calorie drink options for social occasions." },
+  { title: "See Details", description: "Tap any drink to see ingredients and how to order it." },
+  { title: "Easy Strategies", description: "Use simple strategies to stay on track at parties and events." },
+];
 
 type Drink = {
   id: string;
@@ -294,6 +304,7 @@ const DRINKS: Drink[] = [
 
 export default function AlcoholLeanAndSocial() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("lean-and-social");
   const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
 
   const selected = DRINKS.find(d => d.id === selectedDrink);
@@ -331,7 +342,8 @@ export default function AlcoholLeanAndSocial() {
           {/* Title */}
           <h1 className="text-lg font-bold text-white">Lean & Social</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -463,6 +475,13 @@ export default function AlcoholLeanAndSocial() {
             hideCopyButton={true}
           />
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Lean & Social"
+          steps={LEAN_SOCIAL_TOUR_STEPS}
+        />
       </div>
     </div>
   );

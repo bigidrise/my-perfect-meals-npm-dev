@@ -54,7 +54,8 @@ const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "2", title: "Set Coach Targets", description: "Macro targets are set from the Client Dashboard - view progress here." },
   { icon: "3", title: "Day-by-Day Planning", description: "Use day chips to plan specific meals for each day of the week." },
   { icon: "4", title: "Duplicate Days", description: "Copy a day's meals to other days for consistent eating patterns." },
-  { icon: "5", title: "Shopping List", description: "Export all ingredients for the week to create a shopping list." }
+  { icon: "5", title: "Shopping List", description: "Export all ingredients for the week to create a shopping list." },
+  { icon: "6", title: "Track Progress & Save Day", description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics." }
 ];
 
 // Helper function to create new snacks
@@ -1240,7 +1241,7 @@ export default function WeeklyMealBoard() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
+                        className="text-white/80 hover:bg-black/50 border border-orange-400/40 text-xs font-medium flex items-center gap-1 flash-border"
                         onClick={() => {
                           setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
                           setCreateWithChefOpen(true);

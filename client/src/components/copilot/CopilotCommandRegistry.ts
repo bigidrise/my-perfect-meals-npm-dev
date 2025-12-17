@@ -129,7 +129,7 @@ export function startCopilotIntro(force = false) {
 
   // Intro script (voice + text)
   const introScript =
-    "Welcome to My Perfect Copilot. I'm here to make every screen easy to understand. Whenever you want guidance, just tap to listen button. I'll explain what the page is for, how the features work, and how to use everything with confidence. You're always in control - and I'm right here when you need me.";
+    "Welcome to My Perfect Copilot. I’m here to help you understand how the app works and guide you as you use each feature. You’re on the home page. From here, you can build and manage your master shopping list, log meals from a photo, calculate your macros, check your biometrics, or get inspiration — whether that’s a quick motivational message or leave a thought in your daily journal. Anytime you need help, just tap the listen button. I’ll explain what the page is for, how the features work, and how to use everything with confidence. You’re always in control — and I’m right here when you need me.";
 
   // Send intro response through existing pipeline
   if (responseCallback) {

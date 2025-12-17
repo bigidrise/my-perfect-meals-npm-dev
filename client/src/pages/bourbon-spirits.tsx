@@ -15,6 +15,15 @@ import {
 import { useLocation } from "wouter";
 import { ArrowLeft, Sparkles, ChefHat, Wine, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const BOURBON_TOUR_STEPS: TourStep[] = [
+  { title: "Choose Your Meal", description: "Select meal type, cuisine style, and main ingredient." },
+  { title: "Set Occasion & Price", description: "Pick your occasion and preferred price range." },
+  { title: "Get Spirit Pairings", description: "See bourbons or spirits that complement your food." },
+];
 
 interface BourbonRecommendation {
   spiritName: string;
@@ -33,6 +42,7 @@ interface BourbonRecommendation {
 export default function BourbonSpiritsPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const quickTour = useQuickTour("bourbon-spirits");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BourbonRecommendation | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -146,7 +156,8 @@ export default function BourbonSpiritsPage() {
           {/* Title */}
           <h1 className="text-lg font-bold text-white">Bourbon & Spirits Pairing</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -396,6 +407,13 @@ export default function BourbonSpiritsPage() {
           </Button>
         </div>
       )}
+
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="How to Use Bourbon & Spirits Pairing"
+        steps={BOURBON_TOUR_STEPS}
+      />
     </div>
   );
 }

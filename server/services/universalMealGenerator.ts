@@ -4,15 +4,16 @@ import OpenAI from "openai";
 import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 
-let _openai: OpenAI | null = null;
+let openai: OpenAI | null = null;
+
 function getOpenAI(): OpenAI {
-  if (!_openai) {
+  if (!openai) {
     if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is required for AI features");
+      throw new Error("OPENAI_API_KEY is required for AI meal generation");
     }
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
-  return _openai;
+  return openai;
 }
 
 // Convert decimal to fraction for display

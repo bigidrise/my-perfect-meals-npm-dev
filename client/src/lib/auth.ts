@@ -18,7 +18,7 @@ export function isNativePlatform(): boolean {
 }
 
 // For video recording: Quick auto-login mode (set to false for App Store submission)
-const AUTO_LOGIN_FOR_VIDEO = true;
+const AUTO_LOGIN_FOR_VIDEO = false;
 
 const DEMO_USER: User = {
   id: "demo-ios-user",

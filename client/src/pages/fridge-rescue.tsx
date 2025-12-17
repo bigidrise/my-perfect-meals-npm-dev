@@ -37,6 +37,15 @@ import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilot } from "@/components/copilot/CopilotContext";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
+  { title: "Enter Your Ingredients", description: "Type or say what's in your fridge — whatever you have on hand." },
+  { title: "Generate Meals", description: "Tap generate and get three personalized meals built from your ingredients." },
+  { title: "Cook Without Shopping", description: "It's an easy way to cook without extra shopping trips." },
+];
 
 const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -166,6 +175,7 @@ const FridgeRescuePage = () => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { runAction, open, startWalkthrough } = useCopilot();
+  const quickTour = useQuickTour("fridge-rescue");
 
   // 🎯 Auto-start walkthrough on first visit
   useEffect(() => {
@@ -557,6 +567,9 @@ const FridgeRescuePage = () => {
 
             {/* Title */}
             <h1 data-wt="fridge-rescue-header" className="text-lg font-bold text-white">Fridge Rescue</h1>
+
+            <div className="flex-grow" />
+            <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
 
@@ -887,6 +900,13 @@ const FridgeRescuePage = () => {
             </div>
           )}
         </div>
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Fridge Rescue"
+          steps={FRIDGE_RESCUE_TOUR_STEPS}
+        />
       </motion.div>
     </PhaseGate>
   );

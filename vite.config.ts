@@ -34,7 +34,7 @@ export default defineConfig({
     strictPort: true,   // don't silently hop ports
     port: 5173,
     host: "0.0.0.0",
-    allowedHosts: true,
+    allowedHosts: true, // Allow all hosts for Replit proxy
     proxy: {
       // Anything starting with /api in dev will be forwarded to the backend
       "/api": {

@@ -32,13 +32,8 @@ export default function WelcomeGate({
           data-testid="welcome-gate"
         >
           <div className="text-center space-y-6 px-6 max-w-md">
-            <h1 className="text-2xl font-bold text-white">
-              Choose Your Journey
-            </h1>
-            <p className="text-sm text-white/80">
-              Select the experience that best fits your style. You can turn
-              copilot on and off at anytime.
-            </p>
+            <h1 className="text-2xl font-bold text-white">Choose Your Journey</h1>
+            <p className="text-sm text-white/80">Select the experience that best fits your style. You can turn copilot on and off at anytime.</p>
             <p className="text-sm text-white/60"></p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
               <button
