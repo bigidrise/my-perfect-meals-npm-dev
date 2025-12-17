@@ -96,9 +96,8 @@ export function CreateWithChefModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl text-white">
-            <ChefHat className="h-6 w-6 text-lime-400" />
-            Create With Chef
+            <DialogTitle className="text-white text-xl font-semibold">  
+            Create with AI Chef
           </DialogTitle>
           <DialogDescription className="text-white/60">
             Tell the Chef what you want for {mealType}
@@ -139,14 +138,6 @@ export function CreateWithChefModal({
 
           <div className="flex gap-3 pt-2">
             <Button
-              variant="outline"
-              className="flex-1 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
-              onClick={() => onOpenChange(false)}
-              disabled={generating}
-            >
-              Cancel
-            </Button>
-            <Button
               className="flex-1 bg-lime-500 hover:bg-lime-700 text-white"
               onClick={handleGenerate}
               disabled={generating || !description.trim()}
@@ -158,10 +149,18 @@ export function CreateWithChefModal({
                 </>
               ) : (
                 <>
-                  <ChefHat className="h-4 w-4 mr-2" />
-                  Generate
+                
+                  Generate AI Meal
                 </>
               )}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
+              onClick={() => onOpenChange(false)}
+              disabled={generating}
+            >
+              Cancel
             </Button>
           </div>
         </div>

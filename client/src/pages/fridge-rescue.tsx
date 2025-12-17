@@ -641,7 +641,7 @@ const FridgeRescuePage = () => {
                   onClick={handleGenerateMeals}
                   disabled={isLoading}
                   data-testid="fridge-generate"
-                  className="w-full bg-lime-500 backdrop-blur-lg hover:bg-lime-700 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
+                  className="w-full bg-lime-900 backdrop-blur-lg hover:bg-lime-500 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
                 >
                   <div className="flex items-center gap-2">
                     

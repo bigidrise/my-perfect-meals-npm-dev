@@ -420,7 +420,7 @@ export default function AIMealCreatorModal({
       <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border border-white/20 rounded-2xl flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
-            Create with AI
+            Create with AI Picker
           </DialogTitle>
         </DialogHeader>
 

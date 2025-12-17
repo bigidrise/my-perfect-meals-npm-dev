@@ -337,7 +337,7 @@ export default function DiabeticHub() {
             <button
               onClick={handleSaveGuardrails}
               disabled={saveMutation.isPending}
-              className="w-full px-6 py-3 rounded-xl bg-lime-500/90 backdrop-blur-sm hover:bg-lime-700/90 text-white font-medium transition-all shadow-xl border-2 border-lime-300/90 relative overflow-hidden disabled:opacity-50"
+              className="w-full px-6 py-3 rounded-xl bg-lime-900 backdrop-blur-sm hover:bg-lime-500 text-white font-medium transition-all shadow-xl relative overflow-hidden disabled:opacity-50"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
               <span className="relative z-10">
@@ -397,7 +397,7 @@ export default function DiabeticHub() {
                 <button
                   onClick={handleLogGlucose}
                   disabled={logMutation.isPending}
-                  className="w-full px-6 py-4 rounded-xl bg-lime-500/90 backdrop-blur-sm hover:bg-lime-600/90 text-md text-white font-semi-bold transition-all shadow-xl border-2 border-lime-300/90 relative overflow-hidden disabled:opacity-50"
+                  className="w-full px-6 py-4 rounded-xl bg-lime-900 backdrop-blur-sm hover:bg-lime-500 text-md text-white font-semi-bold transition-all shadow-xl relative overflow-hidden disabled:opacity-50"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
                   <span className="relative z-10">
@@ -623,7 +623,7 @@ export default function DiabeticHub() {
 
             <button
               onClick={() => setLocation("/diabetic-menu-builder")}
-              className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-500 to-lime-700 hover:from-lime-700 hover:to-lime-700 text-white font-semibold transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 border-2 border-lime-300/90 relative overflow-hidden"
+              className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-900 to-lime-900 hover:from-lime-500 hover:to-lime-500 text-white font-semibold transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
               <span className="relative z-10"> Diabetic Meal Builder </span>
