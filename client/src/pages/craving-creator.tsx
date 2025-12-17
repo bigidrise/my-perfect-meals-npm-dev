@@ -714,7 +714,7 @@ export default function CravingCreator() {
             data-wt="cc-generate-button"
             onClick={handleGenerateMeal}
             disabled={isGenerating}
-            className="w-full bg-lime-500 hover:bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+            className="w-full bg-lime-900 hover:bg-lime-500 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
           >
             Create My Craving
           </GlassButton>
