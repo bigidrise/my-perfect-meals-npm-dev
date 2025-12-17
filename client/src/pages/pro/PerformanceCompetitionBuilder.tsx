@@ -1078,7 +1078,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap">
             {/* Back Button */}
             <button
               onClick={() =>
@@ -1099,7 +1099,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             </h1>
 
             {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} />
+            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
           </div>
 
           {/* Row 2: Client Dashboard Button (only in ProCare mode) */}

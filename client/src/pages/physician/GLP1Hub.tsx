@@ -134,15 +134,15 @@ export default function GLP1Hub() {
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-3">
-          <Pill className="h-6 w-6 text-orange-500" />
+        <div className="px-4 py-3 flex items-center gap-3 flex-nowrap">
+          <Pill className="h-6 w-6 text-orange-500 flex-shrink-0" />
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">GLP-1 Hub</h1>
+          <h1 className="text-lg font-bold text-white truncate min-w-0">GLP-1 Hub</h1>
 
           <div className="flex-grow" />
 
           {/* Quick Tour Help Button */}
-          <QuickTourButton onClick={quickTour.openTour} />
+          <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
         </div>
       </div>
 
