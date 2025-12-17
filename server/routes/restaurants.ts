@@ -39,11 +39,12 @@ function detectCuisine(name: string, types: string[] = []): string {
   return 'American';
 }
 
-// Smart Restaurant Guide endpoint with craving + restaurant + ZIP code
+// Smart Restaurant Guide endpoint with craving + restaurant + location
 // Uses Google Places API to find real restaurant data
+// Accepts either lat/lng coordinates OR zipCode for location
 router.post("/guide", async (req, res) => {
   try {
-    const { restaurantName, craving, cuisine, zipCode, userId } = req.body;
+    const { restaurantName, craving, cuisine, zipCode, lat, lng, userId } = req.body;
     
     if (!restaurantName || !craving) {
       return res.status(400).json({ 
@@ -51,22 +52,34 @@ router.post("/guide", async (req, res) => {
       });
     }
 
-    if (!zipCode || !/^\d{5}$/.test(zipCode)) {
+    // Accept either lat/lng OR zipCode
+    const hasCoords = typeof lat === 'number' && typeof lng === 'number';
+    const hasZip = zipCode && /^\d{5}$/.test(zipCode);
+    
+    if (!hasCoords && !hasZip) {
       return res.status(400).json({ 
-        error: "Valid 5-digit ZIP code is required" 
+        error: "Either coordinates (lat/lng) or a valid 5-digit ZIP code is required" 
       });
     }
 
-    console.log(`🍽️ Smart Restaurant Guide: "${craving}" at "${restaurantName}" near ZIP ${zipCode}`);
+    const locationDesc = hasCoords ? `(${lat.toFixed(4)}, ${lng.toFixed(4)})` : `ZIP ${zipCode}`;
+    console.log(`🍽️ Smart Restaurant Guide: "${craving}" at "${restaurantName}" near ${locationDesc}`);
     
     const generationStart = Date.now();
     
-    // Step 1: Convert ZIP to coordinates
-    const coords = await zipToCoordinates(zipCode);
-    if (!coords) {
-      return res.status(400).json({ 
-        error: "Could not locate that ZIP code" 
-      });
+    // Step 1: Get coordinates (use provided or convert from ZIP)
+    let coords: { lat: number; lng: number } | null = null;
+    
+    if (hasCoords) {
+      coords = { lat, lng };
+      console.log(`📍 Using device coordinates: (${lat}, ${lng})`);
+    } else {
+      coords = await zipToCoordinates(zipCode);
+      if (!coords) {
+        return res.status(400).json({ 
+          error: "Could not locate that ZIP code" 
+        });
+      }
     }
     
     // Step 2: Search for the specific restaurant near that location using Google Places
@@ -114,10 +127,10 @@ router.post("/guide", async (req, res) => {
       
       console.log(`✅ Found restaurant: ${restaurantInfo.name} at ${restaurantInfo.address}`);
     } else {
-      console.warn(`⚠️ Restaurant "${restaurantName}" not found near ZIP ${zipCode}, using input name`);
+      console.warn(`⚠️ Restaurant "${restaurantName}" not found near ${locationDesc}, using input name`);
       restaurantInfo = {
         name: restaurantName,
-        address: `Near ${zipCode}`,
+        address: hasCoords ? 'Near your location' : `Near ${zipCode}`,
         rating: undefined,
         photoUrl: undefined
       };
