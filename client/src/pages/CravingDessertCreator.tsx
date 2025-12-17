@@ -371,7 +371,7 @@ export default function DessertCreator() {
               ) : (
           <GlassButton
             onClick={handleGenerateDessert}
-            className="w-full bg-lime-500 hover:bg-lime-700 flex items-center justify-center"
+            className="w-full bg-lime-900 hover:bg-lime-500 flex items-center justify-center"
           >
             Create My Dessert
           </GlassButton>
