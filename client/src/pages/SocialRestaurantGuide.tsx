@@ -518,7 +518,7 @@ export default function RestaurantGuidePage() {
                   data-wt="rg-search-button"
                   onClick={handleSearch}
                   disabled={generateMealsMutation.isPending}
-                  className="w-full bg-lime-500 hover:bg-lime-700 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
+                  className="w-full bg-lime-900 hover:bg-lime-500 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
                 >
                   {generateMealsMutation.isPending
                     ? "Finding Dishes..."
