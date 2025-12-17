@@ -1066,7 +1066,7 @@ export default function MyBiometrics() {
               <Button
                 data-wt="bio-scan-button"
                 onClick={handlePhotoUpload}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white mb-3"
+                className="w-full bg-lime-500 hover:bg-lime-700 text-md text-white mb-3"
                 data-testid="button-photo-upload"
               >
                 📸 Log from Photo
@@ -1239,7 +1239,7 @@ export default function MyBiometrics() {
                   <Input inputMode="decimal" className="bg-black/20 border-white/20 text-white" value={waistIn} onChange={e=>setWaistIn(e.target.value)} data-testid="input-waist" />
                 </div>
               </div>
-              <Button id="save-weight-button" data-testid="biometrics-save-weight-button" data-walkthrough="save-weight" onClick={saveWeight} className="bg-white/10 border border-white/20 text-white hover:bg-white/20 mb-2">Save Weight</Button>
+              <Button id="save-weight-button" data-testid="biometrics-save-weight-button" data-walkthrough="save-weight" onClick={saveWeight} className="bg-lime-500 border border-white/20 text-white hover:bg-lime-700 mb-2">Save Weight</Button>
               <ReadOnlyNote>
                 Track your weight progress here over time. Your weight data automatically syncs with the <strong>Macro Calculator</strong>.
               </ReadOnlyNote>

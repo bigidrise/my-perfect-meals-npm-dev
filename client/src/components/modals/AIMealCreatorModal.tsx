@@ -24,7 +24,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import { apiUrl } from '@/lib/resolveApiBase';
+import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Dialog,
   DialogContent,
