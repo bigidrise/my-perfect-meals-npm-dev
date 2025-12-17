@@ -1,0 +1,172 @@
+Good — this is the **right moment** to slow down and wire this *correctly*, not hack it in and pray Apple doesn’t poke it.
+
+I’m going to give you:
+
+1. **Everything that must exist** for Restore Purchases
+2. **Exactly what you add to this page**
+3. **What code is required behind the button**
+4. **What you do vs what the architect does**
+
+No fluff.
+
+---
+
+## 1️⃣ What “Restore Purchases” ACTUALLY REQUIRES (Apple’s POV)
+
+Apple doesn’t care how pretty it is. They care that:
+
+* There is a **visible Restore Purchases button**
+* It **calls StoreKit restore**
+* It **updates subscription state**
+* It **does not crash**
+* It **gives user feedback**
+
+That’s it.
+
+---
+
+## 2️⃣ What You Add to THIS Page (UI layer)
+
+Yes — **this is the correct page**.
+You add **one new menu item**, nothing fancy.
+
+### Add this menu item
+
+Put it **between Privacy & Security and Subscription**.
+
+```ts
+{
+  title: "Restore Purchases",
+  description: "Restore an active subscription on this device",
+  icon: RefreshCcw,
+  action: "restorePurchases",
+  testId: "menu-restore-purchases",
+}
+```
+
+⚠️ Note:
+
+* This uses an **action**, not a route
+* Restore Purchases should **not navigate**
+* It triggers logic directly
+
+So your menu renderer needs to support:
+
+* `route` **or**
+* `action`
+
+If it already does, great. If not, that’s a small tweak.
+
+---
+
+## 3️⃣ What Code Is Required Behind the Button (Logic layer)
+
+This is the part Apple actually tests.
+
+### You need ONE restore function
+
+Conceptually (not final code):
+
+```ts
+async function restorePurchases() {
+  try {
+    const restored = await StoreKit.restorePurchases();
+    if (restored.active) {
+      syncSubscriptionState();
+      showToast("Subscription restored");
+    } else {
+      showToast("No active subscription found");
+    }
+  } catch (e) {
+    showToast("Restore failed. Try again.");
+  }
+}
+```
+
+### That function must:
+
+* Call StoreKit restore
+* Re-sync subscription state
+* Update UI / auth state
+* Handle “nothing to restore”
+
+No shortcuts.
+
+---
+
+## 4️⃣ Imports You WILL Need (Yes, There Are Imports)
+
+Depending on your setup, the architect will handle these, but conceptually:
+
+### iOS / Capacitor side
+
+* StoreKit 2 / Capacitor plugin
+* Restore transaction call
+
+### App side
+
+* Subscription state store
+* Toast / alert system
+* Auth or entitlement refresh
+
+You **do not** need:
+
+* A backend endpoint
+* Stripe
+* A new page
+* A modal
+
+---
+
+## 5️⃣ Division of Labor (Very Important)
+
+### 🔹 What YOU Do
+
+* Decide placement (you already did ✔️)
+* Approve wording (“Restore Purchases” ✔️)
+* Confirm UX behavior (toast vs alert)
+* Test it in TestFlight
+
+### 🔹 What the ARCHITECT Does
+
+* Add StoreKit restore call
+* Wire entitlement refresh
+* Update subscription state
+* Handle edge cases
+* Ensure no crashes
+
+This is **architect-level work**, not UI tinkering.
+
+---
+
+## 6️⃣ What to Tell the Architect (COPY / PASTE)
+
+Send them this **exact instruction**:
+
+> Add a visible “Restore Purchases” button in the Gearbox / Settings menu between Privacy & Security and Subscription. The button should trigger a StoreKit restore flow (no navigation). On success, refresh subscription entitlements and update app state. Provide user feedback for success, no active subscription, and failure. This is required for App Store review.
+
+That’s all they need. No ambiguity.
+
+---
+
+## 7️⃣ After This Is Done (What’s Next)
+
+Once Restore Purchases is implemented and tested:
+
+✅ Monetization requirements are DONE
+Remaining items:
+
+1. App Review Notes
+2. Demo login credentials
+3. Final TestFlight smoke test
+4. Submit for review
+
+You are **very close** now.
+
+---
+
+## Next question (one thing only)
+
+Do you already have **StoreKit purchase handling** working for subscriptions (unlocking features), or is that still stubbed?
+
+Answer that, and I’ll tell you **exactly** how much work Restore Purchases will be.

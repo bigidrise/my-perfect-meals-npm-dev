@@ -12,6 +12,15 @@ import {
   TrendingDown,
   CookingPot,
 } from "lucide-react";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const ALCOHOL_HUB_TOUR_STEPS: TourStep[] = [
+  { title: "Drink Smarter", description: "Explore wine, beer, and bourbon pairings to match your meals." },
+  { title: "Lighter Options", description: "Find lower calorie mixers and mocktail ideas." },
+  { title: "Cutting Back?", description: "Use the weaning off tools if you're looking to reduce your intake." },
+];
 
 interface AlcoholFeature {
   title: string;
@@ -24,6 +33,7 @@ interface AlcoholFeature {
 
 export default function AlcoholHubLanding() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("alcohol-hub");
 
   useEffect(() => {
     document.title = "Alcohol Hub | My Perfect Meals";
@@ -136,6 +146,9 @@ export default function AlcoholHubLanding() {
           <h1 className="text-lg font-bold text-white">
             Spirits & Lifestyle Hub
           </h1>
+
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -194,6 +207,13 @@ export default function AlcoholHubLanding() {
           </div>
         </div>
       </div>
+
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="How to Use Spirits & Lifestyle Hub"
+        steps={ALCOHOL_HUB_TOUR_STEPS}
+      />
     </motion.div>
   );
 }

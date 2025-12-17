@@ -39,6 +39,15 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import PhaseGate from "@/components/PhaseGate";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const RESTAURANT_TOUR_STEPS: TourStep[] = [
+  { title: "Describe What You Want", description: "Tell us what you're craving and the type of food you'd like." },
+  { title: "Enter Restaurant & ZIP", description: "Enter the restaurant name and a nearby zip code." },
+  { title: "Get Meal Options", description: "See meal options that match your goals and work where you're eating." },
+];
 
 // ---- Persist the generated restaurant meal so it never "disappears" ----
 const CACHE_KEY = "restaurantGuide.cache.v1";
@@ -186,6 +195,7 @@ const cuisineKeywords: Record<string, string> = {
 
 export default function RestaurantGuidePage() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("restaurant-guide");
   const [cravingInput, setCravingInput] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
@@ -399,6 +409,9 @@ export default function RestaurantGuidePage() {
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white">Restaurant Guide</h1>
+
+            <div className="flex-grow" />
+            <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
 
@@ -737,6 +750,13 @@ export default function RestaurantGuidePage() {
             </CardContent>
           </Card>
         </div>
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Restaurant Guide"
+          steps={RESTAURANT_TOUR_STEPS}
+        />
       </motion.div>
     </PhaseGate>
   );

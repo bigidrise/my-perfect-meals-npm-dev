@@ -6,9 +6,12 @@ import type { LookupKey } from "../../client/src/data/planSkus";
 
 const router = Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-09-30.clover",
-});
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-09-30.clover",
+  });
+}
 
 function getUserId(req: any): string {
   if (req.session?.userId) return req.session.userId as string;
@@ -18,6 +21,9 @@ function getUserId(req: any): string {
 }
 
 router.post("/checkout", async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: "Payment system not configured" });
+  }
   try {
     const { sku, priceLookupKey, context } = req.body;
     const userId = getUserId(req);

@@ -9,6 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLocation } from "wouter";
 import { ArrowLeft, Wine, Sparkles, ChefHat, Home, ChevronUp } from "lucide-react";
 import { saveScrollPosition, saveNavigationHistory } from "@/utils/scrollUtils";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const WINE_TOUR_STEPS: TourStep[] = [
+  { title: "Choose Your Meal", description: "Select your meal type, cuisine style, or main ingredient." },
+  { title: "Set Preferences", description: "Pick your occasion and price range for the perfect match." },
+  { title: "Get Recommendations", description: "See wines that fit your selection and complement your meal." },
+];
 
 interface WineRecommendation {
   wineName: string;
@@ -39,6 +48,7 @@ interface WinePairingResult {
 
 export default function WinePairingPage() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("wine-pairing");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WinePairingResult | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -152,7 +162,8 @@ export default function WinePairingPage() {
           {/* Title */}
           <h1 className="text-lg font-bold text-white">Wine Pairing AI</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -361,6 +372,13 @@ export default function WinePairingPage() {
           
         </div>
       )}
+
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="How to Use Wine Pairing"
+        steps={WINE_TOUR_STEPS}
+      />
     </div>
   );
 }

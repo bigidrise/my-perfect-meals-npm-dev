@@ -15,6 +15,15 @@ import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const FIND_MEALS_TOUR_STEPS: TourStep[] = [
+  { title: "Enter Your Craving", description: "Tell us what you're in the mood for." },
+  { title: "Add Your ZIP Code", description: "Enter your location so we can find nearby restaurants." },
+  { title: "Get Recommendations", description: "See nearby restaurants with two healthy meal options from each, along with ordering tips." },
+];
 
 const CACHE_KEY = "mealFinder.cache.v1";
 
@@ -78,6 +87,7 @@ interface MealResult {
 export default function MealFinder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const quickTour = useQuickTour("social-find-meals");
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -222,6 +232,9 @@ export default function MealFinder() {
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white">Meal Finder</h1>
+
+            <div className="flex-grow" />
+            <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
 
@@ -443,6 +456,13 @@ export default function MealFinder() {
             </div>
           )}
         </div>
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Find Meals Near Me"
+          steps={FIND_MEALS_TOUR_STEPS}
+        />
       </div>
     </>
   );

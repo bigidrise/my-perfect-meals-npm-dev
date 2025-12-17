@@ -13,6 +13,15 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { ArrowLeft, ChevronUp } from "lucide-react";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const BEER_TOUR_STEPS: TourStep[] = [
+  { title: "Pick Your Food", description: "Select meal type, cuisine, and main ingredient." },
+  { title: "Set Your Preferences", description: "Choose flavor preference, alcohol range, and price point." },
+  { title: "Find Your Beer", description: "Get beer recommendations that pair well with your meal." },
+];
 
 type BeerRec = {
   name: string;
@@ -70,6 +79,7 @@ const occasions = [
 
 export default function BeerPairingMode() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("beer-pairing");
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   const [mealType, setMealType] = useState<string>("Burger");
@@ -184,6 +194,9 @@ export default function BeerPairingMode() {
 
           {/* Title */}
           <h1 className="text-lg font-bold text-white">Beer Pairing Mode</h1>
+
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -454,6 +467,13 @@ export default function BeerPairingMode() {
             
           </div>
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Beer Pairing"
+          steps={BEER_TOUR_STEPS}
+        />
       </div>
     </div>
   );

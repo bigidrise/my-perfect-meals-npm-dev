@@ -82,6 +82,11 @@ export default function MyBiometrics() {
       title: "Photo Logging",
       description: "Use 'Log from Photo' to snap a pic of your meal - AI estimates the macros automatically.",
     },
+    {
+      title: "Track Your Water",
+      description: "Log your daily water intake at the bottom of the page to stay on top of hydration."
+    }
+
   ];
 
   const quickTour = useQuickTour("my-biometrics");

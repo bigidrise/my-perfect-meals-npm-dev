@@ -6,13 +6,19 @@ import type { LookupKey } from "../../client/src/data/planSkus";
 
 const router = Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-09-30.clover",
-});
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-09-30.clover",
+  });
+}
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
 
 router.post("/", async (req, res) => {
+  if (!stripe || !webhookSecret) {
+    return res.status(503).send("Stripe webhook not configured");
+  }
   const sig = req.headers["stripe-signature"] as string;
 
   let event: Stripe.Event;

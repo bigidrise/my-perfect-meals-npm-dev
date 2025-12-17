@@ -10,6 +10,16 @@ import { toddlersMeals, type ToddlersMeal } from "@/data/toddlersMealsData";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const TODDLER_MEALS_TOUR_STEPS: TourStep[] = [
+  { title: "Browse Meals", description: "Scroll through soft-textured, age-appropriate meal ideas for toddlers." },
+  { title: "Adjust Servings", description: "Set your serving size to scale ingredient quantities." },
+  { title: "View Details", description: "Tap any meal to see ingredients, nutrition, and tips." },
+  { title: "Add to Shopping", description: "Use the shopping bar to add ingredients to your list." },
+];
 
 const SERVING_OPTIONS = [1, 2, 3, 4] as const;
 
@@ -79,6 +89,7 @@ function scaleIngredients(
 
 export default function ToddlersMealsHub() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("toddler-meals");
   const [selectedServings, setSelectedServings] = useState<number>(2);
   const [rounding, setRounding] = useState<RoundingMode>("tenth");
   const [filterText, setFilterText] = useState("");
@@ -147,7 +158,8 @@ export default function ToddlersMealsHub() {
           {/* Title */}
           <h1 data-testid="toddler-meals-hero" className="text-lg font-bold text-white">Toddlers (1–3) Grazing</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -391,6 +403,13 @@ export default function ToddlersMealsHub() {
             />
           </div>
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Toddler Meals"
+          steps={TODDLER_MEALS_TOUR_STEPS}
+        />
       </div>
     </div>
   );
