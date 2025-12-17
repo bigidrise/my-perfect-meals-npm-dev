@@ -556,7 +556,7 @@ export default function AIMealCreatorModal({
           <Button
             onClick={handleGenerateMeal}
             disabled={generating || selectedIngredients.length === 0}
-            className="flex-1 bg-lime-600 hover:bg-lime-700 text-white border-0"
+            className="flex-1 bg-orange-500 hover:bg-orange-700 text-white border-0"
             data-wt="wmb-generate-meal-button"
           >
             Generate AI Meal
