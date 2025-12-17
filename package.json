@@ -29,6 +29,7 @@
     "@aws-sdk/s3-request-presigner": "^3.879.0",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
+    "@capacitor/geolocation": "^8.0.0",
     "@capacitor/ios": "^7.4.4",
     "@capacitor/splash-screen": "^8.0.0",
     "@emotion/react": "^11.14.0",
