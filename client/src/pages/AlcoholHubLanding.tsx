@@ -139,16 +139,16 @@ export default function AlcoholHubLanding() {
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-8 py-3 flex items-center gap-3">
-          <Wine className="h-6 w-6 text-orange-500" />
+        <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
+          <Wine className="h-6 w-6 text-orange-500 flex-shrink-0" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">
+          <h1 className="text-lg font-bold text-white truncate min-w-0">
             Spirits & Lifestyle Hub
           </h1>
 
           <div className="flex-grow" />
-          <QuickTourButton onClick={quickTour.openTour} />
+          <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
         </div>
       </div>
 
