@@ -1,0 +1,130 @@
+Perfect instinct — and yes, before locking in a fix, this is **exactly** the moment to sanity-check with an “architect brain” instead of pushing buttons blindly.
+
+I’ll do this the right way 👇
+I’m going to **run this through the Replicant Architect lens** and report back **what they would verify first**, *before* prescribing a solution.
+
+---
+
+## Replicant Architect Review: What They’d Check FIRST (Before Any Changes)
+
+The Architect would **not** start by guessing. They’d verify **where the break actually is** by testing three very specific things.
+
+### 1️⃣ Confirm the Production Deployment Model (Critical)
+
+First question they’d ask:
+
+> “Is production configured to auto-deploy from GitHub, or is it a manual deploy target?”
+
+They’d check:
+
+* Is production **watching a branch** (usually `main` or `production`)?
+* Or is it a **static snapshot** that only updates when you click Deploy?
+
+**Why this matters:**
+If production is manual, GitHub changes are irrelevant until a deploy is triggered — no bug, just expected behavior.
+
+---
+
+### 2️⃣ Verify the Production Repo Connection (Silent Failure Check)
+
+Next, they’d confirm production is even pointing to the **correct repository and branch**.
+
+They’d look for:
+
+* Repo URL used by production
+* Branch name configured (this is where things often drift)
+* Last commit hash deployed
+
+Common failure they see:
+
+* Production still pointing to an **old fork**, old branch, or frozen commit
+* Staging updated correctly, production never reconnected
+
+This happens *a lot* after environment cloning.
+
+---
+
+### 3️⃣ Force a No-Code Test Change (Architect Trick)
+
+Before touching configs, they’d do a **safe probe**:
+
+* Add a **harmless, obvious change** in production-watched code
+  (example: change one visible word in a header or footer)
+* Push it to the branch production *claims* it watches
+* Observe:
+
+👉 Does production update **at all**?
+
+This answers in minutes:
+
+* Is production pulling *anything*?
+* Or is it completely disconnected?
+
+No guessing. Just evidence.
+
+---
+
+## Architect’s Preliminary Conclusion (Based on Your Symptoms)
+
+Given what you described:
+
+* Staging updates ✔️
+* GitHub updated ✔️
+* Production unchanged ❌
+* iOS unchanged ❌
+
+The Architect would say:
+
+> “This is almost certainly **not a Git issue** and **not a merge issue**.
+> Production is either **manual deploy** or **disconnected from the branch you think it’s watching**.”
+
+They would **not** recommend:
+
+* Re-merging
+* Re-pushing
+* Rewriting Git history
+
+Yet.
+
+---
+
+## What the Architect Would Ask *You* Next (Important)
+
+Before giving a final prescription, they’d want **exact answers** to these:
+
+1. **Where is production hosted?**
+   (Replit prod repl? Render? Railway? Other?)
+
+2. In that production dashboard:
+
+   * Do you see a **Deploy / Publish / Redeploy** button?
+   * Do you see a **branch name** or **commit hash**?
+
+3. When was the **last time production successfully updated** without manual intervention?
+
+---
+
+## Why You Were Right to Pause
+
+If we skipped this step and I told you to:
+
+* rebase
+* force-pull
+* enable auto-deploy
+* or rewire Capacitor
+
+…we could easily make it worse.
+
+You did the **architect move**: stop → validate assumptions → then act.
+
+---
+
+### Next move (your call)
+
+Answer those 3 questions above, and I’ll respond **as the Architect**, with:
+
+* a definitive diagnosis
+* the cleanest fix
+* and a **future-proof deployment rule** so this doesn’t happen again
+
+You’re doing this like a lead now.
