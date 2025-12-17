@@ -138,9 +138,21 @@ function getMealNutrition(meal: any) {
 }
 
 const CRAVING_TOUR_STEPS: TourStep[] = [
-  { title: "Describe Your Craving", description: "Tell us what you're in the mood for — sweet, crunchy, creamy, tangy, or any flavor you want." },
-  { title: "Select Servings", description: "Choose how many servings you need for your personalized meal." },
-  { title: "Create & Enjoy", description: "Press Create and get a recipe that fits your taste and lifestyle. You never have to ignore cravings again!" },
+  {
+    title: "Describe Your Craving",
+    description:
+      "Tell us what you're in the mood for — sweet, crunchy, creamy, tangy, or any flavor you want.",
+  },
+  {
+    title: "Select Servings",
+    description:
+      "Choose how many servings you need for your personalized meal.",
+  },
+  {
+    title: "Create & Enjoy",
+    description:
+      "Press Create and get a recipe that fits your taste and lifestyle. You never have to ignore cravings again!",
+  },
 ];
 
 export default function CravingCreator() {
@@ -714,8 +726,7 @@ export default function CravingCreator() {
                       data-wt="cc-generate-button"
                       onClick={handleGenerateMeal}
                       disabled={isGenerating}
-                      className="w-full bg-orange-600 hover:bg-orange-700 overflow-hidden text-ellipsis whitespace-nowrap"
-                      icon={<Sparkles className="h-4 w-4" />}
+                      className="w-full bg-lime-700 hover:bg-lime-500 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       Create My Craving
                     </GlassButton>
