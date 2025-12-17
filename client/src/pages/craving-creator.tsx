@@ -709,16 +709,15 @@ export default function CravingCreator() {
                       <p className="text-white/70 text-sm text-center mt-3"></p>
                     </div>
                   ) : (
-                    <GlassButton
-                      data-testid="cravingcreator-create-button"
-                      data-wt="cc-generate-button"
-                      onClick={handleGenerateMeal}
-                      disabled={isGenerating}
-                      className="w-full bg-orange-600 hover:bg-orange-700 overflow-hidden text-ellipsis whitespace-nowrap"
-                      icon={<Sparkles className="h-4 w-4" />}
-                    >
-                      Create My Craving
-                    </GlassButton>
+          <GlassButton
+            data-testid="cravingcreator-create-button"
+            data-wt="cc-generate-button"
+            onClick={handleGenerateMeal}
+            disabled={isGenerating}
+            className="w-full bg-lime-500 hover:bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+          >
+            Create My Craving
+          </GlassButton>
                   )}
                 </CardContent>
               </Card>
