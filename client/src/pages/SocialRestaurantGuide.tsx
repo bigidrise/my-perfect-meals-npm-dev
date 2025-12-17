@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft, MapPin, Navigation } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -42,11 +42,12 @@ import PhaseGate from "@/components/PhaseGate";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   { title: "Describe What You Want", description: "Tell us what you're craving and the type of food you'd like." },
-  { title: "Enter Restaurant & ZIP", description: "Enter the restaurant name and a nearby zip code." },
-  { title: "Get Meal Options", description: "See meal options that match your goals and work where you're eating." },
+  { title: "Your Location", description: "We'll auto-detect your location, or you can enter a ZIP code manually." },
+  { title: "Get Meal Options", description: "See meal options that match your goals at nearby restaurants." },
 ];
 
 // ---- Persist the generated restaurant meal so it never "disappears" ----
@@ -199,10 +200,13 @@ export default function RestaurantGuidePage() {
   const [cravingInput, setCravingInput] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [useManualZip, setUseManualZip] = useState(false);
   const [matchedCuisine, setMatchedCuisine] = useState<string | null>(null);
   const [generatedMeals, setGeneratedMeals] = useState<any[]>([]);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; address: string; rating?: number; photoUrl?: string } | null>(null);
   const { toast } = useToast();
+  
+  const geo = useGeolocation(true);
 
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
   const [progress, setProgress] = useState(0);
@@ -276,7 +280,9 @@ export default function RestaurantGuidePage() {
       restaurantName: string;
       craving: string;
       cuisine: string;
-      zipCode: string;
+      zipCode?: string;
+      lat?: number;
+      lng?: number;
     }) => {
       return apiRequest("/api/restaurants/guide", {
         method: "POST",
@@ -286,6 +292,8 @@ export default function RestaurantGuidePage() {
           craving: params.craving,
           cuisine: params.cuisine,
           zipCode: params.zipCode,
+          lat: params.lat,
+          lng: params.lng,
           userId: localStorage.getItem("userId") || "1",
         }),
       });
@@ -337,7 +345,7 @@ export default function RestaurantGuidePage() {
     },
   });
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!cravingInput.trim() || !restaurantInput.trim()) {
       toast({
         title: "Missing Information",
@@ -347,15 +355,8 @@ export default function RestaurantGuidePage() {
       return;
     }
 
-    if (!zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
-      toast({
-        title: "Invalid ZIP Code",
-        description: "Please enter a valid 5-digit ZIP code.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    const hasValidZip = zipCode.trim() && /^\d{5}$/.test(zipCode);
+    
     const lowerInput = restaurantInput.toLowerCase();
 
     const keywordMatch = Object.keys(cuisineKeywords).find((keyword) =>
@@ -370,14 +371,54 @@ export default function RestaurantGuidePage() {
 
     setMatchedCuisine(match || null);
     setRestaurantInfo(null);
+    
+    // Use ZIP code if manual mode
+    if (useManualZip) {
+      if (!hasValidZip) {
+        toast({
+          title: "Invalid ZIP Code",
+          description: "Please enter a valid 5-digit ZIP code.",
+          variant: "destructive",
+        });
+        return;
+      }
+      generateMealsMutation.mutate({
+        restaurantName: restaurantInput,
+        craving: cravingInput,
+        cuisine: match || "American",
+        zipCode: zipCode,
+      });
+      return;
+    }
+    
+    // Refresh location before search if using geolocation
+    const freshCoords = await geo.requestLocation();
+    
+    if (!freshCoords && !hasValidZip) {
+      toast({
+        title: "Location Required",
+        description: "Please allow location access or enter a ZIP code.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Generate meals with craving, restaurant, and ZIP code
-    generateMealsMutation.mutate({
-      restaurantName: restaurantInput,
-      craving: cravingInput,
-      cuisine: match || "American",
-      zipCode: zipCode,
-    });
+    if (freshCoords) {
+      generateMealsMutation.mutate({
+        restaurantName: restaurantInput,
+        craving: cravingInput,
+        cuisine: match || "American",
+        lat: freshCoords.latitude,
+        lng: freshCoords.longitude,
+      });
+    } else {
+      generateMealsMutation.mutate({
+        restaurantName: restaurantInput,
+        craving: cravingInput,
+        cuisine: match || "American",
+        zipCode: zipCode,
+      });
+    }
   };
 
   return (
@@ -486,33 +527,67 @@ export default function RestaurantGuidePage() {
                   </div>
                 </div>
                 <div>
-                  <label
-                    htmlFor="zip-input"
-                    className="block text-lg font-semibold text-white mb-2"
-                  >
-                    Your ZIP Code
+                  <label className="block text-lg font-semibold text-white mb-2">
+                    Your Location
                   </label>
-                  <div className="relative">
-                    <Input
-                      data-testid="restaurantguide-zip"
-                      id="zip-input"
-                      placeholder="e.g. 30303, 90210, 10001"
-                      value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                      className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                      maxLength={5}
-                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                    />
-                    {zipCode && (
+                  
+                  {geo.loading ? (
+                    <div className="flex items-center gap-2 p-3 bg-black/40 rounded-lg border border-white/20">
+                      <div className="animate-spin h-4 w-4 border-2 border-white/50 border-t-white rounded-full" />
+                      <span className="text-white/70">Detecting your location...</span>
+                    </div>
+                  ) : geo.latitude && geo.longitude && !useManualZip ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-3 bg-lime-900/40 rounded-lg border border-lime-500/30">
+                        <Navigation className="h-5 w-5 text-lime-400" />
+                        <span className="text-white">Using your current location</span>
+                      </div>
                       <button
-                        onClick={() => setZipCode("")}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
-                        type="button"
+                        onClick={() => setUseManualZip(true)}
+                        className="text-sm text-white/60 hover:text-white/80 underline"
                       >
-                        ✕
+                        Enter ZIP code instead
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {geo.permissionDenied && !useManualZip && (
+                        <div className="flex items-center gap-2 p-2 bg-orange-900/30 rounded-lg border border-orange-500/30 mb-2">
+                          <MapPin className="h-4 w-4 text-orange-400" />
+                          <span className="text-white/70 text-sm">Location access denied. Enter ZIP code below.</span>
+                        </div>
+                      )}
+                      <div className="relative">
+                        <Input
+                          data-testid="restaurantguide-zip"
+                          id="zip-input"
+                          placeholder="e.g. 30303, 90210, 10001"
+                          value={zipCode}
+                          onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                          className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                          maxLength={5}
+                          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                        />
+                        {zipCode && (
+                          <button
+                            onClick={() => setZipCode("")}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
+                            type="button"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                      {geo.latitude && geo.longitude && useManualZip && (
+                        <button
+                          onClick={() => { setUseManualZip(false); setZipCode(""); }}
+                          className="text-sm text-white/60 hover:text-white/80 underline"
+                        >
+                          Use my location instead
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <Button
                   data-wt="rg-search-button"
