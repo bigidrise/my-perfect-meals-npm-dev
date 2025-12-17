@@ -10,8 +10,13 @@ export interface GeolocationState {
   permissionDenied: boolean;
 }
 
+export interface LocationCoords {
+  latitude: number;
+  longitude: number;
+}
+
 export interface UseGeolocationReturn extends GeolocationState {
-  requestLocation: () => Promise<void>;
+  requestLocation: () => Promise<LocationCoords | null>;
   isNative: boolean;
 }
 
@@ -26,7 +31,7 @@ export function useGeolocation(autoRequest = false): UseGeolocationReturn {
 
   const isNative = Capacitor.isNativePlatform();
 
-  const requestLocation = useCallback(async () => {
+  const requestLocation = useCallback(async (): Promise<LocationCoords | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -40,7 +45,7 @@ export function useGeolocation(autoRequest = false): UseGeolocationReturn {
             permissionDenied: true,
             error: 'Location permission denied',
           }));
-          return;
+          return null;
         }
 
         if (permission.location === 'prompt' || permission.location === 'prompt-with-rationale') {
@@ -52,7 +57,7 @@ export function useGeolocation(autoRequest = false): UseGeolocationReturn {
               permissionDenied: true,
               error: 'Location permission denied',
             }));
-            return;
+            return null;
           }
         }
 
@@ -61,13 +66,19 @@ export function useGeolocation(autoRequest = false): UseGeolocationReturn {
           timeout: 10000,
         });
 
-        setState({
+        const coords = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+        };
+
+        setState({
+          ...coords,
           loading: false,
           error: null,
           permissionDenied: false,
         });
+
+        return coords;
       } else {
         if (!navigator.geolocation) {
           setState(prev => ({
@@ -75,33 +86,40 @@ export function useGeolocation(autoRequest = false): UseGeolocationReturn {
             loading: false,
             error: 'Geolocation not supported',
           }));
-          return;
+          return null;
         }
 
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setState({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              loading: false,
-              error: null,
-              permissionDenied: false,
-            });
-          },
-          (error) => {
-            setState(prev => ({
-              ...prev,
-              loading: false,
-              permissionDenied: error.code === error.PERMISSION_DENIED,
-              error: error.message,
-            }));
-          },
-          {
-            enableHighAccuracy: false,
-            timeout: 10000,
-            maximumAge: 300000,
-          }
-        );
+        return new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const coords = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              };
+              setState({
+                ...coords,
+                loading: false,
+                error: null,
+                permissionDenied: false,
+              });
+              resolve(coords);
+            },
+            (error) => {
+              setState(prev => ({
+                ...prev,
+                loading: false,
+                permissionDenied: error.code === error.PERMISSION_DENIED,
+                error: error.message,
+              }));
+              resolve(null);
+            },
+            {
+              enableHighAccuracy: false,
+              timeout: 10000,
+              maximumAge: 60000,
+            }
+          );
+        });
       }
     } catch (error: any) {
       setState(prev => ({
@@ -109,6 +127,7 @@ export function useGeolocation(autoRequest = false): UseGeolocationReturn {
         loading: false,
         error: error.message || 'Failed to get location',
       }));
+      return null;
     }
   }, [isNative]);
 
