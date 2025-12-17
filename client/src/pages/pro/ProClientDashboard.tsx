@@ -171,7 +171,7 @@ export default function ProClientDashboard() {
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-2">
+        <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
             onClick={() => setLocation("/care-team")}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
@@ -180,7 +180,7 @@ export default function ProClientDashboard() {
             <span className="text-sm font-medium">Back</span>
           </button>
           <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Client Dashboard</h1>
-          <QuickTourButton onClick={quickTour.openTour} />
+          <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
         </div>
       </div>
 
