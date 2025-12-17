@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ChefHat, Loader2 } from "lucide-react";
-import { useCreateWithChefRequest, DietType, BeachBodyPhase } from "@/hooks/useCreateWithChefRequest";
+import {
+  useCreateWithChefRequest,
+  DietType,
+  BeachBodyPhase,
+} from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateWithChefModalProps {
@@ -31,7 +35,8 @@ export function CreateWithChefModal({
   dietPhase,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
-  const { generating, progress, error, generateMeal, cancel } = useCreateWithChefRequest();
+  const { generating, progress, error, generateMeal, cancel } =
+    useCreateWithChefRequest();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,7 +56,12 @@ export function CreateWithChefModal({
       return;
     }
 
-    const meal = await generateMeal(description.trim(), mealType, dietType, dietPhase);
+    const meal = await generateMeal(
+      description.trim(),
+      mealType,
+      dietType,
+      dietPhase,
+    );
 
     if (meal) {
       toast({
@@ -86,9 +96,8 @@ export function CreateWithChefModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl text-white">
-            <ChefHat className="h-6 w-6 text-orange-400" />
-            Create With Chef
+            <DialogTitle className="text-white text-xl font-semibold">  
+            Create with AI Chef
           </DialogTitle>
           <DialogDescription className="text-white/60">
             Tell the Chef what you want for {mealType}
@@ -110,7 +119,8 @@ export function CreateWithChefModal({
               }}
             />
             <p className="text-xs text-white/40 mt-2">
-              Describe what you're craving and the Chef will create a personalized meal for you
+              Describe what you're craving and the Chef will create a
+              personalized meal for you
             </p>
           </div>
 
@@ -124,21 +134,11 @@ export function CreateWithChefModal({
             </div>
           )}
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="flex gap-3 pt-2">
             <Button
-              variant="outline"
-              className="flex-1 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
-              onClick={() => onOpenChange(false)}
-              disabled={generating}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white"
               onClick={handleGenerate}
               disabled={generating || !description.trim()}
             >
@@ -149,10 +149,18 @@ export function CreateWithChefModal({
                 </>
               ) : (
                 <>
-                  <ChefHat className="h-4 w-4 mr-2" />
-                  Generate
+                
+                  Generate AI Meal
                 </>
               )}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
+              onClick={() => onOpenChange(false)}
+              disabled={generating}
+            >
+              Cancel
             </Button>
           </div>
         </div>

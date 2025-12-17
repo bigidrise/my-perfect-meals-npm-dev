@@ -641,11 +641,11 @@ const FridgeRescuePage = () => {
                   onClick={handleGenerateMeals}
                   disabled={isLoading}
                   data-testid="fridge-generate"
-                  className="w-full bg-black/30 backdrop-blur-lg hover:bg-black/40 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
+                  className="w-full bg-lime-900 backdrop-blur-lg hover:bg-lime-500 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
                 >
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    🍽️ Generate 3 Meals
+                    
+                    Generate 3 Meals
                   </div>
                 </button>
               </div>

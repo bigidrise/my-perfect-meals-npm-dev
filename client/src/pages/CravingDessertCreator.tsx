@@ -369,13 +369,13 @@ export default function DessertCreator() {
                   />
                 </div>
               ) : (
-                <GlassButton
-                  onClick={handleGenerateDessert}
-                  className="w-full bg-orange-600 hover:bg-orange-700"
-                  icon={<Sparkles className="h-4 w-4" />}
-                >
-                  Create My Dessert
-                </GlassButton>
+          <GlassButton
+            onClick={handleGenerateDessert}
+            className="w-full bg-lime-900 hover:bg-lime-500 flex items-center justify-center"
+          >
+            Create My Dessert
+          </GlassButton>
+
               )}
             </CardContent>
           </Card>

@@ -72,7 +72,7 @@ export function SnackCreatorModal({
       <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl text-white">
-            <Cookie className="h-6 w-6 text-amber-400" />
+            <Cookie className="h-6 w-6 text-lime-400" />
             Snack Creator
           </DialogTitle>
           <DialogDescription className="text-white/60">
@@ -123,7 +123,7 @@ export function SnackCreatorModal({
               Cancel
             </Button>
             <Button
-              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white"
               onClick={handleGenerate}
               disabled={generating || !description.trim()}
             >
