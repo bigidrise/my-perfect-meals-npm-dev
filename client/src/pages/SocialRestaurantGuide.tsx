@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft, MapPin, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -199,6 +199,7 @@ export default function RestaurantGuidePage() {
   const [cravingInput, setCravingInput] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [matchedCuisine, setMatchedCuisine] = useState<string | null>(null);
   const [generatedMeals, setGeneratedMeals] = useState<any[]>([]);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; address: string; rating?: number; photoUrl?: string } | null>(null);
@@ -380,6 +381,57 @@ export default function RestaurantGuidePage() {
     });
   };
 
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location Not Supported",
+        description: "Your browser doesn't support location services.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const response = await apiRequest("/api/restaurants/reverse-geocode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            }),
+          });
+          if (response.zipCode) {
+            setZipCode(response.zipCode);
+            toast({
+              title: "Location Found",
+              description: `ZIP Code: ${response.zipCode}`,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Location Error",
+            description: "Could not get ZIP code for your location.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        toast({
+          title: "Location Access Denied",
+          description: "Please enable location access or enter ZIP manually.",
+          variant: "destructive",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
     <PhaseGate phase="PHASE_1_CORE" feature="restaurant-guide">
       <motion.div
@@ -392,6 +444,12 @@ export default function RestaurantGuidePage() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
+        {/* iOS Safe Area Background Cover - prevents content showing through notch */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black"
+          style={{ height: "env(safe-area-inset-top, 0px)" }}
+        />
+        
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -492,26 +550,41 @@ export default function RestaurantGuidePage() {
                   >
                     Your ZIP Code
                   </label>
-                  <div className="relative">
-                    <Input
-                      data-testid="restaurantguide-zip"
-                      id="zip-input"
-                      placeholder="e.g. 30303, 90210, 10001"
-                      value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                      className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                      maxLength={5}
-                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                    />
-                    {zipCode && (
-                      <button
-                        onClick={() => setZipCode("")}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
-                        type="button"
-                      >
-                        ✕
-                      </button>
-                    )}
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        data-testid="restaurantguide-zip"
+                        id="zip-input"
+                        placeholder="e.g. 30303, 90210, 10001"
+                        value={zipCode}
+                        onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                        className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                        maxLength={5}
+                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      />
+                      {zipCode && (
+                        <button
+                          onClick={() => setZipCode("")}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
+                          type="button"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleUseLocation}
+                      disabled={isGettingLocation}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 flex-shrink-0"
+                    >
+                      {isGettingLocation ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MapPin className="h-4 w-4" />
+                      )}
+                      <span className="ml-1 hidden sm:inline">Use Location</span>
+                    </Button>
                   </div>
                 </div>
                 <Button

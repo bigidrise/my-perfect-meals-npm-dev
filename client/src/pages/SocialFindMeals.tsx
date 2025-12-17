@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -98,6 +98,7 @@ export default function MealFinder() {
 
   const [mealQuery, setMealQuery] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [results, setResults] = useState<MealResult[]>([]);
   const [progress, setProgress] = useState(0);
   const hasRestoredRef = useRef(false);
@@ -208,6 +209,57 @@ export default function MealFinder() {
     findMealsMutation.mutate({ mealQuery, zipCode });
   };
 
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location Not Supported",
+        description: "Your browser doesn't support location services.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const response = await apiRequest("/api/restaurants/reverse-geocode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            }),
+          });
+          if (response.zipCode) {
+            setZipCode(response.zipCode);
+            toast({
+              title: "Location Found",
+              description: `ZIP Code: ${response.zipCode}`,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Location Error",
+            description: "Could not get ZIP code for your location.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        toast({
+          title: "Location Access Denied",
+          description: "Please enable location access or enter ZIP manually.",
+          variant: "destructive",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const handleGoBack = () => {
     setLocation("/social-hub");
   };
@@ -215,6 +267,12 @@ export default function MealFinder() {
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
+        {/* iOS Safe Area Background Cover - prevents content showing through notch */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black"
+          style={{ height: "env(safe-area-inset-top, 0px)" }}
+        />
+        
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -274,17 +332,32 @@ export default function MealFinder() {
                   <label className="block text-md text-white/80 mb-2">
                     Zip Code
                   </label>
-                  <Input
-                    placeholder="e.g., 30303, 90210, 10001"
-                    value={zipCode}
-                    onChange={(e) =>
-                      setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
-                    }
-                    className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                    maxLength={5}
-                    onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                    data-testid="input-zip-code"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., 30303, 90210, 10001"
+                      value={zipCode}
+                      onChange={(e) =>
+                        setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
+                      }
+                      className="flex-1 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                      maxLength={5}
+                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      data-testid="input-zip-code"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleUseLocation}
+                      disabled={isGettingLocation}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 flex-shrink-0"
+                    >
+                      {isGettingLocation ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MapPin className="h-4 w-4" />
+                      )}
+                      <span className="ml-1 hidden sm:inline">Use Location</span>
+                    </Button>
+                  </div>
                 </div>
 
                 <Button

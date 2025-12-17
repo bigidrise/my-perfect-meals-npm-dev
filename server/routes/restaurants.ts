@@ -3,7 +3,7 @@
 import { Router } from "express";
 import axios from "axios";
 import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
-import { zipToCoordinates } from "../services/zipToCoordsService";
+import { zipToCoordinates, coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -201,6 +201,38 @@ router.post("/analyze-menu", async (req, res) => {
     console.error("Restaurant meal generation error:", error);
     return res.status(500).json({ 
       error: "Failed to generate restaurant meals",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// Reverse geocoding endpoint - converts GPS coordinates to ZIP code
+router.post("/reverse-geocode", async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      return res.status(400).json({ 
+        error: "Latitude and longitude are required as numbers" 
+      });
+    }
+
+    console.log(`📍 Reverse geocoding: (${lat}, ${lng})`);
+    
+    const zipCode = await coordsToZip(lat, lng);
+    
+    if (!zipCode) {
+      return res.status(404).json({ 
+        error: "Could not determine ZIP code for this location" 
+      });
+    }
+
+    return res.json({ zipCode });
+
+  } catch (error) {
+    console.error("Reverse geocoding error:", error);
+    return res.status(500).json({ 
+      error: "Failed to get ZIP code",
       details: error instanceof Error ? error.message : "Unknown error"
     });
   }
