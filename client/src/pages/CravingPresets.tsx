@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Users, ChefHat, ArrowLeft } from "lucide-react";
 import { CRAVING_PRESETS, type CravingPreset, type Ingredient } from "@/data/cravingsPresetsData";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
@@ -65,8 +68,15 @@ function scaleIngredients(
   return ings.map((ing) => scaledIngredient(ing, baseServings, toServings, rounding));
 }
 
+const PRESETS_TOUR_STEPS: TourStep[] = [
+  { title: "Select Servings & Rounding", description: "Choose how many servings you need and your preferred measurement style." },
+  { title: "Browse & Select", description: "Tap any meal image to see ingredients, nutrition, and cooking instructions." },
+  { title: "Take Action", description: "Send ingredients to your shopping list, log your macros, or do both with one tap." },
+];
+
 export default function CravingPresetsPage() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("craving-presets");
   const [selectedServings, setSelectedServings] = useState<number>(2);
   const [rounding, setRounding] = useState<RoundingMode>("tenth");
   const [filterText, setFilterText] = useState("");
@@ -131,7 +141,8 @@ export default function CravingPresetsPage() {
           {/* Title */}
           <h1 data-testid="craving-premades-hero" className="text-lg font-bold text-white">Premade Cravings</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -372,6 +383,13 @@ export default function CravingPresetsPage() {
             />
           </div>
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Craving Premades"
+          steps={PRESETS_TOUR_STEPS}
+        />
       </div>
     </div>
   );

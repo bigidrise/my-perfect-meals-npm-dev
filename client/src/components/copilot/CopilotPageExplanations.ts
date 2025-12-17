@@ -6,14 +6,14 @@ export interface PageExplanation {
   autoClose: boolean;
 }
 
-export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
+export const PAGE_EXPLANATIONS: Record<string, metricPageExplanation> = {
   "/my-biometrics": {
     pageId: "my-biometrics",
     title: "My Biometrics",
     description:
       "Use My Biometrics to set your daily macros, log meals and photos, track calories and body weight over time, and monitor your daily water intake.",
     spokenText:
-      "This is your Biometrics page. When you send your macros here from the macro calculator, they become your total daily targets. Everything you log on this page is tracked against those numbers for the day. You can add meals or macros manually, or bring them in from meal cards or photo logs. Once they appear, just tap add to include them in today’s totals. You can also delete or reset entries anytime. Your calories are tracked for today, the past seven days, and the past 30 days, so you can see trends over time. You can also log your body weight and view progress across one month, three months, six months, or up to a full year. At the bottom of the page, you’ll find your water log, where you can track your daily hydration throughout the day.",
+      "This is your Biometrics page. When you send your macros here from the macro calculator, they become your total daily targets. Everything you log on this page is tracked against those numbers for the day. You can add meals or macros manually, or bring them in from meal cards or photo logs. Once they appear, just tap add to include them in today’s totals. You can also delete or reset entries anytime. We track your calories for today, the past seven days, and up to thirty days, so you can see how your intake changes over time and spot trends easily. You can also log your body weight and view progress across one month, three months, six months, or up to a full year. At the bottom of the page, you’ll find your water log, where you can track your daily hydration throughout the day.",
     autoClose: true,
   },
 
@@ -23,7 +23,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Use Craving Creator to describe what you’re in the mood for and get a personalized recipe that fits your taste, preferences, and lifestyle.",
     spokenText:
-      "Craving Creator. Describe what you're craving. For example, say I want something sweet, crunchy, lowfat, low sugar, no gluten or I want a creamy shake, or something tangy and refreshing. Select your servings, press Create, and enjoy your personalized meal. You NEVER have to ignore your cravings again!",
+      "Craving Creator is where you turn cravings into meals that actually work for your lifestyle. Start by describing what you’re in the mood for, whether that’s sweet, crunchy, creamy, tangy, or anything else you’re craving right now. Next, choose how many servings you want, then press Create and get a personalized recipe built around your taste. You never have to ignore your cravings again.",
     autoClose: true,
   },
 
@@ -123,7 +123,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Discover healthy meals near you. Enter what your craving and your zip code, and the app will return three nearby restaurants with two meal options for you to choose from.",
     spokenText:
-      "Find Meals Near Me. Tell me what your craving and your zip code, and I’ll show you three restaurants in that area with healthy meal options from each one.",
+      "Find Meals Near Me. Tell me what you’re craving and your zip code, and I’ll show you nearby restaurants with two healthy meal options from each, along with simple guidance on how to order off the menu.",
     autoClose: true,
   },
 
@@ -230,7 +230,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your central hub for everyday food, lifestyle, and real-life eating decisions.",
     spokenText:
-      "Welcome to the Lifestyle Hub, where everything comes together for real life. From here you can build healthier cravings, make meals from what’s in your fridge, find smarter options when eating out, choose meals for kids or toddlers, and explore better drink choices in the Spirits and Lifestyle Hub. Pick what you need and I’ll guide you through it.",
+    "Welcome to the Lifestyle Hub, where everything comes together for real life. From here you can enjoy your cravings in a healthier way, turn what’s in your fridge into meals, find smarter options when eating out, choose meals for kids or toddlers, and explore drink choices in the Spirits and Lifestyle Hub. This space is here to help you enjoy food, social time, and nights out without stress, guilt, or overthinking — so explore what you need and enjoy yourself.",
     autoClose: true,
   },
 
@@ -278,7 +278,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build meals across one or multiple days using structured or conversational meal tools guided by your goals.",
     spokenText:
-      "All meal builders work the same way, with guardrails based on the board you’re using. When building meals, you have three options. Use the AI Meal Creator if you want to pick specific ingredients using the meal picker. Use Create With Chef if you’d rather describe what you want and let the Chef build it for you. For snacks, you’ll also describe what you want and the Chef will create it. Choose how many days you want to build, create breakfast, lunch, dinner, and snacks, adjust servings, then send meals to your macro table or ingredients to your shopping list.",
+"All meal builders work the same way, with guardrails based on the board you’re using. Start by choosing how you want to build your meals — use Create with AI if you want to pick specific ingredients, or Create with Chef if you’d rather describe what you want and let the Chef build it for you. Choose how many days you want to plan, then fill in each day by creating breakfast, lunch, dinner, and snacks, adjusting servings as needed, with prep cards there to guide you if you need them. To save time, you can duplicate a full day and copy those meals to other days of the week. As you build, you can send your day to the Macro Calculator to track nutrition or send ingredients straight to your shopping list to build groceries automatically. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over for the day, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
     autoClose: true,
   },
 
@@ -317,7 +317,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     title: "Glp1 Meal Builder",
     description: "Create portion-aware meals designed to support GLP-1 goals.",
     spokenText:
-      "The GLP-1 Meal Builder follows the same process with guardrails designed for portion control and satiety. Use the AI Meal Creator if you want to select ingredients, or use Create With Chef to describe your meals and snacks. Portions are guided automatically, and you can send meals to your macro table or shopping list when finished.",
+"The GLP-1 Meal Builder works just like the other builders, with guardrails designed for portion control, satiety, and GLP-1 support. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to pick specific ingredients, or Create With Chef if you’d rather describe your meals and snacks and let the Chef build them for you. Choose how many days you want to plan, then create breakfast, lunch, dinner, and snacks, with portions guided automatically to support fullness and consistency. To save time, you can duplicate a full day to other days of the week. As you build, you can send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
     autoClose: true,
   },
 
@@ -326,7 +326,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     title: "Anti-Inflammatory Meal Builder",
     description: "Build meals focused on inflammation-friendly ingredients.",
     spokenText:
-      "The Anti-Inflammatory Meal Builder uses the same tools with guardrails focused on inflammation-friendly choices. Build meals using the AI Meal Creator with the meal picker, or describe your meals and snacks using Create With Chef. Adjust servings, plan your days, and send meals to your macro table or shopping list.",
+"The Anti-Inflammatory Meal Builder works just like the other builders, with guardrails focused on inflammation-friendly food choices. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to pick specific ingredients with the meal picker, or Create With Chef if you’d rather describe your meals and snacks and let the Chef build them for you. Choose how many days you want to plan, then create breakfast, lunch, dinner, and snacks, adjusting servings as needed while the builder keeps everything aligned with anti-inflammatory guidelines. To save time, you can duplicate a full day across the week. As you build, send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
     autoClose: true,
   },
 
@@ -336,7 +336,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create structured meals designed for performance and body composition.",
     spokenText:
-      "The Beachbody Meal Builder uses the same meal-building flow with performance-focused guardrails. Choose the AI Meal Creator to select ingredients, or use Create With Chef to describe meals and snacks. Build one or multiple days, adjust portions, and send meals to your macro table or shopping list.",
+"The Beachbody Meal Builder works just like the other builders, with performance-focused guardrails to support training, recovery, and consistency. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to select specific ingredients, or Create With Chef if you’d rather describe your meals and snacks and let the Chef build them for you. Choose how many days you want to plan, then create breakfast, lunch, dinner, and snacks, adjusting portions to match your activity and goals. To save time, you can duplicate a full day across the week. As you build, send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
     autoClose: true,
   },
 
@@ -346,7 +346,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Connect with trainers, physicians, or coaches to build and manage your personal care team.",
     spokenText:
-      "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone’s team using an access code. Once connected, you’ll appear on each other’s active care team and can manage your support network anytime. Choose the option you need to get started.",
+"Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone else’s team using an access code. Once connected, you’ll appear on each other’s active care team, making it easy to collaborate, share progress, and manage support in one place. You can update or manage your care team at any time, so choose the option that fits what you want to do and get started.",
     autoClose: true,
   },
 
@@ -422,9 +422,27 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
-  return PAGE_EXPLANATIONS[pathname] || null;
+  // First try exact match
+  if (PAGE_EXPLANATIONS[pathname]) {
+    return PAGE_EXPLANATIONS[pathname];
+  }
+
+  // Try pattern matching for dynamic routes (e.g., /pro/clients/:id)
+  for (const [pattern, explanation] of Object.entries(PAGE_EXPLANATIONS)) {
+    if (pattern.includes(":")) {
+      // Convert pattern to regex: /pro/clients/:id -> /pro/clients/[^/]+
+      // But ensure exact match: /pro/clients/:id should NOT match /pro/clients/:id/something
+      const regexPattern = pattern.replace(/:[\w]+/g, "[^/]+");
+      const regex = new RegExp(`^${regexPattern}$`);
+      if (regex.test(pathname)) {
+        return explanation;
+      }
+    }
+  }
+
+  return null;
 }
 
 export function hasPageExplanation(pathname: string): boolean {
-  return pathname in PAGE_EXPLANATIONS;
+  return getPageExplanation(pathname) !== null;
 }

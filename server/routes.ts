@@ -288,9 +288,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elevenlabs-config", async (req, res) => {
     try {
       const apiKey = process.env.ELEVENLABS_API_KEY;
-      console.log("ElevenLabs config requested - hasKey:", !!apiKey);
+      const voiceId = process.env.ELEVENLABS_VOICE_ID || "ErXwobaYiN019PkySvjV";
+      console.log("ElevenLabs config requested - hasKey:", !!apiKey, "voiceId:", voiceId);
       res.json({ 
-        hasKey: !!apiKey 
+        hasKey: !!apiKey,
+        apiKey: apiKey || null,
+        voiceId: voiceId
       });
     } catch (error) {
       console.error("Error fetching ElevenLabs config:", error);

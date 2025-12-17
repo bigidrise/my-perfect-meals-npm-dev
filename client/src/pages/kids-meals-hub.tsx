@@ -10,6 +10,16 @@ import { kidsMeals, type KidsMeal } from "@/data/kidsMealsData";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const KIDS_MEALS_TOUR_STEPS: TourStep[] = [
+  { title: "Browse Meals", description: "Scroll through 21 kid-approved healthy meal options." },
+  { title: "Adjust Servings", description: "Set your serving size to scale ingredient quantities." },
+  { title: "View Details", description: "Tap any meal to see ingredients, nutrition, and cooking instructions." },
+  { title: "Add to Shopping", description: "Use the shopping bar to add ingredients to your list." },
+];
 
 const SERVING_OPTIONS = [1, 2, 4, 6, 8] as const;
 
@@ -73,6 +83,7 @@ function scaleIngredients(
 
 export default function KidsMealsHub() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("kids-meals");
   const [selectedServings, setSelectedServings] = useState<number>(2);
   const [rounding, setRounding] = useState<RoundingMode>("tenth");
   const [filterText, setFilterText] = useState("");
@@ -146,7 +157,8 @@ export default function KidsMealsHub() {
           {/* Title */}
           <h1 data-testid="kids-meals-hero" className="text-lg font-bold text-white">Kids Meals Hub</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -369,6 +381,13 @@ export default function KidsMealsHub() {
             />
           </div>
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Kids Meals"
+          steps={KIDS_MEALS_TOUR_STEPS}
+        />
       </div>
     </div>
   );

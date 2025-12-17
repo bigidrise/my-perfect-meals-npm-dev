@@ -866,3 +866,49 @@ button[data-state="open"] {
   outline: 2px solid rgba(163,230,53,0.9);
   outline-offset: 2px;
 }
+
+/* ===============================================
+   DARK GLASS AUTOFILL STYLING
+   Forces browser autocomplete to use dark styling
+   =============================================== */
+
+/* WebKit browsers (Chrome, Safari, Edge) autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.6) inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  caret-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Firefox autofill */
+input:autofill,
+textarea:autofill,
+select:autofill {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Dark theme for autocomplete dropdown (Chrome data-list) */
+::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Style datalist options for dark mode */
+datalist option {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+}

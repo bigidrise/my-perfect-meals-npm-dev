@@ -1,21 +1,17 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function WelcomeGate({
-  onComplete,
-}: {
-  onComplete: () => void;
-}) {
+export default function WelcomeGate({ onComplete }: { onComplete: () => void }) {
   const [fade, setFade] = useState(false);
 
   const chooseMode = (mode: "guided" | "self") => {
     localStorage.setItem("coachMode", mode);
-
+    
     // If user chose "My Perfect Copilot", flag for intro
     if (mode === "guided") {
       localStorage.setItem("trigger-copilot-intro", "true");
     }
-
+    
     setFade(true);
     setTimeout(onComplete, 1000);
   };
@@ -32,14 +28,11 @@ export default function WelcomeGate({
           data-testid="welcome-gate"
         >
           <div className="text-center space-y-6 px-6 max-w-md">
-            <h1 className="text-2xl font-bold text-white">
-              Choose Your Journey
-            </h1>
-            <p className="text-sm text-white/80">
-              Select the experience that best fits your style. You can turn
-              copilot on and off at anytime.
+            <h1 className="text-2xl font-bold text-white">Choose How You’d Like to Begin Your Journey</h1>
+            <p className="text-sm text-white/80">Select the experience that best fits your style. You can switch modes anytime under Coach Settings.</p>
+            <p className="text-sm text-white/60">
+              
             </p>
-            <p className="text-sm text-white/60"></p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
               <button
                 onClick={() => chooseMode("guided")}

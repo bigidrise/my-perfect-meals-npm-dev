@@ -52,13 +52,15 @@ export async function speakWithElevenLabs(text: string, mood: string = 'professi
   const selectedAvatar = localStorage.getItem('selectedAvatar') || '';
   const shouldSpeak = localStorage.getItem('voiceEnabled') !== 'false';
 
-  // Get API key from backend since Vite env vars need VITE_ prefix and we want to keep the key secure
+  // Get API key and voice ID from backend since we want to keep them secure
   let apiKey: string | null = null;
+  let customVoiceId: string | null = null;
   try {
     const response = await fetch(apiUrl('/api/elevenlabs-config'));
     if (response.ok) {
       const config = await response.json();
       apiKey = config.apiKey;
+      customVoiceId = config.voiceId;
     }
   } catch (error) {
     console.log('Failed to get ElevenLabs config:', error);
@@ -75,8 +77,9 @@ export async function speakWithElevenLabs(text: string, mood: string = 'professi
   // Try ElevenLabs first if API key is available
   if (apiKey) {
     try {
-      const voiceId = selectedAvatar.includes('Female') ? '21m00Tcm4TlvDq8ikWAM' : 'pNInz6obpgDQGcFmaJgB';
-      console.log('🎤 Attempting ElevenLabs TTS:', { text, voiceId, mood });
+      // Use custom voice ID from server config, fallback to defaults only if not set
+      const voiceId = customVoiceId || (selectedAvatar.includes('Female') ? '21m00Tcm4TlvDq8ikWAM' : 'pNInz6obpgDQGcFmaJgB');
+      console.log('🎤 Attempting ElevenLabs TTS:', { text, voiceId, mood, usingCustomVoice: !!customVoiceId });
 
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
         method: 'POST',

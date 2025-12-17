@@ -3,6 +3,15 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Baby, Users } from "lucide-react";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const KIDS_HUB_TOUR_STEPS: TourStep[] = [
+  { title: "Pick an Age Group", description: "Choose between Kids Meals (ages 4+) or Toddler Meals (ages 1–3)." },
+  { title: "Browse & Save", description: "Browse meals, adjust servings, and add items to your shopping list." },
+  { title: "Healthy & Delicious", description: "All meals are designed to be nutritious and kid-approved." },
+];
 
 interface KidsFeature {
   title: string;
@@ -15,6 +24,7 @@ interface KidsFeature {
 
 export default function HealthyKidsMeals() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("healthy-kids-meals");
 
   useEffect(() => {
     document.title = "Healthy Kids Meals | My Perfect Meals";
@@ -78,7 +88,8 @@ export default function HealthyKidsMeals() {
           {/* Title */}
           <h1 className="text-lg font-bold text-white">Healthy Kids Meals Hub</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -135,6 +146,13 @@ export default function HealthyKidsMeals() {
           </div>
         </div>
       </div>
+
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="How to Use Healthy Kids Meals"
+        steps={KIDS_HUB_TOUR_STEPS}
+      />
     </motion.div>
   );
 }
