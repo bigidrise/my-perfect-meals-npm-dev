@@ -1,3 +1,7 @@
+0fb3c68b6e73f37131dcdbf60db4c07a  server/services/stableMealGenerator.ts
+5742b4a603b129cc3ea2117fea6d02e8  server/services/universalMealGenerator.ts
+b011e2fd74df0042720e31876388a7ff  server/services/fridgeRescueGenerator.ts
+5bb6405343d53cd611061806f18b5856  server/services/unifiedMealPipeline.ts
 d868eb32750a5da17e927821ad3eaa61  client/src/components/modals/AIMealCreatorModal.tsx
 43236d759520a18a672cb2bf8696ee66  client/src/components/PreparationModal.tsx
 a1cfa34755b874a88bb578a7c9662293  client/src/components/pickers/MealPremadePicker.tsx
@@ -6,4 +10,3 @@ b1db28c107541a3fcd026823bd10f2f5  client/src/pages/WeeklyMealBoard.tsx
 7c697ed30e3328021c6eea23d2929ea0  client/src/pages/pro/PerformanceCompetitionBuilder.tsx
 36fc9a863378447cfc0a2da9ebd3f953  client/src/pages/Planner.tsx
 e43f2831f6a95fc192ce80cf88278d03  server/routes/manualMacros.ts
-5bb6405343d53cd611061806f18b5856  server/services/unifiedMealPipeline.ts
