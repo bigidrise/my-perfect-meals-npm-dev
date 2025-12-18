@@ -753,21 +753,17 @@ export default function CravingCreator() {
                             {meal.name}
                           </h3>
                         </div>
-                        <TrashButton
+                        <button
                           onClick={() => {
                             setGeneratedMeals([]);
                             clearCravingCache();
-                            toast({
-                              title: "🗑️ Meal Deleted",
-                              description:
-                                "Your generated meal has been removed.",
-                            });
+                            setCravingInput("");
                           }}
-                          size="sm"
-                          ariaLabel="Delete meal"
-                          title="Delete meal"
-                          data-testid="button-delete-meal"
-                        />
+                          className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                          data-testid="button-create-new"
+                        >
+                          Create New
+                        </button>
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
