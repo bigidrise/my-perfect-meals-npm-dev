@@ -1,0 +1,115 @@
+~/workspace$ ./push.sh "Craving Creator - Replaced the trash/delete button with a "Create New" button in the meal card header
+
+Dessert Creator - Already had the pattern implemented (from earlier work)
+
+Fridge Rescue - Moved the button from footer to results header, standardized styling
+
+Restaurant Guide - Added "Create New" button to results header
+
+Find Meals - Added "Create New" button to results header"
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+📏 Checking for truncation (minimum line counts)...
+✅ OK: server/services/universalMealGenerator.ts (187 lines, min: 150)
+✅ OK: server/services/fridgeRescueGenerator.ts (466 lines, min: 200)
+✅ OK: server/services/stableMealGenerator.ts (1027 lines, min: 900)
+✅ OK: server/services/unifiedMealPipeline.ts (804 lines, min: 100)
+
+🔐 Checking checksums...
+✅ OK: server/services/stableMealGenerator.ts
+✅ OK: server/services/universalMealGenerator.ts
+✅ OK: server/services/fridgeRescueGenerator.ts
+✅ OK: server/services/unifiedMealPipeline.ts
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/components/pickers/MealPremadePicker.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+
+✅ All critical files verified!
+✅ No unexpected changes detected
+
+2️⃣ Verifying server is running...
+✅ Server is running on port 5000
+
+====================================
+✅ ALL VALIDATION CHECKS PASSED!
+====================================
+
+Publishing: Craving Creator - Replaced the trash/delete button with a Create
+
+On branch production
+Your branch is ahead of 'origin/production' by 6 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+ℹ️  Nothing new to commit
+
+Pushing to GitHub...
+error: src refspec staging does not match any
+error: failed to push some refs to 'https://github.com/bigidrise/my-perfect-meals-clean-ai'
+❌ Push failed. Check your connection and try again.
+~/workspace$ ./push.sh "Standardize Create New button across all meal generators"
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+📏 Checking for truncation (minimum line counts)...
+✅ OK: server/services/universalMealGenerator.ts (187 lines, min: 150)
+✅ OK: server/services/fridgeRescueGenerator.ts (466 lines, min: 200)
+✅ OK: server/services/stableMealGenerator.ts (1027 lines, min: 900)
+✅ OK: server/services/unifiedMealPipeline.ts (804 lines, min: 100)
+
+🔐 Checking checksums...
+✅ OK: server/services/stableMealGenerator.ts
+✅ OK: server/services/universalMealGenerator.ts
+✅ OK: server/services/fridgeRescueGenerator.ts
+✅ OK: server/services/unifiedMealPipeline.ts
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/components/pickers/MealPremadePicker.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+
+✅ All critical files verified!
+✅ No unexpected changes detected
+
+2️⃣ Verifying server is running...
+✅ Server is running on port 5000
+
+====================================
+✅ ALL VALIDATION CHECKS PASSED!
+====================================
+
+Publishing: Standardize Create New button across all meal generators
+
+On branch production
+Your branch is ahead of 'origin/production' by 7 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+ℹ️  Nothing new to commit
+
+Pushing to GitHub...
+To https://github.com/bigidrise/my-perfect-meals-clean-ai
+ ! [rejected]        production -> production (fetch first)
+error: failed to push some refs to 'https://github.com/bigidrise/my-perfect-meals-clean-ai'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+❌ Push failed. Check your connection and try again.
+~/workspace$ 
