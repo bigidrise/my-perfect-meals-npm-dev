@@ -676,18 +676,31 @@ export default function RestaurantGuidePage() {
               {generatedMeals.length > 0 && (
                 <div data-wt="rg-results-list" className="space-y-6 mb-6">
                   <div className="mb-4">
-                    <h2 className="text-xl font-bold text-white">
-                      🍽️ Recommended Meals at{" "}
-                      {restaurantInfo?.name ||
-                        restaurantInput
-                          .split(" ")
-                          .map(
-                            (word) =>
-                              word.charAt(0).toUpperCase() +
-                              word.slice(1).toLowerCase(),
-                          )
-                          .join(" ")}
-                    </h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold text-white">
+                        🍽️ Recommended Meals at{" "}
+                        {restaurantInfo?.name ||
+                          restaurantInput
+                            .split(" ")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() +
+                                word.slice(1).toLowerCase(),
+                            )
+                            .join(" ")}
+                      </h2>
+                      <button
+                        onClick={() => {
+                          setGeneratedMeals([]);
+                          clearRestaurantCache();
+                          setRestaurantInput("");
+                        }}
+                        className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                        data-testid="button-create-new"
+                      >
+                        Create New
+                      </button>
+                    </div>
                     {restaurantInfo?.address && (
                       <p className="text-white/70 text-sm mt-1">
                         📍 {restaurantInfo.address}

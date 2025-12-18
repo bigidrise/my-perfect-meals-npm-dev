@@ -677,10 +677,17 @@ const FridgeRescuePage = () => {
               data-testid="fridge-results"
               className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-6xl mx-auto mt-8"
             >
-              <div className="text-center mb-8">
-                <h2 className="text-xl font-bold text-white mb-2">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-bold text-white">
                   🍽️ Your Fridge Rescue Meals
                 </h2>
+                <button
+                  onClick={handleNewSearch}
+                  className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                  data-testid="button-create-new"
+                >
+                  Create New
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -916,14 +923,6 @@ const FridgeRescuePage = () => {
                 ))}
               </div>
 
-              <div className="text-center">
-                <button
-                  onClick={handleNewSearch}
-                  className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold py-3 px-8 rounded-xl transition-colors"
-                >
-                  🔄 Create More Meals
-                </button>
-              </div>
             </div>
           )}
         </div>
