@@ -167,8 +167,6 @@ export default function Router() {
     "/weekly",
     "/performance-competition-builder",
     "/beach-body-meal-board",
-    "/craving-creator",
-    "/craving-presets",
     "/glp1-meal-builder",
     "/diabetic-menu-builder",
     "/anti-inflammatory-menu-builder",
