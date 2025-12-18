@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { checkForUpdates, type VersionCheckResult } from '@/lib/versionCheck';
+import { forceReloadWithCacheClear } from '@/lib/webviewCache';
 
 const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -98,11 +99,11 @@ export function useVersionCheck() {
           return;
         }
 
-        // If version changed, force immediate reload (Facebook-style silent update)
+        // If version changed, force immediate reload with WKWebView cache clear (iOS fix)
         if (version !== current) {
-          console.log(`🔄 Version changed: ${current} → ${version}, reloading...`);
+          console.log(`🔄 Version changed: ${current} → ${version}, clearing cache and reloading...`);
           localStorage.setItem("appVersion", version);
-          window.location.reload();
+          await forceReloadWithCacheClear();
         }
       } catch (err) {
         console.error("Focus version check failed:", err);
