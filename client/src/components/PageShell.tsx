@@ -7,12 +7,15 @@ interface PageShellProps {
   backButton?: React.ReactNode;
   className?: string;
   headerClassName?: string;
+  hasShoppingBanner?: boolean;
 }
 
-export default function PageShell({ title, children, actions, backButton, className, headerClassName }: PageShellProps) {
+export default function PageShell({ title, children, actions, backButton, className, headerClassName, hasShoppingBanner = false }: PageShellProps) {
+  const paddingClass = hasShoppingBanner ? "pb-safe-both" : "pb-safe-nav";
+  
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black">
-      <div className={`mx-auto max-w-7xl p-4 sm:p-6 ${className || ''}`}>
+    <div className={`min-h-full flex flex-col bg-gradient-to-b from-black via-zinc-950 to-black pt-safe-top ${paddingClass}`}>
+      <div className={`mx-auto max-w-7xl p-4 sm:p-6 flex-1 ${className || ''}`}>
         <div className={`mb-4 flex items-center justify-between ${headerClassName ? `p-4 ${headerClassName}` : ''}`}>
           <div className="flex items-center gap-3">
             {backButton}
