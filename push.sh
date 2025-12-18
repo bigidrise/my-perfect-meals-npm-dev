@@ -72,11 +72,10 @@ else
   echo "ℹ️  Nothing new to commit"
 fi
 
-# Push to GitHub (push to current branch)
+# Push to GitHub
 echo ""
 echo "Pushing to GitHub..."
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if git push -u origin "$CURRENT_BRANCH" 2>&1; then
+if git push -u origin staging 2>&1; then
   echo "✅ SUCCESSFULLY PUBLISHED!"
   echo ""
   echo "📋 What was published:"
