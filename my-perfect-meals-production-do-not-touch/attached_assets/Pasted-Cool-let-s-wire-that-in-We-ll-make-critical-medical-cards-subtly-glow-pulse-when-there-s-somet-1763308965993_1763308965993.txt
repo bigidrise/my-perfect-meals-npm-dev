@@ -1,0 +1,208 @@
+Cool, let’s wire that in.
+We’ll make **critical medical cards subtly glow/pulse** when there’s something like **cardiac, renal, GLP-1, diabetic**, etc.
+
+We’ll do it in **3 tight steps**:
+
+---
+
+## 1️⃣ Add a tiny “subtle glow” animation utility
+
+In your global stylesheet (where Tailwind base/utilities live — usually `globals.css`, `app.css`, or `index.css`), add this:
+
+```css
+@keyframes medicalGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(190, 242, 100, 0.0); /* lime-300-ish */
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 14px 3px rgba(190, 242, 100, 0.45);
+    border-color: rgba(190, 242, 100, 0.75);
+  }
+}
+
+/* Reusable for any medical “critical” card */
+.medical-critical-card {
+  animation: medicalGlow 2.4s ease-in-out infinite;
+}
+```
+
+That gives you a **slow, soft glow** instead of a crazy blinking mess.
+
+---
+
+## 2️⃣ Update `HealthBadgesPopover.tsx` to glow when badges are critical
+
+At the top of the file (after imports), add:
+
+```ts
+const CRITICAL_BADGE_KEYS = [
+  "cardiac",
+  "heart-healthy",
+  "heart",
+  "renal",
+  "kidney",
+  "glp1",
+  "diabetes",
+  "diabetic",
+];
+```
+
+Then inside the component, right after:
+
+```ts
+const items = useMemo(() => normalizeBadges(badges), [badges]);
+const count = items.length;
+```
+
+add:
+
+```ts
+const hasCritical = items.some(item =>
+  CRITICAL_BADGE_KEYS.includes(item.key)
+);
+```
+
+Now change the `PopoverContent` className to conditionally add the glow:
+
+```tsx
+<PopoverContent
+  align={align}
+  side={side}
+  sideOffset={8}
+  className={`rounded-2xl max-w-xs p-4 space-y-2 text-sm z-50
+              border border-white/15
+              bg-gradient-to-b from-white/5 via-black/80 to-black/95
+              bg-clip-padding backdrop-blur-xl
+              shadow-xl shadow-emerald-500/20
+              ${hasCritical ? "medical-critical-card" : ""}`}
+>
+```
+
+✅ Result:
+If any badge key is cardiac/renal/GLP-1/diabetic etc, that card gets the **soft pulse**.
+
+---
+
+## 3️⃣ Do the same for `MedicalInfoBubble.tsx` and `HealthBadgePopup.tsx`
+
+### a) `MedicalInfoBubble.tsx`
+
+Near the top (after imports and before the component), add:
+
+```ts
+const CRITICAL_BADGE_LABEL_MATCHES = [
+  "cardiac",
+  "heart",
+  "heart-healthy",
+  "low sodium",
+  "renal",
+  "kidney",
+  "glp-1",
+  "glp1",
+  "diabetes",
+  "diabetic",
+];
+```
+
+Inside `MedicalInfoBubble`, after:
+
+```ts
+if (!badges || badges.length === 0) return null;
+```
+
+add:
+
+```ts
+const hasCritical = badges.some(badge => {
+  const label = badge.label?.toLowerCase() || "";
+  return CRITICAL_BADGE_LABEL_MATCHES.some(match =>
+    label.includes(match)
+  );
+});
+```
+
+Then change the popover div to:
+
+```tsx
+{isOpen && (
+  <div
+    className={`absolute z-50 mt-2 w-64 p-3 text-white text-sm
+                rounded-2xl border border-white/15
+                bg-gradient-to-b from-white/5 via-black/80 to-black/95
+                bg-clip-padding backdrop-blur-xl
+                shadow-xl shadow-emerald-500/20
+                ${hasCritical ? "medical-critical-card" : ""}`}
+  >
+    {/* ...rest stays the same... */}
+  </div>
+)}
+```
+
+---
+
+### b) `HealthBadgePopup.tsx`
+
+At the top (after imports):
+
+```ts
+const CRITICAL_BADGE_TEXT_MATCHES = [
+  "cardiac",
+  "heart",
+  "heart-healthy",
+  "low sodium",
+  "renal",
+  "kidney",
+  "glp-1",
+  "glp1",
+  "diabetes",
+  "diabetic",
+];
+```
+
+Inside the component, after:
+
+```ts
+if (!badges || badges.length === 0) return null;
+```
+
+add:
+
+```ts
+const hasCritical = badges.some(text => {
+  const lower = text.toLowerCase();
+  return CRITICAL_BADGE_TEXT_MATCHES.some(match =>
+    lower.includes(match)
+  );
+});
+```
+
+Then adjust `PopoverContent`:
+
+```tsx
+<PopoverContent
+  align="center"
+  side="top"
+  sideOffset={10}
+  className={`rounded-2xl max-w-xs p-4 space-y-2 text-sm z-50
+              border border-white/15
+              bg-gradient-to-b from-white/5 via-black/80 to-black/95
+              bg-clip-padding backdrop-blur-xl
+              shadow-xl shadow-emerald-500/20
+              ${hasCritical ? "medical-critical-card" : ""}`}
+>
+```
+
+---
+
+### What you get now
+
+* **Normal badge:** black-glass card, no animation.
+* **Critical badge set (cardiac, renal, GLP-1, diabetic, etc.):**
+  Same black-glass card, **subtle emerald glow pulse** around the edges.
+
+It reads as:
+
+> “This is important — not panic, but don’t ignore it.”
+
+If you want it **even softer** or **a little stronger**, we can tweak just the `medicalGlow` keyframes and leave everything else alone.

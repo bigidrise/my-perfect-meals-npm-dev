@@ -1,0 +1,87 @@
+🔧 ARCHITECT REVIEW REQUEST — “DEPENDABLE SYSTEMS” AUDIT
+
+We just redesigned Copilot to use a dependable, deterministic-first system where:
+
+The feature works 100% of the time
+
+There are no browser-dependent failures
+
+There is no “sometimes works, sometimes doesn’t” behavior
+
+The system has one unified pipeline, not multiple inconsistent paths
+
+The user always gets a predictable outcome
+
+I need to know if the same level of reliability has been applied to the following critical systems:
+
+1️⃣ Photo Logging (macro logging via camera)
+
+Question:
+Does the current implementation have a single, unified, deterministic pipeline that works across:
+
+iOS + Android (native)
+
+Mobile browser (Safari/Chrome)
+
+Deployed CDN environment
+
+Devspace environment
+
+Or do we still have multiple code paths, browser-specific behavior, or cases where the feature silently fails?
+
+2️⃣ Meal Generation (AI-generated meals)
+
+Question:
+Does the architecture enforce a stable, deterministic core—
+(ingredients + preparation + macros = source of truth)
+
+with AI acting only as an assistant?
+
+Or are we still depending on:
+
+unpredictable AI interpretation
+
+prompts that can drift
+
+multiple generation pipelines
+
+inconsistent fallback conditions
+
+I need a clear yes/no answer on whether meal generation is architected to be consistently correct every time.
+
+3️⃣ Meal Pickers (ingredient → card → meal board flow)
+
+Question:
+Are all meal pickers now using one unified generation pipeline, with:
+
+guaranteed load states
+
+guaranteed error handling
+
+unified caching
+
+no “sometimes generates, sometimes doesn’t” behavior
+
+Or do we still have fragmented flows, legacy functions, or race conditions?
+
+4️⃣ If any of these systems are NOT yet at Copilot-level stability:
+
+Please list:
+
+What is missing
+
+What architectural risk it creates
+
+What the recommended fix is
+
+Whether the fix is small / medium / large
+
+Estimated effort
+
+Goal of this audit:
+
+I need all three systems (photo logging, meal generation, meal pickers) to reach the same reliability standard as the redesigned Copilot:
+
+“Simple, unified, deterministic, predictable, and dependable — no matter where the app runs.”
+
+Please respond with a breakdown for each system.

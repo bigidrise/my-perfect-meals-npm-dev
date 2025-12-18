@@ -2,9 +2,16 @@ import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 // Robust content extraction for OpenAI responses
 type AnyObj = Record<string, any>;
@@ -258,7 +265,7 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
 
   try {
     console.log("🤖 Making OpenAI API call with GPT-5...");
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // Using GPT-4o for better reliability in content generation
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },

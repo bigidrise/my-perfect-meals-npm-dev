@@ -1,0 +1,318 @@
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.Understand this error
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?Understand this error
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.Understand this error
+HelloWorld:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.Understand this error
+HelloWorld:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?Understand this error
+HelloWorld:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.Understand this error
+content.js:513 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+(anonymous) @ content.js:513Understand this error
+content.js:513 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+(anonymous) @ content.js:513Understand this error
+content.js:513 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+(anonymous) @ content.js:513Understand this error
+content.js:513 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+(anonymous) @ content.js:513Understand this error
+content.js:513 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+(anonymous) @ content.js:513Understand this error
+content.js:513 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+(anonymous) @ content.js:513Understand this error
+content.js:1047 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+(anonymous) @ content.js:1047Understand this error
+content.js:1047 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+(anonymous) @ content.js:1047Understand this error
+content.js:1047 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+(anonymous) @ content.js:1047Understand this error
+content.js:1047 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+(anonymous) @ content.js:1047Understand this error
+content.js:1047 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+(anonymous) @ content.js:1047Understand this error
+content.js:1047 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+(anonymous) @ content.js:1047Understand this error
+8bbcbda497c908fe.js:2 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+8bbcbda497c908fe.js:2 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+8bbcbda497c908fe.js:2 [LaunchDarkly] LaunchDarkly client initialized
+js?id=AW-11411994397:139 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+Pc @ js?id=AW-11411994397:139Understand this error
+js?id=AW-11411994397:139 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+Pc @ js?id=AW-11411994397:139Understand this error
+js?id=AW-11411994397:139 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+Pc @ js?id=AW-11411994397:139Understand this error
+js?id=AW-11411994397:139 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+Pc @ js?id=AW-11411994397:139Understand this error
+js?id=AW-11411994397:139 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+Pc @ js?id=AW-11411994397:139Understand this error
+js?id=AW-11411994397:139 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+Pc @ js?id=AW-11411994397:139Understand this error
+js?id=AW-11411994397:545 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+p @ js?id=AW-11411994397:545Understand this error
+js?id=AW-11411994397:545 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+p @ js?id=AW-11411994397:545Understand this error
+js?id=AW-11411994397:545 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+p @ js?id=AW-11411994397:545Understand this error
+stripe.js:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+value @ stripe.js:1Understand this error
+stripe.js:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+value @ stripe.js:1Understand this error
+stripe.js:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+value @ stripe.js:1Understand this error
+recaptcha__en.js:566 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+v @ recaptcha__en.js:566Understand this error
+recaptcha__en.js:566 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+v @ recaptcha__en.js:566Understand this error
+recaptcha__en.js:566 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+v @ recaptcha__en.js:566Understand this error
+2fbf716ae3c453cc.js:2 Uncaught (in promise) TypeError: i.enterprise.execute is not a function
+    at 2fbf716ae3c453cc.js:2:88320Understand this error
+recaptcha__en.js:75 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+(anonymous) @ recaptcha__en.js:75Understand this error
+recaptcha__en.js:75 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+(anonymous) @ recaptcha__en.js:75Understand this error
+recaptcha__en.js:75 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+(anonymous) @ recaptcha__en.js:75Understand this error
+recaptcha__en.js:75 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+(anonymous) @ recaptcha__en.js:75Understand this error
+recaptcha__en.js:75 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+(anonymous) @ recaptcha__en.js:75Understand this error
+recaptcha__en.js:75 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+(anonymous) @ recaptcha__en.js:75Understand this error
+HelloWorld:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+recaptcha__en.js:655 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+A @ recaptcha__en.js:655Understand this error
+recaptcha__en.js:655 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+A @ recaptcha__en.js:655Understand this error
+recaptcha__en.js:655 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+A @ recaptcha__en.js:655Understand this error
+recaptcha__en.js:655 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+A @ recaptcha__en.js:655Understand this error
+recaptcha__en.js:655 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+A @ recaptcha__en.js:655Understand this error
+recaptcha__en.js:655 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+A @ recaptcha__en.js:655Understand this error
+stripe.js:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+value @ stripe.js:1Understand this error
+stripe.js:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+value @ stripe.js:1Understand this error
+stripe.js:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+value @ stripe.js:1Understand this error
+ed1e693c96a75807.js:2 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+z @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 Unrecognized feature: 'ambient-light-sensor'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'battery'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-not-rendered'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-out-of-viewport'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'layout-animations'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'legacy-image-formats'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'navigation-override'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'oversized-images'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'publickey-credentials'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'speaker-selection'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'unoptimized-images'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'unsized-media'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'pointer-lock'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowfullscreen'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowpaymentrequest'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+e @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+e @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+e @ ed1e693c96a75807.js:2Understand this error
+8bbcbda497c908fe.js:2 task queue exceeded allotted deadline by 28ms
+(anonymous) @ 8bbcbda497c908fe.js:2Understand this warning
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+8bbcbda497c908fe.js:2 [Coframe] Mutation callback infinite loop protection triggered, disconnecting mutation observer Object
+(anonymous) @ 8bbcbda497c908fe.js:2Understand this error
+ed1e693c96a75807.js:2 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+z @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+e @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+e @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+e @ ed1e693c96a75807.js:2Understand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.Understand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'battery'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'layout-animations'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'navigation-override'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'oversized-images'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'publickey-credentials'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'speaker-selection'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'unoptimized-images'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Unrecognized feature: 'unsized-media'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1lc%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
+ WebSocket connection to 'wss://ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/?token=XgY_Z2yCjrUM' failed: 
+setupWebSocket @ ae3f3a13-cae7-46fd-a…ev/@vite/client:536Understand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+workspace_iframe.html?initialPath=%2Fpricing&id=%3Ar1lc%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.Understand this error
+ [vite] connecting...
+ WebSocket connection to 'wss://ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/?token=XgY_Z2yCjrUM' failed: 
+setupWebSocket @ ae3f3a13-cae7-46fd-a…ev/@vite/client:536Understand this error
+ [vite] server connection lost. Polling for restart...
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+8bbcbda497c908fe.js:2 WARN: A component changed from uncontrolled to controlled.
+(anonymous) @ 8bbcbda497c908fe.js:2Understand this warning
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+my-perfect-meals-emotion-ai:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+ae3f3a13-cae7-46fd-ac81-2f00e7f4c6dd-00-276d6pwa6i2n2.worf.replit.dev:24678/:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUTUnderstand this error
+checkout.stripe.com/c/pay/cs_test_a14lMZEJIgjkxGkoJnqKeTbflPYHnGGcJAScnaL0qpNWfju3lTtF3WqWne#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSd2cGd2ZndsdXFsamtQa2x0cGBrYHZ2QGtkZ2lgYSc%2FY2RpdmApJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRIVE1PSk9GNGZdbXVHTnJIYEhzZGQxd0xQdU1XTGszUTZAR25BQGFqdUJGc0N%2FM1VvdDVKVTNBXU9jQGJrbjNcMzBuaTZHPE9HaklQRDE0SGNjbWBNTU81NUxSX1QxZkNvJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmRhNjI3YCcpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl:1 <link rel=preload> uses an unsupported `as` valueUnderstand this warning
+checkout.stripe.com/c/pay/cs_test_a14lMZEJIgjkxGkoJnqKeTbflPYHnGGcJAScnaL0qpNWfju3lTtF3WqWne#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSd2cGd2ZndsdXFsamtQa2x0cGBrYHZ2QGtkZ2lgYSc%2FY2RpdmApJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRIVE1PSk9GNGZdbXVHTnJIYEhzZGQxd0xQdU1XTGszUTZAR25BQGFqdUJGc0N%2FM1VvdDVKVTNBXU9jQGJrbjNcMzBuaTZHPE9HaklQRDE0SGNjbWBNTU81NUxSX1QxZkNvJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmRhNjI3YCcpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl:1 <link rel=preload> uses an unsupported `as` valueUnderstand this warning
+cs_test_a14lMZEJIgjkxGkoJnqKeTbflPYHnGGcJAScnaL0qpNWfju3lTtF3WqWne:6 Uncaught (in promise) Error: Cannot find module './en'
+    at cs_test_a14lMZEJIgjkxGkoJnqKeTbflPYHnGGcJAScnaL0qpNWfju3lTtF3WqWne:6:340701Understand this error
+checkout-app-init-d700de987a816173552edb82af8eecf8.js:1 Stripe Checkout is not able to run in an iFrame. Please redirect to Checkout at the top level.
+n.Z @ checkout-app-init-d700de987a816173552edb82af8eecf8.js:1Understand this error
+[Violation] Potential permissions policy violation: payment is not allowed in this document.Understand this error
+[Violation] Potential permissions policy violation: payment is not allowed in this document.Understand this error
+stallwart.build.js:1 stallwart: failed ping 1
+[Violation] Forced reflow while executing JavaScript took 181ms
+8bbcbda497c908fe.js:2 [Violation] 'requestAnimationFrame' handler took 104ms
+[Violation] Forced reflow while executing JavaScript took 104ms
+[Violation] Forced reflow while executing JavaScript took 48ms
+8bbcbda497c908fe.js:2 [Violation] 'requestAnimationFrame' handler took 104ms
+[Violation] Forced reflow while executing JavaScript took 104ms

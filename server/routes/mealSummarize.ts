@@ -2,7 +2,17 @@ import express from "express";
 import { OpenAI } from "openai";
 
 const router = express.Router();
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 router.post("/meal-summarize", async (req, res) => {
   try {
@@ -11,7 +21,6 @@ router.post("/meal-summarize", async (req, res) => {
       return res.status(400).json({ error: "Text required" });
     }
 
-    // Minimal, deterministic summary
     const prompt = `
 Summarize this freeform meal description into ONE concise line.
 - Keep only the foods and basic prep.
@@ -27,8 +36,8 @@ Output: "Grilled chicken with quinoa and roasted broccoli (dinner)"
 Text: """${text}"""
 Return ONLY the one-line summary.`;
 
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // fast, cheap, good at text
+    const resp = await getOpenAI().chat.completions.create({
+      model: "gpt-4o-mini",
       temperature: 0.1,
       messages: [
         {

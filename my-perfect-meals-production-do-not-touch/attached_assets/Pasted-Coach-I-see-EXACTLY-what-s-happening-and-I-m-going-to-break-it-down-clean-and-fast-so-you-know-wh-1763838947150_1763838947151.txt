@@ -1,0 +1,173 @@
+Coach — I see EXACTLY what’s happening, and I’m going to break it down clean and fast so you know why the universal safe-area header is NOT rendering and how to fix it in one shot.
+
+This is NOT a styling issue.
+This is NOT a safe-area issue.
+This is NOT a z-index issue.
+
+This is a layout collision.
+
+Your page already has a fixed safe-area header:
+
+<div
+  className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+  style={{ top: "env(safe-area-inset-top, 0px)" }}
+>
+
+
+…and then you are trying to render another fixed element:
+
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={handleGoBack}
+  className="fixed left-2 sm:left-4 z-50 ..."
+  style={{
+    top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
+    zIndex: 2147483647,
+    position: 'fixed',
+  }}
+>
+
+🔥 They are fighting each other.
+
+One header is sitting on top of the other header.
+The page header wins → your universal safe-space button becomes hidden behind it.
+
+This is why you don’t see your button.
+
+Even though the button has a big z-index, it is still being clipped by the parent stacking context created by:
+
+position: fixed on the header
+
+backdrop-blur-lg (creates new stacking context)
+
+overflow rules
+
+motion.div wrapper
+
+So even though the button says zIndex: 2147483647, it is trapped inside the stacking context of the animated wrapper.
+
+This is why it’s invisible.
+
+🔥 The Solution:
+Your universal “safe-area” header must sit ABOVE the page container — not inside it.
+
+Right now you have this structure:
+
+<motion.div>
+   <div class="header">
+   <Button>  // This is your floating universal safe button
+   ... page content ...
+</motion.div>
+
+
+This will NEVER work reliably for iOS safe areas.
+
+✔ You MUST render the universal back button OUTSIDE the page component
+Like this:
+return (
+  <>
+    <UniversalBackSafeHeader />
+    <PhaseGate ... >
+      <motion.div ... >
+        ...page...
+      </motion.div>
+    </PhaseGate>
+  </>
+);
+
+
+This guarantees it’s:
+
+NOT inside any motion container
+
+NOT inside any stacking context
+
+NOT clipped by the header
+
+NOT blocked by gradients
+
+NOT overridden by page-level safe area padding
+
+✔ Let me rewrite your code correctly (copy/paste this):
+Create a global component: UniversalBackHeader.tsx
+export function UniversalBackHeader({ onBack }) {
+  return (
+    <Button
+      onClick={onBack}
+      variant="ghost"
+      size="sm"
+      className="fixed left-2 sm:left-4 bg-black/10 border border-white/20 
+                 hover:bg-black/30 text-white px-3 sm:px-6 py-2 sm:py-3 
+                 rounded-xl shadow-lg flex items-center gap-2 font-semibold 
+                 text-sm sm:text-base transition-all"
+      style={{
+        top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
+        position: "fixed",
+        zIndex: 999999999,
+        isolation: "isolate",
+        transform: "translateZ(0)"
+      }}
+    >
+      <ArrowLeft className="h-4 w-4 text-white" />
+    </Button>
+  );
+}
+
+Then in your page:
+return (
+  <>
+    <UniversalBackHeader onBack={() => setLocation("/lifestyle")} />
+
+    <PhaseGate phase="PHASE_1_CORE" feature="restaurant-guide">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80"
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)"
+        }}
+      >
+        {/* Your normal page header */}
+        <div
+          className="fixed left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ top: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-8 py-3 flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Rest of your page */}
+      </motion.div>
+    </PhaseGate>
+  </>
+);
+
+
+Now the button ALWAYS appears, on EVERY PAGE, above EVERYTHING.
+
+🔥 WHY THIS FIX WORKS
+
+Because:
+
+It is rendered outside of PhaseGate
+
+It is rendered outside of motion.div
+
+It is rendered outside of the page container
+
+It has its own stacking context
+
+It has the top z-index
+
+It is no longer competing with the page’s fixed header
+
+This is the correct iOS-safe-area way to do it.

@@ -1,0 +1,17 @@
+Promotion Package Manifest
+Created: Fri Dec 12 08:03:32 PM UTC 2025
+From commit: 9394ca54dd53af2e86b260141a2e063fbf467b17
+Baseline: 4362a618bb05e9de7c27a0cbf4460a4e6ff89184
+
+Files included:
+----------------------------------------
+  + .critical-files-checksums
+  + attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765558232825.txt
+  + client/src/components/biometrics/RemainingMacrosFooter.tsx
+  + client/src/lib/macroSourcesConfig.ts
+  + client/src/pages/pro/GeneralNutritionBuilder.tsx
+  + client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+  + scripts/promote/.last_promotion
+  + scripts/promote/promotion_package_20251212_162757.sha256
+  + scripts/promote/promotion_package_20251212_162757.zip
+  + scripts/promote/promotion_payload/.critical-files-checksums
