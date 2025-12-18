@@ -11,7 +11,7 @@ const config: CapacitorConfig = {
     iosScheme: 'https',
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
     allowsLinkPreview: true,
     scrollEnabled: true,
     limitsNavigationsToAppBoundDomains: false,

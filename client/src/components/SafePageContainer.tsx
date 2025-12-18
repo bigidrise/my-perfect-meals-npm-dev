@@ -22,7 +22,7 @@ export default function SafePageContainer({
   const paddingClass = hasShoppingBanner ? "pb-safe-both" : "pb-safe-nav";
   
   return (
-    <div className={`min-h-full flex flex-col ${paddingClass} pt-safe-top ${className}`}>
+    <div className={`min-h-full flex flex-col ${paddingClass} ${className}`}>
       {children}
     </div>
   );

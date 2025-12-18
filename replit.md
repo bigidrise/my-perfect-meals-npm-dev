@@ -52,3 +52,9 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
 - Scroll container delegated to main element with overflow-y:auto and overscroll-contain
 - Automatic scroll reset on route changes
 - Safe-area utilities for bottom nav and shopping banner padding
+
+## iOS Safe-Area Configuration (IMPORTANT)
+- **Capacitor**: `ios.contentInset: 'never'` in capacitor.config.ts - disables native safe-area handling
+- **CSS**: Safe-area top padding applied ONLY in RootViewport via `paddingTop: env(safe-area-inset-top)`
+- **DO NOT** add `pt-safe-top` to SafePageContainer, PageShell, or any page components - this causes double-inset on iOS
+- Bottom safe-area padding is handled via `pb-safe-nav` and `pb-safe-both` utilities in page containers

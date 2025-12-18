@@ -25,7 +25,10 @@ export default function RootViewport({ children }: RootViewportProps) {
     <ScrollContainerContext.Provider value={scrollRef}>
       <div 
         className="fixed inset-0 flex flex-col bg-black"
-        style={{ height: '100dvh' }}
+        style={{ 
+          height: '100dvh',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
       >
         <main 
           ref={scrollRef}

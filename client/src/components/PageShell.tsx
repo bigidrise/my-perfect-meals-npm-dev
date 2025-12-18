@@ -14,7 +14,7 @@ export default function PageShell({ title, children, actions, backButton, classN
   const paddingClass = hasShoppingBanner ? "pb-safe-both" : "pb-safe-nav";
   
   return (
-    <div className={`min-h-full flex flex-col bg-gradient-to-b from-black via-zinc-950 to-black pt-safe-top ${paddingClass}`}>
+    <div className={`min-h-full flex flex-col bg-gradient-to-b from-black via-zinc-950 to-black ${paddingClass}`}>
       <div className={`mx-auto max-w-7xl p-4 sm:p-6 flex-1 ${className || ''}`}>
         <div className={`mb-4 flex items-center justify-between ${headerClassName ? `p-4 ${headerClassName}` : ''}`}>
           <div className="flex items-center gap-3">
