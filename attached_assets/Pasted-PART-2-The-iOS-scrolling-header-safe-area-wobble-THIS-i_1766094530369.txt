@@ -1,0 +1,164 @@
+PART 2 — The iOS “scrolling header / safe area wobble” (THIS is the ugly part)
+
+What you described is 100% identifiable:
+
+“When you scroll, the top navigation safety bar scrolls with the page instead of staying fixed.”
+
+That is not supposed to happen — and yes, it looks terrible.
+
+WHY this happens (plain English)
+
+On iOS:
+
+100vh is not actually the screen height
+
+The browser chrome (status bar / notch / dynamic island) lies to CSS
+
+When you scroll, iOS recalculates viewport height
+
+Result: the entire app “breathes” up and down
+
+This is iOS Safari behavior, inherited by Capacitor WebView.
+
+THE ROOT CAUSE (99% of the time)
+
+One or more of these are true:
+
+You’re using height: 100vh
+
+Your root container scrolls instead of a child container
+
+Safe-area insets aren’t pinned correctly
+
+Header is inside the scrolling container
+
+overflow is applied to the wrong element
+
+THE FIX (DO THIS EXACTLY)
+✅ Rule #1: The HEADER MUST NOT SCROLL
+
+Your top nav must be fixed or sticky, outside the scroll container.
+
+.header {
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 50;
+}
+
+
+OR (stronger):
+
+.header {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  left: 0;
+  right: 0;
+  z-index: 50;
+}
+
+✅ Rule #2: NEVER let the body scroll on iOS
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+✅ Rule #3: Create ONE scroll container (below header)
+.app-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+
+Only .app-content scrolls.
+Nothing else. Ever.
+
+✅ Rule #4: STOP USING 100vh ON iOS
+
+If you see any of this:
+
+height: 100vh;
+min-height: 100vh;
+
+
+Replace with:
+
+height: 100%;
+
+
+Or, if you absolutely must:
+
+height: calc(100vh - env(safe-area-inset-top));
+
+
+But honestly — avoid it.
+
+✅ Rule #5: Add iOS viewport fix (small but critical)
+
+In your global CSS:
+
+:root {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+}
+
+
+This prevents the “elastic viewport resize” effect.
+
+WHY THIS ONLY HAPPENS ON iOS
+
+Android WebView behaves correctly
+
+Desktop browsers behave correctly
+
+iOS dynamically resizes viewport during scroll
+
+That’s why:
+
+Looks fine everywhere else
+
+Looks like garbage only on iPhone
+
+You’re not doing anything “wrong” — you just need iOS-specific containment.
+
+TL;DR (Burn this into memory)
+iOS updates
+
+Web changes → maybe
+
+UI changes → usually need new build
+
+Critical UI → always new build
+
+iOS scrolling bug
+
+Header must be fixed
+
+Body must never scroll
+
+Only one scroll container
+
+No 100vh
+
+Respect safe-area insets
+
+If you want next:
+
+I can audit your actual layout tree
+
+Point to the exact component causing the wobble
+
+Or give you a drop-in layout wrapper that fixes it everywhere
+
+But you’re absolutely right to flag this now — this is the last 10% polish that makes the app feel native, not web-wrapped.
