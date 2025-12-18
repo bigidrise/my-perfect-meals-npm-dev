@@ -43,3 +43,12 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
 - Made Stripe integration optional (graceful degradation)
 - Made OpenAI initialization lazy to prevent startup crashes
 - Configured Vite to allow all hosts for Replit proxy
+- Added iOS viewport wobble fix with RootViewport component (fixed positioning, 100dvh height)
+- Added CSS utilities for iOS scroll handling (.ios-scroll, .pb-safe-nav, .pb-safe-both, .pt-safe-top)
+- Updated SafePageContainer and PageShell with safe-area utilities
+
+## iOS Viewport Architecture
+- RootViewport wraps AppRouter with fixed positioning and 100dvh height
+- Scroll container delegated to main element with overflow-y:auto and overscroll-contain
+- Automatic scroll reset on route changes
+- Safe-area utilities for bottom nav and shopping banner padding
