@@ -1704,7 +1704,7 @@ export default function WeeklyMealBoard() {
           const dayName = new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long' });
 
           return (
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl safe-area-inset-bottom">
+            <div className="fixed bottom-0 left-0 right-0 z-60 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl safe-area-inset-bottom">
               <div className="container mx-auto px-4 py-3">
                 <div className="flex flex-col gap-2">
                   <div className="text-white text-sm font-semibold">
