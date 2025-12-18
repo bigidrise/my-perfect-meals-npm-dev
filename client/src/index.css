@@ -534,6 +534,64 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* iOS Viewport Wobble Fix Utilities */
+  
+  /* Main scrollable container for iOS - use on page content areas */
+  .ios-scroll-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    /* Prevent rubber-banding at boundaries */
+    overscroll-behavior: none;
+    /* Fill available space in flex container */
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Fixed header with safe-area handling for iOS */
+  .ios-fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding-top: env(safe-area-inset-top);
+    background-color: inherit;
+    /* Prevent content showing through during scroll */
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Root viewport container - prevents body scroll and wobble */
+  .ios-root-viewport {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Prevent any scroll on the root */
+    overscroll-behavior: none;
+  }
+
+  /* Main content area within viewport */
+  .ios-main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Page wrapper for consistent safe-area handling */
+  .ios-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding-bottom: calc(var(--bottom-nav-height, 56px) + env(safe-area-inset-bottom));
+  }
 }
 
 /* Soft pulse animation for approaching/over daily limits */
