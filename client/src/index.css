@@ -222,8 +222,7 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
     @apply font-sans antialiased;
     color: var(--foreground);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-    /* Mobile optimization */
-    -webkit-overflow-scrolling: touch;
+    /* Mobile optimization - DO NOT add -webkit-overflow-scrolling here, it breaks iOS scroll containment */
     touch-action: manipulation;
     /* Android optimizations - prevents white band on bounce */
     overscroll-behavior-y: contain;
@@ -304,10 +303,8 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
       -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1) !important;
     }
 
-    /* Better touch scrolling */
-    * {
-      -webkit-overflow-scrolling: touch;
-    }
+    /* DO NOT add global -webkit-overflow-scrolling: touch here - it breaks iOS scroll containment */
+    /* Touch scrolling is applied only to .ios-scroll containers */
   }
 
   /* Mobile viewport optimization */
