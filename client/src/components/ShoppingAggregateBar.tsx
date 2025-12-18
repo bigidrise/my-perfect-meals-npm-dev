@@ -72,9 +72,9 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
 
     const items = ingredients.map(i => ({
       name: i.name,
-      qty: typeof i.qty === 'number' ? i.qty : (i.qty ? parseFloat(String(i.qty)) : undefined),
-      unit: i.unit,
-      note: source
+      quantity: typeof i.qty === 'number' ? i.qty : (i.qty ? parseFloat(String(i.qty)) : 1),
+      unit: i.unit || '',
+      notes: source
     }));
 
     useShoppingListStore.getState().addItems(items);
