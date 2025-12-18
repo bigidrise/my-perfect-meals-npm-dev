@@ -20,9 +20,19 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
-  { title: "Enter Your Craving", description: "Tell us what you're in the mood for." },
-  { title: "Add Your ZIP Code", description: "Enter your location so we can find nearby restaurants." },
-  { title: "Get Recommendations", description: "See nearby restaurants with two healthy meal options from each, along with ordering tips." },
+  {
+    title: "Enter Your Craving",
+    description: "Tell us what you're in the mood for.",
+  },
+  {
+    title: "Add Your ZIP Code",
+    description: "Enter your location so we can find nearby restaurants.",
+  },
+  {
+    title: "Get Recommendations",
+    description:
+      "See nearby restaurants with two healthy meal options from each, along with ordering tips.",
+  },
 ];
 
 const CACHE_KEY = "mealFinder.cache.v1";
@@ -223,14 +233,17 @@ export default function MealFinder() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
-          const response = await apiRequest("/api/restaurants/reverse-geocode", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            }),
-          });
+          const response = await apiRequest(
+            "/api/restaurants/reverse-geocode",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }),
+            },
+          );
           if (response.zipCode) {
             setZipCode(response.zipCode);
             toast({
@@ -256,7 +269,7 @@ export default function MealFinder() {
           variant: "destructive",
         });
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 
@@ -272,7 +285,7 @@ export default function MealFinder() {
           className="fixed top-0 left-0 right-0 z-50 bg-black"
           style={{ height: "env(safe-area-inset-top, 0px)" }}
         />
-        
+
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -289,10 +302,15 @@ export default function MealFinder() {
             </button>
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">Meal Finder</h1>
+            <h1 className="text-lg font-bold text-white truncate min-w-0">
+              Meal Finder
+            </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -337,7 +355,9 @@ export default function MealFinder() {
                       placeholder="e.g., 30303, 90210, 10001"
                       value={zipCode}
                       onChange={(e) =>
-                        setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
+                        setZipCode(
+                          e.target.value.replace(/\D/g, "").slice(0, 5),
+                        )
                       }
                       className="flex-1 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
                       maxLength={5}
@@ -348,14 +368,30 @@ export default function MealFinder() {
                       type="button"
                       onClick={handleUseLocation}
                       disabled={isGettingLocation}
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 flex-shrink-0"
+                      className={`px-3 flex-shrink-0 text-white ${
+                        isGettingLocation
+                          ? "bg-blue-700 cursor-wait"
+                          : "bg-blue-600 hover:bg-blue-500"
+                      }`}
+                      aria-label={
+                        isGettingLocation
+                          ? "Finding your location"
+                          : "Use my location"
+                      }
                     >
-                      {isGettingLocation ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <MapPin className="h-4 w-4" />
-                      )}
-                      <span className="ml-1 hidden sm:inline">Use Location</span>
+                      <div className="flex items-center gap-2">
+                        {isGettingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Finding location…</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4" />
+                            <span className="text-sm">Use my location</span>
+                          </>
+                        )}
+                      </div>
                     </Button>
                   </div>
                 </div>
@@ -386,9 +422,7 @@ export default function MealFinder() {
                     value={progress}
                     className="h-3 bg-black/30 border border-white/20"
                   />
-                  <p className="text-white/70 text-sm text-center mt-3">
-                    
-                  </p>
+                  <p className="text-white/70 text-sm text-center mt-3"></p>
                 </div>
               )}
             </CardContent>

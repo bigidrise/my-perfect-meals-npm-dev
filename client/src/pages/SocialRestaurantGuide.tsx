@@ -1,7 +1,7 @@
 // 🔒🔒🔒 RESTAURANT GUIDE - GOOGLE PLACES UPGRADE (DECEMBER 11, 2025) 🔒🔒🔒
 // STATUS: Upgraded with Google Places API integration
 // UPGRADE: Added ZIP code input + real restaurant data (name, address, rating) from Google Places
-// 
+//
 // ⚠️ ZERO-TOLERANCE LOCKDOWN POLICY ⚠️
 // DO NOT MODIFY ANY CODE IN THIS FILE WITHOUT EXPLICIT USER APPROVAL
 //
@@ -44,9 +44,19 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
-  { title: "Describe What You Want", description: "Tell us what you're craving and the type of food you'd like." },
-  { title: "Enter Restaurant & ZIP", description: "Enter the restaurant name and a nearby zip code." },
-  { title: "Get Meal Options", description: "See meal options that match your goals and work where you're eating." },
+  {
+    title: "Describe What You Want",
+    description: "Tell us what you're craving and the type of food you'd like.",
+  },
+  {
+    title: "Enter Restaurant & ZIP",
+    description: "Enter the restaurant name and a nearby zip code.",
+  },
+  {
+    title: "Get Meal Options",
+    description:
+      "See meal options that match your goals and work where you're eating.",
+  },
 ];
 
 // ---- Persist the generated restaurant meal so it never "disappears" ----
@@ -202,7 +212,12 @@ export default function RestaurantGuidePage() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [matchedCuisine, setMatchedCuisine] = useState<string | null>(null);
   const [generatedMeals, setGeneratedMeals] = useState<any[]>([]);
-  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; address: string; rating?: number; photoUrl?: string } | null>(null);
+  const [restaurantInfo, setRestaurantInfo] = useState<{
+    name: string;
+    address: string;
+    rating?: number;
+    photoUrl?: string;
+  } | null>(null);
   const { toast } = useToast();
 
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
@@ -240,14 +255,23 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     if (generatedMeals.length > 0) {
       saveRestaurantCache({
-        restaurantData: { meals: generatedMeals, restaurantInfo: restaurantInfo || undefined },
+        restaurantData: {
+          meals: generatedMeals,
+          restaurantInfo: restaurantInfo || undefined,
+        },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
         generatedAtISO: new Date().toISOString(),
       });
     }
-  }, [generatedMeals, restaurantInput, cravingInput, matchedCuisine, restaurantInfo]);
+  }, [
+    generatedMeals,
+    restaurantInput,
+    cravingInput,
+    matchedCuisine,
+    restaurantInfo,
+  ]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -297,7 +321,7 @@ export default function RestaurantGuidePage() {
     onSuccess: (data) => {
       stopProgressTicker();
       setGeneratedMeals(data.recommendations || []);
-      
+
       // Store restaurant info from Google Places
       if (data.restaurantInfo) {
         setRestaurantInfo(data.restaurantInfo);
@@ -305,7 +329,10 @@ export default function RestaurantGuidePage() {
 
       // Immediately cache the new restaurant meals so they survive navigation/refresh
       saveRestaurantCache({
-        restaurantData: { meals: data.recommendations || [], restaurantInfo: data.restaurantInfo },
+        restaurantData: {
+          meals: data.recommendations || [],
+          restaurantInfo: data.restaurantInfo,
+        },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
@@ -395,14 +422,17 @@ export default function RestaurantGuidePage() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
-          const response = await apiRequest("/api/restaurants/reverse-geocode", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            }),
-          });
+          const response = await apiRequest(
+            "/api/restaurants/reverse-geocode",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }),
+            },
+          );
           if (response.zipCode) {
             setZipCode(response.zipCode);
             toast({
@@ -428,7 +458,7 @@ export default function RestaurantGuidePage() {
           variant: "destructive",
         });
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 
@@ -449,7 +479,7 @@ export default function RestaurantGuidePage() {
           className="fixed top-0 left-0 right-0 z-50 bg-black"
           style={{ height: "env(safe-area-inset-top, 0px)" }}
         />
-        
+
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -466,10 +496,15 @@ export default function RestaurantGuidePage() {
             </button>
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">Restaurant Guide</h1>
+            <h1 className="text-lg font-bold text-white truncate min-w-0">
+              Restaurant Guide
+            </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -557,7 +592,11 @@ export default function RestaurantGuidePage() {
                         id="zip-input"
                         placeholder="e.g. 30303, 90210, 10001"
                         value={zipCode}
-                        onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                        onChange={(e) =>
+                          setZipCode(
+                            e.target.value.replace(/\D/g, "").slice(0, 5),
+                          )
+                        }
                         className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
                         maxLength={5}
                         onKeyPress={(e) => e.key === "Enter" && handleSearch()}
@@ -576,14 +615,30 @@ export default function RestaurantGuidePage() {
                       type="button"
                       onClick={handleUseLocation}
                       disabled={isGettingLocation}
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 flex-shrink-0"
+                      className={`px-3 flex-shrink-0 text-white ${
+                        isGettingLocation
+                          ? "bg-blue-700 cursor-wait"
+                          : "bg-blue-600 hover:bg-blue-500"
+                      }`}
+                      aria-label={
+                        isGettingLocation
+                          ? "Finding your location"
+                          : "Use my location"
+                      }
                     >
-                      {isGettingLocation ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <MapPin className="h-4 w-4" />
-                      )}
-                      <span className="ml-1 hidden sm:inline">Use Location</span>
+                      <div className="flex items-center gap-2">
+                        {isGettingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Finding location…</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4" />
+                            <span className="text-sm">Use my location</span>
+                          </>
+                        )}
+                      </div>
                     </Button>
                   </div>
                 </div>
@@ -623,20 +678,23 @@ export default function RestaurantGuidePage() {
                   <div className="mb-4">
                     <h2 className="text-xl font-bold text-white">
                       🍽️ Recommended Meals at{" "}
-                      {restaurantInfo?.name || restaurantInput
-                        .split(" ")
-                        .map(
-                          (word) =>
-                            word.charAt(0).toUpperCase() +
-                            word.slice(1).toLowerCase(),
-                        )
-                        .join(" ")}
+                      {restaurantInfo?.name ||
+                        restaurantInput
+                          .split(" ")
+                          .map(
+                            (word) =>
+                              word.charAt(0).toUpperCase() +
+                              word.slice(1).toLowerCase(),
+                          )
+                          .join(" ")}
                     </h2>
                     {restaurantInfo?.address && (
                       <p className="text-white/70 text-sm mt-1">
                         📍 {restaurantInfo.address}
                         {restaurantInfo.rating && (
-                          <span className="ml-2">⭐ {restaurantInfo.rating}</span>
+                          <span className="ml-2">
+                            ⭐ {restaurantInfo.rating}
+                          </span>
                         )}
                       </p>
                     )}
@@ -818,7 +876,10 @@ export default function RestaurantGuidePage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-white/60 text-xs mt-2">Tap a cuisine to fill in the restaurant field, then enter your craving and ZIP to search.</p>
+                <p className="text-white/60 text-xs mt-2">
+                  Tap a cuisine to fill in the restaurant field, then enter your
+                  craving and ZIP to search.
+                </p>
               </div>
             </CardContent>
           </Card>
