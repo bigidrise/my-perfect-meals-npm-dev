@@ -430,11 +430,25 @@ export default function MealFinder() {
 
           {results.length > 0 && (
             <div className="space-y-6 mb-6">
-              <h2 className="text-xl font-bold text-white">
-                🍽️ Found{" "}
-                {new Set(results.map((r: MealResult) => r.restaurantName)).size}{" "}
-                Restaurants with {results.length} Meals:
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">
+                  🍽️ Found{" "}
+                  {new Set(results.map((r: MealResult) => r.restaurantName)).size}{" "}
+                  Restaurants with {results.length} Meals:
+                </h2>
+                <button
+                  onClick={() => {
+                    setResults([]);
+                    clearMealFinderCache();
+                    setMealQuery("");
+                    setZipCode("");
+                  }}
+                  className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                  data-testid="button-create-new"
+                >
+                  Create New
+                </button>
+              </div>
               <div className="grid gap-4">
                 {results.map((result, index) => (
                   <Card
