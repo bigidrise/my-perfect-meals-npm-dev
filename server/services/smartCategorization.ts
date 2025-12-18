@@ -1,59 +1,16 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-export interface IngredientAnalysis {
-  category: string;
-  subCategory: string;
-  dietaryFlags: string[];
-  allergenWarnings: string[];
-  nutritionProfile: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-  };
-  cookingTips: string[];
-  sustainabilityScore: number;
-  seasonality: string[];
-  storageAdvice: string;
-}
-
-export class SmartCategorizationEngine {
-  private cache = new Map<string, IngredientAnalysis>();
-
-  async analyzeIngredient(item: string): Promise<IngredientAnalysis> {
-    // Check cache first for performance
-    if (this.cache.has(item.toLowerCase())) {
-      return this.cache.get(item.toLowerCase())!;
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
     }
-
-    try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional nutritionist and culinary expert. Analyze grocery ingredients with precision.
-            
-            Categories: Produce, Meats, Seafood, Dairy, Grains, Pantry, Frozen, Bakery, Beverages, Condiments, Snacks, Personal Care, Household
-            
-            Dietary Flags: Vegan, Vegetarian, Gluten-Free, Dairy-Free, Keto, Paleo, Low-Carb, High-Protein, Organic
-            
-            Provide comprehensive analysis including nutrition data, sustainability (1-10), seasonality, and practical storage/cooking advice.
-            
-            Respond in valid JSON format matching the IngredientAnalysis interface.`
-          },
-          {
-            role: "user",
-            content: `Analyze this ingredient: "${item}"`
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1
-      });
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
       const analysis: IngredientAnalysis = JSON.parse(response.choices[0].message.content || '{}');
       

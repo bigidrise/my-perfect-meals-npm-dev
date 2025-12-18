@@ -1,0 +1,468 @@
+Got it — you want the **old Macro Targets section back exactly**, colors, warnings, pro badge, the whole thing. We can do that cleanly without touching your new header, Quick Tour, photo logging, or water log.
+
+I’ll show you **exactly what to replace** and what to delete.
+
+---
+
+## 1️⃣ Replace the **MACROS card** block with this
+
+In your **new** `MyBiometrics.tsx`, find this section:
+
+```tsx
+{/* MACROS */}
+<Card data-testid="biometrics-macro-summary" className="bg-black/30 backdrop-blur-lg border border-white/10">
+  <CardHeader>
+    <CardTitle className="text-white text-lg flex items-center gap-2">
+      <BarChart3 className="h-5 w-5"/> 
+      Today's Macros
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-3">
+    {/* ...everything inside here... */}
+  </CardContent>
+</Card>
+```
+
+Delete that whole `<Card>...</Card>` and replace it with this:
+
+```tsx
+{/* MACROS */}
+<Card
+  data-testid="biometrics-macro-summary"
+  className="bg-black/30 backdrop-blur-lg border border-transparent shadow-xl"
+>
+  <CardHeader>
+    <CardTitle className="text-white text-lg flex items-center gap-2">
+      <BarChart3 className="h-5 w-5" />
+      Today's Macros
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-3">
+    {/* Macro Targets Progress – RESTORED OLD VERSION */}
+    {targets ? (
+      <div className="rounded-2xl border border-purple-400/30 p-4 mb-3 bg-purple-900/20 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-semibold text-white flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Macro Targets Active
+          </div>
+
+          {/* Persistent info dialog (old behavior) */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-emerald-600/20 text-emerald-200 border-emerald-400/30 hover:bg-emerald-600/30 hover:border-emerald-400/50 h-auto py-1 px-3 rounded-full text-xs flex items-center gap-1"
+                data-testid="button-persistent-explanation"
+              >
+                <Info className="h-3 w-3" />
+                <span>Persistent</span>
+                <span className="text-emerald-300/70 text-[10px]">(tap)</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-white flex items-center gap-2">
+                  <Info className="h-5 w-5 text-emerald-400" />
+                  What Does "Persistent" Mean?
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <p className="text-white/90 text-sm leading-relaxed">
+                  <strong className="text-emerald-300">Persistent</strong> means these macro targets stay the same every
+                  day until you change them.
+                </p>
+                <p className="text-white/80 text-sm leading-relaxed">
+                  Unlike your daily macro tracking (which resets each day), your{" "}
+                  <strong>macro targets</strong> remain constant. They don't change automatically.
+                </p>
+                <div className="rounded-lg border border-emerald-400/30 bg-emerald-900/20 p-3">
+                  <p className="text-emerald-200 text-sm">
+                    💡 <strong>Example:</strong> If your target is 2000 calories today, it will still be 2000 calories
+                    tomorrow, next week, and next month—unless you update it.
+                  </p>
+                </div>
+                <p className="text-white/70 text-xs mb-4">
+                  {targetSource === "pro"
+                    ? `These targets were set by ${proName}. They'll stay active until ${proName} changes them.`
+                    : "You can change your macro targets anytime from:"}
+                </p>
+
+                {targetSource !== "pro" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={() => setLocation("/macro-calculator")}
+                      className="bg-emerald-600/20 text-emerald-200 border border-emerald-400/30 hover:bg-emerald-600/30 hover:border-emerald-400/50 h-auto py-2 text-xs"
+                      data-testid="button-go-macro-calculator"
+                    >
+                      Macro Calculator
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const userId = localStorage.getItem("userId") || "1";
+                        setLocation(`/athlete-meal-board/${userId}`);
+                      }}
+                      className="bg-purple-600/20 text-purple-200 border border-purple-400/30 hover:bg-purple-600/30 hover:border-purple-400/50 h-auto py-2 text-xs"
+                      data-testid="button-go-athlete-board"
+                    >
+                      Athlete Board
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Pro-set badge (if targets are set by professional) */}
+        {targetSource === "pro" && (
+          <div className="mb-3 rounded-lg border border-purple-400/50 bg-purple-900/30 backdrop-blur-sm p-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Stethoscope className="h-4 w-4 text-purple-300" />
+              <span className="font-semibold text-purple-200">Set by {proName}</span>
+            </div>
+            <div className="text-xs text-white/60 mt-1">
+              Your professional has customized your macro targets
+            </div>
+          </div>
+        )}
+
+        {/* Top summary badges with pulsing effect + color thresholds */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {summaryBadges.map((b) => (
+            <Badge
+              key={b.key}
+              variant="outline"
+              className={[
+                b.pct >= 90
+                  ? "border-yellow-400/70 bg-yellow-500/15 text-yellow-100/90 mpm-badge-pulse"
+                  : "bg-white/10 text-white/80 border-white/20",
+              ].join(" ")}
+              title={`${Math.round(b.pct)}% of ${b.key}`}
+            >
+              {b.key}
+              {b.pct >= 100 ? " (Over)" : b.pct >= 90 ? ` (${Math.round(b.pct)}%)` : ""}
+            </Badge>
+          ))}
+        </div>
+
+        {/* Progress bars – white / yellow / pink system */}
+        {summaryBadges.map((row) => {
+          const near = row.pct >= 90;
+          const over = row.pct >= 100;
+          const barColor = over ? "bg-pink-500" : near ? "bg-yellow-400" : "bg-white/70";
+          return (
+            <div key={row.key} className="space-y-2 mb-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-white">{row.key}</span>
+                <span className="text-white">
+                  {Math.round(row.used)} / {Math.round(row.max)} {row.unit}{" "}
+                  {over ? "• Over" : near ? `• ${Math.round(row.pct)}%` : ""}
+                </span>
+              </div>
+              <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
+                <div
+                  className={`h-2 transition-all ${barColor}`}
+                  style={{ width: `${Math.min(row.pct, 110)}%` }}
+                />
+              </div>
+              {near && (
+                <div className="text-xs opacity-90 text-yellow-200">
+                  {over ? "Over today's limit." : "Approaching limit."}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div className="rounded-2xl border border-purple-400/30 p-4 mb-3 bg-purple-900/10 backdrop-blur-sm">
+        <div className="text-sm text-white/70 text-center">
+          💡 Go to <span className="font-semibold text-white">Macro Calculator</span> and tap{" "}
+          <span className="font-semibold text-purple-300">"Set Macro Targets"</span> to track progress here
+        </div>
+      </div>
+    )}
+
+    {/* Quick View Panel (display only, no auto-logging) – keep from new version */}
+    {qv && (
+      <div className="rounded-2xl border border-white/20 p-3 mb-3 bg-black/20 backdrop-blur-sm">
+        <div className="text-sm font-semibold mb-2 text-white">Quick View (not logged)</div>
+        <div className="text-sm text-white/90 mb-2">
+          Protein <b className="text-white">{qv.protein} g</b> · Carbs{" "}
+          <b className="text-white">{qv.carbs} g</b> · Fat <b className="text-white">{qv.fat} g</b> · Calories{" "}
+          <b className="text-white">{qv.calories}</b>
+        </div>
+        <div className="text-xs text-white/60 mb-2">
+          Date: {qv.dateISO}
+          {qv.mealSlot ? ` · ${qv.mealSlot}` : ""}
+        </div>
+        <div className="flex gap-2 mb-2">
+          <Button
+            onClick={fillFromQuickView}
+            className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
+            data-testid="button-fill-inputs"
+          >
+            Fill Inputs
+          </Button>
+          <Button
+            onClick={dismissQuickView}
+            className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
+            data-testid="button-dismiss-quickview"
+          >
+            Dismiss
+          </Button>
+        </div>
+        <div className="text-[11px] text-white/60">
+          Tip: Review or edit your numbers below, then press <b>Add</b> to log for today.
+        </div>
+      </div>
+    )}
+
+    {/* Photo Upload Button (new feature – keep) */}
+    <Button
+      data-wt="bio-scan-button"
+      onClick={handlePhotoUpload}
+      className="w-full bg-orange-600 hover:bg-orange-700 text-white mb-3"
+      data-testid="button-photo-upload"
+    >
+      📸 Log from Photo
+    </Button>
+
+    {/* Manual macro inputs */}
+    <div data-testid="biometrics-macro-inputs" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div>
+        <label className="text-xs text-white/80 font-medium mb-1 block">Protein (g)</label>
+        <Input
+          data-wt="bio-manual-protein"
+          type="text"
+          className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+          value={p}
+          onChange={(e) => setP(e.target.value)}
+          data-testid="input-protein"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-white/80 font-medium mb-1 block">Carbs (g)</label>
+        <Input
+          data-wt="bio-manual-carbs"
+          type="text"
+          className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+          value={c}
+          onChange={(e) => setC(e.target.value)}
+          data-testid="input-carbs"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-white/80 font-medium mb-1 block">Fat (g)</label>
+        <Input
+          data-wt="bio-manual-fat"
+          type="text"
+          className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+          value={f}
+          onChange={(e) => setF(e.target.value)}
+          data-testid="input-fat"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-white/80 font-medium mb-1 block">Calories</label>
+        <Input
+          data-wt="bio-manual-calories"
+          type="text"
+          className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+          value={k}
+          onChange={(e) => setK(e.target.value)}
+          data-testid="input-calories"
+        />
+      </div>
+    </div>
+
+    {/* Additional Macros instruction note – RESTORED */}
+    {PROFILES_ENABLED && (
+      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+        <p className="text-xs text-white/90 leading-relaxed text-center">
+          <strong>Short on Protein or Carbs?</strong> Enter the amount you need to add in{" "}
+          <strong>either the Protein field OR the Carbs field</strong> (don't adjust Calories or Fat — leave those
+          blank). Then use the <strong>Additional Macros</strong> dropdown to select which food source you're getting
+          it from (chicken, rice, veggies, etc.). Press <strong>Add</strong> and the system will automatically fill in
+          all the other macros based on that food type.
+        </p>
+      </div>
+    )}
+
+    {/* Additional Macros selector – RESTORED */}
+    {PROFILES_ENABLED && (
+      <div className="flex items-center justify-between gap-2 mt-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/70 font-medium">Additional Macros:</span>
+          <Select value={selectedProfile} onValueChange={(v) => setSelectedProfile(v as Profile)}>
+            <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white" data-testid="select-source-profile">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="whey">Whey / Isolate</SelectItem>
+              <SelectItem value="chicken">Chicken (lean)</SelectItem>
+              <SelectItem value="turkey">Turkey (lean)</SelectItem>
+              <SelectItem value="fish">White Fish (lean)</SelectItem>
+              <SelectItem value="beef">Red Meat (beef/steak)</SelectItem>
+              <SelectItem value="rice">Rice (starchy carb)</SelectItem>
+              <SelectItem value="oats">Oats (carb+fat tail)</SelectItem>
+              <SelectItem value="veggies">Fibrous Veggies (carb)</SelectItem>
+              <SelectItem value="oil">Olive Oil (fat)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    )}
+
+    <div className="flex justify-between items-center gap-2 mt-3">
+      {/* Keep your new addMacros (with toast + walkthrough event) */}
+      <Button
+        data-testid="biometrics-add-button"
+        onClick={addMacros}
+        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+      >
+        <PlusCircle className="h-4 w-4 mr-1" />
+        Add
+      </Button>
+      <Button
+        onClick={resetToday}
+        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+        data-testid="button-reset-today"
+      >
+        <RotateCcw className="h-4 w-4 mr-1" />
+        Reset Today
+      </Button>
+    </div>
+
+    {/* Paste modal – keep your new version */}
+    {openPaste && (
+      <div
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={() => setOpenPaste(false)}
+      >
+        <div
+          className="w-full max-w-lg rounded-2xl border border-white/20 bg-neutral-900 text-white"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-4 border-b border-white/10 font-semibold">Paste Macros</div>
+          <div className="p-4 space-y-3">
+            <p className="text-sm text-white/70">
+              Accepts formats like:{" "}
+              <code className="bg-black/30 px-1 rounded">Protein 30, Carbs 40, Fat 10, 370 kcal</code> or just{" "}
+              <code className="bg-black/30 px-1 rounded">30 40 10 370</code>.
+            </p>
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              rows={6}
+              className="w-full rounded-lg bg-black/30 border border-white/20 p-3 outline-none text-white"
+              placeholder="Paste here..."
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white"
+                onClick={() => setOpenPaste(false)}
+              >
+                Cancel
+              </Button>
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={addMacrosParsed}>
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Bottom progress rows tied to activeTargets */}
+    <div className="space-y-2 mt-2">
+      <Row
+        data-wt="bio-calories-today"
+        label="Calories"
+        value={`${todayRow.kcal} / ${activeTargets.calories} kcal`}
+      >
+        <ProgressBar value={todayRow.kcal} goal={activeTargets.calories} />
+      </Row>
+      <Row
+        label="Protein"
+        value={`${todayRow.protein} / ${activeTargets.protein_g} g`}
+      >
+        <ProgressBar value={todayRow.protein} goal={activeTargets.protein_g} />
+      </Row>
+      <Row
+        label="Carbs"
+        value={`${todayRow.carbs} / ${activeTargets.carbs_g} g`}
+      >
+        <ProgressBar value={todayRow.carbs} goal={activeTargets.carbs_g} />
+      </Row>
+      <Row
+        label="Fat"
+        value={`${todayRow.fat} / ${activeTargets.fat_g} g`}
+      >
+        <ProgressBar value={todayRow.fat} goal={activeTargets.fat_g} />
+      </Row>
+    </div>
+  </CardContent>
+</Card>
+```
+
+That gives you:
+
+* **Yellow 90–99% warning**
+* **Pink over-100% state**
+* **Pro badge + “Set by ___”**
+* **Persistent modal using `Dialog`**
+* **Additional Macros dropdown + note**
+* Still tied to:
+
+  * `getResolvedTargets()`
+  * Macro Calculator
+  * Pro / coach targets (via `macroResolver`)
+
+---
+
+## 2️⃣ Clean up unused state & modals
+
+Since we restored the **old Dialog-based persistent explanation**, you can remove the now-unused state in the new file:
+
+```ts
+const [showPersistentInfoModal, setShowPersistentInfoModal] = useState(false);
+const [showBiometricsInfoModal, setShowBiometricsInfoModal] = useState(false);
+const [showTodaysMacrosInfoModal, setShowTodaysMacrosInfoModal] = useState(false);
+```
+
+And delete the three corresponding JSX blocks at the bottom:
+
+* `{showPersistentInfoModal && ( ... )}`
+* `{showBiometricsInfoModal && ( ... )}`
+* `{showTodaysMacrosInfoModal && ( ... )}`
+
+Quick Tour + Water Log + everything else stays.
+
+---
+
+## 3️⃣ Wiring to Calculator & Pro
+
+You’re already wired to both:
+
+* `getResolvedTargets()` pulls from:
+
+  * User macro calculator targets
+  * Pro/coach-set targets
+* `targetSource === 'pro'` toggles the **pro badge**
+* `proName` shows who set it
+
+As long as:
+
+* Macro Calculator calls the same “set macro targets” logic it used in the old project
+* Pro Dashboard writes to the same store / resolver
+
+…this Biometrics page will now react **exactly like before**:
+Color changes, warnings, and all.
+
+---
+
+If you want, next step we can open `macroResolver.ts` and whatever sets those targets, just to double-check the wiring is identical to the old project — but your Biometrics UI side is now back to **full power**.

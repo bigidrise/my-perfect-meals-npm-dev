@@ -1,0 +1,1126 @@
+~/workspace$ pkill -9 node
+~/workspace$ rm -rf node_modules
+rm -rf .vite
+rm -rf .cache
+rm -rf dist
+rm package-lock.json
+~/workspace$ npm install
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+
+added 1381 packages in 2m
+~/workspace$ npm run dev
+Install Replit's Node tools [y/n]  y
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[DB] Environment: DEVELOPMENT
+[DB] DATABASE_URL is SET
+[DB] Environment: DEVELOPMENT
+[DB] DATABASE_URL is SET
+✅ Resend email service initialized
+🔍 Loading Stripe Price IDs from environment:
+STRIPE_PRICE_BASIC: price_1SUWfOJC1cXhpBKwzi4XECQ7
+STRIPE_PRICE_UPGRADE_BETA: price_1SGlgNJC1cXhpBKwZFm8rFBV
+STRIPE_PRICE_UPGRADE: price_1SGlZUJC1cXhpBKwvCSYVTv3
+STRIPE_PRICE_ULTIMATE: price_1SGlpXJC1cXhpBKw4NbT5eD1
+STRIPE_PRICE_FAMILY_BASE: price_1SGls4JC1cXhpBKwB141c6aZ
+STRIPE_PRICE_FAMILY_ALL_PREMIUM: price_1SGltpJC1cXhpBKwKqTOSUnj
+STRIPE_PRICE_FAMILY_ALL_ULTIMATE: price_1SGlx1JC1cXhpBKwIWjvKL8g
+STRIPE_PRICE_PROCARE: price_1SGlyUJC1cXhpBKwiHogNQEF
+✅ Resolved Stripe Price IDs: {
+  mpm_basic_monthly: 'price_1SUWfOJC1cXhpBKwzi4XECQ7',
+  mpm_premium_monthly: 'price_1SGlZUJC1cXhpBKwvCSYVTv3',
+  mpm_premium_beta_monthly: 'price_1SGlgNJC1cXhpBKwZFm8rFBV',
+  mpm_ultimate_monthly: 'price_1SGlpXJC1cXhpBKw4NbT5eD1',
+  mpm_family_base_monthly: 'price_1SGls4JC1cXhpBKwB141c6aZ',
+  mpm_family_all_premium_monthly: 'price_1SGltpJC1cXhpBKwKqTOSUnj',
+  mpm_family_all_ultimate_monthly: 'price_1SGlx1JC1cXhpBKwIWjvKL8g',
+  mpm_procare_monthly: 'price_1SGlyUJC1cXhpBKwiHogNQEF'
+}
+📡 Redis temporarily disabled to prevent connection errors
+⚠️ Twilio credentials not found - SMS notifications disabled
+📡 Redis notifications temporarily disabled to prevent connection errors
+📡 SMS Worker Redis temporarily disabled to prevent connection errors
+SMS Worker initialized and listening for jobs...
+✅ Restaurant routes mounted at /api/restaurants
+🔧 registerRoutes called - starting route registration
+🚀 Server running on 0.0.0.0:5000 (startup: 286ms)
+2e060fcf-0521-4d15-8708-62f7db40f47f GET / 200 850ms
+6:03:24 PM [GET / - 849ms] http
+6:03:24 PM [GET / - 869ms] http
+📅 Daily reminder cron initialized
+2fe3e808-518b-4f82-a2dd-410e9abcbf8a GET /@vite/client 200 23ms
+6:03:24 PM [GET /@vite/client - 23ms] http
+6:03:24 PM [GET /@vite/client - 24ms] http
+a2b7a631-5063-4199-8f1a-3e17879f595f GET /src/main.tsx?v=nq-VaeFOEuuKNDTWU5Pn2 200 4ms
+6:03:24 PM [GET /src/main.tsx?v=nq-VaeFOEuuKNDTWU5Pn2 - 4ms] http
+6:03:24 PM [GET /src/main.tsx?v=nq-VaeFOEuuKNDTWU5Pn2 - 5ms] http
+6:03:24 PM [🔥 Warmup service started - preventing cold starts] warmup
+Loading 0 existing reminders
+509c4aa4-6582-40df-8f75-070b62587081 GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs 304 2ms
+6:03:29 PM [GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs - 2ms] http
+6:03:29 PM [GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs - 3ms] http
+7441dea5-ffba-4e2b-a980-a7d06f8cf0da GET /src/app-entry.tsx?v=nq-VaeFOEuuKNDTWU5Pn2 200 18ms
+6:03:30 PM [GET /src/app-entry.tsx?v=nq-VaeFOEuuKNDTWU5Pn2 - 18ms] http
+6:03:30 PM [GET /src/app-entry.tsx?v=nq-VaeFOEuuKNDTWU5Pn2 - 19ms] http
+72123ea6-9dfb-45c9-8774-5f498a49eff8 GET /@fs/home/runner/workspace/node_modules/.vite/deps/react.js?v=75e892e5 200 45ms
+6:03:30 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react.js?v=75e892e5 - 44ms] http
+6:03:30 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react.js?v=75e892e5 - 44ms] http
+fd0437d8-0746-4775-897c-c1c86a9a46e5 GET /@fs/home/runner/workspace/node_modules/.vite/deps/react-dom_client.js?v=fc9dd00d 200 21ms
+6:03:30 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react-dom_client.js?v=fc9dd00d - 21ms] http
+6:03:30 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react-dom_client.js?v=fc9dd00d - 22ms] http
+85004151-b811-48cd-8063-0db91ea305e7 GET /@fs/home/runner/workspace/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=75e892e5 200 628ms
+6:03:31 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=75e892e5 - 628ms] http
+6:03:31 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=75e892e5 - 628ms] http
+3892b141-3785-4c9c-80d3-ce930b9e8005 GET /src/App.tsx 200 997ms
+6:03:32 PM [GET /src/App.tsx - 998ms] http
+6:03:32 PM [GET /src/App.tsx - 1002ms] http
+cc8aff1a-b988-4369-9263-bec19a02176d GET /src/components/GlobalErrorBoundary.tsx 200 36ms
+6:03:32 PM [GET /src/components/GlobalErrorBoundary.tsx - 36ms] http
+6:03:32 PM [GET /src/components/GlobalErrorBoundary.tsx - 36ms] http
+73275811-d514-4734-8554-c4f031b28ecd GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BG45W2ER.js?v=ae3c6c57 200 37ms
+6:03:32 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BG45W2ER.js?v=ae3c6c57 - 37ms] http
+6:03:32 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BG45W2ER.js?v=ae3c6c57 - 37ms] http
+f3af2782-6aa9-42fc-bc7b-90bd2eb5ba8c GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HXA6O6EE.js?v=ae3c6c57 200 24ms
+6:03:32 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HXA6O6EE.js?v=ae3c6c57 - 24ms] http
+6:03:32 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HXA6O6EE.js?v=ae3c6c57 - 24ms] http
+152cb3ed-0544-442d-9c9a-f427b8bf7472 GET /src/lib/fetch-credentials-patch.ts 304 26ms
+6:03:32 PM [GET /src/lib/fetch-credentials-patch.ts - 25ms] http
+6:03:32 PM [GET /src/lib/fetch-credentials-patch.ts - 25ms] http
+d6a362e6-cf09-4038-9092-5c9ed141facb GET /src/index.css 304 1937ms
+6:03:34 PM [GET /src/index.css - 1937ms] http
+6:03:34 PM [GET /src/index.css - 1937ms] http
+d2ad193c-7f4d-442a-9dd4-964022405b0f GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=ae3c6c57 200 1828ms
+6:03:34 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=ae3c6c57 - 1828ms] http
+6:03:34 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=ae3c6c57 - 1828ms] http
+70a3d3ac-3bfe-4090-a5e0-a70e08088709 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=611e65b5 200 1831ms
+6:03:34 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=611e65b5 - 1831ms] http
+6:03:34 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=611e65b5 - 1832ms] http
+ae0ea27c-4d08-4f32-af2f-0af55a658d29 GET /src/components/ui/toaster.tsx 200 10ms
+6:03:34 PM [GET /src/components/ui/toaster.tsx - 10ms] http
+6:03:34 PM [GET /src/components/ui/toaster.tsx - 11ms] http
+57b8a25e-164f-4bf7-99f1-44996a80f2fa GET /src/lib/queryClient.ts 200 14ms
+6:03:34 PM [GET /src/lib/queryClient.ts - 14ms] http
+6:03:34 PM [GET /src/lib/queryClient.ts - 15ms] http
+b23bba83-4d71-4c08-940d-6e872b10be18 GET /src/components/ui/tooltip.tsx 200 53ms
+6:03:34 PM [GET /src/components/ui/tooltip.tsx - 53ms] http
+6:03:34 PM [GET /src/components/ui/tooltip.tsx - 56ms] http
+7a77be13-e0e8-43cd-bbee-71d5f76967df GET /src/contexts/AuthContext.tsx 200 33ms
+6:03:34 PM [GET /src/contexts/AuthContext.tsx - 33ms] http
+6:03:34 PM [GET /src/contexts/AuthContext.tsx - 34ms] http
+e4b8f3d8-0a4b-49af-a2d1-f067e723af3d GET /src/components/AppRouter.tsx 200 3ms
+6:03:34 PM [GET /src/components/AppRouter.tsx - 3ms] http
+6:03:34 PM [GET /src/components/AppRouter.tsx - 4ms] http
+7e1a19e9-f550-4d63-9fb9-4dd3b43455f7 GET /src/components/AvatarSelector.tsx 200 3ms
+6:03:34 PM [GET /src/components/AvatarSelector.tsx - 4ms] http
+6:03:34 PM [GET /src/components/AvatarSelector.tsx - 4ms] http
+c03b5aa5-ecc0-4f8b-a3bd-b3b25c35bf4f GET /src/components/Router.tsx 200 25ms
+6:03:34 PM [GET /src/components/Router.tsx - 25ms] http
+6:03:34 PM [GET /src/components/Router.tsx - 25ms] http
+aecff0fa-957f-4454-8cc0-4f27d1882c74 GET /src/components/ChefVoiceAssistant.tsx 200 22ms
+6:03:34 PM [GET /src/components/ChefVoiceAssistant.tsx - 22ms] http
+6:03:34 PM [GET /src/components/ChefVoiceAssistant.tsx - 22ms] http
+345c9dd3-8fc2-48ef-af5d-4c4163bd4d9c GET /src/components/VoiceConcierge.tsx 200 25ms
+6:03:34 PM [GET /src/components/VoiceConcierge.tsx - 25ms] http
+6:03:34 PM [GET /src/components/VoiceConcierge.tsx - 25ms] http
+84a36300-5674-4e25-98e0-f3556a86964b GET /src/components/ScrollManager.tsx 200 4ms
+6:03:34 PM [GET /src/components/ScrollManager.tsx - 4ms] http
+6:03:34 PM [GET /src/components/ScrollManager.tsx - 4ms] http
+8bd422bd-dddd-493f-896b-ccab00c25af8 GET /src/components/ErrorBoundary.tsx 200 27ms
+6:03:34 PM [GET /src/components/ErrorBoundary.tsx - 27ms] http
+6:03:34 PM [GET /src/components/ErrorBoundary.tsx - 27ms] http
+34798beb-e4f8-48fe-ba94-b3677a0f36c5 GET /src/audio/AudioProvider.tsx 200 6ms
+6:03:34 PM [GET /src/audio/AudioProvider.tsx - 6ms] http
+6:03:34 PM [GET /src/audio/AudioProvider.tsx - 6ms] http
+18551019-633f-444b-aaee-4ee19ef0f515 GET /src/lib/rewardful.ts 304 13ms
+6:03:34 PM [GET /src/lib/rewardful.ts - 13ms] http
+6:03:34 PM [GET /src/lib/rewardful.ts - 13ms] http
+fe4c8756-6c2e-41a6-9984-77d8c5bb409a GET /src/lib/updateApp.ts 304 2ms
+6:03:34 PM [GET /src/lib/updateApp.ts - 2ms] http
+6:03:34 PM [GET /src/lib/updateApp.ts - 2ms] http
+8d5e143f-b954-4973-a216-7287a9475c2f GET /src/hooks/useVersionCheck.ts 200 3ms
+6:03:34 PM [GET /src/hooks/useVersionCheck.ts - 3ms] http
+6:03:34 PM [GET /src/hooks/useVersionCheck.ts - 3ms] http
+f2ecb31e-1cfd-4e17-9cc7-e2467cc6d7b9 GET /src/components/ForcedUpdateModal.tsx 200 16ms
+6:03:34 PM [GET /src/components/ForcedUpdateModal.tsx - 16ms] http
+6:03:34 PM [GET /src/components/ForcedUpdateModal.tsx - 16ms] http
+f12bf311-fc99-4403-b5fc-06228a454e18 GET /src/components/copilot/CopilotSystem.tsx 200 12ms
+6:03:34 PM [GET /src/components/copilot/CopilotSystem.tsx - 11ms] http
+6:03:34 PM [GET /src/components/copilot/CopilotSystem.tsx - 12ms] http
+7b6d8ea0-24d1-42cb-980e-c95f338979c7 GET /src/components/copilot/CopilotCommandRegistry.ts 304 13ms
+6:03:34 PM [GET /src/components/copilot/CopilotCommandRegistry.ts - 13ms] http
+6:03:34 PM [GET /src/components/copilot/CopilotCommandRegistry.ts - 14ms] http
+19482d39-c0b7-416d-8a17-1fc59dda52e4 GET /@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=eceaea0d 200 12ms
+6:03:34 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=eceaea0d - 12ms] http
+6:03:34 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=eceaea0d - 12ms] http
+ecf3c142-091a-48ba-8ee9-9e8a141e810d GET /src/lib/resolveApiBase.ts 304 2ms
+6:03:35 PM [GET /src/lib/resolveApiBase.ts - 2ms] http
+6:03:35 PM [GET /src/lib/resolveApiBase.ts - 3ms] http
+c740d054-6e54-4f59-9aa3-087895215106 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=6303c343 200 3ms
+6:03:35 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=6303c343 - 3ms] http
+6:03:35 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=6303c343 - 5ms] http
+6f8d0a55-8f15-49fe-84d2-f7a2f5f6b7a4 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-WKPQ4ZTV.js?v=ae3c6c57 200 1ms
+6:03:35 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-WKPQ4ZTV.js?v=ae3c6c57 - 1ms] http
+6:03:35 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-WKPQ4ZTV.js?v=ae3c6c57 - 2ms] http
+e6adb96b-634e-4c6a-8785-56ccd7072aab GET /src/components/WelcomeGate.tsx 200 1ms
+6:03:35 PM [GET /src/components/WelcomeGate.tsx - 1ms] http
+6:03:35 PM [GET /src/components/WelcomeGate.tsx - 2ms] http
+84e1636c-d0c6-45c1-befe-a0af7792afc5 GET /src/context/VoiceContext.tsx 200 4ms
+6:03:35 PM [GET /src/context/VoiceContext.tsx - 4ms] http
+6:03:35 PM [GET /src/context/VoiceContext.tsx - 4ms] http
+70704deb-f9cc-44f1-9cbb-507e02155245 GET /src/hooks/use-toast.ts 200 134ms
+6:03:35 PM [GET /src/hooks/use-toast.ts - 134ms] http
+6:03:35 PM [GET /src/hooks/use-toast.ts - 134ms] http
+183e8c5d-542b-4ef6-bdf0-e5db7cd67c47 GET /src/components/ui/toast.tsx 200 161ms
+6:03:35 PM [GET /src/components/ui/toast.tsx - 161ms] http
+6:03:35 PM [GET /src/components/ui/toast.tsx - 161ms] http
+c9b394eb-4716-418b-89a5-db05ec2ee687 GET /src/lib/utils.ts 200 135ms
+6:03:35 PM [GET /src/lib/utils.ts - 135ms] http
+633a4e03-0a13-404e-b74a-c2013d2ede59 GET /src/lib/auth.ts 304 70ms
+6:03:35 PM [GET /src/lib/auth.ts - 70ms] http
+6:03:35 PM [GET /src/lib/utils.ts - 135ms] http
+6:03:35 PM [GET /src/lib/auth.ts - 71ms] http
+402f87b2-7e11-4e5f-bfa7-ef1e3be1d85d GET /src/components/VoiceAssistantManager.tsx 200 19ms
+6:03:35 PM [GET /src/components/VoiceAssistantManager.tsx - 19ms] http
+6:03:35 PM [GET /src/components/VoiceAssistantManager.tsx - 19ms] http
+e92ca293-8343-4c8e-8365-6a978ec6bf7c GET /src/components/elevenLabsClient.ts 304 6ms
+6:03:35 PM [GET /src/components/elevenLabsClient.ts - 7ms] http
+6:03:35 PM [GET /src/components/elevenLabsClient.ts - 8ms] http
+44d6cf70-a730-4f85-a8f2-d1a31be4028f GET /src/config/avatarFlags.ts 304 11ms
+6:03:35 PM [GET /src/config/avatarFlags.ts - 11ms] http
+6:03:35 PM [GET /src/config/avatarFlags.ts - 12ms] http
+7b654fdd-22c1-40ae-99ac-e7cce9fff196 GET /src/utils/scrollToTop.ts 304 12ms
+6:03:35 PM [GET /src/utils/scrollToTop.ts - 12ms] http
+6:03:35 PM [GET /src/utils/scrollToTop.ts - 13ms] http
+2b8d095c-088f-4375-905e-11066ba8aa74 GET /@fs/home/runner/workspace/node_modules/.vite/deps/lucide-react.js?v=9781e2f4 200 11ms
+6:03:35 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/lucide-react.js?v=9781e2f4 - 11ms] http
+6:03:35 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/lucide-react.js?v=9781e2f4 - 12ms] http
+b91f7072-222c-41e4-adec-4c2260e3dc65 GET /src/components/TapToRecordButton.tsx 200 29ms
+6:03:35 PM [GET /src/components/TapToRecordButton.tsx - 29ms] http
+6:03:35 PM [GET /src/components/TapToRecordButton.tsx - 30ms] http
+e3d70c64-f7a0-4ec3-85e6-04a18031332b GET /src/components/avatarConfig.ts 304 31ms
+6:03:35 PM [GET /src/components/avatarConfig.ts - 31ms] http
+6:03:35 PM [GET /src/components/avatarConfig.ts - 32ms] http
+c7e1d3ce-d9e5-4cf2-b36e-b4616772c4e0 GET /src/components/AvatarSettingsPanel.tsx 200 4ms
+6:03:35 PM [GET /src/components/AvatarSettingsPanel.tsx - 4ms] http
+6:03:35 PM [GET /src/components/AvatarSettingsPanel.tsx - 4ms] http
+c8c3fbd4-9e25-4695-9bae-958d112b8aca GET /src/components/AvatarSpeechBubble.tsx 200 19ms
+6:03:35 PM [GET /src/components/AvatarSpeechBubble.tsx - 19ms] http
+6:03:35 PM [GET /src/components/AvatarSpeechBubble.tsx - 19ms] http
+e1ce52c4-dafd-4c0b-bbe2-f931b6ce9bd6 GET /src/utils/speechBubbleManager.ts 304 59ms
+6:03:35 PM [GET /src/utils/speechBubbleManager.ts - 58ms] http
+6:03:35 PM [GET /src/utils/speechBubbleManager.ts - 70ms] http
+fafe95d7-1142-4586-b3ba-c0f44da255bc GET /src/components/avatarStyles.css 304 11ms
+6:03:35 PM [GET /src/components/avatarStyles.css - 11ms] http
+6:03:35 PM [GET /src/components/avatarStyles.css - 12ms] http
+4ec7745c-8a90-4006-9134-8d2496fcb1d5 GET /src/pages/pro/GeneralNutritionBuilder.tsx 200 17ms
+6:03:35 PM [GET /src/pages/pro/GeneralNutritionBuilder.tsx - 18ms] http
+6:03:35 PM [GET /src/pages/pro/GeneralNutritionBuilder.tsx - 18ms] http
+937fbb72-c9d0-4b47-a4df-6390932b1ab3 GET /src/components/ScrollRestorer.tsx 200 21ms
+6:03:35 PM [GET /src/components/ScrollRestorer.tsx - 21ms] http
+6:03:35 PM [GET /src/components/ScrollRestorer.tsx - 22ms] http
+18553f8c-00ba-482d-a9e4-f24440a607b6 GET /src/components/PageErrorBoundary.tsx 200 10ms
+6:03:35 PM [GET /src/components/PageErrorBoundary.tsx - 10ms] http
+6:03:35 PM [GET /src/components/PageErrorBoundary.tsx - 10ms] http
+57fc8461-63e3-46a9-bf15-37e2270d3d43 GET /src/components/BottomNav.tsx 200 11ms
+6:03:35 PM [GET /src/components/BottomNav.tsx - 11ms] http
+6:03:35 PM [GET /src/components/BottomNav.tsx - 12ms] http
+5e238e26-6342-49c4-9f6a-e4fc3c79069a GET /src/pages/ABTestingDemo.tsx 200 19ms
+6:03:35 PM [GET /src/pages/ABTestingDemo.tsx - 19ms] http
+6:03:35 PM [GET /src/pages/ABTestingDemo.tsx - 20ms] http
+46e3b504-aba8-4aa0-bcbb-be8cc7c2a8b0 GET /src/pages/ComingSoon.tsx 200 21ms
+6:03:35 PM [GET /src/pages/ComingSoon.tsx - 21ms] http
+6:03:35 PM [GET /src/pages/ComingSoon.tsx - 21ms] http
+fbd59077-8b9e-4c6d-9662-2afc7436ebf7 GET /src/pages/Planner.tsx 200 42ms
+6:03:35 PM [GET /src/pages/Planner.tsx - 42ms] http
+6:03:35 PM [GET /src/pages/Planner.tsx - 43ms] http
+593ce000-4498-455d-8104-058fc7fe333b GET /src/pages/BeachBodyMealBoard.tsx 200 52ms
+6:03:35 PM [GET /src/pages/BeachBodyMealBoard.tsx - 53ms] http
+6:03:35 PM [GET /src/pages/BeachBodyMealBoard.tsx - 53ms] http
+4e2f1f53-720e-4b17-afc1-35e4e5f09820 GET /src/pages/WeeklyMealBoard.tsx 200 17ms
+6:03:35 PM [GET /src/pages/WeeklyMealBoard.tsx - 17ms] http
+6:03:35 PM [GET /src/pages/WeeklyMealBoard.tsx - 17ms] http
+dc60428f-ac98-4d12-88f9-c8e826eef5a1 GET /src/pages/HealthyKidsMeals.tsx 200 7ms
+6:03:35 PM [GET /src/pages/HealthyKidsMeals.tsx - 7ms] http
+6:03:35 PM [GET /src/pages/HealthyKidsMeals.tsx - 7ms] http
+429c9a99-3d39-4b53-a168-ee638e0991c8 GET /src/pages/LifestyleLandingPage.tsx 200 7ms
+6:03:35 PM [GET /src/pages/LifestyleLandingPage.tsx - 7ms] http
+6:03:35 PM [GET /src/pages/LifestyleLandingPage.tsx - 7ms] http
+ffe2699f-00c1-4430-a2e4-d7a95302fd0a GET /src/pages/MacroCounter.tsx 200 9ms
+6:03:35 PM [GET /src/pages/MacroCounter.tsx - 10ms] http
+6:03:35 PM [GET /src/pages/MacroCounter.tsx - 10ms] http
+93b1a659-114c-4adc-84ce-6d6b28e198a5 GET /src/pages/GLP1MealsTracking.tsx 200 7ms
+6:03:35 PM [GET /src/pages/GLP1MealsTracking.tsx - 6ms] http
+6:03:35 PM [GET /src/pages/GLP1MealsTracking.tsx - 8ms] http
+50ec4128-d718-43e0-b83d-2ab4f3cb7d5f GET /src/pages/toddlers-meals-hub.tsx 200 3ms
+6:03:35 PM [GET /src/pages/toddlers-meals-hub.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/toddlers-meals-hub.tsx - 3ms] http
+c8b3f385-c482-4afc-b1c2-00f618a5ea21 GET /src/pages/kids-meals-hub.tsx 200 10ms
+6:03:35 PM [GET /src/pages/kids-meals-hub.tsx - 12ms] http
+6:03:35 PM [GET /src/pages/kids-meals-hub.tsx - 12ms] http
+eb15ab2c-3f7b-447e-8e4c-5a322ee372a5 GET /src/pages/not-found.tsx 200 3ms
+6:03:35 PM [GET /src/pages/not-found.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/not-found.tsx - 4ms] http
+b66b52d0-ddd1-46f9-bc23-afb1978a846c GET /src/pages/home.tsx 200 6ms
+6:03:35 PM [GET /src/pages/home.tsx - 5ms] http
+6:03:35 PM [GET /src/pages/home.tsx - 6ms] http
+2b8897b2-2697-4647-bcb9-32db3b6ba8fa GET /src/pages/DashboardNew.tsx 200 3ms
+6:03:35 PM [GET /src/pages/DashboardNew.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/DashboardNew.tsx - 4ms] http
+cd9bdcb5-c802-44cc-ae0a-fa07bbd83dc7 GET /src/pages/Learn.tsx 200 2ms
+6:03:35 PM [GET /src/pages/Learn.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/Learn.tsx - 2ms] http
+036ee91a-2342-4fad-8b77-4994940ca1cd GET /src/pages/privacy.tsx 200 1ms
+6:03:35 PM [GET /src/pages/privacy.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/privacy.tsx - 1ms] http
+01cf44a5-4d4a-41bd-b405-6c9b693279fd GET /src/pages/PrivacyPolicy.tsx 200 1ms
+6:03:35 PM [GET /src/pages/PrivacyPolicy.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/PrivacyPolicy.tsx - 2ms] http
+b1bc0b96-b89c-437b-825a-60bd7e15387f GET /src/pages/TermsOfService.tsx 200 2ms
+6:03:35 PM [GET /src/pages/TermsOfService.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/TermsOfService.tsx - 3ms] http
+53cb2a81-11d5-4bbb-ad32-0594b6e296d9 GET /src/pages/onboarding-standalone.tsx 200 2ms
+6:03:35 PM [GET /src/pages/onboarding-standalone.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/onboarding-standalone.tsx - 2ms] http
+409e8139-59e6-44cf-9c41-b636abeb82b0 GET /src/pages/Welcome.tsx 200 1ms
+6:03:35 PM [GET /src/pages/Welcome.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/Welcome.tsx - 1ms] http
+7ba15693-9412-4623-8ded-ff657881623f GET /src/pages/ForgotPassword.tsx 200 1ms
+6:03:35 PM [GET /src/pages/ForgotPassword.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/ForgotPassword.tsx - 2ms] http
+40335d49-48ff-402f-bbc8-8ecc970affec GET /src/pages/Auth.tsx 200 3ms
+6:03:35 PM [GET /src/pages/Auth.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/Auth.tsx - 4ms] http
+6d3d63a1-e3ad-4c65-9a6d-a3f2c0546d62 GET /src/pages/ResetPassword.tsx 200 1ms
+6:03:35 PM [GET /src/pages/ResetPassword.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/ResetPassword.tsx - 3ms] http
+ae22c19b-d481-4147-8dad-31e3fb0d3c19 GET /src/pages/PricingPage.tsx 200 3ms
+6:03:35 PM [GET /src/pages/PricingPage.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/PricingPage.tsx - 4ms] http
+2d628603-05ea-498c-b36b-4941ba6b84be GET /src/pages/MealBuilderSelection.tsx 200 2ms
+6:03:35 PM [GET /src/pages/MealBuilderSelection.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/MealBuilderSelection.tsx - 2ms] http
+7b117510-b2ee-40ac-84ef-d0f92b11312d GET /src/pages/CheckoutSuccess.tsx 200 39ms
+6:03:35 PM [GET /src/pages/CheckoutSuccess.tsx - 39ms] http
+6:03:35 PM [GET /src/pages/CheckoutSuccess.tsx - 39ms] http
+0c5b1851-830f-4054-a3f9-4e38012eff0b GET /src/pages/admin-moderation.tsx 200 39ms
+6:03:35 PM [GET /src/pages/admin-moderation.tsx - 40ms] http
+6:03:35 PM [GET /src/pages/admin-moderation.tsx - 40ms] http
+7289a067-1c52-4203-8e72-fc95acbd46e3 GET /src/pages/FamilyInfoPage.tsx 200 30ms
+6:03:35 PM [GET /src/pages/FamilyInfoPage.tsx - 29ms] http
+6:03:35 PM [GET /src/pages/FamilyInfoPage.tsx - 29ms] http
+80a852c6-fcc8-4067-b057-dffaa0a82511 GET /src/pages/craving-creator.tsx 200 5ms
+6:03:35 PM [GET /src/pages/craving-creator.tsx - 5ms] http
+6:03:35 PM [GET /src/pages/craving-creator.tsx - 5ms] http
+ca828500-0553-43b9-b7c4-3960d447c951 GET /src/pages/TutorialHub.tsx 200 2ms
+6:03:35 PM [GET /src/pages/TutorialHub.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/TutorialHub.tsx - 3ms] http
+79258c7a-2065-4c48-b3d3-eaa5d9bde76d GET /src/pages/fridge-rescue.tsx 200 5ms
+6:03:35 PM [GET /src/pages/fridge-rescue.tsx - 5ms] http
+6:03:35 PM [GET /src/pages/fridge-rescue.tsx - 6ms] http
+3eff5695-50f2-4ef6-bf1b-8bd18934d768 GET /src/pages/my-biometrics.tsx 200 4ms
+6:03:35 PM [GET /src/pages/my-biometrics.tsx - 4ms] http
+6:03:35 PM [GET /src/pages/my-biometrics.tsx - 5ms] http
+0c9316ec-a711-4b14-b584-6559c6c85721 GET /src/pages/biometrics/sleep.tsx 200 4ms
+6:03:35 PM [GET /src/pages/biometrics/sleep.tsx - 4ms] http
+6:03:35 PM [GET /src/pages/biometrics/sleep.tsx - 6ms] http
+9f7987b3-7745-49eb-8b5d-d3a02a54624e GET /src/pages/biometrics/body-composition.tsx 200 10ms
+6:03:35 PM [GET /src/pages/biometrics/body-composition.tsx - 10ms] http
+6:03:35 PM [GET /src/pages/biometrics/body-composition.tsx - 10ms] http
+5e86db60-96c7-411d-a590-ecbfd146fcc9 GET /src/pages/GetInspiration.tsx 200 5ms
+6:03:35 PM [GET /src/pages/GetInspiration.tsx - 5ms] http
+6:03:35 PM [GET /src/pages/GetInspiration.tsx - 5ms] http
+60766fdd-4c38-4bde-9808-420ef6c8c7ff GET /src/pages/ShoppingListMasterView.tsx 200 10ms
+6:03:35 PM [GET /src/pages/ShoppingListMasterView.tsx - 10ms] http
+6:03:35 PM [GET /src/pages/ShoppingListMasterView.tsx - 11ms] http
+28c1527b-d24a-4314-b077-e9ca1fa22e89 GET /src/pages/CareTeam.tsx 200 4ms
+6:03:35 PM [GET /src/pages/CareTeam.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/CareTeam.tsx - 4ms] http
+22817ce0-9392-48cc-90a3-0259eeacb0c8 GET /src/pages/ProCareCover.tsx 200 2ms
+6:03:35 PM [GET /src/pages/ProCareCover.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/ProCareCover.tsx - 3ms] http
+7e279404-25cf-489d-9bef-d4567724d57c GET /src/pages/ProPortal.tsx 200 2ms
+6:03:35 PM [GET /src/pages/ProPortal.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/ProPortal.tsx - 3ms] http
+057f774e-cbc8-40fb-9be4-02f8d573369c GET /src/pages/pro/ProClients.tsx 200 1ms
+6:03:35 PM [GET /src/pages/pro/ProClients.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/pro/ProClients.tsx - 1ms] http
+e6694395-a06d-42c8-a07f-65e1869112d2 GET /src/pages/pro/ProClientDashboard.tsx 200 3ms
+6:03:35 PM [GET /src/pages/pro/ProClientDashboard.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/pro/ProClientDashboard.tsx - 4ms] http
+69303350-3d88-48c0-8146-06fe33486417 GET /src/pages/pro/PerformanceCompetitionBuilder.tsx 200 4ms
+6:03:35 PM [GET /src/pages/pro/PerformanceCompetitionBuilder.tsx - 4ms] http
+6:03:35 PM [GET /src/pages/pro/PerformanceCompetitionBuilder.tsx - 5ms] http
+32691bf7-f86b-4b3a-ad70-a01c49cf5654 GET /src/pages/physician/DiabeticHub.tsx 200 4ms
+6:03:35 PM [GET /src/pages/physician/DiabeticHub.tsx - 4ms] http
+6:03:35 PM [GET /src/pages/physician/DiabeticHub.tsx - 4ms] http
+b4f6c05b-a4ff-4829-9689-a9a73d544c9d GET /src/pages/physician/DiabetesSupportPage.tsx 200 2ms
+6:03:35 PM [GET /src/pages/physician/DiabetesSupportPage.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/physician/DiabetesSupportPage.tsx - 2ms] http
+e87b61d6-405b-43fa-9b37-fe8790aa3ba5 GET /src/pages/physician/DiabeticMenuBuilder.tsx 200 3ms
+6:03:35 PM [GET /src/pages/physician/DiabeticMenuBuilder.tsx - 4ms] http
+6:03:35 PM [GET /src/pages/physician/DiabeticMenuBuilder.tsx - 4ms] http
+c8dfcbbb-789b-43b4-aae7-22eeb262c02d GET /src/pages/physician/GLP1Hub.tsx 200 2ms
+6:03:35 PM [GET /src/pages/physician/GLP1Hub.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/physician/GLP1Hub.tsx - 2ms] http
+c3d34b22-6d5b-4096-8a7b-8ed9948cc473 GET /src/pages/physician/GLP1MealBuilder.tsx 200 5ms
+6:03:35 PM [GET /src/pages/physician/GLP1MealBuilder.tsx - 5ms] http
+6:03:35 PM [GET /src/pages/physician/GLP1MealBuilder.tsx - 6ms] http
+e40071ed-1fc3-4aa5-a079-ab0204e1ef31 GET /src/pages/physician/AntiInflammatoryMenuBuilder.tsx 200 5ms
+6:03:35 PM [GET /src/pages/physician/AntiInflammatoryMenuBuilder.tsx - 5ms] http
+6:03:35 PM [GET /src/pages/physician/AntiInflammatoryMenuBuilder.tsx - 5ms] http
+f998310a-4aa3-43f7-a157-d53d1c5f48b2 GET /src/pages/CravingCreatorLanding.tsx 200 1ms
+6:03:35 PM [GET /src/pages/CravingCreatorLanding.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/CravingCreatorLanding.tsx - 2ms] http
+7a7c7c3f-adb4-458c-bff6-f81052c1c1d1 GET /src/pages/CravingDessertCreator.tsx 200 3ms
+6:03:35 PM [GET /src/pages/CravingDessertCreator.tsx - 3ms] http
+6:03:35 PM [GET /src/pages/CravingDessertCreator.tsx - 3ms] http
+ecb20beb-78fb-4cd4-83a7-e7363dac4185 GET /src/pages/CravingPresets.tsx 200 1ms
+6:03:35 PM [GET /src/pages/CravingPresets.tsx - 2ms] http
+6:03:35 PM [GET /src/pages/CravingPresets.tsx - 2ms] http
+5c9e447f-ca65-4267-988f-2e030ada99d5 GET /src/pages/AlcoholHubLanding.tsx 200 1ms
+6:03:35 PM [GET /src/pages/AlcoholHubLanding.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/AlcoholHubLanding.tsx - 3ms] http
+c365df1e-8da8-4db7-922b-3f30cc7aad22 GET /src/pages/AlcoholLeanAndSocial.tsx 200 1ms
+6:03:35 PM [GET /src/pages/AlcoholLeanAndSocial.tsx - 1ms] http
+6:03:35 PM [GET /src/pages/AlcoholLeanAndSocial.tsx - 2ms] http
+8e2de2d2-e385-4302-ac3e-ee0c61d54968 GET /src/pages/mocktails-low-cal-mixers.tsx 200 1ms
+6:03:36 PM [GET /src/pages/mocktails-low-cal-mixers.tsx - 1ms] http
+6:03:36 PM [GET /src/pages/mocktails-low-cal-mixers.tsx - 1ms] http
+a75d2945-8ab4-4a76-9d83-f8ec9b6873ab GET /src/pages/AlcoholSmartSips.tsx 200 0ms
+6:03:36 PM [GET /src/pages/AlcoholSmartSips.tsx - 0ms] http
+6:03:36 PM [GET /src/pages/AlcoholSmartSips.tsx - 1ms] http
+d541bf38-1d92-492b-869d-5d9977e050fd GET /src/pages/beer-pairing.tsx 200 1ms
+6:03:36 PM [GET /src/pages/beer-pairing.tsx - 1ms] http
+6:03:36 PM [GET /src/pages/beer-pairing.tsx - 1ms] http
+e3d83cd6-bfd3-437b-b9bc-3c81ff6a589c GET /src/pages/bourbon-spirits.tsx 200 2ms
+6:03:36 PM [GET /src/pages/bourbon-spirits.tsx - 2ms] http
+6:03:36 PM [GET /src/pages/bourbon-spirits.tsx - 2ms] http
+0bb3f972-bbd4-442a-a474-fa19a77552ae GET /src/pages/alcohol-log.tsx 200 2ms
+6:03:36 PM [GET /src/pages/alcohol-log.tsx - 2ms] http
+6:03:36 PM [GET /src/pages/alcohol-log.tsx - 2ms] http
+ea506a8c-346d-4fb7-adfa-fcccdaad73d1 GET /src/pages/meal-pairing-ai.tsx 200 1ms
+6:03:36 PM [GET /src/pages/meal-pairing-ai.tsx - 2ms] http
+6:03:36 PM [GET /src/pages/meal-pairing-ai.tsx - 2ms] http
+c0097780-4f94-4e64-ae4d-428ef646e828 GET /src/pages/weaning-off-tool.tsx 200 3ms
+6:03:36 PM [GET /src/pages/weaning-off-tool.tsx - 3ms] http
+6:03:36 PM [GET /src/pages/weaning-off-tool.tsx - 4ms] http
+8f2e4697-80fa-4e3c-ad40-0f1683b3821d GET /src/pages/wine-pairing.tsx 200 5ms
+6:03:36 PM [GET /src/pages/wine-pairing.tsx - 6ms] http
+6:03:36 PM [GET /src/pages/wine-pairing.tsx - 6ms] http
+48409ba1-2299-44f0-abaf-41f943fb9e9c GET /src/pages/SocializingHub.tsx 200 1ms
+6:03:36 PM [GET /src/pages/SocializingHub.tsx - 1ms] http
+6:03:36 PM [GET /src/pages/SocializingHub.tsx - 1ms] http
+1f9ce7c2-2367-41ef-9490-40a9e6cad120 GET /src/pages/SocialFindMeals.tsx 200 1ms
+6:03:36 PM [GET /src/pages/SocialFindMeals.tsx - 1ms] http
+6:03:36 PM [GET /src/pages/SocialFindMeals.tsx - 2ms] http
+343682e9-3caa-484f-913a-38b28ad5e1d8 GET /src/pages/SocialRestaurantGuide.tsx 200 2ms
+6:03:36 PM [GET /src/pages/SocialRestaurantGuide.tsx - 1ms] http
+6:03:36 PM [GET /src/pages/SocialRestaurantGuide.tsx - 1ms] http
+c7959b08-a18a-4e73-8c2f-b326e4cb709b GET /src/pages/Founders.tsx 200 2ms
+6:03:36 PM [GET /src/pages/Founders.tsx - 2ms] http
+6:03:36 PM [GET /src/pages/Founders.tsx - 2ms] http
+abb9623e-b18f-42e6-ba77-3a70a75961b1 GET /src/pages/supplement-hub.tsx 200 2ms
+6:03:36 PM [GET /src/pages/supplement-hub.tsx - 2ms] http
+6:03:36 PM [GET /src/pages/supplement-hub.tsx - 2ms] http
+b2c3c85e-b527-4865-a674-9ecad4228635 GET /src/pages/supplement-education.tsx 200 1ms
+6:03:36 PM [GET /src/pages/supplement-education.tsx - 1ms] http
+6:03:36 PM [GET /src/pages/supplement-education.tsx - 2ms] http
+de26ce7b-3a36-4392-96cd-c829c53c9059 GET /src/audio/sounds.ts 304 0ms
+6:03:36 PM [GET /src/audio/sounds.ts - 0ms] http
+6:03:36 PM [GET /src/audio/sounds.ts - 1ms] http
+bb787245-15bd-4971-b10c-213b5336ef25 GET /src/lib/versionCheck.ts 304 1ms
+6:03:36 PM [GET /src/lib/versionCheck.ts - 1ms] http
+6:03:36 PM [GET /src/lib/versionCheck.ts - 2ms] http
+e425f7b8-abee-42fd-937c-2d49a5b5d655 GET /src/components/ui/button.tsx 200 2ms
+6:03:36 PM [GET /src/components/ui/button.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ui/button.tsx - 2ms] http
+22dd7087-063f-417d-83f6-28cc5bfedd0d GET /src/components/copilot/CopilotContext.tsx 200 1ms
+6:03:36 PM [GET /src/components/copilot/CopilotContext.tsx - 1ms] http
+6:03:36 PM [GET /src/components/copilot/CopilotContext.tsx - 1ms] http
+60ab7a2a-5fda-4698-884e-135fbb754f79 GET /src/components/copilot/CopilotSheet.tsx 200 2ms
+6:03:36 PM [GET /src/components/copilot/CopilotSheet.tsx - 2ms] http
+6:03:36 PM [GET /src/components/copilot/CopilotSheet.tsx - 2ms] http
+0e900f35-f4b8-4eb5-94b3-45fde6e28a5c GET /src/components/copilot/CopilotGuidedModeContext.tsx 200 1ms
+6:03:36 PM [GET /src/components/copilot/CopilotGuidedModeContext.tsx - 1ms] http
+6:03:36 PM [GET /src/components/copilot/CopilotGuidedModeContext.tsx - 1ms] http
+85694fde-593e-434e-9d52-52109e483b08 GET /src/components/copilot/useCopilotPageExplanation.ts 200 1ms
+6:03:36 PM [GET /src/components/copilot/useCopilotPageExplanation.ts - 1ms] http
+6:03:36 PM [GET /src/components/copilot/useCopilotPageExplanation.ts - 1ms] http
+c719f22a-5257-4497-97e3-8bda1b317533 GET /src/lib/copilotActions.ts 304 1ms
+6:03:36 PM [GET /src/lib/copilotActions.ts - 1ms] http
+6:03:36 PM [GET /src/lib/copilotActions.ts - 1ms] http
+cfd1dfef-5153-445d-8d2e-2ccab34ab651 GET /src/components/copilot/commands/explainFeature.ts 304 0ms
+6:03:36 PM [GET /src/components/copilot/commands/explainFeature.ts - 0ms] http
+6:03:36 PM [GET /src/components/copilot/commands/explainFeature.ts - 0ms] http
+c5a1fbd2-eaef-4129-8973-8d2cb73feccf GET /src/components/copilot/CopilotRespectGuard.ts 304 1ms
+6:03:36 PM [GET /src/components/copilot/CopilotRespectGuard.ts - 1ms] http
+6:03:36 PM [GET /src/components/copilot/CopilotRespectGuard.ts - 1ms] http
+5cf7cb40-d40d-45dc-84b5-640390cfa6d2 GET /src/components/copilot/NLEngine.ts 304 1ms
+6:03:36 PM [GET /src/components/copilot/NLEngine.ts - 1ms] http
+6:03:36 PM [GET /src/components/copilot/NLEngine.ts - 2ms] http
+37b226cf-e849-485c-b09b-d46319b5270e GET /src/featureFlags.ts 304 0ms
+6:03:36 PM [GET /src/featureFlags.ts - 0ms] http
+6:03:36 PM [GET /src/featureFlags.ts - 1ms] http
+e5735d13-e375-4bf4-b30b-08e73bb8fd84 GET /src/components/copilot/KeywordFeatureMap.ts 304 1ms
+6:03:36 PM [GET /src/components/copilot/KeywordFeatureMap.ts - 1ms] http
+6:03:36 PM [GET /src/components/copilot/KeywordFeatureMap.ts - 1ms] http
+a5cb7b93-d220-40fb-86e6-9cb4f4a64cc5 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CCQSXOCW.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CCQSXOCW.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CCQSXOCW.js?v=ae3c6c57 - 2ms] http
+a32004db-0bf7-4540-be63-41eb93db8565 GET /src/components/copilot/CanonicalAliasRegistry.ts 304 2ms
+6:03:36 PM [GET /src/components/copilot/CanonicalAliasRegistry.ts - 2ms] http
+6:03:36 PM [GET /src/components/copilot/CanonicalAliasRegistry.ts - 3ms] http
+32b5d494-5a31-46ca-9976-9719e01609b1 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-M3KHQRV6.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-M3KHQRV6.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-M3KHQRV6.js?v=ae3c6c57 - 1ms] http
+f1d70aef-31a5-42fd-bae4-14650a652c41 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EPAF4YNV.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EPAF4YNV.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EPAF4YNV.js?v=ae3c6c57 - 2ms] http
+b0256673-abd9-4c61-9fef-092d5cc2c09b GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GLP7HXYY.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GLP7HXYY.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GLP7HXYY.js?v=ae3c6c57 - 1ms] http
+814e2956-dfeb-42b5-9adb-f2dcd58814b1 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CQJGLADP.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CQJGLADP.js?v=ae3c6c57 - 0ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CQJGLADP.js?v=ae3c6c57 - 1ms] http
+edfce686-0bd8-4113-b633-031170373ca8 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2IARX5I7.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2IARX5I7.js?v=ae3c6c57 - 2ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2IARX5I7.js?v=ae3c6c57 - 2ms] http
+fdfe783c-3935-4be5-b4ce-2cbda61391a0 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-MSNZXMU5.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-MSNZXMU5.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-MSNZXMU5.js?v=ae3c6c57 - 2ms] http
+9cd156d6-17b7-43a0-89f3-d3390a9d0577 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QRVIDNI4.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QRVIDNI4.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QRVIDNI4.js?v=ae3c6c57 - 1ms] http
+19120582-1d86-45c7-971c-1e2f11807b87 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-KBIUQEYX.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-KBIUQEYX.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-KBIUQEYX.js?v=ae3c6c57 - 1ms] http
+6e3dac0f-78c7-4fb4-8e5a-f24318e9664b GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-G5XE2XO5.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-G5XE2XO5.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-G5XE2XO5.js?v=ae3c6c57 - 1ms] http
+9e48b3c3-719b-4bad-bd1d-060134232e63 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OM5FIJOY.js?v=ae3c6c57 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OM5FIJOY.js?v=ae3c6c57 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OM5FIJOY.js?v=ae3c6c57 - 1ms] http
+0ffd2398-ab0c-45d4-9f81-b598ac2f682c GET /@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=c5f9f325 200 2ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=c5f9f325 - 2ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=c5f9f325 - 2ms] http
+a72cca07-684f-4699-820f-2daa4b0d9a80 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-toast.js?v=0274975b 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-toast.js?v=0274975b - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-toast.js?v=0274975b - 2ms] http
+aa7fcaf0-f8cd-4b91-8754-ec994ad5033e GET /@fs/home/runner/workspace/node_modules/.vite/deps/class-variance-authority.js?v=e74cc861 200 0ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/class-variance-authority.js?v=e74cc861 - 0ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/class-variance-authority.js?v=e74cc861 - 1ms] http
+df9b992d-3821-4fbc-832f-5508f2458a9e GET /@fs/home/runner/workspace/node_modules/.vite/deps/clsx.js?v=d0761c37 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/clsx.js?v=d0761c37 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/clsx.js?v=d0761c37 - 1ms] http
+f67f52a5-c2f5-4bf8-918d-5c8b4466297a GET /src/components/VoiceCommandInterface.tsx 200 1ms
+6:03:36 PM [GET /src/components/VoiceCommandInterface.tsx - 1ms] http
+6:03:36 PM [GET /src/components/VoiceCommandInterface.tsx - 1ms] http
+b5deee79-8121-451f-82e4-9df3a392dd69 GET /@fs/home/runner/workspace/node_modules/.vite/deps/tailwind-merge.js?v=7f9c9695 200 2ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/tailwind-merge.js?v=7f9c9695 - 2ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/tailwind-merge.js?v=7f9c9695 - 2ms] http
+03ca8847-3f79-4713-b22d-cdd28bdb053f GET /src/components/ConversationPanel.tsx 200 1ms
+6:03:36 PM [GET /src/components/ConversationPanel.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ConversationPanel.tsx - 2ms] http
+e84f08f6-0954-4a92-9e6d-dd4b344b299c GET /src/lib/proData.ts 304 1ms
+6:03:36 PM [GET /src/lib/proData.ts - 2ms] http
+6:03:36 PM [GET /src/lib/proData.ts - 2ms] http
+1d861ca9-cc53-4289-ad3a-b546bf0c581e GET /src/components/ui/card.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/card.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/card.tsx - 1ms] http
+2b7dec6d-a827-4d66-8d95-8eff3408910d GET /src/components/MealCard.tsx 200 1ms
+6:03:36 PM [GET /src/components/MealCard.tsx - 1ms] http
+6:03:36 PM [GET /src/components/MealCard.tsx - 1ms] http
+22fbdf79-b521-41f3-b85c-54940de2bcc3 GET /src/lib/boardApi.ts 304 1ms
+6:03:36 PM [GET /src/lib/boardApi.ts - 1ms] http
+6:03:36 PM [GET /src/lib/boardApi.ts - 2ms] http
+0470dfd6-7c97-4369-a642-747a1dbcd4ef GET /src/components/pickers/MealPickerDrawer.tsx 200 3ms
+6:03:36 PM [GET /src/components/pickers/MealPickerDrawer.tsx - 3ms] http
+6:03:36 PM [GET /src/components/pickers/MealPickerDrawer.tsx - 4ms] http
+8dea490e-064c-4f19-9526-c0aa45747853 GET /src/components/pickers/ManualMealModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/pickers/ManualMealModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/pickers/ManualMealModal.tsx - 1ms] http
+e75da878-f695-45c2-af9f-a24a97fb1b22 GET /src/components/AddSnackModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/AddSnackModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/AddSnackModal.tsx - 1ms] http
+e4580ae0-31d0-491d-8b2c-e62aa45e7f8b GET /src/components/biometrics/MacroBridgeFooter.tsx 200 0ms
+6:03:36 PM [GET /src/components/biometrics/MacroBridgeFooter.tsx - 0ms] http
+6:03:36 PM [GET /src/components/biometrics/MacroBridgeFooter.tsx - 1ms] http
+b7fd5a29-693e-47a5-876e-4bdba10f0286 GET /src/components/WeeklyOverviewModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/WeeklyOverviewModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/WeeklyOverviewModal.tsx - 2ms] http
+908dfe04-ad58-4955-8a3b-956d05c02db7 GET /src/components/ShoppingAggregateBar.tsx 200 2ms
+6:03:36 PM [GET /src/components/ShoppingAggregateBar.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ShoppingAggregateBar.tsx - 2ms] http
+eca5f9bf-f92a-402c-b1cb-61708dedf7da GET /src/utils/ingredientParser.ts 304 3ms
+6:03:36 PM [GET /src/utils/ingredientParser.ts - 3ms] http
+6:03:36 PM [GET /src/utils/ingredientParser.ts - 4ms] http
+c797bdd5-ee4b-4778-9c5c-8d440ee15323 GET /src/hooks/useOnboardingProfile.ts 304 2ms
+6:03:36 PM [GET /src/hooks/useOnboardingProfile.ts - 2ms] http
+6:03:36 PM [GET /src/hooks/useOnboardingProfile.ts - 4ms] http
+21ca87db-547c-4079-97a9-e5a14170ce76 GET /src/stores/shoppingListStore.ts 200 2ms
+6:03:36 PM [GET /src/stores/shoppingListStore.ts - 2ms] http
+6:03:36 PM [GET /src/stores/shoppingListStore.ts - 2ms] http
+8e419c55-a9fa-4175-a0a3-3a43f78c458f GET /src/lib/targets.ts 304 2ms
+6:03:36 PM [GET /src/lib/targets.ts - 2ms] http
+6:03:36 PM [GET /src/lib/targets.ts - 2ms] http
+37e2a05e-b480-4958-878f-5209af82e7d6 GET /src/hooks/useTodayMacros.ts 200 2ms
+6:03:36 PM [GET /src/hooks/useTodayMacros.ts - 1ms] http
+6:03:36 PM [GET /src/hooks/useTodayMacros.ts - 2ms] http
+c71ef326-b230-487e-b271-cd49cb7cd158 GET /src/utils/midnight.ts 200 3ms
+6:03:36 PM [GET /src/utils/midnight.ts - 3ms] http
+6:03:36 PM [GET /src/utils/midnight.ts - 3ms] http
+b75b4488-5c0d-4433-a823-c4976dbad28a GET /src/hooks/useMidnightReset.ts 200 4ms
+6:03:36 PM [GET /src/hooks/useMidnightReset.ts - 4ms] http
+6:03:36 PM [GET /src/hooks/useMidnightReset.ts - 4ms] http
+7077184f-f000-431b-b722-cf5d415515b4 GET /src/utils/features.ts 304 2ms
+6:03:36 PM [GET /src/utils/features.ts - 2ms] http
+6:03:36 PM [GET /src/utils/features.ts - 2ms] http
+b5e34cef-aafb-4d21-b4a8-dd7ec45dd471 GET /src/components/DayChips.tsx 200 1ms
+6:03:36 PM [GET /src/components/DayChips.tsx - 2ms] http
+6:03:36 PM [GET /src/components/DayChips.tsx - 4ms] http
+f5d55112-b32c-44cd-bec2-0543a78e0d35 GET /src/components/DayWeekToggle.tsx 200 1ms
+6:03:36 PM [GET /src/components/DayWeekToggle.tsx - 1ms] http
+6:03:36 PM [GET /src/components/DayWeekToggle.tsx - 1ms] http
+740a8bac-caab-44b5-9b7e-f7575a016f64 GET /src/components/DuplicateDayModal.tsx 200 2ms
+6:03:36 PM [GET /src/components/DuplicateDayModal.tsx - 2ms] http
+6:03:36 PM [GET /src/components/DuplicateDayModal.tsx - 3ms] http
+6b979cab-093d-4231-a736-45c1923e2c73 GET /src/components/DuplicateWeekModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/DuplicateWeekModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/DuplicateWeekModal.tsx - 2ms] http
+1f5e97e2-06f1-4793-bcbb-cd2998575c22 GET /src/components/WhyDrawer.tsx 200 2ms
+6:03:36 PM [GET /src/components/WhyDrawer.tsx - 1ms] http
+6:03:36 PM [GET /src/components/WhyDrawer.tsx - 3ms] http
+db15f03d-3dc1-44d7-8a03-e998a322a5c4 GET /src/utils/reasons.ts 304 1ms
+6:03:36 PM [GET /src/utils/reasons.ts - 1ms] http
+6:03:36 PM [GET /src/utils/reasons.ts - 2ms] http
+ac5492b9-e6ee-4f08-bc95-c3c11c720e1f GET /src/components/ShoppingListPreviewModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/ShoppingListPreviewModal.tsx - 3ms] http
+6:03:36 PM [GET /src/components/ShoppingListPreviewModal.tsx - 3ms] http
+a0df8278-4a68-422f-a3ae-8a2e5a01ea89 GET /src/hooks/useWeeklyBoard.ts 200 1ms
+6:03:36 PM [GET /src/hooks/useWeeklyBoard.ts - 1ms] http
+6:03:36 PM [GET /src/hooks/useWeeklyBoard.ts - 1ms] http
+588b6fa2-f2b7-408d-9e62-78e91904ae53 GET /@fs/home/runner/workspace/shared/schema/weeklyBoard.ts 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/shared/schema/weeklyBoard.ts - 2ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/shared/schema/weeklyBoard.ts - 2ms] http
+5efcd5c5-f97b-4bf0-9086-dd4e7dae6028 GET /@fs/home/runner/workspace/node_modules/.vite/deps/uuid.js?v=76db3abc 200 2ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/uuid.js?v=76db3abc - 2ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/uuid.js?v=76db3abc - 2ms] http
+d10efe53-94d5-4e25-9468-cde287c3275f GET /src/components/modals/AIMealCreatorModal.tsx 200 4ms
+6:03:36 PM [GET /src/components/modals/AIMealCreatorModal.tsx - 4ms] http
+6:03:36 PM [GET /src/components/modals/AIMealCreatorModal.tsx - 4ms] http
+f4ee983b-923c-4411-8e42-1b94ffca7236 GET /src/components/pickers/MealPremadePicker.tsx 200 3ms
+6:03:36 PM [GET /src/components/pickers/MealPremadePicker.tsx - 3ms] http
+6:03:36 PM [GET /src/components/pickers/MealPremadePicker.tsx - 3ms] http
+5bbc5bf4-5a7d-4956-8caf-bd6e8dd18834 GET /src/components/ui/dialog.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/dialog.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/dialog.tsx - 1ms] http
+7ebe5912-3d6f-45f7-8064-a79ca2d2233b GET /src/components/pickers/SnackPickerDrawer.tsx 200 4ms
+6:03:36 PM [GET /src/components/pickers/SnackPickerDrawer.tsx - 4ms] http
+6:03:36 PM [GET /src/components/pickers/SnackPickerDrawer.tsx - 5ms] http
+03410c5e-4e1a-4349-85ab-c285b2efde89 GET /src/components/SnackCreatorModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/SnackCreatorModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/SnackCreatorModal.tsx - 2ms] http
+0aab4bab-0959-4705-bc10-b5f04004e115 GET /src/components/SnackCreatorButton.tsx 200 1ms
+6:03:36 PM [GET /src/components/SnackCreatorButton.tsx - 1ms] http
+6:03:36 PM [GET /src/components/SnackCreatorButton.tsx - 1ms] http
+b0efac64-6af7-49c2-86f6-d1810202dfcf GET /src/hooks/useQuickTour.ts 200 1ms
+6:03:36 PM [GET /src/hooks/useQuickTour.ts - 1ms] http
+6:03:36 PM [GET /src/hooks/useQuickTour.ts - 1ms] http
+9374c6e0-0b8e-4ea5-977a-1ae545c3516b GET /src/components/guided/QuickTourModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/guided/QuickTourModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/guided/QuickTourModal.tsx - 1ms] http
+5c450778-5fe1-46b0-a9f7-8dc5d1c3ecf3 GET /src/components/guided/QuickTourButton.tsx 200 1ms
+6:03:36 PM [GET /src/components/guided/QuickTourButton.tsx - 2ms] http
+6:03:36 PM [GET /src/components/guided/QuickTourButton.tsx - 3ms] http
+3e5fcfcf-ffbd-4e0a-b9ea-cacef399dde4 GET /src/components/copilot/ChefCapIcon.tsx 200 1ms
+6:03:36 PM [GET /src/components/copilot/ChefCapIcon.tsx - 1ms] http
+6:03:36 PM [GET /src/components/copilot/ChefCapIcon.tsx - 2ms] http
+b89736d7-1f0c-4d37-9a18-ace8bbd1edb3 GET /src/lib/api.ts 304 1ms
+6:03:36 PM [GET /src/lib/api.ts - 1ms] http
+6:03:36 PM [GET /src/lib/api.ts - 1ms] http
+0f4b15db-250c-46be-8eae-688678eddf46 GET /src/components/ComingSoonCard.tsx 200 2ms
+6:03:36 PM [GET /src/components/ComingSoonCard.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ComingSoonCard.tsx - 3ms] http
+ba6c2cb9-b72c-4f29-9719-af0eb65cd435 GET /src/components/glass/GlassCard.tsx 200 1ms
+6:03:36 PM [GET /src/components/glass/GlassCard.tsx - 1ms] http
+6:03:36 PM [GET /src/components/glass/GlassCard.tsx - 2ms] http
+52c92d44-6779-438c-bcc9-569247dc8480 GET /src/components/pickers/AthleteMealPickerDrawer.tsx 200 1ms
+6:03:36 PM [GET /src/components/pickers/AthleteMealPickerDrawer.tsx - 2ms] http
+6:03:36 PM [GET /src/components/pickers/AthleteMealPickerDrawer.tsx - 2ms] http
+518e0d6b-58e4-4223-b764-638c751c2771 GET /src/components/biometrics/RemainingMacrosFooter.tsx 200 1ms
+6:03:36 PM [GET /src/components/biometrics/RemainingMacrosFooter.tsx - 1ms] http
+6:03:36 PM [GET /src/components/biometrics/RemainingMacrosFooter.tsx - 2ms] http
+f20e39f7-ce36-4cae-8dd1-d5f478770fef GET /src/components/biometrics/LockedDayDialog.tsx 200 3ms
+6:03:36 PM [GET /src/components/biometrics/LockedDayDialog.tsx - 3ms] http
+6:03:36 PM [GET /src/components/biometrics/LockedDayDialog.tsx - 4ms] http
+fb1f8807-7970-4472-8e8c-e4fca6176ddf GET /src/lib/lockedDays.ts 304 1ms
+6:03:36 PM [GET /src/lib/lockedDays.ts - 1ms] http
+6:03:36 PM [GET /src/lib/lockedDays.ts - 1ms] http
+3201a261-52d3-49ef-871b-5f7df601a4fa GET /src/lib/macrosQuickView.ts 304 2ms
+6:03:36 PM [GET /src/lib/macrosQuickView.ts - 1ms] http
+6:03:36 PM [GET /src/lib/macrosQuickView.ts - 1ms] http
+7510db54-cd04-4581-bca0-e571ddec0be7 GET /src/lib/dailyLimits.ts 304 1ms
+6:03:36 PM [GET /src/lib/dailyLimits.ts - 1ms] http
+6:03:36 PM [GET /src/lib/dailyLimits.ts - 1ms] http
+c58d45b0-0b9b-422c-8fc5-b7cbe80dfc4b GET /src/lib/macroResolver.ts 304 1ms
+6:03:36 PM [GET /src/lib/macroResolver.ts - 1ms] http
+6:03:36 PM [GET /src/lib/macroResolver.ts - 1ms] http
+a0f72845-100d-4742-99ae-6b49961ee852 GET /src/components/modals/AdditionalMacrosModal.tsx 200 2ms
+6:03:36 PM [GET /src/components/modals/AdditionalMacrosModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/modals/AdditionalMacrosModal.tsx - 1ms] http
+e7d4adcd-d1b2-42cb-afd6-99b0aaa4779c GET /src/components/CreateWithChefModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/CreateWithChefModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/CreateWithChefModal.tsx - 1ms] http
+da29acbc-53bc-4479-aef8-d77a83727aa0 GET /src/components/ui/radio-group.tsx 200 2ms
+6:03:36 PM [GET /src/components/ui/radio-group.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ui/radio-group.tsx - 3ms] http
+4e471448-4936-465a-8e81-7b9f65188404 GET /src/components/GlobalMealActionBar.tsx 200 3ms
+6:03:36 PM [GET /src/components/GlobalMealActionBar.tsx - 3ms] http
+6:03:36 PM [GET /src/components/GlobalMealActionBar.tsx - 3ms] http
+c5eceadf-e88a-4527-a8b1-96482c714f9a GET /src/components/ui/label.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/label.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/label.tsx - 1ms] http
+4df86b9b-3ab1-4854-8d7e-c53eb629520a GET /src/components/ui/input.tsx 200 2ms
+6:03:36 PM [GET /src/components/ui/input.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ui/input.tsx - 3ms] http
+cc2f9b40-459a-43c0-b135-669681beec0b GET /src/lib/assignedBuilder.ts 304 1ms
+6:03:36 PM [GET /src/lib/assignedBuilder.ts - 1ms] http
+6:03:36 PM [GET /src/lib/assignedBuilder.ts - 2ms] http
+0c47ce2c-2e19-43fa-a301-309b632cc5ff GET /src/data/toddlersMealsData.ts 304 2ms
+6:03:36 PM [GET /src/data/toddlersMealsData.ts - 2ms] http
+6:03:36 PM [GET /src/data/toddlersMealsData.ts - 3ms] http
+8cf30713-a2cd-4bca-9cf7-f1450cbb11da GET /src/components/badges/HealthBadgesPopover.tsx 200 1ms
+6:03:36 PM [GET /src/components/badges/HealthBadgesPopover.tsx - 2ms] http
+6:03:36 PM [GET /src/components/badges/HealthBadgesPopover.tsx - 2ms] http
+65543a4c-a101-4762-9592-fad2a5e1f32a GET /src/components/CopyRecipeButton.tsx 200 1ms
+6:03:36 PM [GET /src/components/CopyRecipeButton.tsx - 1ms] http
+6:03:36 PM [GET /src/components/CopyRecipeButton.tsx - 1ms] http
+0b87d5e7-1291-4473-b837-1c47ae13771c GET /src/data/kidsMealsData.ts 304 0ms
+6:03:36 PM [GET /src/data/kidsMealsData.ts - 0ms] http
+6:03:36 PM [GET /src/data/kidsMealsData.ts - 1ms] http
+71536768-2cc0-4884-8f94-ff8f602db15d GET /src/components/ui/navigation.tsx 200 2ms
+6:03:36 PM [GET /src/components/ui/navigation.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ui/navigation.tsx - 3ms] http
+d4202a4b-fa13-4892-bb43-3945ae11f4df GET /src/components/ui/badge.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/badge.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/badge.tsx - 1ms] http
+21632812-76a6-48cb-83a5-4792fdb941eb GET /src/components/ProfileSheet.tsx 200 1ms
+6:03:36 PM [GET /src/components/ProfileSheet.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ProfileSheet.tsx - 1ms] http
+a986967d-b41e-4771-a155-8ad85f6f5140 GET /src/components/ui/progress.tsx 200 0ms
+6:03:36 PM [GET /src/components/ui/progress.tsx - 0ms] http
+6:03:36 PM [GET /src/components/ui/progress.tsx - 1ms] http
+363dc160-dd21-4805-9095-560213bcba79 GET /src/components/icons/HubControlIcon.tsx 200 1ms
+6:03:36 PM [GET /src/components/icons/HubControlIcon.tsx - 1ms] http
+6:03:36 PM [GET /src/components/icons/HubControlIcon.tsx - 2ms] http
+0491a8a0-fa74-4fba-b502-5d73bb24d619 GET /src/components/ui/select.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/select.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/select.tsx - 1ms] http
+bf88aefa-eda7-4a01-b97d-e467fa8563b6 GET /src/components/inputs/HeightInput.tsx 200 1ms
+6:03:36 PM [GET /src/components/inputs/HeightInput.tsx - 1ms] http
+6:03:36 PM [GET /src/components/inputs/HeightInput.tsx - 2ms] http
+249f90b7-2da0-4f35-8709-e21a4bc26851 GET /src/utils/imageCache.ts 304 0ms
+6:03:36 PM [GET /src/utils/imageCache.ts - 0ms] http
+6:03:36 PM [GET /src/utils/imageCache.ts - 0ms] http
+54e6824f-687c-4758-bfd1-7f86a19540ec GET /@fs/home/runner/workspace/node_modules/.vite/deps/react-hook-form.js?v=d682862b 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react-hook-form.js?v=d682862b - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/react-hook-form.js?v=d682862b - 1ms] http
+802b4152-6f14-4767-81b9-422bb50936f5 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@hookform_resolvers_zod.js?v=d525c261 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@hookform_resolvers_zod.js?v=d525c261 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@hookform_resolvers_zod.js?v=d525c261 - 1ms] http
+1534fb21-be2d-4b8e-8a62-8936627b8c50 GET /src/components/ui/form.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/form.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/form.tsx - 1ms] http
+6e6b7f35-ea2a-4cff-8be9-f95ac32d175c GET /@fs/home/runner/workspace/node_modules/.vite/deps/zod.js?v=5dde20f7 200 1ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/zod.js?v=5dde20f7 - 1ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/zod.js?v=5dde20f7 - 2ms] http
+dfad1b57-b76b-4935-a572-505f576b73ed GET /src/components/ui/separator.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/separator.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/separator.tsx - 1ms] http
+895dbda0-4cdf-456a-93bc-0f68b7661ed4 GET /src/components/AffiliateOnPricing.tsx 200 1ms
+6:03:36 PM [GET /src/components/AffiliateOnPricing.tsx - 1ms] http
+6:03:36 PM [GET /src/components/AffiliateOnPricing.tsx - 1ms] http
+e534187f-225c-48a7-abed-10ebaf64cdd2 GET /src/data/planSkus.ts 304 0ms
+6:03:36 PM [GET /src/data/planSkus.ts - 0ms] http
+6:03:36 PM [GET /src/data/planSkus.ts - 0ms] http
+101c4835-97ac-48ed-984e-75fd9df03be0 GET /src/lib/checkout.ts 304 0ms
+6:03:36 PM [GET /src/lib/checkout.ts - 1ms] http
+6:03:36 PM [GET /src/lib/checkout.ts - 1ms] http
+0ebaa778-bc8c-404b-ad57-1ed5ce971d4a GET /src/lib/platform.ts 304 1ms
+6:03:36 PM [GET /src/lib/platform.ts - 1ms] http
+6:03:36 PM [GET /src/lib/platform.ts - 1ms] http
+3cdb43a5-4213-471a-b3b2-9c4a00416083 GET /src/components/DisclaimerModal.tsx 200 1ms
+6:03:36 PM [GET /src/components/DisclaimerModal.tsx - 1ms] http
+6:03:36 PM [GET /src/components/DisclaimerModal.tsx - 1ms] http
+c16844b3-a430-4f1a-8c81-d55ce2c01cb2 GET /src/components/ui/switch.tsx 200 0ms
+6:03:36 PM [GET /src/components/ui/switch.tsx - 0ms] http
+6:03:36 PM [GET /src/components/ui/switch.tsx - 1ms] http
+f2c0b782-ec8c-4061-9edf-219339216047 GET /src/components/glass/index.ts 304 0ms
+6:03:36 PM [GET /src/components/glass/index.ts - 0ms] http
+6:03:36 PM [GET /src/components/glass/index.ts - 1ms] http
+1a9c8e10-984b-46de-865a-3847f5c79ffc GET /src/utils/medicalPersonalization.ts 304 1ms
+6:03:36 PM [GET /src/utils/medicalPersonalization.ts - 1ms] http
+6:03:36 PM [GET /src/utils/medicalPersonalization.ts - 1ms] http
+b4be004c-ea85-4e97-97ca-c44cb7894389 GET /src/components/PhaseGate.tsx 200 1ms
+6:03:36 PM [GET /src/components/PhaseGate.tsx - 1ms] http
+6:03:36 PM [GET /src/components/PhaseGate.tsx - 2ms] http
+1654ab64-0008-42a1-8d91-278ba62a5915 GET /src/components/ui/TrashButton.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/TrashButton.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ui/TrashButton.tsx - 1ms] http
+b497cdb8-55d4-4f43-bd94-c66906d63839 GET /src/features/access.ts 304 1ms
+6:03:36 PM [GET /src/features/access.ts - 1ms] http
+6:03:36 PM [GET /src/features/access.ts - 2ms] http
+09973ec5-12a1-4ee7-a633-91784efc591f GET /src/components/FeaturePlaceholder.tsx 200 3ms
+6:03:36 PM [GET /src/components/FeaturePlaceholder.tsx - 3ms] http
+6:03:36 PM [GET /src/components/FeaturePlaceholder.tsx - 3ms] http
+7c842d08-9117-40d1-b1de-bc869a7b5f41 GET /src/components/biometrics/MacroBridgeButton.tsx 200 1ms
+6:03:36 PM [GET /src/components/biometrics/MacroBridgeButton.tsx - 1ms] http
+6:03:36 PM [GET /src/components/biometrics/MacroBridgeButton.tsx - 1ms] http
+48e0b4de-a5e7-4839-987e-8852c2ea8a4f GET /@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=bf3c2c94 200 14ms
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=bf3c2c94 - 14ms] http
+6:03:36 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=bf3c2c94 - 15ms] http
+0b29fc76-ca83-41ee-a510-9fe3b6fa5ba1 GET /src/lib/macrosDraft.ts 304 3ms
+6:03:36 PM [GET /src/lib/macrosDraft.ts - 1ms] http
+6:03:36 PM [GET /src/lib/macrosDraft.ts - 1ms] http
+ba8b3af1-4206-4903-957f-3e552ffbbf06 GET /src/lib/queue.ts 304 1ms
+6:03:36 PM [GET /src/lib/queue.ts - 1ms] http
+6:03:36 PM [GET /src/lib/queue.ts - 1ms] http
+8fe38aff-ee65-4386-b8a5-11db5112af58 GET /src/lib/macroNormalize.ts 304 1ms
+6:03:36 PM [GET /src/lib/macroNormalize.ts - 1ms] http
+6:03:36 PM [GET /src/lib/macroNormalize.ts - 2ms] http
+3b8f13bd-fdcd-47a2-9714-507d6136b472 GET /src/components/ReadOnlyNote.tsx 200 1ms
+6:03:36 PM [GET /src/components/ReadOnlyNote.tsx - 1ms] http
+6:03:36 PM [GET /src/components/ReadOnlyNote.tsx - 1ms] http
+a20fd596-626a-4163-a280-57eac941640b GET /src/lib/photoMacroCapture.ts 304 1ms
+6:03:36 PM [GET /src/lib/photoMacroCapture.ts - 1ms] http
+6:03:36 PM [GET /src/lib/photoMacroCapture.ts - 1ms] http
+1821b65a-845a-45c9-9664-ffc69b56c16b GET /src/stores/otherItemsStore.ts 304 3ms
+6:03:36 PM [GET /src/stores/otherItemsStore.ts - 1ms] http
+6:03:36 PM [GET /src/stores/otherItemsStore.ts - 7ms] http
+17f912db-4ab8-4278-9376-bf3de311ab05 GET /src/components/AddOtherItems.tsx 200 8ms
+6:03:36 PM [GET /src/components/AddOtherItems.tsx - 8ms] http
+6:03:36 PM [GET /src/components/AddOtherItems.tsx - 8ms] http
+076a413a-4100-4f98-9146-81abf416fd34 GET /src/lib/walmartLinkBuilder.ts 304 0ms
+6:03:36 PM [GET /src/lib/walmartLinkBuilder.ts - 1ms] http
+6:03:36 PM [GET /src/lib/walmartLinkBuilder.ts - 1ms] http
+4316073a-a495-4470-a303-87e9712580f1 GET /src/components/ui/checkbox.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/checkbox.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ui/checkbox.tsx - 2ms] http
+949f2384-91db-4994-ba34-4b94ba3a2201 GET /src/components/ui/textarea.tsx 200 1ms
+6:03:36 PM [GET /src/components/ui/textarea.tsx - 2ms] http
+6:03:36 PM [GET /src/components/ui/textarea.tsx - 2ms] http
+4b8106cc-b802-4dc3-850e-1e09c1ce2f3d GET /src/hooks/useDiabetes.ts 200 1ms
+6:03:36 PM [GET /src/hooks/useDiabetes.ts - 1ms] http
+6:03:36 PM [GET /src/hooks/useDiabetes.ts - 1ms] http
+31ad5a76-8bb9-461d-8829-3d79b70eaf6a GET /src/content/diabetesEducation.ts 304 1ms
+6:03:36 PM [GET /src/content/diabetesEducation.ts - 2ms] http
+6:03:36 PM [GET /src/content/diabetesEducation.ts - 3ms] http
+f03d874d-2a28-4d4c-bfc1-cd3d08ab5abd GET /src/data/diabeticPresets.ts 304 1ms
+6:03:36 PM [GET /src/data/diabeticPresets.ts - 1ms] http
+6:03:36 PM [GET /src/data/diabeticPresets.ts - 1ms] http
+21a77cbe-60b0-42db-82e7-0a8e018dd813 GET /src/hooks/useGLP1.ts 200 2ms
+6:03:36 PM [GET /src/hooks/useGLP1.ts - 2ms] http
+6:03:36 PM [GET /src/hooks/useGLP1.ts - 2ms] http
+55af22f2-820b-4f0b-99a6-bc813d4a2b55 GET /src/pages/glp1/ShotTrackerPanel.tsx 200 1ms
+6:03:37 PM [GET /src/pages/glp1/ShotTrackerPanel.tsx - 1ms] http
+6:03:37 PM [GET /src/pages/glp1/ShotTrackerPanel.tsx - 2ms] http
+eff85c4b-98df-43d5-a608-1003178b51ad GET /src/data/glp1Presets.ts 304 1ms
+6:03:37 PM [GET /src/data/glp1Presets.ts - 1ms] http
+6:03:37 PM [GET /src/data/glp1Presets.ts - 1ms] http
+62a2d60e-e9a6-4db2-bbf8-66d45aab424f GET /src/components/pickers/CompetitionMealPickerDrawer.tsx 200 1ms
+6:03:37 PM [GET /src/components/pickers/CompetitionMealPickerDrawer.tsx - 1ms] http
+6:03:37 PM [GET /src/components/pickers/CompetitionMealPickerDrawer.tsx - 1ms] http
+689f6aa8-5fd8-42fd-ba56-bda222ebddc1 GET /src/lib/macroSourcesConfig.ts 304 1ms
+6:03:37 PM [GET /src/lib/macroSourcesConfig.ts - 2ms] http
+6:03:37 PM [GET /src/lib/macroSourcesConfig.ts - 3ms] http
+779da273-372b-45d4-a6c5-dc427501eafe GET /src/data/cravingsPresetsData.ts 304 1ms
+6:03:37 PM [GET /src/data/cravingsPresetsData.ts - 1ms] http
+6:03:37 PM [GET /src/data/cravingsPresetsData.ts - 2ms] http
+d2148a33-2202-454b-81df-8783f476e9ff GET /src/utils/scrollUtils.ts 304 1ms
+6:03:37 PM [GET /src/utils/scrollUtils.ts - 1ms] http
+6:03:37 PM [GET /src/utils/scrollUtils.ts - 1ms] http
+e017a17e-9897-4f37-96f2-1443b63ba6c4 GET /src/data/mocktailsData.ts 304 0ms
+6:03:37 PM [GET /src/data/mocktailsData.ts - 0ms] http
+6:03:37 PM [GET /src/data/mocktailsData.ts - 1ms] http
+c5e81437-bee5-4c70-adf6-3810c99792a0 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-slot.js?v=118d8869 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-slot.js?v=118d8869 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-slot.js?v=118d8869 - 2ms] http
+ea7d45a5-bb2d-4967-a096-c80f293d50fb GET /src/components/ui/alert.tsx 200 3ms
+6:03:37 PM [GET /src/components/ui/alert.tsx - 3ms] http
+6:03:37 PM [GET /src/components/ui/alert.tsx - 4ms] http
+2c5b5da6-4c96-49e1-a84f-1aa8786da84e GET /src/lib/tts.ts 304 1ms
+6:03:37 PM [GET /src/lib/tts.ts - 1ms] http
+6:03:37 PM [GET /src/lib/tts.ts - 2ms] http
+cfc83b09-d425-415e-86ed-8b71d5df0c89 GET /src/components/copilot/CopilotExplanationStore.ts 304 1ms
+6:03:37 PM [GET /src/components/copilot/CopilotExplanationStore.ts - 1ms] http
+6:03:37 PM [GET /src/components/copilot/CopilotExplanationStore.ts - 2ms] http
+bd062cfc-9237-4267-aeb8-248663ed3995 GET /src/components/copilot/CopilotPageExplanations.ts 304 3ms
+6:03:37 PM [GET /src/components/copilot/CopilotPageExplanations.ts - 3ms] http
+6:03:37 PM [GET /src/components/copilot/CopilotPageExplanations.ts - 3ms] http
+6acf229b-7d08-462d-b201-bff9cb36513f GET /src/lib/mealEngineApi.ts 304 2ms
+6:03:37 PM [GET /src/lib/mealEngineApi.ts - 2ms] http
+6:03:37 PM [GET /src/lib/mealEngineApi.ts - 2ms] http
+3ad90fd4-92c9-4429-b2d0-b0a42050c564 GET /src/lib/knowledge/AppKnowledgeRegistry.ts 304 3ms
+6:03:37 PM [GET /src/lib/knowledge/AppKnowledgeRegistry.ts - 3ms] http
+6:03:37 PM [GET /src/lib/knowledge/AppKnowledgeRegistry.ts - 3ms] http
+b737e793-2a58-46bb-9b39-abd8b2f998c9 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YSUJ5HGP.js?v=ae3c6c57 200 0ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YSUJ5HGP.js?v=ae3c6c57 - 0ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YSUJ5HGP.js?v=ae3c6c57 - 0ms] http
+55a98856-bb94-4a81-a478-e1168cd5bbc6 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-U7P2NEEE.js?v=ae3c6c57 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-U7P2NEEE.js?v=ae3c6c57 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-U7P2NEEE.js?v=ae3c6c57 - 1ms] http
+99b065bd-0d9e-4715-aa80-db5a35e46928 GET /src/components/ui/scroll-area.tsx 200 1ms
+6:03:37 PM [GET /src/components/ui/scroll-area.tsx - 1ms] http
+6:03:37 PM [GET /src/components/ui/scroll-area.tsx - 1ms] http
+ce15c556-483d-4d2e-8686-3b11a1a8f8ab GET /src/components/conversationStyles.css 304 1ms
+6:03:37 PM [GET /src/components/conversationStyles.css - 0ms] http
+6:03:37 PM [GET /src/components/conversationStyles.css - 0ms] http
+7d547150-7fef-4035-937b-2e532f536073 GET /src/utils/unitConversions.ts 304 1ms
+6:03:37 PM [GET /src/utils/unitConversions.ts - 1ms] http
+6:03:37 PM [GET /src/utils/unitConversions.ts - 2ms] http
+284ccdb8-f97e-4169-817f-815a8227eb81 GET /src/utils/medicalBadges.ts 304 1ms
+6:03:37 PM [GET /src/utils/medicalBadges.ts - 1ms] http
+6:03:37 PM [GET /src/utils/medicalBadges.ts - 1ms] http
+698ce394-1b93-431f-8180-6da73873c468 GET /src/components/ui/drawer.tsx 200 0ms
+6:03:37 PM [GET /src/components/ui/drawer.tsx - 0ms] http
+6:03:37 PM [GET /src/components/ui/drawer.tsx - 1ms] http
+3b2941e6-41b4-426d-9e31-5086b2e80fb3 GET /src/data/mealIngredients.ts 304 2ms
+6:03:37 PM [GET /src/data/mealIngredients.ts - 2ms] http
+6:03:37 PM [GET /src/data/mealIngredients.ts - 2ms] http
+73635911-660f-45cc-b328-395f9284fa74 GET /src/data/templateSets.ts 304 3ms
+6:03:37 PM [GET /src/data/templateSets.ts - 3ms] http
+6:03:37 PM [GET /src/data/templateSets.ts - 3ms] http
+2a3bedd5-9772-49aa-a826-31312dee62de GET /src/data/snackIngredients.ts 304 2ms
+6:03:37 PM [GET /src/data/snackIngredients.ts - 2ms] http
+6:03:37 PM [GET /src/data/snackIngredients.ts - 2ms] http
+a509cb18-ca40-43c8-a76c-e74d5360e20b GET /src/data/fruitIngredients.ts 304 1ms
+6:03:37 PM [GET /src/data/fruitIngredients.ts - 1ms] http
+6:03:37 PM [GET /src/data/fruitIngredients.ts - 2ms] http
+d64b844b-eaff-4eaf-872a-19dd101e5ee6 GET /src/data/antiInflammatoryIngredients.ts 304 2ms
+6:03:37 PM [GET /src/data/antiInflammatoryIngredients.ts - 2ms] http
+6:03:37 PM [GET /src/data/antiInflammatoryIngredients.ts - 2ms] http
+8b2a84e2-1af2-408b-9943-0bb78431b904 GET /src/data/antiInflammatory.snacks.ts 304 1ms
+6:03:37 PM [GET /src/data/antiInflammatory.snacks.ts - 1ms] http
+6:03:37 PM [GET /src/data/antiInflammatory.snacks.ts - 1ms] http
+084e2a89-1989-419c-a4e0-aab409fa212c GET /@fs/home/runner/workspace/node_modules/.vite/deps/zustand.js?v=305a1dd8 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/zustand.js?v=305a1dd8 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/zustand.js?v=305a1dd8 - 1ms] http
+dbcabdea-79d3-4e7c-a278-0d135b801604 GET /@fs/home/runner/workspace/node_modules/.vite/deps/zustand_middleware.js?v=a64898b9 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/zustand_middleware.js?v=a64898b9 - 2ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/zustand_middleware.js?v=a64898b9 - 2ms] http
+7a934765-e428-4498-a4cf-eee3371d2d8d GET /src/utils/dates.ts 304 1ms
+6:03:37 PM [GET /src/utils/dates.ts - 1ms] http
+6:03:37 PM [GET /src/utils/dates.ts - 2ms] http
+1babd5f5-62bc-44ab-bd65-fde216613271 GET /@fs/home/runner/workspace/node_modules/.vite/deps/luxon.js?v=5aba12fe 200 2ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/luxon.js?v=5aba12fe - 2ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/luxon.js?v=5aba12fe - 2ms] http
+a77048cd-d17b-46b4-bf73-2385be585c4e GET /src/utils/week.ts 304 1ms
+6:03:37 PM [GET /src/utils/week.ts - 1ms] http
+6:03:37 PM [GET /src/utils/week.ts - 1ms] http
+f221b6b1-984b-4353-87df-d92de18d8ffd GET /src/components/PreparationModal.tsx 200 0ms
+6:03:37 PM [GET /src/components/PreparationModal.tsx - 0ms] http
+6:03:37 PM [GET /src/components/PreparationModal.tsx - 1ms] http
+da9b3b9b-1e55-40f6-aa4b-b0e82ea9d977 GET /src/data/competitionIngredients.ts 304 1ms
+6:03:37 PM [GET /src/data/competitionIngredients.ts - 1ms] http
+6:03:37 PM [GET /src/data/competitionIngredients.ts - 2ms] http
+5d2dcbf3-0618-4be8-a001-6830ae87ecc6 GET /src/data/diabeticPremadeSnacks.ts 304 2ms
+6:03:37 PM [GET /src/data/diabeticPremadeSnacks.ts - 2ms] http
+6:03:37 PM [GET /src/data/diabeticPremadeSnacks.ts - 2ms] http
+4af9695c-4bdc-4723-82c0-912178c230bf GET /src/hooks/useMacroTargeting.ts 200 0ms
+6:03:37 PM [GET /src/hooks/useMacroTargeting.ts - 0ms] http
+6:03:37 PM [GET /src/hooks/useMacroTargeting.ts - 1ms] http
+ddb6e22e-2216-4e1f-9a30-cf215558d5db GET /src/components/macro-targeting/MacroTargetingControls.tsx 200 2ms
+6:03:37 PM [GET /src/components/macro-targeting/MacroTargetingControls.tsx - 2ms] http
+6:03:37 PM [GET /src/components/macro-targeting/MacroTargetingControls.tsx - 3ms] http
+e3e3b756-ac07-41aa-8d7c-8df9cf4495de GET /src/data/aiPremadeBreakfast.ts 304 3ms
+6:03:37 PM [GET /src/data/aiPremadeBreakfast.ts - 3ms] http
+6:03:37 PM [GET /src/data/aiPremadeBreakfast.ts - 3ms] http
+601fa2b2-1388-4760-8ea7-e31f6dc4bb9e GET /src/data/aiPremadeLunch.ts 304 1ms
+6:03:37 PM [GET /src/data/aiPremadeLunch.ts - 1ms] http
+6:03:37 PM [GET /src/data/aiPremadeLunch.ts - 1ms] http
+6a5496c9-6260-4e16-b965-d1b4ddfa7b0c GET /src/data/aiPremadeDinner.ts 304 1ms
+6:03:37 PM [GET /src/data/aiPremadeDinner.ts - 1ms] http
+6:03:37 PM [GET /src/data/aiPremadeDinner.ts - 2ms] http
+d8a468a8-851e-43a3-aff4-b3a05604922d GET /src/data/diabeticPremadeBreakfast.ts 304 1ms
+6:03:37 PM [GET /src/data/diabeticPremadeBreakfast.ts - 2ms] http
+6:03:37 PM [GET /src/data/diabeticPremadeBreakfast.ts - 2ms] http
+1b1848ea-e203-48c0-92bb-6afdccf12e58 GET /src/data/diabeticPremadeLunch.ts 304 1ms
+6:03:37 PM [GET /src/data/diabeticPremadeLunch.ts - 1ms] http
+6:03:37 PM [GET /src/data/diabeticPremadeLunch.ts - 1ms] http
+87932aed-4876-47f1-87d6-eb992923b7bf GET /src/data/diabeticPremadeDinner.ts 304 1ms
+6:03:37 PM [GET /src/data/diabeticPremadeDinner.ts - 1ms] http
+6:03:37 PM [GET /src/data/diabeticPremadeDinner.ts - 2ms] http
+cdb065f8-8ebe-4864-9dd9-5b4cb1da9c54 GET /src/data/competitionMealCatalog.ts 304 0ms
+6:03:37 PM [GET /src/data/competitionMealCatalog.ts - 1ms] http
+6:03:37 PM [GET /src/data/competitionMealCatalog.ts - 1ms] http
+3453799d-8807-49e3-824a-8099e4edd87e GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=f3904048 200 5ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=f3904048 - 5ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=f3904048 - 5ms] http
+3cead1ab-ceb2-4f0a-a26f-2a24e34d7b87 GET /src/data/glp1Snacks.ts 304 0ms
+6:03:37 PM [GET /src/data/glp1Snacks.ts - 0ms] http
+6:03:37 PM [GET /src/data/glp1Snacks.ts - 3ms] http
+0e8534f3-3787-4d47-9361-29549b617c1f GET /src/data/competitionSnacks.ts 304 1ms
+6:03:37 PM [GET /src/data/competitionSnacks.ts - 1ms] http
+6:03:37 PM [GET /src/data/competitionSnacks.ts - 1ms] http
+5c157349-82c6-47d1-bf93-f232f2f78293 GET /@fs/home/runner/workspace/shared/staticSnackMappings.ts 304 0ms
+6:03:37 PM [GET /@fs/home/runner/workspace/shared/staticSnackMappings.ts - 0ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/shared/staticSnackMappings.ts - 0ms] http
+fbede1e4-343b-4fbf-8109-3bfb49904fdf GET /src/hooks/useSnackCreatorRequest.ts 200 1ms
+6:03:37 PM [GET /src/hooks/useSnackCreatorRequest.ts - 1ms] http
+6:03:37 PM [GET /src/hooks/useSnackCreatorRequest.ts - 1ms] http
+c8f361d5-f880-4e05-a768-01288092e8fe GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-visually-hidden.js?v=371e0d75 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-visually-hidden.js?v=371e0d75 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-visually-hidden.js?v=371e0d75 - 1ms] http
+e5f79bfb-3c77-442b-9df6-24613aef1211 GET /src/utils/deviceId.ts 304 1ms
+6:03:37 PM [GET /src/utils/deviceId.ts - 1ms] http
+6:03:37 PM [GET /src/utils/deviceId.ts - 1ms] http
+0bfa45ef-981a-449b-92d3-847510eb6f07 GET /src/data/athleteMeals.ts 304 1ms
+6:03:37 PM [GET /src/data/athleteMeals.ts - 1ms] http
+6:03:37 PM [GET /src/data/athleteMeals.ts - 1ms] http
+2e323b52-740d-4a03-987d-ec03b5298b84 GET /src/components/ui/alert-dialog.tsx 200 1ms
+6:03:37 PM [GET /src/components/ui/alert-dialog.tsx - 1ms] http
+6:03:37 PM [GET /src/components/ui/alert-dialog.tsx - 2ms] http
+80639a28-6d75-40fa-a6d6-c0101e0cff0a GET /src/components/glass/mpmGlassStandard.ts 304 2ms
+6:03:37 PM [GET /src/components/glass/mpmGlassStandard.ts - 2ms] http
+6:03:37 PM [GET /src/components/glass/mpmGlassStandard.ts - 2ms] http
+37ab2bf8-18c2-4a89-b920-8449a67f4a58 GET /src/lib/macroProfiles.ts 304 0ms
+6:03:37 PM [GET /src/lib/macroProfiles.ts - 0ms] http
+6:03:37 PM [GET /src/lib/macroProfiles.ts - 0ms] http
+2c287058-cd3f-4c81-a755-db836ba9e28b GET /src/hooks/useCreateWithChefRequest.ts 200 1ms
+6:03:37 PM [GET /src/hooks/useCreateWithChefRequest.ts - 1ms] http
+6:03:37 PM [GET /src/hooks/useCreateWithChefRequest.ts - 1ms] http
+11a6b217-0462-4039-a365-e50d84985601 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-radio-group.js?v=b2cd54d0 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-radio-group.js?v=b2cd54d0 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-radio-group.js?v=b2cd54d0 - 1ms] http
+40760d92-13af-4ca5-a8d0-67665753de52 GET /src/components/CreateWithChefButton.tsx 200 1ms
+6:03:37 PM [GET /src/components/CreateWithChefButton.tsx - 1ms] http
+6:03:37 PM [GET /src/components/CreateWithChefButton.tsx - 2ms] http
+13315f2b-55c5-4b29-bbf4-8ac9dddf534b GET /src/components/ui/popover.tsx 200 1ms
+6:03:37 PM [GET /src/components/ui/popover.tsx - 1ms] http
+6:03:37 PM [GET /src/components/ui/popover.tsx - 2ms] http
+f391a7e3-6dd2-4ef9-bd20-ca0fe5bfa3a6 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-label.js?v=6d5766fc 200 2ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-label.js?v=6d5766fc - 2ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-label.js?v=6d5766fc - 3ms] http
+f55cc094-4d2b-48b8-8bca-4ce188d03041 GET /src/components/badges/healthBadges.ts 304 0ms
+6:03:37 PM [GET /src/components/badges/healthBadges.ts - 1ms] http
+6:03:37 PM [GET /src/components/badges/healthBadges.ts - 1ms] http
+8a3d9ed5-3d0a-4054-97a0-d55d74d75e57 GET /src/components/ui/sheet.tsx 200 3ms
+6:03:37 PM [GET /src/components/ui/sheet.tsx - 3ms] http
+6:03:37 PM [GET /src/components/ui/sheet.tsx - 3ms] http
+39524155-4e43-4688-9774-22f0c8a8c6a2 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-progress.js?v=f5eb6a7b 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-progress.js?v=f5eb6a7b - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-progress.js?v=f5eb6a7b - 1ms] http
+ec67457e-33f0-4d42-9869-3df6612c054c GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=353bcf09 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=353bcf09 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=353bcf09 - 2ms] http
+6c526458-6322-42fb-aef7-f7fa9217ff7a GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-separator.js?v=acf4c749 200 2ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-separator.js?v=acf4c749 - 2ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-separator.js?v=acf4c749 - 2ms] http
+3b4f2b66-3965-420b-963c-730bdc9fe3e4 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LJZRJM4K.js?v=ae3c6c57 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LJZRJM4K.js?v=ae3c6c57 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LJZRJM4K.js?v=ae3c6c57 - 1ms] http
+cd983840-15b1-40d7-9645-af41321f1c1f GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-switch.js?v=a1a41090 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-switch.js?v=a1a41090 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-switch.js?v=a1a41090 - 1ms] http
+dcaf6430-8103-40c5-976f-95cd71aa652f GET /src/components/glass/GlassHeader.tsx 200 2ms
+6:03:37 PM [GET /src/components/glass/GlassHeader.tsx - 1ms] http
+6:03:37 PM [GET /src/components/glass/GlassHeader.tsx - 2ms] http
+4d04dcf2-3c75-4add-b0f2-93107d02bc1a GET /src/components/glass/GlassButton.tsx 200 1ms
+6:03:37 PM [GET /src/components/glass/GlassButton.tsx - 1ms] http
+6:03:37 PM [GET /src/components/glass/GlassButton.tsx - 1ms] http
+16816623-bb9a-46ff-bd98-40add30bcc19 GET /src/hooks/useGlp1Shots.ts 200 1ms
+6:03:37 PM [GET /src/hooks/useGlp1Shots.ts - 1ms] http
+6:03:37 PM [GET /src/hooks/useGlp1Shots.ts - 2ms] http
+7cd9de2c-1012-4f0a-af7d-5e88633e01a6 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-checkbox.js?v=90cbbc7e 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-checkbox.js?v=90cbbc7e - 2ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-checkbox.js?v=90cbbc7e - 2ms] http
+ea539a46-eb78-41fd-84c1-6fcefd7f289a GET /src/data/competitionPremadeMeals.ts 304 1ms
+6:03:37 PM [GET /src/data/competitionPremadeMeals.ts - 1ms] http
+6:03:37 PM [GET /src/data/competitionPremadeMeals.ts - 1ms] http
+bc885e15-2de8-484c-ab34-1be02aae9b7e GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GLC25ABE.js?v=ae3c6c57 200 2ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GLC25ABE.js?v=ae3c6c57 - 2ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GLC25ABE.js?v=ae3c6c57 - 3ms] http
+dea9fda0-0178-49fc-9eaf-e00560393eae GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-scroll-area.js?v=1f9853a0 200 3ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-scroll-area.js?v=1f9853a0 - 3ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-scroll-area.js?v=1f9853a0 - 3ms] http
+6c2f4837-ba0e-4f31-a548-cb5d3a171743 GET /src/data/ingredients.nutrition.ts 304 5ms
+6:03:37 PM [GET /src/data/ingredients.nutrition.ts - 5ms] http
+6:03:37 PM [GET /src/data/ingredients.nutrition.ts - 5ms] http
+972876ca-8dc4-4cea-ae5b-5f1352553e03 GET /@fs/home/runner/workspace/node_modules/.vite/deps/vaul.js?v=ff7b0105 200 5ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/vaul.js?v=ff7b0105 - 5ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/vaul.js?v=ff7b0105 - 5ms] http
+20c6628b-abda-481f-ac47-9171ccdc7b4f GET /src/data/breakfastMealsData.ts 304 4ms
+6:03:37 PM [GET /src/data/breakfastMealsData.ts - 4ms] http
+6:03:37 PM [GET /src/data/breakfastMealsData.ts - 4ms] http
+b14f3e19-dcc1-4d9d-8947-43a37ac47f8b GET /src/data/lunchMealsData.ts 304 3ms
+6:03:37 PM [GET /src/data/lunchMealsData.ts - 3ms] http
+6:03:37 PM [GET /src/data/lunchMealsData.ts - 3ms] http
+6228c062-431c-48ae-9419-1717c1608961 GET /src/data/dinnerMealsData.ts 304 2ms
+6:03:37 PM [GET /src/data/dinnerMealsData.ts - 2ms] http
+6:03:37 PM [GET /src/data/dinnerMealsData.ts - 3ms] http
+57d06365-7241-4cb2-a9e6-6ed7e335fdb5 GET /src/data/antiInflammatory.starchyCarbs.ts 304 2ms
+6:03:37 PM [GET /src/data/antiInflammatory.starchyCarbs.ts - 2ms] http
+6:03:37 PM [GET /src/data/antiInflammatory.starchyCarbs.ts - 3ms] http
+06d43eb1-af4b-4dde-a592-f35c1ca244d1 GET /src/data/antiInflammatory.fibrousCarbs.ts 304 1ms
+6:03:37 PM [GET /src/data/antiInflammatory.fibrousCarbs.ts - 1ms] http
+6:03:37 PM [GET /src/data/antiInflammatory.fibrousCarbs.ts - 2ms] http
+cf8fae2f-280f-4e25-b354-36274fb511d9 GET /src/data/antiInflammatory.fats.ts 304 3ms
+6:03:37 PM [GET /src/data/antiInflammatory.fats.ts - 3ms] http
+6:03:37 PM [GET /src/data/antiInflammatory.fats.ts - 3ms] http
+9b456ec9-e9a8-4399-be7b-deb1cfd9696e GET /src/data/antiInflammatory.fruit.ts 304 2ms
+6:03:37 PM [GET /src/data/antiInflammatory.fruit.ts - 2ms] http
+6:03:37 PM [GET /src/data/antiInflammatory.fruit.ts - 2ms] http
+6294fd5a-2484-448f-9eec-20b31817b15b GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-XVCWHKCH.js?v=ae3c6c57 200 4ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-XVCWHKCH.js?v=ae3c6c57 - 4ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-XVCWHKCH.js?v=ae3c6c57 - 4ms] http
+e54b3aa1-a73d-4a94-a278-b2be769a6b8d GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-C2SC2HXA.js?v=ae3c6c57 200 0ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-C2SC2HXA.js?v=ae3c6c57 - 0ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-C2SC2HXA.js?v=ae3c6c57 - 1ms] http
+a6e6e97f-bb81-4e28-b576-596e664e4268 GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=32cc3def 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=32cc3def - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=32cc3def - 3ms] http
+d888151a-f6a2-4136-bf56-90f633516674 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OW74AC7Q.js?v=ae3c6c57 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OW74AC7Q.js?v=ae3c6c57 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OW74AC7Q.js?v=ae3c6c57 - 1ms] http
+c8ff4402-a0ed-4187-9ad7-ad351b5baf59 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBMYLVF3.js?v=ae3c6c57 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBMYLVF3.js?v=ae3c6c57 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBMYLVF3.js?v=ae3c6c57 - 2ms] http
+21591782-bde0-4ba9-a905-ae9223cec21c GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-popover.js?v=931903b3 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-popover.js?v=931903b3 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-popover.js?v=931903b3 - 1ms] http
+332ad656-c5dd-41fe-878e-4bcbfbee6b25 GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-6ZMM2PAV.js?v=ae3c6c57 200 1ms
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-6ZMM2PAV.js?v=ae3c6c57 - 1ms] http
+6:03:37 PM [GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-6ZMM2PAV.js?v=ae3c6c57 - 1ms] http
+d685dc30-7f16-4d94-9f87-174c35313023 GET /version.json?t=1765303421971 200 10ms
+6:03:41 PM [GET /version.json?t=1765303421971 - 10ms] http
+6:03:41 PM [GET /version.json?t=1765303421971 - 11ms] http
+9592d503-2b46-4828-a084-8d2849bb4bd2 GET /api/users/1 304 4ms
+6:03:41 PM [GET /api/users/1 - 4ms] http
+6:03:41 PM [GET /api/users/1 - 4ms] http
+f0f493fb-f547-4762-92d2-3557c09a186e GET /assets/MPMFlameChefLogo.png 304 1ms
+6:03:41 PM [GET /assets/MPMFlameChefLogo.png - 1ms] http
+6:03:41 PM [GET /assets/MPMFlameChefLogo.png - 1ms] http
+5e033e10-3790-4f86-86f7-5e98329a4238 GET /sounds/music-loop.mp3 304 1ms
+6:03:41 PM [GET /sounds/music-loop.mp3 - 1ms] http
+6:03:41 PM [GET /sounds/music-loop.mp3 - 1ms] http
+69256702-7513-432b-b330-710bef10be07 GET /images/home-hero.jpg 304 2ms
+6:03:41 PM [GET /images/home-hero.jpg - 2ms] http
+6:03:41 PM [GET /images/home-hero.jpg - 2ms] http
+1d9f904d-bdd2-4c0f-a7ed-7866ed8e0dce GET /api/user/profile 401 68ms
+6:03:41 PM [GET /api/user/profile - 67ms] http
+6:03:41 PM [GET /api/user/profile - 68ms] http
+5f25c603-f7e4-42cb-b200-2c39d7eb476b GET /sounds/music-loop.mp3 304 2ms
+6:03:41 PM [GET /sounds/music-loop.mp3 - 2ms] http
+6:03:41 PM [GET /sounds/music-loop.mp3 - 3ms] http
+23c67437-a08e-4379-9764-0efda2964bfb GET /api/user/profile 401 40ms
+6:03:41 PM [GET /api/user/profile - 40ms] http
+6:03:41 PM [GET /api/user/profile - 40ms] http
+Loading 0 existing reminders
+Loading 0 existing reminders
+Loading 0 existing reminders

@@ -1,0 +1,209 @@
+Perfect.
+I’m going to **parse every detail you just said** and inject it into:
+
+### ✅ Knowledge Engine (explain.weekly-board)
+
+### ✅ Walkthrough system (walkthrough.start.weekly-board)
+
+### ✅ Voice intents (“teach me weekly board”, “show me weekly board”, “duplicate my day”, “add custom meal”, etc.)
+
+### ✅ Smart context engine
+
+### —AND—
+
+### Apply this structure to every Meal Board type (Lunch Board, Kids Board, Athlete Board, etc.)
+
+You DO NOT need to re-explain anything. I already parsed everything.
+
+---
+
+# 🧠 **Here is the structured interpretation of what you just said:**
+
+## **NEW Weekly Meal Board Features to Add**
+
+### **1. Full Day Creation**
+
+Weekly Meal Board includes:
+
+* breakfast
+* lunch
+* dinner
+* snacks
+
+A full day = all 4 built.
+
+### **2. Duplicate Day System**
+
+You can duplicate your entire day’s meals to other days.
+
+UI elements:
+
+* **Duplicate button**
+* **Select All**
+* **Clear All**
+* Days: Mon, Tue, Wed, Thu, Fri, Sat
+* **Apply / Cancel**
+
+Behavior:
+
+* “Select All” = repeat this day all week
+* Or manually select days
+* You can build a different meal day for Sat/Sun
+
+### **3. Persistent Board**
+
+Everything you make:
+
+* **stays saved until deleted**
+* You can leave and return anytime
+* Plans survive app closure
+
+### **4. Save & Delete System**
+
+* **Save button** = save the entire week
+* **Delete button** = wipe the entire week
+* **Trash icon** = delete a single meal
+* After deleting, you can pick a new meal
+
+### **5. Add Your Own Meal**
+
+* **Plus button** = manually add a custom meal
+  (For when you’re out and ate something different)
+
+### **6. Meal Sources**
+
+Three ways to add meals:
+
+1. **Create with AI** – full ingredient + prep flow
+2. **Make Meals** – same as Create with AI
+3. **All Premades** – tap a prebuilt meal card → choose prep style → done
+
+---
+
+# 🔥 NOW HERE'S WHAT I'M DOING NEXT
+
+## **1️⃣ Updating the Knowledge Engine**
+
+Your `knowledgeBase.weekly-board` entry will now include:
+
+* Full Day Creation
+* Duplicate System
+* Persistent Saving
+* Delete / Trash
+* Custom Meal via Plus Button
+* Premades usage
+* AI Meal Builder
+* Prep card specifics
+
+I’ll rewrite the entire `weekly-board` entry with ALL details included.
+
+---
+
+## **2️⃣ Updating the Walkthrough**
+
+When they say:
+
+* “Teach me the Weekly Meal Board”
+* “Show me how the Weekly Meal Board works”
+
+Copilot will now guide them step-by-step:
+
+1. Start with Create with AI
+2. Build breakfast
+3. Build lunch
+4. Build dinner
+5. Build snacks
+6. Duplicate day to other days
+7. Save the whole week
+8. Delete/edit/replace meals
+9. Add custom meal
+10. Use premades
+
+This becomes a **multistep guided tour** with the visual highlighting system.
+
+---
+
+## **3️⃣ Updating Voice Intents**
+
+People will be able to say:
+
+* “Duplicate this day.”
+* “Repeat this day for the whole week.”
+* “Copy today to Monday through Friday.”
+* “Save my week.”
+* “Delete my week.”
+* “Add a custom meal.”
+* “Use premades.”
+* “Create with AI.”
+* “Trash this meal.”
+* “Make me a new dinner.”
+
+These will all work automatically.
+
+---
+
+## **4️⃣ Updating Context Logic**
+
+When people:
+
+* duplicate
+* save
+* delete
+* add custom
+* use premades
+* create with AI
+
+Copilot will automatically set:
+
+```ts
+lastActiveFeature = "weekly-board";
+```
+
+So the voice interactions stay consistent.
+
+---
+
+## **5️⃣ Applying to ALL Meal Boards**
+
+Because Weekly Meal Board, Lunch Board, Dinner Board, etc. all share the same underlying patterns…
+
+I will build:
+
+### **weekly-board.base.json**
+
+Then all boards inherit the same logic.
+
+So Kids Board, Athlete Board, etc. get:
+
+* duplicate
+* trash
+* add custom
+* premades
+* AI meals
+* day/week operations
+
+WITHOUT you having to explain anything again.
+
+---
+
+# 🔥 Ready for the full updated implementation?
+
+**All I need from you right now is:**
+
+👉 “Update Weekly Meal Board with these details.”
+
+Say that, and I will:
+
+### 🔧 Regenerate:
+
+* Knowledge Engine entry
+* Walkthrough nodes
+* Voice intent section
+* Commands mapping
+* Context logic
+
+Then output the updated diffs or the full new file — your choice.
+
+Say:
+
+👉 “Update Weekly Meal Board with these details.”

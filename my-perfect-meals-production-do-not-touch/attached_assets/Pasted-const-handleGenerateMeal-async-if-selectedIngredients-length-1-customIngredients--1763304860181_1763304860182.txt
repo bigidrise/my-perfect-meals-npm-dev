@@ -1,0 +1,150 @@
+const handleGenerateMeal = async () => {
+  if (selectedIngredients.length < 1 && !customIngredients.trim()) {
+    toast({
+      title: "Ingredient Required",
+      description: "Please select at least one ingredient",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  if (mealSlot !== "snacks") {
+    const macroValidation = validateMacroTargets();
+    if (!macroValidation.valid) {
+      toast({
+        title: "Invalid Macro Targets",
+        description: macroValidation.error,
+        variant: "destructive"
+      });
+      return;
+    }
+  }
+
+  setGenerating(true);
+
+  try {
+    // STEP 1 — Start with selected ingredients
+    let allIngredients = [...selectedIngredients];
+
+    // STEP 2 — Include custom ingredients (comma-separated)
+    if (customIngredients.trim()) {
+      allIngredients.push(
+        ...customIngredients.split(',').map(i => i.trim()).filter(Boolean)
+      );
+    }
+
+    // STEP 3 — Apply cooking styles (Option 1)
+    const allIngredientsWithStyles = allIngredients.map((name) => {
+      const style = cookingStyles[name];
+      if (!style) return name;
+
+      // Eggs formatting
+      if (name.toLowerCase().includes("egg")) {
+        return `${style} ${name.toLowerCase() === "eggs" ? "eggs" : name}`;
+      }
+
+      // Steaks formatting
+      return `${name} (${style})`;
+    });
+
+    // STEP 4 — Macro targets if enabled
+    let macroTargets = null;
+    if (
+      macroTargetingEnabled &&
+      targetProtein !== '' &&
+      targetCarbs !== '' &&
+      targetFat !== ''
+    ) {
+      macroTargets = {
+        protein: Number(targetProtein),
+        carbs: Number(targetCarbs),
+        fat: Number(targetFat)
+      };
+    }
+
+    // STEP 5 — Build payload including rewritten ingredients
+    const requestPayload = {
+      fridgeItems: allIngredientsWithStyles,
+      userId: 1,
+      mealSlot: mealSlot,
+      ...(mealSlot !== "snacks" && macroTargets && { macroTargets }),
+      ...(dietType && { dietType })
+    };
+
+    // STEP 6 — API call
+    const data = await apiRequest('/api/meals/fridge-rescue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestPayload)
+    });
+
+    const generatedMeal = data.meals?.[0];
+
+    if (!generatedMeal) {
+      throw new Error('No meal generated');
+    }
+
+    // STEP 7 — Add default image
+    const mealWithImage = {
+      ...generatedMeal,
+      imageUrl: generatedMeal.imageUrl || '/assets/meals/default-breakfast.jpg',
+      ...(macroTargets && {
+        macroTargets: {
+          protein: macroTargets.protein,
+          carbs: macroTargets.carbs,
+          fat: macroTargets.fat
+        }
+      })
+    };
+
+    // STEP 8 — Send result back up
+    onMealGenerated(mealWithImage);
+
+    // STEP 9 — Reset UI state
+    setSelectedIngredients([]);
+    setCustomIngredients('');
+    setActiveCategory('');
+    setMacroTargetingEnabled(false);
+    setTargetProtein('');
+    setTargetCarbs('');
+    setTargetFat('');
+    saveMacroTargetsCache(false, '', '', '');
+    onOpenChange(false);
+
+    // STEP 10 — Macro accuracy toast
+    if (macroTargets) {
+      const proteinDiff = Math.abs(generatedMeal.protein - macroTargets.protein);
+      const carbsDiff = Math.abs(generatedMeal.carbs - macroTargets.carbs);
+      const fatDiff = Math.abs(generatedMeal.fat - macroTargets.fat);
+      const withinTolerance = proteinDiff <= 5 && carbsDiff <= 5 && fatDiff <= 5;
+
+      const missedMacros = [];
+      if (proteinDiff > 5) missedMacros.push(`Protein off by ${proteinDiff.toFixed(1)}g`);
+      if (carbsDiff > 5) missedMacros.push(`Carbs off by ${carbsDiff.toFixed(1)}g`);
+      if (fatDiff > 5) missedMacros.push(`Fat off by ${fatDiff.toFixed(1)}g`);
+
+      toast({
+        title: withinTolerance ? "🎯 Perfect Macro Hit!" : "⚠️ Close to Target",
+        description: withinTolerance 
+          ? `${generatedMeal.name}\nActual: ${generatedMeal.protein}p / ${generatedMeal.carbs}c / ${generatedMeal.fat}f\nTarget: ${macroTargets.protein}p / ${macroTargets.carbs}c / ${macroTargets.fat}f ✓`
+          : `${generatedMeal.name}\nActual: ${generatedMeal.protein}p / ${generatedMeal.carbs}c / ${generatedMeal.fat}f\nTarget: ${macroTargets.protein}p / ${macroTargets.carbs}c / ${macroTargets.fat}f\n${missedMacros.join(', ')}`,
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "Meal Generated!",
+        description: `${generatedMeal.name} is ready to add`,
+      });
+    }
+
+  } catch (error) {
+    console.error('Failed to generate meal:', error);
+    toast({
+      title: "Generation Failed",
+      description: "Please try again with different ingredients",
+      variant: "destructive"
+    });
+  } finally {
+    setGenerating(false);
+  }
+};

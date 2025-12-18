@@ -4,114 +4,16 @@ import OpenAI from "openai";
 import { storage } from "../storage";
 import { enforceMeasuredIngredients } from "./mealgenV2";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-export interface IntelligentMealRequest {
-  userId: string;
-  naturalLanguageInput: string; // "I want healthy breakfast for my diabetes"
-  mealType?: "breakfast" | "lunch" | "dinner" | "snack";
-  preferences?: {
-    cuisine?: string;
-    cookingTime?: number;
-    difficulty?: "easy" | "medium" | "hard";
-    servings?: number;
-  };
-  mode?: "chat" | "generate" | "modify";
-}
-
-export interface IntelligentMealResponse {
-  meal?: {
-    name: string;
-    description: string;
-    ingredients: Array<{ name: string; amount: string }>;
-    instructions: string[];
-    nutrition: {
-      calories?: number;
-      protein?: number;
-      carbs?: number;
-      fats?: number;
-    };
-    cookingTime: number;
-    difficulty: string;
-    servings: number;
-    imageUrl?: string;
-    medicalBadges: string[];
-  };
-  conversationalResponse: string;
-  suggestions?: string[];
-  followUpQuestions?: string[];
-}
-
-export async function generateIntelligentMeal(request: IntelligentMealRequest): Promise<IntelligentMealResponse> {
-  // Get user's complete profile for personalization
-  const user = await storage.getUser(request.userId);
-  if (!user) {
-    throw new Error("User profile not found");
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
-
-  // Build comprehensive user context
-  const userContext = buildUserContext(user);
-  
-  // Use GPT-4o for intelligent meal generation with conversation
-  const systemPrompt = `You are an expert nutritionist and chef AI assistant specializing in personalized meal planning. You have access to a user's complete health profile and dietary needs.
-
-USER PROFILE:
-${userContext}
-
-Your role is to:
-1. Understand natural language requests about meals and nutrition
-2. Generate personalized meal recommendations based on health conditions
-3. Provide conversational, helpful responses
-4. Ensure all recommendations are medically appropriate
-5. Suggest modifications and alternatives
-
-RESPONSE FORMAT: Always respond with valid JSON in this exact structure:
-{
-  "meal": {
-    "name": "Meal Name",
-    "description": "Brief description focusing on health benefits",
-    "ingredients": [{"name": "ingredient", "amount": "measured amount"}],
-    "instructions": ["step 1", "step 2", "..."],
-    "nutrition": {"calories": 350, "protein": 25, "carbs": 30, "fats": 15},
-    "cookingTime": 20,
-    "difficulty": "easy",
-    "servings": 1,
-    "medicalBadges": ["Diabetes-Friendly", "Heart-Healthy", "Low-Sodium"]
-  },
-  "conversationalResponse": "Friendly, helpful response explaining the meal choice",
-  "suggestions": ["Alternative 1", "Alternative 2", "Alternative 3"],
-  "followUpQuestions": ["Would you like a different cuisine?", "Need a quicker option?"]
+  return _openai;
 }
-
-MEDICAL SAFETY RULES:
-- For diabetes: Focus on low glycemic index, balanced carbs
-- For hypertension: Limit sodium to under 600mg per meal
-- For allergies: Completely avoid all allergens
-- For dietary restrictions: Strictly follow (vegetarian, gluten-free, etc.)
-
-MEASUREMENT STANDARDS:
-- Use kitchen-friendly measurements (cups, tbsp, tsp, oz)
-- Convert decimals to fractions (0.5 = 1/2, 0.25 = 1/4)
-- Specify piece sizes (1 medium onion, 2 large eggs)`;
-
-  const userPrompt = `User request: "${request.naturalLanguageInput}"
-
-${request.mealType ? `Meal type: ${request.mealType}` : ''}
-${request.preferences ? `Preferences: ${JSON.stringify(request.preferences)}` : ''}
-
-Please generate a personalized meal recommendation with a conversational response.`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 2000
-    });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
     
@@ -123,7 +25,7 @@ Please generate a personalized meal recommendation with a conversational respons
     // Generate image if requested
     if (request.mode === "generate" && result.meal) {
       try {
-        const imageResponse = await openai.images.generate({
+        const imageResponse = await getOpenAI().images.generate({
           model: "dall-e-3",
           prompt: `Professional food photography of ${result.meal.name}: ${result.meal.description}. Clean, appetizing, restaurant-quality presentation.`,
           size: "1024x1024",
@@ -181,7 +83,7 @@ Respond conversationally and helpfully. If the user wants to modify the meal, pr
   ];
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages,
       temperature: 0.8,
@@ -242,7 +144,7 @@ MEAL: ${JSON.stringify(mealData)}
 Provide a brief, friendly explanation focusing on health benefits and how it fits their dietary needs.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,

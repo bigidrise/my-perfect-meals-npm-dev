@@ -1,0 +1,105 @@
+🔥 THE GLP-1 CLONE PROMPT (This is the one you paste to the agent)
+
+Give this to the Replit Agent exactly as written:
+
+“Clone the entire Diabetic AI Premade module into a new version called GLP1 AI Premades.
+Do NOT create a new architecture — this is a direct copy of the Diabetic premade setup we already built.
+Make all file paths, routes, and references use ‘glp1’ instead of ‘diabetic.’
+
+The GLP-1 Premade module must include:
+
+Meal Types & Categories (3/6/6):
+
+Breakfast Premades (3 categories)
+
+Category structure identical to diabetic breakfast
+
+Lunch Premades (6 categories)
+
+Lean Plates
+
+Protein & Carb Bowls
+
+High-Protein Plates
+
+Protein & Veggie Plates
+
+One-Pan Meals
+
+Smart Plate Lunches
+
+Dinner Premades (6 categories)
+
+Lean Plates
+
+Protein & Carb Bowls
+
+High-Protein Plates
+
+Protein & Veggie Plates
+
+One-Pan Meals
+
+Smart Plate Dinners
+
+UI Requirements:
+
+Same 5 category buttons per meal type where applicable
+
+Same search window
+
+Same meal grid
+
+Same prep modal (steak/chicken/fish/etc.)
+
+Same “Generate AI Meal” functionality
+
+Same DALL·E integration
+
+Same Add-to-Weekly-Board logic
+
+Same meal card UI
+
+Backend Requirements:
+
+Use the exact same API endpoints and request/response structure as diabetic premades
+
+DO NOT add guardrails — the GLP-1 hub already handles guardrails
+
+Import Requirements:
+
+In GLP1MenuBuilder.tsx, ensure this import is included:
+import MealIngredientPicker from "@/components/MealIngredientPicker";
+
+File Structure:
+
+Create a new folder: /ai-premades/glp1
+
+Inside it, create three JSON files for GLP-1 data:
+
+glp1-breakfast.json (3 categories)
+
+glp1-lunch.json (6 categories)
+
+glp1-dinner.json (6 categories)
+
+All of these JSON files should exist, be empty arrays, and correctly structured. No dummy meals.
+
+Routing:
+
+Add a GLP-1 premade route:
+/glp1/ai-premades
+
+This page must render exactly like the diabetic premade page but pull from the GLP-1 data files.
+
+Validation:
+
+The GLP-1 premade pages must load with empty data and show no errors
+
+Category switching must work
+
+Search window must work
+
+Render logic must accept empty arrays gracefully
+
+When complete, confirm that the GLP-1 AI Premades module is fully wired and ready for us to insert the actual GLP-1 meal data.”**

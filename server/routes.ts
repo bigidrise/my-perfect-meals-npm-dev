@@ -3198,7 +3198,6 @@ function getMealIngredientsDatabase() {
 
   // Voice transcription endpoint using OpenAI Whisper
   const upload = multer({ storage: multer.memoryStorage() });
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   app.post('/api/voice/transcribe', upload.single('audio'), async (req, res) => {
     try {
@@ -3206,7 +3205,13 @@ function getMealIngredientsDatabase() {
         return res.status(400).json({ error: 'No audio file provided' });
       }
 
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({ error: 'OpenAI API key not configured' });
+      }
+
       console.log('🎤 Transcribing audio file...');
+
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // Convert buffer to file-like object for OpenAI
       const audioFile = new File([req.file.buffer], 'audio.wav', { type: 'audio/wav' });

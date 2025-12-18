@@ -1,0 +1,116 @@
+Perfect. This is a **clear directive**, and you’re 100% right to lock this down **one area at a time**.
+
+Below is the **exact architect-level prompt** you asked for. You can copy-paste this directly to the architect with zero edits.
+
+---
+
+## 🔒 ARCHITECT PROMPT — UI INPUT LOCKDOWN (MASTER SHOPPING LIST FIRST)
+
+### Context
+
+We have a recurring **mobile UX failure** caused by using checkboxes and input-based selectors in a Capacitor iOS app. On mobile, these controls are inconsistent, visually delayed, and unreliable. This is causing user confusion and broken interaction feedback.
+
+This is **not cosmetic** — it is a functional UX issue.
+
+---
+
+## 🚨 GLOBAL UI RULE (NON-NEGOTIABLE)
+
+**ALL checkboxes must be replaced with state-driven buttons.**
+
+### Visual Standard (LOCKED):
+
+* Default state:
+
+  * **Black glass button**
+  * White text
+* Active / selected state:
+
+  * **My Perfect Meals orange gradient**
+  * White text
+* Immediate visual feedback on tap
+* No native `<input type="checkbox">` or `<input type="radio">` anywhere in mobile-facing UI
+
+Selection must be handled via **React state**, not browser input state.
+
+---
+
+## 🎯 PHASE 1 — MASTER SHOPPING LIST (DO THIS FIRST)
+
+### Areas to refactor:
+
+1. **Group by Aisle**
+2. **Exclude Pantry Staples**
+3. Any other checkbox or toggle in the Master Shopping List UI
+
+### Required behavior:
+
+* Each option is a **button**
+* Tapping the button:
+
+  * Immediately changes visual state (black glass → orange gradient)
+  * Toggles the underlying boolean logic
+* No delayed state updates
+* No ambiguous “did it register?” moments
+
+### Example behavior (conceptual):
+
+* OFF → black glass
+* ON → orange gradient
+* Tapping again → returns to black glass
+
+---
+
+## 🧱 IMPLEMENTATION RULES
+
+* Use `<button>` elements (preferred)
+* Or a shared `ToggleButton` component if appropriate
+* Styling must be **state-driven**, not CSS pseudo-states tied to inputs
+* Hit targets must be large and mobile-safe
+* No invisible overlays, no nested inputs
+
+---
+
+## ⛔ WHAT NOT TO USE (ANYWHERE MOBILE)
+
+* `<input type="checkbox">`
+* `<input type="radio">`
+* CSS `:checked` states
+* Small tap targets
+* Input elements masquerading as buttons
+
+---
+
+## 🔁 ROLLOUT PLAN (IMPORTANT)
+
+We are **not** refactoring everything at once.
+
+Order of execution:
+
+1. ✅ **Master Shopping List** (this task)
+2. Meal Pickers
+3. Filters / Toggles
+4. Any remaining selection UI
+
+Each section must be verified on **real iOS hardware**, not just web.
+
+---
+
+## 🧠 WHY THIS MATTERS
+
+* Fixes inconsistent mobile tap behavior
+* Eliminates delayed visual updates
+* Aligns with Apple HIG expectations
+* Prevents future regressions
+* Creates a unified, premium interaction language across the app
+
+This is a **UI LOCKDOWN DECISION**, not an experiment.
+
+---
+
+If you want, next we can:
+
+* Define the **exact ToggleButton component spec**
+* Or walk through **Master Shopping List logic + UI together** before coding
+
+But this prompt is the marching order.

@@ -1,0 +1,536 @@
+Got you. Let’s make this dead simple so you can hand it to the architect *and* see the exact pattern.
+
+I’ll do two things:
+
+1. **Show a concrete TypeScript entry** for one feature (Craving Premades) in a way that matches how a registry usually looks.
+2. **Give you a ready-to-paste architect prompt** that tells them to wire ALL the alias packs you already asked for into `CanonicalAliasRegistry.ts` using that pattern.
+
+---
+
+## 1️⃣ Example TS entry for one feature (Craving Premades)
+
+This is **example structure**, not a full file. Your CanonicalAliasRegistry already exists, so the architect will adapt the field names. But this is the pattern:
+
+```ts
+// CanonicalAliasRegistry.ts (EXAMPLE SHAPE)
+
+// Example type – your file will already have something similar
+export interface CanonicalFeatureConfig {
+  id: string;                // e.g. "CRAVING_PREMADES"
+  route: string;             // e.g. "/craving-presets"
+  canonicalName: string;     // "Craving Premades"
+  uniqueToken: string;       // main distinguishing token
+  aliases: string[];         // words/phrases we match on
+  samplePhrases: string[];   // for testing + future UI
+}
+
+// Somewhere inside your registry object/array:
+export const CANONICAL_FEATURES: CanonicalFeatureConfig[] = [
+  // ...existing entries...
+
+  {
+    id: "CRAVING_PREMADES",
+    route: "/craving-presets",
+    canonicalName: "Craving Premades",
+    uniqueToken: "premades",
+    aliases: [
+      "craving premades",
+      "premades",
+      "pre-mades",
+      "pre made",
+      "pre maid",
+      "pro maids",
+      "maids",
+    ],
+    samplePhrases: [
+      "Open Craving Premades",
+      "Show me premades",
+      "Show premade cravings",
+      "Take me to premades",
+    ],
+  },
+
+  // ...more features below...
+];
+```
+
+If your file uses different fields (like `keywords` instead of `aliases`, or `slug` instead of `route`), the architect will just map them:
+
+* `uniqueToken` → whatever field they use to store the “one safe distinguishing token”.
+* `aliases` → whatever array they use for matching (`keywords`, `triggers`, etc.).
+* `samplePhrases` → optional; they can keep it just for docs/tests.
+
+The key idea: **one config per feature**, with `uniqueToken` + `aliases`.
+
+---
+
+## 2️⃣ Full Architect Prompt (wire all features using that pattern)
+
+Copy–paste THIS into Replit as your instruction:
+
+---
+
+**PROMPT TO ARCHITECT (CANONICAL ALIAS WIRING)**
+
+> Goal: Wire full alias packs for all main features into `client/src/components/copilot/CanonicalAliasRegistry.ts` using the existing registry structure.
+> Do **NOT** break Phase B routing or Spotlight logic.
+> Use the current CanonicalAliasEntry / registry shape – **do not invent a new system**.
+
+### 1. Use this example pattern
+
+For each feature, we want a config with:
+
+* `id` – existing canonical ID (e.g. `CRAVING_PREMADES`, `WEEKLY_MEAL_BUILDER`, etc.)
+* `route` – **must match** the existing route in `Router.tsx`
+* `canonicalName` – human-readable name
+* `uniqueToken` – one distinguishing word for this feature that no other feature should use
+* `aliases` – array of tokens/phrases we will match on (case-insensitive)
+* `samplePhrases` – (optional) example phrases for tests / future UI
+
+Example for **Craving Premades** (adapt field names to existing types):
+
+```ts
+{
+  id: "CRAVING_PREMADES",
+  route: "/craving-presets",
+  canonicalName: "Craving Premades",
+  uniqueToken: "premades",
+  aliases: [
+    "craving premades",
+    "premades",
+    "pre-mades",
+    "pre made",
+    "pre maid",
+    "pro maids",
+    "maids",
+  ],
+  samplePhrases: [
+    "Open Craving Premades",
+    "Show me premades",
+    "Show premade cravings",
+    "Take me to premades",
+  ],
+}
+```
+
+### 2. Add alias packs for these features
+
+Use the **existing IDs and routes** already in CanonicalAliasRegistry/Router. Only fill in `uniqueToken`, `aliases`, and `samplePhrases` from this spec:
+
+---
+
+#### CORE UTILITIES
+
+**MASTER SHOPPING LIST**
+
+* `uniqueToken`: `"master"`
+* `aliases`:
+
+  * `"master list"`, `"shopping list"`, `"master shopping"`, `"list master"`, `"grocery list"`, `"grocery master"`
+* `samplePhrases`:
+
+  * `"Open my master list"`
+  * `"Take me to the master shopping list"`
+  * `"Show my grocery list"`
+
+**MACRO CALCULATOR**
+
+* `uniqueToken`: `"macro"`
+* `aliases`:
+
+  * `"macro calculator"`, `"macro counter"`, `"macros"`, `"macro setup"`, `"macro goals"`
+* `samplePhrases`:
+
+  * `"Open the macro calculator"`
+  * `"Help me set my macros"`
+  * `"Take me to macro counter"`
+
+**MY BIOMETRICS** (route is `/my-biometrics`)
+
+* `uniqueToken`: `"biometrics"`
+* `aliases`:
+
+  * `"my biometrics"`, `"biometrics"`, `"body stats"`, `"progress stats"`, `"measurements"`
+* `samplePhrases`:
+
+  * `"Open biometrics"`
+  * `"Show my biometrics page"`
+  * `"Take me to my body stats"`
+
+**GET INSPIRATION**
+
+* `uniqueToken`: `"inspiration"`
+* `aliases`:
+
+  * `"get inspiration"`, `"inspiration"`, `"ideas"`, `"meal ideas"`, `"motivation"`
+* `samplePhrases`:
+
+  * `"Open Get Inspiration"`
+  * `"Give me meal ideas"`
+  * `"Take me to the inspiration page"`
+
+**WEEKLY MEAL BUILDER**
+
+* `uniqueToken`: `"weekly"`
+* `aliases`:
+
+  * `"weekly meal builder"`, `"weekly board"`, `"weekly meals"`, `"meal planner"`, `"week planner"`, `"weekly"`
+* `samplePhrases`:
+
+  * `"Open the weekly meal builder"`
+  * `"Take me to the weekly board"`
+  * `"Plan my week of meals"`
+
+---
+
+#### CONDITION / GOAL BUILDERS
+
+**DIABETIC HUB**
+
+* `uniqueToken`: `"diabetic"`
+* `aliases`:
+
+  * `"diabetic hub"`, `"diabetes hub"`, `"diabetic"`, `"diabetes support"`, `"sugar control"`
+* `samplePhrases`:
+
+  * `"Open the diabetic hub"`
+  * `"Take me to the diabetes section"`
+
+**DIABETIC MEAL BUILDER**
+
+* `uniqueToken`: `"d-build"`
+* `aliases`:
+
+  * `"diabetic builder"`, `"diabetic meals"`, `"diabetic meal builder"`, `"diabetes meals"`
+* `samplePhrases`:
+
+  * `"Open the diabetic meal builder"`
+  * `"Show me diabetes meals"`
+
+**GLP-1 HUB**
+
+* `uniqueToken`: `"glp"`
+* `aliases`:
+
+  * `"glp one hub"`, `"g l p one"`, `"glp hub"`, `"glp-1 hub"`, `"weight loss meds"`
+* `samplePhrases`:
+
+  * `"Open the GLP hub"`
+  * `"Take me to the GLP-1 section"`
+
+**GLP-1 MEAL BUILDER**
+
+* `uniqueToken`: `"glp-build"`
+* `aliases`:
+
+  * `"glp one builder"`, `"glp meal builder"`, `"glp menu"`, `"glp-1 meals"`
+* `samplePhrases`:
+
+  * `"Open the GLP meal builder"`
+  * `"Build GLP meals for me"`
+
+**ANTI-INFLAMMATORY MEAL BUILDER**
+
+* `uniqueToken`: `"anti"`
+* `aliases`:
+
+  * `"anti inflammatory"`, `"anti-inflam"`, `"inflammation builder"`, `"joint builder"`, `"anti plan"`
+* `samplePhrases`:
+
+  * `"Open the anti-inflammatory builder"`
+  * `"Take me to the inflammation meals"`
+
+**BEACHBODY MEAL BUILDER**
+
+* `uniqueToken`: `"beach"`
+* `aliases`:
+
+  * `"beach body"`, `"beachbody builder"`, `"summer shred"`, `"lean out"`, `"beach meals"`
+* `samplePhrases`:
+
+  * `"Open the beach body builder"`
+  * `"Help me lean out for summer"`
+
+**GENERAL NUTRITION BUILDER**
+
+* `uniqueToken`: `"general"`
+* `aliases`:
+
+  * `"general builder"`, `"everyday meals"`, `"normal meals"`, `"basic builder"`
+* `samplePhrases`:
+
+  * `"Open the general nutrition builder"`
+  * `"Show me everyday meals"`
+
+**PERFORMANCE & COMPETITION BUILDER**
+
+* `uniqueToken`: `"performance"`
+* `aliases`:
+
+  * `"performance builder"`, `"competition builder"`, `"athlete builder"`, `"performance meals"`, `"prep builder"`
+* `samplePhrases`:
+
+  * `"Open performance builder"`
+  * `"Take me to the competition meals"`
+
+---
+
+#### CRAVINGS & FRIDGE
+
+**CRAVING CREATOR HUB**
+
+* `uniqueToken`: `"craving-hub"`
+* `aliases`:
+
+  * `"craving hub"`, `"cravings hub"`, `"craving creator hub"`, `"craving center"`
+* `samplePhrases`:
+
+  * `"Open the craving hub"`
+  * `"Take me to cravings"`
+
+**CRAVING CREATOR**
+
+* `uniqueToken`: `"creator"`
+* `aliases`:
+
+  * `"craving creator"`, `"create craving"`, `"custom craving"`, `"make my craving"`
+* `samplePhrases`:
+
+  * `"Open Craving Creator"`
+  * `"Help me create a craving meal"`
+
+**CRAVING PREMADES**  ✅ *Use example structure from above*
+
+* `uniqueToken`: `"premades"`
+* `aliases`:
+
+  * `"craving premades"`, `"premades"`, `"pre-mades"`, `"pre made"`, `"pre maid"`, `"pro maids"`, `"maids"`
+* `samplePhrases`:
+
+  * `"Open Craving Premades"`
+  * `"Show me premades"`
+
+**FRIDGE RESCUE**
+
+* `uniqueToken`: `"rescue"`
+* `aliases`:
+
+  * `"fridge rescue"`, `"fridge"`, `"what can I make"`, `"empty fridge"`, `"clean out fridge"`
+* `samplePhrases`:
+
+  * `"Open Fridge Rescue"`
+* `"What can I make with what’s in my fridge"`
+
+---
+
+#### SOCIALIZING & RESTAURANTS
+
+**SOCIALIZING HUB**
+
+* `uniqueToken`: `"social"`
+* `aliases`:
+
+  * `"social hub"`, `"socializing hub"`, `"going out"`, `"night out"`, `"social plans"`
+* `samplePhrases`:
+
+  * `"Open the socializing hub"`
+  * `"Help me with going out tonight"`
+
+**RESTAURANT GUIDE**
+
+* `uniqueToken`: `"restaurant"`
+* `aliases`:
+
+  * `"restaurant guide"`, `"restaurant helper"`, `"eat out"`, `"ordering out"`, `"restaurant menu help"`
+* `samplePhrases`:
+
+  * `"Open the restaurant guide"`
+  * `"Help me order at a restaurant"`
+
+**FIND MEALS NEAR ME**
+
+* `uniqueToken`: `"nearby"`
+* `aliases`:
+
+  * `"meals near me"`, `"nearby meals"`, `"nearby food"`, `"find meals"`, `"local meals"`
+* `samplePhrases`:
+
+  * `"Find meals near me"`
+  * `"Show nearby food options"`
+
+---
+
+#### KIDS & FAMILY
+
+**KIDS MEALS HUB**
+
+* `uniqueToken`: `"kids-hub"`
+* `aliases`:
+
+  * `"kids hub"`, `"kids meals hub"`, `"children hub"`, `"kids section"`
+* `samplePhrases`:
+
+  * `"Open the Kids Hub"`
+  * `"Take me to kids meals hub"`
+
+**KIDS MEALS**
+
+* `uniqueToken`: `"big-kids"`
+* `aliases`:
+
+  * `"kids meals"`, `"big kids meals"`, `"older kids"`, `"school lunch"`
+* `samplePhrases`:
+
+  * `"Show kids meals"`
+  * `"Help me plan school lunch"`
+
+**TODDLER MEALS**
+
+* `uniqueToken`: `"toddler"`
+* `aliases`:
+
+  * `"toddler meals"`, `"toddlers"`, `"little kids"`, `"baby meals"`
+* `samplePhrases`:
+
+  * `"Open Toddler Meals"`
+  * `"Show me toddler food ideas"`
+
+---
+
+#### SPIRITS & LIFESTYLE
+
+**SPIRITS & LIFESTYLE HUB**
+
+* `uniqueToken`: `"spirits-hub"`
+* `aliases`:
+
+  * `"spirits hub"`, `"alcohol hub"`, `"drinks hub"`, `"lifestyle drinks"`, `"bar hub"`
+* `samplePhrases`:
+
+  * `"Open the Spirits and Lifestyle Hub"`
+  * `"Take me to the drinks hub"`
+
+**ALCOHOL**
+
+* `uniqueToken`: `"alcohol"`
+* `aliases`:
+
+  * `"alcohol"`, `"drinks"`, `"booze"`, `"cocktails"`, `"hard drinks"`
+* `samplePhrases`:
+
+  * `"Open the alcohol page"`
+  * `"Show me drinks I can have"`
+
+**LEAN & SOCIAL**
+
+* `uniqueToken`: `"lean"`
+* `aliases`:
+
+  * `"lean and social"`, `"lean social"`, `"low cal drinks"`, `"diet drinks"`, `"lean drinks"`
+* `samplePhrases`:
+
+  * `"Open Lean and Social"`
+  * `"Show low-calorie drinks"`
+
+**MOCKTAILS**
+
+* `uniqueToken`: `"mocktails"`
+* `aliases`:
+
+  * `"mocktails"`, `"no alcohol drinks"`, `"zero proof"`, `"virgin drinks"`
+* `samplePhrases`:
+
+  * `"Open mocktails"`
+  * `"Show non-alcoholic drinks"`
+
+**MEAL PAIRING**
+
+* `uniqueToken`: `"pairing"`
+* `aliases`:
+
+  * `"meal pairing"`, `"pair my meal"`, `"food pairing"`, `"what to drink with"`, `"pairing guide"`
+* `samplePhrases`:
+
+  * `"Open meal pairing"`
+  * `"What should I drink with this meal"`
+
+**WINE PAIRING**
+
+* `uniqueToken`: `"wine"`
+* `aliases`:
+
+  * `"wine pairing"`, `"wine guide"`, `"wine with dinner"`
+* `samplePhrases`:
+
+  * `"Open wine pairing"`
+  * `"Which wine goes with this"`
+
+**BEER PAIRING**
+
+* `uniqueToken`: `"beer"`
+* `aliases`:
+
+  * `"beer pairing"`, `"beer guide"`, `"beer with dinner"`
+* `samplePhrases`:
+
+  * `"Open beer pairing"`
+  * `"Which beer fits this meal"`
+
+**BOURBON PAIRING**
+
+* `uniqueToken`: `"bourbon"`
+* `aliases`:
+
+  * `"bourbon pairing"`, `"whiskey pairing"`, `"bourbon guide"`
+* `samplePhrases`:
+
+  * `"Open bourbon pairing"`
+  * `"Help me pair bourbon"`
+
+**ALCOHOL LOG**
+
+* `uniqueToken`: `"alog"`
+* `aliases`:
+
+  * `"alcohol log"`, `"drink log"`, `"drinking log"`, `"booze log"`
+* `samplePhrases`:
+
+  * `"Open my alcohol log"`
+  * `"Let me log my drinks"`
+
+**WEANING OFF TOOLS**
+
+* `uniqueToken`: `"wean"`
+* `aliases`:
+
+  * `"weaning off"`, `"cutting back"`, `"quit drinking"`, `"reduce alcohol"`
+* `samplePhrases`:
+
+  * `"Open Weaning Off tools"`
+  * `"Help me cut back on alcohol"`
+
+---
+
+#### PAGES / META (minimal, since user can see tabs)
+
+**PRO CARE, LIFESTYLE, PLANNER, HOME, PORTALS, SUPPLEMENT HUB, PRO CLIENTS, CLIENT DASHBOARD**
+→ Only add aliases if they already have Canonical IDs; keep them minimal so they don’t accidentally override more important features.
+
+---
+
+### 3. Requirements
+
+1. **Do not change existing IDs or routes** – only attach `uniqueToken`, `aliases`, and `samplePhrases`.
+2. Keep everything **backwards compatible** with existing Phase B routing and Spotlight.
+3. Run `npx tsc --noEmit` and ensure **no new TypeScript errors**.
+4. After implementation, log out the final alias map for Craving Premades, Weekly Meal Builder, and Fridge Rescue so we can regression-test those three first.
+
+---
+
+That’s it.
+
+If you want, once architect wires this, we’ll do a **targeted test script** like:
+
+> “Say X, the app should go to Y, then spotlight Z.”
+
+for 5–10 of these features so you can quickly test on-device without guessing.

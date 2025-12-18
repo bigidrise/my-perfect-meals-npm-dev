@@ -1,0 +1,209 @@
+You’re 100% right to separate them visually too.
+Right now everything is screaming the same color, so users’ brains file it all under “background noise.”
+
+Let’s fix that cleanly:
+
+* **Medical badges = their own color + shield icon**
+* **General info/help = different color + eye icon (not ?)**
+
+I’ll give you exact code changes you can paste in.
+
+---
+
+## 1️⃣ Change MEDICAL BADGE button color (green → yellow/amber)
+
+We’ll keep the **black-glass cards** as we already did, but change the **small trigger button** color for all medical badge components.
+
+### A. `HealthBadgesPopover.tsx`
+
+Find this button (we added the shield icon earlier):
+
+```tsx
+<button
+  className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold relative"
+  data-testid="button-medical-badges"
+  title={label}
+>
+```
+
+Change the `className` to a yellow/amber look:
+
+```tsx
+className="bg-amber-500 hover:bg-amber-600 border-2 border-amber-300 text-black
+           rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold relative"
+```
+
+So the full button becomes:
+
+```tsx
+<button
+  className="bg-amber-500 hover:bg-amber-600 border-2 border-amber-300 text-black
+             rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold relative"
+  data-testid="button-medical-badges"
+  title={label}
+>
+  <div className="relative w-4 h-4 flex items-center justify-center">
+    <Shield className="w-4 h-4 text-black" strokeWidth={2} />
+    <Plus className="w-2 h-2 text-red-600 absolute" strokeWidth={3} />
+  </div>
+</button>
+```
+
+Key changes:
+
+* **Amber background** = “medical attention / caution”
+* **Black icon** reads clearly on yellow
+* Red cross still pops
+
+---
+
+### B. `MedicalInfoBubble.tsx`
+
+Find this button:
+
+```tsx
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  }}
+  className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold"
+  aria-label="View health and medical tags"
+  data-testid="button-medical-info"
+>
+  <div className="relative w-4 h-4 flex items-center justify-center">
+    <Shield className="w-4 h-4 text-white" strokeWidth={2} />
+    <Plus className="w-2 h-2 text-red-500 absolute" strokeWidth={3} />
+  </div>
+</button>
+```
+
+Change `className` + icon color:
+
+```tsx
+className="bg-amber-500 hover:bg-amber-600 border-2 border-amber-300 text-black
+           rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold"
+```
+
+And inside:
+
+```tsx
+<Shield className="w-4 h-4 text-black" strokeWidth={2} />
+<Plus className="w-2 h-2 text-red-600 absolute" strokeWidth={3} />
+```
+
+---
+
+### C. `HealthBadgePopup.tsx`
+
+Find this:
+
+```tsx
+<button
+  className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-6 h-6 flex items-center justify-center text-sm font-bold"
+  data-testid="button-health-badge-popup"
+>
+  <div className="relative w-5 h-5 flex items-center justify-center">
+    <Shield className="w-5 h-5 text-white" strokeWidth={2} />
+    <Plus
+      className="w-2.5 h-2.5 text-red-500 absolute"
+      strokeWidth={3}
+    />
+  </div>
+</button>
+```
+
+Change to:
+
+```tsx
+<button
+  className="bg-amber-500 hover:bg-amber-600 border-2 border-amber-300 text-black
+             rounded-xl w-6 h-6 flex items-center justify-center text-sm font-bold"
+  data-testid="button-health-badge-popup"
+>
+  <div className="relative w-5 h-5 flex items-center justify-center">
+    <Shield className="w-5 h-5 text-black" strokeWidth={2} />
+    <Plus className="w-2.5 h-2.5 text-red-600 absolute" strokeWidth={3} />
+  </div>
+</button>
+```
+
+👉 Now: **medical badge buttons = yellow/amber + shield+cross**
+They visually scream: “Health info, pay attention.”
+
+---
+
+## 2️⃣ Change QUESTION MARKS → EYE ICONS (different color)
+
+Now we separate your **generic info/help system** from medical.
+
+Anywhere you have a **“?” info button that is NOT medical**, we want:
+
+* **Icon:** `Eye` (Lucide) instead of `?`
+* **Color:** keep green or move to a cool tone like blue/indigo so it’s clearly different from amber medical badges.
+
+Since I don’t have those components in front of me, here’s the pattern you’ll apply.
+
+### Generic info button BEFORE (pattern you likely have):
+
+```tsx
+<button
+  className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold"
+>
+  ?
+</button>
+```
+
+### AFTER – turn into an “eye” help button (example using blue):
+
+At the top of the file:
+
+```ts
+import { Eye } from "lucide-react";
+```
+
+Then:
+
+```tsx
+<button
+  className="bg-sky-600 hover:bg-sky-700 border-2 border-sky-400 text-white
+             rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold"
+  aria-label="View more information"
+>
+  <Eye className="w-3.5 h-3.5" strokeWidth={2.25} />
+</button>
+```
+
+You’ve now got:
+
+* **Medical = amber + shield+cross**
+* **General info = blue+eye (or keep as green+eye if you prefer)**
+
+No more confusion. Users will *instantly* know:
+
+* “This is just info/help about the feature.” (eye)
+* “This is about my health or medical restrictions.” (shield+cross)
+
+---
+
+## 3️⃣ What you’ve accomplished with these changes
+
+* Medical badges now:
+
+  * Have **their own color (amber)**
+  * Have **their own icon (shield + cross)**
+  * Live on **black-glass cards that glow when critical**
+* General help/info:
+
+  * Moves from “?” (which users ignore)
+  * To an **eye icon** which reads “view details / more info”
+  * Has a **separate color**, so it can’t be confused with medical
+
+This is exactly the kind of polish that makes the app feel intentional and “designed,” not just “thrown together.”
+
+If you want, next step we can:
+
+* Standardize an **`<InfoIconButton />`** component for all the eye buttons
+* Standardize a **`<MedicalBadgeButton />`** component for all the shield badges
+
+So in the future you don’t have to remember classes — you just drop the component in.

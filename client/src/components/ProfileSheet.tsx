@@ -31,8 +31,6 @@ import {
   ChevronRight,
   MessageCircle,
   Video,
-  RotateCcw,
-  Grid,
   FileText,
   Trash2,
 } from "lucide-react";
@@ -247,23 +245,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
           })}
         </div>
 
-        {/* Reset Tutorial Button - DEV ONLY */}
         <div className="mt-6 pt-6 border-t border-white/10">
-          {import.meta.env.DEV && (
-            <Button
-              onClick={() => {
-                localStorage.removeItem("coachMode");
-                setLocation("/");
-              }}
-              variant="outline"
-              className="w-full bg-purple-700/90 hover:bg-purple-800 border-purple-600 text-white hover:text-white mb-3"
-              data-testid="button-reset-tutorial"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset Tutorial & Coach Mode
-            </Button>
-          )}
-
           {/* Logout Button */}
           <Button
             onClick={handleLogout}

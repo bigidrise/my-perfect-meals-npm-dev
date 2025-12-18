@@ -1,0 +1,74 @@
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+✅ OK: server/services/unifiedMealPipeline.ts
+
+✅ All critical files unchanged!
+✅ No unexpected changes detected
+
+2️⃣ Verifying server is running...
+✅ Server is running on port 5000
+
+====================================
+✅ ALL VALIDATION CHECKS PASSED!
+====================================
+
+Publishing: iOS TestFlight cleanup + dev shortcut removal + CORS fix for Capacitor
+
+[main 7516701] iOS TestFlight cleanup + dev shortcut removal + CORS fix for Capacitor
+ 14 files changed, 92 insertions(+), 35 deletions(-)
+ create mode 100644 ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme
+ create mode 100644 ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+ delete mode 100644 ios/App/App/Assets.xcassets/AppIcon.appiconset/ChatGPT Image Dec 2, 2025, 10_43_15 AM.png
+ delete mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/Splash-2x.png
+ delete mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/Splash-3x.png
+ rename ios/App/App/Assets.xcassets/Splash.imageset/{Splash-1x.png => splash-2732x2732-1 1.png} (100%)
+ rename ios/App/App/{Assets.xcassets/Splash.imageset/splash-2732x2732-1.png => Splash 2.png} (100%)
+ create mode 100644 ios/App/App/Splash.png
+✅ Changes committed
+
+Pushing to GitHub...
+Username for 'https://github.com': npm run build
+npx cap copy ios
+open ios/App/App.xcworkspacePassword for 'https://npm%20run%20build@github.com': 
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/bigidrise/my-perfect-meals-clean-ai/'
+❌ Push failed. Check your connection and try again.
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % ./push.sh "iOS TestFlight cleanup + dev shortcut removal + CORS fix for Capacitor"
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/components/pickers/MealPremadePicker.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+✅ OK: server/services/unifiedMealPipeline.ts
+
+✅ All critical files unchanged!
+✅ No unexpected changes detected
+
+2️⃣ Verifying server is running...
+✅ Server is running on port 5000
+
+====================================
+✅ ALL VALIDATION CHECKS PASSED!
+====================================
+
+Publishing: iOS TestFlight cleanup + dev shortcut removal + CORS fix for Capacitor
+
+On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+ℹ️  Nothing new to commit
+
+Pushing to GitHub...
+Username for 'https://github.com': 

@@ -1,0 +1,108 @@
+🧠 EXACT change that must exist in client/src/lib/api.ts
+
+Open this file right now and confirm whether this logic exists.
+
+client/src/lib/api.ts (critical section)
+
+You must see something equivalent to this:
+
+import { Capacitor } from '@capacitor/core';
+
+const isDev = import.meta.env.DEV;
+
+const ENV_BASE =
+  (import.meta as any).env?.VITE_API_BASE?.trim() ||
+  (import.meta as any).env?.VITE_API_BASE_URL?.trim();
+
+// 👇 THIS is the missing piece
+const NATIVE_API_BASE =
+  'https://2e4f029e-9abb-4b2b-a953-3126cde586ef-00-36heuk32mpfh5.worf.replit.dev';
+
+export const API_BASE = normalize(
+  ENV_BASE ||
+    (Capacitor.isNativePlatform() ? NATIVE_API_BASE : '') ||
+    (isDev ? `http://${location.hostname}:5000` : '')
+);
+
+If you do NOT see Capacitor.isNativePlatform()
+
+👉 Login cannot work. Period.
+
+🧪 How to PROVE this is the issue (30-second test)
+
+Add this temporarily below API_BASE:
+
+console.log('API_BASE:', API_BASE);
+
+
+Then:
+
+Build
+
+Run on iPhone
+
+Open Safari → Develop → your iPhone → Console
+
+Expected:
+API_BASE: https://2e4f029e-9abb-4b2b-a953-3126cde586ef-00-36heuk32mpfh5.worf.replit.dev
+
+If you see:
+API_BASE:
+
+
+or
+
+API_BASE: ""
+
+
+👉 That is 100% why login fails.
+
+🔁 Correct rebuild sequence (ONLY after code change)
+
+From project root:
+
+npm run build
+npx cap sync ios
+
+
+Then in Xcode:
+
+Product → Clean Build Folder
+
+Run on device
+
+That’s it. No Git. No status. No add. No push.
+
+🚫 What we are NOT doing
+
+❌ No more guessing
+
+❌ No more repeating commands
+
+❌ No more splash edits
+
+❌ No more environment voodoo
+
+❌ No more “maybe Capacitor is weird”
+
+This is a deterministic failure with a deterministic fix.
+
+🎯 Bottom line
+
+Your app is failing login because:
+
+iOS has no backend URL.
+
+Once API_BASE resolves correctly on native:
+
+Login will work instantly
+
+Previews are unblocked
+
+No further architecture changes are needed tonight
+
+Next step (simple yes/no):
+
+Do you want me to rewrite client/src/lib/api.ts exactly as it should be and paste it here so you can drop it in?
+
+Say yes and we finish this cleanly.

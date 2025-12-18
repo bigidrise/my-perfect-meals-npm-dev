@@ -2,19 +2,29 @@ import express from "express";
 import { OpenAI } from "openai";
 
 const router = express.Router();
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// POST /api/chef/ask { question }
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
+
 router.post("/chef/ask", async (req, res) => {
   try {
     const { question } = req.body as { question: string };
-    if (!question || question.trim().length < 2)
+    if (!question || question.trim().length < 2) {
       return res.status(400).json({ error: "Question required" });
+    }
 
     const system = "You are a concise, friendly culinary coach. Give practical, safe cooking and nutrition advice. Keep answers short.";
     const user = question.trim();
 
-    const resp = await openai.chat.completions.create({
+    const resp = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.4,
       messages: [

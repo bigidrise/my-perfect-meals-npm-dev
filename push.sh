@@ -75,7 +75,7 @@ fi
 # Push to GitHub
 echo ""
 echo "Pushing to GitHub..."
-if git push -u origin main 2>&1; then
+if git push -u origin staging 2>&1; then
   echo "✅ SUCCESSFULLY PUBLISHED!"
   echo ""
   echo "📋 What was published:"

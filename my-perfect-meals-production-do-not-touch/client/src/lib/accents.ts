@@ -1,0 +1,150 @@
+
+// src/lib/accents.ts
+export type Accent =
+  | "emerald" | "sky" | "orange" | "green" | "red" | "purple" | "teal" | "blue" | "yellow" | "indigo" | "pink";
+
+export const ACCENTS: Record<Accent, {
+  pageBg: string;
+  cardBg: string;
+  cardBorder: string;
+  glow: string;
+  button: string;
+  buttonHover: string;
+  buttonText: string;
+  softBorder: string;
+  badge: string;
+  hoverCardBorder: string;
+}> = {
+  emerald: {
+    pageBg: "bg-gradient-to-br from-emerald-950 via-emerald-900 to-black",
+    cardBg: "bg-emerald-950/40",
+    cardBorder: "border-2 border-emerald-500/60",
+    glow: "shadow-[0_0_30px_rgba(16,185,129,0.15)]",
+    button: "bg-emerald-500",
+    buttonHover: "hover:bg-emerald-600",
+    buttonText: "text-black",
+    softBorder: "border-emerald-500/30",
+    badge: "bg-emerald-600/30 border border-emerald-400/60 text-emerald-100",
+    hoverCardBorder: "hover:border-emerald-400",
+  },
+  sky: {
+    pageBg: "bg-gradient-to-br from-sky-950 via-sky-900 to-black",
+    cardBg: "bg-sky-950/40",
+    cardBorder: "border-2 border-sky-500/60",
+    glow: "shadow-[0_0_30px_rgba(14,165,233,0.15)]",
+    button: "bg-sky-500",
+    buttonHover: "hover:bg-sky-600",
+    buttonText: "text-black",
+    softBorder: "border-sky-500/30",
+    badge: "bg-sky-600/30 border border-sky-400/60 text-sky-100",
+    hoverCardBorder: "hover:border-sky-400",
+  },
+  orange: {
+    pageBg: "bg-gradient-to-br from-orange-950 via-orange-900 to-black",
+    cardBg: "bg-orange-950/40",
+    cardBorder: "border-2 border-orange-500/60",
+    glow: "shadow-[0_0_30px_rgba(249,115,22,0.15)]",
+    button: "bg-orange-500",
+    buttonHover: "hover:bg-orange-600",
+    buttonText: "text-black",
+    softBorder: "border-orange-500/30",
+    badge: "bg-orange-600/30 border border-orange-400/60 text-orange-100",
+    hoverCardBorder: "hover:border-orange-400",
+  },
+  green: {
+    pageBg: "bg-gradient-to-br from-green-950 via-green-900 to-black",
+    cardBg: "bg-green-950/40",
+    cardBorder: "border-2 border-green-500/60",
+    glow: "shadow-[0_0_30px_rgba(34,197,94,0.15)]",
+    button: "bg-green-500",
+    buttonHover: "hover:bg-green-600",
+    buttonText: "text-black",
+    softBorder: "border-green-500/30",
+    badge: "bg-green-600/30 border border-green-400/60 text-green-100",
+    hoverCardBorder: "hover:border-green-400",
+  },
+  red: {
+    pageBg: "bg-gradient-to-br from-red-950 via-red-900 to-black",
+    cardBg: "bg-red-950/40",
+    cardBorder: "border-2 border-red-500/60",
+    glow: "shadow-[0_0_30px_rgba(239,68,68,0.15)]",
+    button: "bg-red-500",
+    buttonHover: "hover:bg-red-600",
+    buttonText: "text-black",
+    softBorder: "border-red-500/30",
+    badge: "bg-red-600/30 border border-red-400/60 text-red-100",
+    hoverCardBorder: "hover:border-red-400",
+  },
+  purple: {
+    pageBg: "bg-gradient-to-br from-purple-950 via-purple-900 to-black",
+    cardBg: "bg-purple-950/40",
+    cardBorder: "border-2 border-purple-500/60",
+    glow: "shadow-[0_0_30px_rgba(168,85,247,0.15)]",
+    button: "bg-purple-500",
+    buttonHover: "hover:bg-purple-600",
+    buttonText: "text-black",
+    softBorder: "border-purple-500/30",
+    badge: "bg-purple-600/30 border border-purple-400/60 text-purple-100",
+    hoverCardBorder: "hover:border-purple-400",
+  },
+  teal: {
+    pageBg: "bg-gradient-to-br from-teal-950 via-teal-900 to-black",
+    cardBg: "bg-teal-950/40",
+    cardBorder: "border-2 border-teal-500/60",
+    glow: "shadow-[0_0_30px_rgba(20,184,166,0.15)]",
+    button: "bg-teal-500",
+    buttonHover: "hover:bg-teal-600",
+    buttonText: "text-black",
+    softBorder: "border-teal-500/30",
+    badge: "bg-teal-600/30 border border-teal-400/60 text-teal-100",
+    hoverCardBorder: "hover:border-teal-400",
+  },
+  blue: {
+    pageBg: "bg-gradient-to-br from-blue-950 via-blue-900 to-black",
+    cardBg: "bg-blue-950/40",
+    cardBorder: "border-2 border-blue-500/60",
+    glow: "shadow-[0_0_30px_rgba(59,130,246,0.15)]",
+    button: "bg-blue-500",
+    buttonHover: "hover:bg-blue-600",
+    buttonText: "text-black",
+    softBorder: "border-blue-500/30",
+    badge: "bg-blue-600/30 border border-blue-400/60 text-blue-100",
+    hoverCardBorder: "hover:border-blue-400",
+  },
+  yellow: {
+    pageBg: "bg-gradient-to-br from-yellow-950 via-yellow-900 to-black",
+    cardBg: "bg-yellow-950/40",
+    cardBorder: "border-2 border-yellow-500/60",
+    glow: "shadow-[0_0_30px_rgba(234,179,8,0.15)]",
+    button: "bg-yellow-500",
+    buttonHover: "hover:bg-yellow-600",
+    buttonText: "text-black",
+    softBorder: "border-yellow-500/30",
+    badge: "bg-yellow-600/30 border border-yellow-400/60 text-yellow-100",
+    hoverCardBorder: "hover:border-yellow-400",
+  },
+  indigo: {
+    pageBg: "bg-gradient-to-br from-indigo-950 via-indigo-900 to-black",
+    cardBg: "bg-indigo-950/40",
+    cardBorder: "border-2 border-indigo-500/60",
+    glow: "shadow-[0_0_30px_rgba(99,102,241,0.15)]",
+    button: "bg-indigo-500",
+    buttonHover: "hover:bg-indigo-600",
+    buttonText: "text-black",
+    softBorder: "border-indigo-500/30",
+    badge: "bg-indigo-600/30 border border-indigo-400/60 text-indigo-100",
+    hoverCardBorder: "hover:border-indigo-400",
+  },
+  pink: {
+    pageBg: "bg-gradient-to-br from-pink-950 via-pink-900 to-black",
+    cardBg: "bg-pink-950/40",
+    cardBorder: "border-2 border-pink-500/60",
+    glow: "shadow-[0_0_30px_rgba(236,72,153,0.15)]",
+    button: "bg-pink-500",
+    buttonHover: "hover:bg-pink-600",
+    buttonText: "text-black",
+    softBorder: "border-pink-500/30",
+    badge: "bg-pink-600/30 border border-pink-400/60 text-pink-100",
+    hoverCardBorder: "hover:border-pink-400",
+  },
+};

@@ -1,0 +1,60 @@
+Promotion Package Manifest
+Created: Fri Dec 12 08:03:32 PM UTC 2025
+From commit: 9394ca54dd53af2e86b260141a2e063fbf467b17
+Baseline: 4362a618bb05e9de7c27a0cbf4460a4e6ff89184
+
+Files included:
+----------------------------------------
+  + .critical-files-checksums
+  + attached_assets/Pasted--workspace-scripts-freeze-critical-files-sh-push-sh-upd_1765558232825.txt
+  + client/src/components/biometrics/RemainingMacrosFooter.tsx
+  + client/src/lib/macroSourcesConfig.ts
+  + client/src/pages/pro/GeneralNutritionBuilder.tsx
+  + client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+  + scripts/promote/.last_promotion
+  + scripts/promote/promotion_package_20251212_162757.sha256
+  + scripts/promote/promotion_package_20251212_162757.zip
+  + scripts/promote/promotion_payload/.critical-files-checksums
+  + scripts/promote/promotion_payload/MANIFEST.txt
+  - scripts/promote/promotion_payload/attached_assets/Pasted--Creating-zip-package-scripts-promote-build-promotion-p_1765469925152.txt (DELETED)
+  - scripts/promote/promotion_payload/attached_assets/Pasted-12-11-14-41-50-code-EAI-AGAIN-12-11-14-41-50-at-async-f_1765486710003.txt (DELETED)
+  - scripts/promote/promotion_payload/attached_assets/Pasted-12-11-15-04-46-c822a424-0c19-420d-829e-0be76c636b16-GET_1765487171586.txt (DELETED)
+  - scripts/promote/promotion_payload/attached_assets/Pasted-Coach-YES-it-makes-complete-sense-and-you-re-100-right-_1765551040599.txt (DELETED)
+  - scripts/promote/promotion_payload/attached_assets/Pasted-I-ve-been-looking-at-this-section-and-it-s-been-bugging_1765551029110.txt (DELETED)
+  - scripts/promote/promotion_payload/client/src/components/MacroAggregateBar.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/components/MealCard.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/components/biometrics/MacroBridgeFooter.tsx (DELETED)
+  + scripts/promote/promotion_payload/client/src/components/biometrics/RemainingMacrosFooter.tsx
+  - scripts/promote/promotion_payload/client/src/components/modals/AIMealCreatorModal.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/components/ui/toast.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/hooks/use-toast.ts (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/BeachBodyMealBoard.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/CravingDessertCreator.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/SocialRestaurantGuide.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/WeeklyMealBoard.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/_quarantine/restaurant-guide-old.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/fridge-rescue.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/physician/DiabeticHub.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/physician/DiabeticMenuBuilder.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/physician/GLP1Hub.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/pages/physician/GLP1MealBuilder.tsx (DELETED)
+  - scripts/promote/promotion_payload/client/src/utils/macros.ts (DELETED)
+  + scripts/promote/promotion_payload/scripts/promote/.last_promotion
+  - scripts/promote/promotion_payload/scripts/promote/promotion_package_20251211_161817.sha256 (DELETED)
+  - scripts/promote/promotion_payload/scripts/promote/promotion_package_20251211_213329.sha256 (DELETED)
+  - scripts/promote/promotion_payload/scripts/promote/promotion_package_20251211_213329.zip (DELETED)
+  + scripts/promote/promotion_payload/scripts/promote/promotion_payload/MANIFEST.txt
+  + scripts/promote/promotion_payload/scripts/promote/promotion_payload/scripts/promote/.last_promotion
+  + scripts/promote/promotion_payload/scripts/promote/promotion_payload/scripts/promote/promotion_payload/MANIFEST.txt
+  + scripts/promote/promotion_payload/scripts/promote/promotion_payload/scripts/promote/promotion_payload/scripts/promote/promotion_payload/MANIFEST.txt
+  - scripts/promote/promotion_payload/server/routes/restaurants.ts (DELETED)
+  - scripts/promote/promotion_payload/server/services/fridgeRescueGenerator.ts (DELETED)
+  - scripts/promote/promotion_payload/server/services/generators/macros/carbSplit.ts (DELETED)
+  - scripts/promote/promotion_payload/server/services/weekAssembler.ts (DELETED)
+  - scripts/promote/promotion_payload/server/services/weeklyMealPlanningServiceA.ts (DELETED)
+  - scripts/promote/promotion_payload/server/services/weeklyMealPlanningServiceB.ts (DELETED)
+  - scripts/promote/promotion_payload/shared/types.ts (DELETED)
+
+----------------------------------------
+Total files: 50

@@ -1,0 +1,250 @@
+✅ REPLIT AGENT / ARCHITECT PROMPT — GLOBAL UI CONSISTENCY + PICKER SYSTEM OVERHAUL
+
+(Paste this directly into the agent. Do NOT modify. It’s perfect.)
+
+PROMPT START
+We are preparing the My Perfect Meals app for App Store approval and long-term positioning for “App of the Year.” Before we can proceed, the entire frontend must meet professional-grade global UI standards.
+
+This requires the agent and architect to create global, reusable UI systems (design tokens, component patterns, and layout rules) that ensure visual consistency across all screens.
+
+🔶 PHASE 1 — GLOBAL CONSISTENCY SYSTEM (MANDATORY)
+
+Create a global frontend standardization layer. This must include:
+
+Typography System (Global)
+
+All headers, subheaders, card titles, picker titles, etc. must have:
+
+Consistent font sizes
+
+Consistent font weights
+
+Consistent letter spacing
+
+Consistent vertical spacing
+
+Consistent line height
+
+Consistent margin/padding
+
+Example (you finalize exact values with the architect):
+
+Page Title: text-2xl / font-semibold
+
+Section Header: text-xl / font-semibold
+
+Card Title: text-lg / font-medium
+
+Subtext: text-sm / text-white/70
+
+Apply these styles globally using shared classes, utilities, or a config file.
+
+Component Size Standards (Global)
+
+All of the following must be standardized globally:
+
+Button height
+
+Corner radius (rounded-xl vs rounded-2xl)
+
+Card padding
+
+Card margin
+
+Border opacity
+
+Icon size (16px, 20px, 24px — pick one per category)
+
+Everything must be consistent across the entire app.
+
+Spacing Rules (Global)
+
+Create global spacing rules for:
+
+Section spacing
+
+Card spacing
+
+Space between list items
+
+Space between header + content
+
+No component should invent its own spacing anymore.
+
+🔶 PHASE 2 — MEAL PICKER REBUILD (BREAKFAST/LUNCH/DINNER)
+
+Right now on mobile, the meal picker category buttons (Proteins, Carbs, Fibrous, Fats, Fruits, etc.) are:
+
+Wrapped vertically
+
+Hyphenated
+
+Squished
+
+Inconsistent across hubs
+
+Unreadable on smaller screens
+
+This must be fully rebuilt using a global pattern.
+
+Required Changes
+1. Picker Category Buttons Must Display Horizontally
+
+No vertical squeezing.
+No word-wrapping.
+No hyphens ever.
+
+2. Horizontal Scroll Required
+
+If only 3 buttons fit on a screen at a time, the user should be able to:
+
+➡️ Scroll right to reveal more categories
+⬅️ Scroll left to go back
+
+Required behavior:
+
+Smooth horizontal scroll
+
+Snap-to-center optional but recommended
+
+Visible scroll indicator or overflow cue
+
+3. Consistent Category Button Design
+
+Every meal picker uses:
+
+Same height
+
+Same rounded corners
+
+Same font
+
+Same padding
+
+Same spacing
+
+Same active state
+
+Same hover/touch feedback
+
+4. Dropdown Behavior
+
+Clicking a category button must:
+
+Expand the ingredient list below (accordion/dropdown)
+
+Collapse all other categories
+
+Use the same animation + spacing across all hubs
+
+Match the behavior used in Breakfast/Lunch/Dinner pickers
+
+5. Ingredient Button Layout
+
+Ingredients must be listed:
+
+Clearly
+
+Clean spacing
+
+No wrapping issues
+
+No inconsistency between Protein/Carbs/Fibrous/Fats/Fruit
+
+🔶 PHASE 3 — SNACK PICKER OVERHAUL (CRITICAL)
+
+We have 120 snack items, which is too many for users to scroll through as one giant list.
+
+We have 6 snack categories:
+
+Sweet Treats
+
+Savory & Crunchy
+
+Light & Gentle
+
+Protein & Energy
+
+Drinkables
+
+Dessert Bites
+
+We need the SAME UI behavior as the rebuilt meal picker:
+1. Categories must be horizontal scroll buttons
+
+User scrolls left/right to switch categories:
+
+Sweet Treats | Savory & Crunchy | Light & Gentle | Protein & Energy | Drinkables | Dessert Bites
+
+2. Tapping a category reveals ONLY that category
+
+Exactly like breakfast/lunch/dinner:
+
+Category button → expands the list
+
+All other categories collapse
+
+Smooth animation
+
+Consistent spacing + card design
+
+3. All snack items remain inside their categories
+
+We do not want one giant scroll list of 120 snack items.
+
+🔶 PHASE 4 — IMPLEMENT A GLOBAL “PICKER FRAMEWORK”
+
+This is important:
+We need a shared picker component system that ALL hubs can use:
+
+Athlete boards
+
+Diabetic builder
+
+GLP-1 builder
+
+Meal planners
+
+Kids / toddler hubs
+
+Craving Creator / Fridge Rescue
+
+Snacks picker
+
+Restaurant picker (when rebuilt)
+
+No copy-paste components.
+No one-off styling.
+
+Everything must use the same shared picker component architecture.
+
+🔶 DELIVERABLES REQUIRED
+
+Global typography + spacing config
+
+Standard button styles
+
+Standard card styles
+
+Global picker component (scrollable tabs + dropdown content)
+
+Refactor all meal pickers to use the shared system
+
+Refactor snack picker to use the shared system
+
+Verify mobile responsiveness
+
+Verify nothing breaks existing meal boards
+
+Fix vertical wrapping issues
+
+Architect-level code review before finalizing
+
+🔥 ABSOLUTE RULE
+
+Make no visual or styling changes beyond standardizing sizes and layout.
+No new colors.
+No new spacing.
+No new aesthetics.
+
+Preserve the “black-glass” theme EXACTLY.

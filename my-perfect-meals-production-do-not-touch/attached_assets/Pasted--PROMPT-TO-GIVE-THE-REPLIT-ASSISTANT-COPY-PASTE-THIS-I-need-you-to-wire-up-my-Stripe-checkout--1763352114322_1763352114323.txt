@@ -1,0 +1,445 @@
+👉 PROMPT TO GIVE THE REPLIT ASSISTANT (COPY/PASTE THIS)
+
+I need you to wire up my Stripe checkout + webhook integration for subscriptions, but you MUST follow these rules exactly and NOT change anything outside this scope.
+
+🔐 ABSOLUTE RULES (DO NOT VIOLATE)
+
+Do NOT change any route paths away from these:
+
+Checkout route MUST be: POST /api/stripe/checkout
+
+Webhook route MUST be: POST /api/stripe/webhook
+If you previously changed them to /checkout or /webhook, revert them.
+
+Do NOT change the Stripe API version to anything fake.
+Use a real version like: "2024-06-20"
+If you previously set something like 2025-09-30.clover, revert it to "2024-06-20".
+
+Do NOT switch the webhook from raw body to JSON.
+The webhook MUST use:
+
+stripe.webhooks.constructEvent(req.rawBody or equivalent, sig, webhookSecret)
+
+
+and the route must be mounted with express.raw({ type: "application/json" }) BEFORE express.json().
+If you changed it to req.body, revert that.
+
+Do NOT change business logic, UI design, or unrelated components.
+Only work on:
+
+PricingPage
+
+client/src/lib/checkout.ts
+
+Stripe config / routes / subscription service
+
+server/index.ts for routing/middleware order
+
+Do NOT invent behavior or rename files.
+Use these filenames exactly:
+
+server/routes/stripeCheckout.ts
+
+server/routes/stripeWebhook.ts
+
+server/services/subscriptionService.ts
+
+server/config/stripePrices.ts
+
+🧠 CONTEXT (READ THIS BEFORE CHANGING ANYTHING)
+
+Tech stack:
+
+Backend: Node.js + Express
+
+DB: Postgres + Drizzle ORM
+
+Frontend: React
+
+Auth: there is an Auth system that exposes req.user (id, email)
+
+Plans are defined in client/src/data/planSkus.ts with LookupKey type:
+
+mpm_basic_monthly
+
+mpm_premium_monthly
+
+mpm_premium_beta_monthly
+
+mpm_ultimate_monthly
+
+mpm_family_base_monthly
+
+mpm_family_all_premium_monthly
+
+mpm_family_all_ultimate_monthly
+
+mpm_procare_monthly
+
+The user has:
+
+Stripe products + prices already created in Stripe dashboard.
+
+Metadata set on products (sku, group, etc.).
+
+A webhook handler file that currently looks like this (do NOT delete it, only adjust safely):
+
+import { Router } from "express";
+import Stripe from "stripe";
+import { updateUserSubscription, cancelUserSubscription } from "../services/subscriptionService";
+import type { LookupKey } from "../../client/src/data/planSkus";
+
+const router = Router();
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2024-06-20",
+});
+
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
+
+router.post("/api/stripe/webhook", async (req, res) => {
+  const sig = req.headers["stripe-signature"] as string;
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      (req as any).rawBody,
+      sig,
+      webhookSecret
+    );
+  } catch (err: any) {
+    console.error("❌ Webhook signature verification failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+
+        const metadata = session.metadata || {};
+        const userId = metadata.userId;
+        const sku = metadata.sku as LookupKey;
+
+        if (!userId || !sku) {
+          console.warn("⚠️ Missing userId or sku in checkout.session.completed");
+          break;
+        }
+
+        const subscriptionId = session.subscription as string;
+        const customerId = session.customer as string;
+
+        await updateUserSubscription({
+          userId,
+          lookupKey: sku,
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscriptionId,
+        });
+
+        console.log(`✅ Subscription activated: ${userId} → ${sku}`);
+        break;
+      }
+
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log(`✅ Invoice paid: ${invoice.id}`);
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+        
+        console.log(`⚠️ Subscription cancelled for customer: ${customerId}`);
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log(`✅ Subscription updated: ${subscription.id}, status: ${subscription.status}`);
+        break;
+      }
+
+      default:
+        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error("❌ Webhook handler error:", err);
+    res.status(500).send("Webhook handler error");
+  }
+});
+
+export default router;
+
+
+Leave the structure like this. Only add small adjustments if needed, but do not change the route path or signature handling.
+
+✅ WHAT I WANT YOU TO DO (STEP BY STEP)
+1) Pricing Buttons – Ensure They’re Clickable
+
+File: client/src/pages/PricingPage.tsx
+
+For both individual and family plan buttons:
+
+Make sure they are not hardcoded disabled.
+
+They should be disabled only if user?.planLookupKey === plan.sku (already on that plan).
+
+Do NOT change styling or layout.
+
+Example acceptable logic:
+
+<Button
+  ...
+  disabled={user?.planLookupKey === plan.sku}
+  onClick={() => handleSelectPlan(plan.sku)}
+>
+  {getButtonText(plan.sku)}
+</Button>
+
+
+If you previously set them to always disabled, fix that.
+
+2) Frontend Checkout Helper – Confirm Correct Endpoint
+
+File: client/src/lib/checkout.ts
+
+Implement or confirm:
+
+startCheckout(sku, options?) should:
+
+POST to "/api/stripe/checkout"
+
+Send { sku, context } in the body
+
+On success, redirect browser to res.data.url
+
+Example:
+
+import axios from "axios";
+import type { LookupKey } from "@/data/planSkus";
+
+export async function startCheckout(
+  sku: LookupKey,
+  options?: { context?: string }
+) {
+  const res = await axios.post("/api/stripe/checkout", {
+    sku,
+    context: options?.context ?? "pricing_page",
+  });
+
+  if (res.data?.url) {
+    window.location.href = res.data.url;
+  } else {
+    throw new Error("No checkout URL returned");
+  }
+}
+
+
+Do NOT change the path /api/stripe/checkout.
+
+3) Stripe Price Mapping Config
+
+File: server/config/stripePrices.ts
+
+If this file exists, adjust it.
+
+If not, create it.
+
+It should export a STRIPE_PRICE_IDS map from LookupKey → Stripe price_ ID.
+
+Use placeholder values ONLY where we don’t have real IDs; leave the structure in place.
+
+Example:
+
+import type { LookupKey } from "../../client/src/data/planSkus";
+
+export const STRIPE_PRICE_IDS: Record<LookupKey, string> = {
+  mpm_basic_monthly: "price_BASIC_REPLACE_ME",
+  mpm_premium_monthly: "price_PREMIUM_REPLACE_ME",
+  mpm_premium_beta_monthly: "price_BETA_REPLACE_ME",
+  mpm_ultimate_monthly: "price_ULTIMATE_REPLACE_ME",
+  mpm_family_base_monthly: "price_1SGls4JC1cXhpBKwB141c6aZ",
+  mpm_family_all_premium_monthly: "price_1SGltpJC1cXhpBKwKqTOSUnj",
+  mpm_family_all_ultimate_monthly: "price_1SGlx1JC1cXhpBKwIWjvKL8g",
+  mpm_procare_monthly: "price_PROCARE_REPLACE_ME",
+};
+
+
+Do NOT change the LookupKey names. I will fill the real price_... IDs myself.
+
+4) Checkout Route (Express)
+
+File: server/routes/stripeCheckout.ts
+
+Make sure this file:
+
+Imports STRIPE_PRICE_IDS
+
+Uses Stripe with apiVersion: "2024-06-20"
+
+Exposes POST /api/stripe/checkout
+
+Requires auth (so req.user has id and email – use my existing auth middleware if present)
+
+Creates a Checkout Session in subscription mode
+
+Passes metadata.userId and metadata.sku
+
+Returns { url: session.url }
+
+Example:
+
+import { Router } from "express";
+import Stripe from "stripe";
+import { STRIPE_PRICE_IDS } from "../config/stripePrices";
+import type { LookupKey } from "../../client/src/data/planSkus";
+// import my existing auth middleware:
+import { requireAuth } from "../middleware/requireAuth"; // adjust the path to match my project
+
+const router = Router();
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2024-06-20",
+});
+
+router.post(
+  "/api/stripe/checkout",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { sku, context } = req.body as { sku: LookupKey; context?: string };
+      const user = (req as any).user;
+
+      const priceId = STRIPE_PRICE_IDS[sku];
+      if (!priceId) {
+        return res.status(400).json({ error: "Invalid SKU" });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        customer_email: user.email,
+        success_url: `${process.env.FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL}/billing/cancel`,
+        metadata: {
+          userId: user.id,
+          sku,
+          context: context ?? "unknown",
+        },
+      });
+
+      return res.json({ url: session.url });
+    } catch (err) {
+      console.error("Stripe checkout error:", err);
+      return res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  }
+);
+
+export default router;
+
+
+Do NOT change the route path. It must be /api/stripe/checkout.
+
+5) Webhook Route Wiring in server/index.ts
+
+File: server/index.ts
+
+Make sure:
+
+You import the routers:
+
+import stripeWebhookRouter from "./routes/stripeWebhook";
+import stripeCheckoutRouter from "./routes/stripeCheckout";
+
+
+You mount the webhook BEFORE express.json(), using raw:
+
+app.post(
+  "/api/stripe/webhook",
+  // @ts-ignore raw body for Stripe
+  express.raw({ type: "application/json" }),
+  stripeWebhookRouter
+);
+
+
+AFTER that, you enable JSON parsing and mount the checkout route:
+
+app.use(express.json());
+
+app.use(stripeCheckoutRouter);
+
+
+Do NOT change /api/stripe/webhook to anything else. If you set it to /webhook, revert it.
+
+Do NOT remove raw body handling.
+
+6) Subscription Service (Drizzle + Users Table)
+
+File: server/services/subscriptionService.ts
+
+Make sure:
+
+It imports db and users schema from my Drizzle setup.
+
+It updates planLookupKey, stripeCustomerId, stripeSubscriptionId for the given user.
+
+No made-up columns like updatedAt unless they really exist in the schema.
+
+Example:
+
+import { db } from "../db";
+import { users } from "../db/schema/users"; // adjust path and table name if different
+import { eq } from "drizzle-orm";
+import type { LookupKey } from "../../client/src/data/planSkus";
+
+export async function updateUserSubscription(opts: {
+  userId: string;
+  lookupKey: LookupKey;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}) {
+  const { userId, lookupKey, stripeCustomerId, stripeSubscriptionId } = opts;
+
+  await db
+    .update(users)
+    .set({
+      planLookupKey: lookupKey,
+      stripeCustomerId: stripeCustomerId ?? undefined,
+      stripeSubscriptionId: stripeSubscriptionId ?? undefined,
+    })
+    .where(eq(users.id, userId));
+}
+
+
+Do NOT invent new table columns. Open the actual schema and match it.
+
+🔚 LAST REQUIREMENT
+
+When you’re done, summarize EXACTLY:
+
+Which files you touched
+
+What routes are exposed
+
+Confirm:
+
+/api/stripe/checkout exists and creates a Stripe Checkout Session
+
+/api/stripe/webhook exists and verifies Stripe signatures using raw body
+
+PricingPage buttons now call startCheckout and are clickable
+
+updateUserSubscription writes the correct fields
+
+Do NOT describe hypothetical behavior. Confirm what is actually implemented.
