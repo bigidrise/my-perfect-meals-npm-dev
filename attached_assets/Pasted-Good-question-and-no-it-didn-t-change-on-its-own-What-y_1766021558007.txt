@@ -1,0 +1,217 @@
+Good question — and no, it didn’t “change on its own.” What you’re seeing is **expected behavior once you understand which runtime is rendering what**. This is one of those moments where the mental model clicks and a lot of confusion disappears.
+
+I’m going to break this into **two separate issues**, because you actually described **two different phenomena**.
+
+---
+
+## PART 1 — Why iOS is not getting the changes (even though production web is)
+
+### The key truth
+
+Your **iOS app does NOT load the same way your browser does**, even though it points at the same production URL.
+
+Here’s what’s different:
+
+* **Production web (browser)**
+
+  * Always fetches the latest JS/CSS bundles
+  * Respects cache-busting and hard refreshes
+
+* **iOS (WKWebView via Capacitor)**
+
+  * Aggressively caches:
+
+    * JS bundles
+    * CSS
+    * sometimes even HTML
+  * Does **not** automatically bust cache on deploy
+
+So when you say:
+
+> “Production app is getting them, but iOS is not”
+
+That almost always means:
+👉 **iOS is serving a cached bundle**, not the fresh one.
+
+### The fix (standard Capacitor reality)
+
+You need **one** of these (ideally both):
+
+1. **Bump a version or cache key**
+
+   * You already have `version.json` → this is exactly why
+   * iOS only refreshes when it detects a version change
+
+2. **Kill the WebView cache**
+
+   * New TestFlight build
+   * OR manually clear app data on device
+   * OR reinstall the app on the device
+
+👉 iOS will *never* hot-update the way a browser does. That’s by design.
+
+So:
+**Nothing is wrong with production. iOS is just caching.**
+
+---
+
+## PART 2 — Why the blue “Use Location” button changed shape/behavior in production
+
+This part is subtle but important.
+
+### What actually happened
+
+The button did not magically change during Git → production.
+
+What changed is **which CSS/layout rules won** at runtime.
+
+Here are the most common reasons this happens:
+
+---
+
+### 1️⃣ Different build mode = different CSS resolution
+
+In DEV / staging (Vite dev server):
+
+* Styles are injected dynamically
+* Order is forgiving
+* Hot reload masks conflicts
+
+In PRODUCTION build:
+
+* CSS is **bundled, tree-shaken, and minified**
+* Class order matters more
+* Conflicting Tailwind utilities resolve differently
+
+So if:
+
+* Your input wrapper
+* The zip field
+* Or a parent flex container
+
+has shared styles (like `relative`, `flex-1`, `group`, `focus-within`, etc.)
+
+👉 The production build can cause the button to visually merge or reposition.
+
+That’s not random — it’s **CSS precedence** revealing itself.
+
+---
+
+### 2️⃣ Mobile/iOS breakpoint differences
+
+You already saw this once with:
+
+```tsx
+hidden sm:inline
+```
+
+On iOS:
+
+* Smaller viewport
+* Different DPR
+* Safe-area insets
+* Different font metrics
+
+So layouts that look fine in desktop/staging can collapse on iOS production.
+
+That explains:
+
+> “It combined it with the zip code input”
+
+It’s almost always:
+
+* flex behavior
+* width shrinking
+* or absolute positioning interacting with the input
+
+---
+
+### 3️⃣ You may have TWO location UIs active
+
+This is a big one.
+
+You likely have:
+
+* A **browser-native location affordance** (input behavior, autofill, or geolocation handler)
+* AND your custom **Use Location** button
+
+In production:
+
+* One may be conditionally rendered
+* Or one CSS rule hides the button and expands the input
+
+DEV doesn’t always surface this clearly.
+
+---
+
+## What this is NOT
+
+Let me be very explicit so you don’t chase ghosts:
+
+* ❌ Git did not alter your code
+* ❌ Production did not “rewrite” your component
+* ❌ iOS is not randomly changing JSX
+* ❌ This is not a Capacitor bug
+
+This is **build-time + CSS + caching behavior** doing exactly what it’s designed to do.
+
+---
+
+## How to prove this to yourself (2-minute test)
+
+1. In production code, temporarily add:
+
+```tsx
+style={{ outline: "2px solid red" }}
+```
+
+to the location button wrapper.
+
+2. Build production.
+3. Check:
+
+   * Browser
+   * iOS
+
+If:
+
+* The outline appears merged → layout/CSS issue
+* The outline doesn’t appear at all on iOS → cached bundle
+
+Either way, mystery solved.
+
+---
+
+## The correct mental model going forward
+
+### Think of it this way:
+
+* **DEV** = forgiving, dynamic, lies a little
+* **STAGING** = semi-honest
+* **PRODUCTION build** = brutally honest
+* **iOS WebView** = brutally honest *and* stubborn about caching
+
+Once you accept that:
+
+* Nothing feels random anymore
+* You stop blaming Git
+* You know exactly where to look
+
+---
+
+## What I recommend next (practical)
+
+1. **Lock the layout**
+
+   * Wrap input + button in a container with explicit widths
+   * Don’t rely on flex defaults
+
+2. **Version-bump for iOS**
+
+   * Force WebView refresh
+
+3. **Treat production builds as the truth**
+
+   * Always sanity-check layout after `npm run build`
+
+If you want, paste **the full ZIP + location wrapper component**, and I’ll tell you **exactly** which CSS rule is collapsing the button and how to harden it so it never happens again.
