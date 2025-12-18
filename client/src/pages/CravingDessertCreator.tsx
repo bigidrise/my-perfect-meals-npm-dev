@@ -93,7 +93,14 @@ export default function DessertCreator() {
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
-  const [generatedDessert, setGeneratedDessert] = useState<any | null>(null);
+  const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
+    try {
+      const saved = localStorage.getItem("mpm_dessert_creator_result");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
@@ -105,6 +112,14 @@ export default function DessertCreator() {
     document.title = "Dessert Creator | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  useEffect(() => {
+    if (generatedDessert) {
+      try {
+        localStorage.setItem("mpm_dessert_creator_result", JSON.stringify(generatedDessert));
+      } catch {}
+    }
+  }, [generatedDessert]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -384,11 +399,22 @@ export default function DessertCreator() {
             <div className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
                 <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Sparkles className="h-6 w-6 text-yellow-500" />
-                    <h3 className="text-xl font-bold text-white">
-                      {generatedDessert.name}
-                    </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-6 w-6 text-yellow-500" />
+                      <h3 className="text-xl font-bold text-white">
+                        {generatedDessert.name}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setGeneratedDessert(null);
+                        localStorage.removeItem("mpm_dessert_creator_result");
+                      }}
+                      className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                    >
+                      Create New
+                    </button>
                   </div>
 
                   <p className="text-white/90 mb-4">
