@@ -1,0 +1,12 @@
+1027 server/services/stableMealGenerator.ts
+187 server/services/universalMealGenerator.ts
+466 server/services/fridgeRescueGenerator.ts
+804 server/services/unifiedMealPipeline.ts
+602 client/src/components/modals/AIMealCreatorModal.tsx
+218 client/src/components/PreparationModal.tsx
+986 client/src/components/pickers/MealPremadePicker.tsx
+1924 client/src/pages/WeeklyMealBoard.tsx
+2237 client/src/pages/BeachBodyMealBoard.tsx
+2200 client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+146 client/src/pages/Planner.tsx
+343 server/routes/manualMacros.ts
