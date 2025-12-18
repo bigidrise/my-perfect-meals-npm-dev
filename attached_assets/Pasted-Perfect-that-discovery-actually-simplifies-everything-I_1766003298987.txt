@@ -1,0 +1,160 @@
+Perfect — that discovery actually **simplifies everything**.
+If it’s happening on **every page**, this is **100% a global layout / webview issue**, not Craving Creator, not buttons, not cards.
+
+You just saved yourself hours of page-by-page hunting.
+
+---
+
+# What’s REALLY happening (plain English)
+
+On iOS **inside a webview (Capacitor / Safari)**:
+
+* The **entire document** is scrollable
+* Your **safe-area / safety bar is part of the document flow**
+* When iOS “rubber-bands,” it drags **everything**, including the safe area
+* Desktop browsers don’t do this
+* Replit preview doesn’t do this
+* **Only real iOS devices do this**
+
+So the problem is:
+
+> ❌ You’re letting the **body/html scroll**
+> ✅ You must force scrolling into a **single inner container**
+
+This is the #1 iOS webview mistake. Almost everyone hits it once.
+
+---
+
+# The Golden Rule for iOS Web Apps
+
+👉 **The body must NEVER scroll**
+👉 **Only one inner container scrolls**
+
+Right now, your body is scrolling — that’s why the safe area moves.
+
+---
+
+# THE FIX (GLOBAL, ONE-TIME)
+
+## Step 1 — Lock the body (this is mandatory)
+
+In your **global CSS** (or equivalent Tailwind base file):
+
+```css
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+```
+
+If you’re using Tailwind only, apply this to your **root wrapper** instead.
+
+---
+
+## Step 2 — Create ONE scroll container
+
+Your **main app shell** (often `App.tsx`, `Layout.tsx`, or similar) should look like this:
+
+```tsx
+<div className="h-screen w-screen overflow-hidden">
+  {/* Fixed header / nav */}
+  
+  <main className="h-full overflow-y-auto overscroll-none">
+    {children}
+  </main>
+
+  {/* Fixed bottom safety bar */}
+</div>
+```
+
+Key points:
+
+* `overflow-hidden` on the outer shell
+* `overflow-y-auto` ONLY on `<main>`
+* `overscroll-none` to kill rubber-band
+
+---
+
+## Step 3 — Fix the safety bar (this is critical)
+
+Your **safety bar must be FIXED**, not relative, not sticky.
+
+Correct pattern:
+
+```tsx
+<div className="fixed bottom-0 left-0 right-0 z-50">
+  <div className="pb-[env(safe-area-inset-bottom)] bg-black">
+    {/* Safety bar content */}
+  </div>
+</div>
+```
+
+❌ Wrong pattern (what causes your issue):
+
+```tsx
+<div className="pb-[env(safe-area-inset-bottom)]">
+  {/* whole app */}
+</div>
+```
+
+That makes the **page taller**, so iOS scrolls it.
+
+---
+
+## Step 4 — Make sure pages do NOT add their own height
+
+On pages:
+
+* ❌ Avoid `min-h-screen`
+* ❌ Avoid `h-screen` inside scroll containers
+* ✅ Use `w-full` and normal flow
+
+If a page uses `h-screen`, it will **fight the scroll container**.
+
+---
+
+# Why this suddenly showed up now
+
+Because:
+
+* You’re testing on **real iOS** (good)
+* You added or adjusted safe-area padding (also good)
+* iOS is the only platform that exposes this bug
+
+This is **normal late-stage polish**, not a regression.
+
+---
+
+# How to verify the fix worked (30 seconds)
+
+After applying the fix:
+
+1. Run iOS app
+2. Scroll aggressively up and down
+3. Try rubber-banding
+4. ✅ Content scrolls
+5. ✅ Safety bar stays LOCKED
+
+If the safety bar doesn’t move — you’re done.
+
+---
+
+# If you want surgical help (next step)
+
+Paste **just this**:
+
+* Your top-level layout component (App / Layout)
+* Your safety bar component
+
+I will tell you **exactly which line to move or delete**.
+
+---
+
+## Bottom line
+
+This is **not** a bug in your app logic.
+This is **iOS webview physics** — and you just found it at the right time.
+
+You’re doing pro-level QA now.

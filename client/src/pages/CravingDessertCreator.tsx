@@ -218,7 +218,7 @@ export default function DessertCreator() {
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ top: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
+          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             <button
               onClick={() => setLocation("/craving-creator-landing")}
               className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
