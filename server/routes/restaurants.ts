@@ -3,7 +3,7 @@
 import { Router } from "express";
 import axios from "axios";
 import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
-import { zipToCoordinates } from "../services/zipToCoordsService";
+import { zipToCoordinates, coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -39,12 +39,11 @@ function detectCuisine(name: string, types: string[] = []): string {
   return 'American';
 }
 
-// Smart Restaurant Guide endpoint with craving + restaurant + location
+// Smart Restaurant Guide endpoint with craving + restaurant + ZIP code
 // Uses Google Places API to find real restaurant data
-// Accepts either lat/lng coordinates OR zipCode for location
 router.post("/guide", async (req, res) => {
   try {
-    const { restaurantName, craving, cuisine, zipCode, lat, lng, userId } = req.body;
+    const { restaurantName, craving, cuisine, zipCode, userId } = req.body;
     
     if (!restaurantName || !craving) {
       return res.status(400).json({ 
@@ -52,34 +51,22 @@ router.post("/guide", async (req, res) => {
       });
     }
 
-    // Accept either lat/lng OR zipCode
-    const hasCoords = typeof lat === 'number' && typeof lng === 'number';
-    const hasZip = zipCode && /^\d{5}$/.test(zipCode);
-    
-    if (!hasCoords && !hasZip) {
+    if (!zipCode || !/^\d{5}$/.test(zipCode)) {
       return res.status(400).json({ 
-        error: "Either coordinates (lat/lng) or a valid 5-digit ZIP code is required" 
+        error: "Valid 5-digit ZIP code is required" 
       });
     }
 
-    const locationDesc = hasCoords ? `(${lat.toFixed(4)}, ${lng.toFixed(4)})` : `ZIP ${zipCode}`;
-    console.log(`🍽️ Smart Restaurant Guide: "${craving}" at "${restaurantName}" near ${locationDesc}`);
+    console.log(`🍽️ Smart Restaurant Guide: "${craving}" at "${restaurantName}" near ZIP ${zipCode}`);
     
     const generationStart = Date.now();
     
-    // Step 1: Get coordinates (use provided or convert from ZIP)
-    let coords: { lat: number; lng: number } | null = null;
-    
-    if (hasCoords) {
-      coords = { lat, lng };
-      console.log(`📍 Using device coordinates: (${lat}, ${lng})`);
-    } else {
-      coords = await zipToCoordinates(zipCode);
-      if (!coords) {
-        return res.status(400).json({ 
-          error: "Could not locate that ZIP code" 
-        });
-      }
+    // Step 1: Convert ZIP to coordinates
+    const coords = await zipToCoordinates(zipCode);
+    if (!coords) {
+      return res.status(400).json({ 
+        error: "Could not locate that ZIP code" 
+      });
     }
     
     // Step 2: Search for the specific restaurant near that location using Google Places
@@ -127,10 +114,10 @@ router.post("/guide", async (req, res) => {
       
       console.log(`✅ Found restaurant: ${restaurantInfo.name} at ${restaurantInfo.address}`);
     } else {
-      console.warn(`⚠️ Restaurant "${restaurantName}" not found near ${locationDesc}, using input name`);
+      console.warn(`⚠️ Restaurant "${restaurantName}" not found near ZIP ${zipCode}, using input name`);
       restaurantInfo = {
         name: restaurantName,
-        address: hasCoords ? 'Near your location' : `Near ${zipCode}`,
+        address: `Near ${zipCode}`,
         rating: undefined,
         photoUrl: undefined
       };
@@ -214,6 +201,38 @@ router.post("/analyze-menu", async (req, res) => {
     console.error("Restaurant meal generation error:", error);
     return res.status(500).json({ 
       error: "Failed to generate restaurant meals",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// Reverse geocoding endpoint - converts GPS coordinates to ZIP code
+router.post("/reverse-geocode", async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      return res.status(400).json({ 
+        error: "Latitude and longitude are required as numbers" 
+      });
+    }
+
+    console.log(`📍 Reverse geocoding: (${lat}, ${lng})`);
+    
+    const zipCode = await coordsToZip(lat, lng);
+    
+    if (!zipCode) {
+      return res.status(404).json({ 
+        error: "Could not determine ZIP code for this location" 
+      });
+    }
+
+    return res.json({ zipCode });
+
+  } catch (error) {
+    console.error("Reverse geocoding error:", error);
+    return res.status(500).json({ 
+      error: "Failed to get ZIP code",
       details: error instanceof Error ? error.message : "Unknown error"
     });
   }

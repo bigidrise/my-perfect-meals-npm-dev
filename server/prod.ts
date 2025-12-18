@@ -146,17 +146,8 @@ async function initialize() {
     const clientDist = path.resolve(__dirname, "../client/dist");
     console.log("📁 Serving static files from:", clientDist);
     
-    // CRITICAL: version.json must NEVER be cached (required for iOS WKWebView update detection)
-    app.get("/version.json", (_req, res) => {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      res.sendFile(path.join(clientDist, "version.json"));
-    });
-    
     app.use(express.static(clientDist, {
       setHeaders: (res, filePath) => {
-        // Hashed assets can be cached forever (Vite adds hashes to filenames)
         if (/\.(js|css|png|jpg|jpeg|gif|svg|woff2?)$/i.test(filePath)) {
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         } else {

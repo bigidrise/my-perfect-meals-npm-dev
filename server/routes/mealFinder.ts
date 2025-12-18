@@ -1,6 +1,6 @@
 // Meal Finder API Routes
 // Endpoint: POST /api/meal-finder
-// Finds nearby restaurants based on meal craving + location (coords or ZIP)
+// Finds nearby restaurants based on meal craving + ZIP code
 
 import express from 'express';
 import { findMealsNearby } from '../services/mealFinderService';
@@ -9,13 +9,12 @@ const router = express.Router();
 
 /**
  * POST /api/meal-finder
- * Body: { mealQuery: string, zipCode?: string, lat?: number, lng?: number }
+ * Body: { mealQuery: string, zipCode: string }
  * Returns: Array of restaurant + meal recommendations
- * Accepts either lat/lng coordinates OR zipCode for location
  */
 router.post('/meal-finder', async (req, res) => {
   try {
-    const { mealQuery, zipCode, lat, lng } = req.body;
+    const { mealQuery, zipCode } = req.body;
     
     // Validate request
     if (!mealQuery || typeof mealQuery !== 'string') {
@@ -24,18 +23,20 @@ router.post('/meal-finder', async (req, res) => {
       });
     }
     
-    // Accept either lat/lng OR zipCode
-    const hasCoords = typeof lat === 'number' && typeof lng === 'number';
-    const hasZip = zipCode && typeof zipCode === 'string' && /^\d{5}$/.test(zipCode);
-    
-    if (!hasCoords && !hasZip) {
+    if (!zipCode || typeof zipCode !== 'string') {
       return res.status(400).json({ 
-        error: 'Either coordinates (lat/lng) or a valid 5-digit ZIP code is required' 
+        error: 'zipCode is required and must be a string' 
       });
     }
     
-    const locationDesc = hasCoords ? `(${lat.toFixed(4)}, ${lng.toFixed(4)})` : `ZIP ${zipCode}`;
-    console.log(`📍 Meal Finder request: "${mealQuery}" near ${locationDesc}`);
+    // Validate ZIP code format (5 digits)
+    if (!/^\d{5}$/.test(zipCode)) {
+      return res.status(400).json({ 
+        error: 'zipCode must be a valid 5-digit US ZIP code' 
+      });
+    }
+    
+    console.log(`📍 Meal Finder request: "${mealQuery}" near ZIP ${zipCode}`);
     
     // Get user from session (if available)
     const user = (req as any).user;
@@ -43,23 +44,21 @@ router.post('/meal-finder', async (req, res) => {
     // Find meals
     const results = await findMealsNearby({
       mealQuery,
-      zipCode: hasZip ? zipCode : undefined,
-      lat: hasCoords ? lat : undefined,
-      lng: hasCoords ? lng : undefined,
+      zipCode,
       user
     });
     
     if (results.length === 0) {
       return res.status(404).json({
         error: 'No restaurants found',
-        message: `Could not find restaurants serving "${mealQuery}" near ${hasCoords ? 'your location' : 'ZIP ' + zipCode}. Try a different search.`
+        message: `Could not find restaurants serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`
       });
     }
     
     return res.json({
       success: true,
       query: mealQuery,
-      location: hasCoords ? { lat, lng } : { zipCode },
+      zipCode,
       results
     });
     

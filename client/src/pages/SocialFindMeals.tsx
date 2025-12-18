@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Navigation } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -18,12 +18,21 @@ import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import { useGeolocation } from "@/hooks/useGeolocation";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
-  { title: "Enter Your Craving", description: "Tell us what you're in the mood for." },
-  { title: "Your Location", description: "We'll auto-detect your location, or you can enter a ZIP code manually." },
-  { title: "Get Recommendations", description: "See nearby restaurants with healthy meal options tailored to your goals." },
+  {
+    title: "Enter Your Craving",
+    description: "Tell us what you're in the mood for.",
+  },
+  {
+    title: "Add Your ZIP Code",
+    description: "Enter your location so we can find nearby restaurants.",
+  },
+  {
+    title: "Get Recommendations",
+    description:
+      "See nearby restaurants with two healthy meal options from each, along with ordering tips.",
+  },
 ];
 
 const CACHE_KEY = "mealFinder.cache.v1";
@@ -89,7 +98,6 @@ export default function MealFinder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const quickTour = useQuickTour("social-find-meals");
-  const geo = useGeolocation(true);
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -100,7 +108,7 @@ export default function MealFinder() {
 
   const [mealQuery, setMealQuery] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [useManualZip, setUseManualZip] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [results, setResults] = useState<MealResult[]>([]);
   const [progress, setProgress] = useState(0);
   const hasRestoredRef = useRef(false);
@@ -123,7 +131,7 @@ export default function MealFinder() {
   }, []);
 
   const findMealsMutation = useMutation({
-    mutationFn: async (data: { mealQuery: string; zipCode?: string; lat?: number; lng?: number }) => {
+    mutationFn: async (data: { mealQuery: string; zipCode: string }) => {
       setProgress(60);
       const progressInterval = setInterval(() => {
         setProgress((prev) => Math.min(prev + Math.random() * 10, 90));
@@ -187,7 +195,7 @@ export default function MealFinder() {
     },
   });
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!mealQuery.trim()) {
       toast({
         title: "Missing Meal",
@@ -197,31 +205,10 @@ export default function MealFinder() {
       return;
     }
 
-    const hasValidZip = zipCode.trim() && /^\d{5}$/.test(zipCode);
-    
-    // Use ZIP code if manual mode
-    if (useManualZip) {
-      if (!hasValidZip) {
-        toast({
-          title: "Invalid ZIP Code",
-          description: "Please enter a valid 5-digit ZIP code",
-          variant: "destructive",
-        });
-        return;
-      }
-      setResults([]);
-      clearMealFinderCache();
-      findMealsMutation.mutate({ mealQuery, zipCode });
-      return;
-    }
-    
-    // Refresh location before search if using geolocation
-    const freshCoords = await geo.requestLocation();
-    
-    if (!freshCoords && !hasValidZip) {
+    if (!zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
       toast({
-        title: "Location Required",
-        description: "Please allow location access or enter a ZIP code",
+        title: "Invalid ZIP Code",
+        description: "Please enter a valid 5-digit ZIP code",
         variant: "destructive",
       });
       return;
@@ -229,12 +216,61 @@ export default function MealFinder() {
 
     setResults([]);
     clearMealFinderCache();
-    
-    if (freshCoords) {
-      findMealsMutation.mutate({ mealQuery, lat: freshCoords.latitude, lng: freshCoords.longitude });
-    } else {
-      findMealsMutation.mutate({ mealQuery, zipCode });
+    findMealsMutation.mutate({ mealQuery, zipCode });
+  };
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location Not Supported",
+        description: "Your browser doesn't support location services.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const response = await apiRequest(
+            "/api/restaurants/reverse-geocode",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }),
+            },
+          );
+          if (response.zipCode) {
+            setZipCode(response.zipCode);
+            toast({
+              title: "Location Found",
+              description: `ZIP Code: ${response.zipCode}`,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Location Error",
+            description: "Could not get ZIP code for your location.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        toast({
+          title: "Location Access Denied",
+          description: "Please enable location access or enter ZIP manually.",
+          variant: "destructive",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   };
 
   const handleGoBack = () => {
@@ -244,12 +280,18 @@ export default function MealFinder() {
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
+        {/* iOS Safe Area Background Cover - prevents content showing through notch */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black"
+          style={{ height: "env(safe-area-inset-top, 0px)" }}
+        />
+
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ top: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
+          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() => setLocation("/social-hub")}
@@ -260,10 +302,15 @@ export default function MealFinder() {
             </button>
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">Meal Finder</h1>
+            <h1 className="text-lg font-bold text-white truncate min-w-0">
+              Meal Finder
+            </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -279,7 +326,8 @@ export default function MealFinder() {
                 Search by Location
               </CardTitle>
               <CardDescription className="text-md text-white/80">
-                Enter what you're craving and we'll find nearby restaurants based on your location
+                Enter what you're craving and your Zip code to find nearby
+                restaurant recommendations
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
@@ -300,56 +348,52 @@ export default function MealFinder() {
 
                 <div>
                   <label className="block text-md text-white/80 mb-2">
-                    Your Location
+                    Zip Code
                   </label>
-                  
-                  {geo.loading ? (
-                    <div className="flex items-center gap-2 p-3 bg-black/40 rounded-lg border border-white/20">
-                      <div className="animate-spin h-4 w-4 border-2 border-white/50 border-t-white rounded-full" />
-                      <span className="text-white/70">Detecting your location...</span>
-                    </div>
-                  ) : geo.latitude && geo.longitude && !useManualZip ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-3 bg-lime-900/40 rounded-lg border border-lime-500/30">
-                        <Navigation className="h-5 w-5 text-lime-400" />
-                        <span className="text-white">Using your current location</span>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., 30303, 90210, 10001"
+                      value={zipCode}
+                      onChange={(e) =>
+                        setZipCode(
+                          e.target.value.replace(/\D/g, "").slice(0, 5),
+                        )
+                      }
+                      className="flex-1 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                      maxLength={5}
+                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      data-testid="input-zip-code"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleUseLocation}
+                      disabled={isGettingLocation}
+                      className={`px-3 flex-shrink-0 text-white ${
+                        isGettingLocation
+                          ? "bg-blue-700 cursor-wait"
+                          : "bg-blue-600 hover:bg-blue-500"
+                      }`}
+                      aria-label={
+                        isGettingLocation
+                          ? "Finding your location"
+                          : "Use my location"
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        {isGettingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Finding location…</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4" />
+                            <span className="text-sm">Use my location</span>
+                          </>
+                        )}
                       </div>
-                      <button
-                        onClick={() => setUseManualZip(true)}
-                        className="text-sm text-white/60 hover:text-white/80 underline"
-                      >
-                        Enter ZIP code instead
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {geo.permissionDenied && !useManualZip && (
-                        <div className="flex items-center gap-2 p-2 bg-orange-900/30 rounded-lg border border-orange-500/30 mb-2">
-                          <MapPin className="h-4 w-4 text-orange-400" />
-                          <span className="text-white/70 text-sm">Location access denied. Enter ZIP code below.</span>
-                        </div>
-                      )}
-                      <Input
-                        placeholder="e.g., 30303, 90210, 10001"
-                        value={zipCode}
-                        onChange={(e) =>
-                          setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
-                        }
-                        className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                        maxLength={5}
-                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                        data-testid="input-zip-code"
-                      />
-                      {geo.latitude && geo.longitude && useManualZip && (
-                        <button
-                          onClick={() => { setUseManualZip(false); setZipCode(""); }}
-                          className="text-sm text-white/60 hover:text-white/80 underline"
-                        >
-                          Use my location instead
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    </Button>
+                  </div>
                 </div>
 
                 <Button
@@ -378,9 +422,7 @@ export default function MealFinder() {
                     value={progress}
                     className="h-3 bg-black/30 border border-white/20"
                   />
-                  <p className="text-white/70 text-sm text-center mt-3">
-                    
-                  </p>
+                  <p className="text-white/70 text-sm text-center mt-3"></p>
                 </div>
               )}
             </CardContent>

@@ -9,9 +9,7 @@ import type { User } from '@shared/schema';
 
 interface MealFinderRequest {
   mealQuery: string;
-  zipCode?: string;
-  lat?: number;
-  lng?: number;
+  zipCode: string;
   user?: User;
 }
 
@@ -80,36 +78,18 @@ function getPhotoUrl(photoReference?: string): string | undefined {
 }
 
 /**
- * Find meals near a location based on craving
- * Accepts either lat/lng coordinates OR zipCode for location
+ * Find meals near a ZIP code based on craving
  */
 export async function findMealsNearby(request: MealFinderRequest): Promise<RestaurantResult[]> {
-  const { mealQuery, zipCode, lat, lng, user } = request;
+  const { mealQuery, zipCode, user } = request;
   
-  // Validate we have either coords or ZIP
-  const hasCoords = typeof lat === 'number' && typeof lng === 'number';
-  const hasZip = zipCode && /^\d{5}$/.test(zipCode);
+  console.log(`🔍 Finding meals for "${mealQuery}" near ZIP ${zipCode}`);
   
-  if (!hasCoords && !hasZip) {
-    console.error('❌ Either coordinates (lat/lng) or a valid ZIP code is required');
+  // Step 1: Convert ZIP to coordinates
+  const coords = await zipToCoordinates(zipCode);
+  if (!coords) {
+    console.error('❌ Could not geocode ZIP code');
     return [];
-  }
-  
-  const locationDesc = hasCoords ? `(${lat!.toFixed(4)}, ${lng!.toFixed(4)})` : `ZIP ${zipCode}`;
-  console.log(`🔍 Finding meals for "${mealQuery}" near ${locationDesc}`);
-  
-  // Step 1: Get coordinates (use provided or convert from ZIP)
-  let coords: { lat: number; lng: number } | null = null;
-  
-  if (hasCoords) {
-    coords = { lat: lat!, lng: lng! };
-    console.log(`📍 Using device coordinates: (${lat}, ${lng})`);
-  } else {
-    coords = await zipToCoordinates(zipCode!);
-    if (!coords) {
-      console.error('❌ Could not geocode ZIP code');
-      return [];
-    }
   }
   
   // Step 2: Search for restaurants using Google Places Text Search
@@ -138,7 +118,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
     });
     
     if (response.data.status !== 'OK' || !response.data.results || response.data.results.length === 0) {
-      console.warn(`⚠️ No restaurants found for "${searchQuery}" near ${locationDesc}`);
+      console.warn(`⚠️ No restaurants found for "${searchQuery}" near ZIP ${zipCode}`);
       return [];
     }
     

@@ -1,7 +1,11 @@
 // App update mechanism - handles service worker updates and reloads
+import { forceReloadWithCacheClear, clearWebViewCache } from './webviewCache';
 
 export async function updateApp() {
   console.log('🔄 Starting app update...');
+  
+  // Clear WKWebView cache first on iOS (critical for updates)
+  await clearWebViewCache();
   
   // Check if service worker is available
   if ('serviceWorker' in navigator) {
@@ -20,17 +24,16 @@ export async function updateApp() {
           
           // Wait for the new service worker to take control
           return new Promise<void>((resolve) => {
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-              console.log('✅ New service worker activated, reloading...');
-              // Reload to get the new version
-              window.location.reload();
+            navigator.serviceWorker.addEventListener('controllerchange', async () => {
+              console.log('✅ New service worker activated, reloading with cache clear...');
+              await forceReloadWithCacheClear();
               resolve();
             });
             
             // Fallback: if controllerchange doesn't fire within 3 seconds, reload anyway
-            setTimeout(() => {
-              console.log('⏱️ Timeout waiting for controller change, reloading anyway');
-              window.location.reload();
+            setTimeout(async () => {
+              console.log('⏱️ Timeout waiting for controller change, reloading with cache clear');
+              await forceReloadWithCacheClear();
               resolve();
             }, 3000);
           });
@@ -39,25 +42,25 @@ export async function updateApp() {
           console.log('🔍 No waiting worker, checking for updates');
           await registration.update();
           
-          // After update check, reload
-          setTimeout(() => {
-            window.location.reload();
+          // After update check, reload with cache clear
+          setTimeout(async () => {
+            await forceReloadWithCacheClear();
           }, 1000);
         }
       } else {
-        // No service worker registered, just reload
-        console.log('❌ No service worker registered, performing simple reload');
-        reloadPreservingRoute();
+        // No service worker registered, force reload with cache clear
+        console.log('❌ No service worker registered, performing cache-cleared reload');
+        await forceReloadWithCacheClear();
       }
     } catch (error) {
       console.error('Service worker update error:', error);
-      // Fallback to simple reload
-      reloadPreservingRoute();
+      // Fallback to cache-cleared reload
+      await forceReloadWithCacheClear();
     }
   } else {
-    // Service worker not supported, just reload
-    console.log('❌ Service worker not supported, performing simple reload');
-    reloadPreservingRoute();
+    // Service worker not supported, force reload with cache clear
+    console.log('❌ Service worker not supported, performing cache-cleared reload');
+    await forceReloadWithCacheClear();
   }
 }
 

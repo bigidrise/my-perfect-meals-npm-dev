@@ -1,7 +1,7 @@
 // 🔒🔒🔒 RESTAURANT GUIDE - GOOGLE PLACES UPGRADE (DECEMBER 11, 2025) 🔒🔒🔒
 // STATUS: Upgraded with Google Places API integration
 // UPGRADE: Added ZIP code input + real restaurant data (name, address, rating) from Google Places
-// 
+//
 // ⚠️ ZERO-TOLERANCE LOCKDOWN POLICY ⚠️
 // DO NOT MODIFY ANY CODE IN THIS FILE WITHOUT EXPLICIT USER APPROVAL
 //
@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft, MapPin, Navigation } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft, MapPin, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -42,12 +42,21 @@ import PhaseGate from "@/components/PhaseGate";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import { useGeolocation } from "@/hooks/useGeolocation";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
-  { title: "Describe What You Want", description: "Tell us what you're craving and the type of food you'd like." },
-  { title: "Your Location", description: "We'll auto-detect your location, or you can enter a ZIP code manually." },
-  { title: "Get Meal Options", description: "See meal options that match your goals at nearby restaurants." },
+  {
+    title: "Describe What You Want",
+    description: "Tell us what you're craving and the type of food you'd like.",
+  },
+  {
+    title: "Enter Restaurant & ZIP",
+    description: "Enter the restaurant name and a nearby zip code.",
+  },
+  {
+    title: "Get Meal Options",
+    description:
+      "See meal options that match your goals and work where you're eating.",
+  },
 ];
 
 // ---- Persist the generated restaurant meal so it never "disappears" ----
@@ -200,13 +209,16 @@ export default function RestaurantGuidePage() {
   const [cravingInput, setCravingInput] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [useManualZip, setUseManualZip] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [matchedCuisine, setMatchedCuisine] = useState<string | null>(null);
   const [generatedMeals, setGeneratedMeals] = useState<any[]>([]);
-  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; address: string; rating?: number; photoUrl?: string } | null>(null);
+  const [restaurantInfo, setRestaurantInfo] = useState<{
+    name: string;
+    address: string;
+    rating?: number;
+    photoUrl?: string;
+  } | null>(null);
   const { toast } = useToast();
-  
-  const geo = useGeolocation(true);
 
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
   const [progress, setProgress] = useState(0);
@@ -243,14 +255,23 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     if (generatedMeals.length > 0) {
       saveRestaurantCache({
-        restaurantData: { meals: generatedMeals, restaurantInfo: restaurantInfo || undefined },
+        restaurantData: {
+          meals: generatedMeals,
+          restaurantInfo: restaurantInfo || undefined,
+        },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
         generatedAtISO: new Date().toISOString(),
       });
     }
-  }, [generatedMeals, restaurantInput, cravingInput, matchedCuisine, restaurantInfo]);
+  }, [
+    generatedMeals,
+    restaurantInput,
+    cravingInput,
+    matchedCuisine,
+    restaurantInfo,
+  ]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -280,9 +301,7 @@ export default function RestaurantGuidePage() {
       restaurantName: string;
       craving: string;
       cuisine: string;
-      zipCode?: string;
-      lat?: number;
-      lng?: number;
+      zipCode: string;
     }) => {
       return apiRequest("/api/restaurants/guide", {
         method: "POST",
@@ -292,8 +311,6 @@ export default function RestaurantGuidePage() {
           craving: params.craving,
           cuisine: params.cuisine,
           zipCode: params.zipCode,
-          lat: params.lat,
-          lng: params.lng,
           userId: localStorage.getItem("userId") || "1",
         }),
       });
@@ -304,7 +321,7 @@ export default function RestaurantGuidePage() {
     onSuccess: (data) => {
       stopProgressTicker();
       setGeneratedMeals(data.recommendations || []);
-      
+
       // Store restaurant info from Google Places
       if (data.restaurantInfo) {
         setRestaurantInfo(data.restaurantInfo);
@@ -312,7 +329,10 @@ export default function RestaurantGuidePage() {
 
       // Immediately cache the new restaurant meals so they survive navigation/refresh
       saveRestaurantCache({
-        restaurantData: { meals: data.recommendations || [], restaurantInfo: data.restaurantInfo },
+        restaurantData: {
+          meals: data.recommendations || [],
+          restaurantInfo: data.restaurantInfo,
+        },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
@@ -345,7 +365,7 @@ export default function RestaurantGuidePage() {
     },
   });
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!cravingInput.trim() || !restaurantInput.trim()) {
       toast({
         title: "Missing Information",
@@ -355,8 +375,15 @@ export default function RestaurantGuidePage() {
       return;
     }
 
-    const hasValidZip = zipCode.trim() && /^\d{5}$/.test(zipCode);
-    
+    if (!zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
+      toast({
+        title: "Invalid ZIP Code",
+        description: "Please enter a valid 5-digit ZIP code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const lowerInput = restaurantInput.toLowerCase();
 
     const keywordMatch = Object.keys(cuisineKeywords).find((keyword) =>
@@ -371,54 +398,68 @@ export default function RestaurantGuidePage() {
 
     setMatchedCuisine(match || null);
     setRestaurantInfo(null);
-    
-    // Use ZIP code if manual mode
-    if (useManualZip) {
-      if (!hasValidZip) {
-        toast({
-          title: "Invalid ZIP Code",
-          description: "Please enter a valid 5-digit ZIP code.",
-          variant: "destructive",
-        });
-        return;
-      }
-      generateMealsMutation.mutate({
-        restaurantName: restaurantInput,
-        craving: cravingInput,
-        cuisine: match || "American",
-        zipCode: zipCode,
-      });
-      return;
-    }
-    
-    // Refresh location before search if using geolocation
-    const freshCoords = await geo.requestLocation();
-    
-    if (!freshCoords && !hasValidZip) {
+
+    // Generate meals with craving, restaurant, and ZIP code
+    generateMealsMutation.mutate({
+      restaurantName: restaurantInput,
+      craving: cravingInput,
+      cuisine: match || "American",
+      zipCode: zipCode,
+    });
+  };
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
       toast({
-        title: "Location Required",
-        description: "Please allow location access or enter a ZIP code.",
+        title: "Location Not Supported",
+        description: "Your browser doesn't support location services.",
         variant: "destructive",
       });
       return;
     }
 
-    if (freshCoords) {
-      generateMealsMutation.mutate({
-        restaurantName: restaurantInput,
-        craving: cravingInput,
-        cuisine: match || "American",
-        lat: freshCoords.latitude,
-        lng: freshCoords.longitude,
-      });
-    } else {
-      generateMealsMutation.mutate({
-        restaurantName: restaurantInput,
-        craving: cravingInput,
-        cuisine: match || "American",
-        zipCode: zipCode,
-      });
-    }
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const response = await apiRequest(
+            "/api/restaurants/reverse-geocode",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }),
+            },
+          );
+          if (response.zipCode) {
+            setZipCode(response.zipCode);
+            toast({
+              title: "Location Found",
+              description: `ZIP Code: ${response.zipCode}`,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Location Error",
+            description: "Could not get ZIP code for your location.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        toast({
+          title: "Location Access Denied",
+          description: "Please enable location access or enter ZIP manually.",
+          variant: "destructive",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   };
 
   return (
@@ -433,12 +474,18 @@ export default function RestaurantGuidePage() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
+        {/* iOS Safe Area Background Cover - prevents content showing through notch */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black"
+          style={{ height: "env(safe-area-inset-top, 0px)" }}
+        />
+
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ top: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
+          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() => setLocation("/social-hub")}
@@ -449,10 +496,15 @@ export default function RestaurantGuidePage() {
             </button>
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">Restaurant Guide</h1>
+            <h1 className="text-lg font-bold text-white truncate min-w-0">
+              Restaurant Guide
+            </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -527,67 +579,68 @@ export default function RestaurantGuidePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-lg font-semibold text-white mb-2">
-                    Your Location
+                  <label
+                    htmlFor="zip-input"
+                    className="block text-lg font-semibold text-white mb-2"
+                  >
+                    Your ZIP Code
                   </label>
-                  
-                  {geo.loading ? (
-                    <div className="flex items-center gap-2 p-3 bg-black/40 rounded-lg border border-white/20">
-                      <div className="animate-spin h-4 w-4 border-2 border-white/50 border-t-white rounded-full" />
-                      <span className="text-white/70">Detecting your location...</span>
-                    </div>
-                  ) : geo.latitude && geo.longitude && !useManualZip ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-3 bg-lime-900/40 rounded-lg border border-lime-500/30">
-                        <Navigation className="h-5 w-5 text-lime-400" />
-                        <span className="text-white">Using your current location</span>
-                      </div>
-                      <button
-                        onClick={() => setUseManualZip(true)}
-                        className="text-sm text-white/60 hover:text-white/80 underline"
-                      >
-                        Enter ZIP code instead
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {geo.permissionDenied && !useManualZip && (
-                        <div className="flex items-center gap-2 p-2 bg-orange-900/30 rounded-lg border border-orange-500/30 mb-2">
-                          <MapPin className="h-4 w-4 text-orange-400" />
-                          <span className="text-white/70 text-sm">Location access denied. Enter ZIP code below.</span>
-                        </div>
-                      )}
-                      <div className="relative">
-                        <Input
-                          data-testid="restaurantguide-zip"
-                          id="zip-input"
-                          placeholder="e.g. 30303, 90210, 10001"
-                          value={zipCode}
-                          onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                          className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                          maxLength={5}
-                          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                        />
-                        {zipCode && (
-                          <button
-                            onClick={() => setZipCode("")}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
-                            type="button"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                      {geo.latitude && geo.longitude && useManualZip && (
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        data-testid="restaurantguide-zip"
+                        id="zip-input"
+                        placeholder="e.g. 30303, 90210, 10001"
+                        value={zipCode}
+                        onChange={(e) =>
+                          setZipCode(
+                            e.target.value.replace(/\D/g, "").slice(0, 5),
+                          )
+                        }
+                        className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                        maxLength={5}
+                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      />
+                      {zipCode && (
                         <button
-                          onClick={() => { setUseManualZip(false); setZipCode(""); }}
-                          className="text-sm text-white/60 hover:text-white/80 underline"
+                          onClick={() => setZipCode("")}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
+                          type="button"
                         >
-                          Use my location instead
+                          ✕
                         </button>
                       )}
                     </div>
-                  )}
+                    <Button
+                      type="button"
+                      onClick={handleUseLocation}
+                      disabled={isGettingLocation}
+                      className={`px-3 flex-shrink-0 text-white ${
+                        isGettingLocation
+                          ? "bg-blue-700 cursor-wait"
+                          : "bg-blue-600 hover:bg-blue-500"
+                      }`}
+                      aria-label={
+                        isGettingLocation
+                          ? "Finding your location"
+                          : "Use my location"
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        {isGettingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Finding location…</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4" />
+                            <span className="text-sm">Use my location</span>
+                          </>
+                        )}
+                      </div>
+                    </Button>
+                  </div>
                 </div>
                 <Button
                   data-wt="rg-search-button"
@@ -625,20 +678,23 @@ export default function RestaurantGuidePage() {
                   <div className="mb-4">
                     <h2 className="text-xl font-bold text-white">
                       🍽️ Recommended Meals at{" "}
-                      {restaurantInfo?.name || restaurantInput
-                        .split(" ")
-                        .map(
-                          (word) =>
-                            word.charAt(0).toUpperCase() +
-                            word.slice(1).toLowerCase(),
-                        )
-                        .join(" ")}
+                      {restaurantInfo?.name ||
+                        restaurantInput
+                          .split(" ")
+                          .map(
+                            (word) =>
+                              word.charAt(0).toUpperCase() +
+                              word.slice(1).toLowerCase(),
+                          )
+                          .join(" ")}
                     </h2>
                     {restaurantInfo?.address && (
                       <p className="text-white/70 text-sm mt-1">
                         📍 {restaurantInfo.address}
                         {restaurantInfo.rating && (
-                          <span className="ml-2">⭐ {restaurantInfo.rating}</span>
+                          <span className="ml-2">
+                            ⭐ {restaurantInfo.rating}
+                          </span>
                         )}
                       </p>
                     )}
@@ -820,7 +876,10 @@ export default function RestaurantGuidePage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-white/60 text-xs mt-2">Tap a cuisine to fill in the restaurant field, then enter your craving and ZIP to search.</p>
+                <p className="text-white/60 text-xs mt-2">
+                  Tap a cuisine to fill in the restaurant field, then enter your
+                  craving and ZIP to search.
+                </p>
               </div>
             </CardContent>
           </Card>

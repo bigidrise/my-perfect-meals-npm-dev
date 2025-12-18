@@ -88,3 +88,54 @@ export function clearCache() {
   cache.clear();
   console.log('🗑️ ZIP coordinate cache cleared');
 }
+
+/**
+ * Reverse geocode coordinates to ZIP code using Google Geocoding API
+ * Returns the ZIP code for the given latitude/longitude
+ */
+export async function coordsToZip(lat: number, lng: number): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) {
+    console.error('❌ GOOGLE_PLACES_API_KEY not configured');
+    return null;
+  }
+
+  try {
+    console.log(`🔍 Reverse geocoding coordinates: (${lat}, ${lng})`);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+    
+    const response = await axios.get(url);
+    
+    if (response.data.status !== 'OK' || !response.data.results || response.data.results.length === 0) {
+      console.error(`❌ Reverse geocoding failed:`, response.data.status);
+      return null;
+    }
+
+    // Search through address components for postal_code
+    for (const result of response.data.results) {
+      for (const component of result.address_components || []) {
+        if (component.types.includes('postal_code')) {
+          // Normalize to exactly 5 digits (handle ZIP+4 format like "02115-1234")
+          const rawZip = component.short_name;
+          const normalizedZip = rawZip.replace(/\D/g, '').slice(0, 5);
+          
+          // Validate it's exactly 5 digits
+          if (!/^\d{5}$/.test(normalizedZip)) {
+            console.error(`❌ Invalid ZIP format after normalization: ${rawZip} -> ${normalizedZip}`);
+            continue; // Try next result
+          }
+          
+          console.log(`✅ Found ZIP code: ${normalizedZip} for (${lat}, ${lng})`);
+          return normalizedZip;
+        }
+      }
+    }
+
+    console.error('❌ No postal code found in geocoding response');
+    return null;
+
+  } catch (error) {
+    console.error('❌ Reverse geocoding API error:', error);
+    return null;
+  }
+}
