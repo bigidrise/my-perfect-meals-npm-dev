@@ -1,0 +1,178 @@
+Short answer: **No — that Xcode log does *not* explain why iOS isn’t updating from production.**
+Long answer below, clean and decisive.
+
+---
+
+## What that log actually means (and what it does NOT)
+
+### 🚫 What it does NOT mean
+
+None of the following log lines explain:
+
+* why new production web code isn’t appearing in iOS
+* why Git → production worked but iOS didn’t update
+* why UI changes are missing in the WebView
+
+So this log is **not the root cause** of your problem.
+
+---
+
+## What those log messages *are*
+
+### 1️⃣ `UIScene lifecycle will soon be required`
+
+* ⚠️ **Warning**, not an error
+* Apple telling you future iOS versions will require SceneDelegate
+* **Zero impact** on loading web content
+
+Ignore for now.
+
+---
+
+### 2️⃣ `Could not create a sandbox extension`
+
+* Very common in Simulator / TestFlight
+* iOS sandbox housekeeping
+* **Not related** to WebView updates or caching
+
+---
+
+### 3️⃣ WebContent / GPU / Networking process timing
+
+* Normal startup diagnostics
+* Tells you the WebView *did* launch successfully
+* If WebView were broken, the app wouldn’t load at all
+
+This actually confirms:
+👉 **The WebView is working fine.**
+
+---
+
+### 4️⃣ `Unable to simultaneously satisfy constraints`
+
+* UIKit auto-layout warnings
+* Likely related to:
+
+  * keyboard
+  * nav bar buttons
+  * toolbars
+* This explains **why some buttons look different on iOS**, not why content is stale
+
+Important distinction:
+
+* ❌ Does not affect *which* JS/CSS bundle is loaded
+* ❌ Does not prevent new code from loading
+
+---
+
+### 5️⃣ RTIInputSystem / keyboard warnings
+
+* iOS keyboard chatter
+* Happens constantly when inputs gain/lose focus
+* Completely unrelated
+
+---
+
+## The real reason iOS is not updating (still true)
+
+Despite the scary logs, the root cause remains exactly this:
+
+> **Your iOS app is loading a cached WebView bundle and has not been forced to refresh it.**
+
+Nothing in that log contradicts this. In fact, the log **confirms** the WebView is happily running — just running **old code**.
+
+---
+
+## Why production web updates but iOS does not (final clarity)
+
+| Platform                  | Behavior                               |
+| ------------------------- | -------------------------------------- |
+| Desktop browser           | Always fetches latest JS/CSS           |
+| Mobile Safari             | Aggressive cache, but refreshable      |
+| **WKWebView (Capacitor)** | **Locks JS/CSS until cache is busted** |
+
+So when you say:
+
+> “Production app is correct, iOS is not”
+
+That is the **textbook signature** of WKWebView cache persistence.
+
+---
+
+## The only fixes that actually work (no theory)
+
+### ✅ Immediate proof fix (do this now)
+
+On your iPhone:
+
+1. **Delete the app**
+2. Reinstall from **TestFlight**
+3. Open it
+
+If your changes appear → case closed.
+This proves cache was the issue.
+
+---
+
+### ✅ Proper long-term fix (you need this)
+
+You must **force a WebView reload when production changes**.
+
+You already have the beginnings of this (`version.json`). Now you must *use it*.
+
+#### Minimum viable strategy
+
+* On app launch:
+
+  * Fetch `version.json`
+  * Compare with stored version
+  * If different → force reload WebView
+
+Without this, iOS will *never* reliably update.
+
+---
+
+### ✅ Reality check (Apple rule)
+
+For real users:
+
+> **Any meaningful UI change requires a new TestFlight build.**
+
+Apple does **not** guarantee hot updates via WKWebView.
+Every serious Capacitor app ships frequent TestFlight builds.
+
+This is not a bug. It’s policy.
+
+---
+
+## Why the UI looked different on iOS (but that’s a separate issue)
+
+The layout differences you saw (blue button collapsing into input) are explained by:
+
+* production CSS bundling
+* mobile breakpoints
+* UIKit safe-area + font metrics
+
+Those are **layout issues**, not update issues.
+
+They do **not** explain missing code.
+
+---
+
+## Bottom line (very clear)
+
+* ❌ The Xcode log does NOT explain missing updates
+* ✅ Your WebView is running cached code
+* ✅ Production is correct
+* ✅ Git is correct
+* ✅ This is expected Capacitor behavior
+
+---
+
+## What I recommend you do next (pick one)
+
+1. **I’ll give you a drop-in WebView cache-busting implementation**
+2. **I’ll give you a “When do I need a new TestFlight build?” rulebook**
+3. **We harden your layout so prod + iOS never diverge again**
+
+Tell me which one you want and we move forward — no more spinning on this.
