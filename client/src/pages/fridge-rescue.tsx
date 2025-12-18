@@ -3,7 +3,7 @@
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { apiUrl } from '@/lib/resolveApiBase';
+import { apiUrl } from "@/lib/resolveApiBase";
 import {
   ArrowLeft,
   RefreshCw,
@@ -14,7 +14,7 @@ import {
   ChevronUp,
   Home,
   Loader2,
-  Refrigerator
+  Refrigerator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,9 +42,20 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
-  { title: "Enter Your Ingredients", description: "Type or say what's in your fridge — whatever you have on hand." },
-  { title: "Generate Meals", description: "Tap generate and get three personalized meals built from your ingredients." },
-  { title: "Cook Without Shopping", description: "It's an easy way to cook without extra shopping trips." },
+  {
+    title: "Enter Your Ingredients",
+    description:
+      "Type or say what's in your fridge — whatever you have on hand.",
+  },
+  {
+    title: "Generate Meals",
+    description:
+      "Tap generate and get three personalized meals built from your ingredients.",
+  },
+  {
+    title: "Cook Without Shopping",
+    description: "It's an easy way to cook without extra shopping trips.",
+  },
 ];
 
 const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -179,7 +190,9 @@ const FridgeRescuePage = () => {
 
   // 🎯 Auto-start walkthrough on first visit
   useEffect(() => {
-    const hasSeenWalkthrough = localStorage.getItem("walkthrough-seen-fridge-rescue");
+    const hasSeenWalkthrough = localStorage.getItem(
+      "walkthrough-seen-fridge-rescue",
+    );
     if (!hasSeenWalkthrough) {
       const timer = setTimeout(() => {
         startWalkthrough("fridge-rescue");
@@ -562,14 +575,20 @@ const FridgeRescuePage = () => {
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ top: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-            <Refrigerator className="h-6 w-6 text-orange-500 flex-shrink-0" />
-
+          <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
             {/* Title */}
-            <h1 data-wt="fridge-rescue-header" className="text-lg font-bold text-white truncate min-w-0">Fridge Rescue</h1>
+            <h1
+              data-wt="fridge-rescue-header"
+              className="text-lg font-bold text-white truncate min-w-0"
+            >
+              Fridge Rescue
+            </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -578,13 +597,10 @@ const FridgeRescuePage = () => {
           className="max-w-4xl mx-auto px-6"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
-
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
               <div className="text-center">
-                <h2 className="text-xl font-bold text-white mb-4">
-                 
-                </h2>
+                <h2 className="text-xl font-bold text-white mb-4"></h2>
                 <p className="text-sm text-white/80 mb-6"></p>
               </div>
 
@@ -627,8 +643,12 @@ const FridgeRescuePage = () => {
                 {isLoading && (
                   <div className="w-full mb-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">AI Analysis Progress</span>
-                      <span className="text-sm text-white/80">{Math.round(progress)}%</span>
+                      <span className="text-sm text-white/80">
+                        AI Analysis Progress
+                      </span>
+                      <span className="text-sm text-white/80">
+                        {Math.round(progress)}%
+                      </span>
                     </div>
                     <Progress
                       value={progress}
@@ -644,7 +664,6 @@ const FridgeRescuePage = () => {
                   className="w-full bg-lime-900 backdrop-blur-lg hover:bg-lime-500 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
                 >
                   <div className="flex items-center gap-2">
-                    
                     Generate 3 Meals
                   </div>
                 </button>
@@ -716,7 +735,10 @@ const FridgeRescuePage = () => {
                       {meal.medicalBadges && meal.medicalBadges.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           <HealthBadgesPopover
-                            badges={meal.medicalBadges.map((b: any) => b.badge || b.label || b.id || b.condition)}
+                            badges={meal.medicalBadges.map(
+                              (b: any) =>
+                                b.badge || b.label || b.id || b.condition,
+                            )}
                             className="mt-2"
                           />
                         </div>
@@ -737,13 +759,18 @@ const FridgeRescuePage = () => {
                           <div className="text-xs text-white/70">Protein</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-                          {typeof meal.starchyCarbs === "number" && typeof meal.fibrousCarbs === "number" ? (
+                          {typeof meal.starchyCarbs === "number" &&
+                          typeof meal.fibrousCarbs === "number" ? (
                             <div className="flex flex-col leading-tight">
                               <div className="text-sm font-bold text-orange-400">
                                 {meal.starchyCarbs + meal.fibrousCarbs}g
                               </div>
-                              <div className="text-[10px] text-white/70">Starch: {meal.starchyCarbs}g</div>
-                              <div className="text-[10px] text-white/70">Fibrous: {meal.fibrousCarbs}g</div>
+                              <div className="text-[10px] text-white/70">
+                                Starch: {meal.starchyCarbs}g
+                              </div>
+                              <div className="text-[10px] text-white/70">
+                                Fibrous: {meal.fibrousCarbs}g
+                              </div>
                             </div>
                           ) : (
                             <>
@@ -870,7 +897,7 @@ const FridgeRescuePage = () => {
                           <TrashButton
                             onClick={() => {
                               setMeals((prev) =>
-                                prev.filter((m) => m.id !== meal.id)
+                                prev.filter((m) => m.id !== meal.id),
                               );
                               toast({
                                 title: "🗑️ Meal Deleted",
