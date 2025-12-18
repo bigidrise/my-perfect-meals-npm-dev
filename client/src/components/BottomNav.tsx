@@ -47,7 +47,7 @@ export default function BottomNav() {
   const rightItems = navItems.slice(2);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-xl border-t border-white/10 shadow-2xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-screen-xl mx-auto px-4">
         <div className="relative h-16 flex items-center justify-between">
           {/* LEFT ITEMS */}
