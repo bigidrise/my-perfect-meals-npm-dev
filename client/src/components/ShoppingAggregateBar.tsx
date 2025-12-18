@@ -98,12 +98,16 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
   return (
     <div className={`fixed left-0 right-0 bottom-0 z-[60] bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl`}>
       <div className="container mx-auto px-4 py-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-          <div className="flex-1 text-white text-center">
+        <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+          <div className="absolute left-0 right-0 text-white text-center pointer-events-none hidden sm:block">
             <div className="font-semibold text-sm sm:text-base">Shopping List Ready</div>
             <div className="text-xs sm:text-sm text-white/80">{ingredients.length} ingredients</div>
           </div>
-          <div className="flex gap-2">
+          <div className="text-white text-center sm:hidden">
+            <div className="font-semibold text-sm">Shopping List Ready</div>
+            <div className="text-xs text-white/80">{ingredients.length} ingredients</div>
+          </div>
+          <div className="flex gap-2 sm:ml-auto">
             {!hideCopyButton && (
               <Button
                 onClick={onCopyList}
