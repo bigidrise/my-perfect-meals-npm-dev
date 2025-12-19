@@ -1514,6 +1514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trialEndsAt: user.trialEndsAt,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
+        profilePhotoUrl: user.profilePhotoUrl || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

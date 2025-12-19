@@ -56,6 +56,7 @@ export interface User {
   trialEndsAt?: string | null;
   selectedMealBuilder?: MealBuilderType | null;
   isTester?: boolean;
+  profilePhotoUrl?: string | null;
 }
 
 export function getAuthToken(): string | null {
