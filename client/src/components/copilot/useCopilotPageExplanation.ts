@@ -38,6 +38,10 @@ export function useCopilotPageExplanation() {
 
     const normalizedPath = normalizePath(pathname);
 
+    // Check if we already opened for THIS navigation session
+    // This prevents re-opening after skip/close while still on same page
+    if (CopilotExplanationStore.hasSessionOpened(normalizedPath)) return;
+
     // Get page explanation
     const explanation = getPageExplanation(normalizedPath);
     if (!explanation) return;
@@ -49,6 +53,10 @@ export function useCopilotPageExplanation() {
     }
 
     const triggerExplanation = () => {
+      // Mark as opened for this session BEFORE opening
+      // This prevents the infinite loop
+      CopilotExplanationStore.markSessionOpened(normalizedPath);
+
       // Open Copilot if it's not already open
       if (!isOpen) {
         open();
@@ -56,9 +64,6 @@ export function useCopilotPageExplanation() {
 
       // Small delay so the sheet is visually open before we push text/voice
       setTimeout(() => {
-        // Mark path as explained ONLY after successfully firing
-        CopilotExplanationStore.markExplained(normalizedPath);
-
         // Set response with autoClose flag - CopilotSheet handles the timing
         // based on actual audio completion events
         setLastResponse({
