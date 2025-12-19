@@ -325,24 +325,23 @@ export const CopilotSheet: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {/* Guided Mode Toggle - Press-state button */}
+                    <div className="flex items-center gap-1.5">
+                      {/* Guided Mode Toggle - Compact press-state button with external label */}
+                      <span className="text-[9px] text-white/50">Guide</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
+                        aria-label={`Guide mode ${isGuidedModeEnabled ? "on" : "off"}`}
                         className={`
-                          relative px-3 py-1.5 rounded-full text-[10px] font-medium
+                          w-5 h-5 rounded-full flex items-center justify-center
                           transition-all duration-150 ease-out
                           ${isGuidedModeEnabled
-                            ? "bg-black/60 text-white/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] scale-[0.97] border border-white/10"
-                            : "bg-white/10 text-white/60 shadow-[0_2px_4px_rgba(0,0,0,0.3)] hover:bg-white/15 border border-white/20"
+                            ? "bg-black/70 shadow-[inset_0_1px_3px_rgba(0,0,0,0.7)] scale-[0.95] border border-white/15"
+                            : "bg-white/12 shadow-[0_1px_2px_rgba(0,0,0,0.4)] hover:bg-white/18 border border-white/25"
                           }
                         `}
                       >
-                        <span className="flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full transition-colors ${isGuidedModeEnabled ? "bg-white/80" : "bg-white/30"}`} />
-                          Guide {isGuidedModeEnabled ? "On" : "Off"}
-                        </span>
+                        <span className={`w-2 h-2 rounded-full transition-colors ${isGuidedModeEnabled ? "bg-white/90" : "bg-white/30"}`} />
                       </button>
                       <button
                         onClick={close}
