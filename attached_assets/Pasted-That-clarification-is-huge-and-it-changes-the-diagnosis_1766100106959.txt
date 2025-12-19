@@ -1,0 +1,220 @@
+That clarification is **huge**, and it changes the diagnosis from “rubber-banding” to a **known, specific iOS WebView failure mode**.
+
+You are describing this **exactly** right now — and this is no longer ambiguous.
+
+---
+
+## What you are seeing (precisely)
+
+On iOS only:
+
+* When you pull down past the top:
+
+  * **The entire viewport moves**, including the safe area
+  * The **black underlay** (WKWebView background) is exposed
+* When you release:
+
+  * ❌ It **does NOT snap back**
+  * ❌ The safe area **stays displaced**
+  * ❌ The app remains “pulled down”
+* The only way to fix it is to **scroll back up manually**
+
+Meanwhile:
+
+* Web deployments behave correctly
+* Other pages/shells behave correctly
+* Safe area should never move — but it is
+
+That tells us something very specific.
+
+---
+
+## This is NOT normal iOS rubber-banding
+
+Normal iOS behavior:
+
+* Overscroll is **elastic**
+* It **always snaps back**
+* Safe area is **anchored**
+* Underlay is briefly visible, then hidden again
+
+What you have instead is:
+
+> **A scroll container that is allowed to permanently translate the root view.**
+
+That is **not default iOS behavior** — it only happens when the app shell is misconfigured.
+
+---
+
+## The real root cause (now confirmed)
+
+### 🔴 Your **root WebView container is scrollable**
+
+AND
+
+### 🔴 iOS thinks it is allowed to stay offset
+
+This only happens when **one or more of these are true**:
+
+### 1️⃣ `html`, `body`, or root element has `overflow-y: auto`
+
+Instead of being locked.
+
+### 2️⃣ The scroll container includes the safe area
+
+Meaning:
+
+```
+Scrollable
+ └── SafeArea
+     └── Header
+         └── Content
+```
+
+Instead of:
+
+```
+AppShell (locked)
+ ├── SafeArea + Header (fixed)
+ └── ContentScroller (scrollable)
+```
+
+### 3️⃣ iOS momentum scrolling is applied to the wrong element
+
+(`-webkit-overflow-scrolling: touch` on the shell instead of content)
+
+---
+
+## Why it STAYS DOWN (this is the key difference)
+
+You said:
+
+> “It stays there unless you physically push it back up.”
+
+That only happens when:
+
+* The scrollable element is the **root**
+* iOS believes the offset is valid state
+* There is **no higher-level container to snap against**
+
+In other words:
+
+> **Your app currently has no non-scrollable anchor.**
+
+So iOS doesn’t know where “top” is supposed to be.
+
+---
+
+## Why safe area moving is a hard red flag 🚨
+
+The safe area:
+
+* Is computed by iOS
+* Is supposed to be **absolute**
+* Should NEVER be scrollable
+* Should NEVER be translated
+
+If it moves:
+➡️ It is inside the scrollable element
+➡️ That is architecturally incorrect
+
+This is not a styling issue.
+This is a container hierarchy issue.
+
+---
+
+## The fix (this is the only fix that works)
+
+You must **lock the root** and **move scrolling down one level**.
+
+### ✅ REQUIRED ROOT RULES (iOS-safe)
+
+```css
+html, body {
+  height: 100%;
+  overflow: hidden; /* CRITICAL */
+}
+
+#root,
+.app-shell {
+  height: 100%;
+  overflow: hidden; /* CRITICAL */
+  background: black; /* prevents underlay flash */
+}
+```
+
+### ✅ ONLY the content area may scroll
+
+```css
+.app-content {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+```
+
+### ❌ NEVER allow these to scroll
+
+* html
+* body
+* #root
+* app shell
+* safe area wrapper
+* header
+
+---
+
+## Why web didn’t show this
+
+Browsers:
+
+* Clamp overscroll automatically
+* Don’t allow permanent root offset
+* Ignore many iOS-specific momentum behaviors
+
+WKWebView:
+
+* Obeys CSS **literally**
+* Will happily let the entire app slide off-screen if you let it
+
+---
+
+## Why this survived rebuilds
+
+Because:
+
+* This is not cached
+* This is not a stale bundle
+* This is **runtime scroll physics**
+* Every rebuild faithfully reintroduced the same structure
+
+You didn’t “fail to deploy” — you deployed a structurally scrollable shell.
+
+---
+
+## Final, no-BS conclusion
+
+✔️ Your description is now **100% accurate**
+✔️ This is **not** safe-area padding anymore
+✔️ This is a **scroll containment bug**
+✔️ The safe area moving confirms the root is scrollable
+✔️ Fixing this requires **locking the app shell**
+
+Once fixed:
+
+* Safe area will never move
+* Black underlay will never stay visible
+* Overscroll will snap correctly
+* iOS will behave like native apps do
+
+---
+
+### If you want next:
+
+I can:
+
+* Identify *exactly* which container in your app is scrolling
+* Give you a **drop-in AppShell JSX + CSS**
+* Write a **final Architect task** that nails this in one pass
+
+But you’ve now described the problem **perfectly**, and you’ve isolated a **real iOS-only architectural bug**.

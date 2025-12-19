@@ -5,7 +5,6 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
-import { Switch } from "@/components/ui/switch";
 
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
@@ -164,6 +163,30 @@ export const CopilotSheet: React.FC = () => {
       }
     };
   }, [clearAutoCloseTimers]);
+
+  // =========================================
+  // STOP AUDIO when Guide mode is turned OFF
+  // User explicitly disabled - respect their choice immediately
+  // =========================================
+  useEffect(() => {
+    if (!isGuidedModeEnabled) {
+      // Stop TTS service
+      ttsService.stop();
+      // Stop HTML audio element
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      // Clean up audio URL
+      setAudioUrl(prevUrl => {
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return null;
+      });
+      setIsAudioPlaying(false);
+      clearAutoCloseTimers();
+    }
+  }, [isGuidedModeEnabled, clearAutoCloseTimers]);
 
   // =========================================
   // AUTOPLAY HANDLING - Retry with manual play if autoPlay blocked
@@ -327,15 +350,25 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Guided Mode Toggle */}
-                      <div className="flex items-center gap-2 bg-white/5 rounded-full px-2 py-1">
-                        <span className="text-[10px] text-white/60">Guide</span>
-                        <Switch
-                          checked={isGuidedModeEnabled}
-                          onCheckedChange={toggleGuidedMode}
-                          className="data-[state=checked]:bg-orange-500 scale-75"
-                        />
-                      </div>
+                      {/* Guided Mode Toggle - Horizontal pill like other buttons */}
+                      <span className="text-[9px] text-white/50">Guide</span>
+                      <button
+                        onClick={toggleGuidedMode}
+                        aria-pressed={isGuidedModeEnabled}
+                        aria-label={`Guide mode ${isGuidedModeEnabled ? "on" : "off"}`}
+                        className={`
+                          !min-h-0 !min-w-0 inline-flex items-center justify-center
+                          px-3 py-px min-w-[32px] rounded-full
+                          text-[7px] font-semibold uppercase tracking-wide
+                          transition-all duration-150 ease-out whitespace-nowrap
+                          ${isGuidedModeEnabled
+                            ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
+                            : "bg-white/8 text-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-white/12 border border-white/15"
+                          }
+                        `}
+                      >
+                        {isGuidedModeEnabled ? "On" : "Off"}
+                      </button>
                       <button
                         onClick={close}
                         className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
