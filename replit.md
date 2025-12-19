@@ -77,10 +77,12 @@ The Copilot system separates autoplay from manual invocation:
 - `CopilotSheet.tsx` - The Copilot UI panel
 
 **Behavior Rules:**
-1. **Autoplay toggle** (labeled "Auto") controls ONLY auto-open on page navigation
+1. **Autoplay toggle** (labeled "Auto") controls ONLY auto-open on page navigation (global setting)
 2. **Chef button** ALWAYS opens Copilot with current page explanation, regardless of toggle
 3. **First visit autoplay** happens once per page, tracked in `CopilotExplanationStore`
 4. **Manual invocation** always works - toggle doesn't block Chef button
+5. **Skip button** - Appears when audio is playing. Stops audio and closes sheet WITHOUT affecting autoplay preference. Future pages still auto-open.
+6. **Auto toggle OFF** - Stops audio AND disables all future autoplay globally
 
 **Storage Keys (backward compatible):**
 - `copilot_autoplay_enabled` - New key for autoplay preference
