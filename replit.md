@@ -48,18 +48,18 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
 - Updated SafePageContainer and PageShell with safe-area utilities
 
 ## iOS Viewport Architecture (CRITICAL)
-RootViewport implements a three-layer scroll containment to prevent iOS WKWebView bugs:
+RootViewport implements scroll containment to prevent iOS WKWebView bugs:
 
-1. **Outer Shell**: FIXED, non-scrollable, fills viewport with `overflow: hidden`
-2. **Safe-Area Wrapper**: NON-SCROLLABLE div with `paddingTop: env(safe-area-inset-top)`, sits ABOVE scroll container
-3. **Scroll Container**: ONLY element that scrolls, uses `-webkit-overflow-scrolling: touch` and `overscroll-behavior: contain`
+- **Fixed shell**: `position: fixed`, `100dvh`, contains the ONLY scroll container
+- **Single scroll container**: `overflow-y: auto`, `-webkit-overflow-scrolling: touch`, `overscroll-behavior: none`
+- **Pages handle safe-area**: Each page applies `env(safe-area-inset-top)` for its own headers
 
-This architecture prevents the "pull down and stays down" iOS bug where the safe area moves with scroll.
+This prevents the "pull down and stays down" iOS bug.
 
 ## iOS Safe-Area Configuration (IMPORTANT)
 - **Capacitor**: `ios.contentInset: 'never'` and `ios.scrollEnabled: false` in capacitor.config.ts
-- **CSS**: Safe-area top padding applied ONLY in RootViewport's non-scrollable wrapper
-- **DO NOT** add `-webkit-overflow-scrolling: touch` to html, body, #root, or any root elements
-- **DO NOT** add `pt-safe-top` to SafePageContainer, PageShell, or any page components
+- **RootViewport**: Does NOT apply safe-area padding (pages handle their own)
+- **DO NOT** add `-webkit-overflow-scrolling: touch` to html, body, #root
+- **DO NOT** add duplicate safe-area padding in RootViewport - causes double-inset
 - **DO NOT** use `100vh` - always use `100dvh` for dynamic viewport height
-- Bottom safe-area padding is handled via `pb-safe-nav` and `pb-safe-both` utilities in page containers
+- **html/body**: Must have `overflow: hidden` and `overscroll-behavior: none` (defined at bottom of index.css)

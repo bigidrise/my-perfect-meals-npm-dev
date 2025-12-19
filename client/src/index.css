@@ -3,11 +3,7 @@
 @tailwind utilities;
 
 /* iOS Viewport Wobble Fix */
-html, body {
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
-}
+
 
 /* React root fills viewport */
 #root {
@@ -998,4 +994,12 @@ select:autofill {
 datalist option {
   background-color: rgba(0, 0, 0, 0.9) !important;
   color: white !important;
+}
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
 }

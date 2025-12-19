@@ -15,12 +15,12 @@ interface RootViewportProps {
  * RootViewport - iOS Scroll Containment Fix
  * 
  * Architecture (CRITICAL for iOS):
- * 1. Outer shell: FIXED, non-scrollable, owns safe-area padding
- * 2. Safe-area wrapper: NON-SCROLLABLE, sits ABOVE the scroll container
- * 3. Inner content: ONLY element that scrolls
+ * - FIXED outer shell that NEVER scrolls
+ * - SINGLE scroll container inside
+ * - Pages handle their own safe-area padding for headers
  * 
- * This prevents iOS WKWebView from treating the entire viewport as scrollable,
- * which causes the "pull down and stays down" bug.
+ * DO NOT add safe-area padding here - pages already handle it.
+ * Adding it here causes double padding on iOS.
  */
 export default function RootViewport({ children }: RootViewportProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -35,35 +35,20 @@ export default function RootViewport({ children }: RootViewportProps) {
 
   return (
     <ScrollContainerContext.Provider value={scrollRef as React.RefObject<HTMLElement>}>
-      {/* OUTER SHELL: Fixed, non-scrollable, fills viewport */}
+      {/* FIXED SHELL: Never scrolls, contains single scroll container */}
       <div 
-        className="fixed inset-0 flex flex-col bg-black"
+        ref={scrollRef}
+        className="fixed inset-0 bg-black ios-scroll-container"
         style={{ 
           height: '100dvh',
-          overflow: 'hidden', // CRITICAL: Shell must never scroll
+          width: '100%',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'none',
         }}
       >
-        {/* SAFE-AREA WRAPPER: Non-scrollable, sits above scroll container */}
-        <div 
-          className="flex-shrink-0 bg-black"
-          style={{ 
-            paddingTop: 'env(safe-area-inset-top)',
-          }}
-        />
-        
-        {/* SCROLL CONTAINER: Only this element scrolls */}
-        <div 
-          ref={scrollRef}
-          className="flex-1 min-h-0 overflow-x-hidden bg-black"
-          style={{
-            height: '100%',
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'none',
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
     </ScrollContainerContext.Provider>
   );
