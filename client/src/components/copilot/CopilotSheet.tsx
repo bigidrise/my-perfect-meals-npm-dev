@@ -349,16 +349,16 @@ export const CopilotSheet: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      {/* Guided Mode Toggle - Compact pill with On/Off */}
+                    <div className="flex items-center gap-2">
+                      {/* Guided Mode Toggle - Horizontal pill like other buttons */}
                       <span className="text-[9px] text-white/50">Guide</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
                         aria-label={`Guide mode ${isGuidedModeEnabled ? "on" : "off"}`}
                         className={`
-                          px-1.5 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wide
-                          transition-all duration-150 ease-out min-w-[28px]
+                          px-2.5 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wide
+                          transition-all duration-150 ease-out whitespace-nowrap
                           ${isGuidedModeEnabled
                             ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
                             : "bg-white/8 text-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-white/12 border border-white/15"
