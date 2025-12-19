@@ -27,6 +27,7 @@ import { MobileVoiceHandler } from "./components/MobileVoiceHandler";
 import { OnboardingFooter } from "./components/OnboardingFooter";
 import { CopilotProvider } from "./components/copilot/CopilotContext";
 import { initNativeDemoMode } from "@/lib/auth";
+import RootViewport from "./components/RootViewport";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -119,9 +120,11 @@ export default function App() {
 
               {/* Update Banner removed - focus event auto-reload handles updates */}
               <CopilotSystem onAction={handleCopilotAction}>
-                <AppRouter>
-                  <Router />
-                </AppRouter>
+                <RootViewport>
+                  <AppRouter>
+                    <Router />
+                  </AppRouter>
+                </RootViewport>
                 <AvatarSelector />
                 <ChefVoiceAssistant />
                 <VoiceConcierge />

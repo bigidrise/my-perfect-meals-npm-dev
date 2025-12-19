@@ -9,6 +9,7 @@ interface SafePageContainerProps {
 
 /**
  * SafePageContainer - Ensures page content is never blocked by bottom navigation or shopping banner
+ * Uses iOS-safe scrolling and proper safe-area insets for viewport stability
  * 
  * @param hasShoppingBanner - Set to true if the page displays ShoppingAggregateBar
  * @param className - Additional Tailwind classes
@@ -21,7 +22,7 @@ export default function SafePageContainer({
   const paddingClass = hasShoppingBanner ? "pb-safe-both" : "pb-safe-nav";
   
   return (
-    <div className={`min-h-screen ${paddingClass} ${className}`}>
+    <div className={`min-h-full flex flex-col ${paddingClass} ${className}`}>
       {children}
     </div>
   );
