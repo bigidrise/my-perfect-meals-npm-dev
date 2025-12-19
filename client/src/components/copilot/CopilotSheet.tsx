@@ -165,8 +165,8 @@ export const CopilotSheet: React.FC = () => {
   }, [clearAutoCloseTimers]);
 
   // =========================================
-  // STOP AUDIO when Guide mode is turned OFF
-  // User explicitly disabled - respect their choice immediately
+  // STOP AUDIO when Auto toggle is turned OFF
+  // This is a GLOBAL preference - stops audio but also disables future autoplay
   // =========================================
   useEffect(() => {
     if (!isGuidedModeEnabled) {
@@ -187,6 +187,30 @@ export const CopilotSheet: React.FC = () => {
       clearAutoCloseTimers();
     }
   }, [isGuidedModeEnabled, clearAutoCloseTimers]);
+
+  // =========================================
+  // SKIP CURRENT EXPLANATION - Stops audio but KEEPS autoplay enabled
+  // This allows skipping the current page without affecting future pages
+  // =========================================
+  const handleSkipExplanation = useCallback(() => {
+    // Stop TTS service
+    ttsService.stop();
+    // Stop HTML audio element
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    // Clean up audio URL
+    setAudioUrl(prevUrl => {
+      if (prevUrl) {
+        URL.revokeObjectURL(prevUrl);
+      }
+      return null;
+    });
+    setIsAudioPlaying(false);
+    clearAutoCloseTimers();
+    // Close the sheet - autoplay preference stays untouched
+    close();
+  }, [clearAutoCloseTimers, close]);
 
   // =========================================
   // AUTOPLAY HANDLING - Retry with manual play if autoPlay blocked
@@ -350,12 +374,12 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Guided Mode Toggle - Horizontal pill like other buttons */}
-                      <span className="text-[9px] text-white/50">Guide</span>
+                      {/* Autoplay Toggle - Controls auto-open on page navigation only */}
+                      <span className="text-[9px] text-white/50">Auto</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
-                        aria-label={`Guide mode ${isGuidedModeEnabled ? "on" : "off"}`}
+                        aria-label={`Autoplay ${isGuidedModeEnabled ? "on" : "off"}`}
                         className={`
                           !min-h-0 !min-w-0 inline-flex items-center justify-center
                           px-3 py-px min-w-[32px] rounded-full
@@ -381,13 +405,19 @@ export const CopilotSheet: React.FC = () => {
 
                 {/* Input removed - Copilot is now tap-to-action only */}
 
-                {/* Audio status indicator - shows when audio is playing */}
+                {/* Audio status indicator with Skip button - shows when audio is playing */}
                 {isAudioPlaying && (
                   <div className="px-4 pt-2">
-                    <div className="rounded-xl bg-orange-500/10 border border-orange-400/30 px-3 py-2 text-center">
+                    <div className="rounded-xl bg-orange-500/10 border border-orange-400/30 px-3 py-2 flex items-center justify-between">
                       <p className="text-xs text-orange-300/90 animate-pulse">
-                        🔊 Playing response...
+                        🔊 Playing...
                       </p>
+                      <button
+                        onClick={handleSkipExplanation}
+                        className="!min-h-0 !min-w-0 px-3 py-1 rounded-full bg-white/10 text-[10px] font-medium text-white/80 hover:bg-white/20 transition-colors"
+                      >
+                        Skip
+                      </button>
                     </div>
                   </div>
                 )}
