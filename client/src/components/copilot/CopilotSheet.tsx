@@ -5,7 +5,6 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
-import { Switch } from "@/components/ui/switch";
 
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
@@ -327,15 +326,24 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Guided Mode Toggle */}
-                      <div className="flex items-center gap-2 bg-white/5 rounded-full px-2 py-1">
-                        <span className="text-[10px] text-white/60">Guide</span>
-                        <Switch
-                          checked={isGuidedModeEnabled}
-                          onCheckedChange={toggleGuidedMode}
-                          className="data-[state=checked]:bg-orange-500 scale-75"
-                        />
-                      </div>
+                      {/* Guided Mode Toggle - Press-state button */}
+                      <button
+                        onClick={toggleGuidedMode}
+                        aria-pressed={isGuidedModeEnabled}
+                        className={`
+                          relative px-3 py-1.5 rounded-full text-[10px] font-medium
+                          transition-all duration-150 ease-out
+                          ${isGuidedModeEnabled
+                            ? "bg-black/60 text-white/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] scale-[0.97] border border-white/10"
+                            : "bg-white/10 text-white/60 shadow-[0_2px_4px_rgba(0,0,0,0.3)] hover:bg-white/15 border border-white/20"
+                          }
+                        `}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full transition-colors ${isGuidedModeEnabled ? "bg-white/80" : "bg-white/30"}`} />
+                          Guide {isGuidedModeEnabled ? "On" : "Off"}
+                        </span>
+                      </button>
                       <button
                         onClick={close}
                         className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
