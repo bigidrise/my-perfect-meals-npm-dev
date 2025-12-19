@@ -66,3 +66,34 @@ This prevents the "pull down and stays down" iOS bug.
 - **DO NOT** add duplicate safe-area padding in RootViewport - causes double-inset
 - **DO NOT** use `100vh` - always use `100dvh` for dynamic viewport height
 - **html/body**: Must have `overflow: hidden` and `overscroll-behavior: none` (defined at bottom of index.css)
+
+## Copilot Re-Engagement Architecture (Dec 2024)
+The Copilot system separates autoplay from manual invocation:
+
+**Key Components:**
+- `CopilotGuidedModeContext.tsx` - Manages autoplay toggle state (persisted to localStorage)
+- `CopilotRespectGuard.ts` - Guards auto-open behavior only, not manual invocation
+- `CopilotButton.tsx` - Chef button, always opens Copilot with current page context
+- `CopilotSheet.tsx` - The Copilot UI panel
+
+**Behavior Rules:**
+1. **Autoplay toggle** (labeled "Auto") controls ONLY auto-open on page navigation (global setting)
+2. **Chef button** ALWAYS opens Copilot with current page explanation, regardless of toggle
+3. **Autoplay** happens EVERY time you navigate to a page (not just first visit)
+4. **Manual invocation** always works - toggle doesn't block Chef button
+5. **Skip button** - Appears when audio is playing. Stops audio and closes sheet WITHOUT affecting autoplay preference. Future pages still auto-open.
+6. **Auto toggle OFF** - Stops audio AND disables all future autoplay globally
+7. **Session tracking** - Once opened on a page, won't re-open until you navigate AWAY and back
+
+**Session Tracking (in-memory, not persisted):**
+- When Copilot opens on a page, that path is marked "opened this session"
+- Skipping or closing does NOT re-trigger auto-open while still on that page
+- Navigating to a different page clears the session, so returning will auto-open again
+
+**Storage Keys (backward compatible):**
+- `copilot_autoplay_enabled` - New key for autoplay preference
+- `copilot_guided_mode` - Legacy key (migrated and kept in sync)
+
+**Events (backward compatible):**
+- `copilot-autoplay-changed` - New event name
+- `copilot-guided-mode-changed` - Legacy event (still emitted for compatibility)

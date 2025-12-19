@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 
-const GUIDED_MODE_KEY = 'copilot_guided_mode';
+const AUTOPLAY_KEY = 'copilot_autoplay_enabled';
+const LEGACY_KEY = 'copilot_guided_mode';
 
 interface CopilotGuidedModeContextValue {
+  isAutoplayEnabled: boolean;
+  enableAutoplay: () => void;
+  disableAutoplay: () => void;
+  toggleAutoplay: () => void;
   isGuidedModeEnabled: boolean;
   enableGuidedMode: () => void;
   disableGuidedMode: () => void;
@@ -11,64 +16,79 @@ interface CopilotGuidedModeContextValue {
 
 const CopilotGuidedModeContext = createContext<CopilotGuidedModeContextValue | null>(null);
 
-function getStoredGuidedMode(): boolean {
+function getStoredAutoplay(): boolean {
   if (typeof window === 'undefined') return true;
   try {
-    const saved = localStorage.getItem(GUIDED_MODE_KEY);
-    if (saved === null) return true;
-    return saved === 'true';
+    const saved = localStorage.getItem(AUTOPLAY_KEY);
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy !== null) {
+      const value = legacy === 'true';
+      localStorage.setItem(AUTOPLAY_KEY, legacy);
+      return value;
+    }
+    return true;
   } catch {
     return true;
   }
 }
 
-function setStoredGuidedMode(enabled: boolean): void {
+function setStoredAutoplay(enabled: boolean): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(GUIDED_MODE_KEY, enabled ? 'true' : 'false');
+    localStorage.setItem(AUTOPLAY_KEY, enabled ? 'true' : 'false');
+    localStorage.setItem(LEGACY_KEY, enabled ? 'true' : 'false');
   } catch {
-    console.warn('Failed to persist guided mode preference');
+    console.warn('Failed to persist autoplay preference');
   }
 }
 
 export function CopilotGuidedModeProvider({ children }: { children: React.ReactNode }) {
-  const [isGuidedModeEnabled, setIsGuidedModeEnabled] = useState<boolean>(true);
+  const [isAutoplayEnabled, setIsAutoplayEnabled] = useState<boolean>(true);
 
   useEffect(() => {
-    setIsGuidedModeEnabled(getStoredGuidedMode());
+    setIsAutoplayEnabled(getStoredAutoplay());
   }, []);
 
-  const enableGuidedMode = useCallback(() => {
-    setIsGuidedModeEnabled(true);
-    setStoredGuidedMode(true);
+  const enableAutoplay = useCallback(() => {
+    setIsAutoplayEnabled(true);
+    setStoredAutoplay(true);
     if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('copilot-autoplay-changed', { detail: { enabled: true } }));
       window.dispatchEvent(new CustomEvent('copilot-guided-mode-changed', { detail: { enabled: true } }));
     }
   }, []);
 
-  const disableGuidedMode = useCallback(() => {
-    setIsGuidedModeEnabled(false);
-    setStoredGuidedMode(false);
+  const disableAutoplay = useCallback(() => {
+    setIsAutoplayEnabled(false);
+    setStoredAutoplay(false);
     if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('copilot-autoplay-changed', { detail: { enabled: false } }));
       window.dispatchEvent(new CustomEvent('copilot-guided-mode-changed', { detail: { enabled: false } }));
     }
   }, []);
 
-  const toggleGuidedMode = useCallback(() => {
-    if (isGuidedModeEnabled) {
-      disableGuidedMode();
+  const toggleAutoplay = useCallback(() => {
+    if (isAutoplayEnabled) {
+      disableAutoplay();
     } else {
-      enableGuidedMode();
+      enableAutoplay();
     }
-  }, [isGuidedModeEnabled, enableGuidedMode, disableGuidedMode]);
+  }, [isAutoplayEnabled, enableAutoplay, disableAutoplay]);
 
   return (
     <CopilotGuidedModeContext.Provider
       value={{
-        isGuidedModeEnabled,
-        enableGuidedMode,
-        disableGuidedMode,
-        toggleGuidedMode,
+        isAutoplayEnabled,
+        enableAutoplay,
+        disableAutoplay,
+        toggleAutoplay,
+        isGuidedModeEnabled: isAutoplayEnabled,
+        enableGuidedMode: enableAutoplay,
+        disableGuidedMode: disableAutoplay,
+        toggleGuidedMode: toggleAutoplay,
       }}
     >
       {children}

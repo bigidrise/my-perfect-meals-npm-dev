@@ -24,7 +24,8 @@
  */
 
 const COACH_MODE_KEY = "coachMode";
-const GUIDED_MODE_KEY = "copilot_guided_mode";
+const AUTOPLAY_KEY = "copilot_autoplay_enabled";
+const LEGACY_KEY = "copilot_guided_mode";
 
 /**
  * Check if user chose "Do-It-Yourself" mode at welcome gate
@@ -40,17 +41,28 @@ export function isDoItYourselfMode(): boolean {
 }
 
 /**
- * Check if user has the Guide toggle enabled
- * Returns true if guided mode is enabled, false if disabled
+ * Check if user has autoplay enabled (the Guide toggle)
+ * Returns true if autoplay is enabled, false if disabled
+ * NOTE: This only affects AUTO-OPEN behavior, not manual invocation
  */
-export function isGuidedModeEnabled(): boolean {
+export function isAutoplayEnabled(): boolean {
   try {
-    const saved = localStorage.getItem(GUIDED_MODE_KEY);
-    // Default to true if not set (first-time users get guided experience)
-    return saved !== "false";
+    const saved = localStorage.getItem(AUTOPLAY_KEY);
+    if (saved !== null) {
+      return saved !== "false";
+    }
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy !== null) {
+      return legacy !== "false";
+    }
+    return true;
   } catch {
-    return true; // Default to enabled if storage fails
+    return true;
   }
+}
+
+export function isGuidedModeEnabled(): boolean {
+  return isAutoplayEnabled();
 }
 
 /**
@@ -60,6 +72,9 @@ export function isGuidedModeEnabled(): boolean {
  * 
  * Returns TRUE if Copilot is allowed to auto-open
  * Returns FALSE if user preferences should block auto-open
+ * 
+ * IMPORTANT: This ONLY affects automatic behaviors (page explanations, etc.)
+ * The Chef button should ALWAYS allow manual invocation regardless of this setting.
  * 
  * Usage:
  *   if (!shouldAllowAutoOpen()) return; // Early exit, respect user choice
@@ -76,11 +91,11 @@ export function shouldAllowAutoOpen(): boolean {
     return false;
   }
 
-  // Check 2: Did user disable the Guide toggle?
-  if (!isGuidedModeEnabled()) {
+  // Check 2: Did user disable the autoplay toggle?
+  if (!isAutoplayEnabled()) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        "🛑 [CopilotRespectGuard] Auto-open BLOCKED: User disabled guided mode toggle"
+        "🛑 [CopilotRespectGuard] Auto-open BLOCKED: User disabled autoplay toggle"
       );
     }
     return false;
@@ -97,15 +112,17 @@ export function shouldAllowAutoOpen(): boolean {
 export function useCopilotRespectGuard(): {
   shouldAllowAutoOpen: boolean;
   isDoItYourselfMode: boolean;
+  isAutoplayEnabled: boolean;
   isGuidedModeEnabled: boolean;
 } {
   // Read current state (for initial render)
   const diyMode = isDoItYourselfMode();
-  const guidedEnabled = isGuidedModeEnabled();
+  const autoplayEnabled = isAutoplayEnabled();
 
   return {
-    shouldAllowAutoOpen: !diyMode && guidedEnabled,
+    shouldAllowAutoOpen: !diyMode && autoplayEnabled,
     isDoItYourselfMode: diyMode,
-    isGuidedModeEnabled: guidedEnabled,
+    isAutoplayEnabled: autoplayEnabled,
+    isGuidedModeEnabled: autoplayEnabled,
   };
 }

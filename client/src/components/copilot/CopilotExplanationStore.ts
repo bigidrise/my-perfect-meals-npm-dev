@@ -8,6 +8,12 @@ class CopilotExplanationStoreClass {
   private explainedPaths = new Map<string, boolean>();
   private subscribers = new Set<StoreSubscriber>();
   private version = 0;
+  
+  // Session-scoped: tracks paths opened THIS navigation session
+  // Prevents re-opening after skip/close while still on same page
+  // Resets when you navigate to a different page
+  private sessionOpenedPaths = new Set<string>();
+  private currentSessionPath: string | null = null;
 
   subscribe(callback: StoreSubscriber): () => void {
     this.subscribers.add(callback);
@@ -34,6 +40,32 @@ class CopilotExplanationStoreClass {
 
   hasExplained(path: string): boolean {
     return this.explainedPaths.get(path) === true;
+  }
+
+  // Session tracking: mark that we've opened Copilot for this path THIS visit
+  markSessionOpened(path: string): void {
+    // If navigating to new page, clear old session tracking
+    if (this.currentSessionPath !== path) {
+      this.sessionOpenedPaths.clear();
+      this.currentSessionPath = path;
+    }
+    this.sessionOpenedPaths.add(path);
+  }
+
+  // Check if we already opened Copilot for this path this session
+  hasSessionOpened(path: string): boolean {
+    // If we're on a different path, this is a new session
+    if (this.currentSessionPath !== path) {
+      return false;
+    }
+    return this.sessionOpenedPaths.has(path);
+  }
+
+  // Called when navigating away - clears session for old path
+  clearSessionForPath(path: string): void {
+    if (this.currentSessionPath === path) {
+      this.sessionOpenedPaths.delete(path);
+    }
   }
 
   resetForScript(scriptId: string): void {
