@@ -8,13 +8,13 @@ import { shouldAllowAutoOpen } from './CopilotRespectGuard';
 /**
  * Hook that triggers page explanations when navigating to new pages.
  * 
- * AUTO-OPEN BEHAVIOR:
- * - When Guide mode is ON, Copilot auto-opens ONCE per page (first visit in session)
- * - After auto-opening, it won't auto-open again for that page
- * - User can manually press the Copilot button to see the explanation anytime
- * - Never auto-talks (user must tap Listen)
+ * Auto-close is now handled by CopilotSheet based on actual audio completion
+ * events rather than word-count estimates. This hook just:
+ * 1. Checks if the page should show an explanation
+ * 2. Opens the Copilot sheet
+ * 3. Sets the response with autoClose: true flag
  * 
- * The CopilotButton provides on-demand access to page explanations at any time.
+ * CopilotSheet listens for TTS onEnd events and closes the sheet when audio finishes.
  */
 export function useCopilotPageExplanation() {
   const [pathname] = useLocation();
@@ -32,16 +32,14 @@ export function useCopilotPageExplanation() {
     return path.replace(/\/+$/, '').split('?')[0];
   }, []);
 
-  // Main explanation effect - auto-opens on EVERY page visit
-  // ONLY blocked if user explicitly turned off that specific page via "Turn Off" button
+  // Main explanation effect
   useEffect(() => {
     if (!shouldAllowAutoOpen()) return;
 
     const normalizedPath = normalizePath(pathname);
 
-    // Check if user has permanently disabled auto-open for this specific page
-    // This is the ONLY thing that prevents auto-open (besides global Guide toggle)
-    if (CopilotExplanationStore.isPathDisabled(normalizedPath)) return;
+    // Don't re-run for already explained paths
+    if (CopilotExplanationStore.hasExplained(normalizedPath)) return;
 
     // Get page explanation
     const explanation = getPageExplanation(normalizedPath);
@@ -61,6 +59,9 @@ export function useCopilotPageExplanation() {
 
       // Small delay so the sheet is visually open before we push text/voice
       setTimeout(() => {
+        // Mark path as explained ONLY after successfully firing
+        CopilotExplanationStore.markExplained(normalizedPath);
+
         // Set response with autoClose flag - CopilotSheet handles the timing
         // based on actual audio completion events
         setLastResponse({
