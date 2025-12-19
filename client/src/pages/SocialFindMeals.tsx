@@ -18,6 +18,7 @@ import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import CombinedZipLocationControl from "@/components/CombinedZipLocationControl";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -108,7 +109,6 @@ export default function MealFinder() {
 
   const [mealQuery, setMealQuery] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [results, setResults] = useState<MealResult[]>([]);
   const [progress, setProgress] = useState(0);
   const hasRestoredRef = useRef(false);
@@ -219,60 +219,6 @@ export default function MealFinder() {
     findMealsMutation.mutate({ mealQuery, zipCode });
   };
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      toast({
-        title: "Location Not Supported",
-        description: "Your browser doesn't support location services.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const response = await apiRequest(
-            "/api/restaurants/reverse-geocode",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              }),
-            },
-          );
-          if (response.zipCode) {
-            setZipCode(response.zipCode);
-            toast({
-              title: "Location Found",
-              description: `ZIP Code: ${response.zipCode}`,
-            });
-          }
-        } catch (error) {
-          toast({
-            title: "Location Error",
-            description: "Could not get ZIP code for your location.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsGettingLocation(false);
-        }
-      },
-      (error) => {
-        setIsGettingLocation(false);
-        toast({
-          title: "Location Access Denied",
-          description: "Please enable location access or enter ZIP manually.",
-          variant: "destructive",
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  };
-
   const handleGoBack = () => {
     setLocation("/social-hub");
   };
@@ -348,52 +294,12 @@ export default function MealFinder() {
 
                 <div>
                   <label className="block text-md text-white/80 mb-2">
-                    Zip Code
+                    Location
                   </label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g., 30303, 90210, 10001"
-                      value={zipCode}
-                      onChange={(e) =>
-                        setZipCode(
-                          e.target.value.replace(/\D/g, "").slice(0, 5),
-                        )
-                      }
-                      className="flex-1 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                      maxLength={5}
-                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                      data-testid="input-zip-code"
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleUseLocation}
-                      disabled={isGettingLocation}
-                      className={`px-3 flex-shrink-0 text-white ${
-                        isGettingLocation
-                          ? "bg-blue-700 cursor-wait"
-                          : "bg-blue-600 hover:bg-blue-500"
-                      }`}
-                      aria-label={
-                        isGettingLocation
-                          ? "Finding your location"
-                          : "Use my location"
-                      }
-                    >
-                      <div className="flex items-center gap-2">
-                        {isGettingLocation ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">Finding location…</span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">Use my location</span>
-                          </>
-                        )}
-                      </div>
-                    </Button>
-                  </div>
+                  <CombinedZipLocationControl
+                    zipCode={zipCode}
+                    onZipChange={setZipCode}
+                  />
                 </div>
 
                 <Button
