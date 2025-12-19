@@ -165,6 +165,30 @@ export const CopilotSheet: React.FC = () => {
   }, [clearAutoCloseTimers]);
 
   // =========================================
+  // STOP AUDIO when Guide mode is turned OFF
+  // User explicitly disabled - respect their choice immediately
+  // =========================================
+  useEffect(() => {
+    if (!isGuidedModeEnabled) {
+      // Stop TTS service
+      ttsService.stop();
+      // Stop HTML audio element
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      // Clean up audio URL
+      setAudioUrl(prevUrl => {
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return null;
+      });
+      setIsAudioPlaying(false);
+      clearAutoCloseTimers();
+    }
+  }, [isGuidedModeEnabled, clearAutoCloseTimers]);
+
+  // =========================================
   // AUTOPLAY HANDLING - Retry with manual play if autoPlay blocked
   // Browsers often block autoPlay, so we manually trigger play() as fallback
   // =========================================
@@ -326,22 +350,22 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      {/* Guided Mode Toggle - Compact press-state button with external label */}
+                      {/* Guided Mode Toggle - Compact pill with On/Off */}
                       <span className="text-[9px] text-white/50">Guide</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
                         aria-label={`Guide mode ${isGuidedModeEnabled ? "on" : "off"}`}
                         className={`
-                          w-5 h-5 rounded-full flex items-center justify-center
-                          transition-all duration-150 ease-out
+                          px-1.5 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wide
+                          transition-all duration-150 ease-out min-w-[28px]
                           ${isGuidedModeEnabled
-                            ? "bg-black/70 shadow-[inset_0_1px_3px_rgba(0,0,0,0.7)] scale-[0.95] border border-white/15"
-                            : "bg-white/12 shadow-[0_1px_2px_rgba(0,0,0,0.4)] hover:bg-white/18 border border-white/25"
+                            ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
+                            : "bg-white/8 text-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-white/12 border border-white/15"
                           }
                         `}
                       >
-                        <span className={`w-2 h-2 rounded-full transition-colors ${isGuidedModeEnabled ? "bg-white/90" : "bg-white/30"}`} />
+                        {isGuidedModeEnabled ? "On" : "Off"}
                       </button>
                       <button
                         onClick={close}
