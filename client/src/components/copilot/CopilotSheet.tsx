@@ -350,12 +350,12 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Guided Mode Toggle - Horizontal pill like other buttons */}
-                      <span className="text-[9px] text-white/50">Guide</span>
+                      {/* Autoplay Toggle - Controls auto-open on page navigation only */}
+                      <span className="text-[9px] text-white/50">Auto</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
-                        aria-label={`Guide mode ${isGuidedModeEnabled ? "on" : "off"}`}
+                        aria-label={`Autoplay ${isGuidedModeEnabled ? "on" : "off"}`}
                         className={`
                           !min-h-0 !min-w-0 inline-flex items-center justify-center
                           px-3 py-px min-w-[32px] rounded-full

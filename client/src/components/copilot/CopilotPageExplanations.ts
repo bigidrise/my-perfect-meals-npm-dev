@@ -6,7 +6,7 @@ export interface PageExplanation {
   autoClose: boolean;
 }
 
-export const PAGE_EXPLANATIONS: Record<string, metricPageExplanation> = {
+export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/my-biometrics": {
     pageId: "my-biometrics",
     title: "My Biometrics",
