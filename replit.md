@@ -57,8 +57,9 @@ RootViewport implements a three-layer scroll containment to prevent iOS WKWebVie
 This architecture prevents the "pull down and stays down" iOS bug where the safe area moves with scroll.
 
 ## iOS Safe-Area Configuration (IMPORTANT)
-- **Capacitor**: `ios.contentInset: 'never'` in capacitor.config.ts - disables native safe-area handling
+- **Capacitor**: `ios.contentInset: 'never'` and `ios.scrollEnabled: false` in capacitor.config.ts
 - **CSS**: Safe-area top padding applied ONLY in RootViewport's non-scrollable wrapper
 - **DO NOT** add `-webkit-overflow-scrolling: touch` to html, body, #root, or any root elements
 - **DO NOT** add `pt-safe-top` to SafePageContainer, PageShell, or any page components
+- **DO NOT** use `100vh` - always use `100dvh` for dynamic viewport height
 - Bottom safe-area padding is handled via `pb-safe-nav` and `pb-safe-both` utilities in page containers

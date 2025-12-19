@@ -56,9 +56,10 @@ export default function RootViewport({ children }: RootViewportProps) {
           ref={scrollRef}
           className="flex-1 min-h-0 overflow-x-hidden bg-black"
           style={{
+            height: '100%',
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain',
+            overscrollBehavior: 'none',
           }}
         >
           {children}
