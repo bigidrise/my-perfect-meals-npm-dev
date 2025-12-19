@@ -357,7 +357,7 @@ export const CopilotSheet: React.FC = () => {
                         aria-pressed={isGuidedModeEnabled}
                         aria-label={`Guide mode ${isGuidedModeEnabled ? "on" : "off"}`}
                         className={`
-                          px-2.5 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wide
+                          px-2 py-px rounded-full text-[7px] font-semibold uppercase tracking-wide leading-none
                           transition-all duration-150 ease-out whitespace-nowrap
                           ${isGuidedModeEnabled
                             ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
