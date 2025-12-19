@@ -43,3 +43,18 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
 - Made Stripe integration optional (graceful degradation)
 - Made OpenAI initialization lazy to prevent startup crashes
 - Configured Vite to allow all hosts for Replit proxy
+- Added iOS viewport wobble fix with RootViewport component (fixed positioning, 100dvh height)
+- Added CSS utilities for iOS scroll handling (.ios-scroll, .pb-safe-nav, .pb-safe-both, .pt-safe-top)
+- Updated SafePageContainer and PageShell with safe-area utilities
+
+## iOS Viewport Architecture
+- RootViewport wraps AppRouter with fixed positioning and 100dvh height
+- Scroll container delegated to main element with overflow-y:auto and overscroll-contain
+- Automatic scroll reset on route changes
+- Safe-area utilities for bottom nav and shopping banner padding
+
+## iOS Safe-Area Configuration (IMPORTANT)
+- **Capacitor**: `ios.contentInset: 'never'` in capacitor.config.ts - disables native safe-area handling
+- **CSS**: Safe-area top padding applied ONLY in RootViewport via `paddingTop: env(safe-area-inset-top)`
+- **DO NOT** add `pt-safe-top` to SafePageContainer, PageShell, or any page components - this causes double-inset on iOS
+- Bottom safe-area padding is handled via `pb-safe-nav` and `pb-safe-both` utilities in page containers
