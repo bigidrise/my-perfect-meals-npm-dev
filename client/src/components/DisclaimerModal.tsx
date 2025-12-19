@@ -81,7 +81,7 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
 
         <div
           className="flex-1 min-h-0 mb-3 overflow-y-auto pr-2 sm:pr-4"
-          style={{ maxHeight: "calc(100vh - 200px)" }}
+          style={{ maxHeight: "calc(100dvh - 200px)" }}
         >
           <div className="space-y-3 text-sm pb-2">
             <div className="bg-red-50 border-l-4 border-red-500 p-4">
