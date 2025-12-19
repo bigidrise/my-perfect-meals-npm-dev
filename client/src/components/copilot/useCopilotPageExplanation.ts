@@ -32,14 +32,16 @@ export function useCopilotPageExplanation() {
     return path.replace(/\/+$/, '').split('?')[0];
   }, []);
 
-  // Main explanation effect - auto-opens once per page, per session
+  // Main explanation effect - auto-opens on EVERY page visit
+  // ONLY blocked if user explicitly turned off that specific page via "Turn Off" button
   useEffect(() => {
     if (!shouldAllowAutoOpen()) return;
 
     const normalizedPath = normalizePath(pathname);
 
-    // Don't re-run for already explained paths (only auto-open once per session)
-    if (CopilotExplanationStore.hasExplained(normalizedPath)) return;
+    // Check if user has permanently disabled auto-open for this specific page
+    // This is the ONLY thing that prevents auto-open (besides global Guide toggle)
+    if (CopilotExplanationStore.isPathDisabled(normalizedPath)) return;
 
     // Get page explanation
     const explanation = getPageExplanation(normalizedPath);
@@ -59,9 +61,6 @@ export function useCopilotPageExplanation() {
 
       // Small delay so the sheet is visually open before we push text/voice
       setTimeout(() => {
-        // Mark path as explained so it won't auto-open again this session
-        CopilotExplanationStore.markExplained(normalizedPath);
-
         // Set response with autoClose flag - CopilotSheet handles the timing
         // based on actual audio completion events
         setLastResponse({

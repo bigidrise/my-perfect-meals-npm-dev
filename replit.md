@@ -73,14 +73,20 @@ The Copilot follows a "persistent assistant" pattern - always available, never i
 **Core Principle**: "Copilot is always available, never intrusive, and always under the user's control."
 
 **Behavior Rules**:
-1. **Guide Mode ON** → Copilot auto-opens ONCE per page (first visit in session)
+1. **Guide Mode ON** → Copilot auto-opens on EVERY page (unless user turned off that specific page)
 2. **Never auto-talks** → User must tap "Listen" to hear audio
 3. **Copilot Button** → Always shows current page explanation when pressed (on-demand)
 4. **Guide toggle = global control** → Only way to fully disable auto-open behavior
+5. **"Turn Off for This Page"** → Disables auto-open for THAT page only (other pages still work)
+
+**Two ways to close Copilot:**
+- **X button / backdrop tap** → Temporary dismiss (will auto-open again on next visit)
+- **"Turn Off for This Page" button** → Permanently disables auto-open for that page only
 
 **Key Files**:
-- `client/src/components/copilot/useCopilotPageExplanation.ts` - Auto-open logic (once per page)
+- `client/src/components/copilot/useCopilotPageExplanation.ts` - Auto-open logic
 - `client/src/components/copilot/CopilotButton.tsx` - On-demand page explanation
+- `client/src/components/copilot/CopilotSheet.tsx` - "Turn Off for This Page" button
 - `client/src/components/copilot/CopilotRespectGuard.ts` - Guards for user preferences
 - `client/src/components/copilot/CopilotGuidedModeContext.tsx` - Guide toggle state
-- `client/src/components/copilot/CopilotExplanationStore.ts` - Tracks explained pages per session
+- `client/src/components/copilot/CopilotExplanationStore.ts` - Tracks per-page disable state (localStorage)

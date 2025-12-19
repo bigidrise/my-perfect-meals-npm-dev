@@ -1,14 +1,27 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "wouter";
 import { useCopilot } from "./CopilotContext";
 import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
+import { CopilotExplanationStore } from "./CopilotExplanationStore";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
 
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
+  const [pathname] = useLocation();
+
+  // Normalize path for storage
+  const normalizedPath = pathname.replace(/\/+$/, '').split('?')[0];
+
+  // Handle "Turn Off" for this page - disables auto-open permanently for this page only
+  const handleTurnOffForPage = useCallback(() => {
+    CopilotExplanationStore.disablePath(normalizedPath);
+    ttsService.stop();
+    close();
+  }, [normalizedPath, close]);
 
   // =========================================
   // AUDIO - Visual-First with Graceful Degradation
@@ -512,6 +525,14 @@ export const CopilotSheet: React.FC = () => {
                           </ul>
                         </div>
                       )}
+
+                      {/* Turn Off button - disables auto-open for THIS page only */}
+                      <button
+                        onClick={handleTurnOffForPage}
+                        className="mt-4 w-full py-2 rounded-xl text-xs font-medium text-white/50 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white/70 transition-all"
+                      >
+                        Turn Off for This Page
+                      </button>
                     </div>
                   </div>
                 )}
