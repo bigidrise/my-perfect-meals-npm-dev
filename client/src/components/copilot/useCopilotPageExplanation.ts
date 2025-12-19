@@ -1,31 +1,28 @@
-import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useCopilot } from './CopilotContext';
 import { getPageExplanation } from './CopilotPageExplanations';
-import { CopilotExplanationStore } from './CopilotExplanationStore';
 import { shouldAllowAutoOpen } from './CopilotRespectGuard';
 
 /**
  * Hook that triggers page explanations when navigating to new pages.
  * 
- * Auto-close is now handled by CopilotSheet based on actual audio completion
- * events rather than word-count estimates. This hook just:
- * 1. Checks if the page should show an explanation
- * 2. Opens the Copilot sheet
- * 3. Sets the response with autoClose: true flag
+ * PERSISTENT ASSISTANT MODEL:
+ * - When Guide mode is ON, Copilot auto-opens on EVERY page visit
+ * - User can close it, but navigating away and back will re-open it
+ * - Closing the sheet does NOT disable Copilot globally
+ * - Only the Guide toggle controls whether auto-open is enabled
  * 
- * CopilotSheet listens for TTS onEnd events and closes the sheet when audio finishes.
+ * This is the "always available, never intrusive" pattern:
+ * - Auto-opens visually (page-aware)
+ * - Never auto-talks (user must tap Listen)
+ * - User-controlled (can close anytime)
+ * - Default-present (opens again on next navigation)
  */
 export function useCopilotPageExplanation() {
   const [pathname] = useLocation();
   const { isOpen, open, setLastResponse } = useCopilot();
   const explanationTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Subscribe to explanation store changes
-  const storeVersion = useSyncExternalStore(
-    CopilotExplanationStore.subscribe.bind(CopilotExplanationStore),
-    CopilotExplanationStore.getSnapshot.bind(CopilotExplanationStore)
-  );
 
   // Normalize path helper
   const normalizePath = useCallback((path: string) => {
@@ -33,13 +30,13 @@ export function useCopilotPageExplanation() {
   }, []);
 
   // Main explanation effect
+  // When Guide mode is ON, Copilot auto-opens on EVERY page visit (not just first visit)
+  // User can close it, but navigating away and back will re-open it
+  // This is the "persistent assistant" model - always available, never intrusive
   useEffect(() => {
     if (!shouldAllowAutoOpen()) return;
 
     const normalizedPath = normalizePath(pathname);
-
-    // Don't re-run for already explained paths
-    if (CopilotExplanationStore.hasExplained(normalizedPath)) return;
 
     // Get page explanation
     const explanation = getPageExplanation(normalizedPath);
@@ -59,9 +56,6 @@ export function useCopilotPageExplanation() {
 
       // Small delay so the sheet is visually open before we push text/voice
       setTimeout(() => {
-        // Mark path as explained ONLY after successfully firing
-        CopilotExplanationStore.markExplained(normalizedPath);
-
         // Set response with autoClose flag - CopilotSheet handles the timing
         // based on actual audio completion events
         setLastResponse({
@@ -81,7 +75,7 @@ export function useCopilotPageExplanation() {
         explanationTimerRef.current = null;
       }
     };
-  }, [pathname, isOpen, open, setLastResponse, normalizePath, storeVersion]);
+  }, [pathname, isOpen, open, setLastResponse, normalizePath]);
 
   // Cleanup on unmount
   useEffect(() => {
