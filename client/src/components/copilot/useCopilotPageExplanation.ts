@@ -38,9 +38,6 @@ export function useCopilotPageExplanation() {
 
     const normalizedPath = normalizePath(pathname);
 
-    // Don't re-run for already explained paths
-    if (CopilotExplanationStore.hasExplained(normalizedPath)) return;
-
     // Get page explanation
     const explanation = getPageExplanation(normalizedPath);
     if (!explanation) return;
