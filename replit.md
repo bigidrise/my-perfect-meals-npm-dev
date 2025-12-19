@@ -73,14 +73,14 @@ The Copilot follows a "persistent assistant" pattern - always available, never i
 **Core Principle**: "Copilot is always available, never intrusive, and always under the user's control."
 
 **Behavior Rules**:
-1. **Guide Mode ON** → Copilot auto-opens on EVERY page visit (not just first visit)
+1. **Guide Mode ON** → Copilot auto-opens ONCE per page (first visit in session)
 2. **Never auto-talks** → User must tap "Listen" to hear audio
-3. **Closing = temporary** → Dismissing closes it for that visit only; navigating back reopens it
+3. **Copilot Button** → Always shows current page explanation when pressed (on-demand)
 4. **Guide toggle = global control** → Only way to fully disable auto-open behavior
 
 **Key Files**:
-- `client/src/components/copilot/useCopilotPageExplanation.ts` - Auto-open logic
+- `client/src/components/copilot/useCopilotPageExplanation.ts` - Auto-open logic (once per page)
+- `client/src/components/copilot/CopilotButton.tsx` - On-demand page explanation
 - `client/src/components/copilot/CopilotRespectGuard.ts` - Guards for user preferences
 - `client/src/components/copilot/CopilotGuidedModeContext.tsx` - Guide toggle state
-
-**DO NOT** track "seen pages" to prevent re-opening - the persistent model means it ALWAYS opens when Guide is ON.
+- `client/src/components/copilot/CopilotExplanationStore.ts` - Tracks explained pages per session

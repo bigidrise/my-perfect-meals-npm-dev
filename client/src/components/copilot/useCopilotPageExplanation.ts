@@ -1,42 +1,45 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { useLocation } from 'wouter';
 import { useCopilot } from './CopilotContext';
 import { getPageExplanation } from './CopilotPageExplanations';
+import { CopilotExplanationStore } from './CopilotExplanationStore';
 import { shouldAllowAutoOpen } from './CopilotRespectGuard';
 
 /**
  * Hook that triggers page explanations when navigating to new pages.
  * 
- * PERSISTENT ASSISTANT MODEL:
- * - When Guide mode is ON, Copilot auto-opens on EVERY page visit
- * - User can close it, but navigating away and back will re-open it
- * - Closing the sheet does NOT disable Copilot globally
- * - Only the Guide toggle controls whether auto-open is enabled
- * 
- * This is the "always available, never intrusive" pattern:
- * - Auto-opens visually (page-aware)
+ * AUTO-OPEN BEHAVIOR:
+ * - When Guide mode is ON, Copilot auto-opens ONCE per page (first visit in session)
+ * - After auto-opening, it won't auto-open again for that page
+ * - User can manually press the Copilot button to see the explanation anytime
  * - Never auto-talks (user must tap Listen)
- * - User-controlled (can close anytime)
- * - Default-present (opens again on next navigation)
+ * 
+ * The CopilotButton provides on-demand access to page explanations at any time.
  */
 export function useCopilotPageExplanation() {
   const [pathname] = useLocation();
   const { isOpen, open, setLastResponse } = useCopilot();
   const explanationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Subscribe to explanation store changes
+  const storeVersion = useSyncExternalStore(
+    CopilotExplanationStore.subscribe.bind(CopilotExplanationStore),
+    CopilotExplanationStore.getSnapshot.bind(CopilotExplanationStore)
+  );
+
   // Normalize path helper
   const normalizePath = useCallback((path: string) => {
     return path.replace(/\/+$/, '').split('?')[0];
   }, []);
 
-  // Main explanation effect
-  // When Guide mode is ON, Copilot auto-opens on EVERY page visit (not just first visit)
-  // User can close it, but navigating away and back will re-open it
-  // This is the "persistent assistant" model - always available, never intrusive
+  // Main explanation effect - auto-opens once per page, per session
   useEffect(() => {
     if (!shouldAllowAutoOpen()) return;
 
     const normalizedPath = normalizePath(pathname);
+
+    // Don't re-run for already explained paths (only auto-open once per session)
+    if (CopilotExplanationStore.hasExplained(normalizedPath)) return;
 
     // Get page explanation
     const explanation = getPageExplanation(normalizedPath);
@@ -56,6 +59,9 @@ export function useCopilotPageExplanation() {
 
       // Small delay so the sheet is visually open before we push text/voice
       setTimeout(() => {
+        // Mark path as explained so it won't auto-open again this session
+        CopilotExplanationStore.markExplained(normalizedPath);
+
         // Set response with autoClose flag - CopilotSheet handles the timing
         // based on actual audio completion events
         setLastResponse({
@@ -75,7 +81,7 @@ export function useCopilotPageExplanation() {
         explanationTimerRef.current = null;
       }
     };
-  }, [pathname, isOpen, open, setLastResponse, normalizePath]);
+  }, [pathname, isOpen, open, setLastResponse, normalizePath, storeVersion]);
 
   // Cleanup on unmount
   useEffect(() => {
