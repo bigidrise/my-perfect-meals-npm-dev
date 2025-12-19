@@ -126,7 +126,7 @@ export default function DashboardNew() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="min-h-screen bg-black"
+      className="min-h-full flex flex-col bg-black pb-safe-nav"
     >
       {/* Fixed My Hub - Top Right */}
       <div

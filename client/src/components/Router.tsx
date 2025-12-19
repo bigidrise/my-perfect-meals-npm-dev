@@ -151,7 +151,7 @@ export default function Router() {
     return <DashboardNew />;
   }
 
-  // Pages where BottomNav should NOT appear (pre-login/onboarding pages + shopping list generators)
+  // Pages where BottomNav should NOT appear (pre-login/onboarding pages only)
   const hideBottomNavRoutes = [
     "/",
     "/auth",
@@ -163,25 +163,9 @@ export default function Router() {
     "/onboarding-legacy",
     "/pricing",
     "/checkout/success",
-    "/weekly-meal-board",
-    "/weekly",
-    "/performance-competition-builder",
-    "/beach-body-meal-board",
-    "/craving-creator",
-    "/craving-presets",
-    "/glp1-meal-builder",
-    "/diabetic-menu-builder",
-    "/anti-inflammatory-menu-builder",
-    "/toddler-meals",
-    "/kids-meals",
-    "/alcohol/lean-and-social",
-    "/mocktails-low-cal-mixers",
   ];
 
-  // Check for dynamic routes (e.g., /pro/clients/:id/performance-competition-builder)
-  const shouldShowBottomNav =
-    !hideBottomNavRoutes.includes(location) &&
-    !location.includes("/performance-competition-builder");
+  const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
 
   // The rest of the original routes are kept below.
 
