@@ -44,6 +44,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           trialEndsAt: userData.trialEndsAt,
           selectedMealBuilder: userData.selectedMealBuilder,
           isTester: userData.isTester || false,
+          profilePhotoUrl: userData.profilePhotoUrl || null,
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
