@@ -1222,7 +1222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile photo update endpoint
   app.put("/api/users/profile-photo", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.auth?.userId;
+      const userId = req.authUser?.id;
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
