@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Sheet,
@@ -33,6 +32,8 @@ import {
   Video,
   FileText,
   Trash2,
+  Camera,
+  Loader2,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,35 +45,112 @@ interface ProfileSheetProps {
 
 export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
-  const { setUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: fullUserData } = useQuery<{ name?: string; email?: string }>({
-    queryKey: ["/api/users/1"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(apiUrl("/api/users/1"));
-        if (!response.ok) return { name: undefined, email: undefined };
-        return response.json();
-      } catch {
-        return { name: undefined, email: undefined };
-      }
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const userName = user?.name || user?.username || "User";
+  const userEmail = user?.email || "";
+  const profilePhotoUrl = user?.profilePhotoUrl;
 
-  const userName = fullUserData?.name || "User";
-  const userEmail = fullUserData?.email || "user@example.com";
-
-  // Get user initials for avatar
   const userInitials = userName
     .split(" ")
     .map((word) => word[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const presignedRes = await fetch(apiUrl("/api/uploads/request-url"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+        }),
+      });
+
+      if (!presignedRes.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const { uploadURL, objectPath } = await presignedRes.json();
+
+      const uploadRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      const updateRes = await fetch(apiUrl("/api/users/profile-photo"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify({ profilePhotoUrl: objectPath }),
+      });
+
+      if (!updateRes.ok) {
+        throw new Error("Failed to update profile photo");
+      }
+
+      await refreshUser();
+
+      toast({
+        title: "Photo updated",
+        description: "Your profile photo has been updated.",
+      });
+    } catch (error: any) {
+      console.error("Photo upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload photo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -211,12 +289,47 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         {/* User Info Section */}
         <div className="mt-6 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-orange-600/80 border-2 border-orange-400/30 flex items-center justify-center text-white font-semibold text-lg shadow-lg">
-              {userInitials || "?"}
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+                id="profile-photo-input-sheet"
+              />
+              <label
+                htmlFor="profile-photo-input-sheet"
+                className="cursor-pointer block"
+              >
+                <div className="relative h-12 w-12 rounded-full bg-orange-600/80 border-2 border-orange-400/30 overflow-hidden shadow-lg">
+                  {profilePhotoUrl ? (
+                    <img
+                      src={profilePhotoUrl}
+                      alt={userName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white font-semibold text-lg">
+                      {userInitials || "?"}
+                    </div>
+                  )}
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-purple-600 border border-black/40">
+                  <Camera className="h-2.5 w-2.5 text-white" />
+                </div>
+              </label>
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold truncate">{userName}</h3>
-              <p className="text-white/70 text-sm truncate">{userEmail}</p>
+              {userEmail && (
+                <p className="text-white/70 text-sm truncate">{userEmail}</p>
+              )}
             </div>
           </div>
         </div>
