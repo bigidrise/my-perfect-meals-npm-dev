@@ -1219,10 +1219,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object Storage routes (presigned URL uploads)
   registerObjectStorageRoutes(app);
 
-  // Profile photo update endpoint
-  app.put("/api/users/profile-photo", requireAuth, async (req: AuthenticatedRequest, res) => {
+  // Profile photo update endpoint - supports both session and token auth
+  app.put("/api/users/profile-photo", async (req, res) => {
     try {
-      const userId = req.authUser?.id;
+      // Support both session-based auth (mobile) and token-based auth
+      let userId = (req.session as any)?.userId as string | undefined;
+      
+      // Fall back to token auth if no session
+      if (!userId) {
+        const token = req.headers["x-auth-token"] as string;
+        if (token) {
+          const [user] = await db.select().from(users).where(eq(users.authToken, token)).limit(1);
+          userId = user?.id;
+        }
+      }
+      
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }

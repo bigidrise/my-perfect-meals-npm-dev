@@ -35,7 +35,7 @@ import {
   Camera,
   Loader2,
 } from "lucide-react";
-import { logout, getAuthToken } from "@/lib/auth";
+import { logout } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -86,14 +86,12 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     setIsUploadingPhoto(true);
     try {
-      const token = getAuthToken();
-      if (!token) throw new Error("Not authenticated");
-
+      // Use credentials: "include" for session cookie auth (works on mobile)
       const presignedRes = await fetch(apiUrl("/api/uploads/request-url"), {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": token,
         },
         body: JSON.stringify({
           name: file.name,
@@ -120,9 +118,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
       const updateRes = await fetch(apiUrl("/api/users/profile-photo"), {
         method: "PUT",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": token,
         },
         body: JSON.stringify({ profilePhotoUrl: objectPath }),
       });
@@ -193,16 +191,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-
       const response = await fetch(apiUrl("/api/auth/delete-account"), {
         method: "DELETE",
-        headers: {
-          "x-auth-token": token,
-        },
+        credentials: "include",
       });
 
       if (!response.ok) {
