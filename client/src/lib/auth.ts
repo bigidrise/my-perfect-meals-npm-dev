@@ -102,6 +102,7 @@ export async function signUp(email: string, password: string): Promise<User> {
   try {
     const response = await fetch(apiUrl("/api/auth/signup"), {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
@@ -142,6 +143,7 @@ export async function login(email: string, password: string): Promise<User> {
   try {
     const response = await fetch(apiUrl("/api/auth/login"), {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
