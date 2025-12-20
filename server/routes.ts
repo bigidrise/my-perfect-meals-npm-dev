@@ -2127,20 +2127,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Use stable catalog-based generation
-      const { generateCravingMeal } = await import("./services/stableMealGenerator");
-      const userPrefs = {
-        userId: userId || "1", // Add userId for glycemic settings
-        dietaryRestrictions: user?.dietaryRestrictions || [],
-        allergies: user?.allergies || [],
-        medicalFlags: user?.healthConditions || []
-      };
-
-      const generatedMeal = await generateCravingMeal(
+      // Use unified meal pipeline (deterministic: cache → templates → fallback)
+      const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
+      
+      const result = await generateCravingMealUnified(
+        cravingInput || "something delicious",
         targetMealType || "lunch",
-        cravingInput, // Pass the craving string as second parameter
-        userPrefs      // Pass user preferences as third parameter
+        userId
       );
+      
+      if (!result.success || !result.meal) {
+        throw new Error("Failed to generate meal");
+      }
+      
+      const generatedMeal = {
+        id: result.meal.id,
+        name: result.meal.name,
+        description: result.meal.description,
+        ingredients: result.meal.ingredients,
+        instructions: result.meal.instructions,
+        nutrition: {
+          calories: result.meal.calories,
+          protein: result.meal.protein,
+          carbs: result.meal.carbs,
+          fat: result.meal.fat
+        },
+        medicalBadges: result.meal.medicalBadges || [],
+        imageUrl: result.meal.imageUrl,
+        servingSize: "1 serving"
+      };
 
       // Scale ingredients and macros by serving size if > 1
       if (validatedServings > 1) {
