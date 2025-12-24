@@ -23,7 +23,8 @@ function isDevEnvironment(): boolean {
     hostname.includes("localhost") ||
     hostname.includes("127.0.0.1") ||
     hostname.includes("repl.co") ||
-    hostname.includes("replit.dev")
+    hostname.includes("replit.dev") ||
+    hostname.includes("replit.app") // Production deployed apps should use same origin
   );
 }
 
