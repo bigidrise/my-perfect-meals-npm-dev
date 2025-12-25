@@ -74,7 +74,7 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
     if (process.env.OPENAI_API_KEY) {
       const dalleUrl = await generateDalleImage(options);
       if (dalleUrl) {
-        // Upload to permanent storage
+        // Upload to permanent storage (Canva-style: NEVER return temp URLs)
         try {
           const { permanentUrl } = await uploadImageToPermanentStorage({
             imageUrl: dalleUrl,
@@ -87,10 +87,9 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
           console.log(`🤖 Generated and stored DALL-E image for: ${options.name}`);
           return permanentUrl;
         } catch (uploadError) {
-          console.error(`⚠️ Failed to upload to permanent storage, using temporary URL:`, uploadError);
-          // Fallback to temporary DALL-E URL if upload fails
-          imageCache.set(cacheKey, dalleUrl);
-          return dalleUrl;
+          // Canva-style: NEVER return temp URL - return null to trigger fallback instead
+          console.error(`⚠️ Failed to upload to permanent storage, returning null (no temp URLs allowed):`, uploadError);
+          return null;
         }
       }
     } else {
