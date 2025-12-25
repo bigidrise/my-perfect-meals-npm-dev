@@ -414,45 +414,51 @@ app.post("/api/v1/kids-lunchbox/generate", async (req, res) => {
   }
 });
 
-// DIRECT Kids meals route fix - BEFORE Vite middleware
+// DIRECT Kids meals route fix - BEFORE Vite middleware - uses kidsLunchboxV1 for kid-friendly meals
 app.post("/api/meals/kids", async (req, res) => {
-  console.log("🧒 WORKING Kids meals route HIT! Body:", req.body);
+  console.log("🧒 Kids meals route HIT! Body:", req.body);
   try {
-    const { storage } = await import("./storage");
-    const { preferences, userId, servings = 1 } = req.body;
+    const { preferences, userId, servings = 1, allergies = [] } = req.body;
+    const startTime = Date.now();
 
-    // Get user data for medical personalization
-    let user = null;
-    if (userId) {
-      try {
-        user = await storage.getUser(userId);
-      } catch (error) {
-        console.log("Could not fetch user for kids meal personalization:", error);
-      }
+    console.log("🧒 KIDS ROUTE: Generating kid-friendly meal for:", preferences);
+
+    // Use stable kids lunchbox generator with proper kid-friendly catalog
+    const { kidsLunchboxV1Generate } = await import("./services/kidsLunchboxV1");
+    
+    const result = await kidsLunchboxV1Generate({
+      favorites: preferences || "",
+      allergies: allergies
+    });
+    
+    if (!result.meal) {
+      throw new Error("Failed to generate kids meal");
     }
-
-    // Use stable catalog-based generation with ENFORCED kid-friendly scope
-    const { generateCravingMeal } = await import("./services/stableMealGenerator");
-    const userPrefs = {
-      userId: userId || "1",
-      dietaryRestrictions: user?.dietaryRestrictions || [],
-      allergies: user?.allergies || [],
-      medicalFlags: user?.healthConditions || [],
-      kidFriendly: true,        // ENFORCED: Route defines scope
-      catalogScope: "kids",     // ENFORCED: Kids catalog only
-      servings: servings
+    
+    // Transform to canonical meal format with nutrition object
+    const generatedMeal = {
+      id: `kids-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: result.meal.name,
+      description: result.meal.description,
+      ingredients: result.meal.ingredients.map((ing: any) => ({
+        name: ing.name,
+        quantity: String(ing.amount),
+        unit: ing.unit
+      })),
+      instructions: result.meal.instructions,
+      nutrition: result.meal.nutrition,
+      medicalBadges: [],
+      imageUrl: result.meal.imageUrl || "/images/cravings/chicken-tenders.jpg",
+      servingSize: servings > 1 ? `${servings} servings` : "1 serving",
+      cookingTime: result.meal.prepTime
     };
 
-    console.log("🧒 KIDS ROUTE: Enforcing kidFriendly=true for:", preferences);
-
-    const generatedMeal = await generateCravingMeal(
-      "lunch",          // targetMealType
-      preferences,      // craving input
-      userPrefs        // user preferences with ENFORCED kidFriendly flag
-    );
-
     console.log("🧒 Kids meal generated:", generatedMeal.name);
-    console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
+    console.log("📊 Generation source: kids-catalog");
+
+    // Record metrics for health endpoint (deterministic source)
+    const { recordGeneration } = await import("./services/aiHealthMetrics");
+    recordGeneration('/api/meals/kids', 'catalog', Date.now() - startTime);
 
     res.json({ meal: generatedMeal });
   } catch (error: any) {
