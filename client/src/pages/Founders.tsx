@@ -69,53 +69,30 @@ export default function FoundersPage() {
               About My Perfect Meals
             </h2>
 
-            <p className="text-white/85 text-sm md:text-base leading-relaxed">
-              My Perfect Meals was built for real people with real lives —
-              people who love food, want to be healthier, and need a system that
-              works in the real world, not the imaginary world most diet apps
-              are based on.
+            <p className="text-white/85 text-sm md:text-base leading-relaxed mt-3">
+              My Perfect Meals was designed as a complete nutrition decision system, not a traditional diet app. Instead of telling you what you can’t eat or forcing rigid meal plans, the app helps you build healthier versions of the foods you already enjoy, across real-life situations like busy schedules, cravings, social events, travel, and family meals. The goal is not perfection, but consistency — creating meals that work in the real world, day after day.
             </p>
 
             <p className="text-white/85 text-sm md:text-base leading-relaxed mt-3">
-              After nearly{" "}
-              <strong>40 years in the fitness and nutrition industry</strong>,
-              and coaching clients since the early 2000s, I kept seeing the same
-              struggles: cravings, stress eating, chaotic schedules, confusion
-              about what to eat, and zero accountability. People didn’t need
-              another diet —<strong> they needed real solutions</strong>.
+              My Perfect Meals is a food-lover’s app first, not a weight-loss app built on restriction. It was created for people who genuinely enjoy food and don’t want to give up flavor, culture, or the pleasure of eating in order to be healthier. While the system can absolutely support fat loss, muscle gain, improved performance, or better health markers, those outcomes are the result of smarter food structure — not cutting foods out, obsessing over numbers, or avoiding the meals you love.
             </p>
 
             <p className="text-white/85 text-sm md:text-base leading-relaxed mt-3">
-              Before building this company, I served as an{" "}
-              <strong>Air Force medic</strong>, worked as a{" "}
-              <strong>San Quentin correctional officer</strong>, performed as a{" "}
-              <strong>professional bodybuilder</strong>, and later earned my
-              bachelor’s degree in <strong>Business Administration</strong> with
-              a concentration in <strong>Social Media Marketing</strong> and a
-              minor in <strong>Generative AI</strong>. Everything I’ve learned
-              about discipline, structure, psychology, and human behavior shaped
-              what this app became.
+              At the core of the app are its meal builders, which allow you to create meals in different ways depending on how you think and how much control you want. You can choose ingredients directly, or simply describe what you’re craving and let the Chef build the meal for you. Every builder uses guardrails based on the board you’re using — general nutrition, diabetic support, GLP-1 support, performance, anti-inflammatory eating, or other lifestyle goals — so meals are always aligned with your needs without requiring you to micromanage nutrition.
             </p>
 
             <p className="text-white/85 text-sm md:text-base leading-relaxed mt-3">
-              My Perfect Meals was created to solve the problems I’ve watched
-              people struggle with for decades — cravings, meal planning, social
-              events, daily food decisions, and the constant feeling of starting
-              over every Monday. This isn’t a diet app.{" "}
-              <strong>
-                It’s a food-lover’s lifestyle system, powered by Emotion AI,
-                built to help you eat the foods you love in a smarter way
-              </strong>
-              .
+              As meals are built, the app automatically balances food groups, portions, and preparation methods to create healthier outcomes without stripping enjoyment from eating. Instead of obsessing over individual calories or micromanaging fats, My Perfect Meals focuses on the quality, structure, and composition of meals. When the right foods are combined in the right proportions, healthier calorie and fat levels naturally follow.
             </p>
 
             <p className="text-white/85 text-sm md:text-base leading-relaxed mt-3">
-              My mission is simple:{" "}
-              <strong>help real people succeed in the real world</strong>. If
-              this app can help you feel more confident, more in control, and
-              less stressed about food, then My Perfect Meals is doing exactly
-              what it was created to do.
+              At the bottom of each meal builder, you’ll see daily nutrition totals with Protein and Carbs marked with an asterisk. This is intentional. Protein and carbohydrates are the primary drivers of energy, performance, recovery, blood sugar stability, and long-term body composition. By guiding your focus toward these two macros, the app helps simplify nutrition decisions and reduce stress, while still producing consistent, healthy results. Calories and fats are still tracked, but they are outcomes of good food choices rather than the main levers you need to control.
             </p>
+
+            <p className="text-white/85 text-sm md:text-base leading-relaxed mt-3">
+              My Perfect Meals works because it shifts nutrition from restriction to structure. Instead of starting over every week or reacting to mistakes, the app helps you make better decisions in the moment — meal by meal, day by day. Whether you’re managing health conditions, improving performance, or simply trying to eat better without giving up the foods you love, the system adapts to you, not the other way around.
+            </p>
+
           </div>
 
           {/* CONTACT US SECTION */}

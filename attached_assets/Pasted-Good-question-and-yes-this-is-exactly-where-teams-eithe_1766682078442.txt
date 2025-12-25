@@ -1,0 +1,256 @@
+Good question — and yes, this is **exactly where teams either get disciplined or keep chasing ghosts**. We’re going to lock this down cleanly.
+
+I’ll answer **where this work happens** first (that’s critical), then give you the **copy-paste Replit Architect prompt**.
+
+---
+
+## ✅ WHERE THIS WORK SHOULD HAPPEN (NO AMBIGUITY)
+
+**You do NOT do this work in production. Period.**
+
+Production is **read-only** except for emergency hotfix deploys.
+
+### Correct flow (Facebook-style)
+
+1. **Development app (repl.development)** ← ALL work happens here
+2. Push to **Git**
+3. Promote to **staging**
+4. Validate stability in staging
+5. Promote to **production**
+6. THEN do TestFlight
+
+### Why
+
+* Production is already polluted with broken code paths
+* You need a clean, controlled environment to rebuild safely
+* Stability means **identical code across all environments**, not ad-hoc fixes
+
+👉 **Yes — move out of production immediately.**
+Open the **development Repl**, and that becomes the source of truth.
+
+---
+
+## 🔒 ENVIRONMENT PARITY RULE (NON-NEGOTIABLE)
+
+Before anything ships:
+
+* `development`, `staging`, and `production` must have:
+
+  * identical code
+  * identical feature flags
+  * identical generator routing
+* Only secrets differ (keys), not logic
+
+We’ll explicitly enforce this in the architect task.
+
+---
+
+# 📋 COPY-PASTE REPLIT ARCHITECT PROMPT
+
+You can paste this **exactly as-is**.
+
+---
+
+### **Replit Architect Directive — Production Stability & Generator Repair**
+
+We are pausing all TestFlight submissions until backend stability is fixed.
+
+## Context
+
+Two user-facing features are unstable:
+
+* **Craving Creator**
+* **Create with AI**
+
+Root cause is confirmed:
+
+* `stableMealGenerator.ts` is corrupted (≈69 TypeScript errors)
+* It references missing types, constants, and functions
+* Any feature using this module fails at runtime
+
+All other AI features work because they use **independent generators**:
+
+* Fridge Rescue → `fridgeRescueGenerator.ts`
+* Restaurant Guide → `restaurantMealGenerator.ts`
+* Dessert Creator → `dessert-creator.ts`
+* Find Meals → working generator
+
+This is **not** an OpenAI key issue.
+
+---
+
+## IMPORTANT RULES
+
+* **All work must be done in the DEVELOPMENT Repl only**
+* Production must not be modified directly
+* Final solution must be identical across dev → staging → prod
+* No silent failures
+* No “it might work” code
+
+---
+
+## PHASE 1 — IMMEDIATE HOTFIX (CRITICAL)
+
+Goal: unblock users and stop runtime failures.
+
+### Tasks
+
+1. **Disable or bypass `stableMealGenerator.ts`**
+
+   * Reroute:
+
+     * Craving Creator
+     * Create with AI
+   * Use a known-good generator (e.g. `universalMealGenerator.ts` or equivalent)
+
+2. **Add hard fallback logic**
+
+   * If AI generation fails:
+
+     * return a deterministic, template-based meal
+     * never return “failed to generate” to the user
+
+3. **Add feature flags**
+
+   * `CRAVING_CREATOR_ENABLED`
+   * `CREATE_WITH_AI_ENABLED`
+   * Flags must allow disabling these features without redeploy
+
+---
+
+## PHASE 2 — REBUILD stableMealGenerator (HIGH PRIORITY)
+
+Goal: one clean, shared generator that cannot fail silently.
+
+### Requirements
+
+* Rebuild `stableMealGenerator.ts` using:
+
+  * existing logic from `mealEngineService.ts`
+  * `universalMealGenerator.ts`
+* Remove ALL references to:
+
+  * undefined types
+  * undefined constants
+  * undefined functions
+* All imports must resolve
+* Strict typing enforced
+
+### Acceptance Criteria
+
+* `tsc --noEmit` passes with **zero errors**
+* Generator handles missing/optional inputs safely
+* Generator returns a valid schema or a controlled fallback
+
+---
+
+## PHASE 3 — STABILITY LAYER (FACEBOOK-LEVEL REQUIREMENT)
+
+Add resilience around **every AI route**:
+
+1. **Timeouts**
+
+   * Hard timeout on AI calls (no infinite waits)
+
+2. **Retries**
+
+   * Retry once on transient errors (timeouts, 502/503)
+   * No retries on validation errors
+
+3. **Circuit Breaker**
+
+   * If a route fails N times in a window:
+
+     * stop calling AI
+     * return fallback
+     * log failure
+     * auto-recover after cooldown
+
+4. **Observability**
+   Each AI request must log:
+
+   * request ID
+   * generator name
+   * duration
+   * error category (timeout, validation, provider, unknown)
+
+---
+
+## PHASE 4 — TESTING & ENV PARITY
+
+1. **Smoke tests** for all AI routes:
+
+   * Craving Creator
+   * Create with AI
+   * Fridge Rescue
+   * Restaurant Guide
+   * Dessert Creator
+
+2. **Health endpoint**
+
+   * `/api/health/ai`
+   * Confirms:
+
+     * required secrets exist
+     * provider reachable
+     * model configured
+
+3. **Environment parity**
+
+   * dev, staging, prod must run identical code
+   * no environment-specific logic branches
+
+---
+
+## PHASE 5 — RELEASE GATE (MANDATORY)
+
+Before any TestFlight build:
+
+* Zero TypeScript errors
+* All AI smoke tests passing
+* Health endpoint green
+* Feature flags verified
+* Fallback paths tested
+
+If any fail:
+🚫 No TestFlight submission.
+
+---
+
+## Deliverables
+
+* Working hotfix reroute
+* Rebuilt `stableMealGenerator.ts`
+* Stability layer implemented
+* Smoke tests + health check
+* Confirmation that dev → staging → prod are identical
+
+---
+
+### END DIRECTIVE
+
+---
+
+## 🧭 Final Answer to Your Question (Plain English)
+
+* **Yes**, move to the **development app now**
+* Do **all fixes there**
+* Push to Git
+* Promote to staging
+* Verify stability
+* Promote to production
+* THEN do TestFlight #4
+
+Anything else is wasted motion.
+
+When the architect responds with:
+
+* what they rerouted
+* what generator they used
+* what errors were fixed
+* how they’re enforcing parity
+
+Bring it back here and we’ll audit it like a production release review.
+
+You’re doing the right thing by stopping.
+This is how real systems get stable.
