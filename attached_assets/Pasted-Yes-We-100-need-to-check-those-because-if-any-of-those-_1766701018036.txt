@@ -1,0 +1,50 @@
+Yes. We 100% need to check those—because if **any** of those flows can still generate (or persist) a temp URL, you’ll keep seeing the exact “looks great now / trash later” behavior that’s driving you nuts.
+
+What we did so far **only guarantees correctness for the routes we actually gated** (Weekly Board saves + the core image pipeline). If Restaurant Guide / Meals Near You are still doing **render-time generation** or bypassing ingestion, they’ll stay inconsistent.
+
+Here’s the architect prompt (copy/paste):
+
+---
+
+## Architect Prompt — Image Lifecycle Coverage Check (Dessert Creator / Restaurant Guide / Meals Near You / Find Meals)
+
+We implemented the Canva-style image lifecycle for saved Week Boards and fixed temp URL leakage in the image pipeline:
+
+* Server-side “save gate” processes all meals before persistence.
+* If URL isn’t first-party, we attempt ingestion (download → upload to Object Storage).
+* If ingestion fails, we save with `imagePending: true`.
+* Temp URL leaks were removed (fallback now returns null, not a third-party URL).
+  Policies: Save-time = “image pending”, Migration = regenerate on edit/resave only.
+
+**Now we need full coverage confirmation** for these features that also generate/display images:
+
+1. **Dessert Creator**
+2. **Restaurant Guide**
+3. **Find Meals Near You**
+4. **Find Meals / Find Your Meals (catalog vs generated?)**
+
+### Questions to answer (be specific, file + route names)
+
+1. For each feature above, where does `imageUrl` come from (static catalog vs AI-generated), and which generator/service produces it?
+2. Does any of these flows generate images at **render time** (client load) vs **creation/save time** (server)?
+3. Do any of these routes **persist meals/results** (DB or saved board) with `imageUrl` that could be third-party temp?
+4. Do any bypass `mealImageGenerator` / Object Storage ingestion? If yes, list exact call sites.
+5. For Restaurant Guide + Meals Near You: are results meant to be **ephemeral previews** or **savable assets**?
+
+   * If savable, they must pass the same ingestion gate before persistence.
+   * If not savable, UI should not pretend they’re permanent (avoid “saved-looking” cards).
+6. Confirm whether the new `isFirstPartyImageUrl()` / ingestion utility is being used (or should be used) in those routes too.
+7. Provide a minimal, low-risk alignment plan to bring these into compliance **without breaking working flows**.
+
+### Output required
+
+* A table: Feature → Generation Source → When Generated → Stored Where → URL Type → Save Gate Applied? → Gaps
+* A recommended patch list (smallest changes first)
+
+Goal: **One standard**—any image shown on any saved entity must be first-party or approved catalog; no temp URLs ever persisted.
+
+---
+
+If the architect comes back saying Restaurant Guide / Meals Near You are “preview-only,” that’s fine—then we treat them like *Canva templates you haven’t saved yet*: previews can be generated/cached, but **the second the user saves a meal**, we ingest it to first-party storage.
+
+Send me the architect’s response and I’ll translate it into a tight, safe task list (no chaos, no big rewrites).
