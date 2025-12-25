@@ -97,3 +97,45 @@ The Copilot system separates autoplay from manual invocation:
 **Events (backward compatible):**
 - `copilot-autoplay-changed` - New event name
 - `copilot-guided-mode-changed` - Legacy event (still emitted for compatibility)
+
+## AI Stability Architecture (Dec 2024) - Facebook-Level Stability
+
+The system now detects and reports silent degradation instead of pretending everything is fine.
+
+**Key Components:**
+- `server/services/schemaValidator.ts` - Validates required tables exist at startup
+- `server/services/aiHealthMetrics.ts` - Tracks generation source metrics (ai/cache/fallback/error)
+- `/api/health/ai` endpoint - Reports health status with release gates
+
+**Generation Sources (truthful tagging):**
+- `ai` - Real AI generation via OpenAI
+- `cache` - Cached AI-generated meal reused
+- `template` - Template-based generation
+- `catalog` / `fallback` - Deterministic fallback (counted as fallback)
+- `error` - Generation failed
+
+**Health Endpoint Response:**
+```json
+{
+  "status": "ok|degraded|down",
+  "schema": { "allTablesExist": true, "missingTables": [] },
+  "metrics": { "routes": { "/api/meals/craving-creator": { "fallbackRate": 0.0 } } },
+  "releaseGates": {
+    "schemaPassing": true,
+    "noErrors": true,
+    "fallbackRateOk": true  // fails if > 5%
+  }
+}
+```
+
+**Release Gates (for TestFlight):**
+1. `schemaPassing` - All required tables exist
+2. `noErrors` - No generation errors in recent window
+3. `fallbackRateOk` - Fallback rate ≤ 5%
+
+**Automatic Migrations:**
+- `prestart` and `predev` hooks in package.json run `db:push` automatically
+- Schema changes propagate on every deployment
+
+**Required Tables:**
+- `generated_meals_cache` - AI meal cache (must be in shared/schema.ts exports)
