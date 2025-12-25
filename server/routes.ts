@@ -218,6 +218,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true, timestamp: Date.now(), version: "1.0.0" });
   });
 
+  // AI Health endpoint - Facebook-level stability monitoring
+  // Reports: schema status, success/fallback/error rates, required table presence
+  app.get("/api/health/ai", async (_req, res) => {
+    try {
+      const { validateRequiredTables } = await import("./services/schemaValidator");
+      const { getRecentMetrics } = await import("./services/aiHealthMetrics");
+      
+      const schemaStatus = await validateRequiredTables();
+      const metrics = getRecentMetrics();
+      
+      // Determine overall status
+      let status: 'ok' | 'degraded' | 'down' = metrics.status;
+      
+      // If required tables are missing, override to 'down'
+      if (!schemaStatus.allTablesExist) {
+        status = 'down';
+      }
+      
+      const response = {
+        status,
+        timestamp: Date.now(),
+        schema: {
+          allTablesExist: schemaStatus.allTablesExist,
+          requiredTables: Object.fromEntries(
+            schemaStatus.results.map(r => [r.tableName, r.exists])
+          ),
+          missingTables: schemaStatus.missingTables,
+        },
+        metrics: {
+          windowMs: metrics.windowMs,
+          routes: metrics.routes,
+        },
+        releaseGates: {
+          schemaPassing: schemaStatus.allTablesExist,
+          noErrors: Object.values(metrics.routes).every(r => r.errorCount === 0),
+          fallbackRateOk: Object.values(metrics.routes).every(r => r.fallbackRate <= 0.05),
+        }
+      };
+      
+      // Return 503 if critical issues, 200 otherwise
+      const httpStatus = status === 'down' ? 503 : 200;
+      res.status(httpStatus).json(response);
+    } catch (error: any) {
+      console.error("Health check failed:", error);
+      res.status(500).json({ 
+        status: 'error',
+        error: error.message,
+        timestamp: Date.now()
+      });
+    }
+  });
+
   // Public Object Storage - Serves meal images for Hybrid Meal Engine
   app.get("/public-objects/*", async (req, res) => {
     const filePath = (req.params as Record<string, string>)[0] || "";
@@ -2114,6 +2166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
 
+      const startTime = Date.now();
       console.log("🎯 Craving creator request:", { targetMealType, cravingInput, userId, servings: validatedServings });
 
       // Get user data for medical personalization
@@ -2218,8 +2271,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("🍽️ Stable craving creator generated meal:", generatedMeal.name);
       console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
+      console.log("📊 Generation source:", result.source);
 
-      res.json({ meal: generatedMeal });
+      // Record metrics for health endpoint
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/craving-creator', result.source as any, Date.now() - startTime);
+
+      res.json({ 
+        meal: generatedMeal,
+        generationSource: result.source
+      });
     } catch (error: any) {
       console.error("❌ Craving creator error:", error);
       res.status(500).json({ message: error.message });

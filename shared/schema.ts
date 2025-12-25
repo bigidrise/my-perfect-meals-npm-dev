@@ -31,6 +31,7 @@ export { glp1Shots, injectionLocationEnum } from "../server/db/schema/glp1Shots"
 export { mealBoards, mealBoardItems } from "../server/db/schema/mealBoards";
 export { careTeamMember, careInvite, careAccessCode } from "../server/db/schema/careTeam";
 export { builderPlans } from "../server/db/schema/builderPlans";
+export { generatedMealsCache } from "../server/db/schema/generatedMeals";
 
 /**
  * Games table
