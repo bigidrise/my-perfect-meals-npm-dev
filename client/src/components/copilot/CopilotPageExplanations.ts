@@ -446,3 +446,47 @@ export function getPageExplanation(pathname: string): PageExplanation | null {
 export function hasPageExplanation(pathname: string): boolean {
   return getPageExplanation(pathname) !== null;
 }
+
+const BUILDER_ROUTES = [
+  "/weekly-meal-board",
+  "/diabetic-menu-builder",
+  "/glp1-meal-builder",
+  "/anti-inflammatory-menu-builder",
+  "/beach-body-meal-board",
+  "/pro/clients/:id/diabetic-builder",
+  "/pro/clients/:id/glp1-builder",
+  "/pro/clients/:id/anti-inflammatory-builder",
+  "/pro/clients/:id/performance-competition-builder",
+  "/pro/clients/:id/general-nutrition-builder",
+];
+
+const MACRO_ASTERISK_EXPLANATION =
+  " Protein and Carbs are marked with an asterisk because they're your primary focus macros and have the biggest impact on energy, performance, and body composition.";
+
+export function isBuilderRoute(pathname: string): boolean {
+  for (const pattern of BUILDER_ROUTES) {
+    if (pattern.includes(":")) {
+      const regexPattern = pattern.replace(/:[\w]+/g, "[^/]+");
+      const regex = new RegExp(`^${regexPattern}$`);
+      if (regex.test(pathname)) return true;
+    } else if (pathname === pattern) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function getPageExplanationWithAsterisk(pathname: string): PageExplanation | null {
+  const base = getPageExplanation(pathname);
+  if (!base) return null;
+  
+  if (isBuilderRoute(pathname)) {
+    return {
+      ...base,
+      description: base.description + MACRO_ASTERISK_EXPLANATION,
+      spokenText: base.spokenText + MACRO_ASTERISK_EXPLANATION,
+    };
+  }
+  
+  return base;
+}
