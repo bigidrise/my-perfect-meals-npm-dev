@@ -278,7 +278,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build meals across one or multiple days using structured or conversational meal tools guided by your goals.",
     spokenText:
-"All meal builders work the same way, with guardrails based on the board you’re using. Start by choosing how you want to build your meals — use Create with AI if you want to pick specific ingredients, or Create with Chef if you’d rather describe what you want and let the Chef build it for you. Choose how many days you want to plan, then fill in each day by creating breakfast, lunch, dinner, and snacks, adjusting servings as needed, with prep cards there to guide you if you need them. To save time, you can duplicate a full day and copy those meals to other days of the week. As you build, you can send your day to the Macro Calculator to track nutrition or send ingredients straight to your shopping list to build groceries automatically. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over for the day, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
+"All meal builders work the same way, with guardrails based on the board you’re using. Start by choosing how you want to build your meals — use Create with AI if you want to pick specific ingredients, or Create with Chef if you’d rather describe what you want and let the Chef build it for you. Choose how many days you want to plan, then fill in each day by creating breakfast, lunch, dinner, and snacks, adjusting servings as needed, with prep cards there to guide you if you need them. To save time, you can duplicate a full day and copy those meals to other days of the week. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are your primary focus macros and have the biggest impact on energy, performance, and body composition. You can send your day to the Macro Calculator to track nutrition or send ingredients straight to your shopping list to build groceries automatically. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over for the day, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
     autoClose: true,
   },
 
@@ -298,7 +298,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build meals that support balanced blood sugar using diabetic-specific guardrails.",
     spokenText:
-      "The Diabetic Meal Builder uses the same meal-building tools with guardrails designed for blood sugar support. Use the AI Meal Creator to pick ingredients with the meal picker, or use Create With Chef to describe your meals and snacks. Build one or multiple days, adjust servings, and send meals to your macro table or shopping list while staying within diabetic-friendly targets.",
+    "The Diabetic Meal Builder works just like the other builders, with guardrails designed to support balanced blood sugar. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to pick specific ingredients, or Create with Chef if you’d rather describe meals and snacks and let the Chef build them for you. Build one or multiple days, creating breakfast, lunch, dinner, and snacks while adjusting servings within diabetic-friendly targets. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are your primary focus macros and play a key role in blood sugar stability, energy, and consistency. You can send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
     autoClose: true,
   },
 
@@ -317,7 +317,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     title: "Glp1 Meal Builder",
     description: "Create portion-aware meals designed to support GLP-1 goals.",
     spokenText:
-"The GLP-1 Meal Builder works just like the other builders, with guardrails designed for portion control, satiety, and GLP-1 support. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to pick specific ingredients, or Create With Chef if you’d rather describe your meals and snacks and let the Chef build them for you. Choose how many days you want to plan, then create breakfast, lunch, dinner, and snacks, with portions guided automatically to support fullness and consistency. To save time, you can duplicate a full day to other days of the week. As you build, you can send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
+    "The GLP-1 Meal Builder works just like the other builders, with guardrails designed for portion control, satiety, and GLP-1 support. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to pick specific ingredients, or Create with Chef if you’d rather describe meals and snacks and let the Chef build them for you. Choose how many days you want to plan, then create breakfast, lunch, dinner, and snacks with portions guided automatically to support fullness and consistency. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are your primary focus macros and help preserve lean mass, energy, and long-term adherence. You can send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
+
     autoClose: true,
   },
 
@@ -326,7 +327,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     title: "Anti-Inflammatory Meal Builder",
     description: "Build meals focused on inflammation-friendly ingredients.",
     spokenText:
-"The Anti-Inflammatory Meal Builder works just like the other builders, with guardrails focused on inflammation-friendly food choices. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to pick specific ingredients with the meal picker, or Create With Chef if you’d rather describe your meals and snacks and let the Chef build them for you. Choose how many days you want to plan, then create breakfast, lunch, dinner, and snacks, adjusting servings as needed while the builder keeps everything aligned with anti-inflammatory guidelines. To save time, you can duplicate a full day across the week. As you build, send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
+    "The Anti-Inflammatory Meal Builder works just like the other builders, with guardrails focused on inflammation-friendly food choices. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to pick specific ingredients, or Create with Chef if you’d rather describe meals and snacks and let the Chef build them for you. Build one or multiple days, creating breakfast, lunch, dinner, and snacks while adjusting servings within anti-inflammatory guidelines. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are your primary focus macros and support recovery, energy, and overall balance. You can send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
+
     autoClose: true,
   },
 
@@ -336,7 +338,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create structured meals designed for performance and body composition.",
     spokenText:
-"The Beachbody Meal Builder works just like the other builders, with performance-focused guardrails to support training, recovery, and consistency. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to select specific ingredients, or Create With Chef if you’d rather describe your meals and snacks and let the Chef build them for you. Choose how many days you want to plan, then create breakfast, lunch, dinner, and snacks, adjusting portions to match your activity and goals. To save time, you can duplicate a full day across the week. As you build, send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
+    "The Beach Body Meal Builder works just like the other builders, with performance-focused guardrails to support training, recovery, and body composition. Start by choosing how you want to build your meals — use the AI Meal Creator if you want to select specific ingredients, or Create with Chef if you’d rather describe meals and snacks and let the Chef build them for you. Build one or multiple days, creating breakfast, lunch, dinner, and snacks while adjusting portions to match your activity level and goals. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are your primary focus macros and drive performance, recovery, and physique changes. You can send meals to your macro table to track nutrition or send ingredients straight to your shopping list. At the bottom of the page, you’ll see a color-coded progress bar showing whether you’re on track, close, or over, and when you’re ready, tap Save Day to lock everything into your Biometrics.",
+
     autoClose: true,
   },
 
@@ -376,7 +379,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build diabetic-friendly meals for your client using clinician-defined guardrails.",
     spokenText:
-      "This diabetic meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+      "This diabetic meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional or client, this is where meals are built based on predefined targets, protocols, and guidelines using either the AI Meal Creator to pick ingredients or Create with Chef to describe meals and snacks and let the Chef build them. Build one or multiple days by creating breakfast, lunch, dinner, and snacks while adjusting servings within the assigned guardrails. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are the primary focus macros and play the biggest role in performance, recovery, and consistent outcomes. You can send a full day to biometrics to log macros, send ingredients to the shopping list, or do both, and when you’re ready, save the day to lock everything into your client’s plan.",
     autoClose: true,
   },
 
@@ -386,7 +389,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create GLP-1–aligned meals for your client using appetite-aware guardrails.",
     spokenText:
-      "The GLP-1 meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+      "The GLP-1 meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional or client, this is where meals are built based on predefined targets, protocols, and guidelines using either the AI Meal Creator to pick ingredients or Create with Chef to describe meals and snacks and let the Chef build them. Build one or multiple days by creating breakfast, lunch, dinner, and snacks while adjusting servings within the assigned guardrails. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are the primary focus macros and play the biggest role in performance, recovery, and consistent outcomes. You can send a full day to biometrics to log macros, send ingredients to the shopping list, or do both, and when you’re ready, save the day to lock everything into your client’s plan.",
     autoClose: true,
   },
 
@@ -396,7 +399,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build inflammation-conscious meals for your client using targeted guardrails.",
     spokenText:
-      "This anti-inflammatory meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+      "This anti-inflammatory meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional or client, this is where meals are built based on predefined targets, protocols, and guidelines using either the AI Meal Creator to pick ingredients or Create with Chef to describe meals and snacks and let the Chef build them. Build one or multiple days by creating breakfast, lunch, dinner, and snacks while adjusting servings within the assigned guardrails. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are the primary focus macros and play the biggest role in performance, recovery, and consistent outcomes. You can send a full day to biometrics to log macros, send ingredients to the shopping list, or do both, and when you’re ready, save the day to lock everything into your client’s plan.",
     autoClose: true,
   },
 
@@ -406,7 +409,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create precision-based performance meals for your client using competition-level guardrails.",
     spokenText:
-      "The performance and competition meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional, this is where you build meals for your client based on the targets, protocols, and guidelines you’ve already defined, using either the AI Meal Creator to pick ingredients with the meal picker or Create With Chef to describe meals and snacks and let the Chef build them. You can build one or multiple days, adjust servings, and generate breakfast, lunch, dinner, and snacks, then send a full day to biometrics to log macros, send ingredients to the shopping list, or do both. If you’re the client, this is where you build your meals using your coach’s guidelines, following the targets shown at the bottom of the screen, creating your day with the AI Meal Creator or Create With Chef, and saving your meals to biometrics and your shopping list.",
+      "The performance and competition meal builder is used under ProCare to create meals using the guardrails set by a coach or physician. As a professional or client, this is where meals are built based on predefined targets, protocols, and guidelines using either the AI Meal Creator to pick ingredients or Create with Chef to describe meals and snacks and let the Chef build them. Build one or multiple days by creating breakfast, lunch, dinner, and snacks while adjusting servings within the assigned guardrails. As you build, you’ll notice Protein and Carbs are marked with an asterisk, because those are the primary focus macros and play the biggest role in performance, recovery, and consistent outcomes. You can send a full day to biometrics to log macros, send ingredients to the shopping list, or do both, and when you’re ready, save the day to lock everything into your client’s plan.",
     autoClose: true,
   },
 
@@ -445,4 +448,48 @@ export function getPageExplanation(pathname: string): PageExplanation | null {
 
 export function hasPageExplanation(pathname: string): boolean {
   return getPageExplanation(pathname) !== null;
+}
+
+const BUILDER_ROUTES = [
+  "/weekly-meal-board",
+  "/diabetic-menu-builder",
+  "/glp1-meal-builder",
+  "/anti-inflammatory-menu-builder",
+  "/beach-body-meal-board",
+  "/pro/clients/:id/diabetic-builder",
+  "/pro/clients/:id/glp1-builder",
+  "/pro/clients/:id/anti-inflammatory-builder",
+  "/pro/clients/:id/performance-competition-builder",
+  "/pro/clients/:id/general-nutrition-builder",
+];
+
+const MACRO_ASTERISK_EXPLANATION =
+  " Protein and Carbs are marked with an asterisk because they're your primary focus macros and have the biggest impact on energy, performance, and body composition.";
+
+export function isBuilderRoute(pathname: string): boolean {
+  for (const pattern of BUILDER_ROUTES) {
+    if (pattern.includes(":")) {
+      const regexPattern = pattern.replace(/:[\w]+/g, "[^/]+");
+      const regex = new RegExp(`^${regexPattern}$`);
+      if (regex.test(pathname)) return true;
+    } else if (pathname === pattern) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function getPageExplanationWithAsterisk(pathname: string): PageExplanation | null {
+  const base = getPageExplanation(pathname);
+  if (!base) return null;
+  
+  if (isBuilderRoute(pathname)) {
+    return {
+      ...base,
+      description: base.description + MACRO_ASTERISK_EXPLANATION,
+      spokenText: base.spokenText + MACRO_ASTERISK_EXPLANATION,
+    };
+  }
+  
+  return base;
 }
