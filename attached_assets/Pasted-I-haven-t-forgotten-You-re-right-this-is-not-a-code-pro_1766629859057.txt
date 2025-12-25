@@ -1,0 +1,235 @@
+I haven’t forgotten. You’re right — **this is not a code problem anymore**.
+This is a **TestFlight build/versioning problem**, and Apple is happily serving you an **old native shell** every time.
+
+I’m going to explain this **once**, cleanly, and then give you the **exact steps** to force TestFlight to give you the *new* app.
+
+---
+
+# 🔴 THE CORE TRUTH (NO FLUFF)
+
+**TestFlight does NOT auto-update your app shell.**
+
+Even if:
+
+* production web is updated ✅
+* staging is updated ✅
+* dev is updated ✅
+
+👉 **TestFlight will keep installing the last uploaded iOS build forever**
+until **you upload a NEW iOS build with a higher build number**.
+
+Right now:
+
+* Your TestFlight app is an **old Capacitor/Xcode wrapper**
+* That wrapper is pointing to old logic / old auth / old assumptions
+* So passwords fail, features are missing, nothing matches reality
+
+That’s why *nothing* you fixed shows up.
+
+---
+
+# 🚫 WHAT DOES NOT FIX THIS (IMPORTANT)
+
+These **do not** change TestFlight at all:
+
+* ❌ Deploying to Replit
+* ❌ Fixing backend auth
+* ❌ Updating production URL
+* ❌ Clearing cache
+* ❌ Reinstalling TestFlight app
+* ❌ Deleting the app from your phone
+
+TestFlight only updates when **Apple receives a new build**.
+
+---
+
+# ✅ THE ONLY WAY TO FIX THIS
+
+You must upload a **brand-new iOS build** to App Store Connect.
+
+Not reuse.
+Not reprocess.
+Not “refresh”.
+
+A **new build number**.
+
+---
+
+# 🧭 EXACT STEP-BY-STEP (DO THIS IN ORDER)
+
+## STEP 1 — Open the iOS project created by Capacitor
+
+On your Mac:
+
+1. Go to your project root
+2. Run (or verify you already did):
+
+```bash
+npx cap sync ios
+```
+
+3. Open **Xcode**
+4. Open:
+
+```
+ios/App/App.xcworkspace
+```
+
+⚠️ NOT `.xcodeproj`
+⚠️ MUST be `.xcworkspace`
+
+---
+
+## STEP 2 — FORCE A NEW BUILD NUMBER (THIS IS THE KEY)
+
+In Xcode:
+
+1. Click **App** (top left blue icon)
+2. Click **Targets → App**
+3. Go to **General**
+
+You will see:
+
+* **Version** (e.g. `1.0.0`)
+* **Build** (e.g. `12`)
+
+### 🔴 CHANGE THE BUILD NUMBER
+
+Increase it by at least **+1**.
+
+Example:
+
+* If Build = `12` → change to `13`
+
+👉 If you don’t do this, **Apple will ignore the upload**.
+
+---
+
+## STEP 3 — CONFIRM PRODUCTION URL IS WIRED
+
+In `capacitor.config.ts`, confirm:
+
+```ts
+server: {
+  url: "https://my-perfect-meals-production-do-not-touch--bigidrise.replit.app",
+  cleartext: false
+}
+```
+
+This ensures:
+
+* iOS loads your **current production app**
+* Not bundled old HTML
+
+If this is already correct, **do not change it**.
+
+---
+
+## STEP 4 — CLEAN BUILD (PREVENTS OLD ARTIFACTS)
+
+In Xcode menu:
+
+```
+Product → Clean Build Folder
+```
+
+(Shift + Command + K)
+
+---
+
+## STEP 5 — ARCHIVE A NEW BUILD
+
+In Xcode:
+
+1. Device selector → choose:
+   **Any iOS Device (arm64)**
+2. Menu:
+
+```
+Product → Archive
+```
+
+Wait for Organizer to open.
+
+---
+
+## STEP 6 — UPLOAD TO APP STORE CONNECT
+
+In Organizer:
+
+1. Select the new archive
+2. Click **Distribute App**
+3. Choose **App Store Connect**
+4. Upload
+5. Wait for success
+
+---
+
+## STEP 7 — WAIT FOR APPLE (5–20 MIN)
+
+Go to:
+
+* App Store Connect
+* Your app
+* TestFlight tab
+
+Wait until:
+
+* New build status = **Ready to Test**
+
+---
+
+## STEP 8 — INSTALL THE *CORRECT* BUILD
+
+On your iPhone:
+
+1. Open **TestFlight**
+2. Tap your app
+3. Confirm the **build number** matches the one you just uploaded
+4. Install
+
+If the build number didn’t change → you’re still on the old app.
+
+---
+
+# 🧪 HOW TO VERIFY YOU FINALLY HAVE THE NEW APP
+
+Once installed, ONE of these should be true:
+
+* Login works immediately
+* New macro asterisks appear
+* New guide text appears
+* Auth no longer crashes
+
+If **none** of that is true → you did not install the new build.
+
+---
+
+# 🧠 WHY THIS KEPT BURNING YOU
+
+Capacitor apps are **two layers**:
+
+1. Native iOS shell (TestFlight-controlled) ❌ outdated
+2. Web app (Replit-controlled) ✅ updated
+
+You fixed layer 2 perfectly.
+Layer 1 never changed.
+
+---
+
+# 🎯 TL;DR (PRINT THIS IN YOUR HEAD)
+
+> **TestFlight will NEVER update unless you upload a new build number from Xcode.**
+
+That’s it. No debate.
+
+---
+
+## NEXT MOVE (ONE LINE)
+
+Tell me:
+
+* what your **current TestFlight build number** is
+* what build number you’re about to upload
+
+I’ll stay with you until the **correct build installs**, then we move on.
