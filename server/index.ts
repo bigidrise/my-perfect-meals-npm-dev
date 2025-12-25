@@ -7,7 +7,6 @@ import express, {
   type Response,
   type NextFunction,
 } from "express";
-import session from "express-session";
 import path from "path";
 
 // Startup performance optimization
@@ -190,19 +189,6 @@ app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripe
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: false }));
-
-// Session middleware for authentication
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  }
-}));
 
 // Disable caching on macros endpoints to prevent stale 304s
 app.use((req, res, next) => {

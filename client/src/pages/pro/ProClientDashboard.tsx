@@ -23,29 +23,10 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 
 const CLIENT_DASHBOARD_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Set Macro Targets",
-    description:
-      "Configure calories, protein, carbs, and fat goals for your client.",
-  },
-  {
-    icon: "2",
-    title: "Add Clinical Notes",
-    description: "Document coaching notes or medical context for reference.",
-  },
-  {
-    icon: "3",
-    title: "Build Meal Plans",
-    description:
-      "Navigate to meal builders to create customized nutrition plans.",
-  },
-  {
-    icon: "4",
-    title: "Track Progress",
-    description:
-      "Monitor your client's adherence and adjust targets as needed.",
-  },
+  { icon: "1", title: "Set Macro Targets", description: "Configure calories, protein, carbs, and fat goals for your client." },
+  { icon: "2", title: "Add Clinical Notes", description: "Document coaching notes or medical context for reference." },
+  { icon: "3", title: "Build Meal Plans", description: "Navigate to meal builders to create customized nutrition plans." },
+  { icon: "4", title: "Track Progress", description: "Monitor your client's adherence and adjust targets as needed." }
 ];
 
 type ProRole =
@@ -118,12 +99,12 @@ export default function ProClientDashboard() {
 
   const saveTargets = () => {
     proStore.setTargets(clientId, t);
-
+    
     // Dispatch event to notify Biometrics page of target updates
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('mpm:targetsUpdated'));
     }
-
+    
     toast({
       title: "✅ Targets saved",
       description: "Macro targets updated successfully.",
@@ -198,13 +179,8 @@ export default function ProClientDashboard() {
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-            Client Dashboard
-          </h1>
-          <QuickTourButton
-            onClick={quickTour.openTour}
-            className="flex-shrink-0"
-          />
+          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Client Dashboard</h1>
+          <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
         </div>
       </div>
 
@@ -231,10 +207,7 @@ export default function ProClientDashboard() {
               <Settings className="h-5 w-5" /> Macro Targets
             </CardTitle>
           </CardHeader>
-          <CardContent
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3"
-            data-testid="form-client-macros"
-          >
+          <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="form-client-macros">
             <div>
               <label className="text-sm text-white/70 mb-1 block">
                 Protein (g)
@@ -490,7 +463,7 @@ export default function ProClientDashboard() {
                       "@/lib/macroResolver"
                     );
                     linkUserToClient(clientId, clientId);
-
+                    
                     toast({
                       title: "✅ Macros Set to Biometrics!",
                       description: `${t.kcal} kcal coach-set targets saved for ${client?.name}`,
@@ -853,29 +826,27 @@ export default function ProClientDashboard() {
             <Button
               onClick={() => {
                 localStorage.setItem("pro-client-id", clientId);
-                setLocation("/diabetic-hub");
+                setLocation(`/pro/clients/${clientId}/diabetic-builder`);
               }}
               className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-diabetic-hub"
             >
-              🩸 Diabetic Hub
+              🩸 Diabetic Menu Builder
             </Button>
             <Button
               onClick={() => {
                 localStorage.setItem("pro-client-id", clientId);
-                setLocation("/glp1-hub");
+                setLocation(`/pro/clients/${clientId}/glp1-builder`);
               }}
               className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-glp1-hub"
             >
-              💉 GLP-1 Hub
+              💉 GLP-1 Meal Builder
             </Button>
             <Button
               onClick={() => {
                 localStorage.setItem("pro-client-id", clientId);
-                setLocation(
-                  `/pro/clients/${clientId}/anti-inflammatory-builder`,
-                );
+                setLocation(`/pro/clients/${clientId}/anti-inflammatory-builder`);
               }}
               className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-anti-inflammatory-hub"
