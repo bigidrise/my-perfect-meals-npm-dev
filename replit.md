@@ -100,18 +100,27 @@ The Copilot system separates autoplay from manual invocation:
 
 ## AI Stability Architecture (Dec 2024) - Facebook-Level Stability
 
-The system now detects and reports silent degradation instead of pretending everything is fine.
+The system uses route-aware health monitoring that distinguishes between AI-required and deterministic routes.
 
 **Key Components:**
 - `server/services/schemaValidator.ts` - Validates required tables exist at startup
-- `server/services/aiHealthMetrics.ts` - Tracks generation source metrics (ai/cache/fallback/error)
+- `server/services/aiHealthMetrics.ts` - Tracks generation source metrics with route classification
 - `/api/health/ai` endpoint - Reports health status with release gates
 
+**Route Classification:**
+- **AI-Required Routes** (count toward health gate):
+  - `/api/meals/generate` - Unified endpoint (create-with-chef, snack-creator)
+  - `/api/meals/fridge-rescue` - Fridge rescue (uses OpenAI)
+- **Deterministic Routes** (excluded from health gate):
+  - `/api/meals/craving-creator` - Uses stableMealGenerator (by design)
+  - `/api/meals/ai-creator` - Uses stableMealGenerator
+  - `/api/meals/kids` - Uses stableMealGenerator with kidFriendly scope
+
 **Generation Sources (truthful tagging):**
-- `ai` - Real AI generation via OpenAI
-- `cache` - Cached AI-generated meal reused
-- `template` - Template-based generation
-- `catalog` / `fallback` - Deterministic fallback (counted as fallback)
+- `ai` - Real AI generation via OpenAI (primary success)
+- `cache` - Cached AI-generated meal reused (primary success)
+- `template` - Template-based generation (degraded, allowed)
+- `catalog` / `fallback` - Deterministic fallback (failure for AI routes)
 - `error` - Generation failed
 
 **Health Endpoint Response:**
@@ -119,7 +128,10 @@ The system now detects and reports silent degradation instead of pretending ever
 {
   "status": "ok|degraded|down",
   "schema": { "allTablesExist": true, "missingTables": [] },
-  "metrics": { "routes": { "/api/meals/craving-creator": { "fallbackRate": 0.0 } } },
+  "metrics": {
+    "aiRoutes": { "fallbackRate": 0, "totalRequests": 2, "hasErrors": false },
+    "routes": { "/api/meals/generate": { "routeType": "ai-required", "fallbackRate": 0 } }
+  },
   "releaseGates": {
     "schemaPassing": true,
     "noErrors": true,
