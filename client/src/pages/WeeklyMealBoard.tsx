@@ -118,6 +118,11 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
     icon: "6",
     title: "Track Progress at Bottom",
     description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics."
+  },
+  {
+    icon: "*",
+    title: "What the Asterisks Mean",
+    description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first."
   }
 ];
 
