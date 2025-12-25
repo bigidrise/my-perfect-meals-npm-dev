@@ -132,7 +132,7 @@ export function RemainingMacrosFooter({
               colorState={colorState.calories}
             />
             <MacroCell
-              label="Protein*"
+              label="Protein"
               remaining={remaining.protein}
               target={targets.protein_g}
               consumed={consumed.protein}
@@ -140,7 +140,7 @@ export function RemainingMacrosFooter({
               suffix="g"
             />
             <MacroCell
-              label="Carbs*"
+              label="Carbs"
               remaining={remaining.carbs}
               target={targets.carbs_g}
               consumed={consumed.carbs}

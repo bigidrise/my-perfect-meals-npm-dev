@@ -4,7 +4,6 @@ import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems } from "@shared/schema";
 import { db } from "./db";
@@ -1216,42 +1215,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload routes
   app.use("/api", uploadsRouter);
 
-  // Object Storage routes (presigned URL uploads)
-  registerObjectStorageRoutes(app);
-
-  // Profile photo update endpoint - supports both session and token auth
-  app.put("/api/users/profile-photo", async (req, res) => {
-    try {
-      // Support both session-based auth (mobile) and token-based auth
-      let userId = (req.session as any)?.userId as string | undefined;
-      
-      // Fall back to token auth if no session
-      if (!userId) {
-        const token = req.headers["x-auth-token"] as string;
-        if (token) {
-          const [user] = await db.select().from(users).where(eq(users.authToken, token)).limit(1);
-          userId = user?.id;
-        }
-      }
-      
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const { profilePhotoUrl } = req.body;
-      if (!profilePhotoUrl || typeof profilePhotoUrl !== "string") {
-        return res.status(400).json({ error: "profilePhotoUrl is required" });
-      }
-
-      await db.update(users).set({ profilePhotoUrl }).where(eq(users.id, userId));
-
-      res.json({ success: true, profilePhotoUrl });
-    } catch (error) {
-      console.error("Failed to update profile photo:", error);
-      res.status(500).json({ error: "Failed to update profile photo" });
-    }
-  });
-
   // DIRECT Holiday Feast route for debugging
   app.post("/api/meals/holiday-feast", async (req, res) => {
     console.log("🎯 DIRECT Holiday Feast route HIT! Body:", req.body);
@@ -1525,7 +1488,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trialEndsAt: user.trialEndsAt,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
-        profilePhotoUrl: user.profilePhotoUrl || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
