@@ -60,8 +60,10 @@ router.post("/api/auth/signup", async (req, res) => {
       isTester,
     }).returning();
 
-    // Set session cookie for mobile compatibility
-    (req.session as any).userId = newUser.id;
+    // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
+    if (req.session) {
+      (req.session as any).userId = newUser.id;
+    }
 
     console.log("✅ Created new user:", newUser.email, "ID:", newUser.id);
 
@@ -112,8 +114,10 @@ router.post("/api/auth/login", async (req, res) => {
       isTester,
     }).where(eq(users.id, user.id));
 
-    // Set session cookie for mobile compatibility
-    (req.session as any).userId = user.id;
+    // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
+    if (req.session) {
+      (req.session as any).userId = user.id;
+    }
 
     console.log("✅ User logged in:", user.email, "ID:", user.id);
 

@@ -9,13 +9,11 @@ const client = new Client({
 async function run() {
   await client.connect();
 
-  const email = process.argv[2];
-  if (!email) {
-    console.error("Usage: node reset-password.js you@example.com");
-    process.exit(1);
-  }
-
+  const email = 'bigidrise@gmail.com';
   const hash = '$2b$10$D2o66v0UZ.CxGY.vrCu7ierVlKYvKvWgDUnJDm0pevBtsalIbW8l6';
+
+  const db = await client.query('select current_database() as db;');
+  console.log('Database:', db.rows[0].db);
 
   const result = await client.query(
     `UPDATE users SET password = $1 WHERE email = $2 RETURNING email;`,
