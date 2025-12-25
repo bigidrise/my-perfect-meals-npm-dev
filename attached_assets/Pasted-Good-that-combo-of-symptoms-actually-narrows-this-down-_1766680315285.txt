@@ -1,0 +1,198 @@
+Good — that combo of symptoms actually narrows this down **hard**. And I’m going to be blunt:
+
+👉 **This is NOT iOS. This is your backend / generation layer.**
+
+Let’s walk it cleanly.
+
+---
+
+## What your results are telling us (no guessing)
+
+### Current state
+
+* ❌ **Production deployed app**
+
+  * Craving Creator ❌ fails
+  * Create with AI ❌ fails
+
+* 📱 **iOS app**
+
+  * Create with AI ✅ worked earlier
+  * Craving Creator ❌ failed
+  * Now Craving Creator ❌ fails everywhere
+
+That pattern means one thing:
+
+> **Your Craving Creator generation path is broken at the server level.**
+>
+> iOS is just exposing it faster because it’s hitting production directly and consistently.
+
+---
+
+## Why “Create with AI worked on iOS” doesn’t contradict this
+
+Two key reasons this can happen:
+
+### 1️⃣ Different endpoints or payloads
+
+Even if they *look* similar in the UI:
+
+* `CreateWithAI` may hit:
+
+  ```
+  POST /api/ai/generate
+  ```
+* `CravingCreator` may hit:
+
+  ```
+  POST /api/ai/craving
+  ```
+
+If **Craving Creator’s route, prompt builder, or validator breaks**, Create with AI can still work.
+
+Now that Create with AI is also failing in production:
+➡️ your **AI generation service or env config is now fully broken**, not just one feature.
+
+---
+
+### 2️⃣ Cached success ≠ healthy system
+
+The iOS “worked once” moment is classic:
+
+* cached auth
+* warm function
+* rate limit not hit yet
+* model fallback still alive
+
+Once that window closed, **everything collapsed consistently**.
+
+That’s backend, not UI.
+
+---
+
+## The smoking guns (ranked by probability)
+
+### 🔥 #1 — Production ENV variables
+
+Most common, by far.
+
+Check **production** (not staging, not local):
+
+* `OPENAI_API_KEY`
+* `AI_PROVIDER`
+* `MODEL_NAME`
+* any fallback flags
+
+If **one env var was renamed, removed, or redeployed empty**, every generator dies.
+
+> iOS doesn’t have its own key.
+> It borrows the backend’s lungs. No oxygen = everything passes out.
+
+---
+
+### 🔥 #2 — Prompt assembly failure (Craving Creator first to die)
+
+Craving Creator is usually:
+
+* longer prompt
+* more structured
+* more validation
+* more “Emotion AI” logic
+
+If:
+
+* one required field is `undefined`
+* one enum value changed
+* one guardrail throws
+
+👉 generation never even reaches OpenAI.
+
+That explains:
+
+* Craving Creator failing first
+* Create with AI following later
+
+---
+
+### 🔥 #3 — Silent server error (500 swallowed by UI)
+
+If your frontend shows:
+
+> “Failed to generate”
+
+but your server logs show:
+
+* 500
+* timeout
+* JSON parse error
+* model not found
+
+Then the UI is innocent. It’s just reporting a corpse.
+
+---
+
+## What this is NOT
+
+Let’s kill these ideas right now:
+
+❌ Not an Apple issue
+❌ Not TestFlight
+❌ Not Capacitor
+❌ Not iOS permissions
+❌ Not WebKit
+❌ Not ATS
+
+If it fails in **production web + iOS**, it’s **shared backend logic**.
+
+---
+
+## The fastest way to pinpoint it (do this in order)
+
+### Step 1 — Hit the endpoint manually
+
+From browser or curl:
+
+```
+POST /api/ai/craving
+```
+
+If it fails there → you’ve proven it’s server-side in 10 seconds.
+
+---
+
+### Step 2 — Check production logs
+
+You’re looking for:
+
+* `401` → bad API key
+* `429` → rate limit
+* `500` → code error
+* `model_not_found` → config drift
+* `Cannot read property of undefined` → payload issue
+
+---
+
+### Step 3 — Compare CreateWithAI vs CravingCreator code paths
+
+Ask:
+
+* Do they share the same `AIService`?
+* Does Craving Creator add extra validation?
+* Does it call Emotion AI before generation?
+
+Craving Creator is your canary in the coal mine. It dies first because it’s smarter.
+
+---
+
+## Bottom line (no sugarcoating)
+
+Your **Craving Creator backend logic or env config is broken in production**.
+iOS is just the messenger — don’t shoot it.
+
+If you want, paste:
+
+* the Craving Creator route
+* or the generation service
+* or the exact error message from logs
+
+And I’ll tell you **exactly** where the break is and how to fix it without nuking anything.
