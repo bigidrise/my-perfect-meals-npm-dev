@@ -645,7 +645,7 @@ export const CRAVING_PRESETS: CravingPreset[] = [
     baseServings: 1,
     ingredients: [
       { name: "strawberries", quantity: 6, unit: "each", notes: "halved" },
-      { name: "dark chocolate", quantity: 20, unit: "g", notes: "70%" },
+      { name: "dark chocolate", quantity: 0.75, unit: "oz", notes: "70%" },
       { name: "crushed almonds", quantity: 1, unit: "tsp", notes: "optional" }
     ],
     instructions: [
