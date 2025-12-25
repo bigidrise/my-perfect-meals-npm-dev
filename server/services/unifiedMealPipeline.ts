@@ -17,6 +17,7 @@ import { createIngredientSignature, hashSignature } from './ingredientSignature'
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType } from './guardrails';
+import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
 
 // Fallback images by meal type
 const FALLBACK_IMAGES: Record<string, string> = {
@@ -148,15 +149,20 @@ async function ensureImage(meal: Partial<UnifiedMeal>, mealType: string, useFall
 }
 
 /**
- * Convert FinalMeal ingredients to unified format
+ * Convert FinalMeal ingredients to unified U.S. format
+ * Uses the new ingredient normalizer that enforces U.S. measurements
  */
 function normalizeIngredients(ingredients: any[]): Array<{ name: string; quantity: string; unit: string }> {
   if (!ingredients || !Array.isArray(ingredients)) return [];
   
-  return ingredients.map(ing => ({
-    name: ing.name || '',
-    quantity: String(ing.quantity || ing.amount || 'as needed'),
-    unit: ing.unit || ''
+  // Use the new U.S. measurement normalizer
+  const normalized = normalizeIngredientsToUS(ingredients);
+  
+  // Convert to the format expected by UnifiedMeal (quantity instead of amount)
+  return normalized.map(ing => ({
+    name: ing.name,
+    quantity: ing.amount, // Map amount -> quantity for backward compat
+    unit: ing.unit
   }));
 }
 
