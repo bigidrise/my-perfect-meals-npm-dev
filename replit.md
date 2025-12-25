@@ -55,6 +55,13 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
   - `/api/meals/kids` → uses `kidsLunchboxV1Generate` (dedicated kid-friendly catalog)
   - All routes now return consistent `nutrition` object format
   - `stableMealGenerator.ts` is deprecated (DO NOT USE - has 69 broken definitions)
+- **U.S. Ingredient Contract (Dec 2024)**: Unified ingredient format across all meal generators
+  - Defined `Ingredient` interface in `shared/types.ts` with U.S.-only measurements
+  - Created `server/services/ingredientNormalizer.ts` to convert metric→U.S. and strip macros
+  - Updated AI prompts (promptBuilder.ts, dessert-creator.ts) to enforce oz/lb/cup/tbsp/tsp
+  - Integrated normalizer into unifiedMealPipeline and dessert-creator
+  - MealIngredientPicker defaults to "oz" (not "g")
+  - Restaurant generator uses string[] (ingredient names only) - different use case
 
 ## iOS Viewport Architecture (CRITICAL)
 RootViewport implements scroll containment to prevent iOS WKWebView bugs:
