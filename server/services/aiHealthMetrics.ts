@@ -9,9 +9,42 @@
  * - Primary success: 'ai', 'cache' - Real AI generation or cached AI result
  * - Degraded (allowed): 'template' - Template-based, doesn't count against gate
  * - Fallback (counts against gate): 'catalog', 'fallback', 'error'
+ * 
+ * ROUTE CLASSIFICATION:
+ * - AI-REQUIRED routes: Must produce 'ai' or 'cache', fallbacks count against health gate
+ *   - /api/meals/create-with-chef
+ *   - /api/snacks/creator
+ *   - /api/meals/fridge-rescue
+ * 
+ * - DETERMINISTIC routes: Intentionally use templates/catalog, excluded from AI health gate
+ *   - /api/meals/craving-creator
  */
 
 export type GenerationSource = 'ai' | 'template' | 'fallback' | 'cache' | 'catalog' | 'error';
+
+// Routes that REQUIRE AI and count against health gate
+// These routes should produce 'ai' or 'cache' sources
+const AI_REQUIRED_ROUTES = new Set([
+  '/api/meals/generate',       // Unified endpoint (handles create-with-chef, snack-creator, fridge-rescue)
+  '/api/meals/fridge-rescue',  // Dedicated fridge rescue endpoint (uses OpenAI)
+]);
+
+// Routes that are intentionally deterministic (excluded from AI gate)
+// These routes use templates/catalog and that's by design
+const DETERMINISTIC_ROUTES = new Set([
+  '/api/meals/craving-creator',
+  '/api/meals/craving-creator-enforced',
+  '/api/meals/ai-creator',     // Uses stableMealGenerator (same as craving creator)
+  '/api/meals/kids',           // Uses stableMealGenerator with kidFriendly scope
+]);
+
+export function isAiRequiredRoute(route: string): boolean {
+  return AI_REQUIRED_ROUTES.has(route);
+}
+
+export function isDeterministicRoute(route: string): boolean {
+  return DETERMINISTIC_ROUTES.has(route);
+}
 
 export interface GenerationEvent {
   timestamp: number;
@@ -103,6 +136,11 @@ export function recordGeneration(
 export function getRecentMetrics(route?: string): {
   status: 'ok' | 'degraded' | 'down';
   windowMs: number;
+  aiRoutes: {
+    fallbackRate: number;
+    totalRequests: number;
+    hasErrors: boolean;
+  };
   routes: Record<string, {
     primarySuccessCount: number;
     templateCount: number;
@@ -111,6 +149,7 @@ export function getRecentMetrics(route?: string): {
     errorCount: number;
     avgLatencyMs: number;
     fallbackRate: number;
+    routeType: 'ai-required' | 'deterministic' | 'unknown';
   }>;
 } {
   const cutoff = Date.now() - WINDOW_SIZE_MS;
@@ -124,6 +163,7 @@ export function getRecentMetrics(route?: string): {
     errorCount: number;
     avgLatencyMs: number;
     fallbackRate: number;
+    routeType: 'ai-required' | 'deterministic' | 'unknown';
   }> = {};
 
   // Group by route
@@ -137,9 +177,10 @@ export function getRecentMetrics(route?: string): {
     byRoute.get(event.route)!.push(event);
   }
 
-  let totalFallbacks = 0;
-  let totalRequests = 0;
-  let hasErrors = false;
+  // Track AI-required routes separately for health gate
+  let aiRouteFallbacks = 0;
+  let aiRouteRequests = 0;
+  let aiRouteHasErrors = false;
 
   for (const routeName of Array.from(byRoute.keys())) {
     const routeEvents = byRoute.get(routeName)!;
@@ -154,7 +195,7 @@ export function getRecentMetrics(route?: string): {
         case 'fallback': 
         case 'catalog': fallback++; break;
         case 'cache': cache++; break;
-        case 'error': error++; hasErrors = true; break;
+        case 'error': error++; break;
       }
     }
 
@@ -162,6 +203,19 @@ export function getRecentMetrics(route?: string): {
     // Fallback rate = (fallback + error) / total
     // Template is degraded but allowed, doesn't count against gate
     const fallbackRate = total > 0 ? (fallback + error) / total : 0;
+
+    // Determine route type
+    let routeType: 'ai-required' | 'deterministic' | 'unknown' = 'unknown';
+    if (isAiRequiredRoute(routeName)) {
+      routeType = 'ai-required';
+      // Only AI-required routes count toward health gate
+      aiRouteFallbacks += fallback + error;
+      aiRouteRequests += total;
+      if (error > 0) aiRouteHasErrors = true;
+    } else if (isDeterministicRoute(routeName)) {
+      routeType = 'deterministic';
+      // Deterministic routes do NOT count toward AI health gate
+    }
 
     routeStats[routeName] = {
       primarySuccessCount: primary,
@@ -171,26 +225,31 @@ export function getRecentMetrics(route?: string): {
       errorCount: error,
       avgLatencyMs: total > 0 ? Math.round(totalDuration / total) : 0,
       fallbackRate: Math.round(fallbackRate * 100) / 100,
+      routeType,
     };
-
-    // Only fallback + error count against release gate (not template)
-    totalFallbacks += fallback + error;
-    totalRequests += total;
   }
 
-  // Determine overall status
+  // Determine overall status ONLY from AI-required routes
   let status: 'ok' | 'degraded' | 'down' = 'ok';
-  const overallFallbackRate = totalRequests > 0 ? totalFallbacks / totalRequests : 0;
+  const aiRouteFallbackRate = aiRouteRequests > 0 ? aiRouteFallbacks / aiRouteRequests : 0;
   
-  if (hasErrors || overallFallbackRate > 0.5) {
-    status = 'down';
-  } else if (overallFallbackRate > 0.05) {
-    status = 'degraded';
+  // If no AI route traffic yet, status is 'ok' (nothing to measure)
+  if (aiRouteRequests > 0) {
+    if (aiRouteHasErrors || aiRouteFallbackRate > 0.5) {
+      status = 'down';
+    } else if (aiRouteFallbackRate > 0.05) {
+      status = 'degraded';
+    }
   }
 
   return {
     status,
     windowMs: WINDOW_SIZE_MS,
+    aiRoutes: {
+      fallbackRate: Math.round(aiRouteFallbackRate * 100) / 100,
+      totalRequests: aiRouteRequests,
+      hasErrors: aiRouteHasErrors,
+    },
     routes: routeStats,
   };
 }

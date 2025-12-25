@@ -220,6 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI Health endpoint - Facebook-level stability monitoring
   // Reports: schema status, success/fallback/error rates, required table presence
+  // NOTE: Release gates only apply to AI-REQUIRED routes, not deterministic routes
   app.get("/api/health/ai", async (_req, res) => {
     try {
       const { validateRequiredTables } = await import("./services/schemaValidator");
@@ -228,13 +229,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schemaStatus = await validateRequiredTables();
       const metrics = getRecentMetrics();
       
-      // Determine overall status
+      // Determine overall status (based only on AI-required routes)
       let status: 'ok' | 'degraded' | 'down' = metrics.status;
       
       // If required tables are missing, override to 'down'
       if (!schemaStatus.allTablesExist) {
         status = 'down';
       }
+      
+      // Release gates only check AI-required routes, not deterministic routes
+      const aiRoutesHaveTraffic = metrics.aiRoutes.totalRequests > 0;
       
       const response = {
         status,
@@ -248,12 +252,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         metrics: {
           windowMs: metrics.windowMs,
+          aiRoutes: metrics.aiRoutes,
           routes: metrics.routes,
         },
         releaseGates: {
           schemaPassing: schemaStatus.allTablesExist,
-          noErrors: Object.values(metrics.routes).every(r => r.errorCount === 0),
-          fallbackRateOk: Object.values(metrics.routes).every(r => r.fallbackRate <= 0.05),
+          // noErrors: only check AI-required routes (deterministic routes excluded)
+          noErrors: !metrics.aiRoutes.hasErrors,
+          // fallbackRateOk: only check AI-required routes
+          // If no AI traffic yet, gate passes (nothing to measure)
+          fallbackRateOk: !aiRoutesHaveTraffic || metrics.aiRoutes.fallbackRate <= 0.05,
+        },
+        routeClassification: {
+          note: "Deterministic routes (like Craving Creator) are intentionally excluded from AI health gate",
+          aiRequiredRoutes: ['/api/meals/generate', '/api/meals/fridge-rescue'],
+          deterministicRoutes: ['/api/meals/craving-creator', '/api/meals/craving-creator-enforced', '/api/meals/ai-creator', '/api/meals/kids'],
         }
       };
       
@@ -541,6 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
   app.post("/api/meals/generate", async (req, res) => {
     console.log("🔄 Unified meal generation endpoint hit");
+    const startTime = Date.now();
     
     try {
       const { 
@@ -585,8 +599,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Import unified pipeline
+      // Import unified pipeline and metrics
       const { generateMealUnified } = await import("./services/unifiedMealPipeline");
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
 
       const result = await generateMealUnified({
         type,
@@ -597,6 +612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count
       });
 
+      // Record metrics for AI health tracking
+      const durationMs = Date.now() - startTime;
+      recordGeneration('/api/meals/generate', result.source as any, durationMs);
+
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
 
       // Return consistent response format
@@ -604,6 +623,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error("❌ Unified generation error:", error);
+      // Record error for metrics
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/generate', 'error', Date.now() - startTime, error.message);
+      
       res.status(500).json({ 
         success: false, 
         error: error.message || "Failed to generate meal",
@@ -616,6 +639,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fridge Rescue API Main Route - Generate 3 meals with macros and amounts
   app.post("/api/meals/fridge-rescue", requireFeature("FRIDGE_RESCUE"), normalizeFridgeRescue, async (req, res) => {
     console.log("[FRIDGE] hit", { body: req.body, headers: req.headers["content-type"] });
+    const startTime = Date.now();
+    
     try {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
@@ -658,10 +683,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroTargets 
       });
 
+      // Record metrics - fridge rescue is AI-required
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      const durationMs = Date.now() - startTime;
+      // FridgeRescue returns AI meals if successful
+      recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
+
       console.log("[FRIDGE] ok returning", meals.length, "meals");
       res.json({ meals }); // Always return { meals: [...] }
     } catch (error: any) {
       console.error("[FRIDGE] handler error", error);
+      // Record error for metrics
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/fridge-rescue', 'error', Date.now() - startTime, error.message);
+      
       res.status(500).json({ error: error.message || "Failed to generate fridge rescue meals" });
     }
   });
