@@ -1,0 +1,65 @@
+Understood. Short, direct, **no solutioning**, just information-gathering. Here is the **exact prompt** you can copy-paste to the architect.
+
+---
+
+### **Architect Prompt: Image Generation & Persistence Audit**
+
+We are pausing all fixes and decisions until we fully understand the **current image generation and persistence behavior** across the app.
+
+**Context:**
+We’re seeing inconsistent image behavior across features. Some generated meal images persist when users return, while others disappear, downgrade to stock images, or fail entirely. This inconsistency is unacceptable for production and iOS review. Before defining a new image lifecycle or making changes, we need a factual audit of what the system is doing **right now**.
+
+**Goal:**
+Give us a clear, accurate picture of the current image lifecycle so we can decide on a single, consistent strategy moving forward.
+
+**Please document the following (no fixes yet):**
+
+1. **Where images are generated**
+
+   * AI Meal Creator
+   * Create With Chef
+   * Weekly Meal Board
+   * Find Meals / Find Your Meals
+   * Restaurant Guide
+   * Meals Near Me
+   * Any other feature that displays meal images
+
+2. **When images are generated**
+
+   * On preview, on meal creation, on save, on render, or other
+
+3. **How images are stored**
+
+   * Persisted vs temporary
+   * Stored on the meal record or elsewhere
+   * Signed URLs vs permanent URLs
+   * Any expiration behavior
+
+4. **What happens on reload**
+
+   * When a user leaves the app and returns later, where does the image come from for each feature?
+   * Is it rehydrated from saved data, regenerated, replaced, or defaulted to stock?
+
+5. **Fallback behavior**
+
+   * Where and when stock images are injected
+   * Whether fallback logic lives on the server, client, or both
+
+6. **Current inconsistencies**
+
+   * Why images persist in some areas (e.g., Find Meals, Restaurant Guide) but not others (e.g., Weekly Meal Board, Meals Near Me)
+
+7. **Your assessment**
+
+   * What parts of this are already correct
+   * What parts are fundamentally inconsistent
+   * Any risks or constraints we should be aware of before defining a unified image lifecycle
+
+Do **not** propose a final solution yet. This is an audit and assessment only. Once we understand the current state, we’ll decide on the image lifecycle together.
+
+---
+
+That’s it.
+No fluff, no premature design, no assumptions.
+
+When the architect responds, we’ll review **what’s already done**, **what’s broken**, and **what actually needs fixing**—once, the right way.
