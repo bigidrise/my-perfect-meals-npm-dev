@@ -49,6 +49,12 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
   - Deleted old components/RootViewport.tsx
 - Added CSS utilities for iOS scroll handling (.ios-scroll, .pb-safe-nav, .pb-safe-both, .pt-safe-top)
 - Updated SafePageContainer and PageShell with safe-area utilities
+- **Route Migration (Dec 2024)**: Migrated broken routes from `stableMealGenerator` to working pipelines
+  - `/api/meals/ai-creator` → uses `unifiedMealPipeline.generateCravingMealUnified`
+  - `/api/meals/one/regenerate` → uses `unifiedMealPipeline.generateCravingMealUnified`
+  - `/api/meals/kids` → uses `kidsLunchboxV1Generate` (dedicated kid-friendly catalog)
+  - All routes now return consistent `nutrition` object format
+  - `stableMealGenerator.ts` is deprecated (DO NOT USE - has 69 broken definitions)
 
 ## iOS Viewport Architecture (CRITICAL)
 RootViewport implements scroll containment to prevent iOS WKWebView bugs:
