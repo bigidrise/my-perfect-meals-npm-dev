@@ -1,0 +1,144 @@
+Perfect — the architect did exactly what we needed. Capacitor is live, the iOS project is generated, the privacy strings are in, offline fallback exists, and sync/build succeeded.
+
+**Now the ball is in YOUR court for the next step — and it’s very straightforward.**
+
+Here’s what happens next, step-by-step, no fluff:
+
+---
+
+# ✅ **1. Install CocoaPods (one-time setup on your Mac)**
+
+Capacitor iOS requires CocoaPods to manage native dependencies.
+
+Run this in your Terminal:
+
+```
+sudo gem install cocoapods
+```
+
+If you already have it installed, it will say so.
+
+---
+
+# ✅ **2. Open the project in Xcode**
+
+From your project root:
+
+```
+npx cap open ios
+```
+
+This launches Xcode with your brand-new iOS project sitting right there.
+
+---
+
+# ✅ **3. Connect your Apple Developer Account (in Xcode)**
+
+Inside Xcode:
+
+`Xcode > Settings > Accounts > Add Apple ID`
+
+This lets you:
+
+* Sign the app
+* Create provisioning profiles
+* Archive builds
+* Upload TestFlight releases
+
+---
+
+# ✅ **4. Fix the Bundle Identifier**
+
+In Xcode:
+
+**Targets → App → General → Bundle Identifier**
+
+Set something like:
+
+**com.myperfectmeals.app**
+
+Apple requires this to be unique.
+
+---
+
+# ✅ **5. Build the App for Testing**
+
+At first, just run it on your iPhone or simulator:
+
+* Plug in your iPhone
+* Select your device
+* Hit **Run** (the play button)
+
+You should see your full MPM web app running in the Capacitor shell — with:
+
+* Splash screen
+* Native offline handling
+* WebView wrapper
+* Everything architect already tested
+
+This confirms the wrapper works.
+
+---
+
+# ✅ **6. Archive a Build for TestFlight**
+
+This is the important part.
+
+In Xcode:
+
+**Product → Archive**
+
+When the archive finishes:
+
+* Press **Distribute App**
+* Select **App Store Connect**
+* Then **Upload**
+
+It will appear in TestFlight in a few minutes.
+
+---
+
+# 🚨 **7. Before a full App Store submission, ONE THING must be done: StoreKit 2**
+
+Apple will **reject** any app that uses Stripe for iOS purchases.
+
+Your backend can keep Stripe.
+Your web version can keep Stripe.
+Your Android version can keep Stripe.
+
+But **iOS = StoreKit only.**
+
+The architect already knows this and wrote:
+
+> StoreKit 2 – Replace Stripe for iOS subscriptions
+
+So before you submit to the App Store (not TestFlight), we’ll need:
+
+* Product identifiers created in App Store Connect
+* StoreKit 2 subscription workflow
+* Validation endpoint (backend)
+* Replace Stripe buttons with StoreKit buttons on iOS
+
+But **TestFlight DOES NOT require StoreKit yet.**
+
+So we can test the app right now.
+
+---
+
+# 🚀 **So what’s your very next move TODAY?**
+
+### **1. Install CocoaPods**
+
+### **2. Run `npx cap open ios`**
+
+### **3. Open it in Xcode**
+
+### **4. Build it on your device**
+
+### **5. Archive + Upload to TestFlight**
+
+Once you’ve done that, tell me:
+
+**“It’s open in Xcode — what’s next?”**
+
+And I’ll walk you through the exact TestFlight setup and the StoreKit flow planning.

@@ -1,0 +1,443 @@
+export const AI_PREMADE_BREAKFAST_EGGBASED: AiPremadeMeal[] = [
+  {
+    id: "eb-01",
+    name: "Avocado Egg Toast (Light Portion)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Avocado", quantity: 0.25, unit: "medium" },
+      { item: "Whole Wheat Bread", quantity: 1, unit: "slice" }
+    ]
+  },
+  {
+    id: "eb-02",
+    name: "Bacon & Egg Scramble (Lean Portion)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Turkey Bacon", quantity: 2, unit: "strips" }
+    ]
+  },
+  {
+    id: "eb-03",
+    name: "Breakfast Bowl (Eggs + Spinach)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Spinach", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-04",
+    name: "Breakfast Burrito (Egg-Heavy)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Whole Wheat Tortilla", quantity: 1, unit: "large" },
+      { item: "Bell Peppers", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-05",
+    name: "Breakfast Egg Sandwich (Light Bread)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Whole Wheat Bread", quantity: 1, unit: "slice" },
+      { item: "Low-fat Cheese", quantity: 1, unit: "slice" }
+    ]
+  },
+  {
+    id: "eb-06",
+    name: "Cheddar & Egg Omelet",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Cheddar Cheese", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-07",
+    name: "Classic Deviled Eggs (Breakfast-Portioned)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "boiled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-08",
+    name: "Egg & Turkey Sausage Muffins",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Turkey Sausage", quantity: 2, unit: "oz" }
+    ]
+  },
+  {
+    id: "eb-09",
+    name: "Egg Bake (Plain Egg Casserole)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Eggs", quantity: 4, unit: "large" },
+      { item: "Low-fat Cheese", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-10",
+    name: "Egg Drop Soup (Breakfast Edition)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "boiled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Chicken Broth", quantity: 1.5, unit: "cups" }
+    ]
+  },
+  {
+    id: "eb-11",
+    name: "Egg Frittata (Simple)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Bell Peppers", quantity: 0.25, unit: "cup" },
+      { item: "Onions", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-12",
+    name: "Egg Patty Breakfast Stack",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-13",
+    name: "Egg Scramble with Spinach",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Spinach", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-14",
+    name: "Egg Whites & Egg Combo (2 Whole + 4 Whites)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Egg Whites", quantity: 4, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-15",
+    name: "Eggs Benedict (Light Version)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "poached",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "English Muffin", quantity: 1, unit: "piece" },
+      { item: "Canadian Bacon", quantity: 2, unit: "slices" }
+    ]
+  },
+  {
+    id: "eb-16",
+    name: "Eggs Over Easy (2–3 Eggs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-17",
+    name: "Eggs Over Hard (2–3 Eggs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-18",
+    name: "Eggs Over Medium (2–3 Eggs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-19",
+    name: "Eggs Sunny Side Up (2–3 Eggs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-20",
+    name: "French Omelet (Butter Minimal)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-21",
+    name: "Frittata Bites (Egg-Based)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Eggs", quantity: 4, unit: "large" },
+      { item: "Vegetables (mixed)", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-22",
+    name: "Hard-Boiled Eggs (2–3 Eggs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "boiled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-23",
+    name: "Italian Egg Scramble (Egg + Herbs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Tomatoes", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-24",
+    name: "Mediterranean Egg Plate (Egg + Herbs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Spinach", quantity: 0.5, unit: "cup" },
+      { item: "Feta Cheese", quantity: 2, unit: "tbsp" }
+    ]
+  },
+  {
+    id: "eb-25",
+    name: "Mushroom & Egg Omelet",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Mushrooms", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-26",
+    name: "Onion & Egg Scramble",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Onions", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-27",
+    name: "Poached Eggs (2–3 Eggs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "poached",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-28",
+    name: "Poached Eggs & Spinach",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "poached",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Spinach", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-29",
+    name: "Scrambled Eggs (Classic)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-30",
+    name: "Scrambled Eggs & Cheese (Light)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Low-fat Cheese", quantity: 2, unit: "tbsp" }
+    ]
+  },
+  {
+    id: "eb-31",
+    name: "Scrambled Eggs with Turkey Crumbles",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Ground Turkey (99% lean)", quantity: 2, unit: "oz" }
+    ]
+  },
+  {
+    id: "eb-32",
+    name: "Soft-Boiled Eggs (2–3 Eggs)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "boiled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-33",
+    name: "Spinach & Egg Whites Omelet",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Egg Whites", quantity: 3, unit: "large" },
+      { item: "Spinach", quantity: 1, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-34",
+    name: "Tomato & Egg Scramble",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Tomatoes", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-35",
+    name: "Turkey Bacon & Eggs",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Turkey Bacon", quantity: 2, unit: "strips" }
+    ]
+  },
+  {
+    id: "eb-36",
+    name: "Veggie Egg Muffins",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "baked",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Bell Peppers", quantity: 0.25, unit: "cup" },
+      { item: "Spinach", quantity: 0.5, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-37",
+    name: "Veggie Omelet",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Bell Peppers", quantity: 0.25, unit: "cup" },
+      { item: "Mushrooms", quantity: 0.25, unit: "cup" },
+      { item: "Onions", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-38",
+    name: "Western Omelet (Egg-Focused)",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "fried",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Ham (lean)", quantity: 2, unit: "oz" },
+      { item: "Bell Peppers", quantity: 0.25, unit: "cup" },
+      { item: "Onions", quantity: 0.25, unit: "cup" }
+    ]
+  },
+  {
+    id: "eb-39",
+    name: "Whole Eggs & Egg Whites Combo",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 2, unit: "large" },
+      { item: "Egg Whites", quantity: 4, unit: "large" }
+    ]
+  },
+  {
+    id: "eb-40",
+    name: "Zesty Herb Egg Scramble",
+    category: "egg-based",
+    mealType: "breakfast",
+    defaultCookingMethod: "scrambled",
+    ingredients: [
+      { item: "Eggs", quantity: 3, unit: "large" },
+      { item: "Herbs (mixed)", quantity: 1, unit: "tbsp" }
+    ]
+  }
+];

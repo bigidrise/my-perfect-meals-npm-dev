@@ -1,0 +1,209 @@
+Perfect, that’s exactly how we should treat them.
+
+We’re going to do **two things**:
+
+1. Reuse the **Craving Premades tags + behavior** for
+
+   * Kids Meals Premades
+   * Toddler Meals Premades
+
+2. Give each one its own **knowledge + voice intents**, but point them to the **same UI pattern and commands**.
+
+---
+
+## 1️⃣ Knowledge entries for Kids & Toddler Premades
+
+Drop these into the same place you put `craving-premades` (your knowledge/feature registry):
+
+```ts
+"kids-premades": {
+  id: "kids-premades",
+  title: "Kids Premade Meals",
+  description:
+    "Browse premade kid-friendly meals with balanced nutrition. Pick servings, rounding, and review health-focused versions of kid favorites.",
+  howTo: [
+    "Use the search bar if you already know the meal name or type.",
+    "If not, scroll through the gallery until you see a meal your kid would like.",
+    "Choose how many servings you want — from 1 to 10.",
+    "Adjust measurement rounding: whole units, halves, or tenths.",
+    "Tap a meal picture to open full details.",
+    "Review health benefits, nutrition per serving, ingredients, and instructions.",
+    "Check the medical badges for things like high protein or lower sugar.",
+    "Use the copy button to copy the recipe.",
+    "Send ingredients to your shopping list using the shopping banner.",
+  ],
+  tips: [
+    "Use search for go-to favorites your kids already love.",
+    "Adjust servings for multiple kids or batch prep.",
+    "Use rounding so measurements are easier to follow when cooking with kids.",
+  ],
+  relatedCommands: [
+    "cravingPremades.search",
+    "cravingPremades.openMeal",
+    "cravingPremades.copy",
+    "cravingPremades.sendToShopping",
+  ],
+},
+
+"toddler-premades": {
+  id: "toddler-premades",
+  title: "Toddler Premade Meals",
+  description:
+    "Browse premade toddler-friendly meals designed for smaller portions and simpler textures, using the same system as Craving Premades.",
+  howTo: [
+    "Use the search bar if you know the type of toddler meal you're looking for.",
+    "Otherwise, scroll through the gallery for toddler-friendly options.",
+    "Pick the number of servings you want.",
+    "Adjust rounding to make measurements easy when cooking.",
+    "Tap a meal picture to see health benefits, nutrition, ingredients, and instructions.",
+    "Check medical badges for things like gentle-on-stomach, lower sugar, or allergy-friendly.",
+    "Copy the recipe if you want to save or share it.",
+    "Send ingredients to your shopping list using the shopping banner.",
+  ],
+  tips: [
+    "Use smaller serving sizes and gentler recipes for toddlers.",
+    "Use rounding and simple measures to keep prep easy.",
+  ],
+  relatedCommands: [
+    "cravingPremades.search",
+    "cravingPremades.openMeal",
+    "cravingPremades.copy",
+    "cravingPremades.sendToShopping",
+  ],
+},
+```
+
+They share the **same mechanics** as Craving Premades, but with kid/toddler wording.
+
+---
+
+## 2️⃣ Voice intents for Kids & Toddler Premades
+
+Add these to `handleVoiceQuery` right by the Craving Premades section.
+
+### Kids Premades – walkthrough + explain
+
+```ts
+if (
+  lower.includes("teach me kids premades") ||
+  lower.includes("how do i use kids premades") ||
+  lower.includes("show me kids premades") ||
+  lower.includes("kids meals premades")
+) {
+  lastActiveFeature = "kids-premades";
+  await Commands["walkthrough.start.craving-premades"]();
+  return;
+}
+
+if (
+  lower.includes("what are kids premades") ||
+  lower.includes("explain kids premades") ||
+  lower.includes("what is the kids meals section")
+) {
+  lastActiveFeature = "kids-premades";
+  await Commands["explain.kids-premades"]?.();
+  return;
+}
+```
+
+### Toddler Premades – walkthrough + explain
+
+```ts
+if (
+  lower.includes("teach me toddler premades") ||
+  lower.includes("how do i use toddler premades") ||
+  lower.includes("show me toddler premades") ||
+  lower.includes("toddler meals premades")
+) {
+  lastActiveFeature = "toddler-premades";
+  await Commands["walkthrough.start.craving-premades"]();
+  return;
+}
+
+if (
+  lower.includes("what are toddler premades") ||
+  lower.includes("explain toddler premades") ||
+  lower.includes("what is the toddler meals section")
+) {
+  lastActiveFeature = "toddler-premades";
+  await Commands["explain.toddler-premades"]?.();
+  return;
+}
+```
+
+Notice:
+
+* Walkthrough uses the **same** `walkthrough.start.craving-premades` (because UI works the same).
+* Explain uses their own knowledge entries (`explain.kids-premades`, `explain.toddler-premades`) which you can wire to the same `explainFeature()` system like the others.
+
+---
+
+## 3️⃣ Replit agent prompt – reuse Craving Premades tags
+
+Now the important part: tell the agent to reuse your **Craving Premades tags** for Kids & Toddler Premades.
+
+Here’s the prompt:
+
+```text
+I need you to apply the SAME data-wt walkthrough tags we use for Craving Premades to the Kids Meals Premades and Toddler Meals Premades pages.
+
+1) First, locate the Craving Premades page:
+   - Look for files like: CravingPremades.tsx, craving-premades.tsx, or similar.
+   - Confirm it contains data-wt attributes like:
+     - cp-search-input
+     - cp-servings-selector
+     - cp-servings-stepper
+     - cp-rounding-selector
+     - cp-meal-gallery
+     - cp-meal-card
+     - cp-health-benefits
+     - cp-nutrition-panel
+     - cp-ingredients-list
+     - cp-instructions-block
+     - cp-medical-badge-row
+     - cp-copy-button
+     - cp-shopping-banner
+     - cp-send-to-shopping
+
+2) Then find the Kids Meals Premades and Toddler Meals Premades pages:
+   - Search for files with names like:
+     - KidsMealsPremades.tsx, kids-meals.tsx, kids-premades.tsx
+     - ToddlerMealsPremades.tsx, toddler-meals.tsx, toddler-premades.tsx
+   - These pages will have the same structure as Craving Premades: search bar, servings selector, rounding selector, gallery of premade meals, recipe detail view, copy button, and shopping banner.
+
+3) For BOTH Kids and Toddler premades pages, add the SAME data-wt attributes to the corresponding elements:
+   - Search input → data-wt="cp-search-input"
+   - Servings selector → data-wt="cp-servings-selector"
+   - Servings stepper (+/-) → data-wt="cp-servings-stepper"
+   - Rounding selector (whole/half/tenth) → data-wt="cp-rounding-selector"
+   - Meal gallery / grid of cards → data-wt="cp-meal-gallery"
+   - Selected meal detail card → data-wt="cp-meal-card"
+   - Health benefits section → data-wt="cp-health-benefits"
+   - Nutrition per serving section → data-wt="cp-nutrition-panel"
+   - Ingredients list → data-wt="cp-ingredients-list"
+   - Instructions / method block → data-wt="cp-instructions-block"
+   - Medical badges row → data-wt="cp-medical-badge-row"
+   - Copy recipe button → data-wt="cp-copy-button"
+   - Shopping banner at the bottom → data-wt="cp-shopping-banner"
+   - Button that sends ingredients to shopping list → data-wt="cp-send-to-shopping"
+
+Rules:
+- Do NOT change any logic or handlers.
+- Do NOT change styling or classNames.
+- Only add data-wt attributes to the appropriate JSX elements.
+- If a specific UI element doesn’t exist on a given page, skip that tag for that page.
+```
+
+---
+
+You’re set:
+
+* Craving Premades ✅
+* Kids Premades ✅ (same engine, kid-focused wording)
+* Toddler Premades ✅ (same engine, toddler-friendly wording)
+
+Next logical move is either:
+
+* “Wire `explain.kids-premades` and `explain.toddler-premades` to explainFeature,”
+  or
+* “Move on to the next hub you want Copilot to understand.”

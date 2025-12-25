@@ -1,0 +1,326 @@
+Here we go, Coach — **PHASE 3.4: BEACHBODY GUARDRAILS** — the most *dynamic*, *phase-dependent*, and *body-recomposition-focused* builder you have.
+
+This prompt will give the architect **the exact rules, macros, restrictions, substitutions, and behavioral logic** needed so Create With Chef + Snack Creator generate ONLY meals that match BeachBody/Body Physique protocol.
+
+This is the **competition-lite builder**, but NOT as strict as full Performance mode.
+You nailed the order — THIS is exactly where it belongs.
+
+Let’s lock this in cleanly.
+
+---
+
+# ✅ **ARCHITECT PROMPT — PHASE 3.4: BEACHBODY GUARDRAILS**
+
+**Architect — GLP-1 Guardrails are complete.
+Begin Phase 3.4: BeachBody Guardrails.
+Load full context: Create With Chef, Snack Creator, unified MealCard system, and previous guardrail phases.**
+
+---
+
+# 🎯 **WHY WE ARE DOING THIS (High-Level)**
+
+BeachBody (Body Physique) users follow **lean physique / recomposition rules** that differ from:
+
+* Medical diets
+* Performance diets
+* Anti-inflammatory diets
+* GLP-1 diets
+
+BeachBody users need:
+
+* Meals optimized for aesthetics
+* Body-fat reduction
+* Lean mass retention
+* Tight macro control
+* Phase-specific dietary patterns
+* Fat-limited cooking
+* High protein
+* Moderated carbs
+* Clean ingredients
+* Zero “diet spoilers”
+
+**AI meals MUST match the BeachBody philosophy and macros of the active phase.**
+
+This is a lifestyle physique program — NOT general fitness and NOT competition prep.
+
+---
+
+# 🔥 **THE BEACHBODY GUARDRAIL SYSTEM**
+
+BeachBody is **PHASE-DEPENDENT**, meaning each user may be in one of several phases:
+
+* PHASE 1: Leaning / Fat Loss
+* PHASE 2: Carb Control
+* PHASE 3: Balance / Maintenance
+* PHASE 4: Muscle Sculpt (mild bulk)
+
+The architect must detect the active phase via:
+
+```
+dietType: "beachbody"
+dietPhase: "lean" | "carb-control" | "maintenance" | "sculpt"
+```
+
+These values already exist inside the builder state — the architect must pass them into the generation request.
+
+---
+
+# 🧩 **PHASE-BY-PHASE GUARDRAIL LOGIC**
+
+---
+
+## **PHASE 1 — Lean / Fat Loss**
+
+Goal: **Lose fat while maintaining muscle**
+
+### ❌ Avoid
+
+* Fried foods
+* High-calorie sauces
+* Cheese-heavy dishes
+* Cream sauces
+* Pasta (unless protein pasta)
+* White rice
+* High-fat meats
+* Added sugars
+* Butter
+
+### ✔ Prefer
+
+* Lean proteins (chicken, turkey, egg whites, fish)
+* Moderate carbs
+* High vegetables
+* Minimal oils
+* Air-fry, grill, roast, steam
+* Protein wraps, lettuce wraps
+* Cauliflower rice, quinoa (limited), sweet potato (very small)
+
+### Macro Target
+
+* **High protein**
+* **Low fat**
+* **Moderate carbs**
+* Calorie density controlled
+
+---
+
+## **PHASE 2 — Carb-Control Phase**
+
+Goal: **Reset insulin sensitivity / accelerate fat loss**
+
+### ❌ Avoid
+
+* Bread
+* Pasta
+* Rice
+* Tortillas
+* Potatoes
+* Sugary fruits (banana, mango, pineapple)
+
+### ✔ Prefer
+
+* Lean meats
+* Low-carb vegetables
+* Cauliflower rice
+* Zucchini noodles
+* High-protein wraps
+* Berries only
+
+### Macro Target
+
+* **High protein**
+* **Lower carbs**
+* **Moderate fats**
+
+Meals should look **keto-adjacent but not deep keto**.
+
+---
+
+## **PHASE 3 — Balance / Maintenance**
+
+Goal: **Sustain look, sustainable routines**
+
+### ✔ Wider flexibility allowed
+
+### ❌ Still no junk foods
+
+Macros:
+
+* Balanced: protein / carbs / fats
+* Clean whole ingredients
+
+### ✔ Include
+
+* Brown rice
+* Quinoa
+* Whole-wheat pasta
+* Sweet potatoes
+* Fruit
+* Lean meats
+
+### ❌ Avoid
+
+* Creamy foods
+* Heavy desserts
+* Excess cheese
+* Fried foods
+
+---
+
+## **PHASE 4 — Muscle Sculpt / Mild Bulk**
+
+Goal: **Increase lean mass with clean, controlled calories**
+
+### ✔ Prefer
+
+* Higher carbs
+* Higher calories
+* Lean proteins
+* Clean carbs: oats, sweet potato, brown rice, quinoa, fruit
+
+### ❌ Avoid
+
+* Ultra-processed foods
+* Heavy sugars
+* Fat bombs
+* Greasy foods
+
+Macros:
+
+* **High protein**
+* **Higher carbs**
+* **Moderate fats**
+* Portion sizes larger
+
+---
+
+# 🔧 **HOW TO IMPLEMENT (Architect Instructions)**
+
+## **1️⃣ Add Phase-Aware Guardrails to Generation Pipeline**
+
+When:
+
+```
+dietType: "beachbody"
+dietPhase: "<phase>"
+```
+
+The system must:
+
+### Pre-filter ingredients
+
+Remove all foods forbidden for that phase.
+
+### Rewrite the AI generation prompt to enforce:
+
+* Proper macro ratios
+* Proper volume
+* Proper ingredient sets
+* Proper substitutions
+* Proper cooking methods
+
+### Validate post-generation
+
+Reject and regenerate meals that violate:
+
+* Fat limits (phases 1 & 2)
+* Carbs limits (phase 2)
+* Calorie limits (phase 1)
+* Ingredient rules (all)
+* Portion sizes
+
+---
+
+## **2️⃣ MealCard Output Must Remain EXACTLY THE SAME**
+
+NO formatting changes.
+
+Meals must include:
+
+* DALL-E image
+* Expanded ingredients
+* Precise macros
+* Clear instructions
+* Correct serving size
+* Perfect MealCard structure
+
+---
+
+## **3️⃣ Snack Creator Guardrails**
+
+Snack Creator MUST enforce BeachBody rules.
+
+### Snacks Allowed:
+
+* Greek yogurt
+* Cottage cheese
+* Protein shakes
+* Small fruit (berries, apple)
+* Rice cakes (phase 3–4)
+* Low-carb snacks (phase 2)
+* High-protein snacks (phase 1 & 2)
+
+### Snacks NOT allowed:
+
+* Cookies
+* Candy
+* Chips
+* Granola bars
+* Fat-heavy snacks
+* Bakery items
+* Creamy treats
+
+Snacks must ALWAYS match the active phase.
+
+---
+
+## **4️⃣ Affected Builders**
+
+Apply BeachBody Guardrails ONLY to:
+
+* **BeachBodyMealBoard** (meals)
+* All snack rows inside BeachBody builder
+
+Do NOT apply to:
+
+* Weekly
+* General Nutrition
+* Anti-inflammatory
+* Diabetic
+* GLP-1
+* Performance
+* ProCare
+
+Those are separate guardrail phases.
+
+---
+
+# 🎯 **SUCCESS CRITERIA — Phase 3.4 Completion Requirements**
+
+A BeachBody user must receive meals/snacks that:
+
+### ✔ Match the active phase rules
+
+### ✔ Never include restricted ingredients
+
+### ✔ Support fat loss / recomposition / sculpting
+
+### ✔ Use correct macro patterns
+
+### ✔ Reflect portion guidelines
+
+### ✔ Generate full, complete meal cards
+
+### ✔ Never violate BeachBody dietary philosophy
+
+Once implemented, we move on to **PHASE 3.5 — General Nutrition Guardrails.**
+
+---
+
+# 🏁 **Architect — begin Phase 3.4 now and confirm when BeachBody guardrails are active for both meals and snacks.**
+
+---
+
+Coach — when you're ready for **PHASE 3.5 (General Nutrition)**, just say:
+
+**“Next.”**

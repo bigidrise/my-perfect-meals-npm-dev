@@ -1,0 +1,100 @@
+📝 READY-MADE PROMPT FOR THE REPLIT ASSISTANT
+
+Copy–paste this to the Replit assistant:
+
+I need you to wire up my Stripe subscription system cleanly.
+Tech stack: Node.js + Express backend, Drizzle ORM with Postgres (Neon), React frontend.
+
+What’s already done:
+
+I have a PricingPage component with plan buttons that call startCheckout(sku, { context: "pricing_page" }).
+
+I have planSkus.ts with these LookupKeys:
+mpm_basic_monthly, mpm_premium_monthly, mpm_premium_beta_monthly, mpm_ultimate_monthly,
+mpm_family_base_monthly, mpm_family_all_premium_monthly,
+mpm_family_all_ultimate_monthly, mpm_procare_monthly.
+
+I have server/routes/stripeWebhook.ts already created (Stripe webhook handler).
+
+Stripe products + prices exist in my Stripe dashboard, with matching SKUs and metadata.
+
+What I need you to do:
+
+Enable the plan buttons on PricingPage
+
+Remove disabled={true} from the plan buttons so users can click them.
+
+Implement the frontend checkout helper
+
+In client/src/lib/checkout.ts, implement startCheckout(sku, { context }) so it:
+
+POSTs to /api/stripe/checkout with { sku, context }
+
+Redirects window.location.href to the url returned from the backend.
+
+Create the Stripe price mapping config
+
+Add server/config/stripePrices.ts (or similar) that exports a STRIPE_PRICE_IDS map:
+LookupKey -> Stripe price_ ID.
+
+Use placeholder price IDs for now; I will fill in the real price_... values.
+
+Create or fix the checkout route
+
+File: server/routes/stripeCheckout.ts
+
+POST /api/stripe/checkout:
+
+Requires auth (use my existing auth middleware so req.user is available with id and email).
+
+Reads { sku, context } from the body.
+
+Uses STRIPE_PRICE_IDS[sku] to get the price ID.
+
+Creates a Stripe Checkout Session in subscription mode.
+
+Sets metadata.userId and metadata.sku.
+
+Uses process.env.FRONTEND_URL for success_url and cancel_url.
+
+Returns { url: session.url } to the frontend.
+
+Wire the routes correctly in server/index.ts
+
+Make sure the Stripe webhook route uses express.raw({ type: "application/json" }) for /api/stripe/webhook.
+
+After that, enable express.json() for the rest of the app.
+
+Mount the checkout router so /api/stripe/checkout is active.
+
+Fix any incorrect imports like ./routes/stripe.checkout vs ./routes/stripeCheckout.
+
+Verify the webhook handler
+
+In server/routes/stripeWebhook.ts, keep the existing logic. Confirm:
+
+It reads metadata.userId and metadata.sku.
+
+It calls updateUserSubscription({ userId, lookupKey: sku, stripeCustomerId, stripeSubscriptionId }).
+
+It logs a success message on activation.
+
+Verify the subscription service
+
+In server/services/subscriptionService.ts, make sure:
+
+It uses Drizzle to update the users table.
+
+It sets planLookupKey, stripeCustomerId, stripeSubscriptionId for the given userId.
+
+Adjust field names based on my actual users schema (open the schema file to confirm).
+
+Do NOT change unrelated business logic, UI, or features. Focus only on wiring the Stripe checkout + webhook flow end-to-end so that:
+
+Clicking a plan on the Pricing page:
+→ hits /api/stripe/checkout
+→ redirects to Stripe Checkout
+→ after payment, Stripe posts to /api/stripe/webhook
+→ my user in the database has their planLookupKey updated based on sku.
+
+Once you’re done, summarize exactly what you changed (files + key functions), so I can run a 4242 test payment manually.

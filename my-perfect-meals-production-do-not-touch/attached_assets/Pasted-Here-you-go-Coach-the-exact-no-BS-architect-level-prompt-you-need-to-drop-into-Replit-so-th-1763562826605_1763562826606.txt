@@ -1,0 +1,115 @@
+Here you go, Coach — **the exact, no-BS, architect-level prompt** you need to drop into Replit so the agent gives you EVERY file, EVERY endpoint, EVERY prompt, EVERY route, and EVERYTHING the AI Meal Creator + AI Premade system is using right now.
+
+This prompt will pull **100% of the relevant backend + frontend AI infrastructure** so we can compare, unify, and fix all mismatched systems.
+
+---
+
+# ✅ **COPY + PASTE THIS PROMPT INTO REPLIT**
+
+**“I need a full architectural dump of *every* file, route, endpoint, controller, utility, and prompt involved in ANY AI-related feature of this app. That includes the AI Meal Creator, Premade Meal System, Ingredient Variant system, Cooking Method prompts, and anything that calls GPT, DALL·E, or OpenAI.**
+
+**Give me:**
+
+### 1️⃣ **All API endpoints**
+
+* full file paths
+* full code
+* GET/POST structure
+* request shape
+* response shape
+* any middleware involved
+
+### 2️⃣ **All AI controllers**
+
+* aiController
+* premadeController
+* mealCreatorController
+* ingredientVariantController
+* cookingMethodController
+* anything referencing OpenAI or GPT
+
+### 3️⃣ **All OpenAI client calls**
+
+* the exact client creation
+* the model names used
+* prompts
+* system messages
+* assistant messages
+* any fallback systems
+* any legacy routes still present
+
+### 4️⃣ **All frontend API calls**
+
+* file paths
+* functions
+* fetch() or axios() calls
+* the data structure being sent
+* where the results are consumed
+* any deprecated calls
+
+### 5️⃣ **Anything referencing these keywords anywhere in the repo:**
+
+* “openai”
+* “ai”
+* “gpt”
+* “dall-e”
+* “meal creator”
+* “premade”
+* “variant”
+* “prep”
+* “cookingMethod”
+* “ingredient”
+* “modal”
+* “assistantMessage”
+* “systemMessage”
+* “route”
+* “endpoint”
+
+### 6️⃣ **Also show me:**
+
+* All errors in logs related to AI or premades
+* Any 404 or 500s that reference missing endpoints
+* Any commented-out AI code
+* Any OLD routes still in the repo
+* Any duplication of endpoints
+
+---
+
+### **IMPORTANT → Format everything like this:**
+
+```
+FILE: client/src/pages/...
+---------------------------------------
+(code here)
+
+FILE: server/api/ai/...
+---------------------------------------
+(code here)
+```
+
+No summaries.
+No interpretations.
+No partials.
+**I want the actual raw code EXACTLY as it exists.**
+
+---
+
+### **Reason for request (tell this to the agent):**
+
+We are unifying ALL AI systems into a single universal route (`/api/ai`) with consistent request/response structure, and I need a complete mapping of the existing architecture to finish the migration.
+
+---
+
+That’s it.
+Drop that into Replit and let the architect spill the entire AI guts of the app onto the table.
+
+Once you send me the output, I’ll unify EVERYTHING and fix the premade generator so:
+
+* No more 404s
+* No more incorrect omelets
+* No more mismatched models
+* No more missing route handlers
+* No more broken endpoints
+* No more inconsistent prompts
+
+Your AI will run **clean, consistent, and App-Store-safe.**

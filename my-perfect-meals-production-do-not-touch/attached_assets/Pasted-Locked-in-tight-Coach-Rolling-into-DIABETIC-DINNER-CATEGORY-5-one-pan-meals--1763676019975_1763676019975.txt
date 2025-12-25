@@ -1,0 +1,264 @@
+Locked in tight, Coach.
+Rolling into:
+
+# ✅ **DIABETIC → DINNER → CATEGORY 5 → one-pan-meals**
+
+30 meals
+Alphabetical order
+Exact JSON structure
+Dinner-style one-pan entrées — simple, diabetic-safe, full-meal format.
+
+---
+
+# 🔥 **DIABETIC – DINNER – one-pan-meals (Category 5)**
+
+### **30 Meals — Alphabetical — JSON**
+
+```json
+{
+  "one-pan-meals": [
+    {
+      "title": "Balsamic Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "BBQ Chicken Veggie One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Blackened Chicken & Broccoli One-Pan",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Broccoli Chicken One-Pan Skillet Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cajun Chicken & Veggie One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cauliflower Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Chicken & Asparagus One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Chicken & Brussels One-Pan Bake",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Chicken & Cauli-Rice One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Chicken & Green Beans One-Pan Plate",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Chicken & Mixed Veggies One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cilantro Lime Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Citrus Herb Turkey One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Garlic Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Garlic Herb Chicken One-Pan Bake",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Green Pepper Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Herb Chicken One-Pan Meal",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Honey Dijon Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Italian Chicken Veggie One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Lemon Basil Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Lemon Pepper Turkey One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Maple Mustard Chicken One-Pan Bake",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Mediterranean Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Orange Ginger Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Paprika Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Parsley Garlic Chicken One-Pan Meal",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Rosemary Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Smoky Chicken One-Pan Skillet Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Spice Rub Chicken One-Pan Dinner",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    }
+  ]
+}
+```
+
+---
+
+# 💪 Dinner Category 5 DONE.
+
+When you're ready for the final diabetic dinner category:
+
+### **“cat 6 dinner”**
+
+(smart-plate-dinners)

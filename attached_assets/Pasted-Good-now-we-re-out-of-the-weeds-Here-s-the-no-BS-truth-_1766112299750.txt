@@ -1,0 +1,236 @@
+Good — now we’re out of the weeds. Here’s the **no-BS truth** and the **exact fix path**. Follow this **line by line**.
+
+---
+
+## THE DIAGNOSIS (READ THIS FIRST)
+
+What you’re seeing means **the fix did NOT actually take effect in the iOS WebView**.
+
+That tells us **one of only three things** is true:
+
+1. The **CSS + layout fix is incomplete**
+2. The **safe-area padding is being applied twice**
+3. The **Capacitor WebView is still allowed to scroll**
+
+This is **100% fixable**. You do **not** need Xcode builds.
+You **do** need to make sure the WebView has **exactly ONE scroll container**.
+
+---
+
+## THE RULE (Non-Negotiable on iOS)
+
+On iOS WebView:
+
+> **The BODY must NEVER scroll. Ever.**
+
+If `body` scrolls, the **entire viewport moves** — including the safe area.
+That’s the bug you’re seeing.
+
+---
+
+## STEP 1 — HARD LOCK THE BODY (DO THIS FIRST)
+
+Open this file in **DEV Replit**:
+
+```
+client/src/index.css
+```
+
+Add this **AT THE VERY BOTTOM** (not somewhere in the middle):
+
+```css
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+```
+
+⚠️ If this already exists anywhere else → **delete the old version**.
+There must be **ONE** definition.
+
+---
+
+## STEP 2 — ENSURE ONLY ONE SCROLL CONTAINER EXISTS
+
+Search your project for:
+
+```
+overflow-y: auto
+overflow-y: scroll
+```
+
+You should have **exactly ONE** scroll container for the app shell.
+
+### The correct pattern (copy this mentally):
+
+```tsx
+<div className="ios-scroll-container">
+  {/* page content */}
+</div>
+```
+
+And the CSS:
+
+```css
+.ios-scroll-container {
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+```
+
+🚫 **Do NOT**:
+
+* Put `overflow` on `body`
+* Put `overflow` on `#root`
+* Put `overflow` on page wrappers AND layout wrappers
+
+One scroll container. Period.
+
+---
+
+## STEP 3 — FIX SAFE-AREA DOUBLE PADDING (THIS IS KEY)
+
+Search for:
+
+```
+env(safe-area-inset-top)
+```
+
+If you see it in **more than one place**, you found the bug.
+
+### Correct usage (ONLY ONE PLACE):
+
+Usually in your **top layout wrapper**, e.g.:
+
+```css
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+```
+
+🚫 Do NOT:
+
+* Apply it in global CSS AND component CSS
+* Apply it on both header AND container
+
+Double padding = banner drops when pulled.
+
+---
+
+## STEP 4 — LOCK CAPACITOR SCROLLING (MANDATORY)
+
+Open:
+
+```
+capacitor.config.ts
+```
+
+Make sure **iOS config looks exactly like this**:
+
+```ts
+ios: {
+  scrollEnabled: false,
+  contentInset: 'never',
+}
+```
+
+If `scrollEnabled` is missing or `true` → that’s your problem.
+
+---
+
+## STEP 5 — BAN 100vh (THIS CAUSES WOBBLE)
+
+Search for:
+
+```
+100vh
+```
+
+Replace **ALL** of them with:
+
+```
+100dvh
+```
+
+On iOS:
+
+* `100vh` ≠ actual viewport
+* causes pull-down stretch + misalignment
+
+---
+
+## STEP 6 — DEPLOY PROPERLY (NO MAC TERMINAL)
+
+Back in **DEV Replit terminal**:
+
+```bash
+git status
+git add -A
+git commit -m "Fix iOS WebView scroll + safe-area locking"
+git push origin main
+```
+
+Then:
+
+* Promote main → production (your normal flow)
+* Let production redeploy
+
+---
+
+## STEP 7 — FORCE iOS TO USE THE NEW BUILD
+
+This part matters.
+
+1. **Delete the app again**
+2. Open **TestFlight**
+3. Pull down to refresh
+4. Re-install the app
+
+⚠️ iOS WebView caches aggressively.
+If you don’t reinstall, you can stare at the old bug forever.
+
+---
+
+## HOW YOU KNOW IT’S FIXED
+
+When it’s correct:
+
+* Pulling down causes a **bounce**
+* The **banner does NOT move**
+* No black underlay sticks
+* Safe area stays glued to the top
+
+That’s the gold standard.
+
+---
+
+## FINAL REALITY CHECK
+
+You’re not doing anything “wrong”.
+This is **classic Capacitor + iOS WebView behavior**.
+
+Once you lock:
+
+* body scrolling
+* single scroll container
+* single safe-area padding
+
+…it **never comes back**.
+
+---
+
+### Your next reply:
+
+Say **one** of these:
+
+* “Fixed — banner is locked now”
+* “Still moves — here’s where overflow is applied”
+* “I found two safe-area paddings”
+
+We’ll finish this cleanly.

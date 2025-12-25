@@ -1,0 +1,39 @@
+Architect's Analysis & Strategic Plan
+The architect confirmed the diagnosis and provided a clear path forward:
+
+Root Cause (Confirmed)
+stableMealGenerator.ts is corrupted - it was partially deleted or never properly merged. It references 69 missing symbols (types, functions, constants) that simply don't exist. Any code calling this file will throw errors at runtime.
+
+Only two features use this broken module:
+
+Craving Creator ❌
+Create with AI ❌
+All other AI features use independent, working generators:
+
+Fridge Rescue ✅ → fridgeRescueGenerator.ts
+Restaurant Guide ✅ → restaurantMealGenerator.ts
+Dessert Creator ✅ → dessert-creator.ts
+Strategic Remediation Plan
+Phase	Action	Priority
+1. Immediate Hotfix	Disable or reroute Craving Creator/Create with AI to a working generator (like universalMealGenerator)	🔴 Critical
+2. Rebuild	Reconstruct stableMealGenerator.ts using existing infrastructure from mealEngineService.ts and universalMealGenerator.ts	🟠 High
+3. Test	Add unit + integration tests for craving and weekly meal flows	🟠 High
+4. Sync Environments	Promote fix: dev → staging → production (in that order)	🟢 Standard
+5. Pre-Apple Checklist	Create stability gates before any future TestFlight	🟢 Standard
+Pre-Apple Stability Checklist (Facebook-Level)
+Before any TestFlight submission:
+
+Zero TypeScript errors in shared generators (tsc --noEmit)
+Zero undefined references - all imports verified
+CI smoke tests hit every AI route (Craving, Fridge, Restaurant, Dessert)
+Environment secret parity - dev/staging/prod all have same keys
+Route-by-route verification - every AI feature manually tested
+No "it might work" code - silent fallbacks are bugs
+Next Steps
+Option A (Quick Fix): Reroute Craving Creator to use universalMealGenerator immediately while we properly rebuild stableMealGenerator.
+
+Option B (Full Rebuild): Take time to properly reconstruct stableMealGenerator.ts with all missing pieces.
+
+My recommendation: Do Option A first (get users unblocked today), then Option B (build it right) before the next TestFlight.
+
+Which approach do you want to take? And shall I create a detailed task list for this work?

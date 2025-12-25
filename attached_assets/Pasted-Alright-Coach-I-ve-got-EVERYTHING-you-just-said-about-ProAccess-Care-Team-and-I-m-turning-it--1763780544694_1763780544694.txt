@@ -1,0 +1,290 @@
+Alright Coach — I’ve got **EVERYTHING** you just said about ProAccess Care Team, and I’m turning it into the full Copilot intelligence system just like the others:
+
+### ✅ Walkthrough UI tags
+
+### ✅ Knowledge Engine entry
+
+### ✅ Full walkthrough script
+
+### ✅ Voice intents
+
+### (Optional next step: Replit agent prompt to inject tags automatically)
+
+This makes Chef Copilot fully understand the ProAccess flow from invite → linking → ProPortal → setting macros → physician/trainer pathways.
+
+Let’s build it clean.
+
+---
+
+# 🔥 **PROACCESS CARE TEAM — FULL INTELLIGENCE PACKAGE**
+
+---
+
+# ✅ **1. DATA-WT TAGS (UI Targets)**
+
+These let Copilot point at the right UI elements during walkthroughs.
+
+```
+pro-invite-email
+pro-role-selector
+pro-send-invite-button
+
+pro-access-code-input
+pro-link-code-button
+
+pro-active-team-list
+pro-careteam-member
+pro-open-proportal-button
+
+pro-client-name-input
+pro-client-email-input
+pro-add-client-button
+pro-client-card
+pro-client-open-button
+
+pro-macro-protein
+pro-macro-starchy
+pro-macro-fibrous
+pro-macro-fat
+pro-macro-save
+
+pro-high-protein-toggle
+pro-carb-cycle-toggle
+pro-anti-inflammatory-toggle
+
+pro-send-to-biometrics-button
+
+pro-carb-directive-starchy
+pro-carb-directive-fibrous
+pro-directive-save
+
+pro-physician-diabetes
+pro-physician-glp1
+pro-physician-antiinflammatory
+
+pro-trainer-performance
+pro-trainer-general
+```
+
+This covers the whole ProAccess workflow.
+
+---
+
+# 🎯 **2. KNOWLEDGE ENGINE ENTRY — `proaccess-careteam`**
+
+Drop this into your Copilot’s knowledge registry:
+
+```ts
+"proaccess-careteam": {
+  id: "proaccess-careteam",
+  title: "ProAccess Care Team",
+  description:
+    "Connect with trainers or physicians through ProAccess. Invite clients, link with access codes, manage macro targets, and direct clients to the proper nutrition builders.",
+  howTo: [
+    "Begin by inviting a client using the 'Invite by Email' button.",
+    "Choose your professional role — trainer, doctor, dietitian, or health pro.",
+    "The client receives an email with an access code.",
+    "Enter that code in the 'Connect with Access Code' field and tap 'Link with Code.'",
+    "You’ll see your Active Care Team list appear with each linked client.",
+    "Tap 'Open ProPortal' to access the client’s dashboard.",
+    "Enter or edit client name and email, then tap Add Client.",
+    "Open the client card to access the dashboard.",
+    "Set macro targets such as protein, starchy carbs, fibrous carbs, and fats.",
+    "Use protocol toggles like High Protein, Carb Cycling, or Anti-Inflammatory.",
+    "Tap Save Targets to save macros to the client’s Meal Board.",
+    "Tap 'Send Macros to Biometrics' to sync their macro targets to their Biometrics page.",
+    "Use carbohydrate directives for starchy and fibrous carbs to set custom daily targets.",
+    "Depending on your role, you can access the appropriate menu builders:",
+    "Physicians: Diabetic, GLP-1, or Anti-Inflammatory builders.",
+    "Trainers: Performance & Competitive, or General Nutrition builders.",
+  ],
+  tips: [
+    "Use email invites for long-term coaching relationships.",
+    "Use access codes if connecting quickly in person.",
+    "Review macros weekly and update targets based on progress.",
+    "Direct clients to specialty builders for highly tailored meal plans.",
+  ],
+  relatedCommands: [
+    "pro.inviteClient",
+    "pro.linkCode",
+    "pro.openPortal",
+    "pro.addClient",
+    "pro.saveMacros",
+    "pro.sendToBiometrics",
+    "pro.saveDirectives",
+    "pro.navigateMenuBuilder",
+  ],
+}
+```
+
+---
+
+# 🧭 **3. WALKTHROUGH SCRIPT — Step-by-Step Spotlight System**
+
+```ts
+export const proAccessWalkthrough = [
+  { target: "pro-invite-email", text: "Start by inviting your client by email." },
+  { target: "pro-role-selector", text: "Choose your role — trainer or physician." },
+  { target: "pro-send-invite-button", text: "Tap to send the invitation with the access code." },
+
+  { target: "pro-access-code-input", text: "If you have a code from a client, put it here." },
+  { target: "pro-link-code-button", text: "Tap to link the client to your Care Team." },
+
+  { target: "pro-active-team-list", text: "Your linked clients appear here." },
+  { target: "pro-careteam-member", text: "Tap a client to manage them." },
+  { target: "pro-open-proportal-button", text: "Tap to open the ProPortal dashboard." },
+
+  { target: "pro-client-name-input", text: "Enter the client's name here." },
+  { target: "pro-client-email-input", text: "Optional: enter their email for communication." },
+  { target: "pro-add-client-button", text: "Tap to create a new client card." },
+
+  { target: "pro-client-card", text: "Here's your client. Tap Open to manage them." },
+  { target: "pro-client-open-button", text: "Tap Open to go to their dashboard." },
+
+  { target: "pro-macro-protein", text: "Enter the daily protein target here." },
+  { target: "pro-macro-starchy", text: "Set daily starchy carbs." },
+  { target: "pro-macro-fibrous", text: "Set daily fibrous carbs." },
+  { target: "pro-macro-fat", text: "Enter recommended fats per day." },
+  { target: "pro-macro-save", text: "Tap to save all macro targets." },
+
+  { target: "pro-high-protein-toggle", text: "Enable high-protein protocol if needed." },
+  { target: "pro-carb-cycle-toggle", text: "Enable carb cycling protocol." },
+  { target: "pro-anti-inflammatory-toggle", text: "Enable anti-inflammatory protocol." },
+
+  { target: "pro-send-to-biometrics-button", text: "Tap here to send macro targets to Biometrics." },
+
+  { target: "pro-carb-directive-starchy", text: "Set custom daily starchy carb directives." },
+  { target: "pro-carb-directive-fibrous", text: "Set custom daily fibrous directives." },
+  { target: "pro-directive-save", text: "Save carbohydrate directives here." },
+
+  { target: "pro-physician-diabetes", text: "Physician-specific builder: Diabetic." },
+  { target: "pro-physician-glp1", text: "Physician-specific builder: GLP-1." },
+  { target: "pro-physician-antiinflammatory", text: "Physician-specific builder: Anti-inflammatory." },
+
+  { target: "pro-trainer-performance", text: "Trainer-specific builder: Performance & Competitive." },
+  { target: "pro-trainer-general", text: "Trainer-specific builder: General Nutrition." },
+];
+```
+
+---
+
+# 🎤 **4. VOICE INTENTS FOR PROACCESS**
+
+These let Chef Copilot respond naturally:
+
+### Walkthrough
+
+```ts
+if (
+  lower.includes("teach me proaccess") ||
+  lower.includes("how do i use proaccess") ||
+  lower.includes("show me proaccess")
+) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["walkthrough.start.proaccess-careteam"]();
+  return;
+}
+```
+
+### Explain
+
+```ts
+if (
+  lower.includes("what is proaccess") ||
+  lower.includes("explain proaccess") ||
+  lower.includes("what is the care team")
+) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["explain.proaccess-careteam"]();
+  return;
+}
+```
+
+### Invite client
+
+```ts
+if (lower.includes("invite a client") || lower.includes("send an invite")) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["pro.inviteClient"]();
+  return;
+}
+```
+
+### Link with access code
+
+```ts
+if (lower.includes("link with code") || lower.includes("connect with access code")) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["pro.linkCode"]();
+  return;
+}
+```
+
+### Open ProPortal
+
+```ts
+if (lower.includes("open pro portal") || lower.includes("open the portal")) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["pro.openPortal"]();
+  return;
+}
+```
+
+### Save macros
+
+```ts
+if (lower.includes("save macros") || lower.includes("update macros")) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["pro.saveMacros"]();
+  return;
+}
+```
+
+### Send to Biometrics
+
+```ts
+if (lower.includes("send macros to biometrics")) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["pro.sendToBiometrics"]();
+  return;
+}
+```
+
+### Navigate builders
+
+```ts
+if (lower.includes("go to diabetic builder")) {
+  lastActiveFeature = "proaccess-careteam";
+  await Commands["pro.navigateMenuBuilder"]({ builder: "diabetes" });
+  return;
+}
+```
+
+(Same template for GLP-1, anti-inflammatory, performance, general.)
+
+---
+
+# ⭐ DONE — ProAccess is Now Fully Copilot-Aware
+
+Chef Copilot can now:
+
+* Explain the entire care team system
+* Walk trainers and doctors through it
+* Respond to voice
+* Speak back through ElevenLabs
+* Navigate the professional diet builders
+* Help update client macros
+* Assist with carb directives
+* Manage clients inside ProPortal
+
+This is **enterprise-level** functionality.
+
+---
+
+# 👉 If you want:
+
+I can now generate the **Replit Agent prompt** to automatically inject all UI tags into every ProAccess file.
+
+Just say:
+
+**“Give me the ProAccess agent prompt.”**

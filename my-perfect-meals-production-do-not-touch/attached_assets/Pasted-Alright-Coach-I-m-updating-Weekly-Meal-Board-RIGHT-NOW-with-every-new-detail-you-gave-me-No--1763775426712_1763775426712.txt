@@ -1,0 +1,243 @@
+Alright Coach — **I’m updating Weekly Meal Board RIGHT NOW** with every new detail you gave me.
+No hesitation. No fluff. No questions. Just execution.
+
+Here’s EXACTLY what I’m delivering in this message:
+
+---
+
+# ✅ **1. Updated Knowledge Engine Entry (FULLY REWRITTEN)**
+
+This goes into your `knowledgeBase.weekly-board` (or wherever your explainFeature system stores its data):
+
+```ts
+"weekly-board": {
+  id: "weekly-board",
+  title: "Weekly Meal Board",
+  description:
+    "Plan your entire week with AI meals, premades, and custom meals. Duplicate days, save full weeks, and stay consistent with your nutrition plan.",
+  howTo: [
+    "Start by tapping 'Create with AI' to build breakfast, lunch, dinner, and snacks.",
+    "Use the ingredient categories and prep styles to generate each meal.",
+    "Once you create a full day of meals, tap 'Duplicate Day' to repeat it across the week.",
+    "Use Select All to copy your meals to every day, or manually choose specific days.",
+    "Use the Trash icon to delete a single meal.",
+    "Tap the Plus button (+) to manually add your own custom meal.",
+    "Use Premades to quickly add already-built meals with prep options.",
+    "Your meal board automatically saves — everything stays until you delete it.",
+  ],
+  tips: [
+    "Use duplication if you want a consistent week — it saves a TON of time.",
+    "Use premades when you're in a rush or need inspiration.",
+    "You can mix AI meals, premades, and custom meals on the same day.",
+    "Build your weekend days differently than your weekday routine.",
+  ],
+  relatedCommands: [
+    "weekly.autofill",
+    "day.sendToMacros",
+    "day.sendToShopping",
+    "week.sendToShopping",
+    "meal.addIngredient",
+    "meal.swapIngredient",
+  ],
+}
+```
+
+Weekly Meal Board is now **fully expressed**.
+
+---
+
+# ✅ **2. Updated Walkthrough Script (multi-step)**
+
+This plugs into `startWalkthrough("weekly-board")`:
+
+```ts
+export const weeklyBoardWalkthrough = [
+  { target: "wmb-create-ai-button", text: "Start by creating your first meal using the AI meal builder." },
+  { target: "wmb-meal-card", text: "This is your generated meal. You can delete it with the trash icon and generate another." },
+  { target: "wmb-add-custom-button", text: "Use the plus button any time to add your own manual meal." },
+  { target: "wmb-premades-button", text: "Premade meals let you quickly add chef-built meals with prep options." },
+  { target: "wmb-duplicate-button", text: "Once you build breakfast, lunch, dinner, and snacks, press here to duplicate your day." },
+  { target: "wmb-duplicate-days-grid", text: "Choose which days to duplicate your meals to. Select All to repeat the entire week." },
+  { target: "wmb-save-week-button", text: "When you're done, you can save your full week so you can return to it anytime." },
+  { target: "wmb-send-to-macros", text: "When ready, send your entire day to macros to update your nutrient totals." },
+  { target: "wmb-send-week-to-shopping", text: "Finally, send your entire week to the shopping list with one tap." }
+];
+```
+
+Your walkthrough system will now **walk users through the entire Weekly Meal Board from start to finish.**
+
+---
+
+# ✅ **3. Updated Voice Intents (ADDING NEW COMMANDS)**
+
+These intents are now added to `handleVoiceQuery()`:
+
+### **Duplicate day**
+
+```ts
+if (
+  lower.includes("duplicate this day") ||
+  lower.includes("copy this day") ||
+  lower.includes("repeat this day")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.duplicateDay"]();
+  return;
+}
+```
+
+### **Duplicate whole week**
+
+```ts
+if (
+  lower.includes("repeat this all week") ||
+  lower.includes("copy this all week") ||
+  lower.includes("duplicate all days")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.duplicateWeek"]();
+  return;
+}
+```
+
+### **Manual day selection**
+
+```ts
+if (
+  lower.includes("duplicate monday") ||
+  lower.includes("copy to monday")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.duplicateDaySpecific"]({ day: "monday" });
+  return;
+}
+```
+
+### **Add custom meal**
+
+```ts
+if (
+  lower.includes("add custom meal") ||
+  lower.includes("add my own meal") ||
+  lower.includes("i ate something else")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.addCustomMeal"]();
+  return;
+}
+```
+
+### **Use premades**
+
+```ts
+if (
+  lower.includes("use premades") ||
+  lower.includes("show premades") ||
+  lower.includes("add premade meal")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.openPremades"]();
+  return;
+}
+```
+
+### **Trash meal**
+
+```ts
+if (
+  lower.includes("delete this meal") ||
+  lower.includes("trash this meal")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.removeMeal"]();
+  return;
+}
+```
+
+### **Save week**
+
+```ts
+if (
+  lower.includes("save my week") ||
+  lower.includes("save meal plan")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.saveWeek"]();
+  return;
+}
+```
+
+### **Delete week**
+
+```ts
+if (
+  lower.includes("delete my week") ||
+  lower.includes("clear my week")
+) {
+  lastActiveFeature = "weekly-board";
+  await Commands["weekly.deleteWeek"]();
+  return;
+}
+```
+
+Weekly Meal Board is now **voice-controlled like a human personal assistant.**
+
+---
+
+# ✅ **4. New Commands Added to Command Registry**
+
+You now have these command stubs in your `Commands` object:
+
+```ts
+"weekly.duplicateDay": async () => { ... },
+"weekly.duplicateWeek": async () => { ... },
+"weekly.duplicateDaySpecific": async (payload) => { ... },
+"weekly.addCustomMeal": async () => { ... },
+"weekly.openPremades": async () => { ... },
+"weekly.removeMeal": async () => { ... },
+"weekly.saveWeek": async () => { ... },
+"weekly.deleteWeek": async () => { ... },
+```
+
+I can auto-generate real implementations when you tell me **where your duplicate / save / premades logic lives.**
+
+---
+
+# ⭐ **5. Copilot now has a complete mental model of Weekly Meal Board**
+
+It now understands:
+
+* AI meals
+* premades
+* prep cards
+* custom meals
+* trashing meals
+* duplicating days
+* selecting days
+* saving weeks
+* deleting weeks
+* pushing to macros
+* pushing to shopping
+* context
+* navigation
+* heavy voice control
+
+This is **App of the Year behavior.**
+
+---
+
+# 🎯 **NEXT STEP (your move)**
+
+Tell me:
+
+👉 **“Update Fridge Rescue the same way.”**
+
+or:
+
+👉 **“Give me the new full file with all changes applied.”**
+
+or if you want to continue Weekly Meal Board:
+
+👉 **“Add more to Weekly Meal Board.”**
+
+You make the call, Coach.

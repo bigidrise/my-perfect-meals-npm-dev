@@ -1,0 +1,133 @@
+Here you go, Coach — this is the **exact prompt** that will clean your project *without breaking* any working features, routes, or locked files.
+This is the one you hand to the Replit Agent **as-is**.
+
+---
+
+# 🧨 **REPLIT AGENT CLEANUP PROMPT (USE THIS EXACTLY)**
+
+**PROMPT FOR AGENT:**
+
+---
+
+**I need you to clean my project’s file structure without touching or modifying ANY active features. Only perform the cleanup tasks exactly as listed below. Do NOT refactor, do NOT optimize, do NOT rewrite code, and do NOT modify any locked components.**
+
+### **TASK SUMMARY**
+
+My app currently has duplicate and outdated page files that are causing confusion. I want the active pages to stay exactly as they are, but I want all old/unused/duplicate pages removed from the app’s routing and navigation system.
+
+### **YOUR JOB**
+
+Perform these tasks in ORDER:
+
+---
+
+## **1. Identify duplicate or outdated pages**
+
+Search the entire project for old versions of these pages:
+
+* Lifestyle Hub / Lifestyle Landing / Lifestyle Page
+* Restaurant Guide / Restaurant Guide Old
+* Find Meals Near Me / Meal Finder / Old Meal Finder
+* Craving Creator old versions
+* Any page that existed before the newest Social Hub migration
+* Any page with "old", "backup", "copy", "test", or "deprecated" in the filename
+* Any page where the agent previously built the wrong version due to duplicates
+
+DO NOT TOUCH any page that is currently being used.
+
+---
+
+## **2. Move all outdated pages into a quarantine folder**
+
+Create (if not already present):
+
+```
+client/src/_trash_do_not_use/
+```
+
+Move all outdated or duplicate pages into that folder.
+
+DO NOT delete them, just quarantine them.
+
+---
+
+## **3. Remove routes that point to outdated pages**
+
+In the app’s router files (App.tsx, routes.tsx, or anywhere else routes exist):
+
+* Remove every route that points to a page you quarantined.
+* Make sure ONLY the current/active pages have routes.
+* Keep all locked or working routes untouched.
+
+---
+
+## **4. Remove navigation calls pointing to deleted routes**
+
+Search the entire project for these patterns:
+
+* `setLocation("/*")`
+* `navigate("/*")`
+* `"/lifestyle-old"`
+* `"/lifestyle-landing"`
+* `"/restaurant-guide-old"`
+* `"/find-meals-old"`
+* any paths pointing to quarantined pages
+
+Remove or update ONLY the navigation calls that reference pages you moved to quarantine.
+
+Do NOT change navigation for pages that are still active.
+
+---
+
+## **5. Confirm the SOCIAL HUB workflow**
+
+Make sure these are the ONLY valid pages for the Socializing Hub:
+
+* `/social-hub` (landing page)
+* `/restaurant-guide` (existing working page)
+* `/meal-finder` (existing working page)
+
+Do NOT modify their content or structure — just ensure the routing is correct.
+
+---
+
+## **6. DO NOT MODIFY ANY OF THE FOLLOWING SYSTEMS**
+
+These are locked and must not be touched:
+
+* Restaurant Guide (fully locked)
+* Find Meals Near Me (fully functional — do NOT alter logic)
+* Craving Creator
+* Premade Systems
+* Kids Meals / Toddler Meals
+* Fridge Rescue
+* AI Meal Builders
+* Weekly Meal Board
+* All Medical Badge systems
+* All Safe Area / iOS header components
+* All Dashboard / Lifestyle Hub systems
+* All Copilot systems
+
+---
+
+## **7. After completing the cleanup**
+
+Give me a report listing:
+
+* Which files were quarantined
+* Which routes were removed
+* Which navigation calls were fixed
+* A confirmation that NO active page was modified
+
+---
+
+**DO NOT touch, rewrite, refactor, rename, or restructure any working page.
+Your ONLY job is to isolate duplicates, fix routing, and remove old navigation references.**
+
+---
+
+# ✔️ That’s the whole prompt.
+
+Just copy/paste that into Replit Agent and let it do the cleanup.
+
+If you want a matched **safe-area audit prompt** next, just say the word.

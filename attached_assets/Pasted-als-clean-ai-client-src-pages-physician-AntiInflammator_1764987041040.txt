@@ -1,0 +1,75 @@
+als-clean-ai/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+dist/index.html                                 1.03 kB │ gzip:   0.52 kB
+dist/assets/app-entry-B4bR7LDi.css            217.46 kB │ gzip:  31.65 kB
+dist/assets/replacementContext-BQFSAKWh.js      0.19 kB │ gzip:   0.16 kB
+dist/assets/useWeeklyPlan-C3y9hPGd.js           0.52 kB │ gzip:   0.35 kB
+dist/assets/index-BAZ445mL.js                   2.06 kB │ gzip:   1.07 kB
+dist/assets/app-entry-CaANeyDF.js           2,643.94 kB │ gzip: 663.27 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.66s
+
+> rest-express@1.0.0 build:server
+> esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap
+
+
+  dist/prod.js      946.0kb
+  dist/prod.js.map    1.7mb
+
+⚡ Done in 47ms
+✔ Copying web assets from dist to ios/App/App/public in 691.35ms
+✔ Creating capacitor.config.json in ios/App/App in 2.78ms
+✔ copy ios in 811.61ms
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % ./push.sh "iOS TestFlight cleanup + dev shortcut removal + CORS fix for Capacitor"
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/components/pickers/MealPremadePicker.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+✅ OK: server/services/unifiedMealPipeline.ts
+
+✅ All critical files unchanged!
+✅ No unexpected changes detected
+
+2️⃣ Verifying server is running...
+✅ Server is running on port 5000
+
+====================================
+✅ ALL VALIDATION CHECKS PASSED!
+====================================
+
+Publishing: iOS TestFlight cleanup + dev shortcut removal + CORS fix for Capacitor
+
+[main 7516701] iOS TestFlight cleanup + dev shortcut removal + CORS fix for Capacitor
+ 14 files changed, 92 insertions(+), 35 deletions(-)
+ create mode 100644 ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme
+ create mode 100644 ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+ delete mode 100644 ios/App/App/Assets.xcassets/AppIcon.appiconset/ChatGPT Image Dec 2, 2025, 10_43_15 AM.png
+ delete mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/Splash-2x.png
+ delete mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/Splash-3x.png
+ rename ios/App/App/Assets.xcassets/Splash.imageset/{Splash-1x.png => splash-2732x2732-1 1.png} (100%)
+ rename ios/App/App/{Assets.xcassets/Splash.imageset/splash-2732x2732-1.png => Splash 2.png} (100%)
+ create mode 100644 ios/App/App/Splash.png
+✅ Changes committed
+
+Pushing to GitHub...
+Username for 'https://github.com': npm run build
+npx cap copy ios
+open ios/App/App.xcworkspacePassword for 'https://npm%20run%20build@github.com': 
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/bigidrise/my-perfect-meals-clean-ai/'
+❌ Push failed. Check your connection and try again.
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % 

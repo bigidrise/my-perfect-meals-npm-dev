@@ -1,0 +1,91 @@
+Here you go, Coach — **clean, direct, architect-grade**.
+Copy/paste this straight into your Replit Architect chat.
+
+---
+
+# 🔧 **PROMPT FOR ARCHITECT**
+
+**Architect, here’s the current iOS App Store submission status for My Perfect Meals. I need you to review everything we’ve completed, confirm nothing is missing on the engineering side, and tell me if there’s anything else we should verify before final submission.**
+
+## ✅ **WHAT IS COMPLETE**
+
+**Capacitor iOS Integration**
+
+* Capacitor initialized and configured
+* iOS platform added cleanly
+* `capacitor.config.ts` validated
+* Correct `webDir` pointing to `dist`
+* Sync with iOS project successful
+* CocoaPods dependencies installed with no errors
+* Xcode build environment fixed (`xcode-select`, CommandLineTools, FirstLaunch)
+* iOS native project now stable
+* Privacy usage strings added to `Info.plist` (camera, mic, photos)
+
+**Frontend Build Pipeline**
+
+* Node version corrected using NVM
+* Clean reinstall of all dependencies
+* `npm run build` runs clean
+* `dist` assets produced successfully
+* Generated assets copied to iOS project via `npx cap sync ios` with no errors
+
+**App Icon System**
+
+* Full iOS icon set generated (Apple-compliant .PNG set)
+* Ready to drop into Xcode `AppIcon.appiconset`
+
+**App Store Screenshots**
+
+* 6.7” iPhone 15 Pro Max screenshots created
+* Consistent black-glass premium branding
+* Covers the 5 required promotional screens
+
+**Required Apple Compliance (already implemented in app):**
+
+* Privacy Policy page
+* Terms of Service page
+* Medical disclaimers
+* Delete Account flow
+* Forgot Password email reset
+* No external payment links (Stripe is disabled on iOS)
+* Restore Purchases system already built for Stripe (StoreKit to be added later)
+
+**Metadata Package**
+
+* App Store description complete
+* Promo text, subtitle, keywords done
+* Ready for App Store Connect
+
+## ⏳ **WHAT WE ARE WAITING ON**
+
+**Apple Developer Program enrollment is still “Pending.”**
+Once it switches to **Active**, we will:
+
+1. Open Xcode
+2. Set signing team
+3. Product → Archive
+4. Upload to App Store Connect
+5. Attach icons, screenshots, metadata
+6. Submit for review
+
+No further code changes are required for this phase.
+
+## ❓ **WHAT I NEED FROM YOU**
+
+Architect, please review the entire situation and confirm:
+
+1. **Is the iOS Capacitor shell production-ready with no missing config?**
+2. **Are there any recommended pre-submission tests we should run inside Xcode?**
+3. **Any known issues with Capacitor 7.x that we should double-check?**
+4. **Do you see any gaps in the build pipeline that could break the Archive process?**
+5. **Any final advice before TestFlight and Apple submission?**
+6. **Should we verify any specific files, build steps, or native settings?**
+
+I want to make sure we’re not missing anything hidden before I begin full user testing inside Xcode and TestFlight.
+
+Thank you — give me your full audit and recommendations.
+
+---
+
+Say the word if you want a **“developer-facing stricter version,”**
+or a **“quick version for speed.”**

@@ -1,0 +1,209 @@
+Perfect — I’ve fully parsed **everything you just said** about Craving Creator.
+You explained it EXACTLY how a human would, and I’m going to convert it into the **4 systems the Copilot uses**:
+
+### ✅ Knowledge Engine (explain.craving-creator)
+
+### ✅ Walkthrough System (step-by-step guidance)
+
+### ✅ Voice Intents (natural language control)
+
+### ✅ Context Engine (so “add cocoa” or “make it vegan” works in the right place)
+
+No repeating needed.
+No extra steps from you.
+Just execution.
+
+Below is the **fully structured interpretation** — ready to inject into the Copilot systems.
+
+---
+
+# 🧠 **1. Knowledge Engine Entry: craving-creator**
+
+```ts
+"craving-creator": {
+  id: "craving-creator",
+  title: "Craving Creator",
+  description:
+    "Turn any food craving into a healthier, customized meal. Describe what you want and let the AI build a high-protein, low-sugar, allergy-friendly version for you.",
+  howTo: [
+    "Describe your craving in detail — flavors, textures, ingredients, and restrictions.",
+    "Add optional dietary flags like vegan, vegetarian, gluten-free, or dairy-free.",
+    "Adjust servings from 1 to 10 based on how many portions you want.",
+    "Add custom dietary restrictions such as low sodium or low sugar.",
+    "Tap Create by Craving to generate a recipe that matches your description.",
+    "Review the meal card with ingredients and cooking instructions.",
+  ],
+  tips: [
+    "The more detailed your description, the better the AI matches your craving.",
+    "Combine flavors: caramel + peanut butter + chocolate for custom creations.",
+    "Use serving sizes to meal prep treat-style snacks for multiple days.",
+    "Use dietary flags if you follow strict limitations.",
+  ],
+  relatedCommands: [
+    "craving.generate",
+    "craving.addDietFlag",
+    "craving.clearFlags",
+    "craving.setServings",
+    "craving.addRestriction",
+  ],
+}
+```
+
+This makes Copilot capable of **explaining Craving Creator perfectly**.
+
+---
+
+# 🎯 **2. Walkthrough Script (step-by-step)**
+
+This becomes `startWalkthrough("craving-creator")`:
+
+```ts
+export const cravingCreatorWalkthrough = [
+  { target: "cc-description-input", text: "Start here. Describe exactly what you're craving — flavors, textures, ingredients." },
+  { target: "cc-dietary-flags", text: "Use these buttons if you want vegan, vegetarian, gluten-free, or dairy-free options." },
+  { target: "cc-servings-selector", text: "Choose how many servings you want — from 1 to 10." },
+  { target: "cc-custom-restrictions", text: "Add extra dietary rules like low sodium or low sugar." },
+  { target: "cc-generate-button", text: "When you're ready, tap Create by Craving to generate your healthier recipe." },
+  { target: "cc-meal-card", text: "View your generated ingredients and cooking instructions here." }
+];
+```
+
+This gives users a **full guided tour**.
+
+---
+
+# 🎤 **3. Voice Intents (spoken commands)**
+
+These are added to `handleVoiceQuery()`:
+
+### **Start walkthrough**
+
+```ts
+if (
+  lower.includes("teach me craving creator") ||
+  lower.includes("how do i use craving creator") ||
+  lower.includes("show me craving creator")
+) {
+  lastActiveFeature = "craving-creator";
+  await Commands["walkthrough.start.craving-creator"]();
+  return;
+}
+```
+
+### **Explain**
+
+```ts
+if (
+  lower.includes("what is craving creator") ||
+  lower.includes("explain craving creator")
+) {
+  lastActiveFeature = "craving-creator";
+  await Commands["explain.craving-creator"]();
+  return;
+}
+```
+
+### **Set diet flags**
+
+```ts
+if (
+  lower.includes("make it vegan") ||
+  lower.includes("make it vegetarian") ||
+  lower.includes("make it gluten free") ||
+  lower.includes("make it dairy free")
+) {
+  lastActiveFeature = "craving-creator";
+  await Commands["craving.addDietFlag"]({ text: transcript });
+  return;
+}
+```
+
+### **Clear flags**
+
+```ts
+if (
+  lower.includes("clear dietary flags") ||
+  lower.includes("remove restrictions")
+) {
+  lastActiveFeature = "craving-creator";
+  await Commands["craving.clearFlags"]();
+  return;
+}
+```
+
+### **Set servings**
+
+```ts
+if (
+  lower.match(/(\d+)\s+servings/) ||
+  lower.includes("set servings")
+) {
+  const num = parseInt(lower.replace(/\D/g, ""));
+  lastActiveFeature = "craving-creator";
+  await Commands["craving.setServings"]({ servings: num });
+  return;
+}
+```
+
+### **Add custom restrictions**
+
+```ts
+if (
+  lower.includes("low sodium") ||
+  lower.includes("low sugar") ||
+  lower.includes("no salt") ||
+  lower.includes("no sugar")
+) {
+  lastActiveFeature = "craving-creator";
+  await Commands["craving.addRestriction"]({ text: transcript });
+  return;
+}
+```
+
+### **Generate**
+
+```ts
+if (
+  lower.includes("create by craving") ||
+  lower.includes("make my craving") ||
+  lower.includes("generate craving meal")
+) {
+  lastActiveFeature = "craving-creator";
+  await Commands["craving.generate"]();
+  return;
+}
+```
+
+Craving Creator now supports **fully natural voice control**.
+
+---
+
+# 🛠️ **4. Command Registry Additions**
+
+Placeholders go into your Commands object:
+
+```ts
+"walkthrough.start.craving-creator": async () => { ... },
+"explain.craving-creator": async () => { ... },
+"craving.addDietFlag": async (payload) => { ... },
+"craving.clearFlags": async () => { ... },
+"craving.setServings": async (payload) => { ... },
+"craving.addRestriction": async (payload) => { ... },
+"craving.generate": async () => { ... },
+```
+
+When you tell me “wire these commands,” I’ll build real versions.
+
+---
+
+# 🔥 **NEXT STEP FOR YOU**
+
+If you want Copilot to guide ALL craving-related interactions, just say:
+
+👉 **“Add the tags for Craving Creator so the walkthrough works.”**
+
+OR
+
+👉 **“Integrate Craving Creator into the full file.”**
+
+Either way, I’ll drop everything in clean.

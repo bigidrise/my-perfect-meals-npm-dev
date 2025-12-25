@@ -1,0 +1,130 @@
+Here you go, Coach — **the exact Replit Agent comparison prompt** you need to run the SAME deep-dive analysis for:
+
+### ✅ Restaurant Guide
+
+### ✅ Craving Creator
+
+### ✅ Fridge Rescue
+
+### ✅ Find Your Food / Meal Finder
+
+This prompt will force the agent to pull ALL files, ALL endpoints, ALL request shapes, ALL backend handlers, and ALL AI prompt structures — **side-by-side** — so we see everything that is consistent, inconsistent, missing, or broken.
+
+Copy/paste this directly into Replit:
+
+---
+
+# 🚨 **REPLIT AGENT COMPARISON PROMPT — COPY THIS EXACTLY** 🚨
+
+**“I need a complete system comparison for these four AI features:**
+
+1. Restaurant Guide (Find Meals Near Me)
+2. Craving Creator
+3. Fridge Rescue
+4. Find Your Food / Meal Finder
+
+**Your job is to do the same deep, structured analysis we just did for AI Meal Creator vs AI Premades — but now for all four of these systems.**
+
+### 🔍 Step 1 — Gather ALL Related Frontend Files
+
+For each feature, locate and list:
+
+* All pages (src/pages/)
+* All components (src/components/)
+* All pickers
+* All modals
+* All helper utils
+* Anything that calls fetch() to an AI-related endpoint
+
+### 🔍 Step 2 — Gather ALL API Endpoints Used
+
+For each feature, locate and list:
+
+* The exact fetch() call
+* The endpoint path (ex: /api/meals/fridge-rescue)
+* The request body shape
+* The expected response shape
+* Any required headers
+* Any params required by the backend
+
+### 🔍 Step 3 — Trace Each Endpoint to Backend Route Handler
+
+For each endpoint, locate and list:
+
+* server/routes/… file
+* server/controllers/… file (if exists)
+* server/services/… file
+* Any utilities imported by those services
+* Any prompt templates or OpenAI calls
+
+### 🔍 Step 4 — Compare ALL FOUR SYSTEMS Side-by-Side
+
+Create a table with columns:
+
+Feature | Endpoint | Request Shape | Response Shape | Backend Service | Prompt Template | Image Generation | Status
+
+### 🔍 Step 5 — Identify ALL Inconsistencies
+
+Include things like:
+
+* Different endpoint patterns
+* Different naming structures
+* Different API request shapes
+* Missing fields
+* Wrong OpenAI methods
+* Missing nutrition generation
+* Missing image generation
+* Different prompt formatting
+* Hardcoded values vs dynamic values
+
+### 🔍 Step 6 — Identify Shared Patterns & Recommend Unification
+
+Tell me:
+
+* Which system is most correct
+* Which system is outdated
+* Which system is missing features
+* Which one should be the “master” pattern
+* What needs to be unified so ALL AI features behave consistently
+
+### 🔍 Step 7 — Output Structured Summary
+
+Output:
+
+**A. Full report** (deep analysis)
+**B. Unified API blueprint** (how all four features should work)
+**C. Code updates required (by file path + line ranges)**
+**D. Verification test plan** (how to confirm all four systems now match)
+
+---
+
+**Do NOT make any changes yet.
+Just produce the comparison report.”**
+
+---
+
+Coach — this prompt forces Replit to pull the curtain back on ALL four systems at the same time.
+
+It will show you:
+
+* every endpoint
+* every mismatch
+* every inconsistency
+* every weak spot
+* every broken request
+* every missing image generator
+* every missing nutrition builder
+* every rogue prompt version
+* every system not using the new unified architecture
+
+Exactly what we need before we begin the full AI unification.
+
+Just let me know when you’re ready for:
+
+🔥 **The Unified AI Engine Architecture**
+🔥 **One Endpoint to Rule Them All**
+🔥 **One Prompt Library**
+🔥 **One AI Response Schema**
+🔥 **Bulletproof reliability across the whole app**
+
+Whenever you’re ready — I’ll build the entire system blueprint.

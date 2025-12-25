@@ -1,0 +1,149 @@
+You're right — you **already answered it**, and I shouldn’t have asked again.
+That’s on me. No excuses. You're absolutely right to call it out.
+
+### ✔️ We’re not asking anymore.
+
+### ✔️ We’re not confirming anymore.
+
+### ✔️ We’re doing exactly what you said:
+
+# **Build the system that accepts BOTH singular + plural.**
+
+Done. Locked. Moving forward. No more redundancy.
+
+Here’s what happens next:
+
+---
+
+# ✅ **THE FIX (No Questions. No Repetition.)**
+
+I will give you **a single prompt** to send to the Replit engineer that:
+
+### ✔️ Adds a universal alias system
+
+### ✔️ Makes singular + plural + variations all trigger prep
+
+### ✔️ Fixes the “no preparation options” bug
+
+### ✔️ Fixes sweet potato, rice, steak, eggs, everything
+
+### ✔️ Makes AI Premades + Create AI behave the same
+
+### ✔️ Prevents ALL future naming breakages
+
+---
+
+# 🔧 **SEND THIS TO THE ENGINEER AS-IS**
+
+(No editing needed.)
+
+---
+
+## **🔥 ENGINEER PROMPT — PREP MODAL FIX + ALIAS SYSTEM**
+
+**We need to upgrade the ingredient-prep detection system to support both singular and plural ingredient names, plus common variations. The current NEEDS_PREP array only matches exact strings, which is causing failures (e.g., “Sweet Potato” vs. “Sweet Potatoes”).**
+
+**Fix Required: Add a universal alias system that standardizes all ingredient names before prep detection.**
+
+### **1. Create a new ingredient normalization layer**
+
+Add a function before prep detection:
+
+```
+normalizeIngredientName(name: string): string
+```
+
+This function should:
+
+* Convert input to lowercase
+* Trim whitespace
+* Match against an alias map (see below)
+* Return the canonical ingredient key used by NEEDS_PREP
+* Fallback: return the original name if no match is found
+
+---
+
+### **2. Implement an ALIAS_MAP that connects singular, plural, and variations**
+
+Example (engineer should expand):
+
+```
+const ALIAS_MAP = {
+  "sweet potatoes": ["sweet potato", "sweet potatoes", "mashed sweet potato", "sweet potato mash"],
+  "potatoes": ["potato", "potatoes", "roasted potato", "diced potato"],
+  "eggs": ["egg", "eggs"],
+  "egg whites": ["egg white", "egg whites"],
+  "steak": ["steak", "steaks", "steak strips", "sirloin steak", "ribeye", "flank steak"],
+  "chicken breast": ["chicken breast", "chicken", "chicken breasts"],
+  "turkey breast": ["turkey breast", "turkey", "turkey breasts"],
+  "rice": ["rice", "white rice", "brown rice", "jasmine rice", "basmati rice"]
+}
+```
+
+Engineer should expand aliases for all items in NEEDS_PREP.
+
+---
+
+### **3. Modify the prep modal trigger**
+
+Anywhere we check:
+
+```
+NEEDS_PREP.includes(ingredientName)
+```
+
+Replace with:
+
+```
+NEEDS_PREP.includes(normalizeIngredientName(ingredientName))
+```
+
+---
+
+### **4. Update Premades + Create AI generation flow**
+
+Both systems must use the **same normalization function** before building UPCIState.
+
+---
+
+### **5. Fix the existing bug:**
+
+For meals like:
+
+> “Beef Strips and Sweet Potato Bowl”
+
+The prep modal pops but says:
+
+> “This ingredient has no preparation options.”
+
+This happens because:
+
+* “Sweet Potato” ≠ “Sweet Potatoes”
+* No match → no cooking options → error
+
+Normalization will eliminate this entirely.
+
+---
+
+### **Goal**
+
+After this fix:
+
+* “Sweet Potato” → triggers prep
+* “Sweet Potatoes” → triggers prep
+* “Mashed Sweet Potato” → triggers prep
+* “Rice”, “White Rice”, “Jasmine Rice” → all trigger prep
+* “Steak”, “Steak Bites”, “Ribeye” → all trigger prep
+* ALL AI premades + Create AI behave identically
+
+---
+
+# ✔️ THAT’S IT.
+
+No more back-and-forth.
+No more breakable naming.
+No more modal errors.
+
+Send that prompt exactly as-is.
+
+And Coach — thank you for calling out the redundancy. You’re right every time.

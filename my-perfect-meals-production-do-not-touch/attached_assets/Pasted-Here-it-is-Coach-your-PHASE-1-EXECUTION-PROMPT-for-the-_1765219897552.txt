@@ -1,0 +1,167 @@
+Here it is, Coach — your PHASE 1 EXECUTION PROMPT for the Replit Agent / Architect.
+This is surgical, directive, and foolproof, and it includes a built-in request for the architect to flag ANY conflicts or issues before proceeding.
+
+You can copy/paste this EXACTLY into Replit.
+
+⸻
+
+✅ PHASE 1 — EXECUTION PROMPT FOR ARCHITECT / AGENT
+
+Architect, load full My Perfect Meals context and all prior directives.
+This is a Phase 1 implementation order. Do not skip steps.
+If ANYTHING in this implementation conflicts with existing architecture, naming, or guardrails, STOP and report back before executing.
+
+⸻
+
+🔥 PHASE 1 GOAL
+
+Implement the new CreateWithChef feature across ALL meal generators (breakfast, lunch, dinner) by reusing the existing Fridge Rescue system.
+
+This phase does not touch snacks.
+Snacks will be handled in Phase 2 under the new name SnackCreator.
+
+⸻
+
+🧩 WHAT YOU ARE BUILDING (PHASE 1 ONLY)
+
+1. CreateWithChefButton
+
+A new button component that replaces “AI Premades” everywhere it appears.
+	•	Uses existing button styling conventions.
+	•	Should not introduce new style systems.
+	•	Label: “Create With Chef”
+	•	Icon: Use existing Chef-related iconography already in the project (signature branding).
+
+⸻
+
+2. CreateWithChefModal
+
+A new modal component modeled after Fridge Rescue’s UI:
+	•	Black-glass modal
+	•	One text input box
+	•	Placeholder example:
+“Describe what you want: ‘sweet eggs,’ ‘protein pancakes,’ ‘low-carb tacos,’ etc.”
+	•	One Generate button
+	•	Close button
+
+NO PICKERS.
+NO CATEGORY SELECTORS.
+NO INGREDIENT INPUT LOGIC.
+NO MEAL BUILDER STEPS.
+Modal only accepts free-form text.
+
+⸻
+
+3. Backend Action — Reuse Fridge Rescue Engine
+
+The CreateWithChef modal should pipe its request through:
+
+Fridge Rescue → guardrails → unified meal card builder → output.
+
+NO new prompts.
+NO new adapters.
+NO new inference types.
+
+Just reuse the existing Fridge Rescue transformation logic.
+
+If needed, create a small adapter hook name:
+
+useCreateWithChefRequest()
+
+…but it should ultimately call the same engine Fridge Rescue uses.
+
+⸻
+
+🔧 WHAT YOU MUST REMOVE / DISABLE (PHASE 1)
+
+Immediately hide, disable, or remove from UI:
+	•	AI Premade button
+	•	Any AI Premade associated modal
+	•	Premade logic references in any builder
+
+Do not remove files yet.
+Full deletion is Phase 3.
+
+⸻
+
+🗂 FILES TO CREATE
+
+client/src/components/CreateWithChefButton.tsx
+client/src/components/CreateWithChefModal.tsx
+client/src/hooks/useCreateWithChefRequest.ts (optional; thin wrapper)
+
+
+⸻
+
+📌 INTEGRATION TARGETS (ALL IN PHASE 1)
+
+Create With Chef must appear inside:
+	•	General Nutrition Builder
+	•	Weekly Meal Builder
+	•	Diabetic Builder
+	•	GLP-1 Builder
+	•	Anti-Inflammatory Builder
+	•	Beachbody / Body Physique Builder
+	•	Performance & Competition Builders
+	•	ProCare professional boards
+	•	Any builder using breakfast/lunch/dinner sections
+
+Insert the button next to where AI Premades currently exists.
+
+⸻
+
+🧪 STABILITY REQUIREMENTS
+
+Architect must ensure:
+	•	No mutation of Fridge Rescue pipeline. Only reuse.
+	•	No breakage of MealCard rendering.
+	•	Macros must calculate exactly the same as Fridge Rescue meals.
+	•	iOS Capacitor wrappers must display modal correctly.
+	•	No new dependencies added.
+
+⸻
+
+🚨 STOP CONDITION (MANDATORY)
+
+Architect must halt and report if:
+	•	Any builder’s layout can’t accept the new button cleanly
+	•	Any backend logic creates conflicts with Fridge Rescue’s guardrails
+	•	Any modal conflicts with iOS overlay rules
+	•	Any existing naming collisions are detected
+	•	Any pre-existing FE/BE errors appear that weren’t seen before
+
+Architect must NOT auto-refactor or invent alternatives.
+
+⸻
+
+🧑‍🍳 BRANDING NOTE
+
+We are standardizing on the word Chef as the signature identity of the app.
+	•	CreateWithChef (meals)
+	•	SnackCreator (snacks, Phase 2)
+	•	CravingCreator (already exists)
+	•	DessertCreator (already exists)
+
+Architect must preserve these names and not alter them.
+
+⸻
+
+🏁 EXECUTION INSTRUCTIONS
+
+Architect, acknowledge this plan as loaded and ready.
+
+Then:
+	1.	Validate UI injection points.
+	2.	Check for potential conflicts.
+	3.	Report back ANY blockers or concerns.
+	4.	If no blockers, begin PHASE 1 implementation following the exact structure above.
+
+Do NOT proceed silently.
+Confirm blockers OR thumbs-up readiness FIRST.
+
+⸻
+
+Coach — this is airtight.
+Drop this into Replit and the agent will know exactly what to do, without drifting, without inventing features, and without breaking anything.
+
+If you’d like, I can also prepare the Phase 2 Execution Prompt (SnackCreator) so it’s ready to go right after Phase 1 passes review.

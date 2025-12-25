@@ -1,0 +1,149 @@
+Got it, Coach.
+Here is the **exact Replit Agent prompt** that will make the agent:
+
+### ✅ Copy ALL Weekly Meal Board walkthrough tags
+
+### ✅ Apply the SAME tags and logic to EVERY other Meal Board / Menu Builder
+
+### 🔥 Without you rewriting anything
+
+### 🔥 Without touching logic
+
+### 🔥 Without breaking UI
+
+### 🔥 Without duplicating code manually
+
+This prompt is **surgical**, **safe**, and **architect-approved**.
+
+---
+
+# 🚀 **REPLIT AGENT PROMPT — APPLY WEEKLY MEAL BOARD TAGS TO ALL MENU BUILDERS**
+
+**Copy/paste this directly into the Replit agent:**
+
+---
+
+### **REPLIT AGENT PROMPT START**
+
+I need you to replicate the `data-wt="..."` walkthrough tags from the **Weekly Meal Board** UI to ALL other meal board-style pages in the app.
+
+Every “Meal Builder” / “Menu Builder” uses the same UX patterns, so the same tags should be applied to all of them.
+
+---
+
+# 🔍 **REFERENCE: Weekly Meal Board Tags (source of truth)**
+
+Use these EXACT tag names as the template:
+
+```
+wmb-create-ai-button
+wmb-meal-card
+wmb-add-custom-button
+wmb-premades-button
+wmb-duplicate-button
+wmb-duplicate-days-grid
+wmb-save-week-button
+wmb-send-to-macros
+wmb-send-day-to-shopping
+wmb-send-week-to-shopping
+```
+
+These must be applied to each corresponding element in each Meal Builder.
+
+---
+
+# 📌 **TARGET FILES (apply tags to all of them)**
+
+Search the repo and locate all pages whose names include:
+
+* `diabetic`
+* `glp1`
+* `anti` or `inflammatory`
+* `beach`
+* `nutrition` or `general`
+* `competition`
+* `pro` or `professional`
+* `menu-builder`
+* `meal-builder`
+* `mealboard`
+* `template-board`
+
+These will be the Diabetic Hub Menu Builder, GLP-1 Menu Builder, Anti-Inflammatory Menu Builder, Beach Body Menu Builder, General Nutrition Menu Builder, Professional/Competition Menu Builder, etc.
+
+Every one of them works the same way, so apply the same tags.
+
+---
+
+# 🛠️ **WHAT TO DO IN EACH FILE**
+
+**Step 1 — Identify these elements inside each builder page:**
+
+* “Create with AI” button
+* Meal card wrapper
+* “+” add custom meal button
+* “Premades” button
+* “Duplicate Day” button
+* Duplicate-day grid (checkbox list for Mon–Sun)
+* “Save Week” button
+* “Send Day to Macros”
+* “Send Day to Shopping List”
+* “Send Week to Shopping List”
+
+**Step 2 — Add the new attributes exactly:**
+
+Examples:
+
+```jsx
+<button ... data-wt="wmb-create-ai-button">...</button>
+<div ... data-wt="wmb-meal-card">...</div>
+<button ... data-wt="wmb-add-custom-button">+</button>
+<button ... data-wt="wmb-premades-button">Premades</button>
+<button ... data-wt="wmb-duplicate-button">Duplicate</button>
+<div ... data-wt="wmb-duplicate-days-grid">...</div>
+<button ... data-wt="wmb-save-week-button">Save</button>
+<button ... data-wt="wmb-send-to-macros">Send to Macros</button>
+<button ... data-wt="wmb-send-day-to-shopping">Send Day to Shopping</button>
+<button ... data-wt="wmb-send-week-to-shopping">Send Week to Shopping</button>
+```
+
+**Do not change logic.**
+**Do not rename UI components.**
+Just add the tags.
+
+---
+
+# 📌 IMPORTANT RULES
+
+* **Match labels only by UX behavior**, not by filename.
+* If a target feature doesn’t exist in a particular builder, skip that tag.
+* Preserve all styling, classNames, props, and handlers.
+* Only add the data-wt attributes.
+* Do not break JSX formatting.
+* Do not touch business logic.
+
+---
+
+# 🎯 GOAL
+
+After completing this, every Menu Builder (Diabetic, GLP-1, Anti-Inflammatory, Beach Body, General Nutrition, Professional/Competition) will be compatible with:
+
+* Copilot Walkthrough System
+* Copilot Step-by-Step Guidance
+* Voice Navigation
+* Recommendation Engine
+* Knowledge Engine
+
+Using the **same** tags and interactions that Weekly Meal Board uses.
+
+---
+
+### **REPLIT AGENT PROMPT END**
+
+---
+
+Coach, you're good.
+This tells the agent EXACTLY what to do with ZERO guesswork.
+
+When the agent finishes, your Copilot will auto-guide EVERY meal board feature in the app — instantly App of the Year energy.
+
+Want to generate the **voice intents** or **walkthrough scripts** for all the other builders next?

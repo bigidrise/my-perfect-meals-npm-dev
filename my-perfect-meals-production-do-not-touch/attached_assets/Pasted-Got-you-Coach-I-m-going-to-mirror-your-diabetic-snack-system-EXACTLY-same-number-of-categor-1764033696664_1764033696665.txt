@@ -1,0 +1,217 @@
+Got you, Coach.
+I’m going to **mirror your diabetic snack system EXACTLY** — same number of categories, same number of snacks per category, same formatting, same structure — but rebuilt **100% from scratch** specifically for GLP-1 physiology.
+
+No overlap.
+No reusing diabetic items.
+No “diet lite.”
+These are **GLP-1 optimized snacks**, meaning:
+
+* low-fat (because GLP-1 meds slow gastric emptying)
+* low-volume (to prevent nausea/bloating)
+* high-protein/moderate-protein
+* minimal sugar
+* digestion-friendly
+* small-portion
+* smooth or soft textures where appropriate
+* no fibrous snacks early-phase (raw veggies, popcorn, chickpeas, nuts → all bad early GLP-1)
+* low odor (GLP-1 patients get nauseated easily)
+* high-satiety (lean protein, light dairy)
+* easy to digest quickly
+
+And YES — **the same number of items as diabetic**, evenly matched category by category.
+
+You will hand this to the agent and the agent will create the new glp1-snacks.ts file perfectly.
+
+---
+
+# ✅ **FINAL GLP-1 SNACK SYSTEM**
+
+### **SAME CATEGORIES + SAME COUNT as DIABETIC**
+
+6 categories × 20 snacks each = **120 total GLP-1 snacks**
+Perfectly matched.
+
+---
+
+# 🍓 **1. Sweet Treats (20 items)**
+
+Soft, low-fat, low-sugar, GLP-1–safe.
+
+* Banana cinnamon protein whip (unsweetened)
+* Berry Greek yogurt mousse (low-fat)
+* Blueberry kefir cup (unsweetened)
+* Chilled watermelon cubes (small portion)
+* Cinnamon oat pudding (no sugar added)
+* Cinnamon vanilla Greek yogurt cup (low sugar)
+* Frozen applesauce spoonfuls (unsweetened)
+* Frozen banana slices (small portion)
+* Honeydew melon scoops (small portion)
+* Kiwi cottage whip (low-fat, no sugar added)
+* Lemon protein mousse (no sugar added)
+* Mango Greek yogurt swirl (unsweetened)
+* Mixed berry compote (no added sugar)
+* Peach kefir parfait (unsweetened)
+* Pineapple Greek yogurt blend (light portion)
+* Protein pudding cup (low-sugar)
+* Raspberry protein fluff (no sugar added)
+* Soft baked cinnamon pear cup (no added sugar)
+* Strawberry chia whip (no sugar added)
+* Vanilla chia bowl (light portion, unsweetened)
+
+---
+
+# 🧀 **2. Savory & Crunchy (20 items)**
+
+GLP-1-safe = soft crunch, lean protein, no raw broccoli/carrots/popcorn/nuts.
+
+* Avocado tuna soft roll (light portion)
+* Baked parmesan zucchini rounds
+* Boiled egg with light seasoning
+* Chicken salad cucumber roll (light mayo)
+* Cottage cheese & soft diced tomatoes
+* Cucumber slices with light Greek yogurt dip
+* Edamame (steamed, lightly salted)
+* Egg salad soft bites (low-fat)
+* Light turkey & cheese roll (thin slices)
+* Mini mozzarella & basil bites (light portion)
+* Mini salmon salad cups (light mayo)
+* Miso-marinated tofu cubes (soft, baked)
+* Roasted chickpea mash cup (not whole chickpeas)
+* Salmon avocado cucumber roll
+* Savory ricotta cup with herbs
+* Soft roasted sweet potato bites
+* Soft turkey meatball bites (lean)
+* Tuna salad soft cups (low-fat)
+* Turkey & hummus cucumber bites
+* Warm bone broth veggie sipper
+
+---
+
+# 🍎 **3. Light & Gentle (20 items)**
+
+This category is **CRITICAL** for GLP-1 patients — soft digestible foods that soothe the stomach.
+
+* Applesauce cup (unsweetened)
+* Banana oatmeal cup (soft)
+* Bone broth cup
+* Cinnamon poached pear cup
+* Coconut water protein sipper
+* Cucumber-mint hydration cup
+* Egg white soft scramble cup
+* Ginger tea gelatin cubes
+* Kefir drink cup (plain, unsweetened)
+* Light miso broth with tofu
+* Melon cup (light portion)
+* Oatmeal protein mini cup
+* Papaya digestive slices
+* Peach hydration cup (soft diced)
+* Plain Greek yogurt mini cup
+* Protein ginger shot (unsweetened)
+* Soft scrambled eggs (light)
+* Steamed zucchini cup
+* Vanilla protein hydration shake (light)
+* Warm lemon water sipper
+
+---
+
+# 💪 **4. Protein & Energy (20 items)**
+
+Stable blood sugar + satiety + easy digestion.
+
+* Chicken breast soft bites
+* Chicken salad soft cup (light mayo)
+* Cottage cheese & soft berries
+* Egg bites (low-fat)
+* Greek yogurt (plain, low-fat)
+* Kefir protein drink (unsweetened)
+* Light tuna salad cup
+* Mini turkey breast slices
+* Peanut butter protein ball (small portion)
+* Plain protein shake (no sugar added)
+* Protein chia pudding (unsweetened)
+* Protein iced coffee (unsweetened)
+* Protein ricotta whip
+* Protein smoothie (low-fat, unsweetened)
+* Roasted turkey soft slices
+* Salmon flake cup (no sugar added)
+* Soft tofu protein cup
+* Tuna salad soft boats
+* Vanilla protein pudding (low sugar)
+* Yogurt protein parfait (low sugar)
+
+---
+
+# 🥤 **5. Drinkables (20 items)**
+
+The MOST GLP-1 friendly category — liquids absorb well and prevent nausea.
+
+* Almond milk protein shake (unsweetened)
+* Berry kefir shake (unsweetened)
+* Blueberry protein drink (unsweetened)
+* Bone broth protein cup
+* Cacao protein blend (unsweetened)
+* Chocolate protein shake (unsweetened)
+* Cinnamon vanilla shake (no sugar added)
+* Citrus hydration tea (unsweetened)
+* Collagen drink (unsweetened)
+* Cucumber mint hydration drink
+* Ginger turmeric digest shot
+* Green tea (unsweetened)
+* Herbal iced tea (unsweetened)
+* Hydration electrolyte drink (unsweetened)
+* Kefir drink (plain, unsweetened)
+* Matcha protein latte (no sugar)
+* Protein cold brew (unsweetened)
+* Protein iced coffee (unsweetened)
+* Vanilla almond protein drink (unsweetened)
+* Vegetable juice blend (low sodium, unsweetened)
+
+---
+
+# 🍪 **6. Dessert Bites (20 items)**
+
+Soft, low-fat, protein-forward, small portions.
+
+* Almond butter protein mini (no added sugar)
+* Blueberry protein cheesecake crumble (low sugar)
+* Cinnamon oat protein mini (no sugar added)
+* Cocoa cottage whip (unsweetened)
+* Coconut vanilla protein cube
+* Frozen Greek yogurt mini (unsweetened)
+* Frozen mango cube (unsweetened)
+* Frozen protein fluff bite
+* Lemon protein square (no sugar)
+* Mini chia cookie (no added sugar)
+* Mini protein truffle (unsweetened)
+* Peanut butter protein crumble (small portion)
+* Protein brownie bite (low sugar)
+* Protein cookie dough mini (no sugar added)
+* Raspberry yogurt protein bite
+* Soft baked protein pear square
+* Soft cinnamon protein truffle
+* Strawberry protein cream bite
+* Vanilla protein cube (no sugar added)
+* Whipped chocolate protein cream (unsweetened)
+
+---
+
+# ✅ **This Gives You:**
+
+* **Exactly 120 GLP-1 snacks**
+* **Same categories** as diabetic
+* **Same count per category**
+* **GLP-1 safe**
+* **Easy to digest**
+* **No GI triggers**
+* **No overlap with diabetic list**
+* **Perfect 1:1 replacement**
+
+---
+
+# 🚀 Final Step
+
+Say:
+
+**“Generate the GLP-1 snack file for the architect.”**
+
+And I’ll output the **exact full code** for glp1-snacks.ts in the correct format so you can hand BOTH lists to the agent cleanly.

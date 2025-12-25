@@ -1,0 +1,213 @@
+Coach — **got it, locked in, zero ambiguity.**
+We are now entering **PHASE 2: Snack Creator**, and this prompt will make the architect build it EXACTLY the way you want — **carbon-copy identical to Craving Creator, full meal-card fidelity, no missing details, no shortcuts, no improvisation.**
+
+This prompt guarantees:
+
+* No missing images
+* No missing instructions
+* No missing expanded ingredients
+* No missing macros
+* No missing structure
+* Proper guardrail injection later (Phase 3)
+* Correct slot behavior
+* Proper rendering in every builder
+
+And yes — **ONE button only** for snacks:
+
+### **Snack Creator**
+
+(not Create With AI + Snack Creator)
+
+---
+
+# ✅ **ARCHITECT PROMPT — PHASE 2: SNACK CREATOR (Craving Creator Clone)**
+
+**Architect — load full project context and the completed Phase 1 Create With Chef system.
+You are now implementing PHASE 2: Snack Creator.**
+
+---
+
+# 🔥 **OBJECTIVE**
+
+Replace the existing “Create With AI” snack-generation behavior with a **single Snack Creator button** that:
+
+* Opens a modal identical to Create With Chef
+* Uses **Craving Creator** logic (craving → healthy transformation)
+* Generates a **full snack meal card identical to Fridge Rescue meal-card formatting**
+* Ensures NO missing fields:
+
+  * Image (DALL-E)
+  * Ingredients (fully expanded)
+  * Cooking instructions (when applicable)
+  * Snack steps (if snack-specific formatting exists)
+  * Proper macros
+  * Proper nutrition summary
+  * Proper meal-card JSON structure
+
+This Snack Creator must behave EXACTLY like Craving Creator,
+EXCEPT it outputs a unified SnackCard formatted identically to Create With Chef and Fridge Rescue.
+
+**NO shortcuts.
+NO missing card components.
+NO partial objects.**
+
+---
+
+# 🧩 **WHAT TO BUILD**
+
+## **1️⃣ SnackCreatorButton**
+
+* Replace the snack slot’s “Create with AI” button
+* Only ONE button: **Snack Creator**
+* Icon should differentiate snacks (architect may choose a nut/fruit/minimalist icon)
+* Uses the **GlobalMealActionBar pattern** but only for snack slots
+
+---
+
+## **2️⃣ SnackCreatorModal**
+
+Identical architecture to CreateWithChefModal:
+
+* Black-glass modal
+* One input field
+* Placeholder example:
+
+  > “Tell me what you're craving: crunchy, salty, fruity, chocolatey…”
+* Generate button
+* Loading state
+* Error handling
+* Close behavior identical to Create With Chef
+
+---
+
+## **3️⃣ Backend Generation**
+
+Create new generation type:
+
+```
+type: "snack-creator"
+```
+
+And create a new generation pipeline:
+
+```
+generateSnackFromCravingUnified(description)
+```
+
+This MUST:
+
+### ✔ Use Craving Creator prompts
+
+(healthy transformation, craving replacement logic, lower sugar, lower fat, low-inflammatory depending on builder context in Phase 3)
+
+### ✔ Output a **FULL** meal card identical in structure to Create With Chef
+
+This must include:
+
+* DALL-E image
+* Expanded ingredients
+* Clear measurements
+* Serving size
+* Step-by-step instructions (snacks often have fewer steps but must still be included)
+* Macros
+* Calorie total
+* Snack-specific notes if applicable
+* No missing fields
+* No undefined objects
+* No "+1 more" errors
+
+Snack cards MUST NEVER omit details.
+
+---
+
+## **4️⃣ Client Hook**
+
+Create:
+
+```
+useSnackCreatorRequest()
+useSnackCreatorController()
+```
+
+Parallel to Create With Chef.
+
+---
+
+## **5️⃣ Builder Integration**
+
+Update snack rows across ALL builders:
+
+### Replace:
+
+* “Create With AI” (snacks only)
+
+### With:
+
+* **Snack Creator** (only button)
+* Default “+ Add Snack” (manual log) stays
+
+Do NOT affect meal-generation buttons.
+
+SnackCreator goes into:
+
+* WeeklyMealBoard
+* GeneralNutritionBuilder
+* DiabeticMenuBuilder
+* GLP1MealBuilder
+* AntiInflammatoryMenuBuilder
+* PerformanceCompetitionBuilder
+* BeachBodyMealBoard
+* ProCare boards
+
+Snack Creator must function consistently across all contexts.
+
+---
+
+# 🚫 **WHAT NOT TO DO**
+
+* Do NOT reuse Create With Chef logic
+* Do NOT reuse ingredient-based prompts
+* Do NOT reuse Fridge Rescue prompt
+* Do NOT pull in unused fields
+* Do NOT leave out instructions, image, or expanded ingredients
+* Do NOT lose the meal-card fidelity we just fixed
+* Do NOT skip snack-context formatting
+
+---
+
+# 🎯 **SUCCESS CRITERIA**
+
+Snack Creator must output snack cards that:
+
+### ✔ Look EXACTLY like Fridge Rescue / Create With Chef cards
+
+### ✔ Fully render
+
+### ✔ Generate images
+
+### ✔ Contain real instructions
+
+### ✔ Contain full expanded ingredients
+
+### ✔ Display full macros
+
+### ✔ Use correct formatting schema
+
+### ✔ Automatically insert into the snack slot
+
+### ✔ Match Craving Creator logic 1:1
+
+### ✔ No missing fields ever
+
+Once Weekly Meal Builder snack test passes →
+Global rollout proceeds.
+
+---
+
+# 🏁 Begin PHASE 2 implementation and confirm when Snack Creator is integrated into Weekly Meal Board for testing.
+
+---
+
+Coach — this prompt guarantees **zero missing parts**, zero confusion, and a **bulletproof snack system** ready for Phase 3 guardrail enforcement.
+
+If you want, I’ll now write the **Phase 3 Guardrail Enforcement Prompt**, but we should wait until Snack Creator is verified working.

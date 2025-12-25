@@ -1,0 +1,161 @@
+Got you, Coach.
+Here is the **exact, clean, final prompt** you give the Replit Architect to correct the Dessert Creator — **with texture removed**, the fields streamlined, and no redundancy.
+
+This is written *exactly* in the format the architect needs so they implement it cleanly with no interpretation mistakes:
+
+---
+
+# 🚧 **ARCHITECT UPDATE REQUEST — DESSERT CREATOR RESTRUCTURE (REMOVE TEXTURE FIELD)**
+
+**Objective:**
+Eliminate redundancy in the Dessert Creator and align the field structure with how users actually express dessert cravings. The current system asks multiple forms of “what dessert do you want” and the texture field is unnecessary for this specific flow. We need a clean, non-redundant set of fields that allows the AI to accurately generate category + flavor + specific dessert identity.
+
+---
+
+# ✅ **CHANGES REQUIRED**
+
+### **1. Remove the Texture Field Entirely**
+
+* Delete the “Texture” dropdown field from the Dessert Creator UI.
+* Remove all related props, state, validation, and request payload fields.
+* Texture stays ONLY in Craving Creator, NOT in Dessert Creator.
+
+**Reason:**
+Texture is redundant here. Pie, cake, cookies, etc. already carry their own texture expectations. Users care more about flavor + specific dessert identity.
+
+---
+
+# ✅ **2. Replace Redundant Prompts With This New Structure**
+
+### **FIELD 1 — Dessert Category (REQUIRED)**
+
+Dropdown list:
+
+* Pie
+* Cake
+* Cookies
+* Brownies
+* Cheesecake
+* Smoothie
+* Frozen Dessert
+* Pudding / Custard
+* No-Bake Dessert
+* Bars
+* Muffins
+* Cupcakes
+
+This defines the STRUCTURE of the dessert.
+
+---
+
+### **FIELD 2 — Flavor Family (REQUIRED)**
+
+Dropdown list of flavor profiles, including fruit and non-fruit:
+
+**Fruit:**
+
+* Apple
+* Strawberry
+* Blueberry
+* Lemon / Lime
+* Peach
+* Cherry
+* Mango
+
+**Other flavors:**
+
+* Chocolate
+* Vanilla
+* Peanut Butter
+* Cinnamon / Spice
+* Coffee
+* Caramel
+
+This defines the main taste direction.
+
+---
+
+### **FIELD 3 — Specific Dessert (OPTIONAL Free Text)**
+
+Prompt text:
+
+**“Any specific dessert in mind? (e.g., key lime pie, apple crumble, red velvet cake, banana pudding)”**
+
+If empty → AI creates a dessert using category + flavor.
+If filled → AI creates a healthy version of the exact dessert named.
+
+---
+
+### **FIELD 4 — Serving Size (REQUIRED)**
+
+Options:
+
+* Single serving
+* Two servings
+* Family-style
+* Batch
+
+---
+
+### **FIELD 5 — Dietary Requirements (OPTIONAL)**
+
+Checkboxes or dropdown:
+
+* Low sugar
+* Gluten-free
+* Dairy-free
+* High protein
+* Vegan
+* Low calorie
+
+---
+
+# ✅ **3. Update the Backend Payload Format**
+
+Ensure the request body now sends:
+
+```json
+{
+  "dessertCategory": "...",
+  "flavorFamily": "...",
+  "specificDessert": "...",
+  "servingSize": "...",
+  "dietaryPreferences": [...]
+}
+```
+
+Remove all texture-related fields and references.
+
+---
+
+# ✅ **4. Update the Prompt Template for Dessert Generation**
+
+New logic must combine:
+
+* Dessert category
+* Flavor family
+* Optional specific dessert name
+* Serving size
+* Dietary rules
+
+Texture should NOT be referenced in the prompt.
+
+---
+
+# 🔥 **Bottom Line for Architect**
+
+Remove texture.
+Remove redundant dessert-description prompts.
+Implement the new 5-field structure.
+Ensure backend and prompt templates reflect the new structure.
+This update unblocks the Dessert Creator from redundancy and aligns it with the natural way users request desserts.
+
+---
+
+If you want, I can also generate:
+
+* The updated JSON schema
+* The updated UI component code
+* The updated backend prompt template
+
+Just say **“Generate the code.”**

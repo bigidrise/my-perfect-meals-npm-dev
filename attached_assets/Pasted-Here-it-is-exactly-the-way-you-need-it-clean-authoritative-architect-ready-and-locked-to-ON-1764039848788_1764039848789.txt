@@ -1,0 +1,208 @@
+Here it is **exactly the way you need it** — clean, authoritative, architect-ready, and locked to ONLY the Performance & Competition Builder.
+
+---
+
+# 🧱 **ARCHITECT HANDOFF – PERFORMANCE & COMPETITION BUILDER UPGRADE**
+
+**ABSOLUTE RULE:** *NO STRUCTURE CHANGES. DATA ONLY.*
+
+This handoff contains **everything the architect needs** to modify ONLY the Performance & Competition Builder.
+No other builder, no other diet mode, no shared component, and no shared data file is to be touched.
+
+---
+
+# ✅ **1. TARGET FEATURE (ONLY THIS PAGE)**
+
+**File:** `client/src/pages/pro/PerformanceCompetitionBuilder.tsx`
+
+This is the *ONLY* board that gets the new competition-prep meal creator + competition premade meals.
+
+No other file in `/weekly`, `/glp1`, `/diabetic`, `/antiInflammatory`, or `/general` is to be touched.
+
+---
+
+# ✅ **2. WHAT MUST BE ADDED**
+
+## **(A) Add NEW AI Meal Creator Button**
+
+Inside the Performance & Competition Builder UI:
+
+### Add button:
+
+```
++ Create With AI
+```
+
+### On click:
+
+Opens the **existing** component:
+
+```
+<AIMealCreatorModal />
+```
+
+### With a **new dietType**:
+
+```
+dietType="competition"
+```
+
+This `dietType="competition"` MUST **NOT** be used by any other board.
+It is exclusive to this builder.
+
+---
+
+# ✅ **3. NEW DATA FILES (DATA-ONLY CHANGE)**
+
+The architect must create **TWO brand-new standalone files**:
+
+---
+
+## **(A) `client/src/data/competitionIngredients.ts`**
+
+This file contains **AI Meal Creator INGREDIENTS ONLY** for competition prep:
+
+### 5 Ingredient Categories:
+
+1. **protein** —
+   chicken breast, lean turkey, lean steak, white fish, cod, salmon (light), shrimp, ground turkey 99%, egg whites, chicken sausage, turkey sausage, Greek yogurt (plain), cottage cheese (plain)
+
+2. **starchyCarbs** —
+   oats, cream of wheat, grits, rice (white & brown), sweet potato, potato, quinoa, tortilla (low-carb), rice cakes, cream of rice
+
+3. **fibrousCarbs** —
+   asparagus, broccoli, green beans, spinach, kale, mixed greens, zucchini, bell peppers, Brussels sprouts, cauliflower
+
+4. **fats** —
+   avocado, olive oil (measured), almond butter, walnuts (small), whole eggs, chia seeds, flax seeds, MCT oil (measured)
+
+5. **fruits (low-glycemic)** —
+   berries, green apple, grapefruit, kiwi, orange slice (controlled)
+
+**NO sauces except low-sugar / low-sodium variants.**
+
+These ingredients ONLY feed the AI Meal Creator when dietType = `"competition"`.
+
+---
+
+## **(B) `client/src/data/competitionPremadeMeals.ts`**
+
+This file contains **premade meals ONLY for competition prep**.
+
+### 4 Premade Categories:
+
+1. **proteinOnly**
+   (Protein + spices only)
+
+2. **proteinVeggie**
+   (Protein + fibrous carbs)
+
+3. **proteinStarchyVeggie**
+   (Protein + starchy carbs + veggies)
+
+4. **proteinFruit**
+   (Protein + low-glycemic fruits)
+
+### Portion sizes (standardized):
+
+* **Protein:** 30–35g protein (≈ 4–5 oz cooked)
+* **Starchy Carbs:** 40g (dry equivalent)
+* **Veggies:** 150g (~2 cups cooked or raw equivalent)
+
+The architect must only populate meal objects with data provided.
+**NO structure changes. NO schema changes. NO modal changes. DATA ONLY.**
+
+---
+
+# ✅ **4. COMPONENTS TO MODIFY**
+
+Only two components may be touched:
+
+---
+
+## **(A) `AIMealCreatorModal.tsx`**
+
+Add:
+
+```ts
+if (dietType === "competition") {
+  load ingredients from competitionIngredients.ts
+}
+```
+
+DO NOT touch any other dietType.
+Do not modify existing arrays.
+Do not modify categories for other builders.
+
+---
+
+## **(B) `AthleteMealPickerDrawer.tsx`**
+
+This drawer currently loads:
+
+```
+athleteMeals.ts
+```
+
+This MUST now load:
+
+```
+competitionPremadeMeals.ts
+```
+
+**ONLY when Performance & Competition Builder is calling it.**
+
+Add:
+
+```ts
+if (dietType === "competition") {
+   use competitionPremadeMeals
+}
+```
+
+---
+
+# 🔒 **5. LOCKDOWN RULES**
+
+These rules must be obeyed to avoid catastrophic breaking of all meal builders:
+
+### 🚫 DO NOT:
+
+✖ Modify ANY shared files
+✖ Modify ANY other data files
+✖ Modify ANY UI structure
+✖ Modify ANY schema
+✖ Modify ANY component used by other builders
+✖ Modify SnackPickerDrawer
+✖ Modify MealPremadePicker.tsx
+
+### ✅ DO:
+
+✔ Add TWO new data files
+✔ Add ONE new dietType
+✔ Add ONE new premade dataset
+✔ Route ONLY Performance & Competition Builder to these datasets
+
+---
+
+# 📦 **6. Final Deliverables**
+
+Architect must produce:
+
+### **1. competitionIngredients.ts**
+
+### **2. competitionPremadeMeals.ts**
+
+### **3. Patch PerformanceCompetitionBuilder to add dietType="competition" to both pickers**
+
+### **4. Patch AIMealCreatorModal to load competition ingredients**
+
+### **5. Patch AthleteMealPickerDrawer to load competition premades**
+
+---
+
+# 🚀 READY FOR IMPLEMENTATION
+
+Say **“Generate the Data Files”** and I will output BOTH new files exactly as required for copy-paste into the codebase.
+
+Say **“Proceed with Implementation”** and I’ll format this into an architect-ready action ticket.
