@@ -284,6 +284,7 @@ export const users = pgTable("users", {
   // Token-based authentication (secure alternative to session)
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication
   authTokenCreatedAt: timestamp("auth_token_created_at", { withTimezone: true }),
+  profilePhotoUrl: text("profile_photo_url"), // URL to user's profile photo in object storage
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),

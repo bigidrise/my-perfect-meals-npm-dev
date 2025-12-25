@@ -60,6 +60,11 @@ router.post("/api/auth/signup", async (req, res) => {
       isTester,
     }).returning();
 
+    // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
+    if (req.session) {
+      (req.session as any).userId = newUser.id;
+    }
+
     console.log("✅ Created new user:", newUser.email, "ID:", newUser.id);
 
     // Return user data with auth token (without password)
@@ -108,6 +113,11 @@ router.post("/api/auth/login", async (req, res) => {
       authTokenCreatedAt: new Date(),
       isTester,
     }).where(eq(users.id, user.id));
+
+    // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
+    if (req.session) {
+      (req.session as any).userId = user.id;
+    }
 
     console.log("✅ User logged in:", user.email, "ID:", user.id);
 

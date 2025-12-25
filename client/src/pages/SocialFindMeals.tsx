@@ -18,6 +18,7 @@ import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { getLocation } from "@/lib/capacitorLocation";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -219,58 +220,40 @@ export default function MealFinder() {
     findMealsMutation.mutate({ mealQuery, zipCode });
   };
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
+  const handleUseLocation = async () => {
+    setIsGettingLocation(true);
+    
+    try {
+      const coords = await getLocation();
+      
+      const response = await apiRequest(
+        "/api/restaurants/reverse-geocode",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lat: coords.latitude,
+            lng: coords.longitude,
+          }),
+        },
+      );
+      
+      if (response.zipCode) {
+        setZipCode(response.zipCode);
+        toast({
+          title: "Location Found",
+          description: `ZIP Code: ${response.zipCode}`,
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Location Not Supported",
-        description: "Your browser doesn't support location services.",
+        title: "Location Access Denied",
+        description: "Please enable location access or enter ZIP manually.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsGettingLocation(false);
     }
-
-    setIsGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const response = await apiRequest(
-            "/api/restaurants/reverse-geocode",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              }),
-            },
-          );
-          if (response.zipCode) {
-            setZipCode(response.zipCode);
-            toast({
-              title: "Location Found",
-              description: `ZIP Code: ${response.zipCode}`,
-            });
-          }
-        } catch (error) {
-          toast({
-            title: "Location Error",
-            description: "Could not get ZIP code for your location.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsGettingLocation(false);
-        }
-      },
-      (error) => {
-        setIsGettingLocation(false);
-        toast({
-          title: "Location Access Denied",
-          description: "Please enable location access or enter ZIP manually.",
-          variant: "destructive",
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
   };
 
   const handleGoBack = () => {
