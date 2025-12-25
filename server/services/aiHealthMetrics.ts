@@ -4,6 +4,11 @@
  * Tracks success/fallback/error rates for AI generation routes.
  * This is the "are we lying?" detector - it exposes when the system
  * is returning fallbacks instead of real AI generation.
+ * 
+ * SUCCESS CLASSIFICATION (agreed taxonomy):
+ * - Primary success: 'ai', 'cache' - Real AI generation or cached AI result
+ * - Degraded (allowed): 'template' - Template-based, doesn't count against gate
+ * - Fallback (counts against gate): 'catalog', 'fallback', 'error'
  */
 
 export type GenerationSource = 'ai' | 'template' | 'fallback' | 'cache' | 'catalog' | 'error';
@@ -154,7 +159,9 @@ export function getRecentMetrics(route?: string): {
     }
 
     const total = routeEvents.length;
-    const fallbackRate = total > 0 ? (fallback + template) / total : 0;
+    // Fallback rate = (fallback + error) / total
+    // Template is degraded but allowed, doesn't count against gate
+    const fallbackRate = total > 0 ? (fallback + error) / total : 0;
 
     routeStats[routeName] = {
       primarySuccessCount: primary,
@@ -166,7 +173,8 @@ export function getRecentMetrics(route?: string): {
       fallbackRate: Math.round(fallbackRate * 100) / 100,
     };
 
-    totalFallbacks += fallback + template;
+    // Only fallback + error count against release gate (not template)
+    totalFallbacks += fallback + error;
     totalRequests += total;
   }
 
