@@ -64,14 +64,10 @@ export async function uploadImageToPermanentStorage(
       },
     });
 
-    // Set ACL policy to make it publicly accessible
-    await setObjectAclPolicy(file, {
-      owner: 'system',
-      visibility: 'public',
-    });
-
-    // Make the file publicly readable
-    await file.makePublic();
+    // NOTE: Removed setObjectAclPolicy and makePublic calls
+    // Replit Object Storage serves files via /public-objects/ URL pattern
+    // which makes them publicly accessible without explicit ACL changes.
+    // The bucket has publicAccessPrevention enforced, so these calls would fail.
 
     // Generate the public URL
     const permanentUrl = `/public-objects/${filename}`;
