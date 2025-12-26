@@ -72,12 +72,14 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
   - "Create with Chef" is now the only visible AI meal creation path
   - Code preserved for future reactivation via feature flag
   - Updated tour steps, Copilot explanations, and knowledge base to reference Chef only
-- **Starchy/Fibrous Carb Breakdown (Dec 2024)**: ProCare professional targets in Quick Add footer
-  - Extended `macroResolver.ts` to expose starchyCarbs_g/fibrousCarbs_g from proStore
+- **Starchy/Fibrous Carb Breakdown (Dec 2024)**: Display in Quick Add footer for all users
+  - MacroCounter now saves starchyCarbs_g/fibrousCarbs_g when setting targets (not just displaying them)
+  - Extended `macroResolver.ts` to expose starchyCarbs_g/fibrousCarbs_g from BOTH pro AND self-set targets
   - `RemainingMacrosFooter` conditionally shows 5-column layout (Cal, Protein*, Starchy*, Fibrous*, Fat)
-  - **Gating logic**: Requires BOTH pro targets AND consumedOverride with starchy/fibrous fields
+  - **Gating logic**: Requires BOTH targets with starchy/fibrous values AND consumedOverride with starchy/fibrous fields
   - Legacy callers (Biometrics, Macro Calculator) continue using 4-column layout (total carbs)
-  - Only WeeklyMealBoard passes breakdown data, enabling the new layout for meal builders
+  - WeeklyMealBoard passes breakdown data, enabling the new layout for meal builders
+  - **Note**: Existing users must re-save their macros in Macro Calculator to populate starchy/fibrous fields
 
 ## iOS Viewport Architecture (CRITICAL)
 RootViewport implements scroll containment to prevent iOS WKWebView bugs:
