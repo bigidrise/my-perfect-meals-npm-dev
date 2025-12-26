@@ -685,15 +685,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Weekly Meal Board pattern)
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
       console.log(
         "🤖 AI Meal Generated - Replacing old meals with new one:",
         generatedMeal,
         "for slot:",
-        aiMealSlot,
+        slot,
       );
 
       // Transform API response to match Meal type structure
@@ -721,23 +722,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       const newMeals = [transformedMeal];
 
       // Save to localStorage with slot info (persists until next generation)
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       // Immediately add to board (optimistic update)
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
-        const existingSlotMeals = dayLists[aiMealSlot].filter(
+        const existingSlotMeals = dayLists[slot].filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         const updatedSlotMeals = [...existingSlotMeals, ...newMeals];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         try {
           await saveBoard(updatedBoard);
           toast({
             title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === aiMealSlot)?.[1]}`,
+            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
           });
         } catch (error) {
           console.error("Failed to save AI meal:", error);
@@ -749,7 +750,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
       }
     },
-    [activeDayISO, aiMealSlot, board, saveBoard, toast],
+    [activeDayISO, board, saveBoard, toast],
   );
 
 

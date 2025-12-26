@@ -843,8 +843,9 @@ export default function BeachBodyMealBoard() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
       // Guard: Check if day is locked before allowing edits
@@ -871,22 +872,22 @@ export default function BeachBodyMealBoard() {
       };
 
       const newMeals = [transformedMeal];
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
-        const existingSlotMeals = dayLists[aiMealSlot].filter(
+        const existingSlotMeals = dayLists[slot].filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         const updatedSlotMeals = [...existingSlotMeals, ...newMeals];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         try {
           await saveBoard(updatedBoard);
           toast({
             title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === aiMealSlot)?.[1]}`,
+            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
           });
         } catch (error) {
           console.error("Failed to save AI meal:", error);
@@ -898,7 +899,7 @@ export default function BeachBodyMealBoard() {
         }
       }
     },
-    [activeDayISO, aiMealSlot, board, saveBoard, toast],
+    [activeDayISO, board, saveBoard, toast],
   );
 
   // Handler for snack selection from SnackPickerDrawer

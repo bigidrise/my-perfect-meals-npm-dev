@@ -252,7 +252,7 @@ export default function GLP1MealBuilder() {
   
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ();
+    const today = todayISOInTZ("America/Chicago");
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO('');
@@ -734,8 +734,9 @@ export default function GLP1MealBuilder() {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
       
       // Guard: Check if day is locked before allowing edits
@@ -745,7 +746,7 @@ export default function GLP1MealBuilder() {
         "🤖 AI Meal Generated - Replacing old meals with new one:",
         generatedMeal,
         "for slot:",
-        aiMealSlot,
+        slot,
       );
 
       // Transform API response to match Meal type structure (copy Fridge Rescue format)
@@ -773,33 +774,33 @@ export default function GLP1MealBuilder() {
       const newMeals = [transformedMeal];
 
       // Save to localStorage with slot info (persists until next generation)
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       // Also update board optimistically - REMOVE old AI meals first from the correct slot
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
         // Filter out all old AI meals from the target slot
-        const currentSlotMeals = dayLists[aiMealSlot];
+        const currentSlotMeals = dayLists[slot];
         const nonAIMeals = currentSlotMeals.filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         // Add only the new AI meal
         const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
       }
 
       // Format slot name for display (capitalize first letter)
       const slotLabel =
-        aiMealSlot.charAt(0).toUpperCase() + aiMealSlot.slice(1);
+        slot.charAt(0).toUpperCase() + slot.slice(1);
 
       toast({
         title: "AI Meal Created!",
         description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
       });
     },
-    [board, activeDayISO, aiMealSlot, toast],
+    [board, activeDayISO, toast],
   );
 
   const profile = useOnboardingProfile();

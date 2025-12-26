@@ -195,17 +195,18 @@ export default function WeeklyMealBoard() {
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
 
   // Handler for Create With Chef meal selection
-  const handleCreateWithChefSelect = useCallback(async (meal: any) => {
+  // NOTE: slot is passed from the modal to avoid stale state issues
+  const handleCreateWithChefSelect = useCallback(async (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
     if (!board) return;
 
     try {
-      // Add to the appropriate slot based on createWithChefSlot
+      // Add to the appropriate slot based on slot parameter from modal
       if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
         // Add to specific day
         const dayLists = getDayLists(board, activeDayISO);
         const updatedDayLists = {
           ...dayLists,
-          [createWithChefSlot]: [...dayLists[createWithChefSlot as keyof typeof dayLists], meal]
+          [slot]: [...dayLists[slot as keyof typeof dayLists], meal]
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
@@ -216,7 +217,7 @@ export default function WeeklyMealBoard() {
           ...board,
           lists: {
             ...board.lists,
-            [createWithChefSlot]: [...board.lists[createWithChefSlot], meal]
+            [slot]: [...board.lists[slot], meal]
           },
           version: board.version + 1,
           meta: {
@@ -244,7 +245,7 @@ export default function WeeklyMealBoard() {
         variant: "destructive"
       });
     }
-  }, [board, createWithChefSlot, planningMode, activeDayISO, weekStartISO, saveBoard, toast]);
+  }, [board, planningMode, activeDayISO, weekStartISO, saveBoard, toast]);
 
   // Handler for snack selection from SnackPickerDrawer
   const handleSnackSelect = useCallback(async (snack: any) => {
@@ -567,10 +568,11 @@ export default function WeeklyMealBoard() {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
-  const handleAIMealGenerated = useCallback(async (generatedMeal: any) => {
+  // NOTE: slot is passed from the modal to avoid stale state issues
+  const handleAIMealGenerated = useCallback(async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
     if (!activeDayISO) return;
 
-    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", aiMealSlot);
+    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", slot);
 
     // Transform API response to match Meal type structure (copy Fridge Rescue format)
     const transformedMeal: Meal = {
@@ -597,23 +599,23 @@ export default function WeeklyMealBoard() {
     const newMeals = [transformedMeal];
 
     // Save to localStorage with slot info (persists until next generation)
-    saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+    saveAIMealsCache(newMeals, activeDayISO, slot);
 
     // Also update board optimistically - REMOVE old AI meals first from the correct slot
     if (board) {
       const dayLists = getDayLists(board, activeDayISO);
       // Filter out all old AI meals from the target slot
-      const currentSlotMeals = dayLists[aiMealSlot];
+      const currentSlotMeals = dayLists[slot];
       const nonAIMeals = currentSlotMeals.filter(m => !m.id.startsWith('ai-meal-'));
       // Add only the new AI meal
       const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-      const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+      const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
       const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
       setBoard(updatedBoard);
     }
 
     // Format slot name for display (capitalize first letter)
-    const slotLabel = aiMealSlot.charAt(0).toUpperCase() + aiMealSlot.slice(1);
+    const slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1);
 
     // Dispatch meal:saved event for coach progression
     const mealIdMap: Record<string, string> = {
@@ -623,7 +625,7 @@ export default function WeeklyMealBoard() {
       snacks: "snack1"
     };
     window.dispatchEvent(
-      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[aiMealSlot] || "snack1" } })
+      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[slot] || "snack1" } })
     );
 
     toast({
@@ -633,7 +635,7 @@ export default function WeeklyMealBoard() {
 
     // Advance guided tour to next step
     advanceTourStep();
-  }, [board, activeDayISO, aiMealSlot, toast, advanceTourStep]);
+  }, [board, activeDayISO, toast, advanceTourStep]);
 
   const profile = useOnboardingProfile();
   const targets = computeTargetsFromOnboarding(profile);
