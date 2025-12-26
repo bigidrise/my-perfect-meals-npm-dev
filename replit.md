@@ -62,6 +62,16 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
   - Integrated normalizer into unifiedMealPipeline and dessert-creator
   - MealIngredientPicker defaults to "oz" (not "g")
   - Restaurant generator uses string[] (ingredient names only) - different use case
+- **Ingredient Macro Display Removal (Dec 2024)**: Removed inaccurate ingredient-level macros
+  - Modified `formatIngredientWithGrams` in `client/src/utils/unitConversions.ts`
+  - Ingredients now show only: amount, unit, name (no macro suffix like "(28g protein)")
+  - Meal-level and day-level macro totals remain (accurate, validated)
+  - Rationale: Ingredient macros were inconsistent/inaccurate, undermining app credibility
+- **Feature Simplification (Dec 2024)**: Hidden "Create with AI" for launch
+  - `showCreateWithAI: false` in `client/src/featureFlags.ts` and `client/src/utils/features.ts`
+  - "Create with Chef" is now the only visible AI meal creation path
+  - Code preserved for future reactivation via feature flag
+  - Updated tour steps, Copilot explanations, and knowledge base to reference Chef only
 
 ## iOS Viewport Architecture (CRITICAL)
 RootViewport implements scroll containment to prevent iOS WKWebView bugs:
