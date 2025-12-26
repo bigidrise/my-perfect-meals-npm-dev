@@ -23,7 +23,8 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ, getUserTimezone } from "@/utils/midnight";
+import { todayISOInTZ, getUserTimezone, formatDateLocal } from "@/utils/midnight";
+import { getDayNameLong } from "@/utils/week";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Home, ArrowLeft, Calendar, Lock } from "lucide-react";
 import { FEATURES } from "@/utils/features";
@@ -654,7 +655,7 @@ export default function WeeklyMealBoard() {
       quantity: typeof i.qty === 'number' ? i.qty : (i.qty ? parseFloat(String(i.qty)) : 1),
       unit: i.unit || '',
       notes: planningMode === 'day' && activeDayISO
-        ? `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long' })} Meal Plan`
+        ? `${getDayNameLong(activeDayISO)} Meal Plan`
         : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`
     }));
 
@@ -1676,7 +1677,7 @@ export default function WeeklyMealBoard() {
                     });
                     toast({
                       title: "Day Saved to Biometrics",
-                      description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                      description: `${formatDateLocal(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                     });
                     setLocation('/my-biometrics');
                   }
@@ -1819,7 +1820,7 @@ export default function WeeklyMealBoard() {
 
         // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
         if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
-          const dayName = new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long' });
+          const dayName = getDayNameLong(activeDayISO);
 
           return (
             <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl safe-area-inset-bottom">

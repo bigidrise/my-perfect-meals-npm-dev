@@ -33,7 +33,8 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ, getUserTimezone } from "@/utils/midnight";
+import { todayISOInTZ, getUserTimezone, formatDateLocal } from "@/utils/midnight";
+import { getDayNameLong } from "@/utils/week";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -717,7 +718,7 @@ export default function AntiInflammatoryMenuBuilder() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Meal Plan`
+          ? `${getDayNameLong(activeDayISO)} Meal Plan`
           : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -1846,7 +1847,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         });
                         toast({
                           title: "Day Saved to Biometrics",
-                          description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: `${formatDateLocal(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                         });
                         setLocation('/my-biometrics');
                       }
@@ -2033,9 +2034,7 @@ export default function AntiInflammatoryMenuBuilder() {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = new Date(
-                activeDayISO + "T00:00:00Z",
-              ).toLocaleDateString(undefined, { weekday: "long" });
+              const dayName = getDayNameLong(activeDayISO);
 
               return (
                 <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
