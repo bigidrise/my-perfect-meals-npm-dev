@@ -19,8 +19,8 @@ export default function MacroAggregateBar({ title="Totals", items }: Props) {
             <div className="text-sm text-white/70">{title}</div>
             <div className="flex gap-4 text-sm mt-1 flex-wrap">
               <Pill label="Calories" value={`${totals.calories} kcal`} />
-              <Pill label="Protein"  value={`${totals.protein} g`} />
-              <Pill label="Carbs" value={`${totals.carbs} g`} />
+              <Pill label="Protein*"  value={`${totals.protein} g`} />
+              <Pill label="Carbs*" value={`${totals.carbs} g`} />
               <Pill label="Fat"      value={`${totals.fat} g`} />
             </div>
           </div>

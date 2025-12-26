@@ -327,7 +327,10 @@ export default function CravingCreator() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerateMeal = async () => {
+    console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
+    
     if (!cravingInput.trim()) {
+      console.log("❌ Empty craving input - showing toast");
       toast({
         title: "Missing Information",
         description: "Please describe what you're craving first!",
@@ -336,11 +339,14 @@ export default function CravingCreator() {
       return;
     }
 
+    console.log("✅ Starting generation with:", { cravingInput, servings, selectedDiet });
     setIsGenerating(true);
     startProgressTicker();
 
     try {
-      const response = await fetch(apiUrl("/api/meals/craving-creator"), {
+      const url = apiUrl("/api/meals/craving-creator");
+      console.log("📡 Fetching:", url);
+      const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

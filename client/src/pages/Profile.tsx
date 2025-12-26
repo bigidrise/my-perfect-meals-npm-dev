@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +30,8 @@ import {
   RotateCcw,
   Trash2,
   LifeBuoy,
+  Camera,
+  Loader2,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,13 +40,105 @@ import EmotionAIFooter from "@/components/EmotionAIFooter";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
-  const { setUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = "Profile | My Perfect Meals";
   }, []);
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const presignedRes = await fetch(apiUrl("/api/uploads/request-url"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+        }),
+      });
+
+      if (!presignedRes.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const { uploadURL, objectPath } = await presignedRes.json();
+
+      const uploadRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      const updateRes = await fetch(apiUrl("/api/users/profile-photo"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify({ profilePhotoUrl: objectPath }),
+      });
+
+      if (!updateRes.ok) {
+        throw new Error("Failed to update profile photo");
+      }
+
+      await refreshUser();
+
+      toast({
+        title: "Photo updated",
+        description: "Your profile photo has been updated.",
+      });
+    } catch (error: any) {
+      console.error("Photo upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload photo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -86,15 +180,9 @@ export default function Profile() {
     }
   };
 
-  // Get user data
-  const { data: fullUserData } = useQuery<{ name?: string; email?: string }>({
-    queryKey: ["/api/users/1"],
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const userName = fullUserData?.name || "User";
-  const userEmail = fullUserData?.email || "user@example.com";
+  const userName = user?.name || "User";
+  const userEmail = user?.email || "";
+  const profilePhotoUrl = user?.profilePhotoUrl;
 
   const profileSections = [
     {
@@ -146,17 +234,52 @@ export default function Profile() {
       {/* Header */}
       <div className="bg-black/40 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-full bg-gradient-primary shadow-lg">
-              <User className="h-8 w-8 text-white" />
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+                id="profile-photo-input"
+              />
+              <label
+                htmlFor="profile-photo-input"
+                className="cursor-pointer block"
+              >
+                <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gradient-primary shadow-lg">
+                  {profilePhotoUrl ? (
+                    <img
+                      src={profilePhotoUrl}
+                      alt={userName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="h-8 w-8 text-white" />
+                    </div>
+                  )}
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-purple-600 border-2 border-black/40">
+                  <Camera className="h-3.5 w-3.5 text-white" />
+                </div>
+              </label>
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">
                 {userName}
               </h1>
-              <p className="text-sm text-white/90">
-                {userEmail}
-              </p>
+              {userEmail && (
+                <p className="text-sm text-white/90">
+                  {userEmail}
+                </p>
+              )}
             </div>
           </div>
         </div>

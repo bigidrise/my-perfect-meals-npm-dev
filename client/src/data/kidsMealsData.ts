@@ -24,8 +24,8 @@ export const kidsMeals: KidsMeal[] = [
     healthBadges: ["High Protein", "Kid Favorite"],
     ingredients: [
       { name: "flour tortillas", quantity: 4, unit: "each", notes: "small" },
-      { name: "chicken", quantity: 150, unit: "g", notes: "cooked, shredded" },
-      { name: "cheddar cheese", quantity: 100, unit: "g", notes: "mild, shredded" },
+      { name: "chicken", quantity: 5, unit: "oz", notes: "cooked, shredded" },
+      { name: "cheddar cheese", quantity: 3.5, unit: "oz", notes: "mild, shredded" },
       { name: "bell peppers", quantity: 0.25, unit: "cup", notes: "diced fine" }
     ],
     instructions: [
@@ -44,11 +44,11 @@ export const kidsMeals: KidsMeal[] = [
     baseServings: 4,
     healthBadges: ["Vegetarian", "Hidden Veggies"],
     ingredients: [
-      { name: "pasta", quantity: 300, unit: "g", notes: "whole wheat" },
+      { name: "pasta", quantity: 10, unit: "oz", notes: "whole wheat" },
       { name: "carrots", quantity: 1, unit: "cup", notes: "finely diced" },
       { name: "yellow bell pepper", quantity: 0.5, unit: "cup", notes: "diced" },
       { name: "zucchini", quantity: 0.5, unit: "cup", notes: "diced" },
-      { name: "cream cheese", quantity: 100, unit: "g" },
+      { name: "cream cheese", quantity: 3.5, unit: "oz" },
       { name: "milk", quantity: 0.5, unit: "cup" }
     ],
     instructions: [
@@ -69,7 +69,7 @@ export const kidsMeals: KidsMeal[] = [
     ingredients: [
       { name: "flour tortillas", quantity: 2, unit: "each", notes: "large" },
       { name: "cream cheese", quantity: 4, unit: "tbsp", notes: "softened" },
-      { name: "turkey", quantity: 100, unit: "g", notes: "sliced" },
+      { name: "turkey", quantity: 3.5, unit: "oz", notes: "sliced" },
       { name: "apple", quantity: 1, unit: "each", notes: "small, thinly sliced" },
       { name: "lettuce leaves", quantity: 4, unit: "each" }
     ],
@@ -133,7 +133,7 @@ export const kidsMeals: KidsMeal[] = [
     baseServings: 4,
     healthBadges: ["High Protein", "Hidden Veggies"],
     ingredients: [
-      { name: "chicken", quantity: 500, unit: "g", notes: "ground" },
+      { name: "chicken", quantity: 1, unit: "lb", notes: "ground" },
       { name: "carrots", quantity: 0.5, unit: "cup", notes: "finely grated" },
       { name: "zucchini", quantity: 0.5, unit: "cup", notes: "finely grated" },
       { name: "breadcrumbs", quantity: 0.5, unit: "cup" },
@@ -239,7 +239,7 @@ export const kidsMeals: KidsMeal[] = [
     baseServings: 4,
     healthBadges: ["Vegetarian", "Hidden Veggies"],
     ingredients: [
-      { name: "macaroni pasta", quantity: 300, unit: "g" },
+      { name: "macaroni pasta", quantity: 10, unit: "oz" },
       { name: "cheddar cheese", quantity: 2, unit: "cup", notes: "shredded" },
       { name: "milk", quantity: 1, unit: "cup" },
       { name: "butternut squash puree", quantity: 0.5, unit: "cup" },

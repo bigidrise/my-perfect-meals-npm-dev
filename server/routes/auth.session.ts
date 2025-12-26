@@ -60,7 +60,13 @@ router.post("/api/auth/signup", async (req, res) => {
       isTester,
     }).returning();
 
-    console.log("✅ Created new user:", newUser.email, "ID:", newUser.id);
+  // Set session cookie for mobile compatibility (guard for prod where session may be undefined)
+  if (req.session) {
+    (req.session as any).userId = newUser.id;
+  }
+
+  console.log("✅ Created new user:", newUser.email, "ID:", newUser.id);
+
 
     // Return user data with auth token (without password)
     res.json({
@@ -83,20 +89,29 @@ router.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log("🔐 Login attempt for email:", email);
+
     if (!email || !password) {
+      console.log("❌ Missing email or password");
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    // Find user by email
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    // Find user by email (case-insensitive)
+    const normalizedEmail = email.toLowerCase().trim();
+    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
     
     if (!user) {
+      console.log("❌ User not found for email:", normalizedEmail);
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    console.log("✅ User found:", user.email, "has password:", !!user.password, "password length:", user.password?.length);
+
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log("🔐 Password comparison result:", isValidPassword);
     if (!isValidPassword) {
+      console.log("❌ Password mismatch for user:", user.email);
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
@@ -108,6 +123,11 @@ router.post("/api/auth/login", async (req, res) => {
       authTokenCreatedAt: new Date(),
       isTester,
     }).where(eq(users.id, user.id));
+
+    // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
+    if (req.session) {
+      (req.session as any).userId = user.id;
+    }
 
     console.log("✅ User logged in:", user.email, "ID:", user.id);
 

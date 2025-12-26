@@ -49,6 +49,19 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
   - Deleted old components/RootViewport.tsx
 - Added CSS utilities for iOS scroll handling (.ios-scroll, .pb-safe-nav, .pb-safe-both, .pt-safe-top)
 - Updated SafePageContainer and PageShell with safe-area utilities
+- **Route Migration (Dec 2024)**: Migrated broken routes from `stableMealGenerator` to working pipelines
+  - `/api/meals/ai-creator` → uses `unifiedMealPipeline.generateCravingMealUnified`
+  - `/api/meals/one/regenerate` → uses `unifiedMealPipeline.generateCravingMealUnified`
+  - `/api/meals/kids` → uses `kidsLunchboxV1Generate` (dedicated kid-friendly catalog)
+  - All routes now return consistent `nutrition` object format
+  - `stableMealGenerator.ts` is deprecated (DO NOT USE - has 69 broken definitions)
+- **U.S. Ingredient Contract (Dec 2024)**: Unified ingredient format across all meal generators
+  - Defined `Ingredient` interface in `shared/types.ts` with U.S.-only measurements
+  - Created `server/services/ingredientNormalizer.ts` to convert metric→U.S. and strip macros
+  - Updated AI prompts (promptBuilder.ts, dessert-creator.ts) to enforce oz/lb/cup/tbsp/tsp
+  - Integrated normalizer into unifiedMealPipeline and dessert-creator
+  - MealIngredientPicker defaults to "oz" (not "g")
+  - Restaurant generator uses string[] (ingredient names only) - different use case
 
 ## iOS Viewport Architecture (CRITICAL)
 RootViewport implements scroll containment to prevent iOS WKWebView bugs:
@@ -97,3 +110,57 @@ The Copilot system separates autoplay from manual invocation:
 **Events (backward compatible):**
 - `copilot-autoplay-changed` - New event name
 - `copilot-guided-mode-changed` - Legacy event (still emitted for compatibility)
+
+## AI Stability Architecture (Dec 2024) - Facebook-Level Stability
+
+The system uses route-aware health monitoring that distinguishes between AI-required and deterministic routes.
+
+**Key Components:**
+- `server/services/schemaValidator.ts` - Validates required tables exist at startup
+- `server/services/aiHealthMetrics.ts` - Tracks generation source metrics with route classification
+- `/api/health/ai` endpoint - Reports health status with release gates
+
+**Route Classification:**
+- **AI-Required Routes** (count toward health gate):
+  - `/api/meals/generate` - Unified endpoint (create-with-chef, snack-creator)
+  - `/api/meals/fridge-rescue` - Fridge rescue (uses OpenAI)
+- **Deterministic Routes** (excluded from health gate):
+  - `/api/meals/craving-creator` - Uses stableMealGenerator (by design)
+  - `/api/meals/ai-creator` - Uses stableMealGenerator
+  - `/api/meals/kids` - Uses stableMealGenerator with kidFriendly scope
+
+**Generation Sources (truthful tagging):**
+- `ai` - Real AI generation via OpenAI (primary success)
+- `cache` - Cached AI-generated meal reused (primary success)
+- `template` - Template-based generation (degraded, allowed)
+- `catalog` / `fallback` - Deterministic fallback (failure for AI routes)
+- `error` - Generation failed
+
+**Health Endpoint Response:**
+```json
+{
+  "status": "ok|degraded|down",
+  "schema": { "allTablesExist": true, "missingTables": [] },
+  "metrics": {
+    "aiRoutes": { "fallbackRate": 0, "totalRequests": 2, "hasErrors": false },
+    "routes": { "/api/meals/generate": { "routeType": "ai-required", "fallbackRate": 0 } }
+  },
+  "releaseGates": {
+    "schemaPassing": true,
+    "noErrors": true,
+    "fallbackRateOk": true  // fails if > 5%
+  }
+}
+```
+
+**Release Gates (for TestFlight):**
+1. `schemaPassing` - All required tables exist
+2. `noErrors` - No generation errors in recent window
+3. `fallbackRateOk` - Fallback rate ≤ 5%
+
+**Automatic Migrations:**
+- `prestart` and `predev` hooks in package.json run `db:push` automatically
+- Schema changes propagate on every deployment
+
+**Required Tables:**
+- `generated_meals_cache` - AI meal cache (must be in shared/schema.ts exports)

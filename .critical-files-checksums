@@ -1,10 +1,10 @@
 d868eb32750a5da17e927821ad3eaa61  client/src/components/modals/AIMealCreatorModal.tsx
 43236d759520a18a672cb2bf8696ee66  client/src/components/PreparationModal.tsx
 a1cfa34755b874a88bb578a7c9662293  client/src/components/pickers/MealPremadePicker.tsx
-b1db28c107541a3fcd026823bd10f2f5  client/src/pages/WeeklyMealBoard.tsx
-302e721ef94860b1dc4a8733d6d7cbd6  client/src/pages/BeachBodyMealBoard.tsx
-7c697ed30e3328021c6eea23d2929ea0  client/src/pages/pro/PerformanceCompetitionBuilder.tsx
-36fc9a863378447cfc0a2da9ebd3f953  client/src/pages/Planner.tsx
+ee7ca2e24549f580ed72770244ef8578  client/src/pages/WeeklyMealBoard.tsx
+de9bf7b8fd9bd24256017a6e03802db2  client/src/pages/BeachBodyMealBoard.tsx
+199ce3a75dee1ed653c35a8c1e73ea3a  client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+4d45cbcd030af0c5a7ea53ea1c16e848  client/src/pages/Planner.tsx
 e43f2831f6a95fc192ce80cf88278d03  server/routes/manualMacros.ts
 0fb3c68b6e73f37131dcdbf60db4c07a  server/services/stableMealGenerator.ts
 5742b4a603b129cc3ea2117fea6d02e8  server/services/universalMealGenerator.ts

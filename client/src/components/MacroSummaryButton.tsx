@@ -45,8 +45,8 @@ export default function MacroSummaryButton({ label="Show Macros", title, nutriti
 
           <div className="rounded-xl p-4 bg-black/30 border border-white/15 space-y-1">
             <Row k="Calories" v={`${totals.calories} kcal`} />
-            <Row k="Protein"  v={`${totals.protein} g`} />
-            <Row k="Carbs"    v={`${totals.carbs} g`} />
+            <Row k="Protein*"  v={`${totals.protein} g`} />
+            <Row k="Carbs*"    v={`${totals.carbs} g`} />
             <Row k="Fat"      v={`${totals.fat} g`} />
           </div>
 

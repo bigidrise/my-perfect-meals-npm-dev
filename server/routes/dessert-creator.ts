@@ -5,6 +5,7 @@
 import { Router } from "express";
 import OpenAI from "openai";
 import { computeMedicalBadges } from "../services/medicalBadges";
+import { normalizeIngredients } from "../services/ingredientNormalizer";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -121,12 +122,29 @@ CRITERIA:
 GENERATION RULES:
 1. If a specific dessert is named (e.g., "key lime pie"), create a HEALTHY version of that exact dessert.
 2. If no specific dessert is named, CREATE a unique dessert using the category + flavor combination.
-3. Include accurate measurements (cups, grams, teaspoons, etc.)
-4. Instructions must be step-by-step baking/cooking directions.
-5. Nutrition must be realistic and scaled for the total serving count (${serving.count} servings).
-6. Reasoning explains why this dessert fits the flavor profile + dietary needs.
-7. imageUrl should be a short descriptive image prompt (no quotes).
-8. Apply all dietary requirements strictly (e.g., if "gluten-free" is specified, use NO gluten ingredients).
+3. Instructions must be step-by-step baking/cooking directions.
+4. Nutrition must be realistic and scaled for the total serving count (${serving.count} servings).
+5. Reasoning explains why this dessert fits the flavor profile + dietary needs.
+6. imageUrl should be a short descriptive image prompt (no quotes).
+7. Apply all dietary requirements strictly (e.g., if "gluten-free" is specified, use NO gluten ingredients).
+
+🚨 U.S. MEASUREMENT RULES (CRITICAL):
+- Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
+- NEVER use grams (g), milliliters (ml), or metric units
+- Baking ingredients: use cups, tbsp, tsp (e.g., "2 cups flour", "1/4 cup sugar")
+- Butter: use tbsp or cups (e.g., "4 tbsp butter", "1/2 cup butter")
+- Liquids: use cup, tbsp, tsp, fl oz (e.g., "1 cup milk", "2 tbsp vanilla extract")
+- DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
+
+CORRECT INGREDIENT EXAMPLES:
+- {"name": "all-purpose flour", "amount": "2", "unit": "cup"}
+- {"name": "butter", "amount": "4", "unit": "tbsp", "preparationNote": "softened"}
+- {"name": "eggs", "amount": "2", "unit": "each"}
+- {"name": "vanilla extract", "amount": "1", "unit": "tsp"}
+
+INCORRECT (NEVER DO THIS):
+- {"name": "flour", "amount": "240", "unit": "g"} ❌ (use cups)
+- {"name": "butter", "amount": "113", "unit": "g"} ❌ (use tbsp)
 `;
 
     const completion = await getOpenAI().chat.completions.create({
@@ -146,12 +164,13 @@ GENERATION RULES:
         .json({ error: "AI returned invalid JSON for dessert" });
     }
 
-    const ingredientNames =
-      Array.isArray(meal.ingredients) && meal.ingredients.length > 0
-        ? meal.ingredients.map((i: any) =>
-            String(i.name ?? i.item ?? "").toLowerCase(),
-          )
-        : [];
+    // Normalize ingredients to U.S. measurements (oz, cups, tbsp, tsp)
+    const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
+    meal.ingredients = normalizedIngredients;
+
+    const ingredientNames = normalizedIngredients.map((i: any) =>
+      String(i.name ?? "").toLowerCase()
+    );
 
     const constraints: any = {
       lowGlycemicMode: dietaryPreferences?.includes("low-sugar") || false,

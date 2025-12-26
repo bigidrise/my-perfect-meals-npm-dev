@@ -63,20 +63,36 @@ OUTPUT FORMAT: a single JSON object with keys:
 {
   "name": string,
   "description": string,
-  "ingredients": [{"item": string, "amount": number, "unit": string, "notes": string?}, ...],
+  "ingredients": [{"name": string, "amount": string, "unit": string, "preparationNote": string?}, ...],
   "instructions": [string, ...], // actionable steps only
   "nutrition": {"calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number, "sugar_g": number},
   "servings": number
 }
 
-MEASUREMENT RULES (CRITICAL - EXACT MEASUREMENTS REQUIRED):
-- Use ONLY these units for solids: ${unitPrefs.solidUnits.join(", ")}.
-- Use ONLY these units for liquids: ${unitPrefs.liquidUnits.join(", ")}.
-- ALWAYS provide EXACT numeric measurements - never use "a pinch", "dash", "to taste", etc.
-- Use precise amounts like 1.25 cups, 0.5 teaspoons, 2.75 ounces - no vague measurements.
-- For small amounts, use fractions: 1/4 teaspoon, 1/2 cup, 3/4 pound.
-- Scale output for the requested servings exactly (${servings}).
-- Every ingredient MUST have a specific number and unit.
+🚨 U.S. MEASUREMENT RULES (CRITICAL - EXACT MEASUREMENTS REQUIRED):
+- Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
+- NEVER use grams (g), milliliters (ml), or metric units
+- NEVER use "piece" or "pieces" for meats/proteins - always use oz or lb
+- Proteins (chicken, beef, fish, pork) MUST be measured in oz (4-8 oz typical serving)
+- Dairy (yogurt, cheese, milk) use oz or cups
+- Liquids use cup, tbsp, tsp, or fl oz
+- ALWAYS provide EXACT numeric measurements - never use "a pinch", "dash", "to taste"
+- Use precise amounts like 6 oz, 1/2 cup, 2 tbsp - no vague measurements
+- For small amounts, use fractions: 1/4 tsp, 1/2 cup
+- Scale output for the requested servings exactly (${servings})
+- Every ingredient MUST have a specific amount and unit
+- DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
+
+EXAMPLES OF CORRECT INGREDIENT FORMAT:
+- {"name": "chicken breast", "amount": "6", "unit": "oz", "preparationNote": "boneless, skinless"}
+- {"name": "Greek yogurt", "amount": "1", "unit": "cup"}
+- {"name": "olive oil", "amount": "2", "unit": "tbsp"}
+- {"name": "eggs", "amount": "2", "unit": "each", "preparationNote": "scrambled"}
+
+EXAMPLES OF INCORRECT FORMAT (NEVER DO THIS):
+- {"name": "chicken", "amount": "1", "unit": "piece"} ❌ (use oz instead)
+- {"name": "yogurt", "amount": "340", "unit": "g"} ❌ (use cups instead)
+- {"name": "chicken", "amount": "150", "unit": "g", "protein": 30} ❌ (no grams, no macros)
 
 DO NOT:
 - Do not include banned ingredients or sweeteners.

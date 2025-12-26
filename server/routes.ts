@@ -4,6 +4,7 @@ import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems } from "@shared/schema";
 import { db } from "./db";
@@ -215,6 +216,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health endpoint for network testing
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now(), version: "1.0.0" });
+  });
+
+  // AI Health endpoint - Facebook-level stability monitoring
+  // Reports: schema status, success/fallback/error rates, required table presence
+  // NOTE: Release gates only apply to AI-REQUIRED routes, not deterministic routes
+  app.get("/api/health/ai", async (_req, res) => {
+    try {
+      const { validateRequiredTables } = await import("./services/schemaValidator");
+      const { getRecentMetrics } = await import("./services/aiHealthMetrics");
+      
+      const schemaStatus = await validateRequiredTables();
+      const metrics = getRecentMetrics();
+      
+      // Determine overall status (based only on AI-required routes)
+      let status: 'ok' | 'degraded' | 'down' = metrics.status;
+      
+      // If required tables are missing, override to 'down'
+      if (!schemaStatus.allTablesExist) {
+        status = 'down';
+      }
+      
+      // Release gates only check AI-required routes, not deterministic routes
+      const aiRoutesHaveTraffic = metrics.aiRoutes.totalRequests > 0;
+      
+      const response = {
+        status,
+        timestamp: Date.now(),
+        schema: {
+          allTablesExist: schemaStatus.allTablesExist,
+          requiredTables: Object.fromEntries(
+            schemaStatus.results.map(r => [r.tableName, r.exists])
+          ),
+          missingTables: schemaStatus.missingTables,
+        },
+        metrics: {
+          windowMs: metrics.windowMs,
+          aiRoutes: metrics.aiRoutes,
+          routes: metrics.routes,
+        },
+        releaseGates: {
+          schemaPassing: schemaStatus.allTablesExist,
+          // noErrors: only check AI-required routes (deterministic routes excluded)
+          noErrors: !metrics.aiRoutes.hasErrors,
+          // fallbackRateOk: only check AI-required routes
+          // If no AI traffic yet, gate passes (nothing to measure)
+          fallbackRateOk: !aiRoutesHaveTraffic || metrics.aiRoutes.fallbackRate <= 0.05,
+        },
+        routeClassification: {
+          note: "Deterministic routes (like Craving Creator) are intentionally excluded from AI health gate",
+          aiRequiredRoutes: ['/api/meals/generate', '/api/meals/fridge-rescue'],
+          deterministicRoutes: ['/api/meals/craving-creator', '/api/meals/craving-creator-enforced', '/api/meals/ai-creator', '/api/meals/kids'],
+        }
+      };
+      
+      // Return 503 if critical issues, 200 otherwise
+      const httpStatus = status === 'down' ? 503 : 200;
+      res.status(httpStatus).json(response);
+    } catch (error: any) {
+      console.error("Health check failed:", error);
+      res.status(500).json({ 
+        status: 'error',
+        error: error.message,
+        timestamp: Date.now()
+      });
+    }
   });
 
   // Public Object Storage - Serves meal images for Hybrid Meal Engine
@@ -488,6 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
   app.post("/api/meals/generate", async (req, res) => {
     console.log("🔄 Unified meal generation endpoint hit");
+    const startTime = Date.now();
     
     try {
       const { 
@@ -532,8 +599,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Import unified pipeline
+      // Import unified pipeline and metrics
       const { generateMealUnified } = await import("./services/unifiedMealPipeline");
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
 
       const result = await generateMealUnified({
         type,
@@ -544,6 +612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count
       });
 
+      // Record metrics for AI health tracking
+      const durationMs = Date.now() - startTime;
+      recordGeneration('/api/meals/generate', result.source as any, durationMs);
+
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
 
       // Return consistent response format
@@ -551,6 +623,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error("❌ Unified generation error:", error);
+      // Record error for metrics
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/generate', 'error', Date.now() - startTime, error.message);
+      
       res.status(500).json({ 
         success: false, 
         error: error.message || "Failed to generate meal",
@@ -563,6 +639,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fridge Rescue API Main Route - Generate 3 meals with macros and amounts
   app.post("/api/meals/fridge-rescue", requireFeature("FRIDGE_RESCUE"), normalizeFridgeRescue, async (req, res) => {
     console.log("[FRIDGE] hit", { body: req.body, headers: req.headers["content-type"] });
+    const startTime = Date.now();
+    
     try {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
@@ -605,10 +683,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroTargets 
       });
 
+      // Record metrics - fridge rescue is AI-required
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      const durationMs = Date.now() - startTime;
+      // FridgeRescue returns AI meals if successful
+      recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
+
       console.log("[FRIDGE] ok returning", meals.length, "meals");
       res.json({ meals }); // Always return { meals: [...] }
     } catch (error: any) {
       console.error("[FRIDGE] handler error", error);
+      // Record error for metrics
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/fridge-rescue', 'error', Date.now() - startTime, error.message);
+      
       res.status(500).json({ error: error.message || "Failed to generate fridge rescue meals" });
     }
   });
@@ -1215,6 +1303,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload routes
   app.use("/api", uploadsRouter);
 
+  // Object Storage routes (presigned URL uploads)
+  registerObjectStorageRoutes(app);
+
+  // Profile photo update endpoint - supports both session and token auth
+  app.put("/api/users/profile-photo", async (req, res) => {
+    try {
+      // Support both session-based auth (mobile) and token-based auth
+      let userId = (req.session as any)?.userId as string | undefined;
+      
+      // Fall back to token auth if no session
+      if (!userId) {
+        const token = req.headers["x-auth-token"] as string;
+        if (token) {
+          const [user] = await db.select().from(users).where(eq(users.authToken, token)).limit(1);
+          userId = user?.id;
+        }
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { profilePhotoUrl } = req.body;
+      if (!profilePhotoUrl || typeof profilePhotoUrl !== "string") {
+        return res.status(400).json({ error: "profilePhotoUrl is required" });
+      }
+
+      await db.update(users).set({ profilePhotoUrl }).where(eq(users.id, userId));
+
+      res.json({ success: true, profilePhotoUrl });
+    } catch (error) {
+      console.error("Failed to update profile photo:", error);
+      res.status(500).json({ error: "Failed to update profile photo" });
+    }
+  });
+
   // DIRECT Holiday Feast route for debugging
   app.post("/api/meals/holiday-feast", async (req, res) => {
     console.log("🎯 DIRECT Holiday Feast route HIT! Body:", req.body);
@@ -1488,6 +1612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trialEndsAt: user.trialEndsAt,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
+        profilePhotoUrl: user.profilePhotoUrl || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -2076,6 +2201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
 
+      const startTime = Date.now();
       console.log("🎯 Craving creator request:", { targetMealType, cravingInput, userId, servings: validatedServings });
 
       // Get user data for medical personalization
@@ -2089,20 +2215,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Use stable catalog-based generation
-      const { generateCravingMeal } = await import("./services/stableMealGenerator");
-      const userPrefs = {
-        userId: userId || "1", // Add userId for glycemic settings
-        dietaryRestrictions: user?.dietaryRestrictions || [],
-        allergies: user?.allergies || [],
-        medicalFlags: user?.healthConditions || []
-      };
-
-      const generatedMeal = await generateCravingMeal(
+      // Use unified meal pipeline (deterministic: cache → templates → fallback)
+      const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
+      
+      const result = await generateCravingMealUnified(
+        cravingInput || "something delicious",
         targetMealType || "lunch",
-        cravingInput, // Pass the craving string as second parameter
-        userPrefs      // Pass user preferences as third parameter
+        userId
       );
+      
+      if (!result.success || !result.meal) {
+        throw new Error("Failed to generate meal");
+      }
+      
+      const generatedMeal = {
+        id: result.meal.id,
+        name: result.meal.name,
+        description: result.meal.description,
+        ingredients: result.meal.ingredients,
+        instructions: result.meal.instructions,
+        nutrition: {
+          calories: result.meal.calories,
+          protein: result.meal.protein,
+          carbs: result.meal.carbs,
+          fat: result.meal.fat
+        },
+        medicalBadges: result.meal.medicalBadges || [],
+        imageUrl: result.meal.imageUrl,
+        servingSize: "1 serving"
+      };
 
       // Scale ingredients and macros by serving size if > 1
       if (validatedServings > 1) {
@@ -2165,8 +2306,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("🍽️ Stable craving creator generated meal:", generatedMeal.name);
       console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
+      console.log("📊 Generation source:", result.source);
 
-      res.json({ meal: generatedMeal });
+      // Record metrics for health endpoint
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/craving-creator', result.source as any, Date.now() - startTime);
+
+      res.json({ 
+        meal: generatedMeal,
+        generationSource: result.source
+      });
     } catch (error: any) {
       console.error("❌ Craving creator error:", error);
       res.status(500).json({ message: error.message });
@@ -2388,50 +2537,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Kids meal generation endpoint
+  // Kids meal generation endpoint - uses kidsLunchboxV1 for kid-friendly meals
+  // NOTE: This route is also defined in index.ts (takes precedence before Vite middleware)
   app.post("/api/meals/kids", async (req, res) => {
     try {
-      const { preferences, userId, servings = 1 } = req.body;
+      const { preferences, userId, servings = 1, allergies = [] } = req.body;
+      const startTime = Date.now();
 
-      // Get user data for medical personalization
-      let user = null;
-      if (userId) {
-        try {
-          const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-          user = dbUser || null;
-        } catch (error) {
-          console.log("Could not fetch user for kids meal personalization:", error);
-        }
+      console.log("🧒 KIDS ROUTE (routes.ts): Generating kid-friendly meal for:", preferences);
+
+      // Use stable kids lunchbox generator with proper kid-friendly catalog
+      const { kidsLunchboxV1Generate } = await import("./services/kidsLunchboxV1");
+      
+      const result = await kidsLunchboxV1Generate({
+        favorites: preferences || "",
+        allergies: allergies
+      });
+      
+      if (!result.meal) {
+        throw new Error("Failed to generate kids meal");
       }
-
-      // Use stable catalog-based generation with ENFORCED kid-friendly scope
-      const { generateCravingMeal } = await import("./services/stableMealGenerator");
-      const userPrefs = {
-        userId: userId || "1",
-        dietaryRestrictions: user?.dietaryRestrictions || [],
-        allergies: user?.allergies || [],
-        medicalFlags: user?.healthConditions || [],
-        kidFriendly: true,        // ENFORCED: Route defines scope
-        catalogScope: "kids",     // ENFORCED: Kids catalog only
-        servings: servings
+      
+      // Transform to canonical meal format with nutrition object
+      const generatedMeal = {
+        id: `kids-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: result.meal.name,
+        description: result.meal.description,
+        ingredients: result.meal.ingredients.map((ing: any) => ({
+          name: ing.name,
+          quantity: String(ing.amount),
+          unit: ing.unit
+        })),
+        instructions: result.meal.instructions,
+        nutrition: result.meal.nutrition,
+        medicalBadges: [],
+        imageUrl: result.meal.imageUrl || "/images/cravings/chicken-tenders.jpg",
+        servingSize: servings > 1 ? `${servings} servings` : "1 serving",
+        cookingTime: result.meal.prepTime
       };
 
-      console.log("🧒 KIDS ROUTE: Enforcing kidFriendly=true for:", preferences);
-
-      const generatedMeal = await generateCravingMeal(
-        "lunch",          // targetMealType
-        preferences,      // craving input
-        userPrefs        // user preferences with ENFORCED kidFriendly flag
-      );
-
-      // Add ingredients to shopping list
-      if (generatedMeal.ingredients) {
-        // TODO: Implement shopping list service integration
-        console.log("Would add kids meal ingredients to shopping list:", generatedMeal.ingredients);
-      }
-
       console.log("🧒 Kids meal generated:", generatedMeal.name);
-      console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
+      console.log("📊 Generation source: kids-catalog");
+
+      // Record metrics for health endpoint (deterministic source)
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/kids', 'catalog', Date.now() - startTime);
 
       res.json({ meal: generatedMeal });
     } catch (error: any) {
@@ -2440,35 +2590,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Hey AI Meal Creator endpoint - uses the same system as craving creator
+  // Hey AI Meal Creator endpoint - uses unifiedMealPipeline for stability
   app.post("/api/meals/ai-creator", async (req, res) => {
     try {
       const { cravingInput, userId } = req.body;
+      const startTime = Date.now();
 
-      // Get user data for medical personalization
-      let user = null;
-      if (userId) {
-        try {
-          const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-          user = dbUser || null;
-        } catch (error) {
-          console.log("Could not fetch user for AI meal creator personalization:", error);
-        }
-      }
+      console.log("🤖 AI meal creator request:", { cravingInput, userId });
 
-      const generatedMeal = await generateCravingMeal(
-        "lunch", 
-        cravingInput,
-        {
-          userId: userId?.toString() || "1",
-          dietaryRestrictions: user?.dietaryRestrictions || [],
-          allergies: user?.allergies || [],
-          medicalFlags: user?.healthConditions || []
-        }
+      // Use unified pipeline (deterministic: cache → templates → fallback)
+      const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
+      
+      const result = await generateCravingMealUnified(
+        cravingInput || "something delicious",
+        "lunch",
+        userId
       );
+      
+      if (!result.success || !result.meal) {
+        throw new Error("Failed to generate meal");
+      }
+      
+      const generatedMeal = {
+        id: result.meal.id,
+        name: result.meal.name,
+        description: result.meal.description,
+        ingredients: result.meal.ingredients,
+        instructions: result.meal.instructions,
+        nutrition: {
+          calories: result.meal.calories,
+          protein: result.meal.protein,
+          carbs: result.meal.carbs,
+          fat: result.meal.fat
+        },
+        medicalBadges: result.meal.medicalBadges || [],
+        imageUrl: result.meal.imageUrl,
+        servingSize: "1 serving"
+      };
 
       console.log("🤖 AI meal creator generated:", generatedMeal.name);
-      console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
+      console.log("📊 Generation source:", result.source);
+
+      // Record metrics for health endpoint
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/ai-creator', result.source as any, Date.now() - startTime);
 
       res.json({ meal: generatedMeal });
     } catch (error: any) {
@@ -2477,24 +2642,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Weekly meal generation endpoint - optimized high-performance system
-  // Single meal regeneration endpoint
+  // Single meal regeneration endpoint - uses unifiedMealPipeline for stability
   app.post("/api/meals/one/regenerate", async (req, res) => {
     try {
       const { userId, targetMealType, dietaryRestrictions = [], allergies = [], medicalFlags = [], avoidNames = [] } = req.body;
+      const startTime = Date.now();
 
-      const generatedMeal = await generateCravingMeal(
+      console.log("🔄 Single meal regeneration request:", { targetMealType, userId });
+
+      // Use unified pipeline (deterministic: cache → templates → fallback)
+      const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
+      
+      const result = await generateCravingMealUnified(
+        "something delicious", // Generic craving for regeneration
         targetMealType || "lunch",
-        undefined, // No specific craving string
-        {
-          dietaryRestrictions,
-          allergies,
-          medicalFlags
-        }
+        userId
       );
+      
+      if (!result.success || !result.meal) {
+        throw new Error("Failed to regenerate meal");
+      }
+      
+      const generatedMeal = {
+        id: result.meal.id,
+        name: result.meal.name,
+        description: result.meal.description,
+        ingredients: result.meal.ingredients,
+        instructions: result.meal.instructions,
+        nutrition: {
+          calories: result.meal.calories,
+          protein: result.meal.protein,
+          carbs: result.meal.carbs,
+          fat: result.meal.fat
+        },
+        medicalBadges: result.meal.medicalBadges || [],
+        imageUrl: result.meal.imageUrl,
+        servingSize: "1 serving"
+      };
 
       console.log("🔄 Single meal regenerated:", generatedMeal.name);
-      console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
+      console.log("📊 Generation source:", result.source);
+
+      // Record metrics for health endpoint
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/one/regenerate', result.source as any, Date.now() - startTime);
 
       res.json({ ok: true, data: generatedMeal });
     } catch (error: any) {

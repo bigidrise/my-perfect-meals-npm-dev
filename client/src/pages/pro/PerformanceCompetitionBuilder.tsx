@@ -111,6 +111,12 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
     title: "Track Progress & Save Day",
     description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
   },
+  {
+    icon: "*",
+    title: "What the Asterisks Mean",
+    description:
+      "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first.",
+  },
 ];
 
 // Week navigation utilities
