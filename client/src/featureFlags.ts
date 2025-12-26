@@ -6,6 +6,7 @@
 // Runtime feature flags
 export const FEATURES = {
   copilotSpotlight: import.meta.env.MODE === 'development', // Spotlight walkthrough system
+  showCreateWithAI: false, // Hide "Create with AI" - using only "Create with Chef" for launch simplicity
 };
 
 export const LAUNCH_PHASES = {

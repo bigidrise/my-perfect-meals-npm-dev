@@ -1587,7 +1587,7 @@ export default function GLP1MealBuilder() {
                           No {label.toLowerCase()} meals yet
                         </p>
                         <p className="text-xs text-white/40">
-                          Use "Create with AI" or "+" to add meals
+                          Use "Create with Chef" or "+" to add meals
                         </p>
                       </div>
                     )}
@@ -1686,7 +1686,7 @@ export default function GLP1MealBuilder() {
                     <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                       <p className="mb-2">No {label.toLowerCase()} meals yet</p>
                       <p className="text-xs text-white/40">
-                        Use "Create with AI" or "+" to add meals
+                        Use "Create with Chef" or "+" to add meals
                       </p>
                     </div>
                   )}

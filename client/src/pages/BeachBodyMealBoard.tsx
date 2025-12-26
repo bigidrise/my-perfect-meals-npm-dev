@@ -1584,8 +1584,8 @@ export default function BeachBodyMealBoard() {
                       {label}
                     </h2>
                     <div className="flex gap-2">
-                      {/* AI Meal Creator button for breakfast/lunch/dinner ONLY (not snacks) */}
-                      {key !== "snacks" && (
+                      {/* AI Meal Creator button - hidden by feature flag for launch */}
+                      {FEATURES.showCreateWithAI && key !== "snacks" && (
                         <Button
                           size="sm"
                           variant="ghost"

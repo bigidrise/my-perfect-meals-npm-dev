@@ -1428,19 +1428,21 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             Meal {mealNumber}
                           </h2>
                           <div className="flex gap-2">
-                            {/* Create with AI button - Competition diet type */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                              onClick={() => {
-                                setAiMealSlot("snacks");
-                                setAiMealModalOpen(true);
-                              }}
-                            >
-                              <Sparkles className="h-3 w-3" />
-                              Create with AI
-                            </Button>
+                            {/* Create with AI button - hidden by feature flag for launch */}
+                            {FEATURES.showCreateWithAI && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
+                                onClick={() => {
+                                  setAiMealSlot("snacks");
+                                  setAiMealModalOpen(true);
+                                }}
+                              >
+                                <Sparkles className="h-3 w-3" />
+                                Create with AI
+                              </Button>
+                            )}
 
                             {/* Create with Chef button - Competition meals */}
                             <Button
@@ -1711,21 +1713,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       {label}
                     </h2>
                     <div className="flex gap-2">
-                      {/* AI Meal Creator button - Competition diet type for all meals */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                        onClick={() => {
-                          setAiMealSlot(
-                            key as "breakfast" | "lunch" | "dinner" | "snacks",
-                          );
-                          setAiMealModalOpen(true);
-                        }}
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Create with AI
-                      </Button>
+                      {/* AI Meal Creator button - hidden by feature flag for launch */}
+                      {FEATURES.showCreateWithAI && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
+                          onClick={() => {
+                            setAiMealSlot(
+                              key as "breakfast" | "lunch" | "dinner" | "snacks",
+                            );
+                            setAiMealModalOpen(true);
+                          }}
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Create with AI
+                        </Button>
+                      )}
 
                       {/* Create with Chef button - Competition meals */}
                       <Button

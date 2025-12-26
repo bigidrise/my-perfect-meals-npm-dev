@@ -55,7 +55,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Build your daily meals with AI. Pick ingredients, generate meals, send to macros.",
     howTo: [
       "Tap the Day button to begin building your meals.",
-      "Tap 'Create with AI' to open the meal builder.",
+      "Tap 'Create with Chef' to describe what you want to eat.",
       "Select foods from ingredient categories like Proteins, Starchy Carbs, Fibrous Carbs, Fats, and Fruits.",
       "Use the search bar to jump directly to foods alphabetically.",
       "Tap a food to open its preparation style card. Select a cooking style and tap 'Use This Style'.",

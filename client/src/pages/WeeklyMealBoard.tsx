@@ -92,7 +92,7 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
     title: "Choose Your Builder",
-    description: "Tap 'Create with AI' for custom meals, or 'Create With Chef' to describe what you want."
+    description: "Tap 'Create with Chef' to describe what you want, and let the AI build your meal."
   },
   {
     icon: "2",
@@ -1487,7 +1487,7 @@ export default function WeeklyMealBoard() {
                       className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm"
                     >
                       <p className="mb-2">No {label.toLowerCase()} meals yet</p>
-                      <p className="text-xs text-white/40">Use "Create with AI" or "+" to add meals</p>
+                      <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
                     </div>
                   )}
                 </div>
@@ -1579,7 +1579,7 @@ export default function WeeklyMealBoard() {
               {board.lists[key].length === 0 && (
                 <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                   <p className="mb-2">No {label.toLowerCase()} meals yet</p>
-                  <p className="text-xs text-white/40">Use "Create with AI" or "+" to add meals</p>
+                  <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
                 </div>
               )}
             </div>

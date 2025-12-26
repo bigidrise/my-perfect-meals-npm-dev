@@ -1643,7 +1643,7 @@ export default function AntiInflammatoryMenuBuilder() {
                             No {label.toLowerCase()} meals yet
                           </p>
                           <p className="text-xs text-white/40">
-                            Use "Create with AI" or "+" to add meals
+                            Use "Create with Chef" or "+" to add meals
                           </p>
                         </div>
                       )}
@@ -1746,7 +1746,7 @@ export default function AntiInflammatoryMenuBuilder() {
                           No {label.toLowerCase()} meals yet
                         </p>
                         <p className="text-xs text-white/40">
-                          Use "Create with AI" or "+" to add meals
+                          Use "Create with Chef" or "+" to add meals
                         </p>
                       </div>
                     )}
