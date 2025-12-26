@@ -1904,6 +1904,8 @@ export default function BeachBodyMealBoard() {
                   0,
                 ),
                 fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
               });
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1932,6 +1934,8 @@ export default function BeachBodyMealBoard() {
                   slots.lunch.fat +
                   slots.dinner.fat +
                   slots.snacks.fat,
+                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
 

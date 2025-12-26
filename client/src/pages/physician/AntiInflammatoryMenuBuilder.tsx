@@ -1798,6 +1798,8 @@ export default function AntiInflammatoryMenuBuilder() {
                 protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
                 carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
                 fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
               });
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1810,6 +1812,8 @@ export default function AntiInflammatoryMenuBuilder() {
                 protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
                 carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
                 fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
               
