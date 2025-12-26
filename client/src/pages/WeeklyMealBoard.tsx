@@ -1629,6 +1629,9 @@ export default function WeeklyMealBoard() {
             protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
             carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
             fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+            // Include starchy/fibrous breakdown from meals
+            starchyCarbs: meals.reduce((sum, m) => sum + (m.starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+            fibrousCarbs: meals.reduce((sum, m) => sum + (m.fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
           });
           const slots = {
             breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1641,6 +1644,9 @@ export default function WeeklyMealBoard() {
             protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
             carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
             fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+            // Starchy/fibrous breakdown consumed
+            starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+            fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
           };
           const dayAlreadyLocked = isDay ? isDayLocked(activeDayISO, user?.id) : false;
           
