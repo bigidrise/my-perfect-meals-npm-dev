@@ -23,7 +23,7 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ } from "@/utils/midnight";
+import { todayISOInTZ, getUserTimezone } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Home, ArrowLeft, Calendar, Lock } from "lucide-react";
 import { FEATURES } from "@/utils/features";
@@ -249,7 +249,7 @@ export default function WeeklyMealBoard() {
   
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ('America/Chicago');
+    const today = todayISOInTZ();
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO('');
@@ -820,7 +820,7 @@ export default function WeeklyMealBoard() {
   };
 
   // 🔧 FIX #2: Auto-reset macros at midnight in user's timezone
-  const userTimezone = 'America/Chicago'; // Default timezone - could be enhanced with user preference
+  const userTimezone = getUserTimezone();
 
   useMidnightReset(userTimezone, () => {
     console.log('🌅 Midnight macro reset triggered');
