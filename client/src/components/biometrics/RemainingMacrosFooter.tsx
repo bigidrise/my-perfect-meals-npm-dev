@@ -80,13 +80,14 @@ export function RemainingMacrosFooter({
     };
   }, [consumedOverride, todayMacros]);
 
-  // Check if we have starchy/fibrous breakdown - requires BOTH targets AND consumed data source
-  // This prevents showing 5-column layout with zeros when consumed data is missing
+  // Check if we have starchy/fibrous breakdown - requires BOTH targets AND consumed data with actual values
+  // This prevents showing 5-column layout with zeros when meal data lacks starchy/fibrous breakdown
   const hasStarchyFibrousTargets = (targets.starchyCarbs_g ?? 0) > 0 || (targets.fibrousCarbs_g ?? 0) > 0;
-  // Check if consumed data explicitly includes starchy/fibrous values (even if 0)
-  const consumedHasStarchyFibrousData = consumedOverride?.starchyCarbs !== undefined || consumedOverride?.fibrousCarbs !== undefined;
-  // Show breakdown only when we have targets AND the caller explicitly provides starchy/fibrous consumed data
-  const showStarchyFibrousBreakdown = hasStarchyFibrousTargets && consumedHasStarchyFibrousData;
+  // Check if consumed data has actual starchy/fibrous values (not just zeros when total carbs exists)
+  const consumedStarchyFibrous = (consumed.starchyCarbs ?? 0) + (consumed.fibrousCarbs ?? 0);
+  const consumedHasMeaningfulBreakdown = consumedStarchyFibrous > 0 || consumed.carbs === 0;
+  // Show breakdown only when we have targets AND the consumed data has meaningful starchy/fibrous values
+  const showStarchyFibrousBreakdown = hasStarchyFibrousTargets && consumedHasMeaningfulBreakdown;
 
   const remaining = useMemo(() => ({
     calories: Math.max(0, targets.calories - consumed.calories),

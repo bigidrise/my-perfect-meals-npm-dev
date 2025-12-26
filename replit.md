@@ -76,10 +76,12 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
   - MacroCounter now saves starchyCarbs_g/fibrousCarbs_g when setting targets (not just displaying them)
   - Extended `macroResolver.ts` to expose starchyCarbs_g/fibrousCarbs_g from BOTH pro AND self-set targets
   - `RemainingMacrosFooter` conditionally shows 5-column layout (Cal, Protein*, Starchy*, Fibrous*, Fat)
-  - **Gating logic**: Requires BOTH targets with starchy/fibrous values AND consumedOverride with starchy/fibrous fields
+  - **Gating logic**: Requires BOTH targets with starchy/fibrous values AND consumed data with actual starchy/fibrous sum > 0
+  - Falls back to 4-column (total carbs) when meals lack starchy/fibrous breakdown data
   - Legacy callers (Biometrics, Macro Calculator) continue using 4-column layout (total carbs)
   - **All 7 meal builders now pass breakdown data**: WeeklyMealBoard, BeachBodyMealBoard, GeneralNutritionBuilder, PerformanceCompetitionBuilder, AntiInflammatoryMenuBuilder, GLP1MealBuilder, DiabeticMenuBuilder
   - **Note**: Existing users must re-save their macros in Macro Calculator to populate starchy/fibrous fields
+  - **Note**: 5-column layout only shows when meals actually have starchy/fibrous data (future meal generator update)
 
 ## iOS Viewport Architecture (CRITICAL)
 RootViewport implements scroll containment to prevent iOS WKWebView bugs:
