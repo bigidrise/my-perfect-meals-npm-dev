@@ -32,7 +32,8 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useToast } from "@/hooks/use-toast";
-import { todayISOInTZ, getUserTimezone } from "@/utils/midnight";
+import { todayISOInTZ, getUserTimezone, formatDateLocal } from "@/utils/midnight";
+import { getDayNameLong } from "@/utils/week";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
@@ -777,7 +778,7 @@ export default function BeachBodyMealBoard() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Beach Body Plan`
+          ? `${getDayNameLong(activeDayISO)} Beach Body Plan`
           : `Beach Body Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -1976,7 +1977,7 @@ export default function BeachBodyMealBoard() {
                         });
                         toast({
                           title: "Day Saved to Biometrics",
-                          description: `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
+                          description: `${formatDateLocal(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                         });
                         setLocation('/my-biometrics');
                       }
@@ -2159,9 +2160,7 @@ export default function BeachBodyMealBoard() {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = new Date(
-                activeDayISO + "T00:00:00Z",
-              ).toLocaleDateString(undefined, { weekday: "long" });
+              const dayName = getDayNameLong(activeDayISO);
 
               return (
                 <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
