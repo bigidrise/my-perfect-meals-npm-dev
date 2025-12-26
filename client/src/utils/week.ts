@@ -63,18 +63,22 @@ export function formatWeekRange(weekStartISO: string): string {
     : `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
 }
 
-// Day name helpers for UI
+function parseLocalDate(dateISO: string): Date {
+  const [year, month, day] = dateISO.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function getDayName(dateISO: string): string {
-  const date = new Date(dateISO + 'T00:00:00Z');
+  const date = parseLocalDate(dateISO);
   return date.toLocaleDateString('en-US', { weekday: 'short' });
 }
 
 export function getDayNameLong(dateISO: string): string {
-  const date = new Date(dateISO + 'T00:00:00Z');
+  const date = parseLocalDate(dateISO);
   return date.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
 export function formatDateShort(dateISO: string): string {
-  const date = new Date(dateISO + 'T00:00:00Z');
+  const date = parseLocalDate(dateISO);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

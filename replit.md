@@ -40,6 +40,13 @@ npm run db:push      # Push database schema
 PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
 
 ## Recent Changes
+- **Timezone Bug Fix (Dec 2024)**: Fixed date/day-shift bug where "switch to today" navigated to yesterday
+  - Root cause: Hardcoded 'America/Chicago' timezone and 'T00:00:00Z' UTC interpretation
+  - Added `getUserTimezone()` utility in `client/src/utils/midnight.ts` using `Intl.DateTimeFormat().resolvedOptions().timeZone`
+  - Added `parseISODateLocal()` and `formatDateLocal()` for proper local date parsing
+  - Updated `client/src/utils/week.ts` with local date parsing for `getDayName()`, `getDayNameLong()`, `formatDateShort()`
+  - Updated 6 meal builder files to use user's actual device timezone instead of hardcoded Chicago timezone
+  - Updated `LockedDayDialog` to use proper local date formatting
 - Made Stripe integration optional (graceful degradation)
 - Made OpenAI initialization lazy to prevent startup crashes
 - Configured Vite to allow all hosts for Replit proxy
