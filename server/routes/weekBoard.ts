@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { getWeekStartISO, isValidISODate } from '../utils/week';
 import { buildShoppingList } from '../services/shopping-list/list-builder';
 import { resolveUserId, getWeekBoard, upsertWeekBoard } from '../data/weekBoardsRepo';
+import { processMealImageForSave } from '../services/imageLifecycle';
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -260,6 +261,104 @@ function getOrCreateWeek(weekStartISO: string): WeekBoard {
   return weekStore[weekStartISO];
 }
 
+/**
+ * Canva-style image lifecycle: Process all meal images before save
+ * Ensures no temporary URLs are persisted - converts to permanent storage
+ */
+async function processAllMealImagesForSave(board: any): Promise<{ board: any; imagesProcessed: number; imagesPending: number }> {
+  let imagesProcessed = 0;
+  let imagesPending = 0;
+
+  const processMealList = async (meals: any[]): Promise<any[]> => {
+    if (!Array.isArray(meals)) return [];
+    
+    const processed = await Promise.all(meals.map(async (meal) => {
+      if (!meal?.imageUrl) return meal;
+      
+      const result = await processMealImageForSave(meal.imageUrl, meal.title || meal.name || 'Meal');
+      
+      if (result.ingestionAttempted) {
+        imagesProcessed++;
+        if (result.imagePending) {
+          imagesPending++;
+        }
+      }
+      
+      return {
+        ...meal,
+        imageUrl: result.imageUrl,
+        imagePending: result.imagePending || undefined,
+      };
+    }));
+    
+    return processed;
+  };
+
+  // Process all meal lists
+  const lists = board.lists || {};
+  const processedLists = {
+    breakfast: await processMealList(lists.breakfast || []),
+    lunch: await processMealList(lists.lunch || []),
+    dinner: await processMealList(lists.dinner || []),
+    snacks: await processMealList(lists.snacks || []),
+  };
+
+  // Process days structure if present
+  // IMPORTANT: normalizeBoard produces days[date] = {breakfast:[], lunch:[], ...} (NOT wrapped in .lists)
+  let processedDays = board.days;
+  if (board.days && typeof board.days === 'object') {
+    const dayEntries = Object.entries(board.days);
+    const processedDayEntries = await Promise.all(
+      dayEntries.map(async ([dateKey, dayData]: [string, any]) => {
+        if (!dayData || typeof dayData !== 'object') return [dateKey, dayData];
+        
+        // Handle BOTH formats:
+        // 1. Normalized format: {breakfast:[], lunch:[], dinner:[], snacks:[]}
+        // 2. Legacy format: {lists:{breakfast:[], ...}}
+        const hasDirectMealArrays = Array.isArray(dayData.breakfast) || 
+                                    Array.isArray(dayData.lunch) || 
+                                    Array.isArray(dayData.dinner) || 
+                                    Array.isArray(dayData.snacks);
+        
+        if (hasDirectMealArrays) {
+          // Normalized format - process and preserve structure
+          const processedDay = {
+            ...dayData,
+            breakfast: await processMealList(dayData.breakfast || []),
+            lunch: await processMealList(dayData.lunch || []),
+            dinner: await processMealList(dayData.dinner || []),
+            snacks: await processMealList(dayData.snacks || []),
+          };
+          return [dateKey, processedDay];
+        } else if (dayData.lists) {
+          // Legacy format with nested lists
+          const dayLists = {
+            breakfast: await processMealList(dayData.lists.breakfast || []),
+            lunch: await processMealList(dayData.lists.lunch || []),
+            dinner: await processMealList(dayData.lists.dinner || []),
+            snacks: await processMealList(dayData.lists.snacks || []),
+          };
+          return [dateKey, { ...dayData, lists: dayLists }];
+        }
+        
+        // Unknown format - return as-is
+        return [dateKey, dayData];
+      })
+    );
+    processedDays = Object.fromEntries(processedDayEntries);
+  }
+
+  return {
+    board: {
+      ...board,
+      lists: processedLists,
+      days: processedDays,
+    },
+    imagesProcessed,
+    imagesPending,
+  };
+}
+
 export default function weekBoardRoutes(app: Express) {
   app.get("/api/week-board", (req: Request, res: Response) => {
     if (!store.board) {
@@ -339,6 +438,7 @@ export default function weekBoardRoutes(app: Express) {
   });
 
   // PUT specific week board (save/replace the week)
+  // Canva-style image lifecycle: Process all images before save
   app.put("/api/week-board/:weekStartISO", async (req: Request, res: Response) => {
     const { weekStartISO } = req.params;
     if (!isValidISODate(weekStartISO)) {
@@ -348,10 +448,17 @@ export default function weekBoardRoutes(app: Express) {
     const userId = resolveUserId(req);
     // Accept the same shape your current /api/week-board expects
     const incoming = normalizeBoard(req.body?.week ?? req.body);
+    
+    // Canva-style image gate: Process all meal images before save
+    const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
+    if (imagesProcessed > 0) {
+      console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for week ${weekStartISO}`);
+    }
+    
     // enforce id + timestamps for consistency
     const now = new Date().toISOString();
     const saved: WeekBoard = {
-      ...incoming,
+      ...processedBoard,
       id: `week-${weekStartISO}`,
       meta: {
         createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
@@ -359,7 +466,7 @@ export default function weekBoardRoutes(app: Express) {
       },
     };
     await upsertWeekBoard(userId, weekStartISO, saved);
-    return res.json({ weekStartISO, week: normalizeBoard(saved) });
+    return res.json({ weekStartISO, week: normalizeBoard(saved), imagesProcessed, imagesPending });
   });
 
   // BULLETPROOF WEEKLY BOARD API (guarantees response, create-if-missing)
@@ -387,6 +494,7 @@ export default function weekBoardRoutes(app: Express) {
   });
 
   // PUT weekly board with idempotent saves (query param version)
+  // Canva-style image lifecycle: Process all images before save
   app.put("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
@@ -395,9 +503,15 @@ export default function weekBoardRoutes(app: Express) {
     const incoming = normalizeBoard(req.body?.week ?? req.body);
     const opId = req.body?.opId; // Idempotent operation ID (for future use)
     
+    // Canva-style image gate: Process all meal images before save
+    const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
+    if (imagesProcessed > 0) {
+      console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}`);
+    }
+    
     const now = new Date().toISOString();
     const saved: WeekBoard = {
-      ...incoming,
+      ...processedBoard,
       id: `week-${weekStartISO}`,
       meta: {
         createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
@@ -410,7 +524,9 @@ export default function weekBoardRoutes(app: Express) {
     return res.json({ 
       weekStartISO, 
       week: normalizeBoard(saved),
-      source: "db"
+      source: "db",
+      imagesProcessed,
+      imagesPending
     });
   });
 

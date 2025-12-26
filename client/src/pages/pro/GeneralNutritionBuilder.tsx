@@ -55,7 +55,8 @@ const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "3", title: "Day-by-Day Planning", description: "Use day chips to plan specific meals for each day of the week." },
   { icon: "4", title: "Duplicate Days", description: "Copy a day's meals to other days for consistent eating patterns." },
   { icon: "5", title: "Shopping List", description: "Export all ingredients for the week to create a shopping list." },
-  { icon: "6", title: "Track Progress & Save Day", description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics." }
+  { icon: "6", title: "Track Progress & Save Day", description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics." },
+  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
 
 // Helper function to create new snacks

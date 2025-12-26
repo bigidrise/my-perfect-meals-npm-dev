@@ -47,14 +47,22 @@ export async function uploadImageToPermanentStorage(
     const filename = `meal-images/${sanitizedName}-${uniqueId}.${fileExtension}`;
 
     // Get the storage bucket from environment variable
+    // Format: /bucket-name/prefix (e.g., /replit-objstore-xxx/public)
     const bucketPath = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0];
     if (!bucketPath) {
       throw new Error('PUBLIC_OBJECT_SEARCH_PATHS not configured');
     }
 
-    const bucketName = bucketPath.split('/')[1];
+    // Parse the bucket path - it includes both bucket name and optional prefix
+    const pathParts = bucketPath.split('/').filter(p => p); // Remove empty strings
+    const bucketName = pathParts[0]; // e.g., 'replit-objstore-xxx'
+    const pathPrefix = pathParts.slice(1).join('/'); // e.g., 'public'
+    
+    // Construct full object path including prefix
+    const fullObjectPath = pathPrefix ? `${pathPrefix}/${filename}` : filename;
+    
     const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(filename);
+    const file = bucket.file(fullObjectPath);
 
     // Upload the image buffer to storage
     await file.save(imageBuffer, {
@@ -64,23 +72,19 @@ export async function uploadImageToPermanentStorage(
       },
     });
 
-    // Set ACL policy to make it publicly accessible
-    await setObjectAclPolicy(file, {
-      owner: 'system',
-      visibility: 'public',
-    });
+    // NOTE: Removed setObjectAclPolicy and makePublic calls
+    // Replit Object Storage serves files via /public-objects/ URL pattern
+    // which makes them publicly accessible without explicit ACL changes.
+    // The bucket has publicAccessPrevention enforced, so these calls would fail.
 
-    // Make the file publicly readable
-    await file.makePublic();
-
-    // Generate the public URL
+    // Generate the public URL (matches the search path format)
     const permanentUrl = `/public-objects/${filename}`;
     
     console.log(`✅ Image uploaded successfully: ${permanentUrl}`);
 
     return {
       permanentUrl,
-      objectPath: `/${bucketName}/${filename}`,
+      objectPath: `/${bucketName}/${fullObjectPath}`,
       uploadedAt: new Date().toISOString(),
     };
 
@@ -100,17 +104,25 @@ export async function checkImageExists(imageHash: string): Promise<string | null
       return null;
     }
 
-    const bucketName = bucketPath.split('/')[1];
+    // Parse the bucket path - it includes both bucket name and optional prefix
+    const pathParts = bucketPath.split('/').filter(p => p);
+    const bucketName = pathParts[0];
+    const pathPrefix = pathParts.slice(1).join('/'); // e.g., 'public'
+    
     const bucket = objectStorageClient.bucket(bucketName);
 
-    // Search for files with this hash
+    // Search for files with this hash (include prefix in search)
+    const searchPrefix = pathPrefix ? `${pathPrefix}/meal-images/` : 'meal-images/';
     const [files] = await bucket.getFiles({
-      prefix: 'meal-images/',
+      prefix: searchPrefix,
     });
 
     const matchingFile = files.find(file => file.name.includes(imageHash));
     if (matchingFile) {
-      const filename = matchingFile.name;
+      // Return URL without the prefix (just meal-images/...)
+      const filename = pathPrefix && matchingFile.name.startsWith(pathPrefix + '/')
+        ? matchingFile.name.slice(pathPrefix.length + 1)
+        : matchingFile.name;
       return `/public-objects/${filename}`;
     }
 

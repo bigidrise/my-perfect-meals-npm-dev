@@ -17,6 +17,19 @@ import { createIngredientSignature, hashSignature } from './ingredientSignature'
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType } from './guardrails';
+import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
+import OpenAI from 'openai';
+
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required for AI meal generation");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 // Fallback images by meal type
 const FALLBACK_IMAGES: Record<string, string> = {
@@ -148,15 +161,20 @@ async function ensureImage(meal: Partial<UnifiedMeal>, mealType: string, useFall
 }
 
 /**
- * Convert FinalMeal ingredients to unified format
+ * Convert FinalMeal ingredients to unified U.S. format
+ * Uses the new ingredient normalizer that enforces U.S. measurements
  */
 function normalizeIngredients(ingredients: any[]): Array<{ name: string; quantity: string; unit: string }> {
   if (!ingredients || !Array.isArray(ingredients)) return [];
   
-  return ingredients.map(ing => ({
-    name: ing.name || '',
-    quantity: String(ing.quantity || ing.amount || 'as needed'),
-    unit: ing.unit || ''
+  // Use the new U.S. measurement normalizer
+  const normalized = normalizeIngredientsToUS(ingredients);
+  
+  // Convert to the format expected by UnifiedMeal (quantity instead of amount)
+  return normalized.map(ing => ({
+    name: ing.name,
+    quantity: ing.amount, // Map amount -> quantity for backward compat
+    unit: ing.unit
   }));
 }
 
@@ -248,33 +266,123 @@ export async function generateCravingMealUnified(
       source: 'catalog'
     };
   } else {
-    // No template match - use deterministic hash-based fallback
-    console.log(`📋 No template match, using deterministic fallback for "${cravingInput}"`);
-    const fallback = getDeterministicFallback(validMealType, [cravingInput]);
-    const unifiedMeal: UnifiedMeal = {
-      id: fallback.id,
-      name: fallback.name,
-      description: fallback.description,
-      ingredients: fallback.ingredients,
-      instructions: fallback.instructions,
-      calories: fallback.calories,
-      protein: fallback.protein,
-      carbs: fallback.carbs,
-      fat: fallback.fat,
-      cookingTime: '20 minutes',
-      difficulty: 'Easy',
-      imageUrl: fallback.imageUrl,
-      medicalBadges: [],
-      source: 'catalog'
-    };
+    // No template match - use AI generation for creative cravings
+    console.log(`🤖 No template match, using AI generation for "${cravingInput}"`);
     
-    await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
-    
-    return {
-      success: true,
-      meal: unifiedMeal,
-      source: 'catalog'
-    };
+    try {
+      const openai = getOpenAI();
+      
+      const prompt = `You are a creative chef helping someone satisfy their food craving.
+
+CRAVING: "${cravingInput}"
+MEAL TYPE: ${validMealType}
+
+Create ONE delicious meal that perfectly satisfies this craving. The meal should be:
+- Realistic and cookable at home
+- Focused on the craving flavors/ingredients mentioned
+- Balanced and nutritious
+
+CRITICAL INGREDIENT FORMAT RULES:
+- Use ONLY U.S. measurements: oz, lb, cup, tbsp, tsp, each, fl oz
+- NEVER use grams (g), milliliters (ml), or metric units
+- Each ingredient must have: name, quantity (number), unit
+
+Respond with ONLY valid JSON in this exact format:
+{
+  "name": "Creative meal name matching the craving",
+  "description": "Appetizing 1-2 sentence description",
+  "ingredients": [
+    {"name": "ingredient name", "quantity": "4", "unit": "oz"},
+    {"name": "another ingredient", "quantity": "1", "unit": "cup"}
+  ],
+  "instructions": "Step-by-step cooking instructions as a single string",
+  "calories": 400,
+  "protein": 25,
+  "carbs": 35,
+  "fat": 15,
+  "cookingTime": "20 minutes"
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error("Empty AI response");
+
+      // Parse JSON from response (handle markdown code blocks)
+      let jsonStr = content;
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+      
+      const aiMeal = JSON.parse(jsonStr.trim());
+      
+      // Normalize ingredients to U.S. measurements
+      const normalizedIngredients = normalizeIngredients(aiMeal.ingredients || []);
+      
+      const unifiedMeal: UnifiedMeal = {
+        id: `craving-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: aiMeal.name || `${cravingInput} Delight`,
+        description: aiMeal.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
+        ingredients: normalizedIngredients,
+        instructions: aiMeal.instructions || "Prepare ingredients and cook to your preference.",
+        calories: aiMeal.calories || 400,
+        protein: aiMeal.protein || 25,
+        carbs: aiMeal.carbs || 35,
+        fat: aiMeal.fat || 15,
+        cookingTime: aiMeal.cookingTime || '20 minutes',
+        difficulty: 'Easy',
+        imageUrl: FALLBACK_IMAGES[validMealType] || FALLBACK_IMAGES.default,
+        medicalBadges: [],
+        source: 'ai'
+      };
+      
+      console.log(`✅ AI generated meal: ${unifiedMeal.name}`);
+      
+      // Cache the AI-generated meal
+      await cacheMeals(signature, [unifiedMeal], validMealType, 'ai');
+      
+      return {
+        success: true,
+        meal: unifiedMeal,
+        source: 'ai'
+      };
+      
+    } catch (aiError: any) {
+      // AI failed - fall back to deterministic catalog
+      console.error(`❌ AI generation failed, using catalog fallback:`, aiError.message);
+      
+      const fallback = getDeterministicFallback(validMealType, [cravingInput]);
+      const unifiedMeal: UnifiedMeal = {
+        id: fallback.id,
+        name: fallback.name,
+        description: fallback.description,
+        ingredients: fallback.ingredients,
+        instructions: fallback.instructions,
+        calories: fallback.calories,
+        protein: fallback.protein,
+        carbs: fallback.carbs,
+        fat: fallback.fat,
+        cookingTime: '20 minutes',
+        difficulty: 'Easy',
+        imageUrl: fallback.imageUrl,
+        medicalBadges: [],
+        source: 'catalog'
+      };
+      
+      await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
+      
+      return {
+        success: true,
+        meal: unifiedMeal,
+        source: 'catalog'
+      };
+    }
   }
 }
 

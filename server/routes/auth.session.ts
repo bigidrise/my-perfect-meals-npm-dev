@@ -124,11 +124,7 @@ router.post("/api/auth/login", async (req, res) => {
       isTester,
     }).where(eq(users.id, user.id));
 
-<<<<<<< HEAD
     // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
-=======
-    // Set session cookie for mobile compatibility (guard for prod where session may be undefined)
->>>>>>> 57e6de4 (Prevent server crashes by safely handling user sessions)
     if (req.session) {
       (req.session as any).userId = user.id;
     }

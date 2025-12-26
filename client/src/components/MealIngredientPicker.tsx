@@ -22,13 +22,13 @@ export default function MealIngredientPicker({
   const [newIngredient, setNewIngredient] = useState({
     name: "",
     quantity: 0,
-    unit: "g",
+    unit: "oz",
   });
 
   const handleAdd = () => {
     if (newIngredient.name && newIngredient.quantity > 0) {
       onChange([...(ingredients || []), newIngredient]);
-      setNewIngredient({ name: "", quantity: 0, unit: "g" });
+      setNewIngredient({ name: "", quantity: 0, unit: "oz" });
     }
   };
 
