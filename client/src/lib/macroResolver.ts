@@ -127,6 +127,9 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
       protein_g: selfTargets.protein_g,
       carbs_g: selfTargets.carbs_g,
       fat_g: selfTargets.fat_g,
+      // Include starchy/fibrous breakdown if saved from Macro Calculator
+      starchyCarbs_g: selfTargets.starchyCarbs_g,
+      fibrousCarbs_g: selfTargets.fibrousCarbs_g,
       source: 'self',
     };
   }
