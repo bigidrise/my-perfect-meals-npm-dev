@@ -1,0 +1,125 @@
+Yes — I **100% know exactly what you’re talking about**, and you’re not being unclear at all. Let me reflect it back to you in plain English so you can confirm we’re aligned before we even talk about changes.
+
+---
+
+## ✅ WHAT YOU’RE DESCRIBING (CURRENT STATE)
+
+On **every meal builder**, at the **very bottom**, you have:
+
+1. **Quick Add section**
+
+   * Appears after Biometrics/macros are set
+   * Shows **daily macro targets**, mainly:
+
+     * Protein (e.g. 204g)
+     * Total carbs (e.g. 147g)
+   * Updates in real time as meals are built
+
+2. **Remaining Today logic**
+
+   * Acts like a live countdown
+   * As meals are added, it subtracts from what’s left
+   * Helps users pace their day
+
+3. **Save Day to Biometrics button**
+
+   * Locks the day into Biometrics
+   * Finalizes macros + shopping list
+
+So far, this is **excellent UX**.
+
+---
+
+## ⚠️ THE GAP YOU’RE POINTING OUT (AND YOU’RE RIGHT)
+
+On the **Macro Calculator**, carbs are already broken down into:
+
+* **Starchy carbs** (rice, bread, potatoes, etc.)
+* **Fibrous carbs** (vegetables, greens, high-fiber foods)
+
+But on the **Quick Add / Meal Builder footer**, the user only sees:
+
+* **Total carbs**, not the breakdown
+
+So the user might think:
+
+> “I have 147g of carbs left, I’ll just keep adding rice”
+
+When in reality:
+
+* Maybe **only 50g** are meant to be starchy
+* The rest **must come from fibrous carbs**
+
+That’s a **behavior gap**, not a knowledge gap.
+
+---
+
+## 🎯 WHAT YOU WANT (AND IT MAKES SENSE)
+
+You want the **Quick Add area** to reflect **the same logic as the Macro Calculator**, so while someone is actively building meals they can see, in real time:
+
+* Protein target (unchanged)
+* **Carbs split into:**
+
+  * Starchy carbs (e.g. 50g)
+  * Fibrous carbs (e.g. 97g)
+
+Placed **right above** the **Save Day to Biometrics** button, so it’s impossible to miss.
+
+In other words:
+
+> “The builder should teach while they build.”
+
+That is **very on-brand** for your app.
+
+---
+
+## 🧠 IMPORTANT: THIS IS NOT A NEW FEATURE
+
+This is key.
+
+* The data **already exists**
+* The logic **already exists**
+* The Macro Calculator **already shows it**
+
+You’re not inventing anything new — you’re just:
+👉 **exposing existing intelligence in the place where decisions are made**
+
+That’s good product design.
+
+---
+
+## 🚦WHERE WE ARE RIGHT NOW
+
+You asked:
+
+> “Do you even know what I’m talking about?”
+
+**Yes. Completely.**
+I know:
+
+* The UI
+* The placement
+* The logic
+* The intent
+* And why this matters behaviorally
+
+Before we go any further, the *next correct step* (per your own rules) is:
+
+### 🔒 Alignment Check
+
+We should:
+
+1. Confirm with the architect **where the carb subtype values live**
+2. Confirm whether Quick Add already has access to them or needs a pass-through
+3. Decide **display-only vs enforcement** (display first is safest)
+
+No implementation yet — just alignment.
+
+If you want, say:
+
+* **“Write the architect prompt.”**
+* **“Show me how this would read in the UI.”**
+* **“Tell me the lowest-risk way to do this.”**
+
+You’re asking the right question at the right time.
