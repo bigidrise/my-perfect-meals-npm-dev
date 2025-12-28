@@ -252,7 +252,7 @@ export default function GLP1MealBuilder() {
   
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ();
+    const today = todayISOInTZ("America/Chicago");
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO('');
@@ -734,8 +734,9 @@ export default function GLP1MealBuilder() {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
       
       // Guard: Check if day is locked before allowing edits
@@ -745,7 +746,7 @@ export default function GLP1MealBuilder() {
         "🤖 AI Meal Generated - Replacing old meals with new one:",
         generatedMeal,
         "for slot:",
-        aiMealSlot,
+        slot,
       );
 
       // Transform API response to match Meal type structure (copy Fridge Rescue format)
@@ -773,33 +774,33 @@ export default function GLP1MealBuilder() {
       const newMeals = [transformedMeal];
 
       // Save to localStorage with slot info (persists until next generation)
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       // Also update board optimistically - REMOVE old AI meals first from the correct slot
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
         // Filter out all old AI meals from the target slot
-        const currentSlotMeals = dayLists[aiMealSlot];
+        const currentSlotMeals = dayLists[slot];
         const nonAIMeals = currentSlotMeals.filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         // Add only the new AI meal
         const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
       }
 
       // Format slot name for display (capitalize first letter)
       const slotLabel =
-        aiMealSlot.charAt(0).toUpperCase() + aiMealSlot.slice(1);
+        slot.charAt(0).toUpperCase() + slot.slice(1);
 
       toast({
         title: "AI Meal Created!",
         description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
       });
     },
-    [board, activeDayISO, aiMealSlot, toast],
+    [board, activeDayISO, toast],
   );
 
   const profile = useOnboardingProfile();
@@ -1586,7 +1587,7 @@ export default function GLP1MealBuilder() {
                           No {label.toLowerCase()} meals yet
                         </p>
                         <p className="text-xs text-white/40">
-                          Use "Create with AI" or "+" to add meals
+                          Use "Create with Chef" or "+" to add meals
                         </p>
                       </div>
                     )}
@@ -1685,7 +1686,7 @@ export default function GLP1MealBuilder() {
                     <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                       <p className="mb-2">No {label.toLowerCase()} meals yet</p>
                       <p className="text-xs text-white/40">
-                        Use "Create with AI" or "+" to add meals
+                        Use "Create with Chef" or "+" to add meals
                       </p>
                     </div>
                   )}
@@ -1736,6 +1737,8 @@ export default function GLP1MealBuilder() {
               protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
               carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
               fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+              starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+              fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
             });
             const slots = {
               breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1748,6 +1751,8 @@ export default function GLP1MealBuilder() {
               protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
               carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
               fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+              starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+              fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
             };
             const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
             
@@ -2121,6 +2126,7 @@ export default function GLP1MealBuilder() {
         onClose={quickTour.closeTour}
         title="GLP-1 Meal Builder Guide"
         steps={GLP1_BUILDER_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

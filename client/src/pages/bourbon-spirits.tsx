@@ -413,6 +413,7 @@ export default function BourbonSpiritsPage() {
         onClose={quickTour.closeTour}
         title="How to Use Bourbon & Spirits Pairing"
         steps={BOURBON_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </div>
   );

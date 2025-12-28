@@ -144,7 +144,7 @@ export default function ToddlersMealsHub() {
           </button>
 
           {/* Title */}
-          <h1 data-testid="toddler-meals-hero" className="text-lg font-bold text-white">Toddlers (1–3) Grazing</h1>
+          <h1 data-testid="toddler-meals-hero" className="text-lg font-bold text-white">Toddlers Meals</h1>
 
           <div className="flex-grow" />
           <QuickTourButton onClick={quickTour.openTour} />
@@ -378,6 +378,7 @@ export default function ToddlersMealsHub() {
           onClose={quickTour.closeTour}
           title="How to Use Toddler Meals"
           steps={TODDLER_MEALS_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </div>
     </div>

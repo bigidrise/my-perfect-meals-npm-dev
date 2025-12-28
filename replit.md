@@ -62,6 +62,26 @@ PostgreSQL database using Drizzle ORM. Schema defined in `/shared/schema.ts`.
   - Integrated normalizer into unifiedMealPipeline and dessert-creator
   - MealIngredientPicker defaults to "oz" (not "g")
   - Restaurant generator uses string[] (ingredient names only) - different use case
+- **Ingredient Macro Display Removal (Dec 2024)**: Removed inaccurate ingredient-level macros
+  - Modified `formatIngredientWithGrams` in `client/src/utils/unitConversions.ts`
+  - Ingredients now show only: amount, unit, name (no macro suffix like "(28g protein)")
+  - Meal-level and day-level macro totals remain (accurate, validated)
+  - Rationale: Ingredient macros were inconsistent/inaccurate, undermining app credibility
+- **Feature Simplification (Dec 2024)**: Hidden "Create with AI" for launch
+  - `showCreateWithAI: false` in `client/src/featureFlags.ts` and `client/src/utils/features.ts`
+  - "Create with Chef" is now the only visible AI meal creation path
+  - Code preserved for future reactivation via feature flag
+  - Updated tour steps, Copilot explanations, and knowledge base to reference Chef only
+- **Starchy/Fibrous Carb Breakdown (Dec 2024)**: Display in Quick Add footer for ALL meal builders
+  - MacroCounter now saves starchyCarbs_g/fibrousCarbs_g when setting targets (not just displaying them)
+  - Extended `macroResolver.ts` to expose starchyCarbs_g/fibrousCarbs_g from BOTH pro AND self-set targets
+  - `RemainingMacrosFooter` conditionally shows 5-column layout (Cal, Protein*, Starchy*, Fibrous*, Fat)
+  - **Gating logic**: Requires BOTH targets with starchy/fibrous values AND consumed data with actual starchy/fibrous sum > 0
+  - Falls back to 4-column (total carbs) when meals lack starchy/fibrous breakdown data
+  - Legacy callers (Biometrics, Macro Calculator) continue using 4-column layout (total carbs)
+  - **All 7 meal builders now pass breakdown data**: WeeklyMealBoard, BeachBodyMealBoard, GeneralNutritionBuilder, PerformanceCompetitionBuilder, AntiInflammatoryMenuBuilder, GLP1MealBuilder, DiabeticMenuBuilder
+  - **Note**: Existing users must re-save their macros in Macro Calculator to populate starchy/fibrous fields
+  - **Note**: 5-column layout only shows when meals actually have starchy/fibrous data (future meal generator update)
 
 ## iOS Viewport Architecture (CRITICAL)
 RootViewport implements scroll containment to prevent iOS WKWebView bugs:
@@ -79,6 +99,28 @@ This prevents the "pull down and stays down" iOS bug.
 - **DO NOT** add duplicate safe-area padding in RootViewport - causes double-inset
 - **DO NOT** use `100vh` - always use `100dvh` for dynamic viewport height
 - **html/body**: Must have `overflow: hidden` and `overscroll-behavior: none` (defined at bottom of index.css)
+
+## Guided Tour System (Dec 2024)
+The Guided Tour system provides page-specific tips via QuickTourModal.
+
+**Key Components:**
+- `useQuickTour.ts` - Hook managing tour state and global disable
+- `QuickTourModal.tsx` - Modal displaying tour steps
+
+**Behavior:**
+1. **Per-page tracking** - Each page uses `useQuickTour("page-key")` with unique storage keys
+2. **Auto-open** - Opens automatically if page hasn't been "seen" (unless globally disabled)
+3. **Don't show again** - Marks page as seen in localStorage (`quick-tour::<pageKey>`)
+4. **Global disable** - "Turn off all tour guides" sets `quick-tour-global-disabled` in localStorage
+5. **Manual open** - Users can still open tours via QuickTourButton (bypasses global disable)
+
+**Storage Keys:**
+- `quick-tour::<pageKey>` - Per-page "seen" status
+- `quick-tour-global-disabled` - Global disable flag ("true" = disabled)
+
+**Architecture vs Copilot:**
+- Guided Tour = lightweight modal with page tips, per-page tracking
+- Copilot = AI assistant with audio, global autoplay toggle, separate storage
 
 ## Copilot Re-Engagement Architecture (Dec 2024)
 The Copilot system separates autoplay from manual invocation:

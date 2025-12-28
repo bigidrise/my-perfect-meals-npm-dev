@@ -925,6 +925,7 @@ export default function ProClientDashboard() {
         onClose={quickTour.closeTour}
         title="Client Dashboard Guide"
         steps={CLIENT_DASHBOARD_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

@@ -685,15 +685,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Weekly Meal Board pattern)
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
       console.log(
         "🤖 AI Meal Generated - Replacing old meals with new one:",
         generatedMeal,
         "for slot:",
-        aiMealSlot,
+        slot,
       );
 
       // Transform API response to match Meal type structure
@@ -721,23 +722,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       const newMeals = [transformedMeal];
 
       // Save to localStorage with slot info (persists until next generation)
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       // Immediately add to board (optimistic update)
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
-        const existingSlotMeals = dayLists[aiMealSlot].filter(
+        const existingSlotMeals = dayLists[slot].filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         const updatedSlotMeals = [...existingSlotMeals, ...newMeals];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         try {
           await saveBoard(updatedBoard);
           toast({
             title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === aiMealSlot)?.[1]}`,
+            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
           });
         } catch (error) {
           console.error("Failed to save AI meal:", error);
@@ -749,7 +750,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
       }
     },
-    [activeDayISO, aiMealSlot, board, saveBoard, toast],
+    [activeDayISO, board, saveBoard, toast],
   );
 
 
@@ -1427,19 +1428,21 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             Meal {mealNumber}
                           </h2>
                           <div className="flex gap-2">
-                            {/* Create with AI button - Competition diet type */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                              onClick={() => {
-                                setAiMealSlot("snacks");
-                                setAiMealModalOpen(true);
-                              }}
-                            >
-                              <Sparkles className="h-3 w-3" />
-                              Create with AI
-                            </Button>
+                            {/* Create with AI button - hidden by feature flag for launch */}
+                            {FEATURES.showCreateWithAI && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
+                                onClick={() => {
+                                  setAiMealSlot("snacks");
+                                  setAiMealModalOpen(true);
+                                }}
+                              >
+                                <Sparkles className="h-3 w-3" />
+                                Create with AI
+                              </Button>
+                            )}
 
                             {/* Create with Chef button - Competition meals */}
                             <Button
@@ -1710,21 +1713,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       {label}
                     </h2>
                     <div className="flex gap-2">
-                      {/* AI Meal Creator button - Competition diet type for all meals */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                        onClick={() => {
-                          setAiMealSlot(
-                            key as "breakfast" | "lunch" | "dinner" | "snacks",
-                          );
-                          setAiMealModalOpen(true);
-                        }}
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Create with AI
-                      </Button>
+                      {/* AI Meal Creator button - hidden by feature flag for launch */}
+                      {FEATURES.showCreateWithAI && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
+                          onClick={() => {
+                            setAiMealSlot(
+                              key as "breakfast" | "lunch" | "dinner" | "snacks",
+                            );
+                            setAiMealModalOpen(true);
+                          }}
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Create with AI
+                        </Button>
+                      )}
 
                       {/* Create with Chef button - Competition meals */}
                       <Button
@@ -1833,6 +1838,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
                 carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
                 fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
               });
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1845,6 +1852,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
                 carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
                 fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
               
@@ -2200,6 +2209,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         onClose={quickTour.closeTour}
         title="Performance & Competition Builder Guide"
         steps={PERFORMANCE_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

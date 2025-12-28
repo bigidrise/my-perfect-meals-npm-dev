@@ -886,6 +886,7 @@ export default function RestaurantGuidePage() {
           onClose={quickTour.closeTour}
           title="How to Use Restaurant Guide"
           steps={RESTAURANT_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </motion.div>
     </PhaseGate>

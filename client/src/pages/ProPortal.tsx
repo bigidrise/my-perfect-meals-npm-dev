@@ -72,6 +72,7 @@ export default function ProPortal() {
         onClose={quickTour.closeTour}
         title="Pro Portal Guide"
         steps={PRO_PORTAL_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </div>
   );

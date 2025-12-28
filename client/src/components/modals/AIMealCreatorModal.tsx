@@ -48,7 +48,7 @@ import { MacroTargetingControls } from "@/components/macro-targeting/MacroTarget
 interface AIMealCreatorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onMealGenerated: (meal: any) => void;
+  onMealGenerated: (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => void;
   mealSlot: "breakfast" | "lunch" | "dinner" | "snacks";
   showMacroTargeting?: boolean;
   dietType?: "weekly" | "diabetic" | "competition";
@@ -354,7 +354,7 @@ export default function AIMealCreatorModal({
       console.log("✅ Generated meal:", meal.name);
       stopProgressTicker();
 
-      onMealGenerated(meal);
+      onMealGenerated(meal, mealSlot);
 
       toast({
         title: "Meal Created!",

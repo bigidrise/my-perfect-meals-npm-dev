@@ -13,6 +13,9 @@ export type MacroTargets = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  // Optional starchy/fibrous breakdown (when set by pro or calculated)
+  starchyCarbs_g?: number;
+  fibrousCarbs_g?: number;
 };
 
 const LS_KEY = (userId?: string) => `mpm.dailyLimits.${userId ?? "anon"}`;

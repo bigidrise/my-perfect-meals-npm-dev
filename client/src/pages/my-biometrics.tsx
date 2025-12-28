@@ -655,14 +655,15 @@ export default function MyBiometrics() {
     if (!w) return;
     
     try {
-      // Save to database
+      // Save to database - use local date string to avoid timezone issues
+      const localDate = today; // YYYY-MM-DD in user's local timezone
       const response = await fetch(apiUrl("/api/biometrics/weight"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           value: w,
           unit: "lb",
-          measuredAt: new Date().toISOString()
+          localDate // Send local date string instead of ISO timestamp
         })
       });
 
@@ -683,16 +684,32 @@ export default function MyBiometrics() {
       setWeightLbs(""); 
       setWaistIn("");
 
-      // Clear pending sync after saving
+      // Clear pending sync after saving (but don't redirect - let user confirm save)
       if (pendingWeightSync) {
         localStorage.removeItem("pending-weight-sync");
         setPendingWeightSync(null);
-        toast({ title: "✓ Weight saved", description: "Weight from Macro Calculator has been logged to your history." });
-        // Redirect to Planner page after saving weight from macro calculator
-        setLocation("/planner");
-      } else {
-        toast({ title: "✓ Weight saved", description: "Your weight has been saved successfully." });
       }
+      
+      // Refresh weight history from database to show the update
+      try {
+        const refreshResponse = await fetch(apiUrl("/api/biometrics/weight?range=365d"));
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          if (refreshData.history && refreshData.history.length > 0) {
+            const dbWeights: WeightRow[] = refreshData.history.map((h: any) => ({
+              id: h.id,
+              date: h.date,
+              weight: h.unit === "kg" ? Math.round(h.weight * 2.20462) : h.weight,
+              waist: undefined
+            }));
+            setWeightHistory(dbWeights);
+          }
+        }
+      } catch (refreshErr) {
+        console.log("Failed to refresh weight history:", refreshErr);
+      }
+      
+      toast({ title: "✓ Weight saved", description: "Your weight has been saved successfully." });
     } catch (error) {
       console.error("Error saving weight:", error);
       toast({ 
@@ -1334,6 +1351,7 @@ export default function MyBiometrics() {
         onClose={quickTour.closeTour}
         steps={biometricsTourSteps}
         title="How to Use Biometrics"
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

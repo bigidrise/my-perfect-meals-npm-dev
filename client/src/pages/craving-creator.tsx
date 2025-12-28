@@ -1055,6 +1055,7 @@ export default function CravingCreator() {
           onClose={quickTour.closeTour}
           title="How to Use Craving Creator"
           steps={CRAVING_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </motion.div>
     </PhaseGate>

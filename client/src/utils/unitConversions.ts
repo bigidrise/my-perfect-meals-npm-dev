@@ -78,47 +78,26 @@ function getPrimaryMacro(ingredientName: string, nutrition: any): { macro: strin
 }
 
 /**
- * Format ingredient with macro content in parentheses
+ * Format ingredient display text (amount, unit, item name only)
+ * 
+ * NOTE: Ingredient-level macros removed for accuracy/trust reasons.
+ * Macros are shown at meal and day level only where they are validated.
+ * 
  * Examples:
- * - "4 oz chicken" → "4 oz chicken (28g protein)"
- * - "8 oz yams" → "8 oz yams (50g carbs)"
- * - "1 tbsp olive oil" → "1 tbsp olive oil (14g fat)"
+ * - "4 oz chicken"
+ * - "8 oz yams"
+ * - "1 tbsp olive oil"
  */
 export function formatIngredientWithGrams(
   amount: string | number,
   unit: string,
   item: string
 ): string {
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  
   // Skip if no amount/unit
-  if (!amount || !unit || isNaN(numAmount)) {
+  if (!amount || !unit) {
     return `${amount || ''} ${unit || ''} ${item}`.trim();
   }
   
-  // Find nutrition data for this ingredient
-  const nutrition = findIngredientNutrition(item);
-  
-  if (!nutrition) {
-    // No nutrition data - just return formatted string
-    return `${amount} ${unit} ${item}`;
-  }
-  
-  // Convert amount to grams for calculation
-  const gramsAmount = convertToGrams(numAmount, unit);
-  
-  // Calculate macro content (nutrition is per 100g)
-  const factor = gramsAmount / 100;
-  
-  // Determine which macro to display
-  const primaryMacro = getPrimaryMacro(item, nutrition);
-  
-  if (!primaryMacro) {
-    return `${amount} ${unit} ${item}`;
-  }
-  
-  const macroContent = Math.round(primaryMacro.value * factor);
-  
-  // Format the output
-  return `${amount} ${unit} ${item} (${macroContent}g ${primaryMacro.macro})`;
+  // Return formatted ingredient without macro suffix
+  return `${amount} ${unit} ${item}`;
 }

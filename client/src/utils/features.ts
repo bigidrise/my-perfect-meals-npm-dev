@@ -6,6 +6,7 @@ export const FEATURES = {
   cafeteria: 'off',         // Cafeteria OFF
   dayPlanning: 'alpha',
   shoppingList: 'alpha',
+  showCreateWithAI: false,  // Hide "Create with AI" for launch - only show "Create with Chef"
 } as const;
 
 // Tiny helper if you want to swap modes later:
