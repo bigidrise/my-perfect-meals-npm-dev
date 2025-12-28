@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect, useCallback, useRef } from "react";
 
+const DISABLE_ALL_TOURS = true;
 const GLOBAL_DISABLE_KEY = "quick-tour-global-disabled";
 
 interface QuickTourState {
@@ -40,7 +41,7 @@ export function useQuickTour(pageKey: string): QuickTourState {
   // This prevents race conditions where auto-open fires before storage is read
   const [hasSeenTour, setHasSeenTour] = useState<boolean | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [globalDisabled, setGlobalDisabledState] = useState(false);
+  const [globalDisabled, setGlobalDisabledState] = useState(DISABLE_ALL_TOURS);
   
   // Track if we've already scheduled auto-open to prevent duplicates
   const autoOpenScheduledRef = useRef(false);
@@ -48,6 +49,11 @@ export function useQuickTour(pageKey: string): QuickTourState {
   // Use useLayoutEffect to read localStorage synchronously before paint
   // This blocks the first render until we know the storage state
   useLayoutEffect(() => {
+    if (DISABLE_ALL_TOURS) {
+      setHasSeenTour(true);
+      setGlobalDisabledState(true);
+      return;
+    }
     const seen = checkIfSeen(storageKey);
     const globalOff = isToursGloballyDisabled();
     setHasSeenTour(seen);
