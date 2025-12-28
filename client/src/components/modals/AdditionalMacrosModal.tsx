@@ -176,18 +176,18 @@ export default function AdditionalMacrosModal({
 
           <div className="flex gap-3 pt-2">
             <Button
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1 h-12 bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              Cancel
-            </Button>
-            <Button
               onClick={handleAdd}
-              className="flex-1 h-12 bg-orange-600 hover:bg-orange-700 text-white font-semibold"
+              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white font-semibold"
               aria-label="Add to today"
             >
               Add to Today
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              className="flex-3 bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              Cancel
             </Button>
           </div>
         </div>
