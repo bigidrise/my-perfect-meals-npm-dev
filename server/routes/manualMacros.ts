@@ -30,26 +30,40 @@ router.post("/macros/log", async (req, res) => {
       fat,
       source = "manual",
       mealId,
+      starchyCarbs,
+      fibrousCarbs,
+      nutrition,
     } = req.body ?? {};
 
+    // Extract values from nutrition object if present (new format)
+    const proteinVal = nutrition?.protein_g ?? protein ?? 0;
+    const carbsVal = nutrition?.carbs_g ?? carbs ?? 0;
+    const fatVal = nutrition?.fat_g ?? fat ?? 0;
+    const kcalVal = nutrition?.calories ?? kcal;
+    
+    // Starchy/fibrous carbs - use explicit values if provided
+    const starchyCarbsVal = Number(starchyCarbs) || 0;
+    const fibrousCarbsVal = Number(fibrousCarbs) || 0;
+
     // DEBUG: Log exactly what we're writing
-    console.log("[MACROS/LOG] device=%s userId=%s protein=%s carbs=%s fat=%s loggedAt=%s",
-      deviceId, userId, protein, carbs, fat, loggedAt);
+    console.log("[MACROS/LOG] device=%s userId=%s protein=%s carbs=%s fat=%s starchy=%s fibrous=%s loggedAt=%s",
+      deviceId, userId, proteinVal, carbsVal, fatVal, starchyCarbsVal, fibrousCarbsVal, loggedAt);
 
     const when = parseAt(loggedAt);
-    const resolvedKcal = typeof kcal === "number" && kcal > 0 ? kcal : Math.round(kcalFrom(Number(protein), Number(carbs), Number(fat)));
+    const resolvedKcal = typeof kcalVal === "number" && kcalVal > 0 ? kcalVal : Math.round(kcalFrom(Number(proteinVal), Number(carbsVal), Number(fatVal)));
 
     const insertData = {
       userId,
       at: when,
       source: source || "manual",
-      mealType: mealType || null,
       kcal: resolvedKcal.toString(),
-      protein: (Number(protein) || 0).toString(),
-      carbs: (Number(carbs) || 0).toString(),
-      fat: (Number(fat) || 0).toString(),
+      protein: (Number(proteinVal) || 0).toString(),
+      carbs: (Number(carbsVal) || 0).toString(),
+      fat: (Number(fatVal) || 0).toString(),
       fiber: "0",
       alcohol: "0",
+      starchyCarbs: starchyCarbsVal.toString(),
+      fibrousCarbs: fibrousCarbsVal.toString(),
     };
 
     const [row] = await db
@@ -75,9 +89,11 @@ router.post("/users/:userId/macros/quick", async (req, res) => {
       fat = 0,
       fiber = 0,
       alcohol = 0,
+      starchyCarbs = 0,
+      fibrousCarbs = 0,
       kcal,
     } = req.body ?? {};
-    if ([protein, carbs, fat, fiber, alcohol].some((v: any) => v < 0)) {
+    if ([protein, carbs, fat, fiber, alcohol, starchyCarbs, fibrousCarbs].some((v: any) => v < 0)) {
       return res.status(400).json({ error: "Macros cannot be negative." });
     }
 
@@ -106,6 +122,8 @@ router.post("/users/:userId/macros/quick", async (req, res) => {
         fat: (Number(fat) || 0).toString(),
         fiber: (Number(fiber) || 0).toString(),
         alcohol: (Number(alcohol) || 0).toString(),
+        starchyCarbs: (Number(starchyCarbs) || 0).toString(),
+        fibrousCarbs: (Number(fibrousCarbs) || 0).toString(),
       })
       .returning();
 
@@ -177,6 +195,8 @@ router.get("/users/:userId/macros", async (req, res) => {
         fat: sql<number>`COALESCE(SUM(${macroLogs.fat}), 0)`,
         fiber: sql<number>`COALESCE(SUM(${macroLogs.fiber}), 0)`,
         alcohol: sql<number>`COALESCE(SUM(${macroLogs.alcohol}), 0)`,
+        starchyCarbs: sql<number>`COALESCE(SUM(${macroLogs.starchyCarbs}), 0)`,
+        fibrousCarbs: sql<number>`COALESCE(SUM(${macroLogs.fibrousCarbs}), 0)`,
         // Separate food totals (exclude alcohol source)
         foodKcal: sql<number>`COALESCE(SUM(CASE WHEN ${macroLogs.source} != 'alcohol' THEN ${macroLogs.kcal} ELSE 0 END), 0)`,
         foodProtein: sql<number>`COALESCE(SUM(CASE WHEN ${macroLogs.source} != 'alcohol' THEN ${macroLogs.protein} ELSE 0 END), 0)`,
@@ -204,6 +224,8 @@ router.get("/users/:userId/macros", async (req, res) => {
       fat: 0,
       fiber: 0,
       alcohol: 0,
+      starchyCarbs: 0,
+      fibrousCarbs: 0,
       foodKcal: 0,
       foodProtein: 0,
       foodCarbs: 0,
@@ -219,6 +241,8 @@ router.get("/users/:userId/macros", async (req, res) => {
       protein: result.protein,
       carbs: result.carbs,
       fat: result.fat,
+      starchyCarbs: result.starchyCarbs,
+      fibrousCarbs: result.fibrousCarbs,
       foodTotals: {
         kcal: result.foodKcal,
         protein: result.foodProtein,
@@ -315,30 +339,6 @@ router.post("/users/:userId/macro-targets", async (req, res) => {
     console.error("save macro targets error:", e);
     res.status(500).json({ error: e.message || "Failed to save macro targets" });
   }
-});
-
-// POST /api/users/:userId/macros/protein-target
-router.post("/users/:userId/macros/protein-target", async (req, res) => {
-  const parsed = saveSchema.safeParse({ ...req.body, userId: req.params.userId });
-  if (!parsed.success) return res.status(400).send(parsed.error.message);
-  const { userId, dailyTargetGrams, goal, unit, weight, rangeUnitLabel, minFactor, maxFactor } = parsed.data;
-
-  // For now, just return success - you can connect to database later
-  console.log(`Saving protein target for user ${userId}: ${dailyTargetGrams}g/day (${goal}, ${unit}, ${weight}${unit})`);
-
-  res.json({ 
-    ok: true, 
-    saved: {
-      userId,
-      dailyTargetGrams,
-      goal,
-      unit,
-      weight,
-      rangeUnitLabel,
-      minFactor,
-      maxFactor
-    }
-  });
 });
 
 export default router;

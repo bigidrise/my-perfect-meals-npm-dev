@@ -16,6 +16,9 @@ export const macroLogs = pgTable("macro_logs", {
   fat: numeric("fat").notNull(),
   fiber: numeric("fiber").notNull().default("0"),
   alcohol: numeric("alcohol").notNull().default("0"),
+  // Starchy/Fibrous carb breakdown
+  starchyCarbs: numeric("starchy_carbs").notNull().default("0"),
+  fibrousCarbs: numeric("fibrous_carbs").notNull().default("0"),
 });
 
 // Re-export biometrics schema (unchanged)

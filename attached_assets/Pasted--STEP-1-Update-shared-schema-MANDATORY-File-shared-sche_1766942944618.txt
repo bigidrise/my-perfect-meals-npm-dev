@@ -1,0 +1,111 @@
+✅ STEP 1 — Update shared schema (MANDATORY)
+File
+shared/schema.ts
+
+What to add
+
+Inside insertMacroLogSchema and macroLogs table:
+
+// ADD columns (Drizzle table)
+starchyCarbs_g: integer("starchy_carbs_g").default(0),
+fibrousCarbs_g: integer("fibrous_carbs_g").default(0),
+
+
+And in Zod schema:
+
+starchyCarbs_g: z.number().optional(),
+fibrousCarbs_g: z.number().optional(),
+
+
+If this step is skipped → nothing else works.
+
+✅ STEP 2 — Patch backend route (FULL FILE)
+Replace your current file with this
+import express from "express";
+import { db } from "../db";
+import { macroLogs, insertMacroLogSchema } from "../../shared/schema";
+import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
+
+const router = express.Router();
+
+router.post("/macros", async (req, res) => {
+  try {
+    const validation = insertMacroLogSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: validation.error.issues,
+      });
+    }
+
+    const data = validation.data;
+
+    // 🔧 MAP quick-add intent → correct carb buckets
+    if (data.mode === "quick-add" && data.macroType && data.grams) {
+      if (data.macroType === "fiber") {
+        data.fibrousCarbs_g = data.grams;
+      }
+      if (data.macroType === "carbs") {
+        data.starchyCarbs_g = data.grams;
+      }
+    }
+
+    const [row] = await db.insert(macroLogs).values(data).returning();
+    res.json(row);
+  } catch (e) {
+    console.error("create macro-log error", e);
+    res.status(500).json({ error: "Failed to create macro log" });
+  }
+});
+
+router.get("/macros", async (req, res) => {
+  try {
+    const userId = String(req.query.userId || "");
+    if (!userId) return res.status(400).json({ error: "userId required" });
+
+    const from = req.query.from ? new Date(String(req.query.from)) : new Date("1970-01-01");
+    const to = req.query.to ? new Date(String(req.query.to)) : new Date("2999-12-31");
+
+    const rows = await db
+      .select({
+        kcal: sql<number>`sum(${macroLogs.calories})`,
+        protein: sql<number>`sum(${macroLogs.protein_g})`,
+        carbs: sql<number>`sum(${macroLogs.carbs_g})`,
+        fat: sql<number>`sum(${macroLogs.fat_g})`,
+        starchyCarbs: sql<number>`sum(${macroLogs.starchyCarbs_g})`,
+        fibrousCarbs: sql<number>`sum(${macroLogs.fibrousCarbs_g})`,
+      })
+      .from(macroLogs)
+      .where(
+        and(
+          eq(macroLogs.userId, userId),
+          gte(macroLogs.at, from),
+          lte(macroLogs.at, to)
+        )
+      );
+
+    res.json(rows[0]);
+  } catch (e) {
+    console.error("get macro totals error", e);
+    res.status(500).json({ error: "Failed to fetch macro totals" });
+  }
+});
+
+export default router;
+
+✅ STEP 3 — Update useTodayMacros (FINAL LINK)
+What to change
+
+Extend the return type and mapping:
+
+type MacroTotals = {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  starchyCarbs: number;
+  fibrousCarbs: number;
+};
+
+
+And ensure fetch returns those fields instead of flattening.
