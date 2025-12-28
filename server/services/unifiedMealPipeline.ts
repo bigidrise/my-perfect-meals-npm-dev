@@ -127,38 +127,92 @@ function getFallbackImage(mealType: string): string {
  * Ensure a meal has an image URL, generating one if needed
  * @param useFallbackOnly - If true, skip DALL-E and use static fallback immediately (for premades)
  */
-async function ensureImage(meal: Partial<UnifiedMeal>, mealType: string, useFallbackOnly: boolean = false): Promise<string> {
-  // If meal already has a valid image URL, use it
-  if (meal.imageUrl && (meal.imageUrl.startsWith('http') || meal.imageUrl.startsWith('/'))) {
+// =======================
+// BEGIN CANVA IMAGE SYSTEM — ensureImage
+// =======================
+interface MealVisualDescriptor {
+  title: string;
+  mealType: string;
+  keyFoods: string[];
+  style: string;
+}
+
+function buildMealVisual(meal: {
+  name?: string;
+  description?: string;
+  ingredients?: Array<{ name: string; quantity?: string; unit?: string }>;
+  mealType: string;
+}): MealVisualDescriptor {
+  const keyFoods = (meal.ingredients || [])
+    .map(i => i?.name)
+    .filter(Boolean)
+    .slice(0, 6) as string[];
+
+  return {
+    title: meal.name || "Healthy homemade meal",
+    mealType: meal.mealType,
+    keyFoods,
+    style:
+      "realistic professional food photography, natural light, plated, clean background, shallow depth of field, no text, no watermark, no logo, no people, no hands, no utensils in motion",
+  };
+}
+
+async function ensureImage(
+  meal: Partial<UnifiedMeal>,
+  mealType: string,
+  useFallbackOnly: boolean = false
+): Promise<string> {
+  // 1) Respect explicitly provided image URLs
+  if (meal.imageUrl && (meal.imageUrl.startsWith("http") || meal.imageUrl.startsWith("/"))) {
     return meal.imageUrl;
   }
 
-  // SPEED OPTIMIZATION: Skip DALL-E for premades, use static fallback immediately
+  // 2) Premades / forced fallback: neutral placeholder ONLY
   if (useFallbackOnly) {
-    console.log(`⚡ Using static fallback for premade: ${meal.name}`);
-    return getFallbackImage(mealType);
+    return "/images/placeholders/meal-placeholder.jpg";
   }
 
-  // Try to generate an image with DALL-E
+  // 3) Canva-style image generation (image matches the meal)
   try {
+    const visual = buildMealVisual({
+      name: meal.name,
+      description: meal.description,
+      ingredients: meal.ingredients as any,
+      mealType,
+    });
+
+    const keyFoodsLine =
+      visual.keyFoods.length > 0
+        ? `Key foods visible: ${visual.keyFoods.join(", ")}.`
+        : `Key foods visible: ingredients consistent with "${visual.title}".`;
+
     const imageUrl = await generateImage({
-      name: meal.name || 'Delicious Meal',
-      description: meal.description || 'A healthy homemade meal',
-      type: 'meal',
-      style: 'homemade'
+      name: visual.title,
+      description: `${keyFoodsLine} ${meal.description || ""}`.trim(),
+      type: "meal",
+      style: visual.style,
+      ingredients: visual.keyFoods,
+      calories: (meal as any).calories,
+      protein: (meal as any).protein,
+      carbs: (meal as any).carbs,
+      fat: (meal as any).fat,
     });
 
     if (imageUrl) {
-      console.log(`🖼️ Generated DALL-E image for: ${meal.name}`);
+      console.log(`🖼️ Canva-style image generated for: ${meal.name || visual.title}`);
       return imageUrl;
     }
   } catch (error) {
-    console.warn(`⚠️ DALL-E image generation failed for ${meal.name}, using fallback`);
+    console.warn(`⚠️ Canva-style image generation failed for "${meal.name}"`, error);
   }
 
-  // Fall back to static image
-  return getFallbackImage(mealType);
+  // 4) Last resort: neutral placeholder (never pancakes)
+  return "/images/placeholders/meal-placeholder.jpg";
 }
+// =======================
+// END CANVA IMAGE SYSTEM — ensureImage
+// =======================
+
 
 /**
  * Convert FinalMeal ingredients to unified U.S. format
