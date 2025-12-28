@@ -1,3 +1,26 @@
+✅ STEP 1 — Update shared schema (MANDATORY)
+File
+shared/schema.ts
+
+What to add
+
+Inside insertMacroLogSchema and macroLogs table:
+
+// ADD columns (Drizzle table)
+starchyCarbs_g: integer("starchy_carbs_g").default(0),
+fibrousCarbs_g: integer("fibrous_carbs_g").default(0),
+
+
+And in Zod schema:
+
+starchyCarbs_g: z.number().optional(),
+fibrousCarbs_g: z.number().optional(),
+
+
+If this step is skipped → nothing else works.
+
+✅ STEP 2 — Patch backend route (FULL FILE)
+Replace your current file with this
 import express from "express";
 import { db } from "../db";
 import { macroLogs, insertMacroLogSchema } from "../../shared/schema";
@@ -69,3 +92,20 @@ router.get("/macros", async (req, res) => {
 });
 
 export default router;
+
+✅ STEP 3 — Update useTodayMacros (FINAL LINK)
+What to change
+
+Extend the return type and mapping:
+
+type MacroTotals = {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  starchyCarbs: number;
+  fibrousCarbs: number;
+};
+
+
+And ensure fetch returns those fields instead of flattening.

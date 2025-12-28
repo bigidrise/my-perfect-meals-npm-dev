@@ -87,7 +87,7 @@ export function RemainingMacrosFooter({
   const consumedStarchyFibrous = (consumed.starchyCarbs ?? 0) + (consumed.fibrousCarbs ?? 0);
   const consumedHasMeaningfulBreakdown = consumedStarchyFibrous > 0 || consumed.carbs === 0;
   // Show breakdown only when we have targets AND the consumed data has meaningful starchy/fibrous values
-  const showStarchyFibrousBreakdown = hasStarchyFibrousTargets && consumedHasMeaningfulBreakdown;
+  const showStarchyFibrousBreakdown = hasStarchyFibrousTargets;
 
   const remaining = useMemo(() => ({
     calories: Math.max(0, targets.calories - consumed.calories),
