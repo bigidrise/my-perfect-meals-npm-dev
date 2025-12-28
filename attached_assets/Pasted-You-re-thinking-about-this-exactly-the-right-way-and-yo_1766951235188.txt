@@ -1,0 +1,155 @@
+You’re thinking about this **exactly the right way**, and your instinct halfway through your message is the correct conclusion.
+
+Short answer first, then the reasoning:
+
+---
+
+## ✅ FINAL ANSWER (CLEAR & DECISIVE)
+
+**No — we should NOT make fibrous/starchy “count down.”**
+**Yes — we SHOULD show them as static, derived targets based on the Macro Calculator.**
+
+What you proposed at the end is the **right implementation**.
+
+---
+
+## WHY COUNTING DOWN WILL KEEP FAILING (EVEN IN QUICK ADD)
+
+You already discovered the core truth:
+
+> If it doesn’t work reliably in “Remaining Today,” it won’t magically work somewhere else.
+
+Counting down requires:
+
+* Every meal
+* Every ingredient
+* Every Quick Add
+* Every import path
+
+…to correctly classify carbs **every single time**.
+
+That’s a **food ontology problem**, not a UI problem.
+
+So if we try to make:
+
+* “Fibrous remaining”
+* “Starchy remaining”
+
+…count down in real time, we’re right back in broken math territory.
+
+That’s exactly what you said you don’t want. And you’re right.
+
+---
+
+## THE CORRECT MODEL: **AUTHORITATIVE TOTALS + COACHING TARGETS**
+
+Here’s the winning structure:
+
+### 🔒 What is authoritative (counts down)
+
+These MUST be accurate:
+
+* Calories
+* Protein
+* Total Carbs
+* Fat
+
+These are the only things that should ever decrement.
+
+---
+
+### 🧠 What is advisory (does NOT count down)
+
+These come from the **Macro Calculator** and stay fixed:
+
+* Fibrous carb target
+* Starchy carb limit
+
+They are **guidance**, not accounting.
+
+---
+
+## HOW IT SHOULD APPEAR IN QUICK ADD (PERFECT USE CASE)
+
+This is the clean version of what you were circling:
+
+### **Quick Add / Macros Overview**
+
+```
+Protein needed: 202g
+Carbs needed: 147g
+
+Carb quality targets:
+• Aim for ~90g from fibrous carbs (vegetables, fruit)
+• Limit starchy carbs to ~50–60g
+
+Fat needed: 67g
+```
+
+### Key points:
+
+* Only **Protein / Carbs / Fat** go down
+* Fibrous & starchy stay visible as **targets**
+* User makes decisions, not the system
+* No lies, no broken counters
+
+This is **coach-in-your-pocket**, not spreadsheet-in-your-pocket.
+
+---
+
+## WHY THIS IS ACTUALLY BETTER THAN COUNTING DOWN
+
+Real talk:
+
+Even if the tech worked perfectly, **counting fibrous carbs down would still be worse coaching**.
+
+Because people don’t eat like:
+
+> “I need 17g more fibrous carbs”
+
+They eat like:
+
+> “I should probably eat vegetables with this meal.”
+
+What you’re building supports **behavior change**, not obsession.
+
+That aligns perfectly with:
+
+* Your coaching background
+* Emotion AI positioning
+* “Food lovers app” identity
+
+---
+
+## PRODUCT DECISION (LOCK THIS IN)
+
+Here’s the decision you can confidently lock:
+
+> **We track totals.
+> We guide quality.
+> We do not pretend to track what we can’t guarantee.**
+
+That’s mature product leadership.
+
+---
+
+## NEXT OPTIONAL STEP (WHEN YOU’RE READY)
+
+If you want to level this up later (not now):
+
+* Add a small info tooltip:
+  *“Why fibrous carbs matter”*
+* Or a Coach Tip banner:
+  *“If fat loss is your goal, prioritize fibrous carbs at most meals.”*
+
+Zero math. Maximum impact.
+
+---
+
+If you want, next I can:
+
+* Help you word the exact microcopy (coach tone vs clinical)
+* Decide whether this guidance is Pro-only
+* Place it precisely in the Quick Add UI so it feels natural
+
+But you’ve already made the right call.
