@@ -1,33 +1,50 @@
 import express from "express";
 import { db } from "../db";
-import { macroLogs, insertMacroLogSchema } from "../../shared/schema";
-import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
+import { macroLogs } from "../../shared/schema";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 
 const router = express.Router();
 
+// POST /api/macros - Log macros with starchy/fibrous carb support
 router.post("/macros", async (req, res) => {
   try {
-    const validation = insertMacroLogSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        error: "Validation failed",
-        details: validation.error.issues,
-      });
+    const {
+      userId,
+      at,
+      source = "quick",
+      kcal = 0,
+      protein = 0,
+      carbs = 0,
+      fat = 0,
+      fiber = 0,
+      alcohol = 0,
+      starchyCarbs = 0,
+      fibrousCarbs = 0,
+    } = req.body ?? {};
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId required" });
     }
 
-    const data = validation.data;
+    const when = at ? new Date(at) : new Date();
 
-    // 🔧 MAP quick-add intent → correct carb buckets
-    if (data.mode === "quick-add" && data.macroType && data.grams) {
-      if (data.macroType === "fiber") {
-        data.fibrousCarbs_g = data.grams;
-      }
-      if (data.macroType === "carbs") {
-        data.starchyCarbs_g = data.grams;
-      }
-    }
+    const [row] = await db
+      .insert(macroLogs)
+      .values({
+        userId,
+        at: when,
+        source,
+        kcal: String(kcal),
+        protein: String(protein),
+        carbs: String(carbs),
+        fat: String(fat),
+        fiber: String(fiber),
+        alcohol: String(alcohol),
+        starchyCarbs: String(starchyCarbs),
+        fibrousCarbs: String(fibrousCarbs),
+      })
+      .returning();
 
-    const [row] = await db.insert(macroLogs).values(data).returning();
     res.json(row);
   } catch (e) {
     console.error("create macro-log error", e);
@@ -35,6 +52,7 @@ router.post("/macros", async (req, res) => {
   }
 });
 
+// GET /api/macros - Get macro totals for date range
 router.get("/macros", async (req, res) => {
   try {
     const userId = String(req.query.userId || "");
@@ -45,12 +63,12 @@ router.get("/macros", async (req, res) => {
 
     const rows = await db
       .select({
-        kcal: sql<number>`sum(${macroLogs.calories})`,
-        protein: sql<number>`sum(${macroLogs.protein_g})`,
-        carbs: sql<number>`sum(${macroLogs.carbs_g})`,
-        fat: sql<number>`sum(${macroLogs.fat_g})`,
-        starchyCarbs: sql<number>`sum(${macroLogs.starchyCarbs_g})`,
-        fibrousCarbs: sql<number>`sum(${macroLogs.fibrousCarbs_g})`,
+        kcal: sql<number>`COALESCE(SUM(${macroLogs.kcal}), 0)`,
+        protein: sql<number>`COALESCE(SUM(${macroLogs.protein}), 0)`,
+        carbs: sql<number>`COALESCE(SUM(${macroLogs.carbs}), 0)`,
+        fat: sql<number>`COALESCE(SUM(${macroLogs.fat}), 0)`,
+        starchyCarbs: sql<number>`COALESCE(SUM(${macroLogs.starchyCarbs}), 0)`,
+        fibrousCarbs: sql<number>`COALESCE(SUM(${macroLogs.fibrousCarbs}), 0)`,
       })
       .from(macroLogs)
       .where(
@@ -61,7 +79,7 @@ router.get("/macros", async (req, res) => {
         )
       );
 
-    res.json(rows[0]);
+    res.json(rows[0] || { kcal: 0, protein: 0, carbs: 0, fat: 0, starchyCarbs: 0, fibrousCarbs: 0 });
   } catch (e) {
     console.error("get macro totals error", e);
     res.status(500).json({ error: "Failed to fetch macro totals" });

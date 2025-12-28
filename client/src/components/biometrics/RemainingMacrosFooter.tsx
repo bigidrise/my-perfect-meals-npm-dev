@@ -77,6 +77,8 @@ export function RemainingMacrosFooter({
       protein: todayMacros.protein,
       carbs: todayMacros.carbs,
       fat: todayMacros.fat,
+      starchyCarbs: todayMacros.starchyCarbs,
+      fibrousCarbs: todayMacros.fibrousCarbs,
     };
   }, [consumedOverride, todayMacros]);
 

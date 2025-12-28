@@ -75,9 +75,11 @@ router.post("/users/:userId/macros/quick", async (req, res) => {
       fat = 0,
       fiber = 0,
       alcohol = 0,
+      starchyCarbs = 0,
+      fibrousCarbs = 0,
       kcal,
     } = req.body ?? {};
-    if ([protein, carbs, fat, fiber, alcohol].some((v: any) => v < 0)) {
+    if ([protein, carbs, fat, fiber, alcohol, starchyCarbs, fibrousCarbs].some((v: any) => v < 0)) {
       return res.status(400).json({ error: "Macros cannot be negative." });
     }
 
@@ -106,6 +108,8 @@ router.post("/users/:userId/macros/quick", async (req, res) => {
         fat: (Number(fat) || 0).toString(),
         fiber: (Number(fiber) || 0).toString(),
         alcohol: (Number(alcohol) || 0).toString(),
+        starchyCarbs: (Number(starchyCarbs) || 0).toString(),
+        fibrousCarbs: (Number(fibrousCarbs) || 0).toString(),
       })
       .returning();
 
@@ -177,6 +181,8 @@ router.get("/users/:userId/macros", async (req, res) => {
         fat: sql<number>`COALESCE(SUM(${macroLogs.fat}), 0)`,
         fiber: sql<number>`COALESCE(SUM(${macroLogs.fiber}), 0)`,
         alcohol: sql<number>`COALESCE(SUM(${macroLogs.alcohol}), 0)`,
+        starchyCarbs: sql<number>`COALESCE(SUM(${macroLogs.starchyCarbs}), 0)`,
+        fibrousCarbs: sql<number>`COALESCE(SUM(${macroLogs.fibrousCarbs}), 0)`,
         // Separate food totals (exclude alcohol source)
         foodKcal: sql<number>`COALESCE(SUM(CASE WHEN ${macroLogs.source} != 'alcohol' THEN ${macroLogs.kcal} ELSE 0 END), 0)`,
         foodProtein: sql<number>`COALESCE(SUM(CASE WHEN ${macroLogs.source} != 'alcohol' THEN ${macroLogs.protein} ELSE 0 END), 0)`,
@@ -204,6 +210,8 @@ router.get("/users/:userId/macros", async (req, res) => {
       fat: 0,
       fiber: 0,
       alcohol: 0,
+      starchyCarbs: 0,
+      fibrousCarbs: 0,
       foodKcal: 0,
       foodProtein: 0,
       foodCarbs: 0,
@@ -219,6 +227,8 @@ router.get("/users/:userId/macros", async (req, res) => {
       protein: result.protein,
       carbs: result.carbs,
       fat: result.fat,
+      starchyCarbs: result.starchyCarbs,
+      fibrousCarbs: result.fibrousCarbs,
       foodTotals: {
         kcal: result.foodKcal,
         protein: result.foodProtein,
