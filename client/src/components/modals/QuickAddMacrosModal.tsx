@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
+import { getResolvedTargets } from "@/lib/macroResolver";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface QuickAddMacrosModalProps {
   open?: boolean;
@@ -33,6 +35,10 @@ export default function QuickAddMacrosModal({
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  const targets = useMemo(() => getResolvedTargets(user?.id), [user?.id]);
+  const hasStarchyFibrousTargets = (targets.starchyCarbs_g ?? 0) > 0 || (targets.fibrousCarbs_g ?? 0) > 0;
 
   const [formData, setFormData] = useState({
     protein: "",
@@ -219,6 +225,16 @@ export default function QuickAddMacrosModal({
             ),
           )}
         </div>
+
+        {hasStarchyFibrousTargets && (
+          <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-1">
+            <p className="text-xs font-medium text-white/70 uppercase tracking-wide">Carb Quality Targets</p>
+            <div className="text-sm text-white/80 space-y-0.5">
+              <p>Aim for ~{Math.round(targets.fibrousCarbs_g ?? 0)}g from fibrous carbs (vegetables, fruit)</p>
+              <p>Limit starchy carbs to ~{Math.round(targets.starchyCarbs_g ?? 0)}g</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 pt-4">
           <Button
