@@ -258,7 +258,7 @@ router.post('/log', async (req, res) => {
 router.post('/weight', async (req, res) => {
   try {
     const userId = req.body.userId || "00000000-0000-0000-0000-000000000001";
-    const { value, unit, measuredAt } = req.body;
+    const { value, unit, localDate, measuredAt } = req.body;
 
     if (!value || !unit) {
       return res.status(400).json({ error: 'value and unit required' });
@@ -268,11 +268,25 @@ router.post('/weight', async (req, res) => {
       return res.status(400).json({ error: 'unit must be lb or kg' });
     }
 
-    // Parse the measured date (default to today if not provided)
-    const measurementDate = measuredAt ? new Date(measuredAt) : new Date();
+    // Use localDate (client's local YYYY-MM-DD) if provided, otherwise fall back to measuredAt or today
+    // This ensures the date matches what the user sees in their timezone
+    let dayKey: string;
+    let measurementDate: Date;
     
-    // Get day key in UTC for uniqueness check
-    const dayKey = measurementDate.toISOString().slice(0, 10);
+    if (localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+      // Client sent local date string - use it directly for day key
+      dayKey = localDate;
+      // Create date at noon UTC to avoid timezone edge cases
+      measurementDate = new Date(`${localDate}T12:00:00Z`);
+    } else if (measuredAt) {
+      // Legacy: measuredAt ISO string
+      measurementDate = new Date(measuredAt);
+      dayKey = measurementDate.toISOString().slice(0, 10);
+    } else {
+      // Default: use server's current date
+      measurementDate = new Date();
+      dayKey = measurementDate.toISOString().slice(0, 10);
+    }
     
     // Check if weight already exists for this day
     const existing = await db.select().from(biometricSample).where(
