@@ -358,6 +358,7 @@ export default function CravingPresetsPage() {
           onClose={quickTour.closeTour}
           title="How to Use Craving Premades"
           steps={PRESETS_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </div>
     </div>

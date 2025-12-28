@@ -898,6 +898,8 @@ export default function MacroCounter() {
                           protein_g: results.macros.protein.g,
                           carbs_g: results.macros.carbs.g,
                           fat_g: results.macros.fat.g,
+                          starchyCarbs_g: getStarchyCarbs(sex, goal),
+                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
                         },
                         user?.id,
                       );
@@ -961,6 +963,8 @@ export default function MacroCounter() {
                           protein_g: results.macros.protein.g,
                           carbs_g: results.macros.carbs.g,
                           fat_g: results.macros.fat.g,
+                          starchyCarbs_g: getStarchyCarbs(sex, goal),
+                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
                         },
                         user?.id,
                       );
@@ -1005,6 +1009,7 @@ export default function MacroCounter() {
         onClose={quickTour.closeTour}
         steps={macroCalculatorTourSteps}
         title="How to Use the Macro Calculator"
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </>
   );

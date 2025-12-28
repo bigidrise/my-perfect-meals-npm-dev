@@ -559,6 +559,7 @@ export default function DessertCreator() {
           onClose={quickTour.closeTour}
           title="How to Use Dessert Creator"
           steps={DESSERT_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </motion.div>
     </PhaseGate>

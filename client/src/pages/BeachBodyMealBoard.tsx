@@ -32,8 +32,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useToast } from "@/hooks/use-toast";
-import { todayISOInTZ, getUserTimezone, formatDateLocal } from "@/utils/midnight";
-import { getDayNameLong } from "@/utils/week";
+import { todayISOInTZ } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
@@ -274,7 +273,7 @@ export default function BeachBodyMealBoard() {
 
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ();
+    const today = todayISOInTZ("America/Chicago");
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO("");
@@ -778,7 +777,7 @@ export default function BeachBodyMealBoard() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${getDayNameLong(activeDayISO)} Beach Body Plan`
+          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Beach Body Plan`
           : `Beach Body Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -844,8 +843,9 @@ export default function BeachBodyMealBoard() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
       // Guard: Check if day is locked before allowing edits
@@ -872,22 +872,22 @@ export default function BeachBodyMealBoard() {
       };
 
       const newMeals = [transformedMeal];
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
-        const existingSlotMeals = dayLists[aiMealSlot].filter(
+        const existingSlotMeals = dayLists[slot].filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         const updatedSlotMeals = [...existingSlotMeals, ...newMeals];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         try {
           await saveBoard(updatedBoard);
           toast({
             title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === aiMealSlot)?.[1]}`,
+            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
           });
         } catch (error) {
           console.error("Failed to save AI meal:", error);
@@ -899,7 +899,7 @@ export default function BeachBodyMealBoard() {
         }
       }
     },
-    [activeDayISO, aiMealSlot, board, saveBoard, toast],
+    [activeDayISO, board, saveBoard, toast],
   );
 
   // Handler for snack selection from SnackPickerDrawer
@@ -1584,8 +1584,8 @@ export default function BeachBodyMealBoard() {
                       {label}
                     </h2>
                     <div className="flex gap-2">
-                      {/* AI Meal Creator button for breakfast/lunch/dinner ONLY (not snacks) */}
-                      {key !== "snacks" && (
+                      {/* AI Meal Creator button - hidden by feature flag for launch */}
+                      {FEATURES.showCreateWithAI && key !== "snacks" && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -1904,6 +1904,8 @@ export default function BeachBodyMealBoard() {
                   0,
                 ),
                 fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
               });
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1932,6 +1934,8 @@ export default function BeachBodyMealBoard() {
                   slots.lunch.fat +
                   slots.dinner.fat +
                   slots.snacks.fat,
+                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
 
@@ -1977,7 +1981,7 @@ export default function BeachBodyMealBoard() {
                         });
                         toast({
                           title: "Day Saved to Biometrics",
-                          description: `${formatDateLocal(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
+                          description: `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                         });
                         setLocation('/my-biometrics');
                       }
@@ -2160,7 +2164,9 @@ export default function BeachBodyMealBoard() {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = getDayNameLong(activeDayISO);
+              const dayName = new Date(
+                activeDayISO + "T00:00:00Z",
+              ).toLocaleDateString(undefined, { weekday: "long" });
 
               return (
                 <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
@@ -2226,6 +2232,7 @@ export default function BeachBodyMealBoard() {
           onClose={quickTour.closeTour}
           title="How to Build Your Beach Body Meals"
           steps={BEACHBODY_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
 
         {/* Locked Day Dialog */}

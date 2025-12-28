@@ -21,7 +21,7 @@ interface CreateWithChefModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mealType: "breakfast" | "lunch" | "dinner";
-  onMealGenerated: (meal: any) => void;
+  onMealGenerated: (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => void;
   dietType?: DietType; // Optional diet type for guardrails
   dietPhase?: BeachBodyPhase; // Optional phase for BeachBody
 }
@@ -68,7 +68,7 @@ export function CreateWithChefModal({
         title: "Meal Created!",
         description: `${meal.name} is ready for you`,
       });
-      onMealGenerated(meal);
+      onMealGenerated(meal, mealType);
       onOpenChange(false);
     } else if (error) {
       toast({

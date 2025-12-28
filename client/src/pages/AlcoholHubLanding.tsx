@@ -213,6 +213,7 @@ export default function AlcoholHubLanding() {
         onClose={quickTour.closeTour}
         title="How to Use Spirits & Lifestyle Hub"
         steps={ALCOHOL_HUB_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

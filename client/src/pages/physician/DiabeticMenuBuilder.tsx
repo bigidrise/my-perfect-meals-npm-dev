@@ -36,8 +36,7 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ, getUserTimezone, formatDateLocal } from "@/utils/midnight";
-import { getDayNameLong } from "@/utils/week";
+import { todayISOInTZ } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -301,7 +300,7 @@ export default function DiabeticMenuBuilder() {
 
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ();
+    const today = todayISOInTZ("America/Chicago");
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO("");
@@ -750,7 +749,7 @@ export default function DiabeticMenuBuilder() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${getDayNameLong(activeDayISO)} Meal Plan`
+          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Meal Plan`
           : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -822,8 +821,9 @@ export default function DiabeticMenuBuilder() {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
       // Guard: Check if day is locked before allowing edits
@@ -833,7 +833,7 @@ export default function DiabeticMenuBuilder() {
         "🤖 AI Meal Generated - Replacing old meals with new one:",
         generatedMeal,
         "for slot:",
-        aiMealSlot,
+        slot,
       );
 
       // Transform API response to match Meal type structure (copy Fridge Rescue format)
@@ -861,33 +861,33 @@ export default function DiabeticMenuBuilder() {
       const newMeals = [transformedMeal];
 
       // Save to localStorage with slot info (persists until next generation)
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       // Also update board optimistically - REMOVE old AI meals first from the correct slot
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
         // Filter out all old AI meals from the target slot
-        const currentSlotMeals = dayLists[aiMealSlot];
+        const currentSlotMeals = dayLists[slot];
         const nonAIMeals = currentSlotMeals.filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         // Add only the new AI meal
         const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
       }
 
       // Format slot name for display (capitalize first letter)
       const slotLabel =
-        aiMealSlot.charAt(0).toUpperCase() + aiMealSlot.slice(1);
+        slot.charAt(0).toUpperCase() + slot.slice(1);
 
       toast({
         title: "AI Meal Created!",
         description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
       });
     },
-    [board, activeDayISO, aiMealSlot, toast],
+    [board, activeDayISO, toast],
   );
 
   const profile = useOnboardingProfile();
@@ -903,7 +903,7 @@ export default function DiabeticMenuBuilder() {
   };
 
   // 🔧 FIX #2: Auto-reset macros at midnight in user's timezone
-  const userTimezone = getUserTimezone();
+  const userTimezone = "America/Chicago"; // Default timezone - could be enhanced with user preference
 
   useMidnightReset(userTimezone, () => {
     console.log("🌅 Midnight macro reset triggered");
@@ -1684,7 +1684,7 @@ export default function DiabeticMenuBuilder() {
                           No {label.toLowerCase()} meals yet
                         </p>
                         <p className="text-xs text-white/40">
-                          Use "Create with AI" or "+" to add meals
+                          Use "Create with Chef" or "+" to add meals
                         </p>
                       </div>
                     )}
@@ -1783,7 +1783,7 @@ export default function DiabeticMenuBuilder() {
                     <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                       <p className="mb-2">No {label.toLowerCase()} meals yet</p>
                       <p className="text-xs text-white/40">
-                        Use "Create with AI" or "+" to add meals
+                        Use "Create with Chef" or "+" to add meals
                       </p>
                     </div>
                   )}
@@ -1864,6 +1864,8 @@ export default function DiabeticMenuBuilder() {
                 0,
               ),
               fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+              starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+              fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
             });
             const slots = {
               breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1892,6 +1894,8 @@ export default function DiabeticMenuBuilder() {
                 slots.lunch.fat +
                 slots.dinner.fat +
                 slots.snacks.fat,
+              starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+              fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
             };
             const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
 
@@ -1937,7 +1941,7 @@ export default function DiabeticMenuBuilder() {
                       });
                       toast({
                         title: "Day Saved to Biometrics",
-                        description: `${formatDateLocal(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
+                        description: `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                       });
                       setLocation("/my-biometrics");
                     }
@@ -2123,7 +2127,9 @@ export default function DiabeticMenuBuilder() {
             planningMode === "day" &&
             activeDayISO
           ) {
-            const dayName = getDayNameLong(activeDayISO);
+            const dayName = new Date(
+              activeDayISO + "T00:00:00Z",
+            ).toLocaleDateString(undefined, { weekday: "long" });
 
             return (
               <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
@@ -2272,6 +2278,7 @@ export default function DiabeticMenuBuilder() {
         onClose={quickTour.closeTour}
         title="Diabetic Meal Builder Guide"
         steps={DIABETIC_BUILDER_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

@@ -9,7 +9,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Lock, Calendar, Eye } from "lucide-react";
-import { formatDateLocal } from "@/utils/midnight";
 
 interface LockedDayDialogProps {
   open: boolean;
@@ -26,7 +25,7 @@ export function LockedDayDialog({
   onViewOnly,
   onCreateNewDay,
 }: LockedDayDialogProps) {
-  const formattedDate = formatDateLocal(dateISO, {
+  const formattedDate = new Date(dateISO + 'T00:00:00Z').toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',

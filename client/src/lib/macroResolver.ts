@@ -11,6 +11,9 @@ export type ResolvedTargets = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  // Carb breakdown (optional - only available when pro targets or explicit breakdown is set)
+  starchyCarbs_g?: number;
+  fibrousCarbs_g?: number;
   source: MacroSource;
   flags?: {
     // Medical flags (for doctors/dietitians)
@@ -104,6 +107,9 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
         protein_g: proTargets.protein,
         carbs_g: totalCarbs,
         fat_g: proTargets.fat,
+        // Include starchy/fibrous breakdown from pro targets
+        starchyCarbs_g: proTargets.starchyCarbs || 0,
+        fibrousCarbs_g: proTargets.fibrousCarbs || 0,
         source: 'pro',
         flags: proTargets.flags,
         allergens: proTargets.allergens,
@@ -121,6 +127,9 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
       protein_g: selfTargets.protein_g,
       carbs_g: selfTargets.carbs_g,
       fat_g: selfTargets.fat_g,
+      // Include starchy/fibrous breakdown if saved from Macro Calculator
+      starchyCarbs_g: selfTargets.starchyCarbs_g,
+      fibrousCarbs_g: selfTargets.fibrousCarbs_g,
       source: 'self',
     };
   }

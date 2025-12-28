@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getMacroTargets } from "@/lib/dailyLimits";
+import { getResolvedTargets } from "@/lib/macroResolver";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import {
   MPM_GLASS,
@@ -15,6 +15,9 @@ export interface ConsumedMacros {
   protein: number;
   carbs: number;
   fat: number;
+  // Optional starchy/fibrous breakdown
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
 }
 
 export interface MacroTargets {
@@ -22,6 +25,9 @@ export interface MacroTargets {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  // Optional starchy/fibrous breakdown targets
+  starchyCarbs_g?: number;
+  fibrousCarbs_g?: number;
 }
 
 interface RemainingMacrosFooterProps {
@@ -48,8 +54,16 @@ export function RemainingMacrosFooter({
     if (targetsOverride) {
       return targetsOverride;
     }
-    const stored = getMacroTargets(user?.id);
-    return stored || { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+    // Use resolved targets which includes pro-set starchy/fibrous breakdown
+    const resolved = getResolvedTargets(user?.id);
+    return {
+      calories: resolved.calories,
+      protein_g: resolved.protein_g,
+      carbs_g: resolved.carbs_g,
+      fat_g: resolved.fat_g,
+      starchyCarbs_g: resolved.starchyCarbs_g,
+      fibrousCarbs_g: resolved.fibrousCarbs_g,
+    };
   }, [user?.id, targetsOverride]);
 
   const hasTargets = targets.calories > 0 || targets.protein_g > 0;
@@ -66,11 +80,23 @@ export function RemainingMacrosFooter({
     };
   }, [consumedOverride, todayMacros]);
 
+  // Check if we have starchy/fibrous breakdown - requires BOTH targets AND consumed data with actual values
+  // This prevents showing 5-column layout with zeros when meal data lacks starchy/fibrous breakdown
+  const hasStarchyFibrousTargets = (targets.starchyCarbs_g ?? 0) > 0 || (targets.fibrousCarbs_g ?? 0) > 0;
+  // Check if consumed data has actual starchy/fibrous values (not just zeros when total carbs exists)
+  const consumedStarchyFibrous = (consumed.starchyCarbs ?? 0) + (consumed.fibrousCarbs ?? 0);
+  const consumedHasMeaningfulBreakdown = consumedStarchyFibrous > 0 || consumed.carbs === 0;
+  // Show breakdown only when we have targets AND the consumed data has meaningful starchy/fibrous values
+  const showStarchyFibrousBreakdown = hasStarchyFibrousTargets && consumedHasMeaningfulBreakdown;
+
   const remaining = useMemo(() => ({
     calories: Math.max(0, targets.calories - consumed.calories),
     protein: Math.max(0, targets.protein_g - consumed.protein),
     carbs: Math.max(0, targets.carbs_g - consumed.carbs),
     fat: Math.max(0, targets.fat_g - consumed.fat),
+    // Starchy/fibrous breakdown
+    starchyCarbs: Math.max(0, (targets.starchyCarbs_g ?? 0) - (consumed.starchyCarbs ?? 0)),
+    fibrousCarbs: Math.max(0, (targets.fibrousCarbs_g ?? 0) - (consumed.fibrousCarbs ?? 0)),
   }), [targets, consumed]);
 
   const colorState = useMemo(() => ({
@@ -78,6 +104,9 @@ export function RemainingMacrosFooter({
     protein: getMacroProgressColor(consumed.protein, targets.protein_g),
     carbs: getMacroProgressColor(consumed.carbs, targets.carbs_g),
     fat: getMacroProgressColor(consumed.fat, targets.fat_g),
+    // Starchy/fibrous breakdown colors
+    starchyCarbs: getMacroProgressColor(consumed.starchyCarbs ?? 0, targets.starchyCarbs_g ?? 0),
+    fibrousCarbs: getMacroProgressColor(consumed.fibrousCarbs ?? 0, targets.fibrousCarbs_g ?? 0),
   }), [consumed, targets]);
 
   const isInline = layoutMode === "inline";
@@ -123,7 +152,8 @@ export function RemainingMacrosFooter({
             </span>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          {/* Show 5-column layout with starchy/fibrous breakdown when available, otherwise 4-column */}
+          <div className={`grid gap-2 ${showStarchyFibrousBreakdown ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <MacroCell
               label="Cal"
               remaining={remaining.calories}
@@ -139,14 +169,35 @@ export function RemainingMacrosFooter({
               colorState={colorState.protein}
               suffix="g"
             />
-            <MacroCell
-              label="Carbs*"
-              remaining={remaining.carbs}
-              target={targets.carbs_g}
-              consumed={consumed.carbs}
-              colorState={colorState.carbs}
-              suffix="g"
-            />
+            {showStarchyFibrousBreakdown ? (
+              <>
+                <MacroCell
+                  label="Starchy*"
+                  remaining={remaining.starchyCarbs}
+                  target={targets.starchyCarbs_g ?? 0}
+                  consumed={consumed.starchyCarbs ?? 0}
+                  colorState={colorState.starchyCarbs}
+                  suffix="g"
+                />
+                <MacroCell
+                  label="Fibrous*"
+                  remaining={remaining.fibrousCarbs}
+                  target={targets.fibrousCarbs_g ?? 0}
+                  consumed={consumed.fibrousCarbs ?? 0}
+                  colorState={colorState.fibrousCarbs}
+                  suffix="g"
+                />
+              </>
+            ) : (
+              <MacroCell
+                label="Carbs*"
+                remaining={remaining.carbs}
+                target={targets.carbs_g}
+                consumed={consumed.carbs}
+                colorState={colorState.carbs}
+                suffix="g"
+              />
+            )}
             <MacroCell
               label="Fat"
               remaining={remaining.fat}

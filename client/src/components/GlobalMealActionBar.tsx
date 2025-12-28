@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Plus } from "lucide-react";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
+import { FEATURES } from "@/featureFlags";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
 
@@ -35,8 +36,8 @@ export function GlobalMealActionBar({
 
   return (
     <div className="flex gap-2">
-      {/* For meal slots: Show Create with AI */}
-      {isMealSlot && (
+      {/* For meal slots: Show Create with AI (hidden by feature flag for launch) */}
+      {FEATURES.showCreateWithAI && isMealSlot && (
         <Button
           size="sm"
           variant="ghost"

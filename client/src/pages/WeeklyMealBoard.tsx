@@ -23,8 +23,7 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ, getUserTimezone, formatDateLocal } from "@/utils/midnight";
-import { getDayNameLong } from "@/utils/week";
+import { todayISOInTZ } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Home, ArrowLeft, Calendar, Lock } from "lucide-react";
 import { FEATURES } from "@/utils/features";
@@ -93,7 +92,7 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
     title: "Choose Your Builder",
-    description: "Tap 'Create with AI' for custom meals, or 'Create With Chef' to describe what you want."
+    description: "Tap 'Create with Chef' to describe what you want, and let the AI build your meal."
   },
   {
     icon: "2",
@@ -250,7 +249,7 @@ export default function WeeklyMealBoard() {
   
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ();
+    const today = todayISOInTZ('America/Chicago');
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO('');
@@ -316,20 +315,21 @@ export default function WeeklyMealBoard() {
   }, [board, premadePickerSlot, planningMode, activeDayISO, weekStartISO, saveBoard, toast]);
 
   // Handler for Create With Chef meal selection (replaces AI Premades)
-  const handleCreateWithChefSelect = useCallback(async (meal: any) => {
+  // NOTE: slot is passed from the modal to avoid stale state issues
+  const handleCreateWithChefSelect = useCallback(async (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
     if (!board) return;
     
     // Guard: Check if day is locked before allowing edits
     if (checkLockedDay()) return;
 
     try {
-      // Add to the appropriate slot based on createWithChefSlot
+      // Add to the appropriate slot based on slot parameter from modal
       if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
         // Add to specific day
         const dayLists = getDayLists(board, activeDayISO);
         const updatedDayLists = {
           ...dayLists,
-          [createWithChefSlot]: [...dayLists[createWithChefSlot as keyof typeof dayLists], meal]
+          [slot]: [...dayLists[slot as keyof typeof dayLists], meal]
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
@@ -341,7 +341,7 @@ export default function WeeklyMealBoard() {
           ...board,
           lists: {
             ...board.lists,
-            [createWithChefSlot]: [...board.lists[createWithChefSlot], meal]
+            [slot]: [...board.lists[slot], meal]
           },
           version: board.version + 1,
           meta: {
@@ -356,7 +356,7 @@ export default function WeeklyMealBoard() {
 
       window.dispatchEvent(new Event("macros:updated"));
 
-      const eventTarget = document.querySelector(`[data-testid="meal-filled-${createWithChefSlot}"]`);
+      const eventTarget = document.querySelector(`[data-testid="meal-filled-${slot}"]`);
       if (eventTarget) {
         eventTarget.dispatchEvent(new CustomEvent('filled'));
       }
@@ -368,7 +368,7 @@ export default function WeeklyMealBoard() {
         variant: "destructive"
       });
     }
-  }, [board, createWithChefSlot, planningMode, activeDayISO, weekStartISO, saveBoard, toast, checkLockedDay]);
+  }, [board, planningMode, activeDayISO, weekStartISO, saveBoard, toast, checkLockedDay]);
 
   // Handler for snack selection from SnackPickerDrawer
   const handleSnackSelect = useCallback(async (snack: any) => {
@@ -655,7 +655,7 @@ export default function WeeklyMealBoard() {
       quantity: typeof i.qty === 'number' ? i.qty : (i.qty ? parseFloat(String(i.qty)) : 1),
       unit: i.unit || '',
       notes: planningMode === 'day' && activeDayISO
-        ? `${getDayNameLong(activeDayISO)} Meal Plan`
+        ? `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long' })} Meal Plan`
         : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`
     }));
 
@@ -730,13 +730,14 @@ export default function WeeklyMealBoard() {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
-  const handleAIMealGenerated = useCallback(async (generatedMeal: any) => {
+  // NOTE: slot is passed from the modal to avoid stale state issues
+  const handleAIMealGenerated = useCallback(async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
     if (!activeDayISO) return;
     
     // Guard: Check if day is locked before allowing edits
     if (checkLockedDay()) return;
 
-    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", aiMealSlot);
+    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", slot);
 
     // Transform API response to match Meal type structure (copy Fridge Rescue format)
     const transformedMeal: Meal = {
@@ -763,23 +764,23 @@ export default function WeeklyMealBoard() {
     const newMeals = [transformedMeal];
 
     // Save to localStorage with slot info (persists until next generation)
-    saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+    saveAIMealsCache(newMeals, activeDayISO, slot);
 
     // Also update board optimistically - REMOVE old AI meals first from the correct slot
     if (board) {
       const dayLists = getDayLists(board, activeDayISO);
       // Filter out all old AI meals from the target slot
-      const currentSlotMeals = dayLists[aiMealSlot];
+      const currentSlotMeals = dayLists[slot];
       const nonAIMeals = currentSlotMeals.filter(m => !m.id.startsWith('ai-meal-'));
       // Add only the new AI meal
       const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-      const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+      const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
       const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
       setBoard(updatedBoard);
     }
 
     // Format slot name for display (capitalize first letter)
-    const slotLabel = aiMealSlot.charAt(0).toUpperCase() + aiMealSlot.slice(1);
+    const slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1);
 
     // Dispatch meal:saved event for coach progression
     const mealIdMap: Record<string, string> = {
@@ -789,7 +790,7 @@ export default function WeeklyMealBoard() {
       snacks: "snack1"
     };
     window.dispatchEvent(
-      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[aiMealSlot] || "snack1" } })
+      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[slot] || "snack1" } })
     );
 
     toast({
@@ -798,7 +799,7 @@ export default function WeeklyMealBoard() {
     });
 
     // Dispatch walkthrough event
-    const slotTestId = aiMealSlot === 'snacks' ? 'snack' : aiMealSlot;
+    const slotTestId = slot === 'snacks' ? 'snack' : slot;
     const eventTarget = document.querySelector(`[data-testid="meal-filled-${slotTestId}"]`);
     if (eventTarget) {
       eventTarget.dispatchEvent(new CustomEvent('filled'));
@@ -806,7 +807,7 @@ export default function WeeklyMealBoard() {
 
     // Advance guided tour to next step
     advanceTourStep();
-  }, [board, activeDayISO, aiMealSlot, toast, advanceTourStep]);
+  }, [board, activeDayISO, toast, advanceTourStep]);
 
   const profile = useOnboardingProfile();
   const targets = computeTargetsFromOnboarding(profile);
@@ -821,7 +822,7 @@ export default function WeeklyMealBoard() {
   };
 
   // 🔧 FIX #2: Auto-reset macros at midnight in user's timezone
-  const userTimezone = getUserTimezone();
+  const userTimezone = 'America/Chicago'; // Default timezone - could be enhanced with user preference
 
   useMidnightReset(userTimezone, () => {
     console.log('🌅 Midnight macro reset triggered');
@@ -1486,7 +1487,7 @@ export default function WeeklyMealBoard() {
                       className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm"
                     >
                       <p className="mb-2">No {label.toLowerCase()} meals yet</p>
-                      <p className="text-xs text-white/40">Use "Create with AI" or "+" to add meals</p>
+                      <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
                     </div>
                   )}
                 </div>
@@ -1578,7 +1579,7 @@ export default function WeeklyMealBoard() {
               {board.lists[key].length === 0 && (
                 <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                   <p className="mb-2">No {label.toLowerCase()} meals yet</p>
-                  <p className="text-xs text-white/40">Use "Create with AI" or "+" to add meals</p>
+                  <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
                 </div>
               )}
             </div>
@@ -1628,6 +1629,9 @@ export default function WeeklyMealBoard() {
             protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
             carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
             fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+            // Include starchy/fibrous breakdown from meals
+            starchyCarbs: meals.reduce((sum, m) => sum + (m.starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+            fibrousCarbs: meals.reduce((sum, m) => sum + (m.fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
           });
           const slots = {
             breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1640,6 +1644,9 @@ export default function WeeklyMealBoard() {
             protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
             carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
             fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+            // Starchy/fibrous breakdown consumed
+            starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+            fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
           };
           const dayAlreadyLocked = isDay ? isDayLocked(activeDayISO, user?.id) : false;
           
@@ -1677,7 +1684,7 @@ export default function WeeklyMealBoard() {
                     });
                     toast({
                       title: "Day Saved to Biometrics",
-                      description: `${formatDateLocal(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                      description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                     });
                     setLocation('/my-biometrics');
                   }
@@ -1820,7 +1827,7 @@ export default function WeeklyMealBoard() {
 
         // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
         if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
-          const dayName = getDayNameLong(activeDayISO);
+          const dayName = new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long' });
 
           return (
             <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl safe-area-inset-bottom">
@@ -1900,6 +1907,7 @@ export default function WeeklyMealBoard() {
         onClose={quickTour.closeTour}
         title="How to Build Your Week"
         steps={WEEKLY_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

@@ -566,6 +566,7 @@ export default function MealFinder() {
           onClose={quickTour.closeTour}
           title="How to Find Meals Near Me"
           steps={FIND_MEALS_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </div>
     </>

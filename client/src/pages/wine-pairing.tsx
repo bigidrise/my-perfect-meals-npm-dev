@@ -378,6 +378,7 @@ export default function WinePairingPage() {
         onClose={quickTour.closeTour}
         title="How to Use Wine Pairing"
         steps={WINE_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </div>
   );

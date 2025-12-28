@@ -411,6 +411,7 @@ export default function CareTeamPage() {
         onClose={quickTour.closeTour}
         title="Care Team Guide"
         steps={CARE_TEAM_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

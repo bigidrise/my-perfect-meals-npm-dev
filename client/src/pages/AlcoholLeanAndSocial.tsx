@@ -481,6 +481,7 @@ export default function AlcoholLeanAndSocial() {
           onClose={quickTour.closeTour}
           title="How to Use Lean & Social"
           steps={LEAN_SOCIAL_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </div>
     </div>
