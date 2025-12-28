@@ -341,28 +341,4 @@ router.post("/users/:userId/macro-targets", async (req, res) => {
   }
 });
 
-// POST /api/users/:userId/macros/protein-target
-router.post("/users/:userId/macros/protein-target", async (req, res) => {
-  const parsed = saveSchema.safeParse({ ...req.body, userId: req.params.userId });
-  if (!parsed.success) return res.status(400).send(parsed.error.message);
-  const { userId, dailyTargetGrams, goal, unit, weight, rangeUnitLabel, minFactor, maxFactor } = parsed.data;
-
-  // For now, just return success - you can connect to database later
-  console.log(`Saving protein target for user ${userId}: ${dailyTargetGrams}g/day (${goal}, ${unit}, ${weight}${unit})`);
-
-  res.json({ 
-    ok: true, 
-    saved: {
-      userId,
-      dailyTargetGrams,
-      goal,
-      unit,
-      weight,
-      rangeUnitLabel,
-      minFactor,
-      maxFactor
-    }
-  });
-});
-
 export default router;

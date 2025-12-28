@@ -42,3 +42,32 @@ The application is built as a monorepo using React + Vite (TypeScript) for the f
 **Craving Creator Note**: Intentionally returns static fallback images for AI-generated meals. This prevents cache explosion and maintains visual consistency. May be revisited in a future visual upgrade phase.
 
 **Restaurant Guide / Find Meals Note**: Rely on internal AI-based image generation via the shared Meal Visual Alignment System. No Google/Yelp/external image ingestion exists.
+
+## Nutrition Schema v1.1 (Dec 2024) — Carb Subtype Identity
+
+**Purpose**: Enable accurate starchy vs fibrous carbohydrate tracking across all AI-generated meals.
+
+**Changes Made**:
+1. **UnifiedMeal interface** updated to include `starchyCarbs` and `fibrousCarbs` fields (optional, for backward compat)
+2. **AI prompts** (Create With Chef, Snack Creator) now request separate starchy/fibrous breakdown
+3. **Response parsing** extracts these fields and populates them in meal objects
+4. **Total carbs** calculated as `starchyCarbs + fibrousCarbs` for backward compatibility
+
+**Carb Classification Guide**:
+- **Starchy Carbs**: Rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers, granola
+- **Fibrous Carbs**: Vegetables, leafy greens, broccoli, peppers, onions, mushrooms, fruits, berries
+
+**Data Flow**:
+```
+AI generates meal → starchyCarbs/fibrousCarbs in response → parsed into UnifiedMeal → 
+passed to board → summed by WeeklyMealBoard → displayed in RemainingMacrosFooter
+```
+
+**Files Modified** (strictly limited scope):
+- `server/services/unifiedMealPipeline.ts` - AI prompts and response parsing only
+- No changes to: image generation, ensureImage, caching, or UI components
+
+**Not Modified** (LOCKED):
+- Meal Visual Alignment System v1
+- Image generation logic
+- Footer display logic (already supports breakdown)

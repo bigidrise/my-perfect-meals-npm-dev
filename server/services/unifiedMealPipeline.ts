@@ -65,6 +65,7 @@ function normalizeMealType(mealType: string): 'breakfast' | 'lunch' | 'dinner' |
 }
 
 // Standard meal interface
+// Nutrition Schema v1.1 - Added starchyCarbs/fibrousCarbs (Dec 2024)
 export interface UnifiedMeal {
   id: string;
   name: string;
@@ -77,7 +78,9 @@ export interface UnifiedMeal {
   instructions: string | string[];
   calories: number;
   protein: number;
-  carbs: number;
+  carbs: number; // Total carbs (starchyCarbs + fibrousCarbs) for backward compatibility
+  starchyCarbs?: number; // Nutrition Schema v1.1: Rice, pasta, bread, potatoes, etc.
+  fibrousCarbs?: number; // Nutrition Schema v1.1: Vegetables, leafy greens, etc.
   fat: number;
   cookingTime?: string;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
@@ -578,6 +581,7 @@ export async function generateFromDescriptionUnified(
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
     // Base prompt for meal generation
+    // Nutrition Schema v1.1: Request starchyCarbs and fibrousCarbs separately
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
 
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
@@ -586,8 +590,12 @@ REQUIREMENTS:
 - Create a delicious, well-balanced meal that matches the user's description
 - Include realistic ingredients with precise quantities
 - Provide detailed step-by-step cooking instructions
-- Include accurate nutritional estimates
+- Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
+
+CARBOHYDRATE BREAKDOWN (CRITICAL):
+- starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
+- fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
 
 FORMAT: Return as JSON object:
 {
@@ -599,7 +607,8 @@ FORMAT: Return as JSON object:
   "instructions": "Detailed step-by-step cooking instructions as a single paragraph with numbered steps",
   "calories": number (realistic estimate 300-700),
   "protein": number (grams),
-  "carbs": number (grams),
+  "starchyCarbs": number (grams from starches: rice, pasta, bread, potatoes, grains),
+  "fibrousCarbs": number (grams from vegetables and fibrous sources),
   "fat": number (grams),
   "cookingTime": "X minutes",
   "difficulty": "Easy" or "Medium" or "Hard"
@@ -637,6 +646,12 @@ Create the recipe for: "${description}"`;
     
     const mealData = JSON.parse(content);
     
+    // Nutrition Schema v1.1: Extract starchy/fibrous carbs from AI response BEFORE image generation
+    const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
+    const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
+    // Calculate total carbs from breakdown, or use legacy carbs field
+    const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
+    
     // Generate DALL-E image for the meal
     let imageUrl = getFallbackImage(validMealType);
     try {
@@ -648,7 +663,7 @@ Create the recipe for: "${description}"`;
         ingredients: mealData.ingredients?.map((ing: any) => ing.name) || [],
         calories: mealData.calories,
         protein: mealData.protein,
-        carbs: mealData.carbs,
+        carbs: totalCarbs, // Use computed total from Nutrition Schema v1.1
         fat: mealData.fat,
       });
       
@@ -672,7 +687,9 @@ Create the recipe for: "${description}"`;
       instructions: mealData.instructions,
       calories: mealData.calories || 400,
       protein: mealData.protein || 25,
-      carbs: mealData.carbs || 35,
+      carbs: totalCarbs, // Total for backward compatibility
+      starchyCarbs, // Nutrition Schema v1.1
+      fibrousCarbs, // Nutrition Schema v1.1
       fat: mealData.fat || 15,
       cookingTime: mealData.cookingTime || '25 minutes',
       difficulty: mealData.difficulty || 'Easy',
@@ -747,6 +764,7 @@ export async function generateSnackFromCravingUnified(
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
+    // Nutrition Schema v1.1: Request starchyCarbs and fibrousCarbs separately
     let basePrompt = `You are a nutrition-focused chef specializing in healthy snack alternatives.
 
 TASK: Transform this craving into a HEALTHY snack: "${cravingDescription}"
@@ -765,8 +783,12 @@ REQUIREMENTS:
 - Create a satisfying snack that addresses their craving
 - Include realistic ingredients with precise quantities
 - Provide clear preparation instructions (even if simple)
-- Include accurate nutritional estimates
+- Include accurate nutritional estimates with SEPARATE carb types
 - Make it quick and easy to prepare (under 10 minutes)
+
+CARBOHYDRATE BREAKDOWN (CRITICAL):
+- starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
+- fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
 
 FORMAT: Return as JSON object:
 {
@@ -778,7 +800,8 @@ FORMAT: Return as JSON object:
   "instructions": "Clear step-by-step preparation instructions as a single paragraph with numbered steps. Even simple snacks need instructions.",
   "calories": number (realistic 100-300),
   "protein": number (grams),
-  "carbs": number (grams),
+  "starchyCarbs": number (grams from starches: crackers, oats, bread, granola),
+  "fibrousCarbs": number (grams from vegetables, fruits, berries),
   "fat": number (grams),
   "cookingTime": "X minutes",
   "difficulty": "Easy"
@@ -816,6 +839,11 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     
     const snackData = JSON.parse(content);
     
+    // Nutrition Schema v1.1: Extract starchy/fibrous carbs from AI response BEFORE image generation
+    const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
+    const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
+    const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
+    
     // Generate DALL-E image for the snack
     let imageUrl = getFallbackImage('snack');
     try {
@@ -827,7 +855,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
         ingredients: snackData.ingredients?.map((ing: any) => ing.name) || [],
         calories: snackData.calories,
         protein: snackData.protein,
-        carbs: snackData.carbs,
+        carbs: snackTotalCarbs, // Use computed total from Nutrition Schema v1.1
         fat: snackData.fat,
       });
       
@@ -851,7 +879,9 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       instructions: snackData.instructions,
       calories: snackData.calories || 150,
       protein: snackData.protein || 8,
-      carbs: snackData.carbs || 15,
+      carbs: snackTotalCarbs, // Total for backward compatibility
+      starchyCarbs: snackStarchyCarbs, // Nutrition Schema v1.1
+      fibrousCarbs: snackFibrousCarbs, // Nutrition Schema v1.1
       fat: snackData.fat || 6,
       cookingTime: snackData.cookingTime || '5 minutes',
       difficulty: 'Easy',
