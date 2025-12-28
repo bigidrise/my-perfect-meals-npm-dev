@@ -69,7 +69,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
+import { getCurrentWeekStartISOInTZ } from "@/../../shared/schema/weeklyBoard";
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -174,8 +174,9 @@ export default function WeeklyMealBoard() {
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
+  // FIX: Use lazy initializer with timezone-aware runtime helper to ensure current week
   const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(getMondayISO());
+    React.useState<string>(() => getCurrentWeekStartISOInTZ(todayISOInTZ("America/Chicago")));
   const {
     board: hookBoard,
     loading: hookLoading,
