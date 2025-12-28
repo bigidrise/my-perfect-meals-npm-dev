@@ -26,3 +26,19 @@ The application is built as a monorepo using React + Vite (TypeScript) for the f
 - **SendGrid**: Optional for email services (requires `SENDGRID_API_KEY`).
 - **DALL-E 3**: Integrated via OpenAI for generating meal images.
 - **Amazon S3**: For permanent storage of generated meal images.
+
+## Meal Visual Alignment System v1 — Feature-Specific Behavior (LOCKED)
+
+| Feature | Image System | Notes |
+|---------|--------------|-------|
+| **Create With Chef** | ✅ Meal Visual Alignment v1 | Full `ensureImage()` → `generateImage()` flow |
+| **Snack Creator** | ✅ Meal Visual Alignment v1 | Full `ensureImage()` → `generateImage()` flow |
+| **Fridge Rescue** | ✅ Meal Visual Alignment v1 | Full `ensureImage()` → `generateImage()` flow |
+| **AI Premades** | ✅ When `useFallbackOnly=false` | Static placeholder when `useFallbackOnly=true` |
+| **Craving Creator** | ⚠️ Static fallbacks | AI branch does NOT call `ensureImage()` — intentional |
+| **Restaurant Guide** | ✅ Internal AI generation | Uses `generateImage()`, NOT external providers |
+| **Find Your Meals** | ✅ Internal AI generation | Uses `generateImage()`, NOT external providers |
+
+**Craving Creator Note**: Intentionally returns static fallback images for AI-generated meals. This prevents cache explosion and maintains visual consistency. May be revisited in a future visual upgrade phase.
+
+**Restaurant Guide / Find Meals Note**: Rely on internal AI-based image generation via the shared Meal Visual Alignment System. No Google/Yelp/external image ingestion exists.
