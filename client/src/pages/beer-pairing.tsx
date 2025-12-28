@@ -473,6 +473,7 @@ export default function BeerPairingMode() {
           onClose={quickTour.closeTour}
           title="How to Use Beer Pairing"
           steps={BEER_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </div>
     </div>

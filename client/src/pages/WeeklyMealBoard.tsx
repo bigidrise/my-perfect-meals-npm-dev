@@ -1907,6 +1907,7 @@ export default function WeeklyMealBoard() {
         onClose={quickTour.closeTour}
         title="How to Build Your Week"
         steps={WEEKLY_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

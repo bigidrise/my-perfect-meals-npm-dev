@@ -637,6 +637,7 @@ export default function DiabeticHub() {
           onClose={quickTour.closeTour}
           title="How to Use Diabetic Hub"
           steps={DIABETIC_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </div>
     </>

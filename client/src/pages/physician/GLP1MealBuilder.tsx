@@ -2126,6 +2126,7 @@ export default function GLP1MealBuilder() {
         onClose={quickTour.closeTour}
         title="GLP-1 Meal Builder Guide"
         steps={GLP1_BUILDER_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

@@ -1009,6 +1009,7 @@ export default function MacroCounter() {
         onClose={quickTour.closeTour}
         steps={macroCalculatorTourSteps}
         title="How to Use the Macro Calculator"
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </>
   );

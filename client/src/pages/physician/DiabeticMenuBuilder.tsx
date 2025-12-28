@@ -2278,6 +2278,7 @@ export default function DiabeticMenuBuilder() {
         onClose={quickTour.closeTour}
         title="Diabetic Meal Builder Guide"
         steps={DIABETIC_BUILDER_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

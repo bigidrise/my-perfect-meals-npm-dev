@@ -15,10 +15,18 @@ interface QuickTourModalProps {
   onClose: (dontShowAgain: boolean) => void;
   title: string;
   steps: TourStep[];
+  onDisableAllTours?: () => void;
 }
 
-export function QuickTourModal({ isOpen, onClose, title, steps }: QuickTourModalProps) {
+export function QuickTourModal({ isOpen, onClose, title, steps, onDisableAllTours }: QuickTourModalProps) {
   const [dontShowAgain, setDontShowAgain] = useState(true);
+
+  const handleDisableAll = () => {
+    if (onDisableAllTours) {
+      onDisableAllTours();
+    }
+    onClose(true);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(dontShowAgain); }}>
@@ -46,22 +54,33 @@ export function QuickTourModal({ isOpen, onClose, title, steps }: QuickTourModal
           ))}
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-white/10">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox
-              checked={dontShowAgain}
-              onCheckedChange={(checked) => setDontShowAgain(checked as boolean)}
-              className="border-white/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-            />
-            <span className="text-xs text-white/60">Don't show again</span>
-          </label>
+        <div className="flex flex-col gap-3 pt-2 border-t border-white/10">
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={dontShowAgain}
+                onCheckedChange={(checked) => setDontShowAgain(checked as boolean)}
+                className="border-white/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+              />
+              <span className="text-xs text-white/60">Don't show again</span>
+            </label>
+            
+            <Button
+              onClick={() => onClose(dontShowAgain)}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-xl"
+            >
+              Got it!
+            </Button>
+          </div>
           
-          <Button
-            onClick={() => onClose(dontShowAgain)}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-xl"
-          >
-            Got it!
-          </Button>
+          {onDisableAllTours && (
+            <button
+              onClick={handleDisableAll}
+              className="text-xs text-white/40 hover:text-white/60 underline text-center transition-colors"
+            >
+              Turn off all tour guides
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

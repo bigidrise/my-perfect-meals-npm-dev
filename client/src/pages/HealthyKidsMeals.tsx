@@ -152,6 +152,7 @@ export default function HealthyKidsMeals() {
         onClose={quickTour.closeTour}
         title="How to Use Healthy Kids Meals"
         steps={KIDS_HUB_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

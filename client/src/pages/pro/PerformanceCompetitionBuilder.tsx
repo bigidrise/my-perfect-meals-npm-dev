@@ -2209,6 +2209,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         onClose={quickTour.closeTour}
         title="Performance & Competition Builder Guide"
         steps={PERFORMANCE_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

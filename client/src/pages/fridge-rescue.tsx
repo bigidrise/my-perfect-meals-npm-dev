@@ -932,6 +932,7 @@ const FridgeRescuePage = () => {
           onClose={quickTour.closeTour}
           title="How to Use Fridge Rescue"
           steps={FRIDGE_RESCUE_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </motion.div>
     </PhaseGate>

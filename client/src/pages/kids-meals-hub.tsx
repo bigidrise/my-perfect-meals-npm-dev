@@ -357,6 +357,7 @@ export default function KidsMealsHub() {
           onClose={quickTour.closeTour}
           title="How to Use Kids Meals"
           steps={KIDS_MEALS_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </div>
     </div>

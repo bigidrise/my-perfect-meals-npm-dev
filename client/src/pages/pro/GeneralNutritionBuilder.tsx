@@ -1843,6 +1843,7 @@ export default function WeeklyMealBoard() {
         onClose={quickTour.closeTour}
         title="General Nutrition Builder"
         steps={GENERAL_NUTRITION_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
       </div>
     </motion.div>

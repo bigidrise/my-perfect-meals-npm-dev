@@ -100,6 +100,28 @@ This prevents the "pull down and stays down" iOS bug.
 - **DO NOT** use `100vh` - always use `100dvh` for dynamic viewport height
 - **html/body**: Must have `overflow: hidden` and `overscroll-behavior: none` (defined at bottom of index.css)
 
+## Guided Tour System (Dec 2024)
+The Guided Tour system provides page-specific tips via QuickTourModal.
+
+**Key Components:**
+- `useQuickTour.ts` - Hook managing tour state and global disable
+- `QuickTourModal.tsx` - Modal displaying tour steps
+
+**Behavior:**
+1. **Per-page tracking** - Each page uses `useQuickTour("page-key")` with unique storage keys
+2. **Auto-open** - Opens automatically if page hasn't been "seen" (unless globally disabled)
+3. **Don't show again** - Marks page as seen in localStorage (`quick-tour::<pageKey>`)
+4. **Global disable** - "Turn off all tour guides" sets `quick-tour-global-disabled` in localStorage
+5. **Manual open** - Users can still open tours via QuickTourButton (bypasses global disable)
+
+**Storage Keys:**
+- `quick-tour::<pageKey>` - Per-page "seen" status
+- `quick-tour-global-disabled` - Global disable flag ("true" = disabled)
+
+**Architecture vs Copilot:**
+- Guided Tour = lightweight modal with page tips, per-page tracking
+- Copilot = AI assistant with audio, global autoplay toggle, separate storage
+
 ## Copilot Re-Engagement Architecture (Dec 2024)
 The Copilot system separates autoplay from manual invocation:
 

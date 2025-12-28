@@ -2107,6 +2107,7 @@ export default function AntiInflammatoryMenuBuilder() {
         onClose={quickTour.closeTour}
         title="Anti-Inflammatory Builder Guide"
         steps={ANTI_INFLAMMATORY_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

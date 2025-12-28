@@ -1351,6 +1351,7 @@ export default function MyBiometrics() {
         onClose={quickTour.closeTour}
         steps={biometricsTourSteps}
         title="How to Use Biometrics"
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

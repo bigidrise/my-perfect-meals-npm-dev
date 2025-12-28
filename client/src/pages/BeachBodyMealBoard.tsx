@@ -2232,6 +2232,7 @@ export default function BeachBodyMealBoard() {
           onClose={quickTour.closeTour}
           title="How to Build Your Beach Body Meals"
           steps={BEACHBODY_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
 
         {/* Locked Day Dialog */}

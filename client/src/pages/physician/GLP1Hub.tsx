@@ -420,6 +420,7 @@ export default function GLP1Hub() {
         onClose={quickTour.closeTour}
         title="How to Use GLP-1 Hub"
         steps={GLP1_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </div>
   );
