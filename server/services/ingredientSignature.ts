@@ -6,7 +6,16 @@
  * 1. Look up previously generated meals by ingredient combo
  * 2. Match to pre-computed template meals
  * 3. Cache AI-generated meals for reuse
+ * 
+ * CACHE VERSIONING:
+ * Bump CACHE_VERSION when making changes to:
+ * - AI prompts or response parsing
+ * - Image generation logic (Meal Visual Alignment System)
+ * - Nutrition schema changes
+ * - Any change that should invalidate existing cached meals
  */
+
+export const CACHE_VERSION = 'v2-canva';
 
 export interface IngredientSignatureInput {
   ingredients: string[];
@@ -32,6 +41,7 @@ function normalizeIngredient(name: string): string {
 /**
  * Create a deterministic signature from ingredients
  * Sorted alphabetically so order doesn't matter
+ * Includes CACHE_VERSION to invalidate old cached meals when system changes
  */
 export function createIngredientSignature(input: IngredientSignatureInput): string {
   const { ingredients, mealType, cookingMethods } = input;
@@ -51,8 +61,8 @@ export function createIngredientSignature(input: IngredientSignatureInput): stri
     : '';
   
   const signature = methodPart 
-    ? `${mealType}|${ingredientPart}|${methodPart}`
-    : `${mealType}|${ingredientPart}`;
+    ? `${CACHE_VERSION}|${mealType}|${ingredientPart}|${methodPart}`
+    : `${CACHE_VERSION}|${mealType}|${ingredientPart}`;
   
   return signature;
 }
