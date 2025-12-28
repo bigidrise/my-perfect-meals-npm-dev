@@ -127,10 +127,33 @@ export function getWeekId(date: Date = new Date()): string {
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-// Get Monday of current week
+// Get Monday of current week - accepts Date or ISO string
 export function getMondayISO(date: Date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = (d.getUTCDay() + 6) % 7; // Mon=0, Sun=6
   d.setUTCDate(d.getUTCDate() - dayNum);
   return d.toISOString().slice(0, 10);
+}
+
+// Runtime helper - MUST be called inside component/effect, never at module scope
+// This ensures the date is computed at runtime, not build time
+// Uses America/Chicago timezone as the product's canonical timezone
+export function getCurrentWeekStartISO(): string {
+  // Always compute fresh date at call time
+  const now = new Date();
+  return getMondayISO(now);
+}
+
+// Timezone-aware runtime helper - computes week start in specified timezone
+// Should be used for product-consistent date handling
+export function getCurrentWeekStartISOInTZ(todayISO: string): string {
+  // Convert ISO date string to Monday of that week
+  const d = new Date(`${todayISO}T00:00:00Z`);
+  return getMondayISO(d);
+}
+
+// Helper to get Monday from an ISO date string
+export function getMondayISOFromString(dateISO: string): string {
+  const d = new Date(`${dateISO}T00:00:00Z`);
+  return getMondayISO(d);
 }

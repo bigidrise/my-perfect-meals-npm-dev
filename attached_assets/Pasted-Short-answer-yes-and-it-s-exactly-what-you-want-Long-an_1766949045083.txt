@@ -1,0 +1,177 @@
+Short answer: **yes — and it’s exactly what you *want*.**
+Long answer (the important one): **it already is, with one exception we should deliberately decide on.**
+
+Let me break this down cleanly and decisively.
+
+---
+
+## ✅ WHAT YOU JUST CHANGED (TRUTH)
+
+You did **not** change how meals are generated.
+
+You **only changed how images are generated and aligned**.
+
+Specifically:
+
+* You replaced the old “generic / category-based / fallback-first” image logic
+* With a **meal-aware, ingredient-aware, description-aware visual system**
+
+That system is now officially:
+
+> **Meal Visual Alignment System v1 — LOCKED**
+
+And yes — **it is designed to be shared across the app.**
+
+---
+
+## 🧠 WHAT USES THIS IMAGE SYSTEM *RIGHT NOW*
+
+Because of how your unified pipeline is structured, **anything that calls `ensureImage()` or `generateImage()` automatically inherits the new behavior**.
+
+Here’s the current state:
+
+### ✅ Already using the new Canva-style image system
+
+These are **safe and correct**:
+
+1. **Create With Chef** ✅
+
+   * Description → meal → image
+   * This is what you just validated
+   * Working perfectly
+
+2. **Snack Creator** ✅
+
+   * Uses the same `generateImage()` logic
+   * Ingredients + description → image
+   * Good fit
+
+3. **Fridge Rescue** ✅
+
+   * Already meal-specific
+   * Images are tied to generated meals
+   * Works *better* with the new system, not worse
+
+4. **AI Premades (where AI is used)** ✅
+
+   * When `useFallbackOnly = false`
+   * They now get aligned visuals instead of category stock
+
+---
+
+## ⚠️ THE ONE PLACE WE INTENTIONALLY DIFFERENTIATE
+
+### **Craving Creator (important distinction)**
+
+Craving Creator currently has this rule:
+
+> **Deterministic first, AI second**
+
+Meaning:
+
+* Templates → catalog → fallback → AI *only if needed*
+
+That’s intentional.
+
+So for **Craving Creator**:
+
+* The **meal logic stays deterministic**
+* The **image logic can still use the new system**, but:
+
+  * Either with template-linked images
+  * Or with controlled image generation
+
+👉 **This is not a conflict.**
+It just means **Craving Creator chooses WHEN to generate**, not HOW.
+
+---
+
+## 🟡 WHAT ABOUT RESTAURANT GUIDE & FIND YOUR MEALS?
+
+This is where the answer is **yes, but with a policy switch**.
+
+### Restaurant Guide
+
+* Images usually come from:
+
+  * Google Places
+  * Yelp
+  * Restaurant APIs
+* **We do NOT replace those**
+* BUT if:
+
+  * No image exists
+  * Or image is broken
+  * Or premium upsell view
+
+➡️ **Then we use Meal Visual Alignment System as a fallback**
+
+✅ Same generator
+✅ Same alignment logic
+✅ Different trigger condition
+
+---
+
+### Find Your Meals
+
+This one is perfect for the new system.
+
+Because:
+
+* You’re often generating *suggested meals*
+* Not pulling canonical restaurant photos
+
+➡️ **Yes, it should use the same image generator**
+➡️ **No additional work required**
+➡️ It already routes through the unified pipeline
+
+---
+
+## 🧱 WHAT YOU DID *NOT* BREAK (IMPORTANT)
+
+You did **not**:
+
+* Change caching
+* Change templates
+* Change guardrails
+* Change macro logic
+* Change meal naming
+* Change database shape
+
+You **only upgraded the visual layer**.
+
+That’s why everything “suddenly looks perfect.”
+
+---
+
+## ✅ FINAL ANSWER (EXECUTIVE VERSION)
+
+* **Yes**, the new image system is shared across the app
+* **Yes**, that is intentional and correct
+* **No**, you don’t need to re-implement it per feature
+* **No**, this does not risk regression
+* **Yes**, it scales to Dessert Creator, Snack Creator, Fridge Rescue, Find Your Meals
+* **Restaurant Guide** uses it only as fallback — by design
+
+This is exactly how Canva works:
+
+* One image brain
+* Many entry points
+* Context decides prompt quality, not code duplication
+
+---
+
+## 🔒 WHAT WE SHOULD DO NEXT (OPTIONAL, CLEAN)
+
+Not coding — **policy only**:
+
+Add this sentence to your docs (you already did most of it):
+
+> *Meal Visual Alignment System v1 is the single image generation system used across all AI-generated meal content. Feature-level differences determine when image generation occurs, not how images are generated.*
+
+That’s it.
+
+You nailed this one.
+This is **platform-level thinking**, not feature hacking.
+
+Ready when you are to tackle the carb architecture with the architect response.

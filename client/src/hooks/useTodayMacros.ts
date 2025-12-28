@@ -7,6 +7,8 @@ type MacroTotals = {
   protein: number;
   carbs: number;
   fat: number;
+  starchyCarbs: number;
+  fibrousCarbs: number;
   foodTotals?: {
     kcal: number;
     protein: number;
@@ -27,7 +29,7 @@ const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
 export function useTodayMacros(): MacroTotals {
   const queryClient = useQueryClient();
 
-  const { data: macros = { kcal: 0, protein: 0, carbs: 0, fat: 0, foodTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 }, alcoholTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 } } } = useQuery(
+  const { data: macros = { kcal: 0, protein: 0, carbs: 0, fat: 0, starchyCarbs: 0, fibrousCarbs: 0, foodTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 }, alcoholTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 } } } = useQuery(
     {
       queryKey: ["/api/users", DEV_USER_ID, "macros", "today"],
       queryFn: async () => {
@@ -37,7 +39,7 @@ export function useTodayMacros(): MacroTotals {
         const response = await fetch(url);
         if (!response.ok) {
           console.warn("Failed to fetch macros:", response.status);
-          return { kcal: 0, protein: 0, carbs: 0, fat: 0, foodTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 }, alcoholTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 } };
+          return { kcal: 0, protein: 0, carbs: 0, fat: 0, starchyCarbs: 0, fibrousCarbs: 0, foodTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 }, alcoholTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 } };
         }
         const data = await response.json();
         
@@ -55,6 +57,14 @@ export function useTodayMacros(): MacroTotals {
             carbs: Math.max(0, (data.carbs || 0) - data.alcoholTotals.carbs),
             fat: Math.max(0, (data.fat || 0) - data.alcoholTotals.fat)
           };
+        }
+        
+        // Ensure starchy/fibrous carbs exist
+        if (typeof data.starchyCarbs !== 'number') {
+          data.starchyCarbs = 0;
+        }
+        if (typeof data.fibrousCarbs !== 'number') {
+          data.fibrousCarbs = 0;
         }
         
         return data;

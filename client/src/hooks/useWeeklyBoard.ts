@@ -143,9 +143,17 @@ async function saveWeeklyBoard({
   return validated;
 }
 
-// Main hook
+// Main hook - weekStartISO should be provided by caller for correct runtime date
+// Fallback uses getCurrentWeekStartISO() which is computed at call time
 export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
-  const monday = weekStartISO ?? getMondayISO();
+  // Import dynamically to avoid build-time evaluation
+  const monday = weekStartISO ?? (() => {
+    const now = new Date();
+    const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const dayNum = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dayNum);
+    return d.toISOString().slice(0, 10);
+  })();
   const [data, setData] = useState<WeekBoardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

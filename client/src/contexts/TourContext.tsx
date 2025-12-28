@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-const DISABLE_ALL_TOURS = true;
-
 interface TourStep {
   id: string;
   target: string;
@@ -29,8 +27,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [steps, setSteps] = useState<TourStep[]>([]);
 
   useEffect(() => {
-    if (DISABLE_ALL_TOURS) return;
-    
     const coachMode = localStorage.getItem("coachMode");
     const tourCompleted = localStorage.getItem("tourCompleted");
     
@@ -40,7 +36,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const startTour = (newSteps: TourStep[]) => {
-    if (DISABLE_ALL_TOURS) return;
     setSteps(newSteps);
     setCurrentStep(0);
     setIsActive(true);
