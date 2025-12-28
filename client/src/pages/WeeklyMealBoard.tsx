@@ -1981,53 +1981,69 @@ export default function WeeklyMealBoard() {
             </>
           )}
 
-          {/* Quick Add Protein/Carbs - Above Daily Totals */}
+          {/* Quick Add - Daily Targets Reference Card */}
           <div className="col-span-full">
             {(() => {
               const resolved = getResolvedTargets(user?.id);
-              const proteinDeficit = Math.max(
-                0,
-                (resolved.protein_g || 0) - Math.round(totals.protein),
-              );
-              const carbsDeficit = Math.max(
-                0,
-                (resolved.carbs_g || 0) - Math.round(totals.carbs),
-              );
+              const hasTargets = (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
+              
+              if (!hasTargets) return null;
 
-              if (proteinDeficit === 0 && carbsDeficit === 0) return null;
+              const hasStarchyFibrous = (resolved.starchyCarbs_g ?? 0) > 0 || (resolved.fibrousCarbs_g ?? 0) > 0;
 
               return (
                 <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-sm text-white/80">
-                      {proteinDeficit > 0 && (
-                        <span>
-                          Need{" "}
-                          <strong className="text-orange-400">
-                            {proteinDeficit}g protein
-                          </strong>
-                        </span>
-                      )}
-                      {proteinDeficit > 0 && carbsDeficit > 0 && (
-                        <span> · </span>
-                      )}
-                      {carbsDeficit > 0 && (
-                        <span>
-                          Need{" "}
-                          <strong className="text-orange-400">
-                            {carbsDeficit}g carbs
-                          </strong>
-                        </span>
-                      )}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-white/60 uppercase tracking-wide">Daily Targets</span>
+                      <Button
+                        onClick={() => setAdditionalMacrosOpen(true)}
+                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                        data-testid="button-quick-add-macros"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Quick Add
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => setAdditionalMacrosOpen(true)}
-                      className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
-                      data-testid="button-quick-add-macros"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Quick Add
-                    </Button>
+                    {hasStarchyFibrous ? (
+                      <div className="grid grid-cols-5 gap-2">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
+                          <div className="text-xs text-white/60">Protein</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
+                          <div className="text-xs text-white/60">Total Carbs</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.starchyCarbs_g ?? 0)}g</div>
+                          <div className="text-xs text-white/60">Starchy</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.fibrousCarbs_g ?? 0)}g</div>
+                          <div className="text-xs text-white/60">Fibrous</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
+                          <div className="text-xs text-white/60">Fat</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
+                          <div className="text-xs text-white/60">Protein</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
+                          <div className="text-xs text-white/60">Carbs</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
+                          <div className="text-xs text-white/60">Fat</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
