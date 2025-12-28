@@ -30,26 +30,40 @@ router.post("/macros/log", async (req, res) => {
       fat,
       source = "manual",
       mealId,
+      starchyCarbs,
+      fibrousCarbs,
+      nutrition,
     } = req.body ?? {};
 
+    // Extract values from nutrition object if present (new format)
+    const proteinVal = nutrition?.protein_g ?? protein ?? 0;
+    const carbsVal = nutrition?.carbs_g ?? carbs ?? 0;
+    const fatVal = nutrition?.fat_g ?? fat ?? 0;
+    const kcalVal = nutrition?.calories ?? kcal;
+    
+    // Starchy/fibrous carbs - use explicit values if provided
+    const starchyCarbsVal = Number(starchyCarbs) || 0;
+    const fibrousCarbsVal = Number(fibrousCarbs) || 0;
+
     // DEBUG: Log exactly what we're writing
-    console.log("[MACROS/LOG] device=%s userId=%s protein=%s carbs=%s fat=%s loggedAt=%s",
-      deviceId, userId, protein, carbs, fat, loggedAt);
+    console.log("[MACROS/LOG] device=%s userId=%s protein=%s carbs=%s fat=%s starchy=%s fibrous=%s loggedAt=%s",
+      deviceId, userId, proteinVal, carbsVal, fatVal, starchyCarbsVal, fibrousCarbsVal, loggedAt);
 
     const when = parseAt(loggedAt);
-    const resolvedKcal = typeof kcal === "number" && kcal > 0 ? kcal : Math.round(kcalFrom(Number(protein), Number(carbs), Number(fat)));
+    const resolvedKcal = typeof kcalVal === "number" && kcalVal > 0 ? kcalVal : Math.round(kcalFrom(Number(proteinVal), Number(carbsVal), Number(fatVal)));
 
     const insertData = {
       userId,
       at: when,
       source: source || "manual",
-      mealType: mealType || null,
       kcal: resolvedKcal.toString(),
-      protein: (Number(protein) || 0).toString(),
-      carbs: (Number(carbs) || 0).toString(),
-      fat: (Number(fat) || 0).toString(),
+      protein: (Number(proteinVal) || 0).toString(),
+      carbs: (Number(carbsVal) || 0).toString(),
+      fat: (Number(fatVal) || 0).toString(),
       fiber: "0",
       alcohol: "0",
+      starchyCarbs: starchyCarbsVal.toString(),
+      fibrousCarbs: fibrousCarbsVal.toString(),
     };
 
     const [row] = await db
