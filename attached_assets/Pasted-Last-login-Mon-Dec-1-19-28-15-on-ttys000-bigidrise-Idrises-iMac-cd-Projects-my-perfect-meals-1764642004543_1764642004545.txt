@@ -1,0 +1,73 @@
+Last login: Mon Dec  1 19:28:15 on ttys000
+bigidrise@Idrises-iMac ~ % cd ~/Projects/my-perfect-meals-clean-ai
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % npm install
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'rest-express@1.0.0',
+npm warn EBADENGINE   required: { node: '20.19.3' },
+npm warn EBADENGINE   current: { node: 'v20.19.6', npm: '10.8.2' }
+npm warn EBADENGINE }
+
+added 2 packages in 1s
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % npm run build
+
+> rest-express@1.0.0 prebuild
+> npm run generate:version
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.02.d71fff3
+   Path: /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/public/version.json
+   Built at: 2025-12-02T02:19:19.525Z
+
+> rest-express@1.0.0 build
+> npm run generate:version && npm run build:client && npm run build:server
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.02.d71fff3
+   Path: /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/public/version.json
+   Built at: 2025-12-02T02:19:19.825Z
+
+> rest-express@1.0.0 build:client
+> cd client && vite build
+
+vite v5.4.21 building for production...
+✓ 3374 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/lib/api.ts is dynamically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/components/MealCard.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/pro/GeneralNutritionBuilder.tsx but also statically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/hooks/useDiabetes.ts, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/hooks/useGLP1.ts, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/hooks/useGlp1Shots.ts, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/lib/boardApi.ts, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/ABTestingDemo.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/data/templateSets.ts is dynamically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/lib/api.ts but also statically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/components/pickers/MealPickerDrawer.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/lib/dailyLimits.ts is dynamically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/lib/macroResolver.ts, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/MacroCounter.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/lib/macroResolver.ts is dynamically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/my-biometrics.tsx, /Users/bigidrise/Projects/my-perfect-meals-clean-ai/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+dist/index.html                                 2.16 kB │ gzip:   0.94 kB
+dist/assets/app-entry-0y-02tuR.css            217.02 kB │ gzip:  31.58 kB
+dist/assets/replacementContext-BQFSAKWh.js      0.19 kB │ gzip:   0.16 kB
+dist/assets/useWeeklyPlan-C3y9hPGd.js           0.52 kB │ gzip:   0.35 kB
+dist/assets/index-21dPDdve.js                   1.99 kB │ gzip:   1.03 kB
+dist/assets/app-entry-DGGaEVlx.js           2,735.77 kB │ gzip: 681.95 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.22s
+
+> rest-express@1.0.0 build:server
+> esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap
+
+
+  dist/prod.js      946.0kb
+  dist/prod.js.map    1.7mb
+
+⚡ Done in 42ms
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % 

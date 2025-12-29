@@ -1,0 +1,243 @@
+Got it, Coach.
+I’ve locked in **EVERYTHING** you just said about the Diabetic Hub — and like the others, I’m converting it into the full Copilot intelligence package:
+
+### ✅ Walkthrough tags
+
+### ✅ Knowledge Engine entry
+
+### ✅ Walkthrough script
+
+### ✅ Voice intents
+
+### (This will let Chef Copilot *teach*, *explain*, *guide*, and *respond naturally* to everything in the Diabetic Hub.)
+
+Let’s build it clean and tight.
+
+---
+
+# 🔥 **DIABETIC HUB — FULL COPILOT INTELLIGENCE SYSTEM**
+
+---
+
+# ✅ **1. DATA-WT TAGS (UI Targets)**
+
+These are the interactive elements Copilot needs to point at:
+
+### Clinical Guardrails
+
+```
+dia-preset-selector
+dia-fasting-range-input
+dia-postmeal-range-input
+dia-carb-limit-input
+dia-fiber-min-input
+dia-gi-cap-input
+dia-save-guardrails-button
+```
+
+### Blood Sugar Tracker
+
+```
+dia-bg-input
+dia-bg-type-selector   // fasting, pre-meal, post-meal
+dia-bg-log-button
+dia-bg-trend-graph
+```
+
+### Navigation
+
+```
+dia-open-menu-builder-button
+```
+
+These tags let the walkthrough system highlight exactly where things are.
+
+---
+
+# 🎯 **2. KNOWLEDGE ENGINE ENTRY — `diabetic-hub`**
+
+Drop this into your knowledge registry:
+
+```ts
+"diabetic-hub": {
+  id: "diabetic-hub",
+  title: "Diabetic Hub",
+  description:
+    "Set doctor-approved guardrails and track your blood sugar so AI meals match your clinical needs.",
+  howTo: [
+    "Start by choosing a clinical preset such as Strict Control, Cardiac Diet, or Liberal for elderly users.",
+    "Set your fasting glucose target range as instructed by your doctor.",
+    "Set your post-meal glucose target for after eating.",
+    "Enter your daily carbohydrate limit to help guide meal planning.",
+    "Set your minimum daily fiber goal to help with blood sugar stability.",
+    "Choose a glycemic index cap to keep meals within safe ranges.",
+    "Tap Save Guardrails to activate clinical guardrails for meal creation.",
+    "Use the Blood Sugar Tracker to log glucose readings.",
+    "Choose whether the reading was fasting, pre-meal, or post-meal.",
+    "Tap Log Reading to save and update your trends.",
+    "View your 7-day glucose trend graph to monitor stability and progress.",
+    "Tap the Diabetic Menu Builder to go create meals that automatically follow your glucose guardrails.",
+  ],
+  tips: [
+    "Use guardrails exactly as your physician directs.",
+    "Log readings consistently — AI becomes more accurate as your data grows.",
+    "Review your 7-day trend graph weekly for better diabetes awareness.",
+  ],
+  relatedCommands: [
+    "diabetes.setPreset",
+    "diabetes.saveGuardrails",
+    "diabetes.logReading",
+    "diabetes.goToMenuBuilder",
+  ],
+}
+```
+
+---
+
+# 🧭 **3. WALKTHROUGH SCRIPT — Step-by-Step Spotlight**
+
+```ts
+export const diabeticHubWalkthrough = [
+  { target: "dia-preset-selector", text: "Choose a clinical preset like Strict Control or Cardiac Diet." },
+
+  { target: "dia-fasting-range-input", text: "Set your fasting glucose range exactly as your doctor recommends." },
+  { target: "dia-postmeal-range-input", text: "Set your post-meal glucose range." },
+  { target: "dia-carb-limit-input", text: "Enter your daily carbohydrate limit." },
+  { target: "dia-fiber-min-input", text: "Set your minimum daily fiber goal." },
+  { target: "dia-gi-cap-input", text: "Set a glycemic index cap for safe meal creation." },
+
+  { target: "dia-save-guardrails-button", text: "Tap to save all clinical guardrails." },
+
+  { target: "dia-bg-input", text: "Enter your blood sugar reading here." },
+  { target: "dia-bg-type-selector", text: "Choose fasting, pre-meal, or post-meal." },
+  { target: "dia-bg-log-button", text: "Tap to log your blood sugar." },
+
+  { target: "dia-bg-trend-graph", text: "View your 7-day glucose trend here." },
+
+  { target: "dia-open-menu-builder-button", text: "Tap to open the Diabetic Menu Builder for blood-sugar-safe meals." },
+];
+```
+
+---
+
+# 🎤 **4. VOICE INTENTS FOR DIABETIC HUB**
+
+Add these into `handleVoiceQuery()`.
+
+### **Start Walkthrough**
+
+```ts
+if (
+  lower.includes("teach me diabetic hub") ||
+  lower.includes("how do i use diabetic hub") ||
+  lower.includes("show me diabetic hub")
+) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["walkthrough.start.diabetic-hub"]();
+  return;
+}
+```
+
+### **Explain**
+
+```ts
+if (
+  lower.includes("what is the diabetic hub") ||
+  lower.includes("explain diabetic hub") ||
+  lower.includes("what are diabetic guardrails")
+) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["explain.diabetic-hub"]();
+  return;
+}
+```
+
+---
+
+### **Clinical presets**
+
+```ts
+if (lower.includes("strict control")) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["diabetes.setPreset"]({ preset: "strict" });
+  return;
+}
+
+if (lower.includes("cardiac diet")) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["diabetes.setPreset"]({ preset: "cardiac" });
+  return;
+}
+
+if (lower.includes("liberal")) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["diabetes.setPreset"]({ preset: "elderly" });
+  return;
+}
+```
+
+---
+
+### **Save guardrails**
+
+```ts
+if (lower.includes("save guardrails") || lower.includes("update guardrails")) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["diabetes.saveGuardrails"]();
+  return;
+}
+```
+
+---
+
+### **Log blood sugar**
+
+```ts
+if (
+  lower.includes("log my blood sugar") ||
+  lower.includes("add my glucose")
+) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["diabetes.logReading"]({ text: transcript });
+  return;
+}
+```
+
+---
+
+### **Go to menu builder**
+
+```ts
+if (
+  lower.includes("diabetic menu builder") ||
+  lower.includes("open diabetic builder")
+) {
+  lastActiveFeature = "diabetic-hub";
+  await Commands["diabetes.goToMenuBuilder"]();
+  return;
+}
+```
+
+---
+
+# ⭐ DONE — Diabetic Hub is now fully Copilot-aware.
+
+Chef Copilot can now:
+
+* Walk users through the clinical guardrails
+* Explain every setting
+* Help log blood sugar
+* React to natural language
+* Speak through ElevenLabs
+* Navigate to the Diabetic Menu Builder
+* Guide doctors and users using clinical presets
+
+This is EXACTLY the sort of medical-adjacent UX polish Apple reviewers love.
+
+---
+
+# 👉 When you're ready, say:
+
+**“Next is the GLP-1 Hub.”**
+
+And I’ll build that next system perfectly.

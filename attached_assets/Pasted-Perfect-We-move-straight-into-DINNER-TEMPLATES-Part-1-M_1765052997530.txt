@@ -1,0 +1,484 @@
+Perfect.
+We move straight into DINNER TEMPLATES (Part 1: Meals 1–25) — clean, professional, consistent, ready for your hybrid-engine, and structured exactly like the lunch templates you approved.
+
+No fluff. No repeats. No weak meals. All premium, MPM-level quality.
+
+⸻
+
+📁 mealTemplates.catalog.ts
+
+DINNER TEMPLATES (1–25)
+
+Part 1 of 3
+
+// ======================================================================
+// MEAL TEMPLATES CATALOG (DINNER) — PART 1 (1–25)
+// ======================================================================
+
+export const DINNER_TEMPLATES_PART1: MealTemplate[] = [
+
+  // ----------------------------------------------------------
+  // 1–5: Core Bodybuilder / Everyday Dinner Plates
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-core-001",
+    name: "Grilled Chicken Breast + Sweet Potatoes + Broccoli",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 170 },
+      { ingredientId: "sweet_potatoes", grams: 190 },
+      { ingredientId: "broccoli", grams: 110 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "grilled",
+      sweet_potatoes: "baked",
+      broccoli: "steamed"
+    },
+    imageKey: "img_chicken_sweetpotato_broccoli",
+    tags: ["bodybuilder", "everyday"]
+  },
+
+  {
+    id: "dn-core-002",
+    name: "Baked Salmon + Brown Rice + Green Beans",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 170 },
+      { ingredientId: "brown_rice", grams: 170 },
+      { ingredientId: "green_beans", grams: 110 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked",
+      brown_rice: "boiled"
+    },
+    imageKey: "img_salmon_rice_greenbeans",
+    tags: ["heart-healthy"]
+  },
+
+  {
+    id: "dn-core-003",
+    name: "Lean Beef + White Rice + Asparagus",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 170 },
+      { ingredientId: "white_rice", grams: 180 },
+      { ingredientId: "asparagus", grams: 110 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "grilled",
+      white_rice: "boiled"
+    },
+    imageKey: "img_beef_rice_asparagus",
+    tags: ["performance"]
+  },
+
+  {
+    id: "dn-core-004",
+    name: "Shrimp + Jasmine Rice + Spinach",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 160 },
+      { ingredientId: "jasmine_rice", grams: 180 },
+      { ingredientId: "spinach", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_rice_spinach",
+    tags: ["light", "digestible"]
+  },
+
+  {
+    id: "dn-core-005",
+    name: "Turkey Breast + Quinoa + Zucchini",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 170 },
+      { ingredientId: "quinoa", grams: 170 },
+      { ingredientId: "zucchini", grams: 100 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared",
+      quinoa: "boiled"
+    },
+    imageKey: "img_turkey_quinoa_zucchini",
+    tags: ["lean"]
+  },
+
+  // ----------------------------------------------------------
+  // 6–10: Anti-Inflammatory / Heart-Healthy Dinner Plates
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-ai-001",
+    name: "Salmon + Quinoa + Kale",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 170 },
+      { ingredientId: "quinoa", grams: 170 },
+      { ingredientId: "kale", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked"
+    },
+    imageKey: "img_salmon_quinoa_kale",
+    tags: ["anti-inflammatory"]
+  },
+
+  {
+    id: "dn-ai-002",
+    name: "Cod + Sweet Potatoes + Brussels Sprouts",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "cod", grams: 160 },
+      { ingredientId: "sweet_potatoes", grams: 190 },
+      { ingredientId: "brussels_sprouts", grams: 110 }
+    ],
+    defaultCookingMethods: {
+      cod: "baked"
+    },
+    imageKey: "img_cod_sweetpotato_brussels",
+    tags: ["gut-health"]
+  },
+
+  {
+    id: "dn-ai-003",
+    name: "Shrimp + Brown Rice + Mixed Greens",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 160 },
+      { ingredientId: "brown_rice", grams: 170 },
+      { ingredientId: "mixed_greens", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_rice_greens",
+    tags: ["heart-healthy"]
+  },
+
+  {
+    id: "dn-ai-004",
+    name: "Turkey Breast + Barley + Spinach",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 170 },
+      { ingredientId: "barley", grams: 170 },
+      { ingredientId: "spinach", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared"
+    },
+    imageKey: "img_turkey_barley_spinach",
+    tags: ["heart-healthy"]
+  },
+
+  {
+    id: "dn-ai-005",
+    name: "Lean Beef + Quinoa + Tomatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 170 },
+      { ingredientId: "quinoa", grams: 170 },
+      { ingredientId: "tomatoes", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "grilled"
+    },
+    imageKey: "img_beef_quinoa_tomatoes",
+    tags: ["anti-inflammatory"]
+  },
+
+  // ----------------------------------------------------------
+  // 11–15: Cutting / Fat Loss Dinner Meals
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-cut-001",
+    name: "Tilapia + Green Beans + Spinach",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "tilapia", grams: 170 },
+      { ingredientId: "green_beans", grams: 110 },
+      { ingredientId: "spinach", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      tilapia: "pan-seared"
+    },
+    imageKey: "img_tilapia_greenbeans_spinach",
+    tags: ["cutting", "light"]
+  },
+
+  {
+    id: "dn-cut-002",
+    name: "Cod + Asparagus + Mushrooms",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "cod", grams: 160 },
+      { ingredientId: "asparagus", grams: 110 },
+      { ingredientId: "mushrooms", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      cod: "baked"
+    },
+    imageKey: "img_cod_asparagus_mushrooms",
+    tags: ["lean", "shredding"]
+  },
+
+  {
+    id: "dn-cut-003",
+    name: "Turkey Breast + Broccoli + Lettuce",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 160 },
+      { ingredientId: "broccoli", grams: 100 },
+      { ingredientId: "lettuce", grams: 60 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "grilled"
+    },
+    imageKey: "img_turkey_broccoli_lettuce",
+    tags: ["cutting"]
+  },
+
+  {
+    id: "dn-cut-004",
+    name: "Shrimp + Brussels Sprouts + Zucchini",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 160 },
+      { ingredientId: "brussels_sprouts", grams: 110 },
+      { ingredientId: "zucchini", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_brussels_zucchini",
+    tags: ["fat-loss"]
+  },
+
+  {
+    id: "dn-cut-005",
+    name: "Egg Whites + Asparagus + Tomatoes",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "egg_whites", grams: 180 },
+      { ingredientId: "asparagus", grams: 110 },
+      { ingredientId: "tomatoes", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      egg_whites: "scrambled"
+    },
+    imageKey: "img_eggwhites_asparagus_tomatoes",
+    tags: ["super-lean"]
+  },
+
+  // ----------------------------------------------------------
+  // 16–20: High-Energy Athlete Dinners
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-ath-001",
+    name: "Chicken Breast + Jasmine Rice + Carrots",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 170 },
+      { ingredientId: "jasmine_rice", grams: 180 },
+      { ingredientId: "carrots", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "grilled"
+    },
+    imageKey: "img_chicken_rice_carrots",
+    tags: ["athlete"]
+  },
+
+  {
+    id: "dn-ath-002",
+    name: "Lean Beef + Pasta + Spinach",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 170 },
+      { ingredientId: "white_pasta", grams: 200 },
+      { ingredientId: "spinach", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "grilled"
+    },
+    imageKey: "img_beef_pasta_spinach",
+    tags: ["strength"]
+  },
+
+  {
+    id: "dn-ath-003",
+    name: "Salmon + Potatoes + Cabbage",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 170 },
+      { ingredientId: "potatoes", grams: 180 },
+      { ingredientId: "cabbage", grams: 100 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked"
+    },
+    imageKey: "img_salmon_potatoes_cabbage",
+    tags: ["endurance"]
+  },
+
+  {
+    id: "dn-ath-004",
+    name: "Shrimp + White Rice + Green Beans",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 170 },
+      { ingredientId: "white_rice", grams: 180 },
+      { ingredientId: "green_beans", grams: 100 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_rice_greenbeans",
+    tags: ["fuel"]
+  },
+
+  {
+    id: "dn-ath-005",
+    name: "Turkey Breast + Brown Rice + Brussels Sprouts",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 170 },
+      { ingredientId: "brown_rice", grams: 180 },
+      { ingredientId: "brussels_sprouts", grams: 100 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared"
+    },
+    imageKey: "img_turkey_rice_brussels",
+    tags: ["athlete"]
+  },
+
+  // ----------------------------------------------------------
+  // 21–25: Lifestyle / Balanced Dinners
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-life-001",
+    name: "Chicken Thighs + Rice + Mixed Greens",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_thighs", grams: 180 },
+      { ingredientId: "white_rice", grams: 180 },
+      { ingredientId: "mixed_greens", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      chicken_thighs: "baked"
+    },
+    imageKey: "img_chickenthighs_rice_greens",
+    tags: ["comfort", "balanced"]
+  },
+
+  {
+    id: "dn-life-002",
+    name: "Salmon + Farro + Spinach",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 170 },
+      { ingredientId: "farro", grams: 180 },
+      { ingredientId: "spinach", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked",
+      farro: "boiled"
+    },
+    imageKey: "img_salmon_farro_spinach",
+    tags: ["balanced"]
+  },
+
+  {
+    id: "dn-life-003",
+    name: "Lean Beef + Sweet Potatoes + Zucchini",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "lean_beef", grams: 170 },
+      { ingredientId: "sweet_potatoes", grams: 180 },
+      { ingredientId: "zucchini", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      lean_beef: "grilled"
+    },
+    imageKey: "img_beef_sweetpotato_zucchini",
+    tags: ["family-friendly"]
+  },
+
+  {
+    id: "dn-life-004",
+    name: "Shrimp + Quinoa + Kale",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 160 },
+      { ingredientId: "quinoa", grams: 170 },
+      { ingredientId: "kale", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_quinoa_kale",
+    tags: ["wellness"]
+  },
+
+  {
+    id: "dn-life-005",
+    name: "Turkey Breast + Couscous + Tomatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 170 },
+      { ingredientId: "couscous", grams: 170 },
+      { ingredientId: "tomatoes", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared"
+    },
+    imageKey: "img_turkey_couscous_tomatoes",
+    tags: ["balanced"]
+  }
+
+];
+
+
+⸻
+
+✅ DINNER PART 1 COMPLETE
+
+You now have 25 premium dinner templates — consistent with your lunch structure and fully compatible with the hybrid engine.
+
+⸻
+
+Ready for DINNER PART 2 (Meals 26–50)?
+
+Say Next and I’ll continue.

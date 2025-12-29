@@ -1,0 +1,128 @@
+ add competition dietType support to MealPremadePicker with 60 macro-based meals"
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+⚠️  CHANGED: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+
+⚠️  WARNING: Critical files have been modified!
+Review changes with: git diff
+
+❌ BLOCKED: Critical files have changed unexpectedly!
+
+Run this to see what changed:
+  git diff
+
+If changes are intentional, update checksums:
+  ./scripts/freeze-critical-files.sh
+
+~/workspace$ ./scripts/freeze-critical-files.sh
+🔒 Creating checksums of critical files...
+✅ Checksums saved to .critical-files-checksums
+
+To verify files haven't changed, run:
+  ./scripts/verify-critical-files.sh
+~/workspace$ ./push.sh "Add Trash2 icon to dynamic meal delete buttons for consistency, add competition dietType support to MealPremadePicker with 60 macro-based meals"
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+✅ OK: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+
+✅ All critical files unchanged!
+✅ No unexpected changes detected
+
+2️⃣ Verifying server is running...
+✅ Server is running on port 5000
+
+====================================
+✅ ALL VALIDATION CHECKS PASSED!
+====================================
+
+Publishing: Add Trash2 icon to dynamic meal delete buttons for consistency, add competition dietType support to MealPremadePicker with 60 macro-based meals
+
+On branch main
+Your branch is ahead of 'origin/main' by 23 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+ℹ️  Nothing new to commit
+
+Pushing to GitHub...
+Enumerating objects: 147, done.
+Counting objects: 100% (147/147), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (126/126), done.
+Writing objects: 100% (126/126), 47.69 KiB | 4.77 MiB/s, done.
+Total 126 (delta 111), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (111/111), completed with 20 local objects.
+To https://github.com/bigidrise/my-perfect-meals-clean-ai
+   8b819a5..c51d51c  main -> main
+branch 'main' set up to track 'origin/main'.
+✅ SUCCESSFULLY PUBLISHED!
+
+📋 What was published:
+commit c51d51c5d224ef9e272ea5fc6c9ad4fd8f688bee (HEAD -> main, origin/main, origin/HEAD, gitsafe-backup/main)
+Author: bigidrise <43926660-bigidrise@users.noreply.replit.com>
+Date:   Tue Nov 25 22:44:32 2025 +0000
+
+    Saved progress at the end of the loop
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: f067b7b2-bbf5-47b2-a24c-378913050e58
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: 67bbe92f-4910-4141-a270-9a2623bb9ad6
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/ce2819de-5910-4901-b3be-afbbbd34223c/f067b7b2-bbf5-47b2-a24c-378913050e58/XQoJdPY
+
+ .critical-files-checksums | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+🔒 Freezing current state...
+🔒 Creating checksums of critical files...
+✅ Checksums saved to .critical-files-checksums
+
+To verify files haven't changed, run:
+  ./scripts/verify-critical-files.sh
+~/workspace$ ./push.sh "BeachBody Builder: Add dynamic meals, AI Premades, competition snacks"
+🔒 ENFORCED PRE-PUBLISH VALIDATION
+====================================
+
+1️⃣ Checking for unexpected changes...
+🔍 Verifying critical files...
+
+✅ OK: client/src/components/modals/AIMealCreatorModal.tsx
+✅ OK: client/src/components/PreparationModal.tsx
+✅ OK: client/src/pages/WeeklyMealBoard.tsx
+⚠️  CHANGED: client/src/pages/BeachBodyMealBoard.tsx
+✅ OK: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+✅ OK: client/src/pages/Planner.tsx
+✅ OK: server/routes/manualMacros.ts
+
+⚠️  WARNING: Critical files have been modified!
+Review changes with: git diff
+
+❌ BLOCKED: Critical files have changed unexpectedly!
+
+Run this to see what changed:
+  git diff
+
+If changes are intentional, update checksums:
+  ./scripts/freeze-critical-files.sh
+
+~/workspace$ 

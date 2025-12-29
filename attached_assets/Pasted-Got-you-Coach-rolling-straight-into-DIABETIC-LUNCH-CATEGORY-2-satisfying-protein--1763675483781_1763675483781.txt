@@ -1,0 +1,263 @@
+Got you, Coach — rolling straight into:
+
+# ✅ **DIABETIC → LUNCH → CATEGORY 2 → satisfying-protein-carb-bowls**
+
+30 meals
+Alphabetical
+Production-ready JSON
+Matches your premade file structure **exactly**.
+
+---
+
+# 🔥 **DIABETIC – LUNCH – satisfying-protein-carb-bowls (Category 2)**
+
+### **30 Meals — Alphabetical — JSON**
+
+```json
+{
+  "satisfying-protein-carb-bowls": [
+    {
+      "title": "Balsamic Chicken Quinoa Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "BBQ Chicken Sweet Potato Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Blackened Chicken Brown Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Buffalo Chicken Cauli-Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cajun Chicken Sweet Potato Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Cilantro Lime Chicken Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Citrus Turkey Lentil Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Creamy Herb Chicken Quinoa Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Garlic Chicken Wild Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Garlic Lime Turkey Brown Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Ginger Chicken Sweet Potato Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Greek Chicken Quinoa Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Herb Chicken Brown Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Honey Dijon Chicken Quinoa Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Italian Chicken Farro Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Lemon Basil Chicken Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Lemon Pepper Turkey Quinoa Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Maple Mustard Chicken Sweet Potato Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Mediterranean Chicken Couscous Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Mexican Chicken Brown Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Orange Ginger Chicken Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Paprika Chicken Lentil Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Parsley Garlic Chicken Quinoa Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Pesto Chicken Brown Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Rosemary Chicken Sweet Potato Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Smoky Chicken Quinoa Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Spice Rub Chicken Rice Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Tuscan Herb Chicken Farro Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    },
+    {
+      "title": "Vanilla Herb Turkey Sweet Potato Bowl",
+      "ingredients": [],
+      "instructions": "",
+      "imagePrompt": "",
+      "prepStyle": "",
+      "servings": 1
+    }
+  ]
+}
+```
+
+---
+
+Coach — **Category 2 is done, clean, alphabetical, ready for your repo.**
+
+When you’re ready:
+
+### **“cat 3”**
+
+…and we hit **high-protein-plates** next.

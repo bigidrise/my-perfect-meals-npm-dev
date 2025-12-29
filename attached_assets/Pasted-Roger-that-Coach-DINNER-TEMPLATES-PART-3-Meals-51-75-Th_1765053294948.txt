@@ -1,0 +1,505 @@
+Roger that, Coach.
+DINNER TEMPLATES — PART 3 (Meals 51–75)
+This finishes the entire 75-meal dinner set.
+These follow your hybrid engine rules, consistent macros, consistent naming, consistent fallback image keys, and deterministic cooking methods.
+
+Let’s wrap the full dinner library clean.
+
+⸻
+
+📁 mealTemplates.catalog.ts
+
+DINNER TEMPLATES (51–75)
+
+Part 3 of 3 — COMPLETE DINNER LIBRARY
+
+// ======================================================================
+// MEAL TEMPLATES CATALOG (DINNER) — PART 3 (51–75)
+// ======================================================================
+
+export const DINNER_TEMPLATES_PART3: MealTemplate[] = [
+
+  // ----------------------------------------------------------
+  // 51–55: One-Pan / Sheet-Pan Dinners
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-sheet-001",
+    name: "Sheet Pan Chicken + Broccoli + Potatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 180 },
+      { ingredientId: "broccoli", grams: 110 },
+      { ingredientId: "potatoes", grams: 190 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "baked"
+    },
+    imageKey: "img_sheetpan_chicken_broccoli_potato",
+    tags: ["one-pan", "simple"]
+  },
+
+  {
+    id: "dn-sheet-002",
+    name: "Sheet Pan Salmon + Zucchini + Tomatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 180 },
+      { ingredientId: "zucchini", grams: 110 },
+      { ingredientId: "tomatoes", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked"
+    },
+    imageKey: "img_sheetpan_salmon_zucchini_tomatoes",
+    tags: ["one-pan", "anti-inflammatory"]
+  },
+
+  {
+    id: "dn-sheet-003",
+    name: "Sheet Pan Shrimp + Asparagus + Cauliflower",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 180 },
+      { ingredientId: "asparagus", grams: 120 },
+      { ingredientId: "cauliflower", grams: 120 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "baked"
+    },
+    imageKey: "img_sheetpan_shrimp_asparagus_cauli",
+    tags: ["one-pan", "light"]
+  },
+
+  {
+    id: "dn-sheet-004",
+    name: "Sheet Pan Cod + Brussels Sprouts + Sweet Potatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "cod", grams: 180 },
+      { ingredientId: "brussels_sprouts", grams: 110 },
+      { ingredientId: "sweet_potatoes", grams: 190 }
+    ],
+    defaultCookingMethods: {
+      cod: "baked"
+    },
+    imageKey: "img_sheetpan_cod_brussels_sweetpotato",
+    tags: ["one-pan", "fiber-rich"]
+  },
+
+  {
+    id: "dn-sheet-005",
+    name: "Sheet Pan Turkey Breast + Carrots + Mushrooms",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 180 },
+      { ingredientId: "carrots", grams: 120 },
+      { ingredientId: "mushrooms", grams: 120 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "baked"
+    },
+    imageKey: "img_sheetpan_turkey_carrot_mushroom",
+    tags: ["one-pan", "cutting"]
+  },
+
+  // ----------------------------------------------------------
+  // 56–60: High-Protein, Low-Carb Dinners (Cutting Phase)
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-cut-001",
+    name: "Chicken Breast + Asparagus + Mixed Greens",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 170 },
+      { ingredientId: "asparagus", grams: 120 },
+      { ingredientId: "mixed_greens", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "pan-seared"
+    },
+    imageKey: "img_chicken_asparagus_greens",
+    tags: ["cutting", "very-lean"]
+  },
+
+  {
+    id: "dn-cut-002",
+    name: "Shrimp + Kale + Tomatoes",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 170 },
+      { ingredientId: "kale", grams: 90 },
+      { ingredientId: "tomatoes", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_kale_tomatoes",
+    tags: ["cutting", "night-friendly"]
+  },
+
+  {
+    id: "dn-cut-003",
+    name: "Egg Whites + Spinach + Mushrooms",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "egg_whites", grams: 200 },
+      { ingredientId: "spinach", grams: 90 },
+      { ingredientId: "mushrooms", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      egg_whites: "scrambled"
+    },
+    imageKey: "img_eggwhite_spinach_mushroom",
+    tags: ["cutting", "volume"]
+  },
+
+  {
+    id: "dn-cut-004",
+    name: "Tilapia + Green Beans + Lettuce",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "tilapia", grams: 160 },
+      { ingredientId: "green_beans", grams: 110 },
+      { ingredientId: "lettuce", grams: 50 }
+    ],
+    defaultCookingMethods: {
+      tilapia: "air-fried"
+    },
+    imageKey: "img_tilapia_greenbeans_lettuce",
+    tags: ["cutting", "light"]
+  },
+
+  {
+    id: "dn-cut-005",
+    name: "Turkey Breast + Cauliflower Rice + Zucchini",
+    mealType: "dinner",
+    category: "all-protein",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 170 },
+      { ingredientId: "cauliflower", grams: 150 },
+      { ingredientId: "zucchini", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "air-fried"
+    },
+    imageKey: "img_turkey_caulirice_zucchini",
+    tags: ["cutting"]
+  },
+
+  // ----------------------------------------------------------
+  // 61–65: Gut-Friendly / Anti-Inflammatory Dinners
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-anti-001",
+    name: "Salmon + Spinach + Sweet Potatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "salmon", grams: 180 },
+      { ingredientId: "spinach", grams: 90 },
+      { ingredientId: "sweet_potatoes", grams: 180 }
+    ],
+    defaultCookingMethods: {
+      salmon: "baked"
+    },
+    imageKey: "img_salmon_spinach_sweetpotato",
+    tags: ["anti-inflammatory"]
+  },
+
+  {
+    id: "dn-anti-002",
+    name: "Cod + Zucchini + Brown Rice",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "cod", grams: 170 },
+      { ingredientId: "zucchini", grams: 90 },
+      { ingredientId: "brown_rice", grams: 200 }
+    ],
+    defaultCookingMethods: {
+      cod: "poached"
+    },
+    imageKey: "img_cod_zucchini_brownrice",
+    tags: ["gut-friendly"]
+  },
+
+  {
+    id: "dn-anti-003",
+    name: "Chicken Thigh + Carrots + Mushrooms",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_thigh", grams: 180 },
+      { ingredientId: "carrots", grams: 110 },
+      { ingredientId: "mushrooms", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      chicken_thigh: "baked"
+    },
+    imageKey: "img_chickenthigh_carrot_mushroom",
+    tags: ["anti-inflammatory"]
+  },
+
+  {
+    id: "dn-anti-004",
+    name: "Shrimp + Mixed Greens + Quinoa",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 170 },
+      { ingredientId: "mixed_greens", grams: 80 },
+      { ingredientId: "quinoa", grams: 180 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "grilled"
+    },
+    imageKey: "img_shrimp_greens_quinoa",
+    tags: ["gut-friendly"]
+  },
+
+  {
+    id: "dn-anti-005",
+    name: "Turkey Breast + Cabbage + Sweet Potatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 170 },
+      { ingredientId: "cabbage", grams: 120 },
+      { ingredientId: "sweet_potatoes", grams: 170 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "baked"
+    },
+    imageKey: "img_turkey_cabbage_sweetpotato",
+    tags: ["anti-inflammatory"]
+  },
+
+  // ----------------------------------------------------------
+  // 66–70: High-Fiber / Blood Sugar-Friendly Dinners
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-fiber-001",
+    name: "Chicken Breast + Lentils + Broccoli",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 170 },
+      { ingredientId: "lentils", grams: 180 },
+      { ingredientId: "broccoli", grams: 100 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "air-fried"
+    },
+    imageKey: "img_chicken_lentils_broccoli",
+    tags: ["high-fiber", "blood-sugar-friendly"]
+  },
+
+  {
+    id: "dn-fiber-002",
+    name: "Cod + Black Beans + Tomatoes",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "cod", grams: 170 },
+      { ingredientId: "black_beans", grams: 180 },
+      { ingredientId: "tomatoes", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      cod: "pan-seared"
+    },
+    imageKey: "img_cod_blackbeans_tomatoes",
+    tags: ["high-fiber"]
+  },
+
+  {
+    id: "dn-fiber-003",
+    name: "Turkey Breast + Quinoa + Spinach",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "turkey_breast", grams: 170 },
+      { ingredientId: "quinoa", grams: 180 },
+      { ingredientId: "spinach", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      turkey_breast: "pan-seared"
+    },
+    imageKey: "img_turkey_quinoa_spinach",
+    tags: ["blood-sugar-friendly"]
+  },
+
+  {
+    id: "dn-fiber-004",
+    name: "Shrimp + Chickpeas + Zucchini",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 170 },
+      { ingredientId: "chickpeas", grams: 170 },
+      { ingredientId: "zucchini", grams: 90 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_chickpeas_zucchini",
+    tags: ["high-fiber"]
+  },
+
+  {
+    id: "dn-fiber-005",
+    name: "Tilapia + Pinto Beans + Mixed Greens",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "tilapia", grams: 170 },
+      { ingredientId: "pinto_beans", grams: 180 },
+      { ingredientId: "mixed_greens", grams: 70 }
+    ],
+    defaultCookingMethods: {
+      tilapia: "air-fried"
+    },
+    imageKey: "img_tilapia_pintobeans_greens",
+    tags: ["blood-sugar-friendly"]
+  },
+
+  // ----------------------------------------------------------
+  // 71–75: Comfort / Familiar Dinner Plates (Clean Versions)
+  // ----------------------------------------------------------
+
+  {
+    id: "dn-comfort-001",
+    name: "Ground Beef + Mashed Potatoes + Green Beans",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "ground_beef_93", grams: 180 },
+      { ingredientId: "potatoes", grams: 200 },
+      { ingredientId: "green_beans", grams: 110 }
+    ],
+    defaultCookingMethods: {
+      ground_beef_93: "pan-seared",
+      potatoes: "boiled"
+    },
+    imageKey: "img_beef_mashedpotato_greenbeans",
+    tags: ["comfort", "cleaned-up"]
+  },
+
+  {
+    id: "dn-comfort-002",
+    name: "Chicken Thigh + White Rice + Carrots",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_thigh", grams: 180 },
+      { ingredientId: "white_rice", grams: 200 },
+      { ingredientId: "carrots", grams: 110 }
+    ],
+    defaultCookingMethods: {
+      chicken_thigh: "baked"
+    },
+    imageKey: "img_chickenthigh_rice_carrots",
+    tags: ["comfort"]
+  },
+
+  {
+    id: "dn-comfort-003",
+    name: "Turkey Meatballs + Pasta + Spinach",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "ground_turkey", grams: 200 },
+      { ingredientId: "white_pasta", grams: 220 },
+      { ingredientId: "spinach", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      ground_turkey: "baked"
+    },
+    imageKey: "img_turkeymeatball_pasta_spinach",
+    tags: ["comfort", "clean"]
+  },
+
+  {
+    id: "dn-comfort-004",
+    name: "Shrimp Stir Fry + Rice Noodles + Mixed Veg",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "shrimp", grams: 170 },
+      { ingredientId: "rice_noodles", grams: 220 },
+      { ingredientId: "mixed_greens", grams: 110 }
+    ],
+    defaultCookingMethods: {
+      shrimp: "pan-seared"
+    },
+    imageKey: "img_shrimp_stirfry_rice_noodles",
+    tags: ["comfort", "high-volume"]
+  },
+
+  {
+    id: "dn-comfort-005",
+    name: "Chicken Breast + Sourdough + Salad",
+    mealType: "dinner",
+    category: "protein-carb",
+    ingredients: [
+      { ingredientId: "chicken_breast", grams: 180 },
+      { ingredientId: "sourdough_bread", grams: 60 },
+      { ingredientId: "mixed_greens", grams: 80 }
+    ],
+    defaultCookingMethods: {
+      chicken_breast: "grilled"
+    },
+    imageKey: "img_chicken_sourdough_salad",
+    tags: ["comfort", "simple"]
+  }
+
+];
+
+
+⸻
+
+✅ COMPLETE DINNER SET: 75 MEALS
+
+You now have:
+	•	25 clean classic dinners
+	•	25 metabolic / functional
+	•	25 category-formatted plates
+	•	All ingredients mapped
+	•	All cooking methods deterministic
+	•	All image keys clean + consistent
+	•	All hybrid-system compliant
+
+This is the gold-standard foundation for your hybrid meal engine.
+
+⸻
+
+Next Step (Your Choice):
+
+You tell me what we knock out next:
+
+**A) Convert All Lunch Meals (1–75)
+
+B) Convert All Breakfast Meals (1–120)
+C) Build the Ingredient Technique Mapping Catalog
+D) Build the Cooking Method Catalog
+E) Build the Full Ingredient Catalog
+F) Build the Meal Validation Rules
+G) Build the Meal Image Key Naming Standard**
+
+You said it yourself:
+
+“Start somewhere and don’t stop until we’re done.”
+
+So tell me which direction we push next, Coach.

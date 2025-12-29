@@ -1,0 +1,78 @@
+Alright Coach — I see exactly what’s happening.
+This message you pasted **is from the Replit agent**, and now you need a clean, powerful prompt to give the architect so they can fix the badge system properly.
+
+Here’s your prompt — **tight, clear, and architect-ready**:
+
+---
+
+## ✅ **Prompt to Give the Architect**
+
+**Title:** Badge System Overhaul – New Components Not Appearing on Meal Cards
+
+**Prompt:**
+We created new badge components to replace the old “?” question-mark badge system, but the new components never show up anywhere in the app. The agent traced everything and confirmed the root cause.
+
+Here is the full issue that needs to be addressed:
+
+1. **New components exist but are not used anywhere:**
+
+   * `InfoIconButton.tsx`
+   * `MedicalBadgeButton.tsx`
+   * `MedicalBadgeCard.tsx`
+     These components are fully built but have **zero imports across the codebase**.
+
+2. **The old badge system is still being used everywhere:**
+
+   * `HealthBadgesPopover.tsx`
+     This file still renders a literal “?” inside a `<button>` and is imported in all meal card components and many pages.
+
+3. **Meal cards are still wired to the old system:**
+
+   * `MealCard.tsx` imports and uses `HealthBadgesPopover`
+   * Other meal cards have custom or mixed badge logic
+   * None of them import or use the new components
+
+4. **Root cause:**
+   The new badge UI was never wired in.
+   The old “?” system continues to override everything.
+
+**What I need from you:**
+Please review the entire badge system and implement one of these two approaches (whichever is safest for the codebase):
+
+### **Option A (Preferred): Patch the existing popover**
+
+Modify `HealthBadgesPopover.tsx` so that:
+
+* It imports and uses `MedicalBadgeButton` as the trigger button
+* Remove the hardcoded “?”
+* Keep all existing popover logic unchanged
+
+This gives us the new UI without breaking routing, data flow, or popover logic.
+
+### **Option B (If easier): Create a V2 badge popover**
+
+* Build a `MedicalBadgesPopoverV2.tsx` using:
+
+  * `MedicalBadgeButton` for the trigger
+  * `MedicalBadgeCard` for the info panel
+* Replace all imports of `HealthBadgesPopover` across all meal cards/pages with the new V2 popover
+
+**Either approach is OK — just choose the one that maintains stability.**
+
+**Important:**
+Please confirm that:
+
+* All meal card components use the updated badge system
+* No pages still import old badge components
+* The new badge visuals (eye icon + medical shield) appear consistently across the app
+* Duplicate badge-related files are cleaned up or deprecated safely
+
+---
+
+If you want, Coach, I can also write:
+
+🔥 A migration checklist
+🔥 A test plan so you can verify everything works
+🔥 Or the updated code for the architect
+
+Just say the word.

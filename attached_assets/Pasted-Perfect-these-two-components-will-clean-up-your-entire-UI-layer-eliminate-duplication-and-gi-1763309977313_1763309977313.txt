@@ -1,0 +1,214 @@
+Perfect — these two components will **clean up your entire UI layer**, eliminate duplication, and give MPM a *true design system*.
+
+You’ll now have:
+
+# ✅ `<MedicalBadgeCard />`
+
+A **unified**, **black-glass**, **glowing**, **medical-grade card** used anywhere you show:
+
+* Cardiac
+* Diabetic
+* GLP-1
+* Renal
+* Low Sodium
+* etc.
+
+# ✅ `<InfoCard />`
+
+A matching black-glass card for **general app info**, tutorials, explanations, tips, etc.
+
+No more ad-hoc popovers that all look slightly different.
+
+---
+
+# 🔥 GLOBAL DESIGN FEATURES FOR BOTH
+
+* **True black-glass:** blurred, gradient, translucent
+* **Shared rounded-2xl design**
+* **Premium shadows**
+* **Auto-glow for critical medical badges**
+* **Reusable props**
+* **Safe to use in any popover/dialog**
+* **Zero copy/paste styling ever again**
+
+---
+
+# 🧩 1. Create `MedicalBadgeCard.tsx`
+
+Place in:
+`client/src/components/ui/MedicalBadgeCard.tsx`
+
+```tsx
+import React from "react";
+
+interface MedicalBadgeCardProps {
+  title?: string;
+  badges: { label: string; desc?: string; key?: string }[];
+  className?: string;
+  showGlow?: boolean; // auto-detect or override glow
+}
+
+const CRITICAL_BADGE_KEYS = [
+  "cardiac",
+  "heart",
+  "heart-healthy",
+  "renal",
+  "kidney",
+  "low sodium",
+  "glp1",
+  "glp-1",
+  "diabetes",
+  "diabetic",
+];
+
+export default function MedicalBadgeCard({
+  title = "Medical Badges",
+  badges,
+  className = "",
+  showGlow
+}: MedicalBadgeCardProps) {
+
+  // detect critical badges unless overridden
+  const hasCritical =
+    typeof showGlow === "boolean"
+      ? showGlow
+      : badges.some(b =>
+          CRITICAL_BADGE_KEYS.some(k =>
+            (b.key || b.label)?.toLowerCase().includes(k)
+          )
+        );
+
+  return (
+    <div
+      className={`
+        rounded-2xl p-4 max-w-xs text-white text-sm space-y-2
+        border border-white/15
+        bg-gradient-to-b from-white/5 via-black/80 to-black/95
+        bg-clip-padding backdrop-blur-xl
+        shadow-xl shadow-emerald-500/20
+        ${hasCritical ? "medical-critical-card" : ""}
+        ${className}
+      `}
+    >
+      <div className="font-semibold text-white/90">{title}</div>
+
+      {badges.length === 0 ? (
+        <div className="text-white/60 text-xs">No health badges.</div>
+      ) : (
+        badges.map((item, i) => (
+          <div key={item.key || i} className="flex items-start gap-2">
+            <span className="inline-flex h-2 w-2 rounded-full bg-white/70 mt-1.5" />
+            <div>
+              <div className="font-medium">{item.label}</div>
+              {item.desc && (
+                <div className="text-white/80 text-xs">{item.desc}</div>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+```
+
+---
+
+# 🧩 2. Create `InfoCard.tsx`
+
+Place in:
+`client/src/components/ui/InfoCard.tsx`
+
+```tsx
+import React from "react";
+
+interface InfoCardProps {
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export default function InfoCard({
+  title = "Information",
+  children,
+  className = ""
+}: InfoCardProps) {
+  return (
+    <div
+      className={`
+        rounded-2xl p-4 max-w-xs text-white text-sm space-y-2
+        border border-white/15
+        bg-gradient-to-b from-white/5 via-black/80 to-black/95
+        bg-clip-padding backdrop-blur-xl
+        shadow-xl shadow-blue-500/20
+        ${className}
+      `}
+    >
+      <div className="font-semibold text-white/90">{title}</div>
+      <div className="text-white/80 text-xs">{children}</div>
+    </div>
+  );
+}
+```
+
+---
+
+# 🫀 These two components now replace ALL your popover card bodies.
+
+Here’s how you use them:
+
+---
+
+# 🍎 Example: In `HealthBadgesPopover.tsx`
+
+Replace the entire `<PopoverContent> ... </PopoverContent>` inner div with:
+
+```tsx
+<MedicalBadgeCard badges={items} />
+```
+
+Done.
+
+---
+
+# 👁 Example: In Info/help popovers
+
+Replace your old card with:
+
+```tsx
+<InfoCard title="How this feature works">
+  Select ingredients and the AI will generate a recipe based on what you have.
+</InfoCard>
+```
+
+Done.
+
+---
+
+# 💣 Result:
+
+### Your entire app now has:
+
+* **One single medical badge card**
+* **One single info card**
+* **Consistent black-glass across all pages**
+* **Critical badges that glow automatically**
+* **Reusable UI primitives for rapid development**
+
+This is EXACTLY what world-class apps do — Notion, Apple, Calm, Duolingo, etc.
+
+---
+
+# 🔥 If you want the next step:
+
+I can also build:
+
+* `<BadgeRow />` component
+* `<BadgeDot />` component
+* `<BadgeTitle />` microcomponent
+* Variants (danger, warning, info, neutral)
+* Or a **global badge system** with icons, colors, and semantics
+
+Just say:
+
+👉 **“Let’s systemize the badge rows too.”**

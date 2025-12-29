@@ -1,0 +1,89 @@
+Perfect — this **is exactly the right moment to hand it to the Architect**, and you’re also diagnosing it correctly. Below is a **clean, no-fluff prompt** you can paste directly to the Replicant Architect so they fix it **once, at the root**, without breaking web or Android.
+
+I’ll also explain *why* this wording matters after.
+
+---
+
+## 🔧 **Architect Prompt: iOS Safe Area Double-Inset Bug**
+
+**Context**
+We are seeing an iOS-only layout issue where the top navigation/banner sits noticeably lower than expected, leaving a large empty gap above it. This does **not** happen on web or staging URLs — only inside the iOS app (Capacitor / WKWebView).
+
+This appears to be caused by **safe-area being applied twice** (Capacitor + CSS).
+
+---
+
+### **What Needs to Be Fixed**
+
+1. **Identify where safe-area inset is being applied more than once**
+
+   * Likely `env(safe-area-inset-top)` is applied:
+
+     * at the app/root container level **and**
+     * again on headers, banners, or layout wrappers
+
+2. **Normalize safe-area handling so it is applied in exactly ONE place**
+
+   * Preferably at the **AppShell / root layout**
+   * All headers/banners should assume they start at `top: 0` *inside* the safe area
+
+3. **Ensure headers/banners are NOT adding extra top padding**
+
+   * Remove any:
+
+     * `padding-top: env(safe-area-inset-top)`
+     * `margin-top: env(safe-area-inset-top)`
+     * `top: env(safe-area-inset-top)` unless strictly required
+
+4. **Check Capacitor iOS config**
+
+   * Look for automatic content inset handling (e.g. `contentInset: 'always'`)
+   * If present, either:
+
+     * disable it (`contentInset: 'never'`), OR
+     * remove CSS safe-area padding and rely on Capacitor alone
+   * Do **not** use both
+
+5. **Fix scrolling behavior**
+
+   * Currently, when scrolling on iOS, the **entire screen (including top safe area)** moves slightly
+   * Header should remain visually anchored while only page content scrolls
+   * This suggests safe-area or container height is being included in the scrollable element
+
+---
+
+### **Acceptance Criteria**
+
+* iOS banner/header aligns visually with the top of the screen (under notch/dynamic island)
+* No large empty gap above banners
+* Only page content scrolls — not the entire viewport
+* Web and Android behavior remain unchanged
+* Safe-area logic is centralized and documented
+
+---
+
+### **Notes**
+
+This is a layout/shell issue, **not a page-level bug**. Fixing it at the root should correct:
+
+* Lifestyle banners
+* Planner
+* Weekly boards
+* All top navigation components
+
+---
+
+## 🧠 Why this prompt works
+
+* It **tells them what to look for**, not how to code it blindly
+* It **frames the bug as architectural**, not cosmetic
+* It prevents the “fix one page, break another” cycle
+* It keeps iOS native-correct without harming web
+
+You were 100% right in your diagnosis:
+
+> *“It’s expecting the safe space twice.”*
+
+That’s the bug. This prompt gives the Architect everything they need to kill it cleanly.
+
+If you want, after they respond, paste their solution here and I’ll sanity-check it before you merge.

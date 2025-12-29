@@ -1,0 +1,114 @@
+✅ PROMPT #2 — REPLIT AGENT / ARCHITECT
+
+Use this AFTER the assistant produces all code.
+This prompt tells the agent exactly what to touch and exactly what NOT to touch.
+
+COPY/PASTE THIS INTO THE AGENT:
+
+AGENT PROMPT — “Implement Horizontal Scroll Pickers (Buttons Only)”
+
+You must follow these instructions exactly.
+You must not change any ingredient rendering behavior, ingredient cards, layout, dropdown animations, or internal logic.
+The only thing you are modifying is the category button strip at the top of each picker.
+
+🔒 HARD RULES (DO NOT BREAK):
+
+Do NOT touch ingredient rendering
+
+Do NOT rewrite picker logic
+
+Do NOT move or restyle cards
+
+Do NOT change the ingredient dropdown behavior
+
+Do NOT change the “Add” buttons
+
+Do NOT modify the shopping list
+
+Do NOT modify macro logic
+
+Only modify the top-row category buttons
+
+Only add snack category grouping + filtering
+
+Everything else MUST remain identical
+
+🎯 OBJECTIVES:
+
+Add a new component:
+
+client/src/components/pickers/CategoryStrip.tsx
+
+Use the exact code provided by the assistant
+
+Replace each picker’s category button block with <CategoryStrip />
+
+Implement horizontal scrolling and button nowrap using the assistant’s code
+
+For snack picker:
+
+Add six categories:
+
+Sweet Treats
+
+Savory & Crunchy
+
+Light & Gentle
+
+Protein & Energy
+
+Drinkables
+
+Dessert Bites
+
+Filter snack items by category
+
+Keep ingredient cards exactly the same
+
+📁 FILES YOU WILL TOUCH:
+
+client/src/components/pickers/CategoryStrip.tsx (new file)
+
+client/src/components/pickers/MealPickerDrawer.tsx (buttons only)
+
+client/src/pages/WeeklyMealBoard.tsx (buttons only)
+
+client/src/pages/physician/DiabeticMenuBuilder.tsx (buttons only)
+
+client/src/pages/physician/GLP1MealBuilder.tsx (buttons only)
+
+client/src/components/pickers/SnackPickerDrawer.tsx (new category strip + filtering only)
+
+❌ FILES YOU MUST NOT TOUCH:
+
+Any shopping list files
+
+Normalizer
+
+Unit converter
+
+Athlete mapper
+
+Any server code
+
+Any ingredient data files
+
+Any card or list rendering
+
+Any styling outside the category buttons
+
+🧪 QA REQUIREMENTS:
+
+iPhone-size viewport must NOT cause category names to wrap
+
+Categories must scroll horizontally
+
+Ingredient dropdowns must behave exactly the same as before
+
+Snack picker must show categories and filter correctly
+
+No other visual or functional changes allowed
+
+✔️ FINAL STEP:
+
+After all changes are applied, show me the full diff of each modified file.

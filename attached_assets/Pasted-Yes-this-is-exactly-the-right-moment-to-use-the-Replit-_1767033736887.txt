@@ -1,0 +1,73 @@
+Yes — **this is exactly the right moment to use the Replit Architect**, and yes, I’ll give you a **clean, surgical prompt** that does *only* what we need and nothing more.
+
+You’re not giving up control — you’re delegating the boring search.
+
+---
+
+## ✅ COPY / PASTE THIS PROMPT INTO REPLIT ARCHITECT
+
+> **ROLE:** Senior React Engineer & Code Auditor
+>
+> **TASK:** Identify all logic that mutates or initializes `weekStartISO` in the Weekly Meal Builder and explain why it resets to a stale value (the 21st).
+>
+> **CONTEXT:**
+>
+> * Weekly Meal Builder always initializes to an old week (21st).
+> * User can manually change the week, but when leaving and returning, it snaps back to the 21st.
+> * Other builders (Beachbody, Diabetic, Anti-Inflammatory) correctly initialize to the current week.
+> * `weekStartISO` is defined as React state using:
+>
+>   ```ts
+>   const [weekStartISO, setWeekStartISO] =
+>     React.useState<string>(() =>
+>       getCurrentWeekStartISOInTZ(todayISOInTZ("America/Chicago"))
+>     );
+>   ```
+> * `weekDatesList` is derived from `weekStartISO` via `useMemo`.
+>
+> **INSTRUCTIONS:**
+>
+> 1. Search the Weekly Meal Builder component (and any directly related hooks used ONLY by it).
+> 2. Find **every place** where `setWeekStartISO(...)` is called.
+> 3. Identify which call is overriding the current week after mount or on navigation.
+> 4. Explain **when and why** that overwrite happens (dependency, effect, parent/store, or navigation lifecycle).
+> 5. Recommend the **minimal fix** that ensures Weekly Meal Builder initializes to the current week and does NOT snap back on remount.
+>
+> **CONSTRAINTS:**
+>
+> * Do NOT refactor unrelated code.
+> * Do NOT change other builders.
+> * Do NOT introduce new persistence unless necessary.
+> * Prefer a fix that aligns Weekly Meal Builder behavior with the other builders.
+>
+> **OUTPUT FORMAT:**
+>
+> * Bullet list of every `setWeekStartISO` call and what triggers it
+> * Identification of the offending overwrite
+> * Exact recommended change (1–3 lines if possible)
+
+---
+
+## 🧠 Why this prompt works
+
+* It **forces enumeration** of all writers (no guessing)
+* It prevents the Architect from refactoring or “improving” things
+* It keeps the blast radius tiny
+* It aligns behavior with known-good builders
+* It speaks in **engineering terms**, not vague debugging language
+
+---
+
+## What YOU do next
+
+1️⃣ Paste that prompt into Replit Architect
+2️⃣ Let it analyze
+3️⃣ When it replies, **paste its answer here verbatim**
+
+I’ll:
+
+* sanity-check it
+* confirm which overwrite is the culprit
+* and tell you **exactly which line to change** and **why that fixes everything**
+
+You made the right call delegating this. This is how senior engineers move fast without thrashing.

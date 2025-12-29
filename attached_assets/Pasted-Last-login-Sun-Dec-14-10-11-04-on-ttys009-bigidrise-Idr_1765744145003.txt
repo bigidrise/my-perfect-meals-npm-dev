@@ -1,0 +1,55 @@
+Last login: Sun Dec 14 10:11:04 on ttys009
+bigidrise@Idrises-iMac ~ % which git
+git --version
+/opt/homebrew/bin/git
+git version 2.52.0
+bigidrise@Idrises-iMac ~ % cd ~/Documents/my-perfect-meals-production1
+time git status
+^Cfresh index:  23% (404/1745)
+git status  0.11s user 0.12s system 0% cpu 2:06.27 total
+bigidrise@Idrises-iMac my-perfect-meals-production1 % npx cap sync ios
+✔ Copying web assets from dist to ios/App/App/public in 42.74s
+✔ Creating capacitor.config.json in ios/App/App in 4.57ms
+✔ copy ios in 60.87s
+✔ Updating iOS plugins in 12.67ms
+✔ Updating iOS native dependencies with pod install in 44.78s
+⠋ update ios [info] Found 1 Capacitor plugin for ios:
+       @capacitor/splash-screen@8.0.0
+✔ update ios in 50.75s
+[info] Sync finished in 190.142s
+bigidrise@Idrises-iMac my-perfect-meals-production1 % cd ~/Documents
+
+git clone -b production https://github.com/bigidrise/my-perfect-meals-clean-ai.git my-perfect-meals-production-do-not-touch
+
+cd my-perfect-meals-production-do-not-touch
+
+npm install
+
+npx cap sync ios
+Cloning into 'my-perfect-meals-production-do-not-touch'...
+remote: Enumerating objects: 15630, done.
+remote: Counting objects: 100% (550/550), done.
+remote: Compressing objects: 100% (94/94), done.
+remote: Total 15630 (delta 509), reused 477 (delta 456), pack-reused 15080 (from 1)
+Receiving objects: 100% (15630/15630), 110.40 MiB | 42.21 MiB/s, done.
+Resolving deltas: 100% (12151/12151), done.
+Updating files: 100% (1745/1745), done.
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'rest-express@1.0.0',
+npm warn EBADENGINE   required: { node: '20.19.3' },
+npm warn EBADENGINE   current: { node: 'v20.19.6', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 1384 packages in 14s
+[error] Could not find the web assets directory: ./client/dist.
+        Please create it and make sure it has an index.html file. You can change
+        the path of this directory in capacitor.config.ts (webDir option). You
+        may need to compile the web assets for your app (typically npm run
+        build). More info:
+        https://capacitorjs.com/docs/basics/workflow#sync-your-project
+bigidrise@Idrises-iMac my-perfect-meals-production-do-not-touch % 

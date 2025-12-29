@@ -1,0 +1,206 @@
+You just nailed the **root cause**. This is the correct diagnosis.
+What you’re seeing is **not a random iOS bug** — it’s a **layout contract violation**.
+
+### What’s actually happening (tell-it-like-it-is)
+
+Right now **every page is taller than the viewport** by a small amount.
+That extra height gives iOS permission to scroll — even when there’s nothing to scroll.
+
+So iOS says:
+
+> “Oh, this page is scrollable? Cool. I’ll let the whole WebView move.”
+
+That’s why:
+
+* Pages that *shouldn’t* scroll still move
+* The banner moves with the page
+* You get that “playroom” bounce
+* The safe area shifts instead of staying pinned
+
+This is **100% a CSS containment problem**, not TestFlight, not Capacitor caching, not Xcode.
+
+---
+
+## The Real Rule You’re Breaking (Unintentionally)
+
+On iOS **there must be exactly ONE scroll container**.
+
+Right now you have:
+
+* `body` scrolling ❌
+* page containers scrolling ❌
+* sometimes both ❌❌
+
+That guarantees wobble.
+
+---
+
+## The Correct Mental Model (Burn this in)
+
+* **The screen never scrolls**
+* **Only ONE inner container scrolls**
+* **Headers / banners are fixed**
+* **Content scrolls underneath**
+
+Anything else = bounce city.
+
+---
+
+## What Needs to Be True (Non-Negotiable)
+
+On *every* page:
+
+1. **The viewport height must be exact**
+2. **No accidental extra pixels**
+3. **No double padding**
+4. **No 100vh lies**
+5. **No body scroll**
+
+---
+
+## 🔧 The Fix (This Will End It)
+
+### 1️⃣ Kill ALL global scrolling
+
+**`client/src/index.css`**
+
+```css
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+```
+
+This alone removes 50% of the wobble.
+
+---
+
+### 2️⃣ Use `100dvh`, never `100vh`
+
+**Everywhere. No exceptions.**
+
+❌ `height: 100vh`
+✅ `height: 100dvh`
+
+Why:
+iOS Safari lies about `vh`. Dynamic toolbars change height mid-gesture.
+
+---
+
+### 3️⃣ Lock the page frame (this is the big one)
+
+Create ONE root wrapper that never scrolls.
+
+```tsx
+// RootViewport.tsx
+export function RootViewport({ children }) {
+  return (
+    <div
+      className="fixed inset-0 h-[100dvh] w-full overflow-hidden"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+This guarantees:
+
+* No page drift
+* Safe area applied ONCE
+* Viewport never moves
+
+---
+
+### 4️⃣ ONE scroll container only
+
+Inside each page layout:
+
+```tsx
+<div className="h-full flex flex-col">
+  <Header /> {/* fixed height */}
+
+  <div className="flex-1 overflow-y-auto ios-scroll">
+    {content}
+  </div>
+</div>
+```
+
+And CSS:
+
+```css
+.ios-scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+```
+
+If content doesn’t overflow → **no scroll happens**.
+No fake playroom.
+
+---
+
+### 5️⃣ Banner must be `position: sticky` or `fixed`
+
+If the banner moves, it’s inside the scroll container.
+
+Correct options:
+
+```css
+position: sticky;
+top: 0;
+```
+
+or
+
+```css
+position: fixed;
+top: env(safe-area-inset-top);
+```
+
+Never leave banners in normal flow on iOS.
+
+---
+
+## Why This Explains EVERYTHING You Saw
+
+✔ Pages that shouldn’t scroll were still taller
+✔ iOS allowed bounce because height > viewport
+✔ Banner moved because it lived inside scroll context
+✔ Safe area looked “duplicated” because padding was applied twice
+✔ Reinstalls didn’t fix it because layout math was wrong
+
+---
+
+## The One-Line Truth
+
+**Your pages aren’t “scrolling” — they’re oversized.
+iOS is just doing what your CSS told it to do.**
+
+---
+
+## What You Do Next (No Drama)
+
+1. Apply the rules above in **DEV**
+2. Push → main
+3. Promote → production
+4. Reinstall TestFlight
+5. Test **a page with zero content**
+
+If that page **does not move at all**, you’ve won.
+Then every other page will behave.
+
+If you want, next we can:
+
+* audit ONE page live and find the extra pixels
+* build a reusable `PageLayout` that enforces this forever
+* or lock scrolling at the router level
+
+You’re not crazy.
+You’re finally looking at the right layer.

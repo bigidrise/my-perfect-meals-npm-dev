@@ -1,0 +1,161 @@
+Alright — pause. This is **not** a splash issue, not an iOS build issue, and not you screwing something up. This is a **network / environment mismatch**, and it’s very common right after what you just did.
+
+Let’s get you unstuck **without going in circles**.
+
+---
+
+## What “Load failed, load failed” actually means (plain English)
+
+On **iOS**, your app is trying to hit a backend URL that it **cannot reach**.
+
+That’s it.
+No mystery. No drama.
+
+On desktop or simulator, things can “work” because:
+
+* localhost works
+* dev proxies exist
+* cached sessions exist
+
+On a **real iPhone**, none of that exists.
+
+---
+
+## The 3 MOST LIKELY CAUSES (ranked)
+
+### 🥇 Cause #1 — Backend URL is pointing to `localhost`
+
+Your phone cannot see:
+
+* `localhost`
+* `127.0.0.1`
+* local Replit ports
+* local Railway tunnels
+
+So login fails instantly.
+
+**This is the #1 cause 99% of the time.**
+
+---
+
+### 🥈 Cause #2 — iOS is blocked by ATS (Apple Transport Security)
+
+If your backend URL is:
+
+* `http://` instead of `https://`
+* missing proper certs
+
+iOS will silently fail.
+
+---
+
+### 🥉 Cause #3 — Wrong ENV (staging vs prod mismatch)
+
+Your app may be:
+
+* built with STAGING frontend
+* pointing at PROD backend (or vice versa)
+
+Auth endpoints won’t match → login fails.
+
+---
+
+## What I need you to check (ONLY these 3 things)
+
+### ✅ 1. Check your API base URL (most important)
+
+Find **where your app defines the API URL**, usually one of these:
+
+* `client/src/lib/api.ts`
+* `client/src/config.ts`
+* `shared/config.ts`
+* environment variable like:
+
+  * `VITE_API_URL`
+  * `VITE_BACKEND_URL`
+
+You are looking for something like:
+
+```ts
+http://localhost:5000
+```
+
+or
+
+```ts
+http://127.0.0.1
+```
+
+❌ That **will never work on iPhone**.
+
+It must be something like:
+
+```ts
+https://api.myperfectmeals.com
+```
+
+or
+
+```ts
+https://my-perfect-meals-production.up.railway.app
+```
+
+---
+
+### ✅ 2. Confirm it’s HTTPS
+
+On iOS:
+
+* **HTTP = fail**
+* **HTTPS = required**
+
+If it’s HTTP, login will *always* fail.
+
+---
+
+### ✅ 3. Confirm the backend is actually running
+
+Open Safari **on your iPhone** and go to:
+
+```
+https://YOUR_BACKEND_URL/health
+```
+
+(or whatever your health endpoint is)
+
+If Safari can’t load it → your app can’t either.
+
+---
+
+## What NOT to do right now
+
+🚫 Do NOT touch splash
+🚫 Do NOT rebuild iOS
+🚫 Do NOT touch Git
+🚫 Do NOT reinstall pods
+
+This is **pure configuration**, not build.
+
+---
+
+## Why this didn’t happen earlier
+
+Because:
+
+* Simulator cheats
+* Desktop cheats
+* Cached auth cheats
+
+A real iPhone is **honest**. Brutally honest.
+
+---
+
+## Quick sanity check question (answer yes/no)
+
+Before we go further:
+
+👉 **Is your API URL currently pointing to localhost or a local dev server?**
+
+Answer that, and I’ll give you **one exact fix**, not ten options.
+
+You’re close. This is normal. You didn’t break anything.

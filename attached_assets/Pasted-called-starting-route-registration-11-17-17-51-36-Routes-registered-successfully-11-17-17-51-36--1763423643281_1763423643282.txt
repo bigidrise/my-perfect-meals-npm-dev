@@ -1,0 +1,81 @@
+called - starting route registration
+11-17 17:51:36
+✅ Routes registered successfully
+11-17 17:51:36
+📁 Serving static files from: /home/runner/workspace/dist/client/dist
+11-17 17:51:37
+🚀 Production server running on port 5000
+11-17 17:51:37
+🔗 Database: Connected
+11-17 17:51:37
+📍 Environment: production
+11-17 17:51:37
+ERR 0e4668ff-66db-4ae5-91dd-a3f038dcba1f 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:37
+0e4668ff-66db-4ae5-91dd-a3f038dcba1f GET / 404 14ms
+11-17 17:51:50
+ERR 6576359e-be09-4559-bb1c-554526c814e6 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:50
+6576359e-be09-4559-bb1c-554526c814e6 GET /version.json?cache=1763423510534 404 5ms
+11-17 17:51:50
+4aeffc47-4e1b-426e-aa39-b576d67a5345 GET /version.json?t=1763423510535 404 1ms
+11-17 17:51:50
+ERR 4aeffc47-4e1b-426e-aa39-b576d67a5345 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:50
+ERR e3e0bc3d-0093-40d2-a16f-ed248be800bc 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:50
+e3e0bc3d-0093-40d2-a16f-ed248be800bc GET /version.json?cache=1763423510534 404 2ms
+11-17 17:51:54
+ERR b6288eae-e4d1-4020-80d2-d73b80151f67 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:54
+b6288eae-e4d1-4020-80d2-d73b80151f67 GET /version.json?cache=1763423514760 404 7ms
+11-17 17:51:54
+ERR 97eec61c-5077-4207-a501-0dc4288d826e 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:54
+97eec61c-5077-4207-a501-0dc4288d826e GET /version.json?cache=1763423514761 404 6ms
+11-17 17:51:59
+ERR f0a80287-dbef-4091-bb85-5571b0765ad3 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:59
+f0a80287-dbef-4091-bb85-5571b0765ad3 GET / 404 2ms
+11-17 17:51:59
+ERR 4c770bc5-d819-4b92-a538-619e5a2dc976 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:51:59
+4c770bc5-d819-4b92-a538-619e5a2dc976 GET /manifest.json 404 2ms
+11-17 17:52:15
+ERR 15158c18-c9de-4597-ac68-b7d0e6c11c69 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:52:15
+15158c18-c9de-4597-ac68-b7d0e6c11c69 GET / 404 4ms
+11-17 17:52:15
+ERR 56564325-3073-4835-8084-478ae41fe488 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:52:15
+56564325-3073-4835-8084-478ae41fe488 GET /manifest.json 404 2ms
+11-17 17:52:55
+ERR 383cf693-1f4b-4677-affb-b3b79e6995e7 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:52:55
+ERR 07c2d600-350f-4b9b-83d9-0fdb71ee0e1f 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:52:55
+383cf693-1f4b-4677-affb-b3b79e6995e7 GET /version.json?cache=1763423575358 404 3ms
+11-17 17:52:55
+07c2d600-350f-4b9b-83d9-0fdb71ee0e1f GET /version.json?t=1763423575349 404 3ms
+11-17 17:52:57
+ERR 6cab910d-0c32-4a10-8167-94417f92cad7 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:52:57
+6cab910d-0c32-4a10-8167-94417f92cad7 GET /pricing 404 2ms
+11-17 17:52:57
+ERR ceae901b-12ec-42bc-bee6-03df483a87d4 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:52:57
+ceae901b-12ec-42bc-bee6-03df483a87d4 GET /favicon.ico 404 3ms
+11-17 17:52:58
+ERR e558f574-fa45-47a3-8caf-58672e262245 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:52:58
+e558f574-fa45-47a3-8caf-58672e262245 GET /sw.js 404 2ms
+11-17 17:53:21
+ERR 9a69758e-f196-45a7-9841-65dffe0da210 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+
+11-17 17:53:21
+9a69758e-f196-45a7-9841-65dffe0da210 GET /version.json?t=1763423600928 404 1ms
+11-17 17:53:21
+9a69758e-f196-45a7-9841-65dffe0da210 GET /version.json?t=1763423600928 404 1ms
+11-17 17:53:21
+ERR 9a69758e-f196-45a7-9841-65dffe0da210 404 ENOENT: no such file or directory, stat '/home/runner/workspace/dist/client/dist/index.html'
+11-17 17:53:43

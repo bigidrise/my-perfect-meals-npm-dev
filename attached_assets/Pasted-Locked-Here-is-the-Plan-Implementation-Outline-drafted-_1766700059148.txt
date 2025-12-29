@@ -1,0 +1,135 @@
+Locked. Here is the **Plan + Implementation Outline** drafted **explicitly for Architect review and agreement**, with **no execution baked in** and no decisions assumed. This is the document that enforces your **NEW RULE**.
+
+---
+
+## **Canva-Style Image Lifecycle — Plan & Implementation Outline (FOR AGREEMENT ONLY)**
+
+### **Objective**
+
+Establish a **single, Canva-style image lifecycle** across the app so that any image shown on a saved entity (meal, board, guide, etc.) **persists permanently**, remains accurate, and behaves consistently across sessions, devices, and iOS builds.
+
+No redesign of prompts, models, or visual style. This is an **enforcement and containment plan**, not a rewrite.
+
+---
+
+## **Confirmed Facts (Architect + ChatGPT Alignment)**
+
+* A working permanent image pipeline already exists (`mealImageGenerator.ts`).
+* Static catalog and snack images already persist correctly.
+* Image inconsistency comes from:
+
+  * Temporary third-party URLs being saved
+  * Render-time image generation
+  * Missing validation at save time
+* Weekly Meal Board behavior is correct *only if* the image URL it receives is permanent.
+* Restaurant Guide and Meals Near Me bypass permanent storage.
+* Prior attempts failed due to **over-standardization and broad changes**.
+
+---
+
+## **Non-Negotiable Rules (Must Hold Everywhere)**
+
+1. **No persisted entity may store a third-party or temporary image URL.**
+2. **Any image shown on a saved entity must be first-party (object storage or static catalog).**
+3. **A save-time gate must enforce this rule before persistence.**
+
+(These rules define “Canva-style” behavior.)
+
+---
+
+## **Scope (What This Plan Touches — and Does Not)**
+
+### Included:
+
+* Save/persist logic for meals and boards
+* Image URL validation
+* Routing existing violators through the permanent pipeline
+
+### Explicitly Excluded:
+
+* Prompt engineering
+* Model changes
+* Visual style changes
+* Regeneration of existing assets unless explicitly approved
+* UI redesign
+
+---
+
+## **Proposed Enforcement Point (Minimal Risk)**
+
+**Save-time enforcement only.**
+When a meal/day/board is persisted:
+
+* Validate `imageUrl`
+* If not first-party → block, convert, or defer based on agreed policy
+* Never allow temporary URLs to be written
+
+No render-time logic changes.
+
+---
+
+## **Open Policy Decisions (REQUIRE EXPLICIT AGREEMENT)**
+
+These are **not decided yet**. Implementation is blocked until agreement.
+
+### **Policy 1 — Save-Time Failure Handling**
+
+If a meal is being saved and image ingestion fails, choose ONE:
+
+* **A)** Block save and surface error
+* **B)** Save meal with “image pending” state
+* **C)** Save with fallback image and internal flag
+
+### **Policy 2 — Existing Data Migration**
+
+For already-saved meals with expired temp URLs:
+
+* **A)** Leave as-is (fallback forever)
+* **B)** Regenerate on first view
+* **C)** Regenerate only on edit/resave
+
+---
+
+## **Implementation Outline (High Level, No Code)**
+
+1. Inventory all routes emitting `meal.imageUrl`
+2. Route violators through permanent storage pipeline
+3. Add save-time validation gate
+4. Prevent render-time generation for savable entities
+5. (Optional, later) Asset ownership metadata
+
+---
+
+## **Success Criteria**
+
+* Images never disappear after save
+* Weekly Meal Board, Restaurant Guide, Fridge Rescue, and Find Meals behave consistently
+* No regressions in currently working flows
+* iOS reloads show identical visuals day-to-day
+* No repeated “image discussion” needed again
+
+---
+
+## **Request for Architect Response**
+
+Please respond with:
+
+1. **Agree / Disagree** on overall plan
+2. Any **technical objections or constraints**
+3. Preferred option for **Policy 1**
+4. Preferred option for **Policy 2**
+5. Any risks we are underestimating
+
+No implementation until **Architect + ChatGPT = 100% agreement**.
+
+---
+
+That’s it.
+We stop here until the Architect replies.
+
+When you get the Architect’s response, paste it **verbatim**, and I will:
+
+* Compare line-by-line for alignment
+* Flag any disagreement
+* Propose reconciled wording if needed
+* Confirm when we are truly at **100% agreement**

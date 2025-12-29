@@ -1,0 +1,108 @@
+✅ COPY THIS PROMPT
+
+SYSTEM DIAGNOSTIC REQUEST — COPILOT PAGE EXPLANATIONS & TTS
+
+I need you to run a full diagnostic on the Copilot guided-mode page explanation system across my app.
+Here is the issue:
+
+Pages where Copilot works correctly (sheet opens + voice speaks):
+
+Lifestyle page
+
+Socializing Hub
+
+Craving Creator Hub
+
+Fridge Rescue
+
+Kids and Toddler Meals
+
+Alcohol Hub
+These all open Copilot automatically AND speak correctly.
+
+Pages where Copilot DOES NOT work correctly:
+
+Biometrics page: Sheet opens but NO audio plays
+
+Shopping List: Sheet DOES NOT open at all
+
+Get Inspiration: Sheet DOES NOT open
+
+Macro Calculator: Sheet opens but NO audio plays
+
+Weekly Meal Boards: Sheet DOES NOT open
+
+Diabetic Hub: Sheet DOES NOT open
+
+I need you to diagnose this EXACT question:
+
+Compare the pages where Copilot automatically works to the pages where it doesn't.
+Look at how they are structured in:
+
+PAGE_EXPLANATIONS
+
+useCopilotPageExplanation()
+
+the route paths returned by useLocation()
+
+the wrapper components around those pages
+
+how the pages are exported (default vs named)
+
+how the page paths map to Next.js / Wouter routing
+
+whether the path sent to useCopilotPageExplanation() matches the key in PAGE_EXPLANATIONS
+
+Tell me exactly why the working pages succeed.
+What are they doing right?
+What conditions are being met?
+
+Tell me exactly why the broken pages fail.
+For each broken page, identify the specific cause —
+is it:
+
+a mismatched pathname?
+
+missing /something vs /something/?
+
+missing real route path?
+
+wrapped in a parent layout?
+
+dynamic params?
+
+feature flag interaction?
+
+guided mode being disabled?
+
+CopilotSheet not mounted?
+
+the page never actually hits useCopilotPageExplanation?
+
+Output a table with:
+
+Page Name
+
+Actual Path in App
+
+Path Copilot Thinks It Has
+
+Does PAGE_EXPLANATIONS contain this path?
+
+Does guided mode trigger?
+
+Does TTS fire?
+
+Does Copilot open?
+
+Diagnosis
+
+Fix Recommendation
+
+Then give me the exact code fixes required for each broken page.
+
+My goal:
+Fix just the pages that are wrong by comparing them with the pages that already work perfectly.
+Run a full technical comparison and deliver actionable repairs.
+
+If you need any page code, ask me for it.

@@ -1,0 +1,177 @@
+Perfect. Then we stop debating UI and go **straight for iOS location authority + plumbing**.
+Right now your app is behaving exactly like an iOS app **without proper location permission wiring**: spinner spins, promise never resolves, web fallback works. Classic.
+
+We are going to make **iOS location actually fire**, not just “not break”.
+
+---
+
+# 🔥 THE REAL FIX: MAKE iOS LOCATION WORK (FOR REAL)
+
+There are **3 non-negotiable requirements** for iOS location to work in a Capacitor app:
+
+---
+
+## ✅ 1. iOS MUST HAVE PERMISSION STRINGS (Info.plist)
+
+Without this, iOS **silently blocks location**. No errors. No warnings. Just spinning forever.
+
+### In Xcode:
+
+Open
+**ios → App → App → Info.plist**
+
+Add **ALL THREE** (don’t skip):
+
+```xml
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>We use your location to find nearby restaurants and meals.</string>
+
+<key>NSLocationAlwaysUsageDescription</key>
+<string>We use your location to improve local meal and restaurant results.</string>
+
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>We use your location to find nearby restaurants and meals.</string>
+```
+
+🚨 If even ONE is missing, location will not work reliably.
+
+Save.
+
+---
+
+## ✅ 2. You MUST USE Capacitor Geolocation (not browser)
+
+Safari geolocation ≠ iOS WebView geolocation.
+
+### Confirm this exists:
+
+```bash
+npm ls @capacitor/geolocation
+```
+
+If missing:
+
+```bash
+npm install @capacitor/geolocation
+npx cap sync ios
+```
+
+---
+
+## ✅ 3. You MUST REQUEST PERMISSION EXPLICITLY ON iOS
+
+iOS **will not auto-prompt** unless you ask.
+
+### Correct iOS-safe call (this matters):
+
+```ts
+import { Geolocation } from '@capacitor/geolocation';
+
+export async function getIOSLocation() {
+  const perm = await Geolocation.requestPermissions();
+
+  if (perm.location !== 'granted') {
+    throw new Error('Location permission denied');
+  }
+
+  return await Geolocation.getCurrentPosition({
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0,
+  });
+}
+```
+
+🚫 `navigator.geolocation` is **not enough** inside Capacitor.
+
+---
+
+## ✅ 4. Spinner MUST STOP EVEN IF LOCATION FAILS
+
+iOS can:
+
+* delay GPS
+* require movement
+* timeout indoors
+
+Your UI must **never depend on GPS success**.
+
+Pattern (mandatory):
+
+```ts
+setLoading(true);
+
+try {
+  const pos = await getIOSLocation();
+  useCoords(pos.coords);
+} catch (err) {
+  console.warn('Location failed, falling back');
+} finally {
+  setLoading(false); // 🔑 this fixes your infinite spinner
+}
+```
+
+---
+
+## ✅ 5. Rebuild ONCE (This Time It Matters)
+
+This is **not a web-only change**. Permissions require a native rebuild.
+
+### Do this ONCE:
+
+```bash
+npx cap sync ios
+open ios/App/App.xcworkspace
+```
+
+In Xcode:
+
+* Select **App**
+* Select **Any iPhone Simulator or your device**
+* **Product → Clean Build Folder**
+* **Run**
+
+---
+
+## 🔍 How You Know It’s Fixed
+
+On iPhone (first launch after rebuild):
+
+1. iOS shows **“Allow Location While Using App?”**
+2. You tap **Allow**
+3. Location button works
+4. Spinner stops
+5. Restaurants load near you
+
+If the permission popup does NOT appear → something above is missing.
+
+---
+
+## 🚫 What You Do NOT Need To Do
+
+* ❌ No App Store resubmission yet
+* ❌ No TestFlight rebuilds for future CSS fixes
+* ❌ No staging changes
+* ❌ No copilot changes
+
+This is **pure iOS permission + API wiring**.
+
+---
+
+## ⚡ Bottom Line (Straight Talk)
+
+Your app was:
+
+* ✅ coded correctly
+* ❌ missing iOS permission + explicit request
+
+That’s why web works and iOS doesn’t.
+
+---
+
+### Next move (answer ONE thing):
+
+**Are you in Xcode right now?**
+If yes → I’ll walk you *click-by-click* through Info.plist and confirm it’s wired correctly before you run.
+
+Say **YES (in Xcode)** or **NO (not yet)** and we go step-by-step.

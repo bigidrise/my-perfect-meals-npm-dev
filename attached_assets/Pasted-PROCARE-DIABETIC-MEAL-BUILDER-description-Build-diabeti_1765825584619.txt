@@ -1,0 +1,39 @@
+PROCARE – DIABETIC MEAL BUILDER
+
+description:
+"Build diabetic-friendly meals for your client using clinician-defined guardrails."
+
+spokenText:
+"This diabetic meal builder is designed for creating meals for your client under ProCare. All meals generated here follow the guardrails you’ve already set in the client dashboard, including carb limits, fiber minimums, glycemic targets, and meal frequency. Use the AI Meal Creator to select ingredients with the meal picker, or use Create With Chef to describe meals and snacks for your client. You can build one or multiple days and generate meals that align with the client’s diabetic plan."
+
+PROCARE – GLP-1 MEAL BUILDER
+
+description:
+"Create GLP-1–aligned meals for your client using appetite-aware guardrails."
+
+spokenText:
+"The GLP-1 meal builder under ProCare is used to create meals for your client based on the GLP-1 guardrails you’ve set. Meals generated here follow portion, volume, protein, and digestion targets designed to support GLP-1 use. Use the AI Meal Creator to pick ingredients, or Create With Chef to describe meals and snacks for your client, then build meals that align with their current phase and goals."
+
+PROCARE – ANTI-INFLAMMATORY MEAL BUILDER
+
+description:
+"Build inflammation-conscious meals for your client using targeted guardrails."
+
+spokenText:
+"This anti-inflammatory meal builder lets you create meals for your client using guardrails focused on inflammation-friendly foods. Use the AI Meal Creator to choose ingredients with the meal picker, or Create With Chef to describe meals and snacks for your client. All meals generated here follow the parameters you’ve set in the client dashboard to support recovery and overall wellness."
+
+PROCARE – PERFORMANCE & COMPETITION MEAL BUILDER
+
+description:
+"Create precision-based performance meals for your client using competition-level guardrails."
+
+spokenText:
+"The performance and competition meal builder under ProCare is designed for advanced, goal-driven nutrition. Meals created here follow the exact macros, carb directives, and performance targets you’ve set for your client. Use the AI Meal Creator to dial in ingredients, or Create With Chef to describe meals and snacks, then generate meals that support training, recovery, and competition demands."
+
+PROCARE – GENERAL NUTRITION MEAL BUILDER
+
+description:
+"Build balanced, everyday meals for your client using flexible nutrition guardrails."
+
+spokenText:
+"The general nutrition meal builder under ProCare is used to create balanced meals for your client while staying within the targets you’ve set. Use the AI Meal Creator to select ingredients with the meal picker, or Create With Chef to describe meals and snacks for your client. This builder offers flexibility while still respecting the client’s macros and nutrition goals."

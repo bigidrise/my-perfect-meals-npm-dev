@@ -1,0 +1,240 @@
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.10.777c825
+   Path: /Users/bigidrise/Downloads/my-perfect-meals-staging/client/public/version.json
+   Built at: 2025-12-10T03:05:49.259Z
+
+> rest-express@1.0.0 build
+> npm run generate:version && npm run build:client && npm run build:server
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.10.777c825
+   Path: /Users/bigidrise/Downloads/my-perfect-meals-staging/client/public/version.json
+   Built at: 2025-12-10T03:05:49.530Z
+
+> rest-express@1.0.0 build:client
+> cd client && vite build
+
+vite v5.4.21 building for production...
+✓ 3299 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/api.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/MealCard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/GeneralNutritionBuilder.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useDiabetes.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useGLP1.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useGlp1Shots.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/boardApi.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/ABTestingDemo.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/data/templateSets.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/api.ts but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/pickers/MealPickerDrawer.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/dailyLimits.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/biometrics/RemainingMacrosFooter.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/macroResolver.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/BeachBodyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/MacroCounter.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/macroResolver.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/BeachBodyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/my-biometrics.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+dist/index.html                                 0.94 kB │ gzip:   0.47 kB
+dist/assets/app-entry-H6TeovOu.css            218.14 kB │ gzip:  31.77 kB
+dist/assets/replacementContext-BQFSAKWh.js      0.19 kB │ gzip:   0.16 kB
+dist/assets/useWeeklyPlan-C3y9hPGd.js           0.52 kB │ gzip:   0.35 kB
+dist/assets/index-Cnz17kQ1.js                   2.05 kB │ gzip:   1.06 kB
+dist/assets/app-entry-CSMg_l_k.js           2,652.89 kB │ gzip: 666.06 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.53s
+
+> rest-express@1.0.0 build:server
+> esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap
+
+
+  dist/prod.js      1.2mb ⚠️
+  dist/prod.js.map  2.1mb
+
+⚡ Done in 53ms
+✔ Adding native Xcode project in ios in 13.43ms
+✔ add in 13.66ms
+✔ Copying web assets from dist to ios/App/App/public in 205.34ms
+✔ Creating capacitor.config.json in ios/App/App in 301.29μs
+✔ copy ios in 255.94ms
+✔ Updating iOS plugins in 9.55ms
+✔ Updating iOS native dependencies with pod install in 9.42s
+✔ update ios in 9.53s
+[success] ios platform added!
+Follow the Developer Workflow guide to get building:
+https://capacitorjs.com/docs/basics/workflow
+✔ Copying web assets from dist to ios/App/App/public in 289.42ms
+✔ Creating capacitor.config.json in ios/App/App in 598.54μs
+✔ copy ios in 333.03ms
+✔ Updating iOS plugins in 9.13ms
+✔ Updating iOS native dependencies with pod install in 2.66s
+✔ update ios in 2.73s
+[info] Sync finished in 3.368s
+zsh: command not found: #
+bigidrise@Idrises-iMac my-perfect-meals-staging % cd ~/Downloads/my-perfect-meals-staging
+rm -rf ios
+rm -rf ~/Library/Developer/Xcode/DerivedData
+npm run build
+npx cap add ios
+npx cap sync ios
+open ios/App/App.xcworkspace
+
+> rest-express@1.0.0 prebuild
+> npm run generate:version
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.10.777c825
+   Path: /Users/bigidrise/Downloads/my-perfect-meals-staging/client/public/version.json
+   Built at: 2025-12-10T03:08:56.883Z
+
+> rest-express@1.0.0 build
+> npm run generate:version && npm run build:client && npm run build:server
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.10.777c825
+   Path: /Users/bigidrise/Downloads/my-perfect-meals-staging/client/public/version.json
+   Built at: 2025-12-10T03:08:57.265Z
+
+> rest-express@1.0.0 build:client
+> cd client && vite build
+
+vite v5.4.21 building for production...
+✓ 3299 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/api.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/MealCard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/GeneralNutritionBuilder.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useDiabetes.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useGLP1.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useGlp1Shots.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/boardApi.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/ABTestingDemo.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/data/templateSets.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/api.ts but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/pickers/MealPickerDrawer.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/dailyLimits.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/biometrics/RemainingMacrosFooter.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/macroResolver.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/BeachBodyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/MacroCounter.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/macroResolver.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/BeachBodyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/my-biometrics.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+dist/index.html                                 0.94 kB │ gzip:   0.47 kB
+dist/assets/app-entry-H6TeovOu.css            218.14 kB │ gzip:  31.77 kB
+dist/assets/replacementContext-BQFSAKWh.js      0.19 kB │ gzip:   0.16 kB
+dist/assets/useWeeklyPlan-C3y9hPGd.js           0.52 kB │ gzip:   0.35 kB
+dist/assets/index-Cnz17kQ1.js                   2.05 kB │ gzip:   1.06 kB
+dist/assets/app-entry-CSMg_l_k.js           2,652.89 kB │ gzip: 666.06 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.53s
+
+> rest-express@1.0.0 build:server
+> esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap
+
+
+  dist/prod.js      1.2mb ⚠️
+  dist/prod.js.map  2.1mb
+
+⚡ Done in 57ms
+✔ Adding native Xcode project in ios in 13.56ms
+✔ add in 13.81ms
+✔ Copying web assets from dist to ios/App/App/public in 314.84ms
+✔ Creating capacitor.config.json in ios/App/App in 297.92μs
+✔ copy ios in 363.21ms
+✔ Updating iOS plugins in 11.40ms
+✔ Updating iOS native dependencies with pod install in 4.20s
+✔ update ios in 4.35s
+[success] ios platform added!
+Follow the Developer Workflow guide to get building:
+https://capacitorjs.com/docs/basics/workflow
+✔ Copying web assets from dist to ios/App/App/public in 368.40ms
+✔ Creating capacitor.config.json in ios/App/App in 668.04μs
+✔ copy ios in 419.37ms
+✔ Updating iOS plugins in 12.63ms
+✔ Updating iOS native dependencies with pod install in 4.24s
+✔ update ios in 4.34s
+[info] Sync finished in 5.112s
+bigidrise@Idrises-iMac my-perfect-meals-staging % cd ~/Downloads/my-perfect-meals-staging
+npm run build
+npx cap add ios
+npx cap sync ios
+open ios/App/App.xcworkspace
+
+> rest-express@1.0.0 prebuild
+> npm run generate:version
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.10.777c825
+   Path: /Users/bigidrise/Downloads/my-perfect-meals-staging/client/public/version.json
+   Built at: 2025-12-10T03:10:52.047Z
+
+> rest-express@1.0.0 build
+> npm run generate:version && npm run build:client && npm run build:server
+
+
+> rest-express@1.0.0 generate:version
+> node scripts/generate-version.js
+
+✅ Generated version.json: 1.0.0+2025.12.10.777c825
+   Path: /Users/bigidrise/Downloads/my-perfect-meals-staging/client/public/version.json
+   Built at: 2025-12-10T03:10:52.341Z
+
+> rest-express@1.0.0 build:client
+> cd client && vite build
+
+vite v5.4.21 building for production...
+✓ 3299 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/api.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/MealCard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/GeneralNutritionBuilder.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useDiabetes.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useGLP1.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/hooks/useGlp1Shots.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/boardApi.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/ABTestingDemo.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/data/templateSets.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/api.ts but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/pickers/MealPickerDrawer.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/dailyLimits.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/components/biometrics/RemainingMacrosFooter.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/macroResolver.ts, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/BeachBodyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/MacroCounter.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/lib/macroResolver.ts is dynamically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/ProClientDashboard.tsx but also statically imported by /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/BeachBodyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/WeeklyMealBoard.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/my-biometrics.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/DiabeticMenuBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/physician/GLP1MealBuilder.tsx, /Users/bigidrise/Downloads/my-perfect-meals-staging/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, dynamic import will not move module into another chunk.
+
+dist/index.html                                 0.94 kB │ gzip:   0.47 kB
+dist/assets/app-entry-H6TeovOu.css            218.14 kB │ gzip:  31.77 kB
+dist/assets/replacementContext-BQFSAKWh.js      0.19 kB │ gzip:   0.16 kB
+dist/assets/useWeeklyPlan-C3y9hPGd.js           0.52 kB │ gzip:   0.35 kB
+dist/assets/index-Cnz17kQ1.js                   2.05 kB │ gzip:   1.06 kB
+dist/assets/app-entry-CSMg_l_k.js           2,652.89 kB │ gzip: 666.06 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.76s
+
+> rest-express@1.0.0 build:server
+> esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap
+
+
+  dist/prod.js      1.2mb ⚠️
+  dist/prod.js.map  2.1mb
+
+⚡ Done in 38ms
+[error] ios platform already exists.
+        To re-add this platform, first remove ./ios, then run this command
+        again.
+        WARNING: Your native project will be completely removed.
+✔ Copying web assets from dist to ios/App/App/public in 361.06ms
+✔ Creating capacitor.config.json in ios/App/App in 1.23ms
+✔ copy ios in 418.35ms
+✔ Updating iOS plugins in 12.21ms
+✔ Updating iOS native dependencies with pod install in 4.31s
+✔ update ios in 4.39s
+[info] Sync finished in 5.203s
+bigidrise@Idrises-iMac my-perfect-meals-staging % 
