@@ -69,7 +69,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
+import { getCurrentWeekStartISOInTZ, getMondayISO } from "@/../../shared/schema/weeklyBoard";
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -174,9 +174,8 @@ export default function WeeklyMealBoard() {
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
-  // FIX: Use getMondayISO() directly like other working boards (Anti-Inflammatory, Diabetic, BeachBody)
+  // FIX: Use getMondayISO() which correctly handles timezone (same as Anti-Inflammatory, Diabetic, BeachBody boards)
   const [weekStartISO, setWeekStartISO] = React.useState<string>(getMondayISO());
-
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -184,7 +183,6 @@ export default function WeeklyMealBoard() {
     save: saveToHook,
     source,
   } = useWeeklyBoard("1", weekStartISO);
-
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -1990,22 +1988,17 @@ export default function WeeklyMealBoard() {
           <div className="col-span-full">
             {(() => {
               const resolved = getResolvedTargets(user?.id);
-              const hasTargets =
-                (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
-
+              const hasTargets = (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
+              
               if (!hasTargets) return null;
 
-              const hasStarchyFibrous =
-                (resolved.starchyCarbs_g ?? 0) > 0 ||
-                (resolved.fibrousCarbs_g ?? 0) > 0;
+              const hasStarchyFibrous = (resolved.starchyCarbs_g ?? 0) > 0 || (resolved.fibrousCarbs_g ?? 0) > 0;
 
               return (
                 <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
-                        Daily Targets
-                      </span>
+                      <span className="text-xs font-medium text-white/60 uppercase tracking-wide">Daily Targets</span>
                       <Button
                         onClick={() => setAdditionalMacrosOpen(true)}
                         className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
@@ -2018,56 +2011,38 @@ export default function WeeklyMealBoard() {
                     {hasStarchyFibrous ? (
                       <div className="grid grid-cols-5 gap-2">
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.protein_g || 0)}g
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
                           <div className="text-xs text-white/60">Protein</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.carbs_g || 0)}g
-                          </div>
-                          <div className="text-xs text-white/60">
-                            Total Carbs
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
+                          <div className="text-xs text-white/60">Total Carbs</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.starchyCarbs_g ?? 0)}g
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.starchyCarbs_g ?? 0)}g</div>
                           <div className="text-xs text-white/60">Starchy</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.fibrousCarbs_g ?? 0)}g
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.fibrousCarbs_g ?? 0)}g</div>
                           <div className="text-xs text-white/60">Fibrous</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.fat_g || 0)}g
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
                           <div className="text-xs text-white/60">Fat</div>
                         </div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-3">
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.protein_g || 0)}g
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
                           <div className="text-xs text-white/60">Protein</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.carbs_g || 0)}g
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
                           <div className="text-xs text-white/60">Carbs</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">
-                            {Math.round(resolved.fat_g || 0)}g
-                          </div>
+                          <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
                           <div className="text-xs text-white/60">Fat</div>
                         </div>
                       </div>
