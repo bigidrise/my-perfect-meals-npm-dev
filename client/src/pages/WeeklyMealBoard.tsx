@@ -69,7 +69,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getCurrentWeekStartISOInTZ } from "@/../../shared/schema/weeklyBoard";
+import { getCurrentWeekStartISOInTZ, getMondayISO } from "@/../../shared/schema/weeklyBoard";
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -174,9 +174,8 @@ export default function WeeklyMealBoard() {
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
-  // FIX: Use lazy initializer with timezone-aware runtime helper to ensure current week
-  const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(() => getCurrentWeekStartISOInTZ(todayISOInTZ("America/Chicago")));
+  // FIX: Use getMondayISO() which correctly handles timezone (same as Anti-Inflammatory, Diabetic, BeachBody boards)
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(getMondayISO());
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -643,9 +642,12 @@ export default function WeeklyMealBoard() {
   }, [weekStartISO]);
 
   // Set initial active day when week loads
+  // UX: Auto-focus on today if it's in this week, otherwise default to Monday
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      setActiveDayISO(weekDatesList[0]); // Default to Monday
+      const todayISO = todayISOInTZ("America/Chicago");
+      const todayInWeek = weekDatesList.find((d) => d === todayISO);
+      setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
 
