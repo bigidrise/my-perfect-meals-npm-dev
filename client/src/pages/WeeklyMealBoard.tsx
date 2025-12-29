@@ -644,9 +644,12 @@ export default function WeeklyMealBoard() {
   }, [weekStartISO]);
 
   // Set initial active day when week loads
+  // UX: Auto-focus on today if it's in this week, otherwise default to Monday
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      setActiveDayISO(weekDatesList[0]); // Default to Monday
+      const todayISO = todayISOInTZ("America/Chicago");
+      const todayInWeek = weekDatesList.find((d) => d === todayISO);
+      setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
 
