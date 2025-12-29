@@ -69,7 +69,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getCurrentWeekStartISOInTZ } from "@/../../shared/schema/weeklyBoard";
+import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -174,22 +174,8 @@ export default function WeeklyMealBoard() {
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
-  // FIX: Use lazy initializer with timezone-aware runtime helper to ensure current week
-  const [weekStartISO, setWeekStartISO] = React.useState<string>(() =>
-    getCurrentWeekStartISOInTZ(todayISOInTZ("America/Chicago")),
-  );
-
-  React.useEffect(() => {
-    const currentWeekStart = getCurrentWeekStartISOInTZ(
-      todayISOInTZ("America/Chicago"),
-    );
-
-    if (!weekStartISO || weekStartISO !== currentWeekStart) {
-      setWeekStartISO(currentWeekStart);
-    }
-    // run once on mount only
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // FIX: Use getMondayISO() directly like other working boards (Anti-Inflammatory, Diabetic, BeachBody)
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(getMondayISO());
 
   const {
     board: hookBoard,
@@ -198,6 +184,7 @@ export default function WeeklyMealBoard() {
     save: saveToHook,
     source,
   } = useWeeklyBoard("1", weekStartISO);
+
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
