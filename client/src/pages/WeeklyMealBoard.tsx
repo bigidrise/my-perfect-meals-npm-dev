@@ -44,7 +44,7 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ } from "@/utils/midnight";
+import { getWeekStartISOInTZ, todayISOInTZ } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -69,7 +69,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getCurrentWeekStartISOInTZ, getMondayISO } from "@/../../shared/schema/weeklyBoard";
+import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -174,9 +174,10 @@ export default function WeeklyMealBoard() {
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
-  // FIX: Use lazy initializer with timezone-aware helper for America/Chicago
+  // FIX: Use calendar-safe helper that avoids UTC/ISO day-shift bugs
+  // See: https://github.com/my-perfect-meals/issues/xxx (one-day-off bug)
   const [weekStartISO, setWeekStartISO] = React.useState<string>(
-    () => getCurrentWeekStartISOInTZ(todayISOInTZ("America/Chicago"))
+    () => getWeekStartISOInTZ("America/Chicago")
   );
   const {
     board: hookBoard,
