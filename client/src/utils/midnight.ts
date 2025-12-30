@@ -35,6 +35,18 @@ export function getTodayPartsInTZ(tz: string): { year: number; month: number; da
 }
 
 /**
+ * Get today's date as YYYY-MM-DD in the specified timezone.
+ * CRITICAL: Uses Intl.DateTimeFormat to avoid UTC conversion issues.
+ * This is the calendar-safe replacement for todayISOInTZ when precision matters.
+ */
+export function getTodayISOSafe(tz: string): string {
+  const { year, month, day } = getTodayPartsInTZ(tz);
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+}
+
+/**
  * Get the Monday (week start) for the current week in the specified timezone.
  * CRITICAL: This avoids UTC/ISO conversion that causes "one day off" bugs.
  * 
@@ -69,4 +81,25 @@ export function getWeekStartISOInTZ(tz: string): string {
   const dd = String(localDate.getDate()).padStart(2, '0');
   
   return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
+ * Generate 7 consecutive date strings (Mon-Sun) from a week start.
+ * CRITICAL: Uses LOCAL calendar math, not UTC, to avoid day-shift bugs.
+ */
+export function weekDatesLocal(weekStartISO: string): string[] {
+  // Parse the weekStartISO without UTC coercion
+  const [year, month, day] = weekStartISO.split('-').map(Number);
+  const dates: string[] = [];
+  
+  for (let i = 0; i < 7; i++) {
+    // Create LOCAL date and add days
+    const localDate = new Date(year, month - 1, day + i);
+    const yyyy = localDate.getFullYear();
+    const mm = String(localDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(localDate.getDate()).padStart(2, '0');
+    dates.push(`${yyyy}-${mm}-${dd}`);
+  }
+  
+  return dates;
 }

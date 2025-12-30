@@ -44,7 +44,7 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { getWeekStartISOInTZ, todayISOInTZ } from "@/utils/midnight";
+import { getWeekStartISOInTZ, getTodayISOSafe, weekDatesLocal, todayISOInTZ } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -640,15 +640,17 @@ export default function WeeklyMealBoard() {
   }
 
   // Generate week dates for day planning
+  // FIX: Use calendar-safe weekDatesLocal to avoid UTC "Z" day-shift bugs
   const weekDatesList = useMemo(() => {
-    return weekStartISO ? weekDates(weekStartISO) : [];
+    return weekStartISO ? weekDatesLocal(weekStartISO) : [];
   }, [weekStartISO]);
 
   // Set initial active day when week loads
   // UX: Auto-focus on today if it's in this week, otherwise default to Monday
+  // FIX: Use getTodayISOSafe (Intl-based) to match weekDatesLocal format
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      const todayISO = todayISOInTZ("America/Chicago");
+      const todayISO = getTodayISOSafe("America/Chicago");
       const todayInWeek = weekDatesList.find((d) => d === todayISO);
       setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
