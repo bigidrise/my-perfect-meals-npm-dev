@@ -174,8 +174,10 @@ export default function WeeklyMealBoard() {
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
-  // FIX: Use getMondayISO() which correctly handles timezone (same as Anti-Inflammatory, Diabetic, BeachBody boards)
-  const [weekStartISO, setWeekStartISO] = React.useState<string>(getMondayISO());
+  // FIX: Use lazy initializer with timezone-aware helper for America/Chicago
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(
+    () => getCurrentWeekStartISOInTZ(todayISOInTZ("America/Chicago"))
+  );
   const {
     board: hookBoard,
     loading: hookLoading,
