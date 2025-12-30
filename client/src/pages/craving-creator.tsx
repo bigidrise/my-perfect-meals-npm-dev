@@ -328,7 +328,7 @@ export default function CravingCreator() {
 
   const handleGenerateMeal = async () => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
-    
+
     if (!cravingInput.trim()) {
       console.log("❌ Empty craving input - showing toast");
       toast({
@@ -339,7 +339,11 @@ export default function CravingCreator() {
       return;
     }
 
-    console.log("✅ Starting generation with:", { cravingInput, servings, selectedDiet });
+    console.log("✅ Starting generation with:", {
+      cravingInput,
+      servings,
+      selectedDiet,
+    });
     setIsGenerating(true);
     startProgressTicker();
 
@@ -494,10 +498,15 @@ export default function CravingCreator() {
             </button>
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">Craving Creator</h1>
+            <h1 className="text-lg font-bold text-white truncate min-w-0">
+              Craving Creator
+            </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -732,7 +741,7 @@ export default function CravingCreator() {
                       data-wt="cc-generate-button"
                       onClick={handleGenerateMeal}
                       disabled={isGenerating}
-                      className="w-full bg-lime-900 hover:bg-lime-500 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      className="w-full bg-lime-600 hover:bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       Create My Craving
                     </GlassButton>

@@ -382,7 +382,7 @@ export default function MealFinder() {
                 <Button
                   onClick={handleSearch}
                   disabled={findMealsMutation.isPending}
-                  className="w-full bg-lime-900 hover:bg-lime-500 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
+                  className="w-full bg-lime-600 hover:bg-lime-600 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
                   data-testid="button-find-meals"
                 >
                   {findMealsMutation.isPending
