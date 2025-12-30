@@ -454,7 +454,7 @@ export default function ProClientDashboard() {
             <div className="col-span-full flex gap-2">
               <Button
                 onClick={saveTargets}
-                className="bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
+                className="bg-lime-600 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
                 data-testid="button-save-macros"
               >
                 Save Targets
@@ -506,7 +506,7 @@ export default function ProClientDashboard() {
                     });
                   }
                 }}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 text-lg py-3 shadow-2xl hover:shadow-red-500/50 transition-all duration-200 flash-border"
+                className="bg-black hover:bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl hover:shadow-red-500/50 transition-all duration-200 flash-border"
                 data-testid="button-send-macros-to-biometrics"
               >
                 <Target className="h-5 w-5 mr-2" />
@@ -594,7 +594,7 @@ export default function ProClientDashboard() {
               <div className="col-span-full">
                 <Button
                   onClick={saveTargets}
-                  className="bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
+                  className="bg-lime-600 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
                 >
                   Save Carb Directive
                 </Button>
@@ -620,7 +620,7 @@ export default function ProClientDashboard() {
               />
               <Button
                 onClick={saveContext}
-                className="bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
+                className="bg-lime-600 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
               >
                 Save {roleLabel} Notes
               </Button>
@@ -855,7 +855,7 @@ export default function ProClientDashboard() {
                 localStorage.setItem("pro-client-id", clientId);
                 setLocation("/diabetic-hub");
               }}
-              className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-diabetic-hub"
             >
               🩸 Diabetic Hub
@@ -865,7 +865,7 @@ export default function ProClientDashboard() {
                 localStorage.setItem("pro-client-id", clientId);
                 setLocation("/glp1-hub");
               }}
-              className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-glp1-hub"
             >
               💉 GLP-1 Hub
@@ -877,7 +877,7 @@ export default function ProClientDashboard() {
                   `/pro/clients/${clientId}/anti-inflammatory-builder`,
                 );
               }}
-              className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-anti-inflammatory-hub"
             >
               🌿 Anti-Inflammatory Menu Builder
@@ -895,7 +895,7 @@ export default function ProClientDashboard() {
                   `/pro/clients/${clientId}/performance-competition-builder`,
                 )
               }
-              className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-performance-competition-builder"
             >
               <Trophy className="h-4 w-4 mr-2" /> Performance & Competition
@@ -910,7 +910,7 @@ export default function ProClientDashboard() {
                   `/pro/clients/${clientId}/general-nutrition-builder`,
                 );
               }}
-              className="w-full sm:w-[400px] bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-general-nutrition-builder"
             >
               🌿 General Nutrition Builder
