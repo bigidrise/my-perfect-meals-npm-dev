@@ -76,10 +76,26 @@ const DIETARY_OPTIONS = [
 ];
 
 const DESSERT_TOUR_STEPS: TourStep[] = [
-  { title: "Choose Dessert Type", description: "Pick what kind of dessert you want — cake, pie, cookies, smoothies, frozen treats, or let us surprise you." },
-  { title: "Select Flavor & Servings", description: "Choose your favorite flavors or textures, and set how many servings you need." },
-  { title: "Add Dietary Needs", description: "Add any dietary requirements like low sugar, gluten-free, or high protein if you have them." },
-  { title: "Create & Enjoy", description: "Tap create and enjoy a dessert that fits exactly what you were craving." },
+  {
+    title: "Choose Dessert Type",
+    description:
+      "Pick what kind of dessert you want — cake, pie, cookies, smoothies, frozen treats, or let us surprise you.",
+  },
+  {
+    title: "Select Flavor & Servings",
+    description:
+      "Choose your favorite flavors or textures, and set how many servings you need.",
+  },
+  {
+    title: "Add Dietary Needs",
+    description:
+      "Add any dietary requirements like low sugar, gluten-free, or high protein if you have them.",
+  },
+  {
+    title: "Create & Enjoy",
+    description:
+      "Tap create and enjoy a dessert that fits exactly what you were craving.",
+  },
 ];
 
 export default function DessertCreator() {
@@ -116,7 +132,10 @@ export default function DessertCreator() {
   useEffect(() => {
     if (generatedDessert) {
       try {
-        localStorage.setItem("mpm_dessert_creator_result", JSON.stringify(generatedDessert));
+        localStorage.setItem(
+          "mpm_dessert_creator_result",
+          JSON.stringify(generatedDessert),
+        );
       } catch {}
     }
   }, [generatedDessert]);
@@ -142,7 +161,6 @@ export default function DessertCreator() {
     }
     setProgress(100);
   };
-
 
   async function handleGenerateDessert() {
     if (!dessertCategory) {
@@ -176,7 +194,9 @@ export default function DessertCreator() {
           specificDessert,
           servingSize,
           dietaryPreferences: [
-            ...(dietaryPreference && dietaryPreference !== "none" ? [dietaryPreference] : []),
+            ...(dietaryPreference && dietaryPreference !== "none"
+              ? [dietaryPreference]
+              : []),
             ...(customDietary.trim() ? [customDietary.trim()] : []),
           ],
           userId: DEV_USER_ID,
@@ -243,10 +263,15 @@ export default function DessertCreator() {
               <span className="text-sm font-medium">Back</span>
             </button>
 
-            <h1 className="text-lg font-bold text-white truncate min-w-0">Dessert Creator</h1>
+            <h1 className="text-lg font-bold text-white truncate min-w-0">
+              Dessert Creator
+            </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -339,7 +364,10 @@ export default function DessertCreator() {
                 <label className="block text-md font-medium text-white mb-1">
                   Dietary Requirements (optional)
                 </label>
-                <Select value={dietaryPreference} onValueChange={setDietaryPreference}>
+                <Select
+                  value={dietaryPreference}
+                  onValueChange={setDietaryPreference}
+                >
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select dietary requirement" />
                   </SelectTrigger>
@@ -384,13 +412,12 @@ export default function DessertCreator() {
                   />
                 </div>
               ) : (
-          <GlassButton
-            onClick={handleGenerateDessert}
-            className="w-full bg-lime-900 hover:bg-lime-500 flex items-center justify-center"
-          >
-            Create My Dessert
-          </GlassButton>
-
+                <GlassButton
+                  onClick={handleGenerateDessert}
+                  className="w-full bg-lime-600 hover:bg-lime-600 flex items-center justify-center"
+                >
+                  Create My Dessert
+                </GlassButton>
               )}
             </CardContent>
           </Card>
