@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation, useRoute } from "wouter";
 import { proStore } from "@/lib/proData";
 import { MealCard, Meal } from "@/components/MealCard";
-import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, weekDates, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
+import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
@@ -23,7 +23,15 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ } from "@/utils/midnight";
+import { 
+  getWeekStartISOInTZ, 
+  getTodayISOSafe, 
+  weekDatesInTZ, 
+  nextWeekISO, 
+  prevWeekISO, 
+  formatWeekLabel,
+  todayISOInTZ 
+} from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Home, ArrowLeft, Info, Calendar } from "lucide-react";
 import { FEATURES } from "@/utils/features";
@@ -37,7 +45,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
+// CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
@@ -71,29 +79,8 @@ function makeNewSnack(nextIndex: number): Meal {
   };
 }
 
-// Week navigation utilities
-function addDaysISO(iso: string, days: number): string {
-  const d = new Date(iso + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function nextWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, 7);
-}
-
-function prevWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, -7);
-}
-
-function formatWeekLabel(weekStartISO: string): string {
-  // Lightweight formatter: "Sep 8–14"
-  const start = new Date(weekStartISO + 'T00:00:00Z');
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 6);
-  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  return `${fmt(start)}–${fmt(end)}`;
-}
+// CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
+// Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function WeeklyMealBoard() {
   const [, setLocation] = useLocation();
@@ -126,7 +113,8 @@ export default function WeeklyMealBoard() {
   }, [clientId]);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
-  const [weekStartISO, setWeekStartISO] = React.useState<string>(getMondayISO());
+  // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
   const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard("1", weekStartISO);
 
   // Local mutable board state for optimistic updates
@@ -377,14 +365,18 @@ export default function WeeklyMealBoard() {
   }
 
   // Generate week dates for day planning
+  // CHICAGO CALENDAR FIX v1.0: Using safe weekDatesInTZ with noon UTC anchor
   const weekDatesList = useMemo(() => {
-    return weekStartISO ? weekDates(weekStartISO) : [];
+    return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
   // Set initial active day when week loads
+  // CHICAGO CALENDAR FIX v1.0: Default to today if in current week, otherwise Monday
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      setActiveDayISO(weekDatesList[0]); // Default to Monday
+      const todayISO = getTodayISOSafe("America/Chicago");
+      const todayInWeek = weekDatesList.find((d) => d === todayISO);
+      setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
 
@@ -434,16 +426,15 @@ export default function WeeklyMealBoard() {
     if (!board) return;
 
     // Deep clone the entire week
+    // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
     const clonedBoard = {
       ...board,
       id: `week-${targetWeekStartISO}`,
       days: board.days ? Object.fromEntries(
         Object.entries(board.days).map(([oldDateISO, lists]) => {
-          // Calculate offset between weeks
-          const sourceDate = new Date(weekDatesList[0] + 'T00:00:00Z');
-          const targetWeekDates = weekDates(targetWeekStartISO);
+          const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
           const dayIndex = weekDatesList.indexOf(oldDateISO);
-          const newDateISO = targetWeekDates[dayIndex] || oldDateISO;
+          const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
 
           return [newDateISO, cloneDayLists(lists)];
         })

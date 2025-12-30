@@ -10,11 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Cookie, Loader2 } from "lucide-react";
-import {
-  useSnackCreatorRequest,
-  DietType,
-  BeachBodyPhase,
-} from "@/hooks/useSnackCreatorRequest";
+import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
 import { useToast } from "@/hooks/use-toast";
 
 interface SnackCreatorModalProps {
@@ -33,8 +29,7 @@ export function SnackCreatorModal({
   dietPhase,
 }: SnackCreatorModalProps) {
   const [description, setDescription] = useState("");
-  const { generating, progress, error, generateSnack, cancel } =
-    useSnackCreatorRequest();
+  const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -100,8 +95,7 @@ export function SnackCreatorModal({
               }}
             />
             <p className="text-xs text-white/40 mt-2">
-              Describe your craving and we'll transform it into a healthy snack
-              option
+              Describe your craving and we'll transform it into a healthy snack option
             </p>
           </div>
 
@@ -115,11 +109,13 @@ export function SnackCreatorModal({
             </div>
           )}
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-400">{error}</p>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button
-              className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
+              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white"
               onClick={handleGenerate}
               disabled={generating || !description.trim()}
             >
@@ -129,7 +125,10 @@ export function SnackCreatorModal({
                   Generating...
                 </>
               ) : (
-                <>Generate AI Meal</>
+                <>
+
+                  Generate AI Meal
+                </>
               )}
             </Button>
             <Button

@@ -411,22 +411,19 @@ export default function RestaurantGuidePage() {
 
   const handleUseLocation = async () => {
     setIsGettingLocation(true);
-    
+
     try {
       const coords = await getLocation();
-      
-      const response = await apiRequest(
-        "/api/restaurants/reverse-geocode",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lat: coords.latitude,
-            lng: coords.longitude,
-          }),
-        },
-      );
-      
+
+      const response = await apiRequest("/api/restaurants/reverse-geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: coords.latitude,
+          lng: coords.longitude,
+        }),
+      });
+
       if (response.zipCode) {
         setZipCode(response.zipCode);
         toast({

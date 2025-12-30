@@ -32,7 +32,7 @@ import {
   CheckCircle2,
   XCircle,
   ArrowLeft,
-  Crown
+  Crown,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -40,10 +40,28 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
-  { icon: "1", title: "Invite Your Team", description: "Add trainers, doctors, or nutritionists by entering their email." },
-  { icon: "2", title: "Set Permissions", description: "Control what each team member can see and modify." },
-  { icon: "3", title: "Access Codes", description: "Share your unique access code so professionals can connect with you." },
-  { icon: "4", title: "Manage Members", description: "Review and revoke access to your nutrition data at any time." }
+  {
+    icon: "1",
+    title: "Invite Your Team",
+    description:
+      "Add trainers, doctors, or nutritionists by entering their email.",
+  },
+  {
+    icon: "2",
+    title: "Set Permissions",
+    description: "Control what each team member can see and modify.",
+  },
+  {
+    icon: "3",
+    title: "Access Codes",
+    description:
+      "Share your unique access code so professionals can connect with you.",
+  },
+  {
+    icon: "4",
+    title: "Manage Members",
+    description: "Review and revoke access to your nutrition data at any time.",
+  },
 ];
 
 // Types
@@ -94,19 +112,21 @@ export default function CareTeamPage() {
 
         // Check for invite code in URL (e.g., /care-team?code=MP-XXXX-XXX)
         const urlParams = new URLSearchParams(window.location.search);
-        const codeFromUrl = urlParams.get('code');
-        
+        const codeFromUrl = urlParams.get("code");
+
         if (codeFromUrl && mounted) {
           // Auto-accept invitation from URL
           try {
-            const response = await apiRequest("/api/care-team/connect", { 
-              method: "POST", 
-              body: JSON.stringify({ code: codeFromUrl }) 
+            const response = await apiRequest("/api/care-team/connect", {
+              method: "POST",
+              body: JSON.stringify({ code: codeFromUrl }),
             });
             setMembers((prev) => [response.member, ...prev]);
-            alert(`✅ Successfully accepted invitation! Welcome to the Care Team.`);
+            alert(
+              `✅ Successfully accepted invitation! Welcome to the Care Team.`,
+            );
             // Clear the code from URL
-            window.history.replaceState({}, '', '/care-team');
+            window.history.replaceState({}, "", "/care-team");
           } catch (e: any) {
             setError(e?.message ?? "Invalid or expired invitation code.");
           }
@@ -144,14 +164,16 @@ export default function CareTeamPage() {
     }
     try {
       setLoading(true);
-      const response = await apiRequest("/api/care-team/invite", { 
-        method: "POST", 
-        body: JSON.stringify({ email: invEmail, role, permissions: perms }) 
+      const response = await apiRequest("/api/care-team/invite", {
+        method: "POST",
+        body: JSON.stringify({ email: invEmail, role, permissions: perms }),
       });
       setMembers((prev) => [response.member, ...prev]);
       setInvEmail("");
       setError(null);
-      alert(`✅ Invitation sent to ${invEmail}! They'll receive an email from support@myperfectmeals.com`);
+      alert(
+        `✅ Invitation sent to ${invEmail}! They'll receive an email from support@myperfectmeals.com`,
+      );
     } catch (e: any) {
       setError(e?.message ?? "Failed to send invite.");
     } finally {
@@ -167,9 +189,9 @@ export default function CareTeamPage() {
     }
     try {
       setLoading(true);
-      const response = await apiRequest("/api/care-team/connect", { 
-        method: "POST", 
-        body: JSON.stringify({ code: accessCode }) 
+      const response = await apiRequest("/api/care-team/connect", {
+        method: "POST",
+        body: JSON.stringify({ code: accessCode }),
       });
       setMembers((prev) => [response.member, ...prev]);
       setAccessCode("");
@@ -189,7 +211,9 @@ export default function CareTeamPage() {
     try {
       await apiRequest(`/api/care-team/${id}/approve`, { method: "POST" });
       setMembers((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, status: "active" as const } : m)),
+        prev.map((m) =>
+          m.id === id ? { ...m, status: "active" as const } : m,
+        ),
       );
       alert("✅ Member approved successfully!");
     } catch {
@@ -201,7 +225,9 @@ export default function CareTeamPage() {
     try {
       await apiRequest(`/api/care-team/${id}/revoke`, { method: "POST" });
       setMembers((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, status: "revoked" as const } : m)),
+        prev.map((m) =>
+          m.id === id ? { ...m, status: "revoked" as const } : m,
+        ),
       );
       alert("✅ Access revoked successfully!");
     } catch {
@@ -210,7 +236,7 @@ export default function CareTeamPage() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
@@ -223,7 +249,9 @@ export default function CareTeamPage() {
       >
         <div className="px-4 py-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-orange-500 flex-shrink-0" />
-          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Care Team & Pro Access</h1>
+          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
+            Care Team & Pro Access
+          </h1>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
@@ -232,7 +260,6 @@ export default function CareTeamPage() {
         className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-
         {/* Invite Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Invite by Email */}
@@ -308,7 +335,7 @@ export default function CareTeamPage() {
               <Button
                 disabled={loading}
                 onClick={inviteByEmail}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                className="w-full bg-lime-600 hover:bg-lime-600 text-white"
                 data-testid="button-send-invite"
               >
                 <UserPlus2 className="h-4 w-4 mr-2" />
@@ -343,7 +370,7 @@ export default function CareTeamPage() {
               <Button
                 disabled={loading}
                 onClick={connectWithCode}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                className="w-full bg-lime-600 hover:bg-lime-600 text-white"
                 data-testid="button-submit-code"
               >
                 <ClipboardEdit className="h-4 w-4 mr-2" />
@@ -455,8 +482,8 @@ function PermToggle({
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-white/70 text-xs font-medium">{label}</span>
-      <Switch 
-        checked={checked} 
+      <Switch
+        checked={checked}
         onCheckedChange={onChange}
         className="data-[state=checked]:bg-indigo-500 scale-75"
       />
@@ -541,7 +568,7 @@ function MemberCard({
           {member.status === "active" && (
             <Button
               onClick={() => setLocation("/pro/clients")}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
+              className="bg-lime-600 hover:bg-lime-600 text-white"
               data-testid="button-open-pro-portal"
             >
               <ClipboardEdit className="h-4 w-4 mr-2" />
