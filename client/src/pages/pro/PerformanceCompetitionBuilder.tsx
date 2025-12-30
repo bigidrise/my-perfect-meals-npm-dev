@@ -5,7 +5,6 @@ import { useLocation, useRoute } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   type WeekBoard,
-  weekDates,
   getDayLists,
   setDayLists,
   cloneDayLists,
@@ -32,9 +31,17 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  getWeekStartISOInTZ, 
+  getTodayISOSafe, 
+  weekDatesInTZ, 
+  nextWeekISO, 
+  prevWeekISO, 
+  formatWeekLabel 
+} from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
+// CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
   Plus,
@@ -119,29 +126,8 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-// Week navigation utilities
-function addDaysISO(iso: string, days: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function nextWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, 7);
-}
-
-function prevWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, -7);
-}
-
-function formatWeekLabel(weekStartISO: string): string {
-  const start = new Date(weekStartISO + "T00:00:00Z");
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 6);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return `${fmt(start)}–${fmt(end)}`;
-}
+// CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
+// Using noon UTC anchor pattern to prevent day-shift bugs
 
 // Pro Care Meal Slots - 3 meals for competition prep (fixed)
 const lists: Array<["breakfast" | "lunch" | "dinner", string]> = [
@@ -211,8 +197,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }
 
   // 🎯 BULLETPROOF BOARD LOADING
+  // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(getMondayISO());
+    React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -379,14 +366,18 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }
 
   // Generate week dates
+  // CHICAGO CALENDAR FIX v1.0: Using safe weekDatesInTZ with noon UTC anchor
   const weekDatesList = useMemo(() => {
-    return weekStartISO ? weekDates(weekStartISO) : [];
+    return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
   // Set initial active day when week loads
+  // CHICAGO CALENDAR FIX v1.0: Default to today if in current week, otherwise Monday
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      setActiveDayISO(weekDatesList[0]); // Default to Monday
+      const todayISO = getTodayISOSafe("America/Chicago");
+      const todayInWeek = weekDatesList.find((d) => d === todayISO);
+      setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
 
@@ -526,6 +517,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     async (targetWeekStartISO: string) => {
       if (!board) return;
 
+      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
       const clonedBoard = {
         ...board,
         id: `week-${targetWeekStartISO}`,
@@ -533,8 +525,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           ? Object.fromEntries(
               Object.entries(board.days).map(([oldDateISO, lists]) => {
                 const dayIndex = weekDatesList.indexOf(oldDateISO);
-                const targetWeekDates = weekDates(targetWeekStartISO);
-                const newDateISO = targetWeekDates[dayIndex] || oldDateISO;
+                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+                const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
                 return [newDateISO, cloneDayLists(lists)];
               }),
             )

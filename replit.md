@@ -94,8 +94,11 @@ passed to board → summed by WeeklyMealBoard → displayed in RemainingMacrosFo
 
 **Migration Status**:
 - [x] WeeklyMealBoard - Fully migrated
-- [ ] PerformanceCompetitionBuilder - Pending
-- [ ] GeneralNutritionBuilder - Pending
-- [ ] AntiInflammatoryMenuBuilder - Pending
+- [x] PerformanceCompetitionBuilder - Fully migrated (Dec 2024)
+- [x] GeneralNutritionBuilder - Fully migrated (Dec 2024)
+- [x] AntiInflammatoryMenuBuilder - Migrated (Dec 2024, known display issue: shows Monday)
+- [x] DiabeticMenuBuilder - Fully migrated (Dec 2024)
+- [x] GLP1MealBuilder - Fully migrated (Dec 2024)
+- [x] BeachBodyMealBoard - Fully migrated (Dec 2024)
 
 **CRITICAL RULE**: Never use "T00:00:00Z" midnight patterns. Always use the noon UTC helpers from midnight.ts.
