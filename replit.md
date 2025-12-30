@@ -71,3 +71,31 @@ passed to board → summed by WeeklyMealBoard → displayed in RemainingMacrosFo
 - Meal Visual Alignment System v1
 - Image generation logic
 - Footer display logic (already supports breakdown)
+
+## Chicago Calendar Fix v1.0 (Dec 2024) — Noon UTC Anchor Pattern
+
+**Purpose**: Eliminate "one day off" bugs caused by UTC midnight boundary crossings during date conversions.
+
+**Problem**: When converting dates like `Date → ISO → Date`, midnight UTC anchors (T00:00:00Z) cross timezone boundaries in Chicago (UTC-5/6), causing the calendar day to shift by exactly one day.
+
+**Solution**: All date math is anchored at UTC noon (12:00:00Z), safely away from any timezone's midnight. Arithmetic is performed on the noon-anchored Date object, then formatted to the target timezone using Intl.DateTimeFormat.
+
+**Core Helpers** (`client/src/utils/midnight.ts`):
+- `isoToUtcNoonDate(iso)` - Converts ISO string to Date anchored at noon UTC
+- `formatISOInTZ(date, timeZone)` - Formats Date to YYYY-MM-DD in target timezone
+- `getTodayISOSafe(timeZone)` - Gets today's date safely in timezone
+- `addDaysISOSafe(iso, days, timeZone)` - Adds days using noon anchor
+- `getWeekStartISOInTZ(timeZone)` - Gets Monday of current week
+- `weekDatesInTZ(weekStartISO, timeZone)` - Generates 7 consecutive day strings
+- `nextWeekISO()` / `prevWeekISO()` - Week navigation helpers
+- `formatWeekLabel()` / `formatDateDisplay()` - Display formatting
+
+**Canonical Timezone**: `America/Chicago` for all date calculations.
+
+**Migration Status**:
+- [x] WeeklyMealBoard - Fully migrated
+- [ ] PerformanceCompetitionBuilder - Pending
+- [ ] GeneralNutritionBuilder - Pending
+- [ ] AntiInflammatoryMenuBuilder - Pending
+
+**CRITICAL RULE**: Never use "T00:00:00Z" midnight patterns. Always use the noon UTC helpers from midnight.ts.
