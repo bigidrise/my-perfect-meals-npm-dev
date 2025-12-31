@@ -11,6 +11,11 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "../shared")
     }
   },
+  build: {
+    rollupOptions: {
+      external: ["@squareetlabs/capacitor-subscriptions"]
+    }
+  },
   server: {
     host: "0.0.0.0",
     port: 5000,
