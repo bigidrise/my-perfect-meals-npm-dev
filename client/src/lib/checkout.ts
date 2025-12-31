@@ -14,20 +14,32 @@ export async function startCheckout(
   priceLookupKey: LookupKey,
   opts?: CheckoutOptions
 ) {
-  if (isIosNativeShell()) {
+  const iosShell = isIosNativeShell();
+  console.log("[Checkout] Starting checkout for:", priceLookupKey);
+  console.log("[Checkout] isIosNativeShell:", iosShell);
+  
+  if (iosShell) {
+    console.log("[Checkout] iOS shell detected, checking StoreKit...");
     const storeKitAvailable = await isStoreKitAvailable();
+    console.log("[Checkout] isStoreKitAvailable:", storeKitAvailable);
+    
     if (storeKitAvailable) {
+      console.log("[Checkout] Using StoreKit for purchase");
       const result = await iosPurchase(priceLookupKey);
+      console.log("[Checkout] StoreKit result:", result);
       if (!result.success) {
         throw new Error(result.error || "Purchase failed");
       }
       return { success: true, method: "storekit" };
     }
 
+    console.log("[Checkout] StoreKit NOT available, blocking Stripe");
     const error = new Error("Stripe checkout is unavailable inside the iOS app.");
     (error as any).code = IOS_BLOCK_ERROR;
     throw error;
   }
+  
+  console.log("[Checkout] Not iOS shell, using Stripe");
 
   try {
     const userStr = localStorage.getItem("mpm_current_user");

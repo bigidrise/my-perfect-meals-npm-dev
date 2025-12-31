@@ -10,13 +10,20 @@ import { apiUrl } from "@/lib/resolveApiBase";
 let SubscriptionsPlugin: any = null;
 
 async function getPlugin() {
+  console.log("[StoreKit] getPlugin called");
+  
   if (!isIosNativeShell()) {
+    console.log("[StoreKit] Not in iOS native shell, skipping plugin load");
     return null;
   }
+  
   if (!SubscriptionsPlugin) {
     try {
+      console.log("[StoreKit] Loading capacitor-subscriptions plugin...");
       const mod = await import("@squareetlabs/capacitor-subscriptions");
+      console.log("[StoreKit] Plugin module loaded:", Object.keys(mod));
       SubscriptionsPlugin = mod.Subscriptions;
+      console.log("[StoreKit] Subscriptions plugin:", SubscriptionsPlugin ? "loaded" : "null");
     } catch (e) {
       console.warn("[StoreKit] Failed to load plugin:", e);
       return null;
