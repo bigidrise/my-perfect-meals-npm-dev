@@ -190,6 +190,43 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
   --glass-border: rgba(255, 255, 255, 0.15);
 }
 
+/* ==========================================
+   iOS MOBILE TOUCH FIX v1.0
+   Fixes "double-tap" and "color fade" issues on iOS Safari/WKWebView
+   ========================================== */
+
+/* RULE 1: Kill tap highlight completely */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* RULE 2: Ensure buttons have proper touch behavior */
+button,
+[role="button"],
+.btn,
+a {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* RULE 3: Fix focus-visible for touch devices (prevents ghost focus) */
+@media (hover: none) {
+  button:focus:not(:focus-visible),
+  [role="button"]:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+}
+
+/* RULE 4: Overlay pointer-events safety - decorative layers should not steal focus */
+.pointer-events-none-decorative {
+  pointer-events: none;
+}
+
+.pointer-events-auto-interactive {
+  pointer-events: auto;
+}
+
 @layer base {
   * {
     border-color: hsl(214, 32%, 91%);
@@ -880,48 +917,31 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
 
 /* ============================================
    MOBILE-FIRST BUTTON FIX
-   Disable hover on touch devices, use active/focus instead
+   Relies on component-level Tailwind active: classes for pressed state
    ============================================ */
 
-/* Disable hover effects on touch devices */
-@media (hover: none) and (pointer: coarse) {
-  .btn:hover,
-  .btn-primary:hover,
-  .btn-secondary:hover,
-  .btn-accent:hover,
-  .btn-glass:hover,
-  button:hover {
-    background: inherit !important;
-    box-shadow: none !important;
-  }
-}
-
-/* Mobile tap feedback - works on ALL devices */
+/* Mobile tap feedback - transform only, preserve component backgrounds */
 .btn,
 .btn-primary,
 .btn-secondary,
 .btn-accent,
-.btn-glass,
-button {
-  transition: transform 0.08s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+.btn-glass {
+  transition: transform 0.08s ease, opacity 0.12s ease;
 }
 
 .btn:active,
 .btn-primary:active,
 .btn-secondary:active,
 .btn-accent:active,
-.btn-glass:active,
-button:active {
+.btn-glass:active {
   transform: scale(0.98);
-  background-color: rgba(255,255,255,0.08);
 }
 
 .btn:focus-visible,
 .btn-primary:focus-visible,
 .btn-secondary:focus-visible,
 .btn-accent:focus-visible,
-.btn-glass:focus-visible,
-button:focus-visible {
+.btn-glass:focus-visible {
   outline: 2px solid rgba(163,230,53,0.9);
   outline-offset: 2px;
 }
