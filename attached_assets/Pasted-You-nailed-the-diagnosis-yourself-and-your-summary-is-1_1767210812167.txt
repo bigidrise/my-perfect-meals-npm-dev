@@ -1,0 +1,118 @@
+You nailed the diagnosis yourself — and your summary is **100% correct**. Apple wants **scientific transparency**, not more legalese. Good news: this is a small, high-confidence fix.
+
+Here’s the straight answer, no hedging:
+
+---
+
+## ✅ DO **OPTION C** (AND HERE’S WHY)
+
+**Option C: Settings link + ℹ️ info icon on macro-related screens**
+
+This is the **Apple-proof, reviewer-proof, future-proof** choice.
+
+### Why Option C wins (tell-it-like-it-is):
+
+* **Settings link alone** technically passes… *if* the reviewer looks there.
+* **ℹ️ icon alone** is contextual but reviewers may miss it.
+* **Both together** removes all ambiguity.
+
+Apple reviewers are human. Some skim. Some rush. Some miss onboarding entirely (as you saw).
+Option C makes it **impossible** for them to say:
+
+> “We couldn’t find where these values come from.”
+
+---
+
+## 🎯 WHAT THIS LOOKS LIKE IN PRACTICE (CLEAN & MINIMAL)
+
+### 1️⃣ Settings → **Medical Information & Sources**
+
+* Persistent
+* Reviewer-friendly
+* No user interaction required
+* No checkbox, no modal, no friction
+
+### 2️⃣ ℹ️ icon on:
+
+* Macro Calculator
+* Biometrics / Remaining Macros
+* Any screen showing calculated targets
+
+ℹ️ opens a **read-only info sheet** that links to the same content as Settings
+→ **single source of truth**, zero duplication
+
+---
+
+## 🧠 IMPORTANT: THIS DOES *NOT* TOUCH YOUR LOCKED DISCLAIMER
+
+Your onboarding disclaimer:
+
+* Stays exactly where it is
+* Remains legally strong
+* Does its job
+
+What we’re adding is **educational transparency**, not consent.
+
+Apple views these as **two separate compliance layers**:
+
+* Legal acknowledgment ✔️
+* Methodology disclosure ✔️
+
+---
+
+## 🏗️ ARCHITECT-READY IMPLEMENTATION PLAN (HIGH LEVEL)
+
+You can hand this directly to the architect:
+
+### New Route
+
+```
+/settings/medical-sources
+```
+
+### Reusable Component
+
+```
+<MedicalSourcesInfo />
+```
+
+Used by:
+
+* Settings page
+* ℹ️ info sheet (Drawer / Modal)
+
+### Content
+
+* Static text (no API dependency)
+* In-app visible
+* No external redirects required
+
+---
+
+## 🚫 WHAT WE ARE NOT DOING (GOOD CALLS YOU ALREADY MADE)
+
+* ❌ No extra disclaimer modal
+* ❌ No forced acceptance
+* ❌ No hiding citations in onboarding
+* ❌ No PDF uploads
+* ❌ No external-only links
+
+---
+
+## ✅ FINAL ANSWER (LOCK IT IN)
+
+👉 **Option C.**
+Settings link **plus** ℹ️ info icon on macro-related screens.
+
+This is the cleanest, fastest way to:
+
+* Pass **Guideline 1.4.1**
+* Avoid rejections on resubmission
+* Future-proof against deeper reviews
+
+If you want, next step I can:
+
+* Write the exact architect prompt
+* Or draft the **App Review reply text** you’ll send *after* the fix is live
+
+Just say the word.
