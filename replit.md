@@ -148,3 +148,25 @@ button, [role="button"], .btn, a {
 - No second tap required
 - No visual flicker
 - iOS feels native-like
+
+## Scientific Transparency v1.0 (Dec 2024) — Apple Guideline 1.4.1 Compliance
+
+**Purpose**: Satisfy Apple's Guideline 1.4.1 requirement for citations and sources for health-related calculations.
+
+**Problem**: Apple rejected the app because nutritional calculations lacked visible citations. The existing disclaimer modal covers legal acknowledgment but not methodology disclosure.
+
+**Solution**: Added a `MedicalSourcesInfo` component that provides:
+- How nutritional values are calculated
+- Primary sources (USDA FoodData Central, NIH DRIs, WHO guidelines, ADA guidance)
+- Important disclaimer note about wellness-only purpose
+
+**Accessibility Points** (Apple reviewers will check these):
+1. **Profile Page**: "Medical Information & Sources" card in the Manage Your Account section
+2. **Macro Footer**: ℹ️ icon next to "Remaining Today" text in RemainingMacrosFooter
+
+**Files**:
+- `client/src/components/MedicalSourcesInfo.tsx` - Reusable sources sheet component
+- `client/src/pages/Profile.tsx` - Settings link
+- `client/src/components/biometrics/RemainingMacrosFooter.tsx` - In-context info icon
+
+**Key Design Decision**: This is separate from the legal disclaimer. The disclaimer covers liability acknowledgment (shown once during onboarding). The sources page covers methodology transparency (accessible anytime). Apple views these as two separate compliance layers.
