@@ -265,10 +265,10 @@ export default function DashboardNew() {
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-white text-lg">
-                    Log from Photo
+                    MacroScan
                   </CardTitle>
                   <CardDescription className="text-white/70 text-sm mt-1">
-                    Quickly log your meal's nutrients
+                    Scan nutrition. Log macros instantly
                   </CardDescription>
                 </div>
               </div>
