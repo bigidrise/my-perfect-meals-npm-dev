@@ -122,6 +122,7 @@ import SocialRestaurantGuide from "@/pages/SocialRestaurantGuide";
 
 // Founders page
 import FoundersPage from "@/pages/Founders";
+import DiagnosticsPage from "@/pages/DiagnosticsPage";
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
@@ -220,6 +221,7 @@ export default function Router() {
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
+        <Route path="/diagnostics" component={DiagnosticsPage} />
         {/* DELETED: HolidayFeastPlannerPage, MealFinderPage, BreakfastMealsHub, LunchMealsHub, DinnerMealsHub, SnacksMealsHub, CulturalCuisinesPage, VegetableFiberInfo, PotluckPlanner, RestaurantGuide (old) routes */}
         {/* Socializing Hub Routes */}
         <Route path="/social-hub" component={SocializingHub} />
