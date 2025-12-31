@@ -1,12 +1,44 @@
 import { useLocation } from "wouter";
+import { useCallback } from "react";
 import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
+import { getPageExplanation } from "@/components/copilot/CopilotPageExplanations";
+import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { motion } from "framer-motion";
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
-  const { toggle, isOpen } = useCopilot();
+  const { open, close, isOpen, setLastResponse } = useCopilot();
+  
+  const normalizePath = useCallback((path: string) => {
+    return path.replace(/\/+$/, '').split('?')[0];
+  }, []);
+
+  const handleChefClick = useCallback(() => {
+    if (isOpen) {
+      close();
+      return;
+    }
+
+    const normalizedPath = normalizePath(location);
+    const explanation = getPageExplanation(normalizedPath);
+
+    CopilotExplanationStore.resetPath(normalizedPath);
+
+    open();
+
+    if (explanation) {
+      setTimeout(() => {
+        setLastResponse({
+          title: explanation.title,
+          description: explanation.description,
+          spokenText: explanation.spokenText,
+          autoClose: false,
+        });
+      }, 300);
+    }
+  }, [isOpen, open, close, location, normalizePath, setLastResponse]);
 
   const navItems = [
     {
@@ -89,7 +121,7 @@ export default function BottomNav() {
           {/* CENTER COPILOT BUTTON */}
           <div className="absolute left-1/2 -translate-x-1/2 top-2 z-10">
             <motion.button
-              onClick={toggle}
+              onClick={handleChefClick}
               className="flex items-center justify-center w-14 h-14 rounded-full bg-black/70 border-2 border-white/15 backdrop-blur-xl shadow-lg shadow-orange-500/60 hover:shadow-orange-500/100 hover:border-orange-400/100 transition-all duration-300"
               whileTap={{ scale: 0.92 }}
               whileHover={{ y: -2, scale: 1.08 }}
