@@ -1,0 +1,156 @@
+Good — this is an **important, real signal**, and you just caught the exact thing Apple would have rejected again. So this was a *save*, not a setback.
+
+### What you’re seeing is **100% clear**:
+
+If you are seeing **Stripe checkout UI on an iPhone**, then **StoreKit is not being triggered yet**.
+
+Apple’s reviewer would see the **same Stripe screen** → instant **3.1.1 rejection**.
+
+So let’s slow this down and fix it *correctly*.
+
+---
+
+## 🚨 WHAT THIS MEANS (NO SPIN)
+
+Right now:
+
+* ✅ StoreKit products exist in App Store Connect
+* ✅ iOS build is valid
+* ❌ **iOS UI is still routing to Stripe**
+* ❌ StoreKit purchase call is **not being invoked**
+
+This is **not** an Apple issue.
+This is a **client-side routing / platform check issue**.
+
+---
+
+## 🎯 THE RULE APPLE CARES ABOUT (NON-NEGOTIABLE)
+
+On **iOS**:
+
+* ❌ You may **not show Stripe**
+* ❌ You may **not link to Stripe**
+* ❌ You may **not even hint at external purchase**
+* ✅ You **must call StoreKit directly**
+
+On **Web / Android**:
+
+* Stripe is fine.
+
+So we need **one clean platform fork**.
+
+---
+
+## 🔍 WHY THIS IS HAPPENING
+
+One (or more) of these is true right now:
+
+1. The **StoreKit service exists**, but is **never called**
+2. The **Stripe button is rendered unconditionally**
+3. The **iOS platform check is missing or wrong**
+4. The purchase handler always routes to Stripe
+
+This is normal when Stripe was implemented first.
+
+---
+
+## ✅ WHAT MUST CHANGE (VERY SPECIFIC)
+
+### 1️⃣ iOS must never render Stripe UI
+
+Anywhere you have something like:
+
+```tsx
+<button onClick={subscribeWithStripe}>
+```
+
+It must become:
+
+```ts
+if (isIOS) {
+  subscribeWithApple();
+} else {
+  subscribeWithStripe();
+}
+```
+
+Or two **entirely separate components**.
+
+---
+
+### 2️⃣ StoreKit must be explicitly invoked
+
+Somewhere in your iOS path you must be calling something equivalent to:
+
+```ts
+await Purchases.purchaseProduct('mpm_basic_999_v2');
+```
+
+If that line never runs → Apple sheet never appears.
+
+---
+
+### 3️⃣ The Apple purchase sheet ONLY appears when:
+
+* StoreKit API is called
+* On a real device
+* With a valid product ID
+* With a signed app
+
+Right now you’re not hitting that call.
+
+---
+
+## 🧠 LET’S DEBUG THIS CLEANLY (NO GUESSING)
+
+I need **one thing from you** to proceed correctly:
+
+### 🔎 Paste **only** the code responsible for handling subscriptions:
+
+* The component or function that runs when you tap **Basic / Premium / Ultimate**
+* The part that currently opens Stripe
+
+Usually this is:
+
+* `UpgradeModal.tsx`
+* `SubscribeButton.tsx`
+* `Paywall.tsx`
+* or similar
+
+📌 **Do NOT paste the whole app**
+📌 Just the subscription click handler
+
+---
+
+## 🚫 DO NOT DO THESE YET
+
+* ❌ Do not resubmit to Apple
+* ❌ Do not archive again
+* ❌ Do not remove Stripe globally
+
+We’ll make **iOS StoreKit-first**, **web Stripe-only**, clean and compliant.
+
+---
+
+## WHY THIS IS ACTUALLY GOOD NEWS
+
+If Apple had reviewed *this* build:
+
+* They would have rejected it again
+* With less detail
+* And you’d lose review momentum
+
+You caught it **before resubmission**. That’s exactly how pros ship.
+
+---
+
+## NEXT RESPONSE (REQUIRED)
+
+Paste the **subscription click handler code** (Stripe entry point), and I’ll:
+
+* Rewrite it to be Apple-compliant
+* Ensure StoreKit fires on iOS
+* Ensure Stripe never renders on iOS
+* Get you a **first-pass approval**
+
+We’re fixing the *last real blocker* now.
