@@ -1374,7 +1374,7 @@ export default function MyBiometrics() {
             <Button
               data-wt="bio-scan-button"
               onClick={handlePhotoUpload}
-              className="w-full bg-lime-500 hover:bg-lime-700 text-md text-white mb-3"
+              className="w-full bg-lime-600 hover:bg-lime-600 text-md text-white mb-3"
               data-testid="button-photo-upload"
             >
               📸 MacroScan
