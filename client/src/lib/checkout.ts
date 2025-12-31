@@ -1,6 +1,7 @@
 import type { LookupKey } from "@/data/planSkus";
 import { isIosNativeShell } from "@/lib/platform";
 import { apiUrl } from '@/lib/resolveApiBase';
+import { purchaseProduct as iosPurchase, isStoreKitAvailable } from "@/lib/storekit";
 
 export const IOS_BLOCK_ERROR = "IOS_APP_EXTERNAL_PAYMENTS_BLOCKED";
 
@@ -14,13 +15,21 @@ export async function startCheckout(
   opts?: CheckoutOptions
 ) {
   if (isIosNativeShell()) {
+    const storeKitAvailable = await isStoreKitAvailable();
+    if (storeKitAvailable) {
+      const result = await iosPurchase(priceLookupKey);
+      if (!result.success) {
+        throw new Error(result.error || "Purchase failed");
+      }
+      return { success: true, method: "storekit" };
+    }
+
     const error = new Error("Stripe checkout is unavailable inside the iOS app.");
     (error as any).code = IOS_BLOCK_ERROR;
     throw error;
   }
 
   try {
-    // Get current user for security validation
     const userStr = localStorage.getItem("mpm_current_user");
     const user = userStr ? JSON.parse(userStr) : null;
 
@@ -48,12 +57,9 @@ export async function startCheckout(
 
     const { url } = await res.json();
     
-    // Check if we're in an iframe (Replit dev environment)
     if (window.self !== window.top) {
-      // In iframe - open in new tab to bypass iframe restrictions
       window.open(url, '_blank');
     } else {
-      // Not in iframe - redirect normally
       window.location.href = url;
     }
   } catch (error) {
@@ -86,12 +92,9 @@ export async function openCustomerPortal(customerId: string, returnUrl?: string)
 
     const { url } = await res.json();
     
-    // Check if we're in an iframe (Replit dev environment)
     if (window.self !== window.top) {
-      // In iframe - open in new tab to bypass iframe restrictions
       window.open(url, '_blank');
     } else {
-      // Not in iframe - redirect normally
       window.location.href = url;
     }
   } catch (error) {
