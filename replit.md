@@ -102,3 +102,49 @@ passed to board → summed by WeeklyMealBoard → displayed in RemainingMacrosFo
 - [x] BeachBodyMealBoard - Fully migrated (Dec 2024)
 
 **CRITICAL RULE**: Never use "T00:00:00Z" midnight patterns. Always use the noon UTC helpers from midnight.ts.
+
+## iOS Mobile Touch Fix v1.0 (Dec 2024) — Button State Stability
+
+**Purpose**: Eliminate "double-tap" and "color fade" issues on iOS Safari/WKWebView where buttons lose background color on first tap and require a second tap to activate.
+
+**Problem**: iOS Safari's touch-state chain (`touchstart` → `:active` → `:focus` → `touchend`) gets interrupted by:
+- `:hover` styles leaking into mobile (Tailwind `hover:` classes stick on iOS)
+- `backdrop-blur` and fixed positioning layers stealing focus
+- Improper `:focus` handling (removes styles on tap)
+- Safari tap highlight artifacts
+
+**Solution**: Global CSS fixes applied in `client/src/index.css`:
+1. Kill tap highlight completely (`-webkit-tap-highlight-color: transparent`)
+2. Apply `touch-action: manipulation` to all buttons
+3. Neutralize hover states on touch devices via `@media (hover: none)`
+4. Add explicit `:active` states that preserve background color
+5. Fix focus-visible for touch devices (prevent ghost focus)
+
+**Component Updates**:
+- `Button` (shadcn): Added `touch-manipulation select-none` + explicit `active:` states for all variants
+- `GlassButton`: Added `touch-manipulation select-none` + explicit `active:` states with scale feedback
+
+**Global CSS Rules** (`client/src/index.css`):
+```css
+/* Kill tap highlight */
+* { -webkit-tap-highlight-color: transparent !important; }
+
+/* Touch behavior for buttons */
+button, [role="button"], .btn, a {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* Transform-only feedback for .btn classes */
+.btn:active { transform: scale(0.98); }
+```
+
+**Key Design Decision**: Global CSS provides only transform feedback and tap highlight removal. Background color management is delegated to component-level Tailwind `active:` classes to avoid specificity conflicts.
+
+**Expected Behavior After Fix**:
+- One tap = one action
+- Button never loses its base color
+- No "half-pressed" ghost state
+- No second tap required
+- No visual flicker
+- iOS feels native-like
