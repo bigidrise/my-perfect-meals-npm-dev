@@ -19,7 +19,7 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false }: MedicalSou
 
   const defaultTrigger = asIconButton ? (
     <button
-      className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors touch-manipulation select-none active:bg-white/30"
+      className="p-1.5 rounded-2xl bg-white/10 hover:bg-white/20 transition-colors touch-manipulation select-none active:bg-white/30"
       aria-label="View sources and methodology"
     >
       <Info className="w-4 h-4 text-white/70" />
