@@ -9,6 +9,7 @@ import {
   getMacroProgressColor,
 } from "@/components/glass/mpmGlassStandard";
 import { Flame } from "lucide-react";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 export interface ConsumedMacros {
   calories: number;
@@ -133,10 +134,11 @@ export function RemainingMacrosFooter({
             </button>
           )}
 
-          <div className="flex items-center justify-center mb-2">
+          <div className="flex items-center justify-center mb-2 gap-1.5">
             <span className="text-white/70 text-xs font-medium uppercase tracking-wide">
               Remaining Today
             </span>
+            <MedicalSourcesInfo asIconButton />
           </div>
 
           {/* Simple 4-column layout: Calories, Protein, Carbs (total), Fat */}

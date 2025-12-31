@@ -29,3 +29,4 @@ android/build/
 android/captures/
 *.apk
 *.aab
+client/public/version.json

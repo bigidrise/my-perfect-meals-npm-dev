@@ -88,6 +88,7 @@ import stripeCheckoutRouter from "./routes/stripeCheckout";
 import stripeWebhookRouter from "./routes/stripeWebhook";
 import builderPlansRouter from "./routes/builderPlans";
 import passwordResetRouter from "./routes/password-reset";
+import iosVerifyRouter from "./routes/iosVerify";
 
 const app = express();
 
@@ -271,6 +272,9 @@ app.use("/api/stripe", stripeCheckoutRouter);
 
 // Stripe checkout and billing (legacy routes)
 app.use("/api/stripe", stripeRouter);
+
+// iOS In-App Purchase verification
+app.use("/api/ios", iosVerifyRouter);
 
 // Food Logs System - Register BEFORE mealsRouter to prevent route conflict with /api/macros/log
 app.use("/api", foodLogsRouter);

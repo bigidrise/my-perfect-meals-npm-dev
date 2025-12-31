@@ -1,0 +1,138 @@
+Yep — two separate problems in that log:
+
+1. **Your build is failing because the web build is trying to import a native Capacitor plugin**
+2. **Port 5000 is already running (EADDRINUSE)**
+
+Let’s fix them in the right order.
+
+---
+
+# 1) Fix the Vite build error (StoreKit plugin import)
+
+### What’s happening
+
+Vite is building your web bundle (`cd client && vite build`) and it hits:
+
+```
+import "@squareetlabs/capacitor-subscriptions"
+```
+
+That plugin is **native-only** (meant for the iOS shell), and **web builds should not hard-import it at module top-level**.
+
+### The correct fix
+
+**Remove the top-level import** and load it **only at runtime, only on native** via `await import()`.
+
+Open:
+`client/src/lib/storekit.ts`
+
+## ✅ Replace any top-level plugin import like this:
+
+```ts
+import { Capacitor } from "@capacitor/core";
+
+// ❌ REMOVE any: import { ... } from "@squareetlabs/capacitor-subscriptions";
+
+type SubscriptionsPlugin = {
+  purchase: (opts: { productId: string }) => Promise<any>;
+  restorePurchases?: () => Promise<any>;
+  // add more methods if you use them
+};
+
+async function getSubscriptionsPlugin(): Promise<SubscriptionsPlugin | null> {
+  // Only run on iOS/Android native shell
+  if (!Capacitor.isNativePlatform()) return null;
+
+  // Dynamic import so Vite doesn't require it during web build
+  const mod = await import("@squareetlabs/capacitor-subscriptions");
+
+  // Depending on how the plugin exports, one of these will exist:
+  return (mod as any).Subscriptions ?? (mod as any).default ?? (mod as any);
+}
+
+export async function startIosPurchase(productId: string) {
+  const plugin = await getSubscriptionsPlugin();
+  if (!plugin) throw new Error("StoreKit not available on web");
+
+  return plugin.purchase({ productId });
+}
+```
+
+### After that, your web build won’t choke anymore.
+
+---
+
+## ALSO: make sure the dependency exists in THIS repo
+
+In Replit workspace root, run:
+
+```bash
+npm ls @squareetlabs/capacitor-subscriptions || npm i @squareetlabs/capacitor-subscriptions
+```
+
+If it prints `(empty)` or errors → install it.
+
+---
+
+# 2) Fix the port 5000 EADDRINUSE
+
+You already know the rule: **stop the running app, then start again**.
+
+In Replit, simplest:
+
+* Hit **Stop** in the Run panel
+* Start again
+
+If you want terminal-only and `lsof/ss/fuser` aren’t available, do:
+
+```bash
+pkill -f "node dist/prod.js" || true
+pkill -f "tsx server/prod.ts" || true
+pkill -f "server/index.ts" || true
+```
+
+Then:
+
+```bash
+npm run start
+```
+
+---
+
+# 3) Re-run the production sequence (after fixes)
+
+```bash
+npm run build
+npm run start
+```
+
+---
+
+# The one “gotcha” you MUST NOT miss
+
+If your iOS shell points at production (`server.url`) and you didn’t deploy the StoreKit fix, you’ll still see Stripe on device.
+
+So after build passes:
+
+```bash
+git add -A
+git commit -m "fix: lazy-load StoreKit plugin for web builds"
+git push origin main
+```
+
+Then on the Mac clone:
+
+```bash
+git pull
+npm i
+npx cap sync ios
+```
+
+---
+
+Reply with the **two outputs** (copy/paste):
+
+1. the result of `npm ls @squareetlabs/capacitor-subscriptions`
+2. the first ~20 lines of `client/src/lib/storekit.ts` after you edit it
+
+…and I’ll tell you instantly if it’s wired correctly.

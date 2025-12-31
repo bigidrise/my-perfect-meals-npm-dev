@@ -32,11 +32,13 @@ import {
   LifeBuoy,
   Camera,
   Loader2,
+  BookOpen,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import EmotionAIFooter from "@/components/EmotionAIFooter";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
@@ -349,6 +351,13 @@ export default function Profile() {
             })}
           </div>
         </div>
+
+        {/* Medical Information & Sources */}
+        <Card className="mt-6 bg-black/30 backdrop-blur-lg border border-white/10">
+          <CardContent className="p-4">
+            <MedicalSourcesInfo />
+          </CardContent>
+        </Card>
 
         {/* Contact Support */}
         <Card className="mt-6 bg-black/30 backdrop-blur-lg border border-white/10">

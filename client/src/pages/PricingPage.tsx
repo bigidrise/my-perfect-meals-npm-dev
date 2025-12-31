@@ -9,7 +9,7 @@ import { Check, ArrowLeft, CreditCard } from "lucide-react";
 import AffiliateOnPricing from "@/components/AffiliateOnPricing";
 import { PLAN_SKUS, getPlansByGroup } from "@/data/planSkus";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
-import { isIosNativeShell, IOS_PAYMENT_MESSAGE } from "@/lib/platform";
+import { IOS_PAYMENT_MESSAGE } from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -30,11 +30,6 @@ export default function PricingPage() {
   };
 
   const handleSelectPlan = async (sku: string) => {
-    if (isIosNativeShell()) {
-      toast({ ...IOS_PAYMENT_MESSAGE, variant: "default" });
-      return;
-    }
-
     try {
       await startCheckout(sku as any, { context: "pricing_page" });
     } catch (error) {
