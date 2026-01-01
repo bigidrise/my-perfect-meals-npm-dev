@@ -123,34 +123,34 @@ export default function MyBiometrics() {
 
   const biometricsTourSteps: TourStep[] = [
     {
-      title: "Track Your Macros",
+      title: "Your Macro Targets",
       description:
-        "Log your daily protein, carbs, and fat. Your targets stay persistent until you recalculate them.",
+        "Your daily protein, carbs, and fat targets live at the top of this page. These stay saved until you recalculate them in the Macro Calculator.",
     },
     {
-      title: "Persist Your Targets",
+      title: "Persisted by Design",
       description:
-        "Tap the Persist button to lock in your macro targets. They'll stay until you change them in the Macro Calculator.",
+        "Once your targets are set, they remain persistent. You don’t need to reset them unless your goals or stats change.",
     },
     {
-      title: "Top Off with Additional Macros",
+      title: "Log Food with MacroScan",
       description:
-        "Short on protein or carbs? Pick a food source (like Whey for a protein shake) and tap Add to apply the right macro tails.",
+        "Use MacroScan to log packaged foods quickly. Take a photo of a nutrition label, review the AI-analyzed macros, and add them to your day.",
     },
     {
-      title: "Log Your Weight",
+      title: "Review Your Trends",
       description:
-        "Save your weight regularly to track progress over time. Charts show your 7-day to 12-month trends.",
+        "Track your macro totals over time. View daily, 7-day, and 30-day trends to stay consistent and spot patterns.",
     },
     {
-      title: "Photo Logging",
+      title: "Track Your Weight",
       description:
-        "Use 'MacroScan' to snap a pic of your meal - AI estimates the macros automatically.",
+        "Log your weight to monitor progress. Charts show trends from one week up to a full year.",
     },
     {
       title: "Track Your Water",
       description:
-        "Log your daily water intake at the bottom of the page to stay on top of hydration.",
+        "Log your daily water intake at the bottom of the page to support hydration and recovery.",
     },
   ];
 

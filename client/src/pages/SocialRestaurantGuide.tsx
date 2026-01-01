@@ -47,16 +47,17 @@ import { getLocation } from "@/lib/capacitorLocation";
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
     title: "Describe What You Want",
-    description: "Tell us what you're craving and the type of food you'd like.",
+    description:
+      "Enter what you’re craving or the type of food you want to eat.",
   },
   {
     title: "Enter Restaurant & ZIP",
-    description: "Enter the restaurant name and a nearby zip code.",
+    description: "Add the restaurant name and a nearby zip code.",
   },
   {
-    title: "Get Meal Options",
+    title: "Get Smart Options",
     description:
-      "See meal options that match your goals and work where you're eating.",
+      "View three goal-friendly meal options with simple tips on how to order them healthier.",
   },
 ];
 

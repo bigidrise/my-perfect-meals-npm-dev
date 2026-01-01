@@ -44,17 +44,16 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
     title: "Enter Your Ingredients",
-    description:
-      "Type or say what's in your fridge — whatever you have on hand.",
+    description: "Type or speak the ingredients you already have at home.",
   },
   {
     title: "Generate Meals",
     description:
-      "Tap generate and get three personalized meals built from your ingredients.",
+      "Tap generate to get three meals built entirely from your ingredients.",
   },
   {
     title: "Cook Without Shopping",
-    description: "It's an easy way to cook without extra shopping trips.",
+    description: "Use what you have and skip unnecessary grocery trips.",
   },
 ];
 
@@ -922,7 +921,6 @@ const FridgeRescuePage = () => {
                   </Card>
                 ))}
               </div>
-
             </div>
           )}
         </div>
