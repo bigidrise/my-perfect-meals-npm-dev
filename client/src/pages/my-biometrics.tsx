@@ -145,7 +145,7 @@ export default function MyBiometrics() {
     {
       title: "Photo Logging",
       description:
-        "Use 'Log from Photo' to snap a pic of your meal - AI estimates the macros automatically.",
+        "Use 'MacroScan' to snap a pic of your meal - AI estimates the macros automatically.",
     },
     {
       title: "Track Your Water",

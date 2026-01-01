@@ -11,9 +11,19 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "my-biometrics",
     title: "My Biometrics",
     description:
-      "Use My Biometrics to keep your daily macros, log macros using our barcode photo logger, top off shortfalls with Additional Macros, keep track of your calories up to 30 days, keep track of your weight up to a year, and track your water with our water log tracker.",
+      "Use My Biometrics to keep your daily macros, log macros using our MacroScan feature. Keep track of your calories up to 30 days, keep track of your weight up to a year, and track your water with our water log tracker.",
     spokenText:
-      "My Biometrics, log and keep your daily macros using our barcode photo scan logger, send over macros from your generated meal cards. If you're short on protein or carbs, use Additional Macros to top off — pick your food source like whey for a protein shake, and the right macro tails get applied automatically. Keep track of your calories from daily up to 30 days. Keep track of your weight daily up to a year. Track your daily water intake with our water log tracker",
+      "My Biometrics. Log and keep your daily macros using our MacroScan feature, send over macros from your generated meal cards. If you're short on protein or carbs, use Additional Macros to top off — pick your food source like whey for a protein shake, and the right macro tails get applied automatically. Keep track of your calories from daily up to 30 days. Keep track of your weight daily up to a year. Track your daily water intake with our water log tracker",
+    autoClose: true,
+  },
+
+  "/dashboard": {
+    pageId: "dashboard",
+    title: "Dashboard",
+    description:
+      "Your home base. Jump into meal planning, cravings, tracking, and lifestyle tools from one place.",
+    spokenText:
+      "Dashboard — this is your home base. From here you can plan your meals, track your macros, or create food based on what you’re actually in the mood for. You don’t need to be precise — just tell the app what you want, and it’ll build it. Anytime you want a quick explanation on a page, tap Copilot and hit Listen.",
     autoClose: true,
   },
 
