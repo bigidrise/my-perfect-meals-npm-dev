@@ -26,11 +26,14 @@ export function LockedDayDialog({
   onViewOnly,
   onCreateNewDay,
 }: LockedDayDialogProps) {
-  const formattedDate = formatDateDisplay(dateISO, {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  });
+  // Defensive: only format if we have a valid dateISO
+  const formattedDate = dateISO
+    ? formatDateDisplay(dateISO, {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      })
+    : '';
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
