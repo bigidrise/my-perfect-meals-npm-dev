@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, ArrowLeft, CreditCard } from "lucide-react";
+import { Check, ArrowLeft, CreditCard, Globe, Smartphone } from "lucide-react";
 import AffiliateOnPricing from "@/components/AffiliateOnPricing";
 import { PLAN_SKUS, getPlansByGroup } from "@/data/planSkus";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
-import { IOS_PAYMENT_MESSAGE } from "@/lib/platform";
+import { isIosNativeShell, IOS_PAYMENT_MESSAGE } from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -20,6 +20,79 @@ export default function PricingPage() {
 
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
+
+  // iOS App Store Compliance: Hide pricing UI on iOS native shell
+  // Apple Guideline 3.1.1 - No external payment options allowed
+  if (isIosNativeShell()) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-safe-nav"
+      >
+        <div
+          className="fixed left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
+          style={{ top: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Button
+              onClick={() => user ? setLocation("/dashboard") : setLocation("/welcome")}
+              className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs font-medium">Back</span>
+            </Button>
+            <h1 className="text-lg font-bold text-white">Subscription</h1>
+          </div>
+        </div>
+
+        <div
+          className="max-w-md mx-auto px-6 text-white flex flex-col items-center justify-center"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
+        >
+          <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-2xl p-8 text-center space-y-6">
+            <div className="w-16 h-16 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
+              <Globe className="w-8 h-8 text-orange-400" />
+            </div>
+            
+            <div className="space-y-3">
+              <h2 className="text-xl font-bold text-white">Manage Your Subscription</h2>
+              <p className="text-white/70 text-sm leading-relaxed">
+                To subscribe or manage your plan, please visit our website on a desktop or mobile browser.
+              </p>
+            </div>
+
+            <div className="bg-black/30 rounded-xl p-4 border border-white/10">
+              <p className="text-orange-300 font-medium text-sm">myperfectmeals.com</p>
+              <p className="text-white/50 text-xs mt-1">Sign in with your account to manage billing</p>
+            </div>
+
+            {user?.planLookupKey && (
+              <div className="pt-2">
+                <p className="text-white/60 text-xs">
+                  Current plan: <span className="text-lime-400 font-medium">{user.planLookupKey.replace(/_/g, ' ').replace('mpm ', '').replace(' monthly', '')}</span>
+                </p>
+              </div>
+            )}
+
+            <div className="pt-4 space-y-3">
+              <Button
+                onClick={() => user ? setLocation("/dashboard") : setLocation("/welcome")}
+                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+              >
+                Continue to App
+              </Button>
+              
+              <p className="text-white/40 text-xs">
+                Need help? <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   const handleBackNavigation = () => {
     if (user) {
