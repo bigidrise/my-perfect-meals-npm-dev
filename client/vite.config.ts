@@ -8,8 +8,12 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "@shared": path.resolve(__dirname, "../shared"),
-      "@squareetlabs/capacitor-subscriptions": path.resolve(__dirname, "src/lib/capacitor-subscriptions-stub.ts")
+      "@shared": path.resolve(__dirname, "../shared")
+    }
+  },
+  build: {
+    rollupOptions: {
+      external: ["@squareetlabs/capacitor-subscriptions"]
     }
   },
   server: {
