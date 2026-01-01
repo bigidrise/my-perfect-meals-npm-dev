@@ -12,6 +12,43 @@ import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
 import { isIosNativeShell, IOS_PAYMENT_MESSAGE } from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Capacitor } from "@capacitor/core";
+
+// ============ TEMPORARY DIAGNOSTICS - DELETE AFTER DEBUGGING ============
+const BUILD_HASH = "2026-01-01-DIAG-V1";
+function getDiagnostics() {
+  const iosNative = isIosNativeShell();
+  const capacitorPlatform = Capacitor.getPlatform();
+  const capacitorIsNative = Capacitor.isNativePlatform();
+  const windowCapacitor = (window as any).Capacitor;
+  const ua = navigator.userAgent;
+  const href = window.location.href;
+  
+  // Check for iOS detection heuristics
+  const isiOSDevice = /iphone|ipad|ipod/i.test(ua);
+  const hasStandalone = (window.navigator as any).standalone === true;
+  const hasWebkitBridge = typeof (window as any).webkit?.messageHandlers?.mpmNativeBridge !== "undefined";
+  const brandedUA = ua.includes("MyPerfectMealsApp");
+  
+  const diag = {
+    BUILD_HASH,
+    isIosNativeShell: iosNative,
+    capacitorPlatform,
+    capacitorIsNative,
+    windowCapacitorPlatform: windowCapacitor?.platform ?? "undefined",
+    stripeBranchWillRun: !iosNative,
+    href,
+    ua,
+    isiOSDevice,
+    hasStandalone,
+    hasWebkitBridge,
+    brandedUA,
+  };
+  
+  console.log("[PRICING DIAGNOSTICS]", JSON.stringify(diag, null, 2));
+  return diag;
+}
+// ============ END TEMPORARY DIAGNOSTICS ============
 
 export default function PricingPage() {
   const [, setLocation] = useLocation();
@@ -20,6 +57,10 @@ export default function PricingPage() {
 
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
+  
+  // ============ TEMPORARY: ALWAYS RUN DIAGNOSTICS ============
+  const diag = getDiagnostics();
+  // ============ END TEMPORARY ============
 
   // iOS App Store Compliance: Hide pricing UI on iOS native shell
   // Apple Guideline 3.1.1 - No external payment options allowed
@@ -208,6 +249,28 @@ export default function PricingPage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-safe-nav"
     >
+      {/* ============ TEMPORARY DIAGNOSTIC BANNER - DELETE AFTER DEBUGGING ============ */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-red-600 text-white p-3 text-xs font-mono overflow-x-auto">
+        <div className="font-bold text-sm mb-1">
+          {diag.isIosNativeShell 
+            ? "✅ IOS NATIVE SHELL - PRICING SHOULD BE DISABLED" 
+            : "❌ NOT IOS SHELL - STRIPE ACTIVE"}
+        </div>
+        <div>BUILD: {diag.BUILD_HASH}</div>
+        <div>isIosNativeShell: {String(diag.isIosNativeShell)}</div>
+        <div>capacitorPlatform: {diag.capacitorPlatform}</div>
+        <div>capacitorIsNative: {String(diag.capacitorIsNative)}</div>
+        <div>windowCapacitorPlatform: {diag.windowCapacitorPlatform}</div>
+        <div>stripeBranchWillRun: {String(diag.stripeBranchWillRun)}</div>
+        <div>isiOSDevice (UA): {String(diag.isiOSDevice)}</div>
+        <div>hasStandalone: {String(diag.hasStandalone)}</div>
+        <div>hasWebkitBridge: {String(diag.hasWebkitBridge)}</div>
+        <div>brandedUA: {String(diag.brandedUA)}</div>
+        <div className="mt-1 break-all">URL: {diag.href}</div>
+        <div className="mt-1 break-all text-[10px]">UA: {diag.ua}</div>
+      </div>
+      {/* ============ END TEMPORARY DIAGNOSTIC BANNER ============ */}
+
       {/* Fixed Black Glass Navigation Banner */}
       <div
         className="fixed left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
