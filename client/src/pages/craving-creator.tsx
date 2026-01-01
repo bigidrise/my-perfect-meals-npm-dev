@@ -140,18 +140,17 @@ function getMealNutrition(meal: any) {
 const CRAVING_TOUR_STEPS: TourStep[] = [
   {
     title: "Describe Your Craving",
-    description:
-      "Tell us what you're in the mood for — sweet, crunchy, creamy, tangy, or any flavor you want.",
+    description: "Tell us what you’re craving by flavor, texture, or style.",
   },
   {
-    title: "Select Servings",
+    title: "Set Preferences",
     description:
-      "Choose how many servings you need for your personalized meal.",
+      "Add dietary preferences or restrictions like dairy-free or gluten-free.",
   },
   {
-    title: "Create & Enjoy",
+    title: "Create Your Meal",
     description:
-      "Press Create and get a recipe that fits your taste and lifestyle. You never have to ignore cravings again!",
+      "Choose your servings and press Create to generate a healthier version of your craving.",
   },
 ];
 

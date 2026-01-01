@@ -79,22 +79,27 @@ const DESSERT_TOUR_STEPS: TourStep[] = [
   {
     title: "Choose Dessert Type",
     description:
-      "Pick what kind of dessert you want — cake, pie, cookies, smoothies, frozen treats, or let us surprise you.",
+      "Select the type of dessert you want — cake, pie, cookies, brownies, frozen treats, or Surprise Me.",
   },
   {
-    title: "Select Flavor & Servings",
+    title: "Add Flavor or Inspiration",
     description:
-      "Choose your favorite flavors or textures, and set how many servings you need.",
+      "Optional. Describe what you’re craving in your own words, or leave it blank and let the AI decide.",
   },
   {
-    title: "Add Dietary Needs",
+    title: "Select Serving Size",
     description:
-      "Add any dietary requirements like low sugar, gluten-free, or high protein if you have them.",
+      "Choose how many servings you want so portions stay realistic and balanced.",
   },
   {
-    title: "Create & Enjoy",
+    title: "Add Dietary Requirements",
     description:
-      "Tap create and enjoy a dessert that fits exactly what you were craving.",
+      "Optional. Choose any dietary needs like low sugar, gluten-free, or high protein.",
+  },
+  {
+    title: "Create Your Dessert",
+    description:
+      "Tap Create to generate a healthier dessert that fits your craving and your lifestyle.",
   },
 ];
 
@@ -310,25 +315,7 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor Family <span className="text-orange-400">*</span>
-                </label>
-                <Select value={flavorFamily} onValueChange={setFlavorFamily}>
-                  <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
-                    <SelectValue placeholder="Select main flavor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FLAVOR_FAMILIES.map((flav) => (
-                      <SelectItem key={flav.value} value={flav.value}>
-                        {flav.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-md font-medium text-white mb-1">
-                  Anything else you want to add? (optional)
+                  Flavor, Style, or Inspiration (optional)
                 </label>
                 <input
                   value={specificDessert}
@@ -380,20 +367,6 @@ export default function DessertCreator() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <label className="block text-md font-medium text-white mb-1">
-                  Custom Dietary Requirement (optional)
-                </label>
-                <input
-                  value={customDietary}
-                  onChange={(e) => setCustomDietary(e.target.value)}
-                  placeholder="Enter any other dietary needs..."
-                  className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
-                  autoComplete="off"
-                  maxLength={100}
-                />
               </div>
 
               {isGenerating ? (

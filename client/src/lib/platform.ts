@@ -1,22 +1,6 @@
-import { Capacitor } from "@capacitor/core";
-
 export function isIosNativeShell(): boolean {
   if (typeof window === "undefined") return false;
   
-  // PRIMARY CHECK: Capacitor reports iOS platform
-  // This is the most reliable check when running in Capacitor shell
-  try {
-    const platform = Capacitor.getPlatform();
-    const isNative = Capacitor.isNativePlatform();
-    
-    if (platform === "ios" && isNative) {
-      return true;
-    }
-  } catch (e) {
-    // Capacitor not available, fall through to heuristics
-  }
-  
-  // FALLBACK: UA-based heuristics for edge cases
   const ua = window.navigator.userAgent ?? "";
   const isiOSDevice = /iphone|ipad|ipod/i.test(ua);
   
