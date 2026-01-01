@@ -9,14 +9,11 @@ export function isIosNativeShell(): boolean {
     const platform = Capacitor.getPlatform();
     const isNative = Capacitor.isNativePlatform();
     
-    console.log("[Platform] Capacitor check:", { platform, isNative });
-    
     if (platform === "ios" && isNative) {
-      console.log("[Platform] Detected iOS via Capacitor - returning TRUE");
       return true;
     }
   } catch (e) {
-    console.warn("[Platform] Capacitor check failed:", e);
+    // Capacitor not available, fall through to heuristics
   }
   
   // FALLBACK: UA-based heuristics for edge cases
@@ -27,11 +24,7 @@ export function isIosNativeShell(): boolean {
   const hasWebkitBridge = typeof (window as any).webkit?.messageHandlers?.mpmNativeBridge !== "undefined";
   const brandedUA = ua.includes("MyPerfectMealsApp");
   
-  const fallbackResult = isiOSDevice && (hasStandalone || hasWebkitBridge || brandedUA);
-  
-  console.log("[Platform] Fallback check:", { isiOSDevice, hasStandalone, hasWebkitBridge, brandedUA, fallbackResult });
-  
-  return fallbackResult;
+  return isiOSDevice && (hasStandalone || hasWebkitBridge || brandedUA);
 }
 
 export const IOS_PAYMENT_MESSAGE = {
