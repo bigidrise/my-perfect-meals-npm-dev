@@ -42,6 +42,7 @@ import {
   nextWeekISO, 
   prevWeekISO, 
   formatWeekLabel,
+  formatDateDisplay,
   todayISOInTZ 
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
@@ -739,7 +740,7 @@ export default function DiabeticMenuBuilder() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Meal Plan`
+          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Meal Plan`
           : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -1157,18 +1158,12 @@ export default function DiabeticMenuBuilder() {
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() - 7);
-    const prevISO = d.toISOString().slice(0, 10);
-    gotoWeek(prevISO);
+    gotoWeek(prevWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   const onNextWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 7);
-    const nextISO = d.toISOString().slice(0, 10);
-    gotoWeek(nextISO);
+    gotoWeek(nextWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   function onItemUpdated(
@@ -1931,7 +1926,7 @@ export default function DiabeticMenuBuilder() {
                       });
                       toast({
                         title: "Day Saved to Biometrics",
-                        description: `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
+                        description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                       });
                       setLocation("/my-biometrics");
                     }
@@ -2117,9 +2112,7 @@ export default function DiabeticMenuBuilder() {
             planningMode === "day" &&
             activeDayISO
           ) {
-            const dayName = new Date(
-              activeDayISO + "T00:00:00Z",
-            ).toLocaleDateString(undefined, { weekday: "long" });
+            const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
             return (
               <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
