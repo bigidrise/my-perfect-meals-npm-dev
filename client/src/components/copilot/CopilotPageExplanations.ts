@@ -13,7 +13,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your home base. Jump into meal planning, cravings, tracking, and lifestyle tools from one place.",
     spokenText:
-      "Dashboard — this is your home base. From here you can plan your meals, track your macros, or create food based on what you're actually in the mood for. You don't need to be precise — just tell the app what you want, and it'll build it. Anytime you want a quick explanation on a page, tap Copilot and hit Listen.",
+      "Welcome to our dashboard — this is your home base. From here you can plan your meals, track your macros, or create food based on what you're actually in the mood for. You don't need to be precise — just tell the app what you want, and it'll build it. Anytime you want a quick explanation on a page, tap Copilot and hit Listen.",
     autoClose: true,
   },
 
