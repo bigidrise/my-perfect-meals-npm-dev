@@ -23,7 +23,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your home base. Jump into meal planning, cravings, tracking, and lifestyle tools from one place.",
     spokenText:
-      "Dashboard — this is your home base. From here you can plan your meals, track your macros, or create food based on what you’re actually in the mood for. You don’t need to be precise — just tell the app what you want, and it’ll build it. Anytime you want a quick explanation on a page, tap Copilot and hit Listen.",
+      "Welcome to our dashboard — this is your home base. From here you can plan your meals, track your macros, or create food based on what you’re actually in the mood for. You don’t need to be precise — just tell the app what you want, and it’ll build it. Anytime you want a quick explanation on a page, tap Copilot and hit Listen.",
     autoClose: true,
   },
 
@@ -33,7 +33,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create healthier versions of the foods you crave — so you never have to ignore cravings again.",
     spokenText:
-    "Craving something but can’t come up with a healthy option? That’s exactly what Craving Creator is for. Just tell me what you’re in the mood for — sweet, crunchy, creamy, whatever sounds good. Add any dietary preferences or restrictions you have, like dairy-free or gluten-free. Pick how many servings you want, then press Create. I’ll handle the rest and build you a healthier version that fits your goals without going overboard. You eat what you want, stay on track, and move on with your day. Simple as that.",
+      "Craving something but can’t come up with a healthy option? That’s exactly what Craving Creator is for. Just tell me what you’re in the mood for — sweet, crunchy, creamy, whatever sounds good. Add any dietary preferences or restrictions you have, like dairy-free or gluten-free. Pick how many servings you want, then press Create. I’ll handle the rest and build you a healthier version that fits your goals without going overboard. You eat what you want, stay on track, and move on with your day. Simple as that.",
     autoClose: true,
   },
 
@@ -43,7 +43,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create healthier versions of the desserts you love — without ignoring cravings or overdoing portions.",
     spokenText:
-    "Looking for a healthier dessert but don’t have any good options? Dessert Creator handles that. First, pick the type of dessert you want — cake, pie, cookies, brownies, frozen treats, or just hit surprise me. If you already know what you’re craving, tell me in your own words — key lime, chocolate peanut butter, bakery-style, whatever sounds good. If you don’t, leave it blank — I’ve got you. Next, choose how many servings you want so portions stay realistic and on point. If you have any dietary needs — low sugar, gluten-free, high protein — add those too. Then tap create, and I’ll build a healthier dessert that actually satisfies you. No guilt. No guessing. You’re good to go.",
+      "Looking for a healthier dessert but don’t have any good options? Dessert Creator handles that. First, pick the type of dessert you want — cake, pie, cookies, brownies, frozen treats, or just hit surprise me. If you already know what you’re craving, tell me in your own words — key lime, chocolate peanut butter, bakery-style, whatever sounds good. If you don’t, leave it blank — I’ve got you. Next, choose how many servings you want so portions stay realistic and on point. If you have any dietary needs — low sugar, gluten-free, high protein — add those too. Then tap create, and I’ll build a healthier dessert that actually satisfies you. No guilt. No guessing. You’re good to go.",
     autoClose: true,
   },
 
@@ -53,8 +53,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Choose from three options: Creator for custom AI-generated cravings, Premades for ready-made craving recipes, or Dessert Creator for healthy desserts like pies, cakes, cookies, and more.",
     spokenText:
-    "Craving something but can’t come up with a healthy option? That’s what Craving Creator is for. Tell it what you’re craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals.",
-     autoClose: true,
+      "Craving something but can’t come up with a healthy option? That’s what Craving Creator is for. Tell it what you’re craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals.",
+    autoClose: true,
   },
 
   "/craving-presets": {
@@ -71,10 +71,10 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "fridge-rescue",
     title: "Fridge Rescue",
     description:
-    "Turn the ingredients you already have into real meals, without extra shopping.",
-        spokenText:
-        "Fridge Rescue. You ever come home tired, open the fridge, and stare at food with no clue what to make? That’s not a willpower problem — that’s an idea problem, and everybody hits it. You already have food, you’re just stuck in the same rotations. This fixes that. Type or speak the ingredients you have at home, tap generate, and I’ll give you three real meals using what’s already there. No grocery run. No guessing. Problem solved.",
-      autoClose: true,
+      "Turn the ingredients you already have into real meals, without extra shopping.",
+    spokenText:
+      "Fridge Rescue. You ever come home tired, open the fridge, and stare at food with no clue what to make? That’s not a willpower problem — that’s an idea problem, and everybody hits it. You already have food, you’re just stuck in the same rotations. This fixes that. Type or speak the ingredients you have at home, tap generate, and I’ll give you three real meals using what’s already there. No grocery run. No guessing. Problem solved.",
+    autoClose: true,
   },
 
   "/healthy-kids-meals": {
@@ -93,7 +93,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Choose between Kids Meals for ages 5–12 or Toddler Meals for little ones. Both include easy ingredient lists you can send to your shopping list.",
     spokenText:
-    "Trying to make healthier meals for your kids without overthinking it? That’s exactly what Kids Meals is for. These meals are designed for ages five to twelve. Pick your servings, choose your rounding — tenth, half, or whole — and tap any meal to open the picture. From there you can view the ingredients, see the cooking instructions, and send everything you need straight to the shopping list.",
+      "Trying to make healthier meals for your kids without overthinking it? That’s exactly what Kids Meals is for. These meals are designed for ages five to twelve. Pick your servings, choose your rounding — tenth, half, or whole — and tap any meal to open the picture. From there you can view the ingredients, see the cooking instructions, and send everything you need straight to the shopping list.",
     autoClose: true,
   },
 
@@ -103,7 +103,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Simple, soft, and finger-friendly meals for toddlers. Tap a picture to view ingredients and instructions, and send ingredients to your shopping list instantly.",
     spokenText:
-    "Trying to figure out what to feed a toddler who grazes all day? Toddler Meals are built for little ones with softer textures and finger-friendly foods. Pick your servings, choose your rounding, and tap any meal to open the picture. You’ll see the ingredients, the simple cooking instructions, and you can send everything you need directly to the shopping list.",
+      "Trying to figure out what to feed a toddler who grazes all day? Toddler Meals are built for little ones with softer textures and finger-friendly foods. Pick your servings, choose your rounding, and tap any meal to open the picture. You’ll see the ingredients, the simple cooking instructions, and you can send everything you need directly to the shopping list.",
     autoClose: true,
   },
 
@@ -131,7 +131,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "social-hub/find",
     title: "Find Meals Near Me",
     description:
-    "Find healthy places to eat near you. Enter what you’re craving and your zip code, and the app returns nearby restaurants with smart meal options that fit your goals.",
+      "Find healthy places to eat near you. Enter what you’re craving and your zip code, and the app returns nearby restaurants with smart meal options that fit your goals.",
     spokenText:
       "Eating out while staying on track can be a guessing game when you don’t know what’s around you. Find Meals Near Me fixes that. Just tell me what you’re craving and enter your zip code, and I’ll show you three nearby restaurants with healthier meal options from each one. You pick what sounds good, order smarter, and keep moving forward.",
     autoClose: true,
