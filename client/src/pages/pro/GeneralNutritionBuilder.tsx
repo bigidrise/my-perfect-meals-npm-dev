@@ -1506,6 +1506,8 @@ export default function WeeklyMealBoard() {
               protein_g: coachTargets.protein,
               carbs_g: totalCarbs,
               fat_g: coachTargets.fat,
+              starchyCarbs_g: coachTargets.starchyCarbs || 0,
+              fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
             };
             
             return (
