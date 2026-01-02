@@ -5,10 +5,19 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
+import { isDoItYourselfMode } from "./CopilotRespectGuard";
 
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
+  
+  // Check if auto-open is truly armed (autoplay ON + not in DIY mode)
+  const [isAutoArmed, setIsAutoArmed] = useState(false);
+  useEffect(() => {
+    // Client-side check to avoid hydration issues
+    const armed = isGuidedModeEnabled && !isDoItYourselfMode();
+    setIsAutoArmed(armed);
+  }, [isGuidedModeEnabled, isOpen]);
 
   // =========================================
   // AUDIO - Visual-First with Graceful Degradation
@@ -375,7 +384,12 @@ export const CopilotSheet: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                       {/* Autoplay Toggle - Controls auto-open on page navigation only */}
-                      <span className="text-[9px] text-white/50">Auto</span>
+                      {/* AUTO label glows when auto-open is truly armed */}
+                      <span className={`text-[9px] transition-all duration-200 ${
+                        isAutoArmed 
+                          ? "text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]" 
+                          : "text-white/50"
+                      }`}>Auto</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
@@ -387,7 +401,7 @@ export const CopilotSheet: React.FC = () => {
                           transition-all duration-150 ease-out whitespace-nowrap
                           ${isGuidedModeEnabled
                             ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-                            : "bg-white/8 text-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-white/12 border border-white/15"
+                            : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
                           }
                         `}
                       >
