@@ -5,7 +5,6 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
-
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
@@ -374,8 +373,8 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* AUTO label - always visible, ON/OFF button handles state */}
-                      <span className="text-[9px] text-white/70">Auto</span>
+                      {/* Autoplay Toggle - Static AUTO label, ON/OFF does the work */}
+                      <span className="text-[9px] text-emerald-400/80 drop-shadow-[0_0_3px_rgba(52,211,153,0.3)]">Auto</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
