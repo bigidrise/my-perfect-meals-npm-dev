@@ -5,16 +5,21 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
-import { isDoItYourselfMode } from "./CopilotRespectGuard";
+import { isDoItYourselfMode, isAutoplayEnabled } from "./CopilotRespectGuard";
 
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
   
   // Check if auto-open is truly armed (autoplay ON + not in DIY mode)
-  const [isAutoArmed, setIsAutoArmed] = useState(false);
+  // Use lazy initialization to read localStorage BEFORE first render (production fix)
+  const [isAutoArmed, setIsAutoArmed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return isAutoplayEnabled() && !isDoItYourselfMode();
+  });
+  
+  // Keep isAutoArmed in sync with context changes
   useEffect(() => {
-    // Client-side check to avoid hydration issues
     const armed = isGuidedModeEnabled && !isDoItYourselfMode();
     setIsAutoArmed(armed);
   }, [isGuidedModeEnabled, isOpen]);

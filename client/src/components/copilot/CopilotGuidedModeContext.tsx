@@ -46,11 +46,9 @@ function setStoredAutoplay(enabled: boolean): void {
 }
 
 export function CopilotGuidedModeProvider({ children }: { children: React.ReactNode }) {
-  const [isAutoplayEnabled, setIsAutoplayEnabled] = useState<boolean>(true);
-
-  useEffect(() => {
-    setIsAutoplayEnabled(getStoredAutoplay());
-  }, []);
+  // Use lazy initialization to read from localStorage BEFORE first render
+  // This fixes production hydration where useEffect runs too late
+  const [isAutoplayEnabled, setIsAutoplayEnabled] = useState<boolean>(() => getStoredAutoplay());
 
   const enableAutoplay = useCallback(() => {
     setIsAutoplayEnabled(true);
