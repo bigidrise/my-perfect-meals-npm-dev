@@ -210,7 +210,7 @@ export default function GLP1Hub() {
             <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
             <Button
               onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
-              className="bg-lime-600 hover:bg-lime-500 text-md font-bold text-white rounded-xl px-4 py-2"
+              className="bg-lime-600 text-md font-bold text-white rounded-xl px-4 py-2"
               data-testid="button-toggle-shot-tracker"
             >
               {shotTrackerOpen ? "Hide Tracker" : "Open Tracker"}
@@ -405,7 +405,7 @@ export default function GLP1Hub() {
           <Button
             onClick={handleSave}
             disabled={saveMutation.isPending}
-            className="bg-lime-600 hover:bg-lime-600 text-md font-bold text-white w-full rounded-xl mt-4"
+            className="bg-lime-600 text-md font-bold text-white w-full rounded-xl mt-4"
           >
             {saveMutation.isPending ? "Saving..." : "Save Guardrails"}
           </Button>
@@ -421,7 +421,7 @@ export default function GLP1Hub() {
           </p>
           <Button
             onClick={() => setLocation("/glp1-meal-builder")}
-            className="bg-lime-600 hover:bg-lime-600 text-md font-bold text-white w-full rounded-xl"
+            className="bg-lime-600 text-md font-bold text-white w-full rounded-xl"
             data-testid="button-go-to-glp1-meals"
           >
             GLP-1 Meal Builder
