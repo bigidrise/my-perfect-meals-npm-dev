@@ -21,7 +21,10 @@ interface CreateWithChefModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mealType: "breakfast" | "lunch" | "dinner";
-  onMealGenerated: (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => void;
+  onMealGenerated: (
+    meal: any,
+    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+  ) => void;
   dietType?: DietType; // Optional diet type for guardrails
   dietPhase?: BeachBodyPhase; // Optional phase for BeachBody
 }
@@ -96,7 +99,7 @@ export function CreateWithChefModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
         <DialogHeader>
-            <DialogTitle className="text-white text-xl font-semibold">  
+          <DialogTitle className="text-white text-xl font-semibold">
             Create with AI Chef
           </DialogTitle>
           <DialogDescription className="text-white/60">
@@ -138,7 +141,7 @@ export function CreateWithChefModal({
 
           <div className="flex gap-3 pt-2">
             <Button
-              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white"
+              className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
               onClick={handleGenerate}
               disabled={generating || !description.trim()}
             >
@@ -148,10 +151,7 @@ export function CreateWithChefModal({
                   Generating...
                 </>
               ) : (
-                <>
-                
-                  Generate AI Meal
-                </>
+                <>Generate AI Meal</>
               )}
             </Button>
             <Button
