@@ -22,6 +22,7 @@ import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
+import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1812,6 +1813,25 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               ))}
             </>
           )}
+
+          {/* Daily Targets Card */}
+          <div className="col-span-full">
+            <DailyTargetsCard
+              userId={user?.id}
+              onQuickAddClick={() => {}}
+              targetsOverride={(() => {
+                const coachTargets = proStore.getTargets(clientId);
+                const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
+                return {
+                  protein_g: coachTargets.protein,
+                  carbs_g: totalCarbs,
+                  fat_g: coachTargets.fat,
+                  starchyCarbs_g: coachTargets.starchyCarbs || 0,
+                  fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
+                };
+              })()}
+            />
+          </div>
 
           {/* Remaining Macros Footer - Inline Mode */}
           {board &&

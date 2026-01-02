@@ -22,6 +22,7 @@ import {
   RemainingMacrosFooter,
   type ConsumedMacros,
 } from "@/components/biometrics/RemainingMacrosFooter";
+import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1827,6 +1828,25 @@ export default function DiabeticMenuBuilder() {
               </div>
             );
           })()}
+
+          {/* Daily Targets Card with Quick Add */}
+          <div className="col-span-full">
+            <DailyTargetsCard
+              userId={user?.id}
+              onQuickAddClick={() => setAdditionalMacrosOpen(true)}
+              targetsOverride={(() => {
+                const targetMacros = getMacroTargets(user?.id);
+                if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
+                return {
+                  protein_g: targetMacros.protein_g || 0,
+                  carbs_g: targetMacros.carbs_g || 0,
+                  fat_g: targetMacros.fat_g || 0,
+                  starchyCarbs_g: targetMacros.starchyCarbs_g,
+                  fibrousCarbs_g: targetMacros.fibrousCarbs_g,
+                };
+              })()}
+            />
+          </div>
         </div>
 
         {/* Remaining Macros Footer - Inline Mode */}
