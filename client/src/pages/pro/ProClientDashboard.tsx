@@ -496,7 +496,7 @@ export default function ProClientDashboard() {
                       description: `${t.kcal} kcal coach-set targets saved for ${client?.name}`,
                     });
 
-                    setLocation("/my-biometrics");
+                    
                   } catch (error) {
                     console.error("Failed to set macros:", error);
                     toast({

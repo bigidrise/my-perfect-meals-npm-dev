@@ -10,6 +10,7 @@ import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
+import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -974,6 +975,8 @@ export default function WeeklyMealBoard() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
+          starchyCarbs: (meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0,
+          fibrousCarbs: (meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk"
         };
@@ -1464,6 +1467,25 @@ export default function WeeklyMealBoard() {
           </p>
         </div>
 
+        {/* Daily Targets Card */}
+        <div className="col-span-full">
+          <DailyTargetsCard
+            userId={user?.id}
+            showQuickAddButton={false}
+            targetsOverride={(() => {
+              const coachTargets = proStore.getTargets(clientId);
+              const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
+              return {
+                protein_g: coachTargets.protein,
+                carbs_g: totalCarbs,
+                fat_g: coachTargets.fat,
+                starchyCarbs_g: coachTargets.starchyCarbs || 0,
+                fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
+              };
+            })()}
+          />
+        </div>
+
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
           FEATURES.dayPlanning === "alpha" &&
@@ -1504,6 +1526,8 @@ export default function WeeklyMealBoard() {
               protein_g: coachTargets.protein,
               carbs_g: totalCarbs,
               fat_g: coachTargets.fat,
+              starchyCarbs_g: coachTargets.starchyCarbs || 0,
+              fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
             };
             
             return (

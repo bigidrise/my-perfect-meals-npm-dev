@@ -8,7 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ChevronDown, ChevronUp, Activity, Pill, } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Activity,
+  Pill,
+} from "lucide-react";
 import { useGLP1Profile, useSaveGLP1Profile } from "@/hooks/useGLP1";
 import { useToast } from "@/hooks/use-toast";
 import { glp1Presets } from "@/data/glp1Presets";
@@ -22,23 +28,27 @@ const GLP1_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
     title: "Choose Your Preset",
-    description: "Select a starting point based on your medication or customize your own guardrails."
+    description:
+      "Select a starting point based on your medication or customize your own guardrails.",
   },
   {
     icon: "2",
     title: "Track Your Shots",
-    description: "Log your GLP-1 injections to stay on schedule and monitor your progress."
+    description:
+      "Log your GLP-1 injections to stay on schedule and monitor your progress.",
   },
   {
     icon: "3",
     title: "Set Meal Limits",
-    description: "Configure maximum meal volume and macros to match your reduced appetite."
+    description:
+      "Configure maximum meal volume and macros to match your reduced appetite.",
   },
   {
     icon: "4",
     title: "Get GLP-1 Friendly Meals",
-    description: "Browse meals designed for smaller portions with maximum nutrition."
-  }
+    description:
+      "Browse meals designed for smaller portions with maximum nutrition.",
+  },
 ];
 
 export default function GLP1Hub() {
@@ -137,12 +147,17 @@ export default function GLP1Hub() {
         <div className="px-4 py-3 flex items-center gap-3 flex-nowrap">
           <Pill className="h-6 w-6 text-orange-500 flex-shrink-0" />
           {/* Title */}
-          <h1 className="text-lg font-bold text-white truncate min-w-0">GLP-1 Hub</h1>
+          <h1 className="text-lg font-bold text-white truncate min-w-0">
+            GLP-1 Hub
+          </h1>
 
           <div className="flex-grow" />
 
           {/* Quick Tour Help Button */}
-          <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+          <QuickTourButton
+            onClick={quickTour.openTour}
+            className="flex-shrink-0"
+          />
         </div>
       </div>
 
@@ -195,7 +210,7 @@ export default function GLP1Hub() {
             <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
             <Button
               onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
-              className="bg-lime-900 hover:bg-lime-500 text-md font-bold text-white rounded-xl px-4 py-2"
+              className="bg-lime-600 text-md font-bold text-white rounded-xl px-4 py-2"
               data-testid="button-toggle-shot-tracker"
             >
               {shotTrackerOpen ? "Hide Tracker" : "Open Tracker"}
@@ -390,7 +405,7 @@ export default function GLP1Hub() {
           <Button
             onClick={handleSave}
             disabled={saveMutation.isPending}
-            className="bg-lime-900 hover:bg-lime-500 text-md font-bold text-white w-full rounded-xl mt-4"
+            className="bg-lime-600 text-md font-bold text-white w-full rounded-xl mt-4"
           >
             {saveMutation.isPending ? "Saving..." : "Save Guardrails"}
           </Button>
@@ -406,7 +421,7 @@ export default function GLP1Hub() {
           </p>
           <Button
             onClick={() => setLocation("/glp1-meal-builder")}
-            className="bg-lime-900 hover:bg-lime-500 text-md font-bold text-white w-full rounded-xl"
+            className="bg-lime-600 text-md font-bold text-white w-full rounded-xl"
             data-testid="button-go-to-glp1-meals"
           >
             GLP-1 Meal Builder

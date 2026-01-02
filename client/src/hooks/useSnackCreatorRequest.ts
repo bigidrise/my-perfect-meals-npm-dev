@@ -25,11 +25,15 @@ interface Snack {
   protein?: number;
   carbs?: number;
   fat?: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   nutrition?: {
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
   };
   medicalBadges?: string[];
 }
@@ -124,11 +128,15 @@ export function useSnackCreatorRequest(): UseSnackCreatorRequestResult {
         protein: generatedSnack.protein,
         carbs: generatedSnack.carbs,
         fat: generatedSnack.fat,
+        starchyCarbs: generatedSnack.starchyCarbs || 0,
+        fibrousCarbs: generatedSnack.fibrousCarbs || 0,
         nutrition: {
           calories: generatedSnack.calories || 0,
           protein: generatedSnack.protein || 0,
           carbs: generatedSnack.carbs || 0,
           fat: generatedSnack.fat || 0,
+          starchyCarbs: generatedSnack.starchyCarbs || 0,
+          fibrousCarbs: generatedSnack.fibrousCarbs || 0,
         },
         medicalBadges: generatedSnack.medicalBadges || [],
       };

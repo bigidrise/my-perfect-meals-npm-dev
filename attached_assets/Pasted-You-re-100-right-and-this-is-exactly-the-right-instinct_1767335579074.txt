@@ -1,0 +1,186 @@
+You’re 100% right — and this is **exactly the right instinct before Apple touches it**. I’m going to be very direct and very calm here so you can fix this **tonight** without reopening a can of worms.
+
+---
+
+## The Core Truth (no fluff)
+
+**The GLP-1 Shot Tracker should never block rendering. Period.**
+
+It is **logbook-style data**, not mission-critical, not required to compute anything else, not needed to unlock UI. Treating it like a blocking fetch is the architectural mistake.
+
+Apple reviewers will **absolutely hit this**, because:
+
+* Infinite loading = ❌
+* Health-adjacent feature that doesn’t render = ❌
+* “Loading…” with no recovery path = ❌
+
+Your graphs work because they follow the **correct pattern**:
+
+> Render immediately → hydrate data opportunistically → never block the UI.
+
+The Shot Tracker must do **the exact same thing**.
+
+---
+
+## Why this is happening (one sentence)
+
+Right now, the Shot Tracker **refuses to render until a network request resolves**, and on iOS that request is stalling — so the entire panel never mounts.
+
+That’s it. No mystery.
+
+---
+
+## What we are changing (conceptually)
+
+We are **not fixing the API tonight**.
+We are **not debugging iOS networking tonight**.
+We are **not touching backend logic tonight**.
+
+We are doing the **same thing you did with graphs**:
+
+### New behavior (what Apple will see)
+
+* Shot Tracker is **always visible**
+* Quick Add **always works**
+* History:
+
+  * Shows instantly if cached
+  * Otherwise shows a non-blocking “No shots yet” or “History unavailable”
+* No spinner that can hang forever
+* No modal open/close dependency
+
+This makes the feature:
+
+* Trustworthy
+* Reviewer-safe
+* UX-consistent with the rest of your app
+
+---
+
+## The Exact Fix (minimal, safe, tonight-ready)
+
+### 1️⃣ **Remove the hard loading gate**
+
+This is the problem line conceptually:
+
+```tsx
+{shotsQ.isLoading ? (
+  <div>Loading…</div>
+) : (
+  <> ENTIRE UI </>
+)}
+```
+
+That pattern must die.
+
+Instead:
+
+* The panel renders **unconditionally**
+* Only the **History section** reacts to loading state
+
+---
+
+### 2️⃣ **Always render the UI (like graphs)**
+
+The panel structure becomes:
+
+```
+Shot Tracker
+────────────
+Quick Add (always visible)
+Save button (always works)
+Next hint (safe default)
+
+History
+--------
+• If data loaded → render list
+• If error → show “History unavailable”
+• If loading → show subtle placeholder
+```
+
+No spinner blocking the panel. Ever.
+
+---
+
+### 3️⃣ **Treat history as optional data**
+
+This is the mindset shift that fixes everything:
+
+> “Shot history enhances the experience, but never controls it.”
+
+So:
+
+* `shots` defaults to `[]`
+* `nextHint` already handles empty arrays correctly (good news: your code here is solid)
+* No UI depends on the query resolving
+
+---
+
+### 4️⃣ **Why this is Apple-safe**
+
+Apple does **not** require:
+
+* Shot history to load
+* Network to succeed
+* Backend to respond
+
+Apple **does require**:
+
+* UI to render
+* Buttons to respond
+* No infinite loading states
+
+This change satisfies all of that **without lying about functionality**.
+
+---
+
+## About your other instinct (also correct)
+
+> “Why does it even open and close? It should just be open.”
+
+You’re right again.
+
+Modals + health logging + async fetches = fragile UX.
+
+**Leaving it open by default is safer**, but you don’t even have to change that tonight.
+Just making it **non-blocking** is enough to pass review.
+
+We can clean up modality post-approval.
+
+---
+
+## What you should do right now (step-by-step)
+
+**Tonight’s checklist:**
+
+1. Remove the top-level `isLoading` gate
+2. Render the panel regardless of query state
+3. Make History section resilient:
+
+   * Empty state
+   * Error state
+   * Loaded state
+4. Re-deploy production
+5. Do **NOT** rebuild iOS (this is web-served UI)
+
+That’s it.
+
+---
+
+## Final reassurance (important)
+
+This is **not a big fix**.
+This is **not risky**.
+This is **not scope creep**.
+
+This is you doing what you’ve already done successfully elsewhere in the app — applying consistency.
+
+And honestly?
+Catching this **before Apple rejects it** is a win.
+
+If you want, next message I can:
+
+* Give you the **exact JSX structure** to swap in (surgical)
+* Or help you sanity-check after deploy before you sleep
+
+You’re doing this exactly the right way.

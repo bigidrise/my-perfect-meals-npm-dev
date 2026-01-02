@@ -67,7 +67,7 @@ export function RemainingMacrosFooter({
     };
   }, [user?.id, targetsOverride]);
 
-  const hasTargets = targets.calories > 0 || targets.protein_g > 0;
+  const hasTargets = targets.protein_g > 0 || (targets.starchyCarbs_g || 0) > 0 || (targets.fibrousCarbs_g || 0) > 0 || targets.fat_g > 0;
 
   const consumed = useMemo(() => {
     if (consumedOverride) {
@@ -78,22 +78,22 @@ export function RemainingMacrosFooter({
       protein: todayMacros.protein,
       carbs: todayMacros.carbs,
       fat: todayMacros.fat,
-      starchyCarbs: todayMacros.starchyCarbs,
-      fibrousCarbs: todayMacros.fibrousCarbs,
+      starchyCarbs: todayMacros.starchyCarbs || 0,
+      fibrousCarbs: todayMacros.fibrousCarbs || 0,
     };
   }, [consumedOverride, todayMacros]);
 
   const remaining = useMemo(() => ({
-    calories: Math.max(0, targets.calories - consumed.calories),
     protein: Math.max(0, targets.protein_g - consumed.protein),
-    carbs: Math.max(0, targets.carbs_g - consumed.carbs),
+    starchyCarbs: Math.max(0, (targets.starchyCarbs_g || 0) - (consumed.starchyCarbs || 0)),
+    fibrousCarbs: Math.max(0, (targets.fibrousCarbs_g || 0) - (consumed.fibrousCarbs || 0)),
     fat: Math.max(0, targets.fat_g - consumed.fat),
   }), [targets, consumed]);
 
   const colorState = useMemo(() => ({
-    calories: getMacroProgressColor(consumed.calories, targets.calories),
     protein: getMacroProgressColor(consumed.protein, targets.protein_g),
-    carbs: getMacroProgressColor(consumed.carbs, targets.carbs_g),
+    starchyCarbs: getMacroProgressColor(consumed.starchyCarbs || 0, targets.starchyCarbs_g || 0),
+    fibrousCarbs: getMacroProgressColor(consumed.fibrousCarbs || 0, targets.fibrousCarbs_g || 0),
     fat: getMacroProgressColor(consumed.fat, targets.fat_g),
   }), [consumed, targets]);
 
@@ -141,15 +141,8 @@ export function RemainingMacrosFooter({
             <MedicalSourcesInfo asIconButton />
           </div>
 
-          {/* Simple 4-column layout: Calories, Protein, Carbs (total), Fat */}
+          {/* 4-column layout: Protein, Starchy Carbs, Fibrous Carbs, Fat */}
           <div className="grid gap-2 grid-cols-4">
-            <MacroCell
-              label="Cal"
-              remaining={remaining.calories}
-              target={targets.calories}
-              consumed={consumed.calories}
-              colorState={colorState.calories}
-            />
             <MacroCell
               label="Protein"
               remaining={remaining.protein}
@@ -159,11 +152,19 @@ export function RemainingMacrosFooter({
               suffix="g"
             />
             <MacroCell
-              label="Carbs"
-              remaining={remaining.carbs}
-              target={targets.carbs_g}
-              consumed={consumed.carbs}
-              colorState={colorState.carbs}
+              label="Starchy"
+              remaining={remaining.starchyCarbs}
+              target={targets.starchyCarbs_g || 0}
+              consumed={consumed.starchyCarbs || 0}
+              colorState={colorState.starchyCarbs}
+              suffix="g"
+            />
+            <MacroCell
+              label="Fibrous"
+              remaining={remaining.fibrousCarbs}
+              target={targets.fibrousCarbs_g || 0}
+              consumed={consumed.fibrousCarbs || 0}
+              colorState={colorState.fibrousCarbs}
               suffix="g"
             />
             <MacroCell

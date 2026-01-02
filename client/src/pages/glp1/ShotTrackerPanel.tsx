@@ -93,153 +93,149 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         </Button>
       </div>
 
-      {shotsQ.isLoading ? (
-        <div className="text-white/70 text-sm">Loading…</div>
-      ) : shotsQ.error ? (
-        <div className="text-red-400 text-sm">Error: {(shotsQ.error as Error).message}</div>
-      ) : (
-        <>
-          {/* Quick Add */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-white/80 text-sm">Dose (mg)</label>
-              <input
-                type="number" inputMode="decimal" step="0.1" min="0" max="20"
-                value={doseMg || ""} onChange={(e) => setDoseMg(Number(e.target.value))}
-                placeholder="e.g., 2.5, 5, 7.5, 10, 12.5, 15"
-                className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
-              />
-            </div>
-            <div>
-              <label className="text-white/80 text-sm">Date & time</label>
-              <input
-                type="datetime-local" value={dateLocal}
-                onChange={(e) => setDateLocal(e.target.value)}
-                className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
-              />
-            </div>
-            <div>
-              <label className="text-white/80 text-sm">Injection Site (optional)</label>
-              <select
-                value={site}
-                onChange={(e) => setSite(e.target.value as any)}
-                className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
-              >
-                <option value="">Select site…</option>
-                <option value="abdomen">Abdomen</option>
-                <option value="thigh">Thigh</option>
-                <option value="upper_arm">Upper Arm</option>
-                <option value="buttock">Buttock</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-white/80 text-sm">Notes (optional)</label>
-              <input
-                value={notes} onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g., 2 inches from navel"
-                className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
-              />
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <Button
-              onClick={addShot}
-              disabled={createM.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              {createM.isPending ? "Saving..." : "Save Shot"}
-            </Button>
-            <div className="text-white/80 text-sm">{nextHint}</div>
-          </div>
+      {/* Quick Add - Always visible and functional */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-white/80 text-sm">Dose (mg)</label>
+          <input
+            type="number" inputMode="decimal" step="0.1" min="0" max="20"
+            value={doseMg || ""} onChange={(e) => setDoseMg(Number(e.target.value))}
+            placeholder="e.g., 2.5, 5, 7.5, 10, 12.5, 15"
+            className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
+          />
+        </div>
+        <div>
+          <label className="text-white/80 text-sm">Date & time</label>
+          <input
+            type="datetime-local" value={dateLocal}
+            onChange={(e) => setDateLocal(e.target.value)}
+            className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
+          />
+        </div>
+        <div>
+          <label className="text-white/80 text-sm">Injection Site (optional)</label>
+          <select
+            value={site}
+            onChange={(e) => setSite(e.target.value as any)}
+            className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
+          >
+            <option value="">Select site…</option>
+            <option value="abdomen">Abdomen</option>
+            <option value="thigh">Thigh</option>
+            <option value="upper_arm">Upper Arm</option>
+            <option value="buttock">Buttock</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-white/80 text-sm">Notes (optional)</label>
+          <input
+            value={notes} onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g., 2 inches from navel"
+            className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <Button
+          onClick={addShot}
+          disabled={createM.isPending}
+          className="bg-lime-600 text-white"
+        >
+          {createM.isPending ? "Saving..." : "Save Shot"}
+        </Button>
+        <div className="text-white/80 text-sm">{nextHint}</div>
+      </div>
 
-          {/* History */}
-          <div className="bg-black/40 border border-white/15 rounded-xl p-3 mt-4">
-            <h4 className="text-white font-semibold mb-2">History</h4>
-            {shots.length === 0 ? (
-              <div className="text-white/70 text-sm">No shots logged yet.</div>
-            ) : (
-              <ul className="space-y-2">
-                {shots.map((s: any) => (
-                  <li key={s.id} className="rounded-lg border border-white/15 p-2 text-white">
-                    {editingId === s.id ? (
-                      <div className="space-y-2">
-                        <div className="grid sm:grid-cols-2 gap-2">
-                          <input
-                            type="number" step="0.1" min="0" max="20"
-                            value={editDose}
-                            onChange={(e) => setEditDose(Number(e.target.value))}
-                            className="rounded-md border border-white/20 bg-black/40 text-white p-2"
-                            placeholder="Dose (mg)"
-                          />
-                          <input
-                            type="datetime-local"
-                            value={editDateLocal}
-                            onChange={(e) => setEditDateLocal(e.target.value)}
-                            className="rounded-md border border-white/20 bg-black/40 text-white p-2"
-                          />
-                        </div>
-                        <select
-                          value={editSite}
-                          onChange={(e) => setEditSite(e.target.value as any)}
-                          className="w-full rounded-md border border-white/20 bg-black/40 text-white p-2"
-                        >
-                          <option value="">Select site…</option>
-                          <option value="abdomen">Abdomen</option>
-                          <option value="thigh">Thigh</option>
-                          <option value="upper_arm">Upper Arm</option>
-                          <option value="buttock">Buttock</option>
-                        </select>
-                        <input
-                          value={editNotes}
-                          onChange={(e) => setEditNotes(e.target.value)}
-                          className="w-full rounded-md border border-white/20 bg-black/40 text-white p-2"
-                          placeholder="Notes (optional)"
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <Button onClick={() => setEditingId(null)} className="bg-white/10 hover:bg-white/20 text-white h-8 px-3 text-xs">Cancel</Button>
-                          <Button onClick={saveEdit} disabled={updateM.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3 text-xs">
-                            {updateM.isPending ? "Saving..." : "Save"}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-normal truncate flex items-center gap-2">
-                            <span>{new Date(s.dateUtc).toLocaleDateString()} — {s.doseMg} mg</span>
-                            {s.location && (
-                              <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-600/30 border border-emerald-400/50 text-emerald-300">
-                                {LABEL[s.location as InjectionLocation]}
-                              </span>
-                            )}
-                          </div>
-                          {s.notes && <div className="text-white/80 text-sm truncate mt-1">{s.notes}</div>}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-white/60 text-xs">
-                            {new Date(s.dateUtc).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      {/* History - Resilient to loading/error states */}
+      <div className="bg-black/40 border border-white/15 rounded-xl p-3 mt-4">
+        <h4 className="text-white font-semibold mb-2">History</h4>
+        {shotsQ.isLoading ? (
+          <div className="text-white/50 text-sm">Loading history...</div>
+        ) : shotsQ.error ? (
+          <div className="text-white/50 text-sm">History unavailable</div>
+        ) : shots.length === 0 ? (
+          <div className="text-white/70 text-sm">No shots logged yet.</div>
+        ) : (
+          <ul className="space-y-2">
+            {shots.map((s: any) => (
+              <li key={s.id} className="rounded-lg border border-white/15 p-2 text-white">
+                {editingId === s.id ? (
+                  <div className="space-y-2">
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <input
+                        type="number" step="0.1" min="0" max="20"
+                        value={editDose}
+                        onChange={(e) => setEditDose(Number(e.target.value))}
+                        className="rounded-md border border-white/20 bg-black/40 text-white p-2"
+                        placeholder="Dose (mg)"
+                      />
+                      <input
+                        type="datetime-local"
+                        value={editDateLocal}
+                        onChange={(e) => setEditDateLocal(e.target.value)}
+                        className="rounded-md border border-white/20 bg-black/40 text-white p-2"
+                      />
+                    </div>
+                    <select
+                      value={editSite}
+                      onChange={(e) => setEditSite(e.target.value as any)}
+                      className="w-full rounded-md border border-white/20 bg-black/40 text-white p-2"
+                    >
+                      <option value="">Select site…</option>
+                      <option value="abdomen">Abdomen</option>
+                      <option value="thigh">Thigh</option>
+                      <option value="upper_arm">Upper Arm</option>
+                      <option value="buttock">Buttock</option>
+                    </select>
+                    <input
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      className="w-full rounded-md border border-white/20 bg-black/40 text-white p-2"
+                      placeholder="Notes (optional)"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button onClick={() => setEditingId(null)} className="bg-white/10 hover:bg-white/20 text-white h-8 px-3 text-xs">Cancel</Button>
+                      <Button onClick={saveEdit} disabled={updateM.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3 text-xs">
+                        {updateM.isPending ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-normal truncate flex items-center gap-2">
+                        <span>{new Date(s.dateUtc).toLocaleDateString()} — {s.doseMg} mg</span>
+                        {s.location && (
+                          <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-600/30 border border-emerald-400/50 text-emerald-300">
+                            {LABEL[s.location as InjectionLocation]}
                           </span>
-                          <Button onClick={() => startEdit(s)} className="bg-white/10 hover:bg-white/20 text-white px-2 py-1 h-7 text-xs">Edit</Button>
-                          <TrashButton
-                            onClick={() => remove(s.id)}
-                            disabled={deleteM.isPending}
-                            size="sm"
-                            confirm
-                            confirmMessage="Delete this GLP-1 shot log?"
-                            ariaLabel="Delete shot"
-                            title="Delete shot"
-                            data-testid={`button-delete-shot-${s.id}`}
-                          />
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </>
-      )}
+                      {s.notes && <div className="text-white/80 text-sm truncate mt-1">{s.notes}</div>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-white/60 text-xs">
+                        {new Date(s.dateUtc).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <Button onClick={() => startEdit(s)} className="bg-white/10 hover:bg-white/20 text-white px-2 py-1 h-7 text-xs">Edit</Button>
+                      <TrashButton
+                        onClick={() => remove(s.id)}
+                        disabled={deleteM.isPending}
+                        size="sm"
+                        confirm
+                        confirmMessage="Delete this GLP-1 shot log?"
+                        ariaLabel="Delete shot"
+                        title="Delete shot"
+                        data-testid={`button-delete-shot-${s.id}`}
+                      />
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

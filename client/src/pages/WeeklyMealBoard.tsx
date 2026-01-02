@@ -1437,6 +1437,8 @@ export default function WeeklyMealBoard() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
+          starchyCarbs: meal.starchyCarbs ?? meal.nutrition?.starchyCarbs ?? 0,
+          fibrousCarbs: meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk",
         };

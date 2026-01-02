@@ -63,6 +63,7 @@ import physicianReportsRoutes from "./routes/physicianReports";
 import mealFinderRouter from "./routes/mealFinder";
 import { registerAdminSql } from "./adminSql";
 import glp1ShotsRoutes from "./routes/glp1Shots"; // Added import for glp1ShotsRoutes
+import glp1Routes from "./routes/glp1"; // GLP-1 profile routes
 import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for stripeCheckoutRouter
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
 import lockedDaysRouter from "./routes/lockedDays";
@@ -4788,6 +4789,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // Mount glp1Shots routes
   app.use("/api", glp1ShotsRoutes); // Mounted glp1ShotsRoutes here
+  
+  // Mount GLP-1 profile routes
+  app.use("/api/glp1", glp1Routes);
 
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;
