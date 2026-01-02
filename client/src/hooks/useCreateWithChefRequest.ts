@@ -25,11 +25,15 @@ interface Meal {
   protein?: number;
   carbs?: number;
   fat?: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   nutrition?: {
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
   };
   medicalBadges?: string[];
 }
@@ -125,11 +129,15 @@ export function useCreateWithChefRequest(): UseCreateWithChefRequestResult {
         protein: generatedMeal.protein,
         carbs: generatedMeal.carbs,
         fat: generatedMeal.fat,
+        starchyCarbs: generatedMeal.starchyCarbs || 0,
+        fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         nutrition: {
           calories: generatedMeal.calories || 0,
           protein: generatedMeal.protein || 0,
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
+          starchyCarbs: generatedMeal.starchyCarbs || 0,
+          fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         },
         medicalBadges: generatedMeal.medicalBadges || [],
       };
