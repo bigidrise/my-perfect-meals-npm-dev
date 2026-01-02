@@ -134,17 +134,18 @@ export default function GLP1Hub() {
   };
 
   const handleSave = async () => {
-    saveMutation.mutate({
-      maxMealVolumeMl: maxMealVolume,
-      proteinMinG: proteinMin,
-      fatMaxG: fatMax,
-      fiberMinG: fiberMin,
-      hydrationMinMl: hydrationGoal,
-      mealsPerDay,
+    const sanitizedGuardrails = {
+      maxMealVolumeMl: typeof maxMealVolume === "number" ? maxMealVolume : profile?.guardrails?.maxMealVolumeMl,
+      proteinMinG: typeof proteinMin === "number" ? proteinMin : profile?.guardrails?.proteinMinG,
+      fatMaxG: typeof fatMax === "number" ? fatMax : profile?.guardrails?.fatMaxG,
+      fiberMinG: typeof fiberMin === "number" ? fiberMin : profile?.guardrails?.fiberMinG,
+      hydrationMinMl: typeof hydrationGoal === "number" ? hydrationGoal : profile?.guardrails?.hydrationMinMl,
+      mealsPerDay: typeof mealsPerDay === "number" ? mealsPerDay : profile?.guardrails?.mealsPerDay,
       slowDigestOnly: slowDigestFoodsOnly,
       limitCarbonation,
       limitAlcohol,
-    });
+    };
+    saveMutation.mutate(sanitizedGuardrails);
     toast({
       title: "GLP-1 Profile Saved",
       description: "Your guardrail settings have been updated.",
