@@ -1818,7 +1818,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           <div className="col-span-full">
             <DailyTargetsCard
               userId={user?.id}
-              onQuickAddClick={() => {}}
+              showQuickAddButton={false}
               targetsOverride={(() => {
                 const coachTargets = proStore.getTargets(clientId);
                 const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
