@@ -139,7 +139,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         <Button
           onClick={addShot}
           disabled={createM.isPending}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="bg-lime-600 text-white"
         >
           {createM.isPending ? "Saving..." : "Save Shot"}
         </Button>
