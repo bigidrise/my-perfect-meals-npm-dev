@@ -5,19 +5,9 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
-import { isDoItYourselfMode } from "./CopilotRespectGuard";
-
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
-  
-  // Check if auto-open is truly armed (autoplay ON + not in DIY mode)
-  const [isAutoArmed, setIsAutoArmed] = useState(false);
-  useEffect(() => {
-    // Client-side check to avoid hydration issues
-    const armed = isGuidedModeEnabled && !isDoItYourselfMode();
-    setIsAutoArmed(armed);
-  }, [isGuidedModeEnabled, isOpen]);
 
   // =========================================
   // AUDIO - Visual-First with Graceful Degradation
@@ -383,13 +373,8 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Autoplay Toggle - Controls auto-open on page navigation only */}
-                      {/* AUTO label glows when auto-open is truly armed */}
-                      <span className={`text-[9px] transition-all duration-200 ${
-                        isAutoArmed 
-                          ? "text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]" 
-                          : "text-white/50"
-                      }`}>Auto</span>
+                      {/* Autoplay Toggle - Static AUTO label, ON/OFF does the work */}
+                      <span className="text-[9px] text-emerald-400/80 drop-shadow-[0_0_3px_rgba(52,211,153,0.3)]">Auto</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
