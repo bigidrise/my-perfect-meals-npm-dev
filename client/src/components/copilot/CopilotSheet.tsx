@@ -5,24 +5,10 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
-import { isDoItYourselfMode, isAutoplayEnabled } from "./CopilotRespectGuard";
 
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
-  
-  // Check if auto-open is truly armed (autoplay ON + not in DIY mode)
-  // Use lazy initialization to read localStorage BEFORE first render (production fix)
-  const [isAutoArmed, setIsAutoArmed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return isAutoplayEnabled() && !isDoItYourselfMode();
-  });
-  
-  // Keep isAutoArmed in sync with context changes
-  useEffect(() => {
-    const armed = isGuidedModeEnabled && !isDoItYourselfMode();
-    setIsAutoArmed(armed);
-  }, [isGuidedModeEnabled, isOpen]);
 
   // =========================================
   // AUDIO - Visual-First with Graceful Degradation
@@ -388,13 +374,8 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Autoplay Toggle - Controls auto-open on page navigation only */}
-                      {/* AUTO label glows when auto-open is truly armed */}
-                      <span className={`text-[9px] transition-all duration-200 ${
-                        isAutoArmed 
-                          ? "text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]" 
-                          : "text-white/50"
-                      }`}>Auto</span>
+                      {/* AUTO label - always visible, ON/OFF button handles state */}
+                      <span className="text-[9px] text-white/70">Auto</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
