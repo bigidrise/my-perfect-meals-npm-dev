@@ -76,6 +76,8 @@ export function MealCard({
         protein,
         carbs,
         fat,
+        starchyCarbs: starchyCarbs || 0,
+        fibrousCarbs: fibrousCarbs || 0,
         servings: meal.servings || 1,
         source: "weekly-meal-board"
       };
