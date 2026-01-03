@@ -605,8 +605,19 @@ export default function weekBoardRoutes(app: Express) {
         board = getOrCreateWeek(mondayISO);
       }
 
+      // Preserve original meta before normalizing (preserves excludedItems, etc.)
+      const originalMeta = board.meta ? { ...board.meta } : null;
+
       // Normalize the board to ensure days structure exists
       board = normalizeBoard(board);
+
+      // Restore preserved meta fields
+      if (originalMeta) {
+        board.meta = {
+          ...board.meta,
+          ...originalMeta,
+        };
+      }
 
       // Ensure the day exists
       if (!board.days[dateISO]) {
