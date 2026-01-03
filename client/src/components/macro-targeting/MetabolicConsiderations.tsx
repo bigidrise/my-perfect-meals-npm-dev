@@ -103,7 +103,7 @@ export default function MetabolicConsiderations({
                 <Heart className="h-5 w-5 text-pink-400" />
                 Metabolic & Hormonal Considerations
                 {hasActive && (
-                  <span className="text-xs bg-pink-500/30 text-pink-200 px-2 py-0.5 rounded-full ml-2">
+                  <span className="text-xs bg-black/60 text-pink-200 px-2 py-0.5 rounded-full ml-2">
                     {suggestions.length} active
                   </span>
                 )}
@@ -140,7 +140,7 @@ export default function MetabolicConsiderations({
                     key={key}
                     className={`p-4 rounded-lg border transition-colors ${
                       isEnabled
-                        ? 'bg-pink-900/30 border-pink-500/40'
+                        ? 'bg-black/60'
                         : 'bg-white/5 border-white/10'
                     }`}
                   >
@@ -178,7 +178,7 @@ export default function MetabolicConsiderations({
             </div>
 
             {hasActive && suggestions.length > 0 && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-pink-900/30 to-purple-900/30 border border-pink-500/30 rounded-lg">
+              <div className="mt-4 p-4 bg-black/60 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-white">Combined adjustments:</span>
                 </div>
@@ -195,7 +195,7 @@ export default function MetabolicConsiderations({
                 </div>
                 <Button
                   onClick={handlePreviewChanges}
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white"
+                  className="w-full bg-blue-800 text-white"
                 >
                   Preview Changes
                 </Button>
@@ -245,14 +245,14 @@ export default function MetabolicConsiderations({
                 <Button
                   variant="outline"
                   onClick={handleCancelApply}
-                  className="flex-1 border-white/20 text-white hover:bg-white/10"
+                  className="flex-1 bg-black border-white/20 text-white"
                 >
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
                 <Button
                   onClick={handleConfirmApply}
-                  className="flex-1 bg-pink-600 hover:bg-pink-700 text-white"
+                  className="flex-1 bg-lime-600 text-white"
                 >
                   <Check className="h-4 w-4 mr-2" />
                   Apply

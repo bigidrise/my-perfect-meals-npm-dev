@@ -960,12 +960,12 @@ export default function MacroCounter() {
                     }
                   }}
                   id="save-biometrics-button"
-                  className="w-full bg-lime-700 border-2 border-lime-300 text-white hover:bg-lime-800 hover:border-lime-300 font-semibold mt-4"
+                  className="w-full bg-lime-600 border-2 border-lime-400 text-white hover:bg-lime-800 hover:border-lime-300 text-lg font-semibold mt-4"
                 >
                   <Target className="h-4 w-4 mr-2" />
                   {isSaving
                     ? "Saving..."
-                    : "1st Step → Save Macros to Biometrics"}
+                    : "1st Step → Save to Biometrics"}
                 </Button>
 
                 {/* Primary CTA: Use These Macros → Build Meals */}
@@ -1030,10 +1030,10 @@ export default function MacroCounter() {
                     }
                   }}
                   id="build-meals-button"
-                  className="w-full bg-cyan-700 border-2 border-cyan-300 text-white hover:bg-cyan-800 hover:border-cyan-300 text-white font-semi-bold px-8 text-lg py-4 rounded-xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-black/90 border-2 border-white/90 text-white hover:bg-black/60 hover:border-black/20 text-white font-semi-bold px-8 text-lg py-4 rounded-2xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChefHat className="h-5 w-5 mr-2" />
-                  {isSaving ? "Saving..." : "2nd Step → Go To Meal Builder"}
+                  {isSaving ? "Saving..." : "2nd Step → Go To Meal Planner"}
                 </Button>
               </div>
             </>
