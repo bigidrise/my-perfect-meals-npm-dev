@@ -1,0 +1,143 @@
+You’re dead-on. If Diabetic gets coupled but **GLP-1, Anti-Inflammatory, and Competition Pro** stay “UI shells,” you’ll be building a Ferrari with three flat tires.
+
+Here’s the clean way to do it without turning your codebase into spaghetti: **one clinical coupling framework**, then plug each hub in as a module.
+
+---
+
+## The Core Rule
+
+**Every hub must influence generation in two places:**
+
+1. **Prompt injection** (what the model is told to do)
+2. **Output validation** (what the model is allowed to return)
+
+If you only do prompt injection, it’ll *usually* behave.
+If you add validation, it behaves **every time**.
+
+---
+
+# 1) GLP-1 Coupling Plan
+
+### What GLP-1 needs to enforce (behavioral, not just macros)
+
+GLP-1 isn’t primarily “low carb.” It’s:
+
+* **small portions**
+* **high protein priority**
+* **lower fat when nausea risk is high**
+* **gentle fiber**
+* **low-grease, low-giant-volume meals**
+
+### Data inputs (server-side)
+
+* Latest **GLP-1 check-in** (if you have it): nausea, appetite, constipation, reflux (even 1–5 scale)
+* Guardrails: portion cap, protein floor, fat ceiling (optional), “avoid greasy/spicy” toggles
+
+### Prompt injection (module)
+
+* If nausea/reflux high → bland-ish, lean protein, avoid greasy/high fat
+* If appetite low → **protein-dense small meal**, not a giant plate
+* If constipation → add fiber/fluids gently (not “eat a salad bowl of beans”)
+
+### Output validation
+
+* **Protein minimum** met
+* **Portion size** not insane (use meal weight/serving count heuristics)
+* If “fat sensitive” is on → fat under cap
+* Avoid list respected
+
+---
+
+# 2) Anti-Inflammatory Coupling Plan
+
+This one is rules-heavy and easy to validate.
+
+### Guardrails (server-side)
+
+* Exclusions: fried foods, ultra-processed, refined sugar, certain oils, etc.
+* Bias list: omega-3 sources, olive oil, berries, turmeric/ginger, leafy greens (depending on your philosophy)
+
+### Prompt injection (module)
+
+* “Choose ingredients and cooking methods aligned with anti-inflammatory pattern.”
+* “Avoid excluded items and prefer bias list.”
+
+### Output validation
+
+* Ingredient scan for banned items (simple keyword + normalized ingredient map)
+* Cooking method scan (fried/deep-fried flagged)
+* If violation → regenerate with “remove flagged ingredients/methods”
+
+This one should be **rock solid**.
+
+---
+
+# 3) Competition Pro Coupling Plan (High-Protein, Low-Carb, No Matter What)
+
+This is the one you just called out — and you’re right: it must be **non-negotiable**.
+
+### Competition Pro guardrails (server-side)
+
+Define it like a contract:
+
+* **Protein floor** per meal (e.g., ≥ 40g, or based on bodyweight/targets)
+* **Carb ceiling** per meal (e.g., ≤ 25g net, configurable)
+* Optional: fat ceiling/floor depending on cut/bulk
+* Optional: banned foods (sugar, bread, pasta) and allowed carb types (fibrous only)
+
+### Prompt injection (module)
+
+* “Return a meal that meets protein ≥ Xg and carbs ≤ Yg. If cuisine requested, adapt cuisine while respecting constraints.”
+* “If the user requests a high-carb meal, refuse and offer a compliant alternative.”
+
+### Output validation (MUST)
+
+After generation:
+
+* Parse macros (your output must include them consistently)
+* If `protein < floor` OR `carbs > ceiling`:
+
+  * Auto-regenerate with correction prompt:
+    “Increase protein, reduce carbs; keep cuisine; keep taste; keep portions realistic.”
+* If fails twice → fall back to a known compliant template meal (safe fallback)
+
+**This guarantees** “high-protein, low-carb, no matter what it makes.”
+
+---
+
+## Implementation Strategy (So you don’t rewrite everything)
+
+### Add a single “Hub Coupling Layer”
+
+In `unifiedMealPipeline.ts` (server), do this pattern:
+
+1. Resolve `hubContext` and `hubGuardrails` (server-side)
+2. Build prompt with `promptParts[]` (base + hub module)
+3. Generate meal
+4. Validate with `validators[]` (base + hub module)
+5. If fail → regenerate once → else fallback
+
+### Each hub becomes:
+
+* `getContext(userId)` (optional)
+* `getGuardrails(userId)` (required if hub supports it)
+* `buildPrompt(context, guardrails)`
+* `validate(output, guardrails)` + `fixHint` for regen
+
+That’s it. Clean. Scalable. No hacks.
+
+---
+
+## What I’d do next (order of operations)
+
+1. **Competition Pro validation first** (because “no matter what” demands enforcement)
+2. **GLP-1** (more nuanced)
+3. **Anti-Inflammatory** (easy to validate; quick win)
+
+---
+
+## One line to send your architect (so they don’t wander)
+
+“Implement hub coupling as modular prompt + validator plugins inside unifiedMealPipeline; Diabetic is the template; now add GLP-1, Anti-Inflammatory, and Competition Pro with hard validation—especially protein floor + carb ceiling for Competition Pro.”
+
+If you want, I’ll convert this into a **single Replit architect execution prompt** with file targets, interfaces, and acceptance tests (including “protein/carb must pass every time”).
