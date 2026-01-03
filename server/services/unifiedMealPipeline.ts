@@ -18,6 +18,7 @@ import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType } from './guardrails';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
+import { getDiabeticContext, getDiabeticGuardrails, getGlucoseBasedMealGuidance, DiabeticContext, DiabeticGuardrails } from './diabeticContextService';
 import OpenAI from 'openai';
 
 let _openai: OpenAI | null = null;
@@ -576,6 +577,24 @@ export async function generateFromDescriptionUnified(
   console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''}`);
   
   try {
+    // Fetch diabetic context if user has diabetes and we have a userId
+    let diabeticContext: DiabeticContext | null = null;
+    let diabeticGuardrails: DiabeticGuardrails | null = null;
+    let glucoseGuidance: string = '';
+    
+    if (userId && (dietType === 'diabetic' || dietType === 'glp1')) {
+      try {
+        diabeticContext = await getDiabeticContext(userId);
+        if (diabeticContext.hasDiabetes) {
+          diabeticGuardrails = await getDiabeticGuardrails(userId);
+          glucoseGuidance = getGlucoseBasedMealGuidance(diabeticContext);
+          console.log(`🩺 Diabetic context loaded: ${diabeticContext.diabetesType}, glucose state: ${diabeticContext.latestGlucose?.state || 'no data'}`);
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to load diabetic context, continuing without:', err);
+      }
+    }
+    
     // Import OpenAI directly for description-based generation
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -596,7 +615,15 @@ REQUIREMENTS:
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
-
+${glucoseGuidance ? `
+DIABETIC GLUCOSE CONTEXT (CRITICAL - MUST FOLLOW):
+${glucoseGuidance}
+${diabeticGuardrails ? `
+DIABETIC GUARDRAILS:
+- Maximum carbs per meal: ${diabeticGuardrails.carbLimit}g
+- Minimum fiber: ${diabeticGuardrails.fiberMin}g
+- Maximum glycemic index: ${diabeticGuardrails.giCap}
+` : ''}` : ''}
 FORMAT: Return as JSON object:
 {
   "name": "Creative meal name based on the description",
@@ -761,6 +788,24 @@ export async function generateSnackFromCravingUnified(
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
   try {
+    // Fetch diabetic context if user has diabetes and we have a userId
+    let snackDiabeticContext: DiabeticContext | null = null;
+    let snackDiabeticGuardrails: DiabeticGuardrails | null = null;
+    let snackGlucoseGuidance: string = '';
+    
+    if (userId && (dietType === 'diabetic' || dietType === 'glp1')) {
+      try {
+        snackDiabeticContext = await getDiabeticContext(userId);
+        if (snackDiabeticContext.hasDiabetes) {
+          snackDiabeticGuardrails = await getDiabeticGuardrails(userId);
+          snackGlucoseGuidance = getGlucoseBasedMealGuidance(snackDiabeticContext);
+          console.log(`🩺 Snack diabetic context: ${snackDiabeticContext.diabetesType}, glucose: ${snackDiabeticContext.latestGlucose?.state || 'no data'}`);
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to load diabetic context for snack, continuing without:', err);
+      }
+    }
+    
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
@@ -789,7 +834,15 @@ REQUIREMENTS:
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
 - fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
-
+${snackGlucoseGuidance ? `
+DIABETIC GLUCOSE CONTEXT (CRITICAL - MUST FOLLOW):
+${snackGlucoseGuidance}
+${snackDiabeticGuardrails ? `
+DIABETIC GUARDRAILS FOR SNACKS:
+- Maximum carbs: ${Math.round(snackDiabeticGuardrails.carbLimit / 4)}g (quarter of meal limit)
+- Minimum fiber: ${Math.round(snackDiabeticGuardrails.fiberMin / 4)}g
+- Maximum glycemic index: ${snackDiabeticGuardrails.giCap}
+` : ''}` : ''}
 FORMAT: Return as JSON object:
 {
   "name": "Creative snack name that sounds appetizing",

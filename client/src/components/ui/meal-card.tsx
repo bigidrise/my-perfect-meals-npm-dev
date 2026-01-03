@@ -6,6 +6,7 @@ import { Clock, Users, Zap } from "lucide-react";
 import type { Recipe } from "@shared/schema";
 import MedicalInfoBubble from "@/components/MedicalInfoBubble";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MealCardProps {
   recipe?: Recipe;
@@ -18,6 +19,9 @@ interface MealCardProps {
 }
 
 export default function MealCard({ recipe, compact = false, onSelect, onViewRecipe, onSendToShoppingList, onCreateMeal, onReplace }: MealCardProps) {
+  const { user } = useAuth();
+  const userId = user?.id?.toString() || "";
+  
   if (!recipe) {
     return (
       <Card className="border-dashed">
@@ -198,7 +202,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        userId: "1",
+                        userId,
                         recipeId: recipe.id,
                         date: new Date(),
                         mealType: "meal",

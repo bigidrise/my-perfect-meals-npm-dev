@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Cookie, Loader2 } from "lucide-react";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -29,7 +30,9 @@ export function SnackCreatorModal({
   dietPhase,
 }: SnackCreatorModalProps) {
   const [description, setDescription] = useState("");
-  const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest();
+  const { user } = useAuth();
+  const userId = user?.id?.toString() || "";
+  const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest(userId);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,6 +43,15 @@ export function SnackCreatorModal({
   }, [open, cancel]);
 
   const handleGenerate = async () => {
+    if (!userId) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to create snacks",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!description.trim()) {
       toast({
         title: "Please describe your snack craving",
