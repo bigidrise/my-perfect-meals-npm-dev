@@ -8,6 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ClinicalAdvisory, Targets } from "@/lib/proData";
+import { createAuditEntry, AdvisoryAuditEntry } from "@/lib/clinicalAdvisory";
 
 export type AdvisorySuggestion = {
   toggleId: string;
@@ -134,6 +135,21 @@ export default function ClinicalAdvisoryDrawer({
   };
 
   const handleApply = () => {
+    const auditEntry = createAuditEntry('adjustments_applied', {
+      deltas: {
+        protein: aggregated.protein,
+        carbs: aggregated.carbs,
+        fat: aggregated.fat,
+      },
+      previousTargets: {
+        protein: targets.protein,
+        starchyCarbs: targets.starchyCarbs,
+        fibrousCarbs: targets.fibrousCarbs,
+        fat: targets.fat,
+      },
+    });
+    console.log('📋 Clinical Advisory Applied:', auditEntry);
+    
     onApplySuggestions(aggregated);
     setShowConfirm(false);
   };

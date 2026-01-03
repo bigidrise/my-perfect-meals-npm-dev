@@ -32,6 +32,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
+import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
+import { MacroDeltas } from "@/lib/clinicalAdvisory";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -267,6 +269,7 @@ export default function MacroCounter() {
   const [sugarCapMode, setSugarCapMode] = useState<"AHA" | "DGA">(
     savedSettings?.sugarCapMode ?? "AHA",
   );
+  const [advisoryDeltas, setAdvisoryDeltas] = useState<MacroDeltas>({ protein: 0, carbs: 0, fat: 0 });
 
   const macroCalculatorTourSteps: TourStep[] = [
     {
@@ -841,6 +844,28 @@ export default function MacroCounter() {
             </CardContent>
           </Card>
 
+          {/* Metabolic & Hormonal Considerations - V1 Clinical Advisory */}
+          {results && (
+            <MetabolicConsiderations
+              currentTargets={{
+                protein: results.macros.protein.g + advisoryDeltas.protein,
+                carbs: results.macros.carbs.g + advisoryDeltas.carbs,
+                fat: results.macros.fat.g + advisoryDeltas.fat,
+              }}
+              onApplyAdjustments={(deltas) => {
+                setAdvisoryDeltas({
+                  protein: advisoryDeltas.protein + deltas.protein,
+                  carbs: advisoryDeltas.carbs + deltas.carbs,
+                  fat: advisoryDeltas.fat + deltas.fat,
+                });
+                toast({
+                  title: "Adjustments Applied",
+                  description: "Your macro targets have been fine-tuned based on your metabolic considerations.",
+                });
+              }}
+            />
+          )}
+
           {/* Results - Only show when activity is selected */}
           {results && (
             <>
@@ -864,19 +889,19 @@ export default function MacroCounter() {
                     </div>
                     <MacroRow
                       label="Protein"
-                      grams={results.macros.protein.g}
+                      grams={Math.max(0, results.macros.protein.g + advisoryDeltas.protein)}
                     />
                     <MacroRow
                       label="Carbs - Starchy"
-                      grams={getStarchyCarbs(sex, goal)}
+                      grams={Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5))}
                     />
                     <MacroRow
                       label="Carbs - Fibrous"
-                      grams={
-                        results.macros.carbs.g - getStarchyCarbs(sex, goal)
-                      }
+                      grams={Math.max(0,
+                        (results.macros.carbs.g - getStarchyCarbs(sex, goal)) + Math.round(advisoryDeltas.carbs * 0.5)
+                      )}
                     />
-                    <MacroRow label="Fats" grams={results.macros.fat.g} />
+                    <MacroRow label="Fats" grams={Math.max(0, results.macros.fat.g + advisoryDeltas.fat)} />
                   </div>
                 </CardContent>
               </Card>
@@ -892,14 +917,20 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
+                      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
+                      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
+                      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
+                      const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
+                      const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
+                      
                       await setMacroTargets(
                         {
                           calories: results.target,
-                          protein_g: results.macros.protein.g,
-                          carbs_g: results.macros.carbs.g,
-                          fat_g: results.macros.fat.g,
-                          starchyCarbs_g: getStarchyCarbs(sex, goal),
-                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
+                          protein_g: adjustedProtein,
+                          carbs_g: adjustedCarbs,
+                          fat_g: adjustedFat,
+                          starchyCarbs_g: adjustedStarchy,
+                          fibrousCarbs_g: adjustedFibrous,
                         },
                         user?.id,
                       );
@@ -957,14 +988,20 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
+                      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
+                      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
+                      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
+                      const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
+                      const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
+                      
                       await setMacroTargets(
                         {
                           calories: results.target,
-                          protein_g: results.macros.protein.g,
-                          carbs_g: results.macros.carbs.g,
-                          fat_g: results.macros.fat.g,
-                          starchyCarbs_g: getStarchyCarbs(sex, goal),
-                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
+                          protein_g: adjustedProtein,
+                          carbs_g: adjustedCarbs,
+                          fat_g: adjustedFat,
+                          starchyCarbs_g: adjustedStarchy,
+                          fibrousCarbs_g: adjustedFibrous,
                         },
                         user?.id,
                       );
