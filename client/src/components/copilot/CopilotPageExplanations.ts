@@ -31,9 +31,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-creator",
     title: "Craving Creator",
     description:
-      "Create healthier versions of the foods you crave — so you never have to ignore cravings again.",
+      "Create healthier versions of the foods you crave — and add them directly to your meal plan.",
     spokenText:
-      "Craving something but can't come up with a healthy option? That's exactly what Craving Creator is for. Just tell me what you're in the mood for — sweet, crunchy, creamy, whatever sounds good. Add any dietary preferences or restrictions you have, like dairy-free or gluten-free. Pick how many servings you want, then press Create. I'll handle the rest and build you a healthier version that fits your goals without going overboard. You eat what you want, stay on track, and never have to ignore cravings again.",
+      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, like dairy-free or gluten-free, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s breakfast, lunch, dinner, or snacks, log the macros, or save it for later. You eat what you want — and still stay on track.",
     autoClose: true,
   },
 
@@ -61,9 +61,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-presets",
     title: "Craving Premades",
     description:
-      "Browse ready-made AI-created craving meals you can use instantly, without starting from scratch.",
+      "Browse ready-made AI craving meals you can use instantly — and add straight to your daily meal plan.",
     spokenText:
-      "Craving Premades. This is where you grab ready-made craving meals without having to build anything from scratch. Start by choosing how many servings you're making and your rounding preference so portions stay realistic. Then scroll through the premade options and tap any meal that looks good. Inside, you'll see ingredients, nutrition info, and cooking instructions. From there, you can send everything straight to your master shopping list, log the macros, or do both in one tap.",
+      "Craving Presets is where you grab ready-made meals without starting from scratch. Ch0ose how many servings you’re making and your rounding preference so portions stay realistic. Then scroll through the premade meals and tap any one that looks good. Inside each meal, you’ll see ingredients, nutrition, and instructions. From there, you can log the macros, send the ingredients to your shopping list, or add that meal directly to today’s breakfast, lunch, dinner, or snacks. It’s the fastest way to pick a meal and drop it straight into your plan.",
     autoClose: true,
   },
 
@@ -71,9 +71,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "fridge-rescue",
     title: "Fridge Rescue",
     description:
-      "Turn the ingredients you already have into real meals, without extra shopping.",
+      "Turn the ingredients you already have into real meals — and add them directly to today’s plan.",
     spokenText:
-      "Fridge Rescue. You ever come home tired, open the fridge, and stare at food with no clue what to make? That's not a willpower problem — that's an idea problem, and everybody hits it. You already have food, you're just stuck in the same rotations. This fixes that. Type or speak the ingredients you have at home, tap generate, and I'll give you three real meals using what's already there. No grocery run. No guessing. Problem solved.",
+      "Fridge Rescue is for those nights when you’ve got food at home, but no ideas. Type or speak the ingredients you already have, then tap Generate. I’ll create real meals using what’s in your fridge — no grocery run, no guessing. Each meal comes with ingredients, instructions, and nutrition. If you like one, you can add it directly to today’s breakfast, lunch, dinner, or snacks, log the macros, or send ingredients to your shopping list. It turns what you already have into an actual plan.",
     autoClose: true,
   },
 
@@ -258,9 +258,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "macro-counter",
     title: "Macro Calculator",
     description:
-      "Calculate your daily protein, carb, and fat targets based on your goals and activity level.",
+      "Calculate personalized daily protein, carb, and fat targets using your goals, activity level, body composition, and key metabolic factors.",
     spokenText:
-      "The Macro Calculator helps you set clear daily nutrition targets. Start by choosing your goal and body type, then enter your stats like age, height, weight, and activity level. You’ll also set your current weight for biometrics. Once everything’s filled in, I’ll calculate your daily protein, carbs, and fats so you know exactly what to aim for each day. Once you’ve set your weight and macros, head over to the meal builder on the planner page by pressing the builder button and start building your meals using those targets",
+      "The Macro Calculator helps set personalized daily nutrition targets based on how your body actually works — not just calories. Start by choosing your goal, body type, and activity level, then enter your age, height, weight, and current weight for biometrics. You can also factor in important metabolic considerations like hormone changes, insulin resistance, or high stress, which can influence how your body responds to protein, carbs, and fat. I’ll calculate clear daily targets for protein, starchy carbs, fibrous carbs, and fat — giving you numbers that make sense for you. Once your targets are set, head to the planner and start building meals that align with those goals.",
     autoClose: true,
   },
   "/shopping-list-v2": {

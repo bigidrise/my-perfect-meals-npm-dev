@@ -21,6 +21,8 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -188,8 +190,10 @@ export default function DessertCreator() {
 
     setIsGenerating(true);
     startProgressTicker();
+    console.log("🍨 [DESSERT] Starting generation...", { dessertCategory, flavorFamily, specificDessert, servingSize });
 
     try {
+      console.log("🍨 [DESSERT] Calling API...");
       const res = await fetch(apiUrl("/api/meals/dessert-creator"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -208,6 +212,8 @@ export default function DessertCreator() {
         }),
       });
 
+      console.log("🍨 [DESSERT] API response received:", res.status);
+      
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         console.error("🍨 Dessert Creator API Error:", res.status, errorBody);
@@ -215,6 +221,7 @@ export default function DessertCreator() {
       }
 
       const data = await res.json();
+      console.log("🍨 [DESSERT] Parsed response data:", data);
       const meal = data.meal || data;
 
       stopProgressTicker();
@@ -224,7 +231,8 @@ export default function DessertCreator() {
         title: "✨ Dessert Created!",
         description: `${meal.name} is ready for you.`,
       });
-    } catch {
+    } catch (err) {
+      console.error("🍨 [DESSERT] Generation error:", err);
       stopProgressTicker();
       toast({
         title: "Generation Failed",
@@ -315,17 +323,35 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor, Style, or Inspiration (optional)
+                  Flavor Family <span className="text-orange-400">*</span>
+                </label>
+                <Select value={flavorFamily} onValueChange={setFlavorFamily}>
+                  <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                    <SelectValue placeholder="Select flavor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FLAVOR_FAMILIES.map((flavor) => (
+                      <SelectItem key={flavor.value} value={flavor.value}>
+                        {flavor.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-md font-medium text-white mb-1">
+                  Additional Flavor Notes (optional)
                 </label>
                 <input
                   value={specificDessert}
                   onChange={(e) => setSpecificDessert(e.target.value)}
-                  placeholder="e.g., key lime pie, apple crumble, red velvet cake..."
+                  placeholder="e.g., with cream cheese frosting, extra cinnamon..."
                   className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
                   maxLength={150}
                 />
                 <p className="text-xs text-white/60 mt-1">
-                  Leave empty for AI to create something perfect
+                  Add specific details or leave empty
                 </p>
               </div>
 
@@ -460,9 +486,18 @@ export default function DessertCreator() {
 
                   <div className="mb-4">
                     <div className="flex items-center justify-between gap-3 mb-2">
-                      <h3 className="font-semibold text-white">
-                        Medical Safety
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <HealthBadgesPopover
+                          badges={generatedDessert.medicalBadges || []}
+                          align="start"
+                        />
+                        <h3 className="font-semibold text-white">
+                          Medical Safety
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mb-4">
+                      <AddToMealPlanButton meal={generatedDessert} />
                       <CopyRecipeButton
                         recipe={{
                           name: generatedDessert.name,

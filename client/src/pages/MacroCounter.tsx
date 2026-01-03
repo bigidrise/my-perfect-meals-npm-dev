@@ -32,6 +32,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
+import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
+import { MacroDeltas } from "@/lib/clinicalAdvisory";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -267,6 +269,7 @@ export default function MacroCounter() {
   const [sugarCapMode, setSugarCapMode] = useState<"AHA" | "DGA">(
     savedSettings?.sugarCapMode ?? "AHA",
   );
+  const [advisoryDeltas, setAdvisoryDeltas] = useState<MacroDeltas>({ protein: 0, carbs: 0, fat: 0 });
 
   const macroCalculatorTourSteps: TourStep[] = [
     {
@@ -841,6 +844,28 @@ export default function MacroCounter() {
             </CardContent>
           </Card>
 
+          {/* Metabolic & Hormonal Considerations - V1 Clinical Advisory */}
+          {results && (
+            <MetabolicConsiderations
+              currentTargets={{
+                protein: results.macros.protein.g + advisoryDeltas.protein,
+                carbs: results.macros.carbs.g + advisoryDeltas.carbs,
+                fat: results.macros.fat.g + advisoryDeltas.fat,
+              }}
+              onApplyAdjustments={(deltas) => {
+                setAdvisoryDeltas({
+                  protein: advisoryDeltas.protein + deltas.protein,
+                  carbs: advisoryDeltas.carbs + deltas.carbs,
+                  fat: advisoryDeltas.fat + deltas.fat,
+                });
+                toast({
+                  title: "Adjustments Applied",
+                  description: "Your macro targets have been fine-tuned based on your metabolic considerations.",
+                });
+              }}
+            />
+          )}
+
           {/* Results - Only show when activity is selected */}
           {results && (
             <>
@@ -864,19 +889,19 @@ export default function MacroCounter() {
                     </div>
                     <MacroRow
                       label="Protein"
-                      grams={results.macros.protein.g}
+                      grams={Math.max(0, results.macros.protein.g + advisoryDeltas.protein)}
                     />
                     <MacroRow
                       label="Carbs - Starchy"
-                      grams={getStarchyCarbs(sex, goal)}
+                      grams={Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5))}
                     />
                     <MacroRow
                       label="Carbs - Fibrous"
-                      grams={
-                        results.macros.carbs.g - getStarchyCarbs(sex, goal)
-                      }
+                      grams={Math.max(0,
+                        (results.macros.carbs.g - getStarchyCarbs(sex, goal)) + Math.round(advisoryDeltas.carbs * 0.5)
+                      )}
                     />
-                    <MacroRow label="Fats" grams={results.macros.fat.g} />
+                    <MacroRow label="Fats" grams={Math.max(0, results.macros.fat.g + advisoryDeltas.fat)} />
                   </div>
                 </CardContent>
               </Card>
@@ -892,14 +917,20 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
+                      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
+                      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
+                      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
+                      const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
+                      const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
+                      
                       await setMacroTargets(
                         {
                           calories: results.target,
-                          protein_g: results.macros.protein.g,
-                          carbs_g: results.macros.carbs.g,
-                          fat_g: results.macros.fat.g,
-                          starchyCarbs_g: getStarchyCarbs(sex, goal),
-                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
+                          protein_g: adjustedProtein,
+                          carbs_g: adjustedCarbs,
+                          fat_g: adjustedFat,
+                          starchyCarbs_g: adjustedStarchy,
+                          fibrousCarbs_g: adjustedFibrous,
                         },
                         user?.id,
                       );
@@ -929,12 +960,12 @@ export default function MacroCounter() {
                     }
                   }}
                   id="save-biometrics-button"
-                  className="w-full bg-lime-700 border-2 border-lime-300 text-white hover:bg-lime-800 hover:border-lime-300 font-semibold mt-4"
+                  className="w-full bg-lime-600 border-2 border-lime-400 text-white hover:bg-lime-800 hover:border-lime-300 text-lg font-semibold mt-4"
                 >
                   <Target className="h-4 w-4 mr-2" />
                   {isSaving
                     ? "Saving..."
-                    : "1st Step → Save Macros to Biometrics"}
+                    : "1st Step → Save to Biometrics"}
                 </Button>
 
                 {/* Primary CTA: Use These Macros → Build Meals */}
@@ -957,14 +988,20 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
+                      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
+                      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
+                      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
+                      const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
+                      const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
+                      
                       await setMacroTargets(
                         {
                           calories: results.target,
-                          protein_g: results.macros.protein.g,
-                          carbs_g: results.macros.carbs.g,
-                          fat_g: results.macros.fat.g,
-                          starchyCarbs_g: getStarchyCarbs(sex, goal),
-                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
+                          protein_g: adjustedProtein,
+                          carbs_g: adjustedCarbs,
+                          fat_g: adjustedFat,
+                          starchyCarbs_g: adjustedStarchy,
+                          fibrousCarbs_g: adjustedFibrous,
                         },
                         user?.id,
                       );
@@ -993,10 +1030,10 @@ export default function MacroCounter() {
                     }
                   }}
                   id="build-meals-button"
-                  className="w-full bg-cyan-700 border-2 border-cyan-300 text-white hover:bg-cyan-800 hover:border-cyan-300 text-white font-semi-bold px-8 text-lg py-4 rounded-xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-black/90 border-2 border-white/90 text-white hover:bg-black/60 hover:border-black/20 text-white font-semi-bold px-8 text-lg py-4 rounded-2xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChefHat className="h-5 w-5 mr-2" />
-                  {isSaving ? "Saving..." : "2nd Step → Go To Meal Builder"}
+                  {isSaving ? "Saving..." : "2nd Step → Go To Meal Planner"}
                 </Button>
               </div>
             </>

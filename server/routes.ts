@@ -677,10 +677,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("[FRIDGE] valid request, items:", fridgeItems.length, "items:", fridgeItems);
 
+      // Fetch user health conditions from database for medical badge generation
+      let userHealthConditions: string[] = [];
+      if (userId && userId !== "demo-user") {
+        try {
+          const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+          if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
+            userHealthConditions = dbUser.healthConditions;
+            console.log("[FRIDGE] User health conditions loaded:", userHealthConditions.length, "conditions");
+          }
+        } catch (err) {
+          console.log("[FRIDGE] Could not fetch user health conditions:", err);
+        }
+      }
+
       // Generate multiple meals with proper macros and amounts
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
-        user: { healthConditions: [] },
+        user: { healthConditions: userHealthConditions },
         macroTargets 
       });
 

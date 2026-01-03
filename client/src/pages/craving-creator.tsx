@@ -42,6 +42,7 @@ import {
 } from "@/utils/medicalPersonalization";
 import { post } from "@/lib/api";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 
@@ -867,10 +868,33 @@ export default function CravingCreator() {
                         </div>
                       </div>
 
-                      {/* Medical Badges - ALWAYS SHOW */}
+                      {/* Action Buttons - Always show */}
+                      <div className="flex gap-2 mb-4">
+                        <AddToMealPlanButton meal={meal} />
+                        <CopyRecipeButton
+                          recipe={{
+                            name: meal.name,
+                            ingredients: (meal.ingredients ?? []).map(
+                              (ing: any) => ({
+                                name: ing.item || ing.name,
+                                amount: ing.amount || ing.quantity,
+                                unit: ing.unit,
+                              }),
+                            ),
+                            instructions: Array.isArray(meal.instructions)
+                              ? meal.instructions
+                              : meal.instructions
+                                ? meal.instructions
+                                    .split("\n")
+                                    .filter((s: string) => s.trim())
+                                : [],
+                          }}
+                        />
+                      </div>
+
+                      {/* Medical Badges */}
                       {(() => {
-                        const profile = getUserMedicalProfile(1); // Use numeric ID for development
-                        // or your real user id
+                        const profile = getUserMedicalProfile(1);
                         const mealForBadges = {
                           name: meal.name,
                           calories:
@@ -909,32 +933,15 @@ export default function CravingCreator() {
 
                         return medicalBadges && medicalBadges.length > 0 ? (
                           <div className="mb-4">
-                            <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-white">
                                 Medical Safety
                               </h3>
-                              <CopyRecipeButton
-                                recipe={{
-                                  name: meal.name,
-                                  ingredients: (meal.ingredients ?? []).map(
-                                    (ing: any) => ({
-                                      name: ing.item || ing.name,
-                                      amount: ing.amount || ing.quantity,
-                                      unit: ing.unit,
-                                    }),
-                                  ),
-                                  instructions: Array.isArray(meal.instructions)
-                                    ? meal.instructions
-                                    : meal.instructions
-                                      ? meal.instructions
-                                          .split("\n")
-                                          .filter((s: string) => s.trim())
-                                      : [],
-                                }}
-                              />
                             </div>
                             <HealthBadgesPopover
-                              badges={medicalBadges.map((b: any) => b.badge)}
+                              badges={medicalBadges.map((b: any) => 
+                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)
+                              )}
                               className="mt-2"
                             />
                           </div>
