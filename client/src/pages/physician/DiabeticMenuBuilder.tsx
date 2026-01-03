@@ -1779,57 +1779,7 @@ export default function DiabeticMenuBuilder() {
               </section>
             ))}
 
-        {/* Quick Add Protein/Carbs - Above Daily Totals */}
-        <div className="col-span-full">
-          {(() => {
-            const resolved = getResolvedTargets(user?.id);
-            const proteinDeficit = Math.max(
-              0,
-              (resolved.protein_g || 0) - Math.round(totals.protein),
-            );
-            const carbsDeficit = Math.max(
-              0,
-              (resolved.carbs_g || 0) - Math.round(totals.carbs),
-            );
-
-            if (proteinDeficit === 0 && carbsDeficit === 0) return null;
-
-            return (
-              <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="text-sm text-white/80">
-                    {proteinDeficit > 0 && (
-                      <span>
-                        Need{" "}
-                        <strong className="text-orange-400">
-                          {proteinDeficit}g protein
-                        </strong>
-                      </span>
-                    )}
-                    {proteinDeficit > 0 && carbsDeficit > 0 && <span> · </span>}
-                    {carbsDeficit > 0 && (
-                      <span>
-                        Need{" "}
-                        <strong className="text-orange-400">
-                          {carbsDeficit}g carbs
-                        </strong>
-                      </span>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => setAdditionalMacrosOpen(true)}
-                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
-                    data-testid="button-quick-add-macros"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Quick Add
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Daily Targets Card with Quick Add */}
+        {/* Daily Targets Card with Quick Add */}
           <div className="col-span-full">
             <DailyTargetsCard
               userId={user?.id}
@@ -1847,7 +1797,6 @@ export default function DiabeticMenuBuilder() {
               })()}
             />
           </div>
-        </div>
 
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
