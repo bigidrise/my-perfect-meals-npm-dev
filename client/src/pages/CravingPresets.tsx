@@ -256,7 +256,10 @@ export default function CravingPresetsPage() {
                   {meal.summary}
                 </p>
                 {meal.badges && (
-                  <HealthBadgesPopover badges={meal.badges} className="mt-2" />
+                  <div className="flex items-center gap-2">
+                    <HealthBadgesPopover badges={meal.badges} />
+                    <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -320,10 +323,10 @@ export default function CravingPresetsPage() {
                         }}
                       />
                     </div>
-                    <HealthBadgesPopover
-                      badges={selected.badges}
-                      className="mt-2"
-                    />
+                    <div className="flex items-center gap-2">
+                      <HealthBadgesPopover badges={selected.badges} />
+                      <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                    </div>
                   </div>
                 )}
 

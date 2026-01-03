@@ -661,7 +661,7 @@ const FridgeRescuePage = () => {
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
                       {/* Medical Badges - Always show icon for consistency */}
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex items-center gap-2">
                         <HealthBadgesPopover
                           badges={
                             meal.medicalBadges?.map(
@@ -669,8 +669,8 @@ const FridgeRescuePage = () => {
                                 typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label),
                             ) || []
                           }
-                          className="mt-2"
                         />
+                        <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
                       </div>
 
                       {/* Nutrition Grid */}

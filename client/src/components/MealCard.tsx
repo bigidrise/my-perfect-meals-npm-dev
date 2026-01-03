@@ -165,8 +165,9 @@ export function MealCard({
             const badgeIds = medicalBadges.map(b => b.badge);
             
             return medicalBadges && medicalBadges.length > 0 && (
-              <div className="mt-2">
+              <div className="mt-2 flex items-center gap-2">
                 <HealthBadgesPopover badges={badgeIds} />
+                <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
               </div>
             );
           })()}
