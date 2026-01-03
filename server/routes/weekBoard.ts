@@ -576,6 +576,96 @@ export default function weekBoardRoutes(app: Express) {
     return res.json({ weekStartISO: mondayISO, list });
   });
 
+  // POST add a single meal to a specific day/slot (structured clone, no AI)
+  app.post("/api/weekly-board/add-meal", async (req: Request, res: Response) => {
+    try {
+      const { dateISO, slot, meal } = req.body;
+
+      // Validate inputs
+      if (!dateISO || !isValidISODate(dateISO)) {
+        return res.status(400).json({ error: "Invalid or missing dateISO (YYYY-MM-DD format required)" });
+      }
+
+      const validSlots = ["breakfast", "lunch", "dinner", "snacks"];
+      if (!slot || !validSlots.includes(slot)) {
+        return res.status(400).json({ error: "Invalid slot. Must be breakfast, lunch, dinner, or snacks" });
+      }
+
+      if (!meal || typeof meal !== "object") {
+        return res.status(400).json({ error: "Missing or invalid meal object" });
+      }
+
+      // Determine the week this date belongs to
+      const mondayISO = toMondayISO(dateISO);
+      const userId = resolveUserId(req);
+
+      // Get or create the week board
+      let board = await getWeekBoard(userId, mondayISO);
+      if (!board) {
+        board = getOrCreateWeek(mondayISO);
+      }
+
+      // Normalize the board to ensure days structure exists
+      board = normalizeBoard(board);
+
+      // Ensure the day exists
+      if (!board.days[dateISO]) {
+        board.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+      }
+
+      // Generate a unique ID for the meal if not provided
+      const mealToAdd = {
+        ...meal,
+        id: meal.id || `meal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        title: meal.name || meal.title || "Untitled Meal",
+        name: meal.name || meal.title || "Untitled Meal",
+        // Normalize nutrition
+        nutrition: {
+          calories: meal.nutrition?.calories || meal.calories || 0,
+          protein: meal.nutrition?.protein || meal.protein || 0,
+          carbs: meal.nutrition?.carbs || meal.carbs || 0,
+          fat: meal.nutrition?.fat || meal.fat || 0,
+          starchyCarbs: meal.nutrition?.starchyCarbs || meal.starchyCarbs,
+          fibrousCarbs: meal.nutrition?.fibrousCarbs || meal.fibrousCarbs,
+        },
+        // Preserve extended fields
+        imageUrl: meal.imageUrl,
+        description: meal.description,
+        cookingTime: meal.cookingTime,
+        difficulty: meal.difficulty,
+        medicalBadges: meal.medicalBadges || [],
+        ingredients: meal.ingredients || [],
+        instructions: meal.instructions || [],
+      };
+
+      // Replace existing meal in slot (single meal per slot for breakfast/lunch/dinner)
+      if (slot === "snacks") {
+        // Snacks can have multiple, append
+        board.days[dateISO].snacks.push(mealToAdd);
+      } else {
+        // Breakfast/lunch/dinner: replace
+        board.days[dateISO][slot as "breakfast" | "lunch" | "dinner"] = [mealToAdd];
+      }
+
+      // Update metadata
+      board.meta.lastUpdatedAt = new Date().toISOString();
+
+      // Save the board
+      await upsertWeekBoard(userId, mondayISO, board);
+
+      console.log(`✅ Added meal "${mealToAdd.title}" to ${dateISO} ${slot}`);
+
+      return res.json({
+        success: true,
+        message: `Meal added to ${dateISO} ${slot}`,
+        meal: mealToAdd,
+      });
+    } catch (error) {
+      console.error("❌ Error adding meal to board:", error);
+      return res.status(500).json({ error: "Failed to add meal to board" });
+    }
+  });
+
   // DELETE shopping list item for specific week
   app.delete("/api/shopping-list/:weekStartISO/item", async (req: Request, res: Response) => {
     const { weekStartISO } = req.params;
