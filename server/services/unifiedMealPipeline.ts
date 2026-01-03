@@ -18,7 +18,17 @@ import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType } from './guardrails';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
-import { getDiabeticContext, getDiabeticGuardrails, getGlucoseBasedMealGuidance, DiabeticContext, DiabeticGuardrails } from './diabeticContextService';
+import { 
+  resolveHubCoupling, 
+  validateMealForHub, 
+  hasHardViolations, 
+  getRegenerationHint,
+  isValidHubType,
+  ensureHubsRegistered,
+  detectHubTypeFromProfile,
+  HubType,
+  HubCouplingResult 
+} from './hubCoupling';
 import OpenAI from 'openai';
 
 let _openai: OpenAI | null = null;
@@ -577,30 +587,33 @@ export async function generateFromDescriptionUnified(
   console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''}`);
   
   try {
-    // Fetch diabetic context if user has diabetes and we have a userId
-    let diabeticContext: DiabeticContext | null = null;
-    let diabeticGuardrails: DiabeticGuardrails | null = null;
-    let glucoseGuidance: string = '';
+    await ensureHubsRegistered();
     
-    if (userId && (dietType === 'diabetic' || dietType === 'glp1')) {
-      try {
-        diabeticContext = await getDiabeticContext(userId);
-        if (diabeticContext.hasDiabetes) {
-          diabeticGuardrails = await getDiabeticGuardrails(userId);
-          glucoseGuidance = getGlucoseBasedMealGuidance(diabeticContext);
-          console.log(`🩺 Diabetic context loaded: ${diabeticContext.diabetesType}, glucose state: ${diabeticContext.latestGlucose?.state || 'no data'}`);
+    let hubCoupling: HubCouplingResult | null = null;
+    let effectiveHubType: HubType | null = null;
+    
+    if (userId) {
+      if (isValidHubType(dietType)) {
+        effectiveHubType = dietType;
+      } else {
+        effectiveHubType = await detectHubTypeFromProfile(userId);
+      }
+      
+      if (effectiveHubType) {
+        try {
+          hubCoupling = await resolveHubCoupling(effectiveHubType, userId, validMealType);
+          if (hubCoupling) {
+            console.log(`🔌 Hub coupling loaded for ${effectiveHubType}`);
+          }
+        } catch (err) {
+          console.warn(`⚠️ Failed to load hub coupling for ${effectiveHubType}, continuing without:`, err);
         }
-      } catch (err) {
-        console.warn('⚠️ Failed to load diabetic context, continuing without:', err);
       }
     }
     
-    // Import OpenAI directly for description-based generation
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
-    // Base prompt for meal generation
-    // Nutrition Schema v1.1: Request starchyCarbs and fibrousCarbs separately
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
 
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
@@ -615,15 +628,7 @@ REQUIREMENTS:
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
-${glucoseGuidance ? `
-DIABETIC GLUCOSE CONTEXT (CRITICAL - MUST FOLLOW):
-${glucoseGuidance}
-${diabeticGuardrails ? `
-DIABETIC GUARDRAILS:
-- Maximum carbs per meal: ${diabeticGuardrails.carbLimit}g
-- Minimum fiber: ${diabeticGuardrails.fiberMin}g
-- Maximum glycemic index: ${diabeticGuardrails.giCap}
-` : ''}` : ''}
+${hubCoupling?.promptFragment?.userPromptAddition || ''}
 FORMAT: Return as JSON object:
 {
   "name": "Creative meal name based on the description",
@@ -651,52 +656,115 @@ Create the recipe for: "${description}"`;
       console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
     }
 
-    // Build messages with optional system prompt for diet
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
-    const systemPrompt = getSystemPromptForDiet(dietType || null);
+    const hubSystemPrompt = hubCoupling?.promptFragment?.systemPrompt;
+    const fallbackSystemPrompt = getSystemPromptForDiet(dietType || null);
+    const systemPrompt = hubSystemPrompt || fallbackSystemPrompt;
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
     }
     messages.push({ role: 'user', content: prompt });
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages,
-      response_format: { type: "json_object" },
-      max_tokens: 1500,
-    });
-    
-    const content = response.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("No content received from OpenAI");
+    const MAX_REGENERATION_ATTEMPTS = 2;
+    let finalMealData: any = null;
+    let attemptCount = 0;
+    let lastFixHint: string | null = null;
+
+    while (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+      attemptCount++;
+      
+      const currentMessages = [...messages];
+      if (lastFixHint) {
+        currentMessages.push({ role: 'user', content: `IMPORTANT CORRECTION REQUIRED: ${lastFixHint}` });
+        console.log(`🔄 Regeneration attempt ${attemptCount} with fix hint`);
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: currentMessages,
+        response_format: { type: "json_object" },
+        max_tokens: 1500,
+      });
+      
+      const content = response.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error("No content received from OpenAI");
+      }
+      
+      const mealData = JSON.parse(content);
+      const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
+      const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
+      const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
+      
+      const tempMeal: UnifiedMeal = {
+        id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: mealData.name,
+        description: mealData.description,
+        ingredients: (mealData.ingredients || []).map((ing: any) => ({
+          name: ing.name,
+          quantity: String(ing.quantity || ''),
+          unit: ing.unit || ''
+        })),
+        instructions: mealData.instructions,
+        calories: mealData.calories || 400,
+        protein: mealData.protein || 25,
+        carbs: totalCarbs,
+        starchyCarbs,
+        fibrousCarbs,
+        fat: mealData.fat || 15,
+        cookingTime: mealData.cookingTime || '25 minutes',
+        difficulty: mealData.difficulty || 'Easy',
+        imageUrl: '',
+        medicalBadges: [],
+        source: 'ai'
+      };
+
+      if (effectiveHubType && hubCoupling?.guardrails) {
+        const hubValidation = validateMealForHub(tempMeal, effectiveHubType, hubCoupling.guardrails);
+        if (hasHardViolations(hubValidation)) {
+          console.warn(`🚨 Attempt ${attemptCount}: Hub validation failed - ${hubValidation.violations.map(v => v.message).join(', ')}`);
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = getRegenerationHint(effectiveHubType, hubValidation.violations);
+            continue;
+          } else {
+            console.error(`❌ Hub guardrails exhausted after ${attemptCount} attempts - falling back to safe template`);
+            throw new Error(`Hub validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
+          }
+        } else if (hubValidation.violations.length > 0) {
+          console.warn(`⚠️ Hub validation soft warnings: ${hubValidation.violations.map(v => v.message).join(', ')}`);
+        }
+      } else if (dietType) {
+        const validation = validateMealForDiet(tempMeal, dietType);
+        if (!validation.isValid) {
+          console.warn(`⚠️ Meal has legacy guardrail violations: ${validation.violations.join(', ')}`);
+        }
+      }
+
+      finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs };
+      break;
     }
     
-    const mealData = JSON.parse(content);
-    
-    // Nutrition Schema v1.1: Extract starchy/fibrous carbs from AI response BEFORE image generation
-    const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
-    const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
-    // Calculate total carbs from breakdown, or use legacy carbs field
-    const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
-    
-    // Generate DALL-E image for the meal
+    if (!finalMealData) {
+      throw new Error("Failed to generate valid meal after regeneration attempts");
+    }
+
     let imageUrl = getFallbackImage(validMealType);
     try {
       const generatedImage = await generateImage({
-        name: mealData.name,
-        description: mealData.description,
+        name: finalMealData.name,
+        description: finalMealData.description,
         type: 'meal',
         style: 'homemade',
-        ingredients: mealData.ingredients?.map((ing: any) => ing.name) || [],
-        calories: mealData.calories,
-        protein: mealData.protein,
-        carbs: totalCarbs, // Use computed total from Nutrition Schema v1.1
-        fat: mealData.fat,
+        ingredients: finalMealData.ingredients?.map((ing: any) => ing.name) || [],
+        calories: finalMealData.calories,
+        protein: finalMealData.protein,
+        carbs: finalMealData.totalCarbs,
+        fat: finalMealData.fat,
       });
       
       if (generatedImage) {
         imageUrl = generatedImage;
-        console.log(`🖼️ Generated DALL-E image for Create With Chef: ${mealData.name}`);
+        console.log(`🖼️ Generated DALL-E image for Create With Chef: ${finalMealData.name}`);
       }
     } catch (imgError) {
       console.warn('⚠️ DALL-E image generation failed, using fallback:', imgError);
@@ -704,35 +772,26 @@ Create the recipe for: "${description}"`;
     
     const unifiedMeal: UnifiedMeal = {
       id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: mealData.name,
-      description: mealData.description,
-      ingredients: (mealData.ingredients || []).map((ing: any) => ({
+      name: finalMealData.name,
+      description: finalMealData.description,
+      ingredients: (finalMealData.ingredients || []).map((ing: any) => ({
         name: ing.name,
         quantity: String(ing.quantity || ''),
         unit: ing.unit || ''
       })),
-      instructions: mealData.instructions,
-      calories: mealData.calories || 400,
-      protein: mealData.protein || 25,
-      carbs: totalCarbs, // Total for backward compatibility
-      starchyCarbs, // Nutrition Schema v1.1
-      fibrousCarbs, // Nutrition Schema v1.1
-      fat: mealData.fat || 15,
-      cookingTime: mealData.cookingTime || '25 minutes',
-      difficulty: mealData.difficulty || 'Easy',
+      instructions: finalMealData.instructions,
+      calories: finalMealData.calories || 400,
+      protein: finalMealData.protein || 25,
+      carbs: finalMealData.totalCarbs,
+      starchyCarbs: finalMealData.starchyCarbs,
+      fibrousCarbs: finalMealData.fibrousCarbs,
+      fat: finalMealData.fat || 15,
+      cookingTime: finalMealData.cookingTime || '25 minutes',
+      difficulty: finalMealData.difficulty || 'Easy',
       imageUrl,
       medicalBadges: [],
       source: 'ai'
     };
-    
-    // Post-generation validation for diet compliance
-    if (dietType) {
-      const validation = validateMealForDiet(unifiedMeal, dietType);
-      if (!validation.isValid) {
-        console.warn(`⚠️ Meal has guardrail violations: ${validation.violations.join(', ')}`);
-        // Log warning but still return meal - guardrails are guidance, not hard blocks
-      }
-    }
     
     console.log(`✅ Create With Chef generated complete meal: ${unifiedMeal.name}`);
     
@@ -788,28 +847,33 @@ export async function generateSnackFromCravingUnified(
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
   try {
-    // Fetch diabetic context if user has diabetes and we have a userId
-    let snackDiabeticContext: DiabeticContext | null = null;
-    let snackDiabeticGuardrails: DiabeticGuardrails | null = null;
-    let snackGlucoseGuidance: string = '';
+    await ensureHubsRegistered();
     
-    if (userId && (dietType === 'diabetic' || dietType === 'glp1')) {
-      try {
-        snackDiabeticContext = await getDiabeticContext(userId);
-        if (snackDiabeticContext.hasDiabetes) {
-          snackDiabeticGuardrails = await getDiabeticGuardrails(userId);
-          snackGlucoseGuidance = getGlucoseBasedMealGuidance(snackDiabeticContext);
-          console.log(`🩺 Snack diabetic context: ${snackDiabeticContext.diabetesType}, glucose: ${snackDiabeticContext.latestGlucose?.state || 'no data'}`);
+    let snackHubCoupling: HubCouplingResult | null = null;
+    let snackEffectiveHubType: HubType | null = null;
+    
+    if (userId) {
+      if (isValidHubType(dietType)) {
+        snackEffectiveHubType = dietType;
+      } else {
+        snackEffectiveHubType = await detectHubTypeFromProfile(userId);
+      }
+      
+      if (snackEffectiveHubType) {
+        try {
+          snackHubCoupling = await resolveHubCoupling(snackEffectiveHubType, userId, 'snack');
+          if (snackHubCoupling) {
+            console.log(`🔌 Snack hub coupling loaded for ${snackEffectiveHubType}`);
+          }
+        } catch (err) {
+          console.warn(`⚠️ Failed to load hub coupling for snack, continuing without:`, err);
         }
-      } catch (err) {
-        console.warn('⚠️ Failed to load diabetic context for snack, continuing without:', err);
       }
     }
     
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
-    // Nutrition Schema v1.1: Request starchyCarbs and fibrousCarbs separately
     let basePrompt = `You are a nutrition-focused chef specializing in healthy snack alternatives.
 
 TASK: Transform this craving into a HEALTHY snack: "${cravingDescription}"
@@ -834,15 +898,7 @@ REQUIREMENTS:
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
 - fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
-${snackGlucoseGuidance ? `
-DIABETIC GLUCOSE CONTEXT (CRITICAL - MUST FOLLOW):
-${snackGlucoseGuidance}
-${snackDiabeticGuardrails ? `
-DIABETIC GUARDRAILS FOR SNACKS:
-- Maximum carbs: ${Math.round(snackDiabeticGuardrails.carbLimit / 4)}g (quarter of meal limit)
-- Minimum fiber: ${Math.round(snackDiabeticGuardrails.fiberMin / 4)}g
-- Maximum glycemic index: ${snackDiabeticGuardrails.giCap}
-` : ''}` : ''}
+${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
 FORMAT: Return as JSON object:
 {
   "name": "Creative snack name that sounds appetizing",
@@ -870,51 +926,115 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       console.log(`🛡️ Applied snack guardrails: ${guardrailResult.appliedRules.join(', ')}`);
     }
 
-    // Build messages with optional system prompt for diet
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
-    const systemPrompt = getSystemPromptForDiet(dietType || null);
+    const snackHubSystemPrompt = snackHubCoupling?.promptFragment?.systemPrompt;
+    const snackFallbackSystemPrompt = getSystemPromptForDiet(dietType || null);
+    const systemPrompt = snackHubSystemPrompt || snackFallbackSystemPrompt;
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
     }
     messages.push({ role: 'user', content: prompt });
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages,
-      response_format: { type: "json_object" },
-      max_tokens: 1500,
-    });
-    
-    const content = response.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("No content received from OpenAI");
+    const SNACK_MAX_REGENERATION_ATTEMPTS = 2;
+    let finalSnackData: any = null;
+    let snackAttemptCount = 0;
+    let snackLastFixHint: string | null = null;
+
+    while (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+      snackAttemptCount++;
+      
+      const currentMessages = [...messages];
+      if (snackLastFixHint) {
+        currentMessages.push({ role: 'user', content: `IMPORTANT CORRECTION REQUIRED: ${snackLastFixHint}` });
+        console.log(`🔄 Snack regeneration attempt ${snackAttemptCount} with fix hint`);
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: currentMessages,
+        response_format: { type: "json_object" },
+        max_tokens: 1500,
+      });
+      
+      const content = response.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error("No content received from OpenAI");
+      }
+      
+      const snackData = JSON.parse(content);
+      const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
+      const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
+      const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
+      
+      const tempSnack: UnifiedMeal = {
+        id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: snackData.name,
+        description: snackData.description,
+        ingredients: (snackData.ingredients || []).map((ing: any) => ({
+          name: ing.name,
+          quantity: String(ing.quantity || ''),
+          unit: ing.unit || ''
+        })),
+        instructions: snackData.instructions,
+        calories: snackData.calories || 150,
+        protein: snackData.protein || 8,
+        carbs: snackTotalCarbs,
+        starchyCarbs: snackStarchyCarbs,
+        fibrousCarbs: snackFibrousCarbs,
+        fat: snackData.fat || 6,
+        cookingTime: snackData.cookingTime || '5 minutes',
+        difficulty: 'Easy',
+        imageUrl: '',
+        medicalBadges: [],
+        source: 'ai'
+      };
+
+      if (snackEffectiveHubType && snackHubCoupling?.guardrails) {
+        const snackHubValidation = validateMealForHub(tempSnack, snackEffectiveHubType, snackHubCoupling.guardrails);
+        if (hasHardViolations(snackHubValidation)) {
+          console.warn(`🚨 Snack attempt ${snackAttemptCount}: Hub validation failed - ${snackHubValidation.violations.map(v => v.message).join(', ')}`);
+          if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+            snackLastFixHint = getRegenerationHint(snackEffectiveHubType, snackHubValidation.violations);
+            continue;
+          } else {
+            console.error(`❌ Snack hub guardrails exhausted after ${snackAttemptCount} attempts - falling back to safe template`);
+            throw new Error(`Snack hub validation failed after ${SNACK_MAX_REGENERATION_ATTEMPTS} attempts`);
+          }
+        } else if (snackHubValidation.violations.length > 0) {
+          console.warn(`⚠️ Snack hub validation soft warnings: ${snackHubValidation.violations.map(v => v.message).join(', ')}`);
+        }
+      } else if (dietType) {
+        const validation = validateMealForDiet(tempSnack, dietType);
+        if (!validation.isValid) {
+          console.warn(`⚠️ Snack has legacy guardrail violations: ${validation.violations.join(', ')}`);
+        }
+      }
+
+      finalSnackData = { ...snackData, snackStarchyCarbs, snackFibrousCarbs, snackTotalCarbs };
+      break;
     }
     
-    const snackData = JSON.parse(content);
-    
-    // Nutrition Schema v1.1: Extract starchy/fibrous carbs from AI response BEFORE image generation
-    const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
-    const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
-    const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
-    
-    // Generate DALL-E image for the snack
+    if (!finalSnackData) {
+      throw new Error("Failed to generate valid snack after regeneration attempts");
+    }
+
     let imageUrl = getFallbackImage('snack');
     try {
       const generatedImage = await generateImage({
-        name: snackData.name,
-        description: snackData.description,
+        name: finalSnackData.name,
+        description: finalSnackData.description,
         type: 'meal',
         style: 'homemade',
-        ingredients: snackData.ingredients?.map((ing: any) => ing.name) || [],
-        calories: snackData.calories,
-        protein: snackData.protein,
-        carbs: snackTotalCarbs, // Use computed total from Nutrition Schema v1.1
-        fat: snackData.fat,
+        ingredients: finalSnackData.ingredients?.map((ing: any) => ing.name) || [],
+        calories: finalSnackData.calories,
+        protein: finalSnackData.protein,
+        carbs: finalSnackData.snackTotalCarbs,
+        fat: finalSnackData.fat,
       });
       
       if (generatedImage) {
         imageUrl = generatedImage;
-        console.log(`🖼️ Generated DALL-E image for Snack Creator: ${snackData.name}`);
+        console.log(`🖼️ Generated DALL-E image for Snack Creator: ${finalSnackData.name}`);
       }
     } catch (imgError) {
       console.warn('⚠️ DALL-E image generation failed for snack, using fallback:', imgError);
@@ -922,35 +1042,26 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     
     const unifiedSnack: UnifiedMeal = {
       id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: snackData.name,
-      description: snackData.description,
-      ingredients: (snackData.ingredients || []).map((ing: any) => ({
+      name: finalSnackData.name,
+      description: finalSnackData.description,
+      ingredients: (finalSnackData.ingredients || []).map((ing: any) => ({
         name: ing.name,
         quantity: String(ing.quantity || ''),
         unit: ing.unit || ''
       })),
-      instructions: snackData.instructions,
-      calories: snackData.calories || 150,
-      protein: snackData.protein || 8,
-      carbs: snackTotalCarbs, // Total for backward compatibility
-      starchyCarbs: snackStarchyCarbs, // Nutrition Schema v1.1
-      fibrousCarbs: snackFibrousCarbs, // Nutrition Schema v1.1
-      fat: snackData.fat || 6,
-      cookingTime: snackData.cookingTime || '5 minutes',
+      instructions: finalSnackData.instructions,
+      calories: finalSnackData.calories || 150,
+      protein: finalSnackData.protein || 8,
+      carbs: finalSnackData.snackTotalCarbs,
+      starchyCarbs: finalSnackData.snackStarchyCarbs,
+      fibrousCarbs: finalSnackData.snackFibrousCarbs,
+      fat: finalSnackData.fat || 6,
+      cookingTime: finalSnackData.cookingTime || '5 minutes',
       difficulty: 'Easy',
       imageUrl,
       medicalBadges: [],
       source: 'ai'
     };
-    
-    // Post-generation validation for diet compliance
-    if (dietType) {
-      const validation = validateMealForDiet(unifiedSnack, dietType);
-      if (!validation.isValid) {
-        console.warn(`⚠️ Snack has guardrail violations: ${validation.violations.join(', ')}`);
-        // Log warning but still return snack - guardrails are guidance, not hard blocks
-      }
-    }
     
     console.log(`✅ Snack Creator generated complete snack: ${unifiedSnack.name}`);
     
