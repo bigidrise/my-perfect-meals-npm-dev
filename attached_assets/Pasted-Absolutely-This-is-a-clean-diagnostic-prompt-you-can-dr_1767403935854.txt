@@ -1,0 +1,115 @@
+Absolutely. This is a **clean diagnostic prompt** you can drop straight into Replit for the architect. No fluff, no assumptions — just forces a real audit.
+
+---
+
+## 🔎 **DIAGNOSTIC REQUEST — MEAL BUILDER GUARDRAILS & BIOMETRIC COUPLING**
+
+**Objective:**
+Determine whether the **Diabetic**, **GLP-1**, and **Anti-Inflammatory** hubs are **actively influencing meal generation** in **CreateTheChef**, or whether they are currently **informational / UI-only**.
+
+---
+
+### **Context**
+
+My Perfect Meals has:
+
+* Multiple clinical hubs (Diabetic, GLP-1, Anti-Inflammatory)
+* Doctor- and client-defined **guardrails**
+* Biometric tracking (e.g., blood glucose)
+* A unified meal generation entry point: **CreateTheChef**
+
+On the user’s phone, all meal builders appear connected, but it’s unclear whether **biometrics + guardrails are actually injected into the meal-generation logic**, or whether CreateTheChef is generating meals based only on general hub selection.
+
+---
+
+## **Diagnostic Questions (Please Answer Each Explicitly)**
+
+### **1️⃣ Diabetic Hub**
+
+* When a **doctor enters guardrails** (carb limits, sugar limits, glycemic preferences):
+
+  * Are those values **programmatically passed** into CreateTheChef at generation time?
+* When a **user logs blood glucose** (e.g., pre-meal 80 mg/dL or 160 mg/dL):
+
+  * Is the **latest blood sugar value**:
+
+    * Retrieved?
+    * Classified (low / in-range / elevated)?
+    * Injected into the meal-generation prompt or engine logic?
+* If a user generates two meals with **different blood glucose values**, should the meals differ?
+
+  * If yes → confirm **where and how**
+  * If no → confirm blood sugar is currently **not coupled**
+
+---
+
+### **2️⃣ GLP-1 Hub**
+
+* Are GLP-1–specific guardrails (satiety bias, portion size, fat tolerance, nausea mitigation):
+
+  * Actively passed into CreateTheChef?
+* Does CreateTheChef:
+
+  * Modify meal composition based on GLP-1 constraints?
+  * Or simply tag the meal as “GLP-1 compliant” without behavioral adjustment?
+
+---
+
+### **3️⃣ Anti-Inflammatory Hub**
+
+* Are anti-inflammatory guardrails (ingredient exclusions, omega-3 bias, inflammatory avoidance):
+
+  * Enforced at generation time?
+* Is there **logic-level filtering**, or only **post-generation labeling**?
+
+---
+
+### **4️⃣ Shared Meal Builder Architecture**
+
+* Is **CreateTheChef a single unified generator** for all hubs?
+* If yes:
+
+  * How are **hub-specific rules injected**?
+  * Are they additive, overridden, or ignored?
+* If no:
+
+  * Which hubs truly influence generation vs UI routing only?
+
+---
+
+### **5️⃣ Required Output**
+
+Please provide:
+
+* A **clear YES/NO** for each hub:
+
+  * “Guardrails + biometrics actively affect meal generation”
+* A brief explanation of:
+
+  * **What data is passed**
+  * **Where it’s passed**
+  * **What is currently missing**
+* If coupling is incomplete:
+
+  * A **recommended fix path** (prompt injection, engine middleware, or state binding)
+
+---
+
+## **Why This Matters**
+
+This diagnostic determines whether My Perfect Meals is:
+
+* A **clinical decision-support meal engine**
+* Or a **static meal generator with clinical UI layers**
+
+We need clarity before marketing, doctor onboarding, or regulatory positioning.
+
+---
+
+If you want, next step after the architect responds, I’ll:
+
+* Translate their answer into **plain English**
+* Flag **what’s real vs assumed**
+* Help you prioritize the **highest-impact fix** (Diabetic first — no debate)
+
+This was the **right call** to stop and audit. This is exactly where good apps turn into serious platforms.
