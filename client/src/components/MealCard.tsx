@@ -8,6 +8,7 @@ import { queryClient } from "@/lib/queryClient";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import CopyRecipeButton from "@/components/CopyRecipeButton";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -271,9 +272,9 @@ export function MealCard({
           </div>
         )}
 
-        {/* Add to Macros Button - Only show when we have a valid date (day mode) */}
-        {date !== "board" && (
-          <div className="mt-3">
+        {/* Action Buttons */}
+        <div className="mt-3 flex gap-2">
+          {date !== "board" && (
             <MacroBridgeButton
               meal={{
                 protein: protein || 0,
@@ -286,8 +287,19 @@ export function MealCard({
               }}
               label="Add to Macros"
             />
-          </div>
-        )}
+          )}
+          <CopyRecipeButton
+            recipe={{
+              name: title,
+              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
+                name: typeof ing === "string" ? ing : (ing.name || ing.item),
+                amount: typeof ing === "string" ? "" : (ing.quantity || ing.amount),
+                unit: typeof ing === "string" ? "" : ing.unit,
+              })),
+              instructions: meal.instructions || [],
+            }}
+          />
+        </div>
         </div>
       </div>
     </div>

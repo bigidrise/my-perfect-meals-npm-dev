@@ -35,6 +35,7 @@ import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
+import CopyRecipeButton from "@/components/CopyRecipeButton";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -889,16 +890,31 @@ const FridgeRescuePage = () => {
 
                       {/* Action Buttons */}
                       <div className="mt-auto pt-4 space-y-2">
-                        <MacroBridgeButton
-                          data-testid="fridge-add-to-shopping"
-                          meal={{
-                            protein: meal.protein || 0,
-                            carbs: meal.carbs || 0,
-                            fat: meal.fat || 0,
-                            calories: meal.calories || 0,
-                          }}
-                          source="fridge-rescue"
-                        />
+                        <div className="flex gap-2">
+                          <MacroBridgeButton
+                            data-testid="fridge-add-to-shopping"
+                            meal={{
+                              protein: meal.protein || 0,
+                              carbs: meal.carbs || 0,
+                              fat: meal.fat || 0,
+                              calories: meal.calories || 0,
+                            }}
+                            source="fridge-rescue"
+                          />
+                          <CopyRecipeButton
+                            recipe={{
+                              name: meal.name,
+                              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
+                                name: typeof ing === "string" ? ing : ing.name,
+                                amount: typeof ing === "string" ? "" : ing.quantity,
+                                unit: typeof ing === "string" ? "" : ing.unit,
+                              })),
+                              instructions: typeof meal.instructions === "string"
+                                ? meal.instructions.split(/\.\s+/).filter(Boolean)
+                                : meal.instructions,
+                            }}
+                          />
+                        </div>
                         <div className="flex justify-end">
                           <TrashButton
                             onClick={() => {
