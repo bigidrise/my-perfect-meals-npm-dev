@@ -233,10 +233,14 @@ export default function GLP1Hub() {
           </div>
           {shotTrackerOpen && (
             <div className="mt-4">
-              <ShotTrackerPanel
-                userId={user?.id?.toString() || "1"}
-                onClose={() => setShotTrackerOpen(false)}
-              />
+              {user?.id ? (
+                <ShotTrackerPanel
+                  userId={user.id.toString()}
+                  onClose={() => setShotTrackerOpen(false)}
+                />
+              ) : (
+                <p className="text-white/60 text-sm">Loading your shot history...</p>
+              )}
             </div>
           )}
           {!shotTrackerOpen && (
