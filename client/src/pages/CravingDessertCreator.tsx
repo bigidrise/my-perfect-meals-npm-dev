@@ -22,6 +22,7 @@ import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -488,6 +489,9 @@ export default function DessertCreator() {
                           Medical Safety
                         </h3>
                       </div>
+                    </div>
+                    <div className="flex gap-2 mb-4">
+                      <AddToMealPlanButton meal={generatedDessert} />
                       <CopyRecipeButton
                         recipe={{
                           name: generatedDessert.name,
