@@ -664,7 +664,7 @@ const FridgeRescuePage = () => {
                           badges={
                             meal.medicalBadges?.map(
                               (b: any) =>
-                                b.badge || b.label || b.id || b.condition,
+                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label),
                             ) || []
                           }
                           className="mt-2"

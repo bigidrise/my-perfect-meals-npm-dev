@@ -939,7 +939,9 @@ export default function CravingCreator() {
                               </h3>
                             </div>
                             <HealthBadgesPopover
-                              badges={medicalBadges.map((b: any) => b.badge)}
+                              badges={medicalBadges.map((b: any) => 
+                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)
+                              )}
                               className="mt-2"
                             />
                           </div>
