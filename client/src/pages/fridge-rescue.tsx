@@ -157,6 +157,9 @@ const FridgeRescuePage = () => {
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
     [],
   );
+  const [expandedIngredients, setExpandedIngredients] = useState<string[]>(
+    [],
+  );
   const [isReplacing, setIsReplacing] = useState<{ [key: string]: boolean }>(
     {},
   );
@@ -760,9 +763,55 @@ const FridgeRescuePage = () => {
                               </li>
                             );
                           })}
-                          {meal.ingredients.length > 4 && (
-                            <li className="text-xs text-white/60">
-                              + {meal.ingredients.length - 4} more...
+                          {meal.ingredients.length > 4 && !expandedIngredients.includes(meal.id) && (
+                            <li 
+                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                              onClick={() => setExpandedIngredients(prev => [...prev, meal.id])}
+                            >
+                              + {meal.ingredients.length - 4} more ingredients
+                            </li>
+                          )}
+                          {expandedIngredients.includes(meal.id) && meal.ingredients.slice(4).map((ingredient: any, i: number) => {
+                            if (typeof ingredient === "string") {
+                              return (
+                                <li key={i + 4} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{ingredient}</span>
+                                </li>
+                              );
+                            }
+                            const name = ingredient.item || ingredient.name;
+                            const amount = ingredient.amount || ingredient.quantity;
+                            const unit = ingredient.unit;
+                            if (ingredient.displayText) {
+                              return (
+                                <li key={i + 4} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{ingredient.displayText}</span>
+                                </li>
+                              );
+                            }
+                            if (amount && unit) {
+                              return (
+                                <li key={i + 4} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{amount} {unit} {name}</span>
+                                </li>
+                              );
+                            }
+                            return (
+                              <li key={i + 4} className="flex items-start">
+                                <span className="text-green-400 mr-1">•</span>
+                                <span>{name}</span>
+                              </li>
+                            );
+                          })}
+                          {expandedIngredients.includes(meal.id) && meal.ingredients.length > 4 && (
+                            <li 
+                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                              onClick={() => setExpandedIngredients(prev => prev.filter(id => id !== meal.id))}
+                            >
+                              Show less
                             </li>
                           )}
                         </ul>
