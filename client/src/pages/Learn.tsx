@@ -209,44 +209,9 @@ export default function Learn() {
 
   const learningTopics: LearningTopic[] = [
     {
-      id: "fiber-vegetables",
-      title: "Fiber & Vegetables",
-      description: "Understanding fiber and gut health",
-      icon: Apple,
-      gradient: "from-emerald-500/20 to-teal-500/20",
-      content: {
-        sections: [
-          {
-            heading: "The Importance of Fiber",
-            text: "Fiber is a type of carbohydrate that your body can't digest. While it may seem odd to eat something your body can't break down, fiber is crucial for:",
-            list: [
-              "Digestive health and regularity",
-              "Blood sugar control",
-              "Heart health",
-              "Weight management",
-              "Feeding beneficial gut bacteria",
-            ],
-          },
-          {
-            heading: "Daily Fiber Goals",
-            text: "Aim for 25-38 grams of fiber per day from whole grains, fruits, vegetables, legumes, and nuts.",
-          },
-          {
-            heading: "Best Sources",
-            list: [
-              "Vegetables: Broccoli, Brussels sprouts, carrots",
-              "Fruits: Berries, apples, pears",
-              "Whole grains: Oats, quinoa, brown rice",
-              "Legumes: Beans, lentils, chickpeas",
-            ],
-          },
-        ],
-      },
-    },
-    {
-      id: "how-mpm-thinks",
-      title: "How My Perfect Meals Thinks",
-      description: "The intelligence and safety behind your meals",
+      id: "emotion-ai",
+      title: "The Brain Behind Emotion AI",
+      description: "How your meals are decided, checked, and protected",
       icon: Brain,
       gradient: "from-orange-500/20 to-orange-600/20",
       content: {
@@ -287,6 +252,41 @@ export default function Learn() {
           {
             heading: "In One Sentence",
             text: "My Perfect Meals doesn't just track food - it actively protects your decisions.",
+          },
+        ],
+      },
+    },
+    {
+      id: "fiber-vegetables",
+      title: "Fiber & Vegetables",
+      description: "Understanding fiber and gut health",
+      icon: Apple,
+      gradient: "from-emerald-500/20 to-teal-500/20",
+      content: {
+        sections: [
+          {
+            heading: "The Importance of Fiber",
+            text: "Fiber is a type of carbohydrate that your body can't digest. While it may seem odd to eat something your body can't break down, fiber is crucial for:",
+            list: [
+              "Digestive health and regularity",
+              "Blood sugar control",
+              "Heart health",
+              "Weight management",
+              "Feeding beneficial gut bacteria",
+            ],
+          },
+          {
+            heading: "Daily Fiber Goals",
+            text: "Aim for 25-38 grams of fiber per day from whole grains, fruits, vegetables, legumes, and nuts.",
+          },
+          {
+            heading: "Best Sources",
+            list: [
+              "Vegetables: Broccoli, Brussels sprouts, carrots",
+              "Fruits: Berries, apples, pears",
+              "Whole grains: Oats, quinoa, brown rice",
+              "Legumes: Beans, lentils, chickpeas",
+            ],
           },
         ],
       },
