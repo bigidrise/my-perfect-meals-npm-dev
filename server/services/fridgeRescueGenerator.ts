@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
+import { convertStructuredIngredients } from '../utils/unitConverter';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -243,13 +244,22 @@ ${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macr
 
 ${medicalConditionsText}
 
+CRITICAL INGREDIENT FORMAT REQUIREMENT:
+- ALL ingredients MUST have quantities in GRAMS (numeric value with unit "g")
+- For proteins (chicken, beef, fish, etc.): Use grams, e.g. {"name": "chicken breast", "amount": 170, "unit": "g"}
+- For starches (rice, potatoes, pasta): Use grams, e.g. {"name": "rice", "amount": 150, "unit": "g"}
+- For vegetables: Use grams, e.g. {"name": "broccoli", "amount": 100, "unit": "g"}
+- For liquids: Use ml, e.g. {"name": "olive oil", "amount": 15, "unit": "ml"}
+- For small amounts (spices): Use grams or "to taste"
+- NEVER use vague units like "piece", "fillet", or "breast" - always use exact gram weights
+
 FORMAT: Return as JSON object:
 {
   "meals": [
     {
       "name": "Creative meal name (not just ingredient list)",
       "description": "Brief 1-2 sentence description",
-      "ingredients": [{"name": "ingredient from fridge", "quantity": "${macroTargets ? 'PRECISE amount calculated to hit macro targets' : 'realistic amount'}", "unit": "tbsp/cup/etc"}],
+      "ingredients": [{"name": "ingredient name", "amount": number_in_grams, "unit": "g"}],
       "instructions": "Step-by-step cooking instructions as single string",
       "calories": number (${macroTargets ? 'calculated from hitting macro targets' : '200-500 range'}),
       "protein": number (${macroTargets?.protein_g ? `${macroTargets.protein_g}±5 grams - MUST hit this target` : '10-40 grams'}),
@@ -334,7 +344,28 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
         continue;
       }
       
-      const mealIngredients = meal.ingredients || fridgeItems.map(item => ({ name: item, quantity: "as needed", unit: "" }));
+      // Normalize ingredients from AI response (may have amount or quantity field)
+      const rawIngredients = meal.ingredients || fridgeItems.map(item => ({ name: item, amount: 100, unit: "g" }));
+      
+      // Convert grams to user-friendly units (e.g., 170g chicken → 6 oz chicken breast)
+      const normalizedIngredients = rawIngredients.map((ing: any) => ({
+        name: ing.name,
+        amount: ing.amount || ing.quantity || 100,
+        unit: ing.unit || 'g',
+        notes: ''
+      }));
+      
+      // Apply conversion to user-friendly units (same as Craving Creator)
+      const convertedIngredients = convertStructuredIngredients(normalizedIngredients);
+      
+      // Map to expected format with quantity field for frontend compatibility
+      const mealIngredients = convertedIngredients.map((ing: any) => ({
+        name: ing.name,
+        quantity: ing.displayText || `${ing.amount} ${ing.unit}`,
+        unit: ing.unit,
+        displayText: ing.displayText || `${ing.amount} ${ing.unit} ${ing.name}`
+      }));
+      
       const mealCarbs = meal.carbs || 25;
       const { starchyGrams, fibrousGrams } = deriveCarbSplit(mealIngredients, mealCarbs);
       
