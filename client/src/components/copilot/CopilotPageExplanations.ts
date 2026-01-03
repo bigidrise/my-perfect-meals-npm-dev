@@ -258,9 +258,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "macro-counter",
     title: "Macro Calculator",
     description:
-      "Calculate your daily protein, carb, and fat targets based on your goals and activity level.",
+      "Calculate personalized daily protein, carb, and fat targets using your goals, activity level, body composition, and key metabolic factors.",
     spokenText:
-      "The Macro Calculator helps you set clear daily nutrition targets. Start by choosing your goal and body type, then enter your stats like age, height, weight, and activity level. You’ll also set your current weight for biometrics. Once everything’s filled in, I’ll calculate your daily protein, carbs, and fats so you know exactly what to aim for each day. Once you’ve set your weight and macros, head over to the meal builder on the planner page by pressing the builder button and start building your meals using those targets",
+      "The Macro Calculator helps set personalized daily nutrition targets based on how your body actually works — not just calories. Start by choosing your goal, body type, and activity level, then enter your age, height, weight, and current weight for biometrics. You can also factor in important metabolic considerations like hormone changes, insulin resistance, or high stress, which can influence how your body responds to protein, carbs, and fat. I’ll calculate clear daily targets for protein, starchy carbs, fibrous carbs, and fat — giving you numbers that make sense for you. Once your targets are set, head to the planner and start building meals that align with those goals.",
     autoClose: true,
   },
   "/shopping-list-v2": {

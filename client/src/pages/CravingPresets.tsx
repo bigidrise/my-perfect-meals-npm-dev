@@ -17,6 +17,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 const SERVING_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
@@ -304,25 +305,54 @@ export default function CravingPresetsPage() {
 
                 <p className="text-white/90 mb-4">{selected.summary}</p>
 
+                {/* Action Buttons - Add to Plan & Copy */}
+                <div className="flex gap-2 mb-4">
+                  <AddToMealPlanButton
+                    meal={{
+                      id: selected.id,
+                      name: selected.name,
+                      description: selected.summary,
+                      imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
+                      ingredients: scaledIngs.map((ing) => ({
+                        name: ing.name,
+                        amount: formatQty(ing.quantity),
+                        unit: pluralize(ing.unit, ing.quantity) || "",
+                      })),
+                      instructions: selected.instructions,
+                      calories: selected.macros
+                        ? Math.round((selected.macros.calories * selectedServings) / selected.baseServings)
+                        : 0,
+                      protein: selected.macros
+                        ? Math.round((selected.macros.protein * selectedServings) / selected.baseServings)
+                        : 0,
+                      carbs: selected.macros
+                        ? Math.round((selected.macros.carbs * selectedServings) / selected.baseServings)
+                        : 0,
+                      fat: selected.macros
+                        ? Math.round((selected.macros.fat * selectedServings) / selected.baseServings)
+                        : 0,
+                      medicalBadges: selected.badges || [],
+                    }}
+                  />
+                  <CopyRecipeButton
+                    recipe={{
+                      name: selected.name,
+                      ingredients: scaledIngs.map((ing) => ({
+                        name: ing.name,
+                        amount: formatQty(ing.quantity),
+                        unit: pluralize(ing.unit, ing.quantity),
+                      })),
+                      instructions: selected.instructions,
+                    }}
+                  />
+                </div>
+
                 {/* Health Badges */}
                 {selected.badges && selected.badges.length > 0 && (
                   <div className="mb-4">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <h3 className="font-bold text-lg text-white">
-                        Health Benefits
-                      </h3>
-                      <CopyRecipeButton
-                        recipe={{
-                          name: selected.name,
-                          ingredients: scaledIngs.map((ing) => ({
-                            name: ing.name,
-                            amount: formatQty(ing.quantity),
-                            unit: pluralize(ing.unit, ing.quantity),
-                          })),
-                          instructions: selected.instructions,
-                        }}
-                      />
-                    </div>
+                    <h3 className="font-bold text-lg text-white mb-2">
+                      Health Benefits
+                    </h3>
                     <div className="flex items-center gap-2">
                       <HealthBadgesPopover badges={selected.badges} />
                       <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
