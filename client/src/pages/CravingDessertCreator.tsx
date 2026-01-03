@@ -315,17 +315,35 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor, Style, or Inspiration (optional)
+                  Flavor Family <span className="text-orange-400">*</span>
+                </label>
+                <Select value={flavorFamily} onValueChange={setFlavorFamily}>
+                  <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                    <SelectValue placeholder="Select flavor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FLAVOR_FAMILIES.map((flavor) => (
+                      <SelectItem key={flavor.value} value={flavor.value}>
+                        {flavor.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-md font-medium text-white mb-1">
+                  Additional Flavor Notes (optional)
                 </label>
                 <input
                   value={specificDessert}
                   onChange={(e) => setSpecificDessert(e.target.value)}
-                  placeholder="e.g., key lime pie, apple crumble, red velvet cake..."
+                  placeholder="e.g., with cream cheese frosting, extra cinnamon..."
                   className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
                   maxLength={150}
                 />
                 <p className="text-xs text-white/60 mt-1">
-                  Leave empty for AI to create something perfect
+                  Add specific details or leave empty
                 </p>
               </div>
 
