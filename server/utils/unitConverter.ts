@@ -264,7 +264,7 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
             ...ingredient,
             amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
             unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-            displayText: conversion.to
+            displayText: `${conversion.to} ${ingredient.name}`
           };
         }
       } else if ((unit === 'ml' || unit === 'milliliters') && conversion.ml) {
@@ -274,7 +274,7 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
             ...ingredient,
             amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
             unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-            displayText: conversion.to
+            displayText: `${conversion.to} ${ingredient.name}`
           };
         }
       }
@@ -290,7 +290,7 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
               ...ingredient,
               amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
               unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-              displayText: conversion.to
+              displayText: `${conversion.to} ${ingredient.name}`
             };
           }
         } else if ((unit === 'ml' || unit === 'milliliters') && conversion.ml) {
@@ -300,7 +300,7 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
               ...ingredient,
               amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
               unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-              displayText: conversion.to
+              displayText: `${conversion.to} ${ingredient.name}`
             };
           }
         }
