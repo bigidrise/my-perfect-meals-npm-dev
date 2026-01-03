@@ -346,6 +346,7 @@ export const proStore = {
       followupWeeks: ctx.followupWeeks,
       patientNote: ctx.patientNote?.trim() || undefined,
       coachNote: ctx.coachNote?.trim() || undefined,
+      advisory: ctx.advisory,
     };
     saveState(state);
   },
