@@ -21,6 +21,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -478,9 +479,15 @@ export default function DessertCreator() {
 
                   <div className="mb-4">
                     <div className="flex items-center justify-between gap-3 mb-2">
-                      <h3 className="font-semibold text-white">
-                        Medical Safety
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <HealthBadgesPopover
+                          badges={generatedDessert.medicalBadges || []}
+                          align="start"
+                        />
+                        <h3 className="font-semibold text-white">
+                          Medical Safety
+                        </h3>
+                      </div>
                       <CopyRecipeButton
                         recipe={{
                           name: generatedDessert.name,

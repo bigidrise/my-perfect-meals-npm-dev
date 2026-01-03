@@ -657,18 +657,18 @@ const FridgeRescuePage = () => {
                     </CardHeader>
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
-                      {/* Medical Badges */}
-                      {meal.medicalBadges && meal.medicalBadges.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          <HealthBadgesPopover
-                            badges={meal.medicalBadges.map(
+                      {/* Medical Badges - Always show icon for consistency */}
+                      <div className="flex flex-wrap gap-1">
+                        <HealthBadgesPopover
+                          badges={
+                            meal.medicalBadges?.map(
                               (b: any) =>
                                 b.badge || b.label || b.id || b.condition,
-                            )}
-                            className="mt-2"
-                          />
-                        </div>
-                      )}
+                            ) || []
+                          }
+                          className="mt-2"
+                        />
+                      </div>
 
                       {/* Nutrition Grid */}
                       <div className="grid grid-cols-4 gap-2 text-center">
