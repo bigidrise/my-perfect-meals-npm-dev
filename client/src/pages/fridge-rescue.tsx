@@ -67,90 +67,6 @@ interface StructuredIngredient {
   category?: string;
 }
 
-// Convert grams to ounces for American shopping measurements
-function convertToAmericanUnits(
-  quantity: number | string,
-  unit: string,
-  ingredientName: string,
-): { quantity: string; unit: string } {
-  const numQuantity =
-    typeof quantity === "string" ? parseFloat(quantity) : quantity;
-  if (isNaN(numQuantity)) return { quantity: String(quantity), unit };
-
-  const name = ingredientName.toLowerCase();
-
-  // Convert grams to ounces for meat, cheese, and other ingredients Americans buy by weight
-  if (unit?.toLowerCase() === "g" || unit?.toLowerCase() === "grams") {
-    // Meat and protein conversion
-    if (
-      name.includes("chicken") ||
-      name.includes("beef") ||
-      name.includes("pork") ||
-      name.includes("turkey") ||
-      name.includes("fish") ||
-      name.includes("salmon") ||
-      name.includes("shrimp") ||
-      name.includes("meat") ||
-      name.includes("steak") ||
-      name.includes("bacon") ||
-      name.includes("ham") ||
-      name.includes("sausage") ||
-      name.includes("cheese") ||
-      name.includes("butter")
-    ) {
-      const ounces = numQuantity / 28.35; // 1 oz = 28.35g
-
-      // If more than 16 oz, convert to pounds
-      if (ounces >= 16) {
-        const pounds = ounces / 16;
-        return {
-          quantity: pounds >= 1 ? pounds.toFixed(1) : pounds.toFixed(2),
-          unit: "lb",
-        };
-      }
-
-      return {
-        quantity: ounces >= 1 ? ounces.toFixed(1) : ounces.toFixed(2),
-        unit: "oz",
-      };
-    }
-  }
-
-  // Convert ml to fl oz for liquids
-  if (unit?.toLowerCase() === "ml" || unit?.toLowerCase() === "milliliters") {
-    if (
-      name.includes("milk") ||
-      name.includes("cream") ||
-      name.includes("oil") ||
-      name.includes("broth") ||
-      name.includes("stock") ||
-      name.includes("juice") ||
-      name.includes("water") ||
-      name.includes("sauce") ||
-      name.includes("vinegar")
-    ) {
-      const flOz = numQuantity / 29.57; // 1 fl oz = 29.57ml
-
-      // If more than 32 fl oz, show in cups
-      if (flOz >= 32) {
-        const cups = flOz / 8;
-        return {
-          quantity: cups.toFixed(1),
-          unit: "cups",
-        };
-      }
-
-      return {
-        quantity: flOz >= 1 ? flOz.toFixed(1) : flOz.toFixed(2),
-        unit: "fl oz",
-      };
-    }
-  }
-
-  // Keep original for everything else (cups, tablespoons, etc.)
-  return { quantity: String(quantity), unit };
-}
-
 interface MealData {
   id: string;
   name: string;
@@ -802,7 +718,7 @@ const FridgeRescuePage = () => {
                           Ingredients:
                         </h4>
                         <ul className="text-xs text-white/80 space-y-1">
-                          {meal.ingredients.slice(0, 4).map((ingredient, i) => {
+                          {meal.ingredients.slice(0, 4).map((ingredient: any, i: number) => {
                             if (typeof ingredient === "string") {
                               return (
                                 <li key={i} className="flex items-start">
@@ -812,19 +728,35 @@ const FridgeRescuePage = () => {
                               );
                             }
 
-                            // Convert measurements to American units
-                            const converted = convertToAmericanUnits(
-                              ingredient.quantity || "",
-                              ingredient.unit || "",
-                              ingredient.name,
-                            );
+                            const name = ingredient.item || ingredient.name;
+                            const amount = ingredient.amount || ingredient.quantity;
+                            const unit = ingredient.unit;
 
+                            // Priority 1: Use pre-formatted displayText from backend
+                            if (ingredient.displayText) {
+                              return (
+                                <li key={i} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{ingredient.displayText}</span>
+                                </li>
+                              );
+                            }
+
+                            // Priority 2: Show amount + unit + name
+                            if (amount && unit) {
+                              return (
+                                <li key={i} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{amount} {unit} {name}</span>
+                                </li>
+                              );
+                            }
+
+                            // Priority 3: Just show name
                             return (
                               <li key={i} className="flex items-start">
                                 <span className="text-green-400 mr-1">•</span>
-                                <span>
-                                  {`${converted.quantity} ${converted.unit} ${ingredient.name}`.trim()}
-                                </span>
+                                <span>{name}</span>
                               </li>
                             );
                           })}
