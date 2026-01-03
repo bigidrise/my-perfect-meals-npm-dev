@@ -46,7 +46,7 @@ interface UseSnackCreatorRequestResult {
   cancel: () => void;
 }
 
-export function useSnackCreatorRequest(): UseSnackCreatorRequestResult {
+export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +96,7 @@ export function useSnackCreatorRequest(): UseSnackCreatorRequestResult {
           type: "snack-creator",
           mealType: "snack",
           input: description,
-          userId: "1",
+          userId,
           count: 1,
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody

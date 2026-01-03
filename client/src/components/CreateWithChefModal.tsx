@@ -16,6 +16,7 @@ import {
   BeachBodyPhase,
 } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -38,8 +39,10 @@ export function CreateWithChefModal({
   dietPhase,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
+  const { user } = useAuth();
+  const userId = user?.id?.toString() || "";
   const { generating, progress, error, generateMeal, cancel } =
-    useCreateWithChefRequest();
+    useCreateWithChefRequest(userId);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,6 +53,15 @@ export function CreateWithChefModal({
   }, [open, cancel]);
 
   const handleGenerate = async () => {
+    if (!userId) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to create meals",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!description.trim()) {
       toast({
         title: "Please describe your meal",

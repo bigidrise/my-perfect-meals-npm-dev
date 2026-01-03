@@ -1211,38 +1211,6 @@ export const mblDayLog = pgTable("mbl_day_log", {
 // SMS reminder tables
 export * from "../server/db/schema/sms";
 
-// Diabetes Support Tables
-export const diabetesProfile = pgTable("diabetes_profile", {
-  userId: varchar("user_id", { length: 64 }).primaryKey(),
-  type: diabetesTypeEnum("type").notNull().default("NONE"),
-  medications: jsonb("medications").$type<{ name: string; dose?: string }[] | null>().default(null),
-  hypoHistory: boolean("hypo_history").notNull().default(false),
-  a1cPercent: numeric("a1c_percent", { precision: 4, scale: 1 }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
-
-export const glucoseLogs = pgTable("glucose_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: varchar("user_id", { length: 64 }).notNull(),
-  valueMgdl: integer("value_mgdl").notNull(),
-  context: glucoseContextEnum("context").notNull(),
-  relatedMealId: uuid("related_meal_id"),
-  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
-  insulinUnits: numeric("insulin_units", { precision: 5, scale: 1 }),
-  notes: text("notes"),
-});
-
-export const labs = pgTable("labs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: varchar("user_id", { length: 64 }).notNull(),
-  type: text("type").notNull(), // e.g., A1C, FASTING_GLUCOSE, LDL, eGFR, TSH
-  value: numeric("value", { precision: 8, scale: 2 }).notNull(),
-  unit: text("unit").notNull(),
-  collectedAt: timestamp("collected_at", { withTimezone: true }).notNull(),
-  notes: text("notes"),
-});
-
 // AI Voice & Journaling tables
 export const journalEntries = pgTable("journal_entries", {
   id: uuid("id").primaryKey().defaultRandom(),

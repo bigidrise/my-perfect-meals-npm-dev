@@ -46,7 +46,7 @@ interface UseCreateWithChefRequestResult {
   cancel: () => void;
 }
 
-export function useCreateWithChefRequest(): UseCreateWithChefRequestResult {
+export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +97,7 @@ export function useCreateWithChefRequest(): UseCreateWithChefRequestResult {
           type: "create-with-chef",
           mealType,
           input: description,
-          userId: "1",
+          userId,
           count: 1,
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody
