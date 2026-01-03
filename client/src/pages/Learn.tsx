@@ -7,7 +7,6 @@ import {
   Video,
   Target,
   Apple,
-  Pill,
   Brain,
   Search,
   X,
@@ -210,6 +209,54 @@ export default function Learn() {
 
   const learningTopics: LearningTopic[] = [
     {
+      id: "emotion-ai",
+      title: "The Brain Behind Emotion AI",
+      description: "How your meals are decided, checked, and protected",
+      icon: Brain,
+      gradient: "from-orange-500/20 to-orange-600/20",
+      content: {
+        sections: [
+          {
+            heading: "This Is Not a 'Suggestion App'",
+            text: "Most apps work like this: 'Here's a meal. Hope it fits your goals.' My Perfect Meals works differently: 'Who is this person, what condition are they in right now, what rules must be followed - and if anything breaks those rules, fix it before the meal is shown.'",
+          },
+          {
+            heading: "The App Thinks in Context - Not Labels",
+            text: "You'll see terms like Diabetic, GLP-1, Competition, and Anti-Inflammatory. In My Perfect Meals, these are not just modes or labels. Each one activates a set of non-negotiable rules that control how meals are built. If a rule applies to you, the app enforces it automatically.",
+          },
+          {
+            heading: "Real-Time Awareness (Not Static Plans)",
+            text: "If you're diabetic, the app doesn't just know that you're diabetic. It looks at your most recent blood sugar, your current metabolic state, and your doctor-defined limits. Meals change based on what your body needs right now, not what a plan said weeks ago.",
+          },
+          {
+            heading: "GLP-1 and How You Actually Feel",
+            text: "If you're using GLP-1 medications, the app adapts to appetite changes, nausea, reflux, and digestive sensitivity. That means smaller, protein-dense meals when appetite is low, gentler foods when symptoms are high, and no oversized, greasy meals that make you feel worse.",
+          },
+          {
+            heading: "Performance Rules Are Enforced - Not Hoped For",
+            text: "If you're in Competition or Pro Performance mode, protein minimums are mandatory, carb limits are mandatory, and cravings never override performance rules. If a meal doesn't meet the requirements, it is rejected and rebuilt automatically.",
+          },
+          {
+            heading: "The Safety Check You Never See",
+            text: "Every meal and snack goes through a hidden process: The meal is generated, the system checks it against your rules, if it violates a critical rule it is automatically corrected, and if it still fails the meal is discarded and replaced with a safe option. You never see unsafe meals.",
+          },
+          {
+            heading: "Why This Matters",
+            text: "This is what separates My Perfect Meals from typical nutrition apps. We don't rely on willpower or 'good suggestions.' We enforce safety, performance, and medical rules at the system level. That's how doctors trust it, athletes rely on it, and users feel confident using it daily.",
+            list: [
+              "Doctors trust it",
+              "Athletes rely on it",
+              "Users feel confident using it daily",
+            ],
+          },
+          {
+            heading: "In One Sentence",
+            text: "My Perfect Meals doesn't just track food - it actively protects your decisions.",
+          },
+        ],
+      },
+    },
+    {
       id: "fiber-vegetables",
       title: "Fiber & Vegetables",
       description: "Understanding fiber and gut health",
@@ -240,35 +287,6 @@ export default function Learn() {
               "Whole grains: Oats, quinoa, brown rice",
               "Legumes: Beans, lentils, chickpeas",
             ],
-          },
-        ],
-      },
-    },
-    {
-      id: "supplements",
-      title: "Supplements",
-      description: "When and how to use them effectively",
-      icon: Pill,
-      gradient: "from-orange-500/20 to-orange-600/20",
-      content: {
-        sections: [
-          {
-            heading: "Do You Need Supplements?",
-            text: "Supplements can fill nutritional gaps, but they're not a replacement for a balanced diet. Consider supplements if you have specific deficiencies or dietary restrictions.",
-          },
-          {
-            heading: "Common Beneficial Supplements",
-            list: [
-              "Vitamin D: Especially if you have limited sun exposure",
-              "Omega-3: If you don't eat fatty fish regularly",
-              "B12: Important for vegans and vegetarians",
-              "Protein powder: Convenient for meeting protein goals",
-              "Magnesium: For sleep, muscle recovery, and stress",
-            ],
-          },
-          {
-            heading: "Best Practices",
-            text: "Always consult with a healthcare provider before starting new supplements. Take them consistently, follow dosing instructions, and choose high-quality brands.",
           },
         ],
       },
