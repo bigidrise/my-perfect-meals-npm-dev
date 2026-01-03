@@ -51,7 +51,7 @@ export default function HealthBadgesPopover({
                   ? 'drop-shadow-[0_0_10px_rgba(251,191,36,0.7)]' 
                   : ''
               }`}
-              size={80}
+              size={108}
               strokeWidth={2}
               data-testid="icon-medical-badge"
             />
