@@ -6,6 +6,9 @@ import { Router } from "express";
 import OpenAI from "openai";
 import { computeMedicalBadges } from "../services/medicalBadges";
 import { normalizeIngredients } from "../services/ingredientNormalizer";
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -172,9 +175,23 @@ INCORRECT (NEVER DO THIS):
       String(i.name ?? "").toLowerCase()
     );
 
+    // Fetch user health conditions from database for medical badge generation
+    let userConditions: string[] = [];
+    if (userId && userId !== "1") {
+      try {
+        const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
+          userConditions = dbUser.healthConditions;
+          console.log("[DESSERT] User health conditions loaded:", userConditions.length, "conditions");
+        }
+      } catch (err) {
+        console.log("[DESSERT] Could not fetch user health conditions:", err);
+      }
+    }
+
     const constraints: any = {
       lowGlycemicMode: dietaryPreferences?.includes("low-sugar") || false,
-      conditions: [],
+      conditions: userConditions,
     };
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
