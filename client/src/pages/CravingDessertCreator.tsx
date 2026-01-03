@@ -190,8 +190,10 @@ export default function DessertCreator() {
 
     setIsGenerating(true);
     startProgressTicker();
+    console.log("🍨 [DESSERT] Starting generation...", { dessertCategory, flavorFamily, specificDessert, servingSize });
 
     try {
+      console.log("🍨 [DESSERT] Calling API...");
       const res = await fetch(apiUrl("/api/meals/dessert-creator"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -210,6 +212,8 @@ export default function DessertCreator() {
         }),
       });
 
+      console.log("🍨 [DESSERT] API response received:", res.status);
+      
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         console.error("🍨 Dessert Creator API Error:", res.status, errorBody);
@@ -217,6 +221,7 @@ export default function DessertCreator() {
       }
 
       const data = await res.json();
+      console.log("🍨 [DESSERT] Parsed response data:", data);
       const meal = data.meal || data;
 
       stopProgressTicker();
@@ -226,7 +231,8 @@ export default function DessertCreator() {
         title: "✨ Dessert Created!",
         description: `${meal.name} is ready for you.`,
       });
-    } catch {
+    } catch (err) {
+      console.error("🍨 [DESSERT] Generation error:", err);
       stopProgressTicker();
       toast({
         title: "Generation Failed",

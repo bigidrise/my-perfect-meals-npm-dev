@@ -61,7 +61,10 @@ const FLAVOR_LABELS: Record<string, string> = {
   caramel: "Caramel",
 };
 
+const isDev = process.env.NODE_ENV === "development";
+
 dessertCreatorRouter.post("/", async (req, res) => {
+  if (isDev) console.log("[DESSERT] POST request received");
   try {
     const {
       dessertCategory,
@@ -71,6 +74,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
       dietaryPreferences,
       userId,
     } = req.body ?? {};
+
+    if (isDev) console.log("[DESSERT] Request params:", { dessertCategory, flavorFamily, servingSize });
 
     if (!dessertCategory) {
       return res.status(400).json({ error: "Dessert category is required" });
@@ -150,16 +155,19 @@ INCORRECT (NEVER DO THIS):
 - {"name": "butter", "amount": "113", "unit": "g"} ❌ (use tbsp)
 `;
 
+    if (isDev) console.log("[DESSERT] Calling OpenAI GPT-4o...");
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
     });
+    if (isDev) console.log("[DESSERT] OpenAI response received");
 
     let meal: any;
     try {
       const rawText = completion.choices[0]?.message?.content || "{}";
       meal = JSON.parse(rawText);
+      if (isDev) console.log("[DESSERT] Parsed meal:", meal.name);
     } catch (parseErr) {
       console.error("Dessert Creator JSON parse error:", parseErr);
       return res
@@ -196,6 +204,7 @@ INCORRECT (NEVER DO THIS):
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
 
+    if (isDev) console.log("[DESSERT] Starting image generation...");
     let imageUrl = null;
     try {
       const { generateImage } = await import("../services/imageService");
@@ -210,11 +219,12 @@ INCORRECT (NEVER DO THIS):
         carbs: meal.nutrition?.carbs || 0,
         fat: meal.nutrition?.fat || 0,
       });
-      console.log(`📸 Generated image for ${meal.name}`);
+      if (isDev) console.log(`[DESSERT] 📸 Image generated for ${meal.name}`);
     } catch (error) {
-      console.log(`❌ Image generation failed for ${meal.name}:`, error);
+      if (isDev) console.log(`[DESSERT] ❌ Image generation failed for ${meal.name}:`, error);
     }
 
+    if (isDev) console.log("[DESSERT] Sending response...");
     return res.json({
       ...meal,
       imageUrl,
