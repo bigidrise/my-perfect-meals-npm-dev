@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { proStore, Targets, ClinicalContext } from "@/lib/proData";
+import { proStore, Targets, ClinicalContext, ClinicalAdvisory } from "@/lib/proData";
+import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
 import {
   Settings,
   ClipboardList,
@@ -450,6 +451,36 @@ export default function ProClientDashboard() {
                 </div>
               )}
             </div>
+
+            {isClinician && (
+              <div className="col-span-full mt-4">
+                <ClinicalAdvisoryDrawer
+                  advisory={ctx.advisory}
+                  targets={t}
+                  onAdvisoryChange={(advisory: ClinicalAdvisory) => {
+                    setCtx({ ...ctx, advisory });
+                    proStore.setContext(clientId, { ...ctx, advisory });
+                  }}
+                  onApplySuggestions={(deltas) => {
+                    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                    const newTotalCarbs = Math.max(0, totalCarbs + deltas.carbs);
+                    const starchyRatio = totalCarbs > 0 ? (t.starchyCarbs || 0) / totalCarbs : 0.5;
+                    
+                    setT({
+                      ...t,
+                      protein: Math.max(0, (t.protein || 0) + deltas.protein),
+                      starchyCarbs: Math.round(newTotalCarbs * starchyRatio),
+                      fibrousCarbs: Math.round(newTotalCarbs * (1 - starchyRatio)),
+                      fat: Math.max(0, (t.fat || 0) + deltas.fat),
+                    });
+                    toast({
+                      title: "✅ Advisory Applied",
+                      description: "Macro targets adjusted. Review and save when ready.",
+                    });
+                  }}
+                />
+              </div>
+            )}
 
             <div className="col-span-full flex gap-2">
               <Button

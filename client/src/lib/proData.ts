@@ -45,6 +45,19 @@ export type Targets = {
   };
 };
 
+export type ClinicalAdvisoryToggle = {
+  id: string;
+  enabled: boolean;
+  appliedAt?: string;
+  appliedBy?: string;
+};
+
+export type ClinicalAdvisory = {
+  menopause?: ClinicalAdvisoryToggle;
+  insulinResistance?: ClinicalAdvisoryToggle;
+  highStress?: ClinicalAdvisoryToggle;
+};
+
 export type ClinicalContext = {
   role: ProRole;
   diagnosis?: string;
@@ -60,6 +73,7 @@ export type ClinicalContext = {
   followupWeeks?: 4 | 8 | 12;
   patientNote?: string;
   coachNote?: string;
+  advisory?: ClinicalAdvisory;
 };
 
 export type Prefs = {
