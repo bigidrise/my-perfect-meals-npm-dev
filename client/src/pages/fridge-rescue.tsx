@@ -295,7 +295,7 @@ const FridgeRescuePage = () => {
             .split(",")
             .map((i) => i.trim())
             .filter((i) => i),
-          userId: 1,
+          userId: DEV_USER_ID,
         }),
       });
 
@@ -388,7 +388,7 @@ const FridgeRescuePage = () => {
       protein: meal.protein || 0,
       carbs: meal.carbs || 0,
       fat: meal.fat || 0,
-      badges: meal.medicalBadges?.map((b: any) => b.badge) || [],
+      badges: meal.medicalBadges?.map((b: any) => typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)) || [],
       ingredients: meal.ingredients || [],
       instructions:
         typeof meal.instructions === "string"
@@ -422,6 +422,7 @@ const FridgeRescuePage = () => {
           .map((i) => i.trim())
           .filter((i) => i),
         goal: selectedGoal,
+        userId: DEV_USER_ID,
       }),
     });
     const data = await resp.json();
@@ -453,6 +454,7 @@ const FridgeRescuePage = () => {
         body: JSON.stringify({
           ingredients: ingredients.trim(),
           goal: undefined, // You can add selectedGoal if needed
+          userId: DEV_USER_ID,
         }),
       });
 
