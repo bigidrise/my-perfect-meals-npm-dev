@@ -91,7 +91,7 @@ export default function ClinicianClientDashboard() {
               onClick={() => {
                 setLocation(`/pro/clients/${clientId}/diabetic-builder`);
               }}
-              className="w-full sm:w-[400px] bg-amber-600 hover:bg-amber-700 border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
               Diabetic Meal Builder
             </Button>
@@ -99,7 +99,7 @@ export default function ClinicianClientDashboard() {
               onClick={() => {
                 setLocation(`/pro/clients/${clientId}/glp1-builder`);
               }}
-              className="w-full sm:w-[400px] bg-purple-600 hover:bg-purple-700 border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
               GLP-1 Meal Builder
             </Button>
@@ -107,7 +107,7 @@ export default function ClinicianClientDashboard() {
               onClick={() => {
                 setLocation(`/pro/clients/${clientId}/anti-inflammatory-builder`);
               }}
-              className="w-full sm:w-[400px] bg-emerald-600 hover:bg-emerald-700 border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
               Anti-Inflammatory Meal Builder
             </Button>
