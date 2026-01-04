@@ -77,6 +77,18 @@ const DIETARY_OPTIONS = [
   { value: "low-calorie", label: "Low calorie" },
 ];
 
+const CAKE_STYLES = [
+  { value: "classic", label: "Classic Frosted" },
+  { value: "semi-naked", label: "Semi-Naked (Light Frosting)" },
+  { value: "naked", label: "Naked Cake (Minimal Frosting)" },
+];
+
+const CAKE_SPECIALTIES = [
+  { value: "wedding-cake", label: "Wedding Cake" },
+  { value: "birthday-cake", label: "Birthday Cake" },
+  { value: "celebration-cake", label: "Celebration Cake" },
+];
+
 const DESSERT_TOUR_STEPS: TourStep[] = [
   {
     title: "Choose Dessert Type",
@@ -116,6 +128,9 @@ export default function DessertCreator() {
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
+  const [cakeStyle, setCakeStyle] = useState("classic");
+  const [cakeType, setCakeType] = useState("");
+  const [showPerSlice, setShowPerSlice] = useState(true);
   const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_dessert_creator_result");
@@ -320,6 +335,47 @@ export default function DessertCreator() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {dessertCategory === "cake" && (
+                <>
+                  <div>
+                    <label className="block text-md font-medium text-white mb-1">
+                      Cake Type (optional)
+                    </label>
+                    <Select value={cakeType} onValueChange={setCakeType}>
+                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                        <SelectValue placeholder="Standard cake" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        {CAKE_SPECIALTIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-md font-medium text-white mb-1">
+                      Cake Style
+                    </label>
+                    <Select value={cakeStyle} onValueChange={setCakeStyle}>
+                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                        <SelectValue placeholder="Select cake style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CAKE_STYLES.map((style) => (
+                          <SelectItem key={style.value} value={style.value}>
+                            {style.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
