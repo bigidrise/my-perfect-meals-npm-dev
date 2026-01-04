@@ -933,18 +933,19 @@ export default function CravingCreator() {
 
                         return medicalBadges && medicalBadges.length > 0 ? (
                           <div className="mb-4">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-white">
-                                Medical Safety
-                              </h3>
+                            <div className="flex items-center gap-3">
+                              <HealthBadgesPopover
+                                badges={medicalBadges.map((b: any) =>
+                                  typeof b === "string"
+                                    ? b
+                                    : (b.badge || b.id || b.condition || b.label)
+                                )}
+                              />
+
+                              <h3 className="font-semibold text-white">Medical Safety</h3>
                             </div>
-                            <HealthBadgesPopover
-                              badges={medicalBadges.map((b: any) => 
-                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)
-                              )}
-                              className="mt-2"
-                            />
                           </div>
+
                         ) : null;
                       })()}
 
