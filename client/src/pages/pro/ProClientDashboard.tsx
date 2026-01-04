@@ -339,8 +339,11 @@ export default function ProClientDashboard() {
                       checked={!!t.flags?.lowSodium}
                       onChange={(e) =>
                         setT({
-                          ...t.flags,
-                          lowSodium: e.target.checked,
+                          ...t,
+                          flags: {
+                            ...t.flags,
+                            lowSodium: e.target.checked,
+                          },
                         })
                       }
                     />
@@ -478,7 +481,10 @@ export default function ProClientDashboard() {
               </Button>
               <Button
                 onClick={async () => {
-                  if (t.kcal < 100) {
+                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                  const calcKcal = (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+                  
+                  if (calcKcal < 100) {
                     toast({
                       title: "Cannot Set Empty Macros",
                       description: "Please set macro targets first",
@@ -494,9 +500,9 @@ export default function ProClientDashboard() {
                     );
                     await setMacroTargets(
                       {
-                        calories: t.kcal,
+                        calories: calcKcal,
                         protein_g: t.protein,
-                        carbs_g: t.carbs,
+                        carbs_g: totalCarbs,
                         fat_g: t.fat,
                       },
                       clientId,
@@ -510,7 +516,7 @@ export default function ProClientDashboard() {
 
                     toast({
                       title: "✅ Macros Set to Biometrics!",
-                      description: `${t.kcal} kcal coach-set targets saved for ${client?.name}`,
+                      description: `${calcKcal} kcal coach-set targets saved for ${client?.name}`,
                     });
 
                     
