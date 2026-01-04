@@ -103,8 +103,25 @@ export default function ProClientDashboard() {
     if (currentClient?.workspace) {
       setLocation(`/pro/clients/${clientId}/${currentClient.workspace}`);
     } else {
-      // Show workspace modal if no workspace set
-      setShowWorkspaceModal(true);
+      // Auto-assign workspace based on role if no workspace is set
+      const clientRole = currentClient?.role;
+      const clinicalRoles = ["doctor", "np", "rn", "pa", "dietitian", "nutritionist"];
+      
+      if (clientRole) {
+        // Auto-route based on role - trainer goes to trainer workspace, clinical roles go to clinician
+        const autoWorkspace: WorkspaceType = clientRole === "trainer" ? "trainer" : 
+          clinicalRoles.includes(clientRole) ? "clinician" : "trainer";
+        
+        // Save the workspace so it persists
+        if (currentClient) {
+          proStore.upsertClient({ ...currentClient, workspace: autoWorkspace });
+        }
+        
+        setLocation(`/pro/clients/${clientId}/${autoWorkspace}`);
+      } else {
+        // Only show modal if no role is set (edge case)
+        setShowWorkspaceModal(true);
+      }
     }
   }, [clientId, setLocation]);
 
