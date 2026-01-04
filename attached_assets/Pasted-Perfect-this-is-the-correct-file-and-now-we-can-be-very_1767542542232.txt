@@ -1,0 +1,208 @@
+Perfect — **this is the correct file**, and now we can be very precise.
+I’ll keep this clean, direct, and actionable.
+
+---
+
+## What’s happening right now (problem clearly stated)
+
+On **ProClients.tsx**:
+
+* ✅ “Show Archived” is currently **in the top safe-area header**
+* ❌ There is **no Quick Tour button** on this page
+* ❌ The header is already crowded, so the guide button has nowhere to live
+
+Your instinct was right:
+
+> **“The Show Archived button is where the guide button needs to be.”**
+
+So we’re going to **move Show Archived** and **add the guide button** without breaking anything.
+
+---
+
+## The correct UX decision (this matters)
+
+### Why Show Archived does NOT belong in the top header
+
+* It’s **list-specific**, not navigation
+* It applies only to **clients**, not the portal itself
+* On mobile, it competes with back + title + help
+
+### Where it SHOULD live
+
+👉 **Inside the Clients section**, near the list controls
+Specifically:
+
+* In a small utility row **above the client cards**
+* Or in a **Clients card header** (best option)
+
+This frees the **top-right corner** for the guide button, just like every other page.
+
+---
+
+## Step 1: Add the Quick Tour system to this page
+
+### 🔹 Add imports at the top
+
+```ts
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+```
+
+---
+
+### 🔹 Define the tour steps (starter version)
+
+Put this near the top of the file:
+
+```ts
+const PRO_CLIENTS_TOUR_STEPS: TourStep[] = [
+  {
+    icon: "1",
+    title: "Add a Client",
+    description:
+      "Enter your client’s name, email, and professional role to invite them into your care team.",
+  },
+  {
+    icon: "2",
+    title: "Professional Role",
+    description:
+      "Choose whether you’re working with this client as a trainer or clinician. This affects what tools you’ll use later.",
+  },
+  {
+    icon: "3",
+    title: "Open Client",
+    description:
+      "Click Open to access the client workspace and begin setting macros or plans.",
+  },
+  {
+    icon: "4",
+    title: "Archived Clients",
+    description:
+      "Archived clients are hidden from your active list but can be restored anytime.",
+  },
+];
+```
+
+---
+
+### 🔹 Initialize the tour hook inside the component
+
+Inside `ProClients()`:
+
+```ts
+const quickTour = useQuickTour("pro-clients");
+```
+
+---
+
+## Step 2: Fix the top header (this is key)
+
+### 🔴 REMOVE the Show Archived button from the header
+
+**Delete this entire block from the safe-area header:**
+
+```tsx
+<Button
+  onClick={() => setShowArchived(!showArchived)}
+  variant="outline"
+  size="sm"
+  className="ml-auto bg-white/5 border-white/20 text-white hover:bg-white/10"
+>
+  {showArchived ? "Show Active" : "Show Archived"}
+</Button>
+```
+
+---
+
+### ✅ Add the Guide button to the header (top-right)
+
+Replace the header’s right side with this:
+
+```tsx
+<div className="ml-auto flex items-center gap-2">
+  <QuickTourButton onClick={quickTour.openTour} />
+</div>
+```
+
+Now this page is **consistent with the rest of the app**.
+
+---
+
+## Step 3: Re-home “Show Archived” (correct placement)
+
+### Best placement: **above the client list**
+
+Right before this block:
+
+```tsx
+<div className="grid md:grid-cols-2 gap-4">
+```
+
+Add this:
+
+```tsx
+<div className="flex justify-end mb-2">
+  <Button
+    onClick={() => setShowArchived(!showArchived)}
+    variant="outline"
+    size="sm"
+    className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+  >
+    {showArchived ? "Show Active Clients" : "Show Archived Clients"}
+  </Button>
+</div>
+```
+
+Why this works:
+
+* It’s visually tied to the list
+* It doesn’t interfere with navigation
+* It’s obvious what it controls
+
+---
+
+## Step 4: Add the Quick Tour modal (don’t forget this)
+
+At the **bottom of the component JSX**, before the closing `</motion.div>`:
+
+```tsx
+<QuickTourModal
+  isOpen={quickTour.shouldShow}
+  onClose={quickTour.closeTour}
+  title="Pro Clients Guide"
+  steps={PRO_CLIENTS_TOUR_STEPS}
+  onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+/>
+```
+
+---
+
+## Resulting UX (what you’ll see)
+
+✅ Pro Portal → View Clients
+✅ Clean header with Back + Title + **Help (guide)**
+✅ “Show Archived” lives with the client list
+✅ Guided tour explains:
+
+* Adding a client
+* Choosing professional role
+* Opening a client
+* Archived clients
+
+No confusion. No crowding. No breaking changes.
+
+---
+
+## Bottom line (straight talk)
+
+You were 100% right to pause here.
+This page **was missing a guide**, and the header **was doing too much**.
+
+If you want, next we can:
+
+* Add a **workspace-selection tour step** once Trainer / Clinician modal lands
+* Or wire the **Trainer vs Physician flow** directly after “Open”
+
+But structurally?
+This fix is the correct, production-grade move.
