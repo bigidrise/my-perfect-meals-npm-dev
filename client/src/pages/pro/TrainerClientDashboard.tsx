@@ -60,9 +60,9 @@ export default function TrainerClientDashboard() {
   const [ctx, setCtx] = useState<ClinicalContext>(() =>
     proStore.getContext(clientId),
   );
-  const [assignedBuilder, setAssignedBuilder] = useState<BuilderType | undefined>(
-    () => client?.assignedBuilder
-  );
+  const [assignedBuilder, setAssignedBuilder] = useState<
+    BuilderType | undefined
+  >(() => client?.assignedBuilder);
 
   useEffect(() => {
     setT(proStore.getTargets(clientId));
@@ -140,7 +140,6 @@ export default function TrainerClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          
           <p className="text-white/90 mt-3 text-lg">
             {client?.name || "Client"}
           </p>
@@ -267,9 +266,11 @@ export default function TrainerClientDashboard() {
               </Button>
               <Button
                 onClick={async () => {
-                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-                  const calcKcal = (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
-                  
+                  const totalCarbs =
+                    (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                  const calcKcal =
+                    (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+
                   if (calcKcal < 100) {
                     toast({
                       title: "Cannot Set Empty Macros",
@@ -280,7 +281,9 @@ export default function TrainerClientDashboard() {
                   }
 
                   try {
-                    const { setMacroTargets } = await import("@/lib/dailyLimits");
+                    const { setMacroTargets } = await import(
+                      "@/lib/dailyLimits"
+                    );
                     await setMacroTargets(
                       {
                         calories: calcKcal,
@@ -291,7 +294,9 @@ export default function TrainerClientDashboard() {
                       clientId,
                     );
 
-                    const { linkUserToClient } = await import("@/lib/macroResolver");
+                    const { linkUserToClient } = await import(
+                      "@/lib/macroResolver"
+                    );
                     linkUserToClient(clientId, clientId);
 
                     toast({
@@ -309,7 +314,6 @@ export default function TrainerClientDashboard() {
                 }}
                 className="bg-black hover:bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 flash-border"
               >
-                <Target className="h-5 w-5 mr-2" />
                 Send Macros to Biometrics
               </Button>
             </div>
@@ -358,7 +362,9 @@ export default function TrainerClientDashboard() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  {assignedBuilder === "general" && <Check className="h-5 w-5" />}
+                  {assignedBuilder === "general" && (
+                    <Check className="h-5 w-5" />
+                  )}
                   <span className="font-bold">General Nutrition</span>
                 </div>
                 <span className="text-xs text-white/70 font-normal">
@@ -374,7 +380,9 @@ export default function TrainerClientDashboard() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  {assignedBuilder === "performance" && <Check className="h-5 w-5" />}
+                  {assignedBuilder === "performance" && (
+                    <Check className="h-5 w-5" />
+                  )}
                   <span className="font-bold">Performance & Competition</span>
                 </div>
                 <span className="text-xs text-white/70 font-normal">
@@ -388,22 +396,27 @@ export default function TrainerClientDashboard() {
         <Card className="bg-white/5 border border-white/20">
           <CardContent className="p-6 space-y-3">
             <h2 className="text-lg font-bold text-white mb-2">Meal Builders</h2>
-            <Button
-              onClick={() =>
-                setLocation(`/pro/clients/${clientId}/performance-competition-builder`)
-              }
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
-            >
-              <Trophy className="h-4 w-4 mr-2" /> Performance & Competition Builder
-            </Button>
+            
             <Button
               onClick={() => {
                 localStorage.setItem("pro-client-id", clientId);
-                setLocation(`/pro/clients/${clientId}/general-nutrition-builder`);
+                setLocation(
+                  `/pro/clients/${clientId}/general-nutrition-builder`,
+                );
               }}
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
               General Nutrition Builder
+            </Button>
+            <Button
+              onClick={() =>
+                setLocation(
+                  `/pro/clients/${clientId}/performance-competition-builder`,
+                )
+              }
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+            >
+              Performance & Competition Builder
             </Button>
           </CardContent>
         </Card>
