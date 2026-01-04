@@ -95,32 +95,36 @@ const CAKE_SPECIALTIES = [
   { value: "birthday-cake", label: "Birthday Cake" },
   { value: "celebration-cake", label: "Celebration Cake" },
 ];
-
 const DESSERT_TOUR_STEPS: TourStep[] = [
   {
     title: "Choose Dessert Type",
     description:
-      "Select the type of dessert you want — cake, pie, cookies, brownies, frozen treats, or Surprise Me.",
+      "Pick what you’re in the mood for — cakes (including celebration and wedding-style cakes), pies, cookies, brownies, frozen desserts, or Surprise Me.",
   },
   {
-    title: "Add Flavor or Inspiration",
+    title: "Choose a Flavor Direction",
     description:
-      "Optional. Describe what you’re craving in your own words, or leave it blank and let the AI decide.",
+      "Select a flavor family like chocolate, vanilla, fruit, or spice. You can add extra details later if you want something specific.",
+  },
+  {
+    title: "Customize the Style (Optional)",
+    description:
+      "Want something special? Add notes like layered cake, naked cake, wedding-style, rustic, bakery-style, or simple and clean.",
   },
   {
     title: "Select Serving Size",
     description:
-      "Choose how many servings you want so portions stay realistic and balanced.",
+      "Choose how many people you’re serving — from single portions to family-style, batches, or larger celebration desserts.",
   },
   {
-    title: "Add Dietary Requirements",
+    title: "Add Dietary Preferences",
     description:
-      "Optional. Choose any dietary needs like low sugar, gluten-free, or high protein.",
+      "Optional. Choose things like lower sugar, gluten-free, dairy-free, high-protein, or vegan.",
   },
   {
     title: "Create Your Dessert",
     description:
-      "Tap Create to generate a healthier dessert that fits your craving and your lifestyle.",
+      "Tap Create and I’ll design a dessert that satisfies the craving, fits the occasion, and still respects your nutrition goals.",
   },
 ];
 
@@ -220,7 +224,12 @@ export default function DessertCreator() {
 
     setIsGenerating(true);
     startProgressTicker();
-    console.log("🍨 [DESSERT] Starting generation...", { dessertCategory, flavorFamily, specificDessert, servingSize });
+    console.log("🍨 [DESSERT] Starting generation...", {
+      dessertCategory,
+      flavorFamily,
+      specificDessert,
+      servingSize,
+    });
 
     try {
       console.log("🍨 [DESSERT] Calling API...");
@@ -233,7 +242,10 @@ export default function DessertCreator() {
           specificDessert,
           servingSize,
           cakeStyle: dessertCategory === "cake" ? cakeStyle : undefined,
-          cakeType: dessertCategory === "cake" && cakeType && cakeType !== "standard" ? cakeType : undefined,
+          cakeType:
+            dessertCategory === "cake" && cakeType && cakeType !== "standard"
+              ? cakeType
+              : undefined,
           dietaryPreferences: [
             ...(dietaryPreference && dietaryPreference !== "none"
               ? [dietaryPreference]
@@ -245,7 +257,7 @@ export default function DessertCreator() {
       });
 
       console.log("🍨 [DESSERT] API response received:", res.status);
-      
+
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         console.error("🍨 Dessert Creator API Error:", res.status, errorBody);
@@ -573,14 +585,15 @@ export default function DessertCreator() {
 
                   {generatedDessert.perSliceNutrition && showPerSlice && (
                     <p className="text-xs text-center text-white/60 mb-2">
-                      Per slice ({generatedDessert.perSliceNutrition.sliceSize || "1 oz"})
+                      Per slice (
+                      {generatedDessert.perSliceNutrition.sliceSize || "1 oz"})
                     </p>
                   )}
 
                   <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                     {(["calories", "protein", "carbs", "fat"] as const).map(
                       (key) => {
-                        const nutritionSource = 
+                        const nutritionSource =
                           generatedDessert.perSliceNutrition && showPerSlice
                             ? generatedDessert.perSliceNutrition
                             : getNutrition(generatedDessert);
