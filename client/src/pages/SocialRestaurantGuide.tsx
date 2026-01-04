@@ -43,6 +43,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
+import { setQuickView } from "@/lib/macrosQuickView";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
@@ -815,28 +816,16 @@ export default function RestaurantGuidePage() {
 
                             {/* Add Your Macros Button */}
                             <Button
-                              onClick={async () => {
-                                try {
-                                  const { addMealToLog } = await import("@/lib/mealLog");
-                                  await addMealToLog({
-                                    name: meal.name || meal.meal,
-                                    calories: meal.calories,
-                                    protein: meal.protein,
-                                    carbs: meal.carbs,
-                                    fat: meal.fat,
-                                    source: "restaurant-guide",
-                                  });
-                                  toast({
-                                    title: "Macros Added!",
-                                    description: `${meal.name || meal.meal} added to your daily macros.`,
-                                  });
-                                } catch (error) {
-                                  toast({
-                                    title: "Could Not Add Macros",
-                                    description: "Please try again.",
-                                    variant: "destructive",
-                                  });
-                                }
+                              onClick={() => {
+                                setQuickView({
+                                  protein: Math.round(meal.protein || 0),
+                                  carbs: Math.round(meal.carbs || 0),
+                                  fat: Math.round(meal.fat || 0),
+                                  calories: Math.round(meal.calories || 0),
+                                  dateISO: new Date().toISOString().slice(0, 10),
+                                  mealSlot: "lunch",
+                                });
+                                setLocation("/biometrics?from=restaurant-guide&view=macros");
                               }}
                               className="w-full bg-black text-white font-medium"
                             >

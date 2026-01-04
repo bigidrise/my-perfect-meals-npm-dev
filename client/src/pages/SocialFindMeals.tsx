@@ -23,6 +23,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
+import { setQuickView } from "@/lib/macrosQuickView";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -574,28 +575,16 @@ export default function MealFinder() {
 
                         {/* Add Your Macros Button */}
                         <Button
-                          onClick={async () => {
-                            try {
-                              const { addMealToLog } = await import("@/lib/mealLog");
-                              await addMealToLog({
-                                name: result.meal.name,
-                                calories: result.meal.calories,
-                                protein: result.meal.protein,
-                                carbs: result.meal.carbs,
-                                fat: result.meal.fat,
-                                source: "find-meals",
-                              });
-                              toast({
-                                title: "Macros Added!",
-                                description: `${result.meal.name} added to your daily macros.`,
-                              });
-                            } catch (error) {
-                              toast({
-                                title: "Could Not Add Macros",
-                                description: "Please try again.",
-                                variant: "destructive",
-                              });
-                            }
+                          onClick={() => {
+                            setQuickView({
+                              protein: Math.round(result.meal.protein || 0),
+                              carbs: Math.round(result.meal.carbs || 0),
+                              fat: Math.round(result.meal.fat || 0),
+                              calories: Math.round(result.meal.calories || 0),
+                              dateISO: new Date().toISOString().slice(0, 10),
+                              mealSlot: "lunch",
+                            });
+                            setLocation("/biometrics?from=find-meals&view=macros");
                           }}
                           className="w-full bg-black text-white font-medium"
                         >
