@@ -217,6 +217,8 @@ export default function DessertCreator() {
           flavorFamily,
           specificDessert,
           servingSize,
+          cakeStyle: dessertCategory === "cake" ? cakeStyle : undefined,
+          cakeType: dessertCategory === "cake" && cakeType && cakeType !== "standard" ? cakeType : undefined,
           dietaryPreferences: [
             ...(dietaryPreference && dietaryPreference !== "none"
               ? [dietaryPreference]
