@@ -133,6 +133,16 @@ export default function ProClients(){
                 <div className="flex items-center gap-2">
                   {c.archived ? (
                     <>
+                      <Button
+                        onClick={() => restoreClient(c.id)}
+                        variant="outline"
+                        size="sm"
+                        className="bg-green-600/20 border-green-500/30 text-green-300 hover:bg-green-600/30"
+                        data-testid={`button-restore-client-${c.id}`}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Restore
+                      </Button>
                       <TrashButton
                         onClick={() => deleteClient(c.id, c.name)}
                         size="sm"
@@ -141,30 +151,24 @@ export default function ProClients(){
                         ariaLabel={`Permanently delete ${c.name}`}
                         data-testid={`button-delete-client-${c.id}`}
                       />
-                      <Button
-                        onClick={() => restoreClient(c.id)}
-                        variant="ghost"
-                        size="icon"
-                        className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                        data-testid={`button-restore-client-${c.id}`}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
                     </>
                   ) : (
-                    <Button
-                      onClick={() => archiveClient(c.id)}
-                      variant="ghost"
-                      size="icon"
-                      className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
-                      data-testid={`button-archive-client-${c.id}`}
-                    >
-                      <Archive className="h-4 w-4" />
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => archiveClient(c.id)}
+                        variant="outline"
+                        size="sm"
+                        className="bg-orange-600/20 border-orange-500/30 text-orange-300 hover:bg-orange-600/30"
+                        data-testid={`button-archive-client-${c.id}`}
+                      >
+                        <Archive className="h-4 w-4 mr-1" />
+                        Archive
+                      </Button>
+                      <Button onClick={()=>go(c.id)} className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="button-open-client">
+                        Open <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </>
                   )}
-                  <Button onClick={()=>go(c.id)} className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="button-open-client">
-                    Open <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
                 </div>
               </CardContent>
             </Card>

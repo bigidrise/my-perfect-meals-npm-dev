@@ -369,7 +369,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your professional portal for managing clients and accessing their care dashboards.",
     spokenText:
-      "The Pro Portal is where you manage your clients and care relationships. From here, you can add a new client, accept an invitation, or open an existing client profile. Once a client is connected, tap Open to access their dashboard, where you'll set targets, apply protocols, and guide their nutrition plan.",
+      "The Pro Portal is where you manage your clients and care relationships. To add a new client, enter their name, then select your profession from the dropdown. Your profession determines which dashboard you'll use: trainers go to the Trainer Dashboard with performance and competition builders, while clinical roles like doctors, nurse practitioners, physician assistants, dietitians, nutritionists, and registered nurses go to the Clinician Dashboard with diabetic, GLP-1, and anti-inflammatory builders. Once you've selected your profession and added the client, tap Open to access your professional dashboard, where you'll set targets, apply protocols, and guide their nutrition plan.",
     autoClose: true,
   },
 
