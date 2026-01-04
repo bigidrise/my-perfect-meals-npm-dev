@@ -28,10 +28,17 @@ export default function WorkspaceSelectionModal({
   const handleSelect = async (workspace: WorkspaceType) => {
     setIsSelecting(true);
     
-    const client = proStore.getClient(clientId);
-    if (client) {
+    const existingClient = proStore.getClient(clientId);
+    if (existingClient) {
       proStore.upsertClient({
-        ...client,
+        ...existingClient,
+        workspace,
+      });
+    } else {
+      proStore.upsertClient({
+        id: clientId,
+        name: clientName,
+        role: "trainer",
         workspace,
       });
     }

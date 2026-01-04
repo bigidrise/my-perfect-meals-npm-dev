@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,7 @@ export default function TrainerClientDashboard() {
   const [, params] = useRoute("/pro/clients/:id/trainer");
   const clientId = params?.id as string;
 
-  const client = useMemo(
-    () => proStore.listClients().find((c) => c.id === clientId),
-    [clientId],
-  );
+  const [client, setClient] = useState(() => proStore.getClient(clientId));
   const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() =>
     proStore.getContext(clientId),
@@ -39,7 +36,10 @@ export default function TrainerClientDashboard() {
     setT(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     const c = proStore.getClient(clientId);
-    if (c) setAssignedBuilder(c.assignedBuilder);
+    if (c) {
+      setClient(c);
+      setAssignedBuilder(c.assignedBuilder);
+    }
   }, [clientId]);
 
   const saveTargets = () => {

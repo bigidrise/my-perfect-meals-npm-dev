@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,12 @@ export default function ClinicianClientDashboard() {
   const [, params] = useRoute("/pro/clients/:id/clinician");
   const clientId = params?.id as string;
 
-  const client = useMemo(
-    () => proStore.listClients().find((c) => c.id === clientId),
-    [clientId],
-  );
+  const [client, setClient] = useState(() => proStore.getClient(clientId));
+
+  useEffect(() => {
+    const c = proStore.getClient(clientId);
+    if (c) setClient(c);
+  }, [clientId]);
 
   return (
     <motion.div
