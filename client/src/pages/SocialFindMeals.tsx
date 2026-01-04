@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus, Shield } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -516,9 +516,12 @@ export default function MealFinder() {
                             badgeStrings &&
                             badgeStrings.length > 0 && (
                               <div className="mb-3">
-                                <span className="text-xs font-medium text-white/70 block mb-1">
-                                  Medical Safety:
-                                </span>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="text-xs font-medium text-white/70">
+                                    Medical Safety:
+                                  </span>
+                                </div>
                                 <HealthBadgesPopover
                                   badges={badgeStrings}
                                   className="mt-1"
