@@ -2,12 +2,16 @@
 export type Slot = 'breakfast'|'lunch'|'dinner'|'snack';
 
 export type ProRole =
+  | "trainer"
   | "doctor"
-  | "nurse"
-  | "pa"
-  | "nutritionist"
   | "dietitian"
-  | "trainer";
+  | "nutritionist"
+  | "pa"
+  | "np"
+  | "rn";
+
+export type WorkspaceType = "trainer" | "clinician";
+export type BuilderType = "general" | "performance";
 
 export type ClientProfile = {
   id: string;
@@ -16,6 +20,8 @@ export type ClientProfile = {
   notes?: string;
   role?: ProRole;
   archived?: boolean;
+  workspace?: WorkspaceType;
+  assignedBuilder?: BuilderType;
 };
 
 export type Targets = {

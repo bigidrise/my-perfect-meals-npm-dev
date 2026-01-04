@@ -1,0 +1,84 @@
+Yes — **this is the exact snippet** that controls what roles are allowed/stored for Care Team members **(at least on the client side for this page)**.
+
+Right now your `Role` union is the limiter:
+
+```ts
+type Role = "trainer" | "doctor" | "nutritionist" | "other";
+```
+
+So if you want **Dietitian, PA, NP**, etc., you update this union **and** you update the dropdown options wherever they’re rendered.
+
+### What I recommend (clean + respectful + future-proof)
+
+Instead of `"other"`, use something like `"clinician"` or `"medical"` *only if you actually need a catch-all*. But you said you don’t like “Other” — I agree. It reads lazy.
+
+Best move: **explicit roles + optional “specialist” catch-all**.
+
+Here’s a solid upgrade:
+
+```ts
+// Types
+type Role =
+  | "trainer"
+  | "doctor"
+  | "dietitian"
+  | "nutritionist"
+  | "pa"
+  | "np"; // nurse practitioner
+
+type Permissions = {
+  canViewMacros: boolean;
+  canAddMeals: boolean;
+  canEditPlan: boolean;
+};
+
+type CareMember = {
+  id: string;
+  name: string;
+  email?: string;
+  role: Role;
+  status: "pending" | "active" | "revoked";
+  permissions: Permissions;
+};
+```
+
+### If you want Nurse (RN) too
+
+Add it:
+
+```ts
+| "rn"
+```
+
+### If you want “Surgical Team” (bariatric) later
+
+Add:
+
+```ts
+| "surgeon"
+```
+
+---
+
+## Important: this snippet alone updates *types*, not the dropdown UI
+
+You also need to update the actual `<select>` options (or whatever UI component) in the Care Team invite form.
+
+If you paste the dropdown snippet (the `<select>` / options list), I’ll rewrite it cleanly and also give you a `getRoleLabel()` mapping so it displays nicely (e.g., “PA-C”, “Nurse Practitioner”).
+
+---
+
+## One more important thing (don’t skip this)
+
+Whatever roles you add here must match what your **role persistence** expects (server/db/proStore). Otherwise you’ll create a new version of the same “doctor turns into trainer” bug.
+
+So the safe rule is:
+
+* **One canonical role enum** (shared type)
+* UI dropdown uses that enum
+* proStore / invite acceptance persists that exact value
+* dashboards map from that exact value
+
+---
+
+If you paste the Care Team invite dropdown code (the part that renders “Trainer / Doctor / Nutritionist”), I’ll give you the exact updated block in one shot.
