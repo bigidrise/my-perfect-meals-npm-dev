@@ -9,12 +9,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Loader2 } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import {
+  generateMedicalBadges,
+  getUserMedicalProfile,
+} from "@/utils/medicalPersonalization";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -485,16 +489,43 @@ export default function MealFinder() {
                           </p>
                         </div>
 
-                        {result.medicalBadges &&
-                          result.medicalBadges.length > 0 && (
-                            <div className="mb-3">
-                              <HealthBadgesPopover
-                                badges={result.medicalBadges.map(
-                                  (b) => b.condition,
-                                )}
-                              />
-                            </div>
-                          )}
+                        {/* Medical Safety Badges - Generated Client-Side */}
+                        {(() => {
+                          const userProfile = getUserMedicalProfile(1);
+                          const mealForBadges = {
+                            name: result.meal.name,
+                            calories: result.meal.calories,
+                            protein: result.meal.protein,
+                            carbs: result.meal.carbs,
+                            fat: result.meal.fat,
+                            ingredients:
+                              result.meal.ingredients?.map((ing: string) => ({
+                                name: ing,
+                                amount: 1,
+                                unit: "serving",
+                              })) || [],
+                          };
+                          const medicalBadges = generateMedicalBadges(
+                            mealForBadges as any,
+                            userProfile,
+                          );
+                          const badgeStrings = medicalBadges.map(
+                            (b: any) => b.badge || b.label || b.id,
+                          );
+                          return (
+                            badgeStrings &&
+                            badgeStrings.length > 0 && (
+                              <div className="mb-3">
+                                <div className="flex items-center gap-3">
+                                  <HealthBadgesPopover
+                                    badges={badgeStrings}
+                                  />
+                                  <h3 className="font-semibold text-white">Medical Safety</h3>
+                                </div>
+                              </div>
+                            )
+                          );
+                        })()}
 
                         <div className="grid grid-cols-4 gap-2 mb-3">
                           <div className="text-center bg-white/10 rounded p-2">
@@ -532,7 +563,7 @@ export default function MealFinder() {
                           </p>
                         </div>
 
-                        <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 backdrop-blur-sm">
+                        <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
                           <h5 className="font-medium text-orange-300 text-sm mb-1">
                             Ask For:
                           </h5>
@@ -540,6 +571,37 @@ export default function MealFinder() {
                             {result.meal.modifications}
                           </p>
                         </div>
+
+                        {/* Log This Meal Button */}
+                        <Button
+                          onClick={async () => {
+                            try {
+                              const { addMealToLog } = await import("@/lib/mealLog");
+                              await addMealToLog({
+                                name: result.meal.name,
+                                calories: result.meal.calories,
+                                protein: result.meal.protein,
+                                carbs: result.meal.carbs,
+                                fat: result.meal.fat,
+                                source: "find-meals",
+                              });
+                              toast({
+                                title: "Meal Logged!",
+                                description: `${result.meal.name} added to your daily macros.`,
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Could Not Log Meal",
+                                description: "Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="w-full bg-black text-white font-medium"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Log This Meal
+                        </Button>
                       </div>
                     </div>
                   </Card>

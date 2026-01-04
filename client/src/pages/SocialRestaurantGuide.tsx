@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft, MapPin, Loader2 } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft, MapPin, Loader2, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -731,7 +731,7 @@ export default function RestaurantGuidePage() {
                               {meal.description || meal.reason}
                             </p>
 
-                            {/* Medical Badges */}
+                            {/* Medical Safety Badges */}
                             {(() => {
                               // Generate medical badges client-side like weekly meal calendar
                               const userProfile = getUserMedicalProfile(1);
@@ -760,10 +760,12 @@ export default function RestaurantGuidePage() {
                                 badgeStrings &&
                                 badgeStrings.length > 0 && (
                                   <div className="mb-3">
-                                    <HealthBadgesPopover
-                                      badges={badgeStrings}
-                                      className="mt-2"
-                                    />
+                                    <div className="flex items-center gap-3">
+                                      <HealthBadgesPopover
+                                        badges={badgeStrings}
+                                      />
+                                      <h3 className="font-semibold text-white">Medical Safety</h3>
+                                    </div>
                                   </div>
                                 )
                               );
@@ -802,7 +804,7 @@ export default function RestaurantGuidePage() {
                             </div>
 
                             {/* Modifications */}
-                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm">
+                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
                               <h4 className="font-medium text-orange-300 text-sm mb-1">
                                 Ask For:
                               </h4>
@@ -810,6 +812,37 @@ export default function RestaurantGuidePage() {
                                 {meal.modifications || meal.orderInstructions}
                               </p>
                             </div>
+
+                            {/* Log This Meal Button */}
+                            <Button
+                              onClick={async () => {
+                                try {
+                                  const { addMealToLog } = await import("@/lib/mealLog");
+                                  await addMealToLog({
+                                    name: meal.name || meal.meal,
+                                    calories: meal.calories,
+                                    protein: meal.protein,
+                                    carbs: meal.carbs,
+                                    fat: meal.fat,
+                                    source: "restaurant-guide",
+                                  });
+                                  toast({
+                                    title: "Meal Logged!",
+                                    description: `${meal.name || meal.meal} added to your daily macros.`,
+                                  });
+                                } catch (error) {
+                                  toast({
+                                    title: "Could Not Log Meal",
+                                    description: "Please try again.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                              className="w-full bg-black text-white font-medium"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Log This Meal
+                            </Button>
                           </div>
                         </div>
                       </Card>
@@ -864,7 +897,7 @@ export default function RestaurantGuidePage() {
                         setRestaurantInput(`${cuisine} restaurant`);
                         setMatchedCuisine(cuisine);
                       }}
-                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-full text-sm transition-colors font-medium"
+                      className="px-3 py-1 bg-black text-white rounded-full text-sm transition-colors font-medium"
                     >
                       {cuisine}
                     </button>
