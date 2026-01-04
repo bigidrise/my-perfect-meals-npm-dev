@@ -1,46 +1,17 @@
-// 🔒 RESTAURANT GUIDE BACKEND - GOOGLE PLACES + AI MEALS 🔒
-// Upgraded: Uses Google Places for real restaurant data (December 2025)
+// 🔒 RESTAURANT GUIDE BACKEND - SHARED RESOLVER + AI MEALS 🔒
+// Refactored: Uses shared Restaurant Resolver (January 2026)
 import { Router } from "express";
-import axios from "axios";
 import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
-import { zipToCoordinates, coordsToZip } from "../services/zipToCoordsService";
+import { resolveRestaurantsByZip } from "../services/restaurantResolver";
+import { coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const router = Router();
 
-/**
- * Get restaurant photo URL from Google Places
- */
-function getPhotoUrl(photoReference?: string): string | undefined {
-  if (!photoReference) return undefined;
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-  return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photoReference}&key=${apiKey}`;
-}
-
-/**
- * Detect cuisine type from restaurant name or types
- */
-function detectCuisine(name: string, types: string[] = []): string {
-  const nameLower = name.toLowerCase();
-  const typesStr = types.join(' ').toLowerCase();
-  
-  if (typesStr.includes('mexican') || nameLower.includes('taco') || nameLower.includes('burrito')) return 'Mexican';
-  if (typesStr.includes('italian') || nameLower.includes('pizza') || nameLower.includes('pasta')) return 'Italian';
-  if (typesStr.includes('chinese') || nameLower.includes('wok')) return 'Chinese';
-  if (typesStr.includes('japanese') || nameLower.includes('sushi') || nameLower.includes('ramen')) return 'Japanese';
-  if (typesStr.includes('indian') || nameLower.includes('curry') || nameLower.includes('tandoor')) return 'Indian';
-  if (typesStr.includes('thai')) return 'Thai';
-  if (typesStr.includes('mediterranean') || nameLower.includes('pita') || nameLower.includes('gyro')) return 'Mediterranean';
-  if (typesStr.includes('greek')) return 'Greek';
-  if (typesStr.includes('french')) return 'French';
-  
-  return 'American';
-}
-
 // Smart Restaurant Guide endpoint with craving + restaurant + ZIP code
-// Uses Google Places API to find real restaurant data
+// Uses shared Restaurant Resolver for location logic
 router.post("/guide", async (req, res) => {
   try {
     const { restaurantName, craving, cuisine, zipCode, userId } = req.body;
@@ -61,58 +32,30 @@ router.post("/guide", async (req, res) => {
     
     const generationStart = Date.now();
     
-    // Step 1: Convert ZIP to coordinates
-    const coords = await zipToCoordinates(zipCode);
-    if (!coords) {
-      return res.status(400).json({ 
-        error: "Could not locate that ZIP code" 
-      });
-    }
-    
-    // Step 2: Search for the specific restaurant near that location using Google Places
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-    if (!apiKey) {
-      console.error('❌ GOOGLE_PLACES_API_KEY not configured');
-      return res.status(500).json({ 
-        error: "Google Places API not configured" 
-      });
-    }
-    
-    // Search for the specific restaurant by name near the ZIP
-    const searchQuery = `${restaurantName} restaurant`;
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json`;
-    
-    console.log(`🔍 Google Places search: "${searchQuery}" at (${coords.lat}, ${coords.lng})`);
-    
-    const placesResponse = await axios.get(url, {
-      params: {
-        query: searchQuery,
-        location: `${coords.lat},${coords.lng}`,
-        radius: 16000, // 16km radius (~10 miles) to find the restaurant
-        key: apiKey,
-        type: 'restaurant'
-      }
+    // Step 1: Use shared resolver to find the restaurant
+    const resolverResult = await resolveRestaurantsByZip({
+      query: restaurantName,
+      zipCode,
+      radiusMiles: 10,
+      limit: 1,
+      searchMode: 'restaurant'
     });
     
-    let restaurantInfo = null;
+    let restaurantInfo;
     let detectedCuisine = cuisine || 'American';
     
-    if (placesResponse.data.status === 'OK' && placesResponse.data.results?.length > 0) {
-      // Get the best matching restaurant (closest to name match)
-      const place = placesResponse.data.results[0];
-      
-      detectedCuisine = detectCuisine(place.name, place.types || []);
+    if (resolverResult.success && resolverResult.restaurants.length > 0) {
+      const restaurant = resolverResult.restaurants[0];
+      detectedCuisine = restaurant.cuisine;
       
       restaurantInfo = {
-        name: place.name,
-        address: place.formatted_address || place.vicinity || 'Address not available',
-        rating: place.rating,
-        photoUrl: place.photos?.[0]?.photo_reference 
-          ? getPhotoUrl(place.photos[0].photo_reference)
-          : undefined
+        name: restaurant.name,
+        address: restaurant.address,
+        rating: restaurant.rating,
+        photoUrl: restaurant.photoUrl
       };
       
-      console.log(`✅ Found restaurant: ${restaurantInfo.name} at ${restaurantInfo.address}`);
+      console.log(`✅ Found restaurant via resolver: ${restaurantInfo.name} at ${restaurantInfo.address}`);
     } else {
       console.warn(`⚠️ Restaurant "${restaurantName}" not found near ZIP ${zipCode}, using input name`);
       restaurantInfo = {
@@ -123,7 +66,7 @@ router.post("/guide", async (req, res) => {
       };
     }
     
-    // Step 3: Generate 3 AI meal recommendations for this restaurant
+    // Step 2: Generate AI meal recommendations for this restaurant
     const recommendations = await generateRestaurantMealsAI({
       restaurantName: restaurantInfo.name,
       cuisine: detectedCuisine,
