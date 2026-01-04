@@ -89,30 +89,27 @@ export default function ClinicianClientDashboard() {
             </p>
             <Button
               onClick={() => {
-                localStorage.setItem("pro-client-id", clientId);
-                setLocation("/diabetic-hub");
+                setLocation(`/pro/clients/${clientId}/diabetic-builder`);
               }}
               className="w-full sm:w-[400px] bg-amber-600 hover:bg-amber-700 border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
-              Diabetic Hub
+              Diabetic Meal Builder
             </Button>
             <Button
               onClick={() => {
-                localStorage.setItem("pro-client-id", clientId);
-                setLocation("/glp1-hub");
+                setLocation(`/pro/clients/${clientId}/glp1-builder`);
               }}
               className="w-full sm:w-[400px] bg-purple-600 hover:bg-purple-700 border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
-              GLP-1 Hub
+              GLP-1 Meal Builder
             </Button>
             <Button
               onClick={() => {
-                localStorage.setItem("pro-client-id", clientId);
                 setLocation(`/pro/clients/${clientId}/anti-inflammatory-builder`);
               }}
               className="w-full sm:w-[400px] bg-emerald-600 hover:bg-emerald-700 border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
-              Anti-Inflammatory Menu Builder
+              Anti-Inflammatory Meal Builder
             </Button>
           </CardContent>
         </Card>
