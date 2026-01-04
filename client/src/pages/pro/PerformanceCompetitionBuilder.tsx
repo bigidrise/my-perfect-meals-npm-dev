@@ -1073,7 +1073,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2 flex-nowrap">
+          <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() =>
@@ -1088,9 +1088,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               <span className="text-sm font-medium">Back</span>
             </button>
 
-            {/* Title */}
-            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-              {mode === "procare" ? "Performance & Competition Meal Builder" : "Performance Builder"}
+            {/* Title - shorter on mobile */}
+            <h1 className="text-sm sm:text-base font-bold text-white flex-1 min-w-0 truncate">
+              {mode === "procare" ? "Performance Builder" : "Performance Builder"}
             </h1>
 
             {/* Guide button in Row 1 for athlete mode only */}
