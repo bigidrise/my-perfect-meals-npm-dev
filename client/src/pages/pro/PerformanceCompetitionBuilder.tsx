@@ -1089,8 +1089,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             </button>
 
             {/* Title - shorter on mobile */}
-            <h1 className="text-sm sm:text-base font-bold text-white flex-1 min-w-0 truncate">
-              {mode === "procare" ? "Performance Builder" : "Performance Builder"}
+            <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
+              Performance Builder
             </h1>
 
             {/* Guide button in Row 1 for athlete mode only */}
