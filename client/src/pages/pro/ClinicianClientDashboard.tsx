@@ -9,11 +9,43 @@ import {
   Stethoscope,
   AlertCircle,
 } from "lucide-react";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
+  {
+    icon: "1",
+    title: "Clinician Workspace",
+    description:
+      "This workspace is designed for medical professionals to guide patient nutrition with clinical oversight.",
+  },
+  {
+    icon: "2",
+    title: "Patient Overview",
+    description:
+      "Here you'll see the selected patient and access their medical nutrition tools.",
+  },
+  {
+    icon: "3",
+    title: "Medical Meal Builders",
+    description:
+      "Use condition-specific meal builders like Diabetic, GLP-1, and Anti-Inflammatory to guide patient nutrition safely.",
+  },
+  {
+    icon: "4",
+    title: "What's Coming Next",
+    description:
+      "Clinical context, diagnosis tracking, and follow-up scheduling will be added here as this workspace expands.",
+  },
+];
 
 export default function ClinicianClientDashboard() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:id/clinician");
   const clientId = params?.id as string;
+
+  const quickTour = useQuickTour("clinician-client-dashboard");
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
 
@@ -46,6 +78,7 @@ export default function ClinicianClientDashboard() {
               Clinician Dashboard
             </h1>
           </div>
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -114,6 +147,14 @@ export default function ClinicianClientDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="Clinician Dashboard Guide"
+        steps={CLINICIAN_DASHBOARD_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
     </motion.div>
   );
 }

@@ -16,12 +16,44 @@ import {
   Check,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
+  {
+    icon: "1",
+    title: "Trainer Workspace",
+    description:
+      "This is your client control center. You'll set macros, assign meal builders, and guide nutrition strategy here.",
+  },
+  {
+    icon: "2",
+    title: "Macro Targets",
+    description:
+      "Set protein, carbs, and fats for your client. These targets drive every meal they see in the app.",
+  },
+  {
+    icon: "3",
+    title: "Performance Directives",
+    description:
+      "Use options like High-Protein or Carb Cycling to influence how meals are generated — without micromanaging recipes.",
+  },
+  {
+    icon: "4",
+    title: "Assigned Meal Builder",
+    description:
+      "Choose which meal builder your client will use. This determines their entire in-app experience.",
+  },
+];
 
 export default function TrainerClientDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:id/trainer");
   const clientId = params?.id as string;
+
+  const quickTour = useQuickTour("trainer-client-dashboard");
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
@@ -99,6 +131,7 @@ export default function TrainerClientDashboard() {
               Trainer Dashboard
             </h1>
           </div>
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -375,6 +408,14 @@ export default function TrainerClientDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="Trainer Dashboard Guide"
+        steps={TRAINER_DASHBOARD_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
     </motion.div>
   );
 }
