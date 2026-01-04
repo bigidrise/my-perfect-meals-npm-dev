@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus, Navigation, Copy } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
 import { setQuickView } from "@/lib/macrosQuickView";
+import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -467,8 +468,33 @@ export default function MealFinder() {
                                 {result.restaurantName}
                               </h3>
                               <p className="text-sm text-white/60">
-                                {result.cuisine} • {result.address}
+                                {result.cuisine}
                               </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <button
+                                  onClick={() => openInMaps(result.address)}
+                                  className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                  aria-label="Open in Maps"
+                                >
+                                  <Navigation className="h-3 w-3" />
+                                  <span className="underline">{result.address}</span>
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    const success = await copyAddressToClipboard(result.address);
+                                    toast({
+                                      title: success ? "Address copied" : "Copy failed",
+                                      description: success 
+                                        ? "Paste into Maps or Waze." 
+                                        : "Please copy manually.",
+                                    });
+                                  }}
+                                  className="p-1 text-white/50 hover:text-white/80 transition-colors"
+                                  aria-label="Copy address"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
                             {result.rating && (
                               <div className="flex items-center gap-1 bg-orange-600 px-2 py-1 rounded">

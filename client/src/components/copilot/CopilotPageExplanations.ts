@@ -41,9 +41,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-desserts",
     title: "Dessert Creator",
     description:
-      "Create healthier versions of the desserts you love — without ignoring cravings or overdoing portions.",
+    "Create healthier desserts — from everyday cravings to special-occasion treats — without restriction or guilt.",
     spokenText:
-      "Looking for a healthier dessert but don't have any good options? Dessert Creator handles that. First, pick the type of dessert you want — cake, pie, cookies, brownies, frozen treats, or just hit surprise me. If you already know what you're craving, tell me in your own words — key lime, chocolate peanut butter, bakery-style, whatever sounds good. If you don't, leave it blank — I've got you. Next, choose how many servings you want so portions stay realistic and you don't end up with a whole pan of brownies tempting you all week. Add any dietary needs like dairy-free or gluten-free, then tap create. I'll build you a dessert that fits your goals without the guilt trip.",
+    "Dessert Creator is for people who love dessert — not people who want to pretend they don’t.  Start by choosing the kind of dessert you want, whether that’s cake, pie, cookies, brownies, frozen treats, or just hit Surprise Me. Cakes can be anything from a simple slice to a layered celebration or even a wedding-style cake.  Next, pick a flavor direction like chocolate, vanilla, fruit, or spice. If you have something specific in mind — like lemon naked cake, chocolate peanut butter, bakery-style, or rustic wedding cake — just type it in. If not, leave it blank and I’ll handle it.  Then choose how many people you’re serving. This keeps portions realistic, whether it’s just for you, your family, or a bigger event. Add any dietary preferences if needed, then tap Create.  I’ll build you a dessert that actually feels like a dessert — one you can enjoy — without turning it into a cheat-day disaster.",
     autoClose: true,
   },
 
