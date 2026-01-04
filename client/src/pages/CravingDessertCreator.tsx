@@ -68,6 +68,13 @@ const SERVING_SIZES = [
   { value: "batch", label: "Batch" },
 ];
 
+const WEDDING_SERVING_SIZES = [
+  { value: "small-wedding", label: "Small Wedding (30–50 guests)" },
+  { value: "medium-wedding", label: "Medium Wedding (75–100 guests)" },
+  { value: "large-wedding", label: "Large Wedding (120–150 guests)" },
+  { value: "extra-large-wedding", label: "Large Event (200+ guests)" },
+];
+
 const DIETARY_OPTIONS = [
   { value: "low-sugar", label: "Low sugar" },
   { value: "gluten-free", label: "Gluten-free" },
@@ -75,6 +82,18 @@ const DIETARY_OPTIONS = [
   { value: "high-protein", label: "High protein" },
   { value: "vegan", label: "Vegan" },
   { value: "low-calorie", label: "Low calorie" },
+];
+
+const CAKE_STYLES = [
+  { value: "classic", label: "Classic Frosted" },
+  { value: "semi-naked", label: "Semi-Naked (Light Frosting)" },
+  { value: "naked", label: "Naked Cake (Minimal Frosting)" },
+];
+
+const CAKE_SPECIALTIES = [
+  { value: "wedding-cake", label: "Wedding Cake" },
+  { value: "birthday-cake", label: "Birthday Cake" },
+  { value: "celebration-cake", label: "Celebration Cake" },
 ];
 
 const DESSERT_TOUR_STEPS: TourStep[] = [
@@ -116,6 +135,9 @@ export default function DessertCreator() {
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
+  const [cakeStyle, setCakeStyle] = useState("classic");
+  const [cakeType, setCakeType] = useState("");
+  const [showPerSlice, setShowPerSlice] = useState(true);
   const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_dessert_creator_result");
@@ -146,6 +168,14 @@ export default function DessertCreator() {
       } catch {}
     }
   }, [generatedDessert]);
+
+  useEffect(() => {
+    if (cakeType === "wedding-cake") {
+      setServingSize("medium-wedding");
+    } else if (servingSize.includes("wedding")) {
+      setServingSize("single");
+    }
+  }, [cakeType]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -202,6 +232,8 @@ export default function DessertCreator() {
           flavorFamily,
           specificDessert,
           servingSize,
+          cakeStyle: dessertCategory === "cake" ? cakeStyle : undefined,
+          cakeType: dessertCategory === "cake" && cakeType && cakeType !== "standard" ? cakeType : undefined,
           dietaryPreferences: [
             ...(dietaryPreference && dietaryPreference !== "none"
               ? [dietaryPreference]
@@ -321,6 +353,47 @@ export default function DessertCreator() {
                 </Select>
               </div>
 
+              {dessertCategory === "cake" && (
+                <>
+                  <div>
+                    <label className="block text-md font-medium text-white mb-1">
+                      Cake Type (optional)
+                    </label>
+                    <Select value={cakeType} onValueChange={setCakeType}>
+                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                        <SelectValue placeholder="Standard cake" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        {CAKE_SPECIALTIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-md font-medium text-white mb-1">
+                      Cake Style
+                    </label>
+                    <Select value={cakeStyle} onValueChange={setCakeStyle}>
+                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                        <SelectValue placeholder="Select cake style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CAKE_STYLES.map((style) => (
+                          <SelectItem key={style.value} value={style.value}>
+                            {style.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="block text-md font-medium text-white mb-1">
                   Flavor Family <span className="text-orange-400">*</span>
@@ -364,7 +437,10 @@ export default function DessertCreator() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SERVING_SIZES.map((size) => (
+                    {(cakeType === "wedding-cake"
+                      ? WEDDING_SERVING_SIZES
+                      : SERVING_SIZES
+                    ).map((size) => (
                       <SelectItem key={size.value} value={size.value}>
                         {size.label}
                       </SelectItem>
@@ -462,25 +538,68 @@ export default function DessertCreator() {
                       <Users className="h-4 w-4 text-white" />
                       <span className="font-medium">Serving Size:</span>{" "}
                       {generatedDessert.servingSize}
+                      {generatedDessert.totalSlices && (
+                        <span className="text-white/70">
+                          ({generatedDessert.totalSlices} slices)
+                        </span>
+                      )}
                     </div>
                   </div>
 
+                  {generatedDessert.perSliceNutrition && (
+                    <div className="mb-4 flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setShowPerSlice(true)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          showPerSlice
+                            ? "bg-orange-600 text-white"
+                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        }`}
+                      >
+                        Per Slice
+                      </button>
+                      <button
+                        onClick={() => setShowPerSlice(false)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          !showPerSlice
+                            ? "bg-orange-600 text-white"
+                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        }`}
+                      >
+                        Whole Cake
+                      </button>
+                    </div>
+                  )}
+
+                  {generatedDessert.perSliceNutrition && showPerSlice && (
+                    <p className="text-xs text-center text-white/60 mb-2">
+                      Per slice ({generatedDessert.perSliceNutrition.sliceSize || "1 oz"})
+                    </p>
+                  )}
+
                   <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                     {(["calories", "protein", "carbs", "fat"] as const).map(
-                      (key) => (
-                        <div
-                          key={key}
-                          className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md"
-                        >
-                          <div className="text-lg font-bold text-white">
-                            {getNutrition(generatedDessert)[key]}
-                            {key !== "calories" && "g"}
+                      (key) => {
+                        const nutritionSource = 
+                          generatedDessert.perSliceNutrition && showPerSlice
+                            ? generatedDessert.perSliceNutrition
+                            : getNutrition(generatedDessert);
+                        const value = Number(nutritionSource[key] ?? 0);
+                        return (
+                          <div
+                            key={key}
+                            className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md"
+                          >
+                            <div className="text-lg font-bold text-white">
+                              {value}
+                              {key !== "calories" && "g"}
+                            </div>
+                            <div className="text-xs text-white capitalize">
+                              {key}
+                            </div>
                           </div>
-                          <div className="text-xs text-white capitalize">
-                            {key}
-                          </div>
-                        </div>
-                      ),
+                        );
+                      },
                     )}
                   </div>
 
