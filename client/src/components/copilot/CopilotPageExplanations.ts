@@ -123,7 +123,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Find healthy meals at any restaurant. Enter the restaurant name and what you want to eat, and the app will return three smart, goal-friendly options.",
     spokenText:
-      "Love eating out but never know how to order off the menu without blowing your nutrition? That's exactly what Restaurant Guide is for. Just type what you're in the mood for, enter the restaurant name and a nearby zip code, and I'll give you three healthier options that fit your goals. You'll also get simple tips on how to order it smarter when you're there. No guessing, no stress — just order and enjoy.",
+      "Love eating out but never knowing how to order off the menu without blowing your nutrition? That’s exactly what Restaurant Guide is for. Just tell me what you’re in the mood for, enter the restaurant name and a nearby zip code, and I’ll give you three smarter meal options that fit your goals — plus simple tips on how to order it better when you’re there. If you decide to eat one of these meals, you can add it straight to your macros with one tap, so your day stays accurate without any guessing. No stress, no overthinking — just order, enjoy, and stay on track.",
     autoClose: true,
   },
 
@@ -133,7 +133,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Find healthy places to eat near you. Enter what you're craving and your zip code, and the app returns nearby restaurants with smart meal options that fit your goals.",
     spokenText:
-      "Eating out while staying on track can be a guessing game when you don't know what's around you. Find Meals Near Me fixes that. Just tell me what you're craving and enter your zip code, and I'll show you three nearby restaurants with healthier meal options from each one. You pick what sounds good, order smarter, and keep moving forward.",
+      "Eating out while trying to stay on track can feel like a guessing game when you don’t know what’s around you. Find Meals Near Me fixes that. Just tell me what you’re craving and enter your zip code, and I’ll show you nearby restaurants with smarter meal options from each one. When you choose a meal, you can log it directly to your macros so everything stays accurate for the day. You pick what sounds good, order smarter, track it easily, and keep moving forward.",
     autoClose: true,
   },
 
