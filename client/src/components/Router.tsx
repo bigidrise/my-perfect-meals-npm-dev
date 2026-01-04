@@ -84,6 +84,8 @@ import ProCareCover from "@/pages/ProCareCover";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
 import ProClientDashboard from "@/pages/pro/ProClientDashboard";
+import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
+import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
 
 // Physician Hub Pages
@@ -360,6 +362,20 @@ export default function Router() {
           component={withPageErrorBoundary(
             ProClientDashboard,
             "Client Dashboard",
+          )}
+        />
+        <Route
+          path="/pro/clients/:id/trainer"
+          component={withPageErrorBoundary(
+            TrainerClientDashboard,
+            "Trainer Dashboard",
+          )}
+        />
+        <Route
+          path="/pro/clients/:id/clinician"
+          component={withPageErrorBoundary(
+            ClinicianClientDashboard,
+            "Clinician Dashboard",
           )}
         />
         <Route

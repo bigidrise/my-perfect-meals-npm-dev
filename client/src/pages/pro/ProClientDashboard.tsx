@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { proStore, Targets, ClinicalContext, ClinicalAdvisory } from "@/lib/proData";
+import { proStore, Targets, ClinicalContext, ClinicalAdvisory, WorkspaceType } from "@/lib/proData";
 import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
+import WorkspaceSelectionModal from "@/components/pro/WorkspaceSelectionModal";
 import {
   Settings,
   ClipboardList,
@@ -91,11 +92,26 @@ export default function ProClientDashboard() {
   const [ctx, setCtx] = useState<ClinicalContext>(() =>
     proStore.getContext(clientId),
   );
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
   useEffect(() => {
     setT(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
-  }, [clientId]);
+    
+    // Check if workspace is set - if so, redirect immediately
+    const currentClient = proStore.getClient(clientId);
+    if (currentClient?.workspace) {
+      setLocation(`/pro/clients/${clientId}/${currentClient.workspace}`);
+    } else {
+      // Show workspace modal if no workspace set
+      setShowWorkspaceModal(true);
+    }
+  }, [clientId, setLocation]);
+
+  const handleWorkspaceSelect = (workspace: WorkspaceType) => {
+    setShowWorkspaceModal(false);
+    setLocation(`/pro/clients/${clientId}/${workspace}`);
+  };
 
   // Read role from CLIENT first (set when client was added), then ctx, then default to trainer
   const role = (client?.role ?? ctx.role ?? "trainer") as ProRole;
@@ -109,14 +125,6 @@ export default function ProClientDashboard() {
   ].includes(role);
   const roleLabel = getRoleLabel(role);
 
-  console.log("🔍 Client Dashboard Debug:", {
-    clientId,
-    clientRole: client?.role,
-    ctxRole: ctx.role,
-    finalRole: role,
-    roleLabel,
-  });
-
   const saveTargets = () => {
     proStore.setTargets(clientId, t);
 
@@ -126,7 +134,7 @@ export default function ProClientDashboard() {
     }
 
     toast({
-      title: "✅ Targets saved",
+      title: "Targets saved",
       description: "Macro targets updated successfully.",
     });
   };
@@ -134,7 +142,7 @@ export default function ProClientDashboard() {
   const saveContext = () => {
     proStore.setContext(clientId, ctx);
     toast({
-      title: "✅ Context saved",
+      title: "Context saved",
       description: isTrainer
         ? "Coaching notes saved."
         : `${roleLabel} notes and clinical context saved.`,
@@ -144,7 +152,7 @@ export default function ProClientDashboard() {
   const scheduleFollowUp = () => {
     if (!ctx.followupWeeks) {
       toast({
-        title: "⚠️ Select weeks",
+        title: "Select weeks",
         description: "Choose 4, 8, or 12 weeks for follow-up.",
       });
       return;
@@ -155,7 +163,7 @@ export default function ProClientDashboard() {
       ctx.patientNote || "Follow-up scheduled",
     );
     toast({
-      title: "✅ Follow-up scheduled",
+      title: "Follow-up scheduled",
       description: `${ctx.followupWeeks}-week follow-up added.`,
     });
     // Clear dropdown and trigger re-render to show new follow-up
@@ -178,6 +186,20 @@ export default function ProClientDashboard() {
       : [...current, tag];
     setCtx({ ...ctx, clinicalTags: next });
   };
+
+  // If showing workspace modal, render it over a loading state
+  if (showWorkspaceModal) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
+        <WorkspaceSelectionModal
+          clientId={clientId}
+          clientName={client?.name || "Client"}
+          isOpen={showWorkspaceModal}
+          onSelect={handleWorkspaceSelect}
+        />
+      </div>
+    );
+  }
 
   return (
     <motion.div

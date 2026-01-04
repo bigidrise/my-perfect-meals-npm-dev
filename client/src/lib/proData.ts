@@ -9,6 +9,9 @@ export type ProRole =
   | "dietitian"
   | "trainer";
 
+export type WorkspaceType = "trainer" | "clinician";
+export type BuilderType = "general" | "performance";
+
 export type ClientProfile = {
   id: string;
   name: string;
@@ -16,6 +19,8 @@ export type ClientProfile = {
   notes?: string;
   role?: ProRole;
   archived?: boolean;
+  workspace?: WorkspaceType;
+  assignedBuilder?: BuilderType;
 };
 
 export type Targets = {
