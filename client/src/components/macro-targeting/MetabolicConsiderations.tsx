@@ -201,6 +201,18 @@ export default function MetabolicConsiderations({
                 </Button>
               </div>
             )}
+
+            <div className="mt-4 rounded-xl border border-white/15 bg-black/40 p-3 text-xs text-white/70">
+              <div className="font-semibold text-white/80 mb-1">
+                Educational Notice
+              </div>
+              <p>
+                Metabolic and hormone-related insights are provided for educational and
+                lifestyle guidance only. They do not diagnose, treat, or replace medical
+                advice. Individual responses vary. Consult a qualified healthcare
+                professional for medical concerns.
+              </p>
+            </div>
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
