@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { proStore, ClientProfile, ProRole } from "@/lib/proData";
@@ -43,6 +46,36 @@ export default function ProClients(){
     setLocation(`/pro/clients/${id}`);
   };
 
+  const quickTour = useQuickTour("pro-clients");
+ 
+  const PRO_CLIENTS_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: "Add a Client",
+      description:
+        "Enter your client’s name, email, and professional role to invite them into your care team.",
+    },
+    {
+      icon: "2",
+      title: "Professional Role",
+      description:
+        "Choose whether you’re working with this client as a trainer or clinician. This affects what tools you’ll use later.",
+    },
+    {
+      icon: "3",
+      title: "Open Client",
+      description:
+        "Click Open to access the client workspace and begin setting macros or plans.",
+    },
+    {
+      icon: "4",
+      title: "Archived Clients",
+      description:
+        "Archived clients are hidden from your active list but can be restored anytime.",
+    },
+  ];
+
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -68,15 +101,10 @@ export default function ProClients(){
           {/* Title */}
           <h1 className="text-lg font-bold text-white">Pro Portal</h1>
 
-          {/* Archive Toggle Button */}
-          <Button
-            onClick={() => setShowArchived(!showArchived)}
-            variant="outline"
-            size="sm"
-            className="ml-auto bg-white/5 border-white/20 text-white hover:bg-white/10"
-          >
-            {showArchived ? "Show Active" : "Show Archived"}
-          </Button>
+          {/* Guide Button */}
+          <div className="ml-auto flex items-center gap-2">
+            <QuickTourButton onClick={quickTour.openTour} />
+          </div>
         </div>
       </div>
 
@@ -109,6 +137,17 @@ export default function ProClients(){
             <Button onClick={add} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"><Plus className="h-4 w-4 mr-1" />Add Client</Button>
           </CardContent>
         </Card>
+
+        <div className="flex justify-end mb-2">
+          <Button
+            onClick={() => setShowArchived(!showArchived)}
+            variant="outline"
+            size="sm"
+            className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+          >
+            {showArchived ? "Show Active Clients" : "Show Archived Clients"}
+          </Button>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           {clients.filter(c => showArchived ? c.archived : !c.archived).length===0 ? (
@@ -175,6 +214,14 @@ export default function ProClients(){
           ))}
         </div>
       </div>
+
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="Pro Clients Guide"
+        steps={PRO_CLIENTS_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
     </motion.div>
   );
 }

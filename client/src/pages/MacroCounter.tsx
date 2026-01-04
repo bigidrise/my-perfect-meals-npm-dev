@@ -275,22 +275,32 @@ export default function MacroCounter() {
     {
       title: "Choose Your Goal",
       description:
-        "Cut = lose weight (15% deficit), Maintain = stay the same, Gain = build muscle (10% surplus)",
+        "Cut = lose weight (15% deficit), Maintain = stay the same, Gain = build muscle (10% surplus).",
     },
     {
       title: "Select Body Type",
       description:
-        "Ectomorph = thin, fast metabolism, more carbs. Mesomorph = balanced. Endomorph = holds weight, fewer carbs.",
+        "Ectomorph = thin, fast metabolism, higher carb tolerance. Mesomorph = balanced. Endomorph = stores weight more easily, lower carb tolerance.",
     },
     {
       title: "Enter Your Stats",
       description:
-        "Age, height, weight, and activity level calculate your daily calorie needs using the Mifflin formula.",
+        "Age, height, weight, and activity level are used to calculate your baseline calorie needs using the Mifflin formula.",
+    },
+    {
+      title: "Optional: Metabolic & Hormone Factors",
+      description:
+        "If applicable, you can preview how factors like menopause, insulin resistance, or high stress may influence your macro targets. These adjustments are advisory only — you stay in control.",
+    },
+    {
+      title: "Preview & Apply Changes",
+      description:
+        "Preview shows how these factors would adjust protein, carbs, or fats. Nothing is changed unless you tap Apply.",
     },
     {
       title: "Save Your Macros",
       description:
-        "Tap 'Set Macro Targets' to lock them in. They stay persistent on Biometrics until you recalculate.",
+        "Tap 'Set Macro Targets' to lock them in. Your targets stay persistent on Biometrics until you recalculate or update them.",
     },
   ];
 
