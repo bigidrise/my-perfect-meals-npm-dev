@@ -98,7 +98,8 @@ export default function ProClients(){
                 <SelectContent className="bg-black/95 border-white/20">
                   <SelectItem value="trainer" className="text-white hover:bg-white/10">Trainer</SelectItem>
                   <SelectItem value="doctor" className="text-white hover:bg-white/10">Doctor</SelectItem>
-                  <SelectItem value="nurse" className="text-white hover:bg-white/10">Nurse</SelectItem>
+                  <SelectItem value="np" className="text-white hover:bg-white/10">Nurse Practitioner</SelectItem>
+                  <SelectItem value="rn" className="text-white hover:bg-white/10">RN</SelectItem>
                   <SelectItem value="pa" className="text-white hover:bg-white/10">PA</SelectItem>
                   <SelectItem value="nutritionist" className="text-white hover:bg-white/10">Nutritionist</SelectItem>
                   <SelectItem value="dietitian" className="text-white hover:bg-white/10">Dietitian</SelectItem>
@@ -123,7 +124,7 @@ export default function ProClients(){
                     <div className="flex gap-2 mt-1 flex-wrap">
                       {c.role && (
                         <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
-                          {c.role === "doctor" ? "Doctor" : c.role === "nurse" ? "Nurse" : c.role === "pa" ? "PA" : c.role === "nutritionist" ? "Nutritionist" : c.role === "dietitian" ? "Dietitian" : "Trainer"}
+                          {c.role === "doctor" ? "Doctor" : c.role === "np" ? "Nurse Practitioner" : c.role === "rn" ? "RN" : c.role === "pa" ? "PA" : c.role === "nutritionist" ? "Nutritionist" : c.role === "dietitian" ? "Dietitian" : "Trainer"}
                         </div>
                       )}
                     </div>

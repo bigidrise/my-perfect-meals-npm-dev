@@ -80,7 +80,7 @@ export default function TrainerClientDashboard() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen text-white bg-gradient-to-br from-black/60 via-lime-700 to-black/80 pb-safe-nav"
+      className="min-h-screen text-white bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
       <div
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -108,9 +108,7 @@ export default function TrainerClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          <p className="text-md text-white/70 mt-1">
-            Set macro targets, performance directives, and coaching notes.
-          </p>
+          
           <p className="text-white/90 mt-3 text-lg">
             {client?.name || "Client"}
           </p>

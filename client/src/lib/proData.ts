@@ -2,12 +2,13 @@
 export type Slot = 'breakfast'|'lunch'|'dinner'|'snack';
 
 export type ProRole =
+  | "trainer"
   | "doctor"
-  | "nurse"
-  | "pa"
-  | "nutritionist"
   | "dietitian"
-  | "trainer";
+  | "nutritionist"
+  | "pa"
+  | "np"
+  | "rn";
 
 export type WorkspaceType = "trainer" | "clinician";
 export type BuilderType = "general" | "performance";

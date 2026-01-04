@@ -27,7 +27,7 @@ export default function ClinicianClientDashboard() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen text-white bg-gradient-to-br from-black/60 via-blue-700 to-black/80 pb-safe-nav"
+      className="min-h-screen text-white bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
       <div
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
