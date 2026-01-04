@@ -864,7 +864,7 @@ export default function RestaurantGuidePage() {
                         setRestaurantInput(`${cuisine} restaurant`);
                         setMatchedCuisine(cuisine);
                       }}
-                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-full text-sm transition-colors font-medium"
+                      className="px-3 py-1 bg-black text-white rounded-full text-sm transition-colors font-medium"
                     >
                       {cuisine}
                     </button>
