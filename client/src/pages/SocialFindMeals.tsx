@@ -597,7 +597,7 @@ export default function MealFinder() {
                               });
                             }
                           }}
-                          className="w-full bg-lime-600 hover:bg-lime-700 text-white font-medium"
+                          className="w-full bg-black text-white font-medium"
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Log This Meal
