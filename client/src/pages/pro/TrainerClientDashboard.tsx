@@ -95,7 +95,6 @@ export default function TrainerClientDashboard() {
             <span className="text-sm font-medium">Back</span>
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Dumbbell className="h-5 w-5 text-lime-400 flex-shrink-0" />
             <h1 className="text-base font-bold text-white truncate">
               Trainer Dashboard
             </h1>
