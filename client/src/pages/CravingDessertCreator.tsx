@@ -520,25 +520,68 @@ export default function DessertCreator() {
                       <Users className="h-4 w-4 text-white" />
                       <span className="font-medium">Serving Size:</span>{" "}
                       {generatedDessert.servingSize}
+                      {generatedDessert.totalSlices && (
+                        <span className="text-white/70">
+                          ({generatedDessert.totalSlices} slices)
+                        </span>
+                      )}
                     </div>
                   </div>
 
+                  {generatedDessert.perSliceNutrition && (
+                    <div className="mb-4 flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setShowPerSlice(true)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          showPerSlice
+                            ? "bg-orange-600 text-white"
+                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        }`}
+                      >
+                        Per Slice
+                      </button>
+                      <button
+                        onClick={() => setShowPerSlice(false)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          !showPerSlice
+                            ? "bg-orange-600 text-white"
+                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        }`}
+                      >
+                        Whole Cake
+                      </button>
+                    </div>
+                  )}
+
+                  {generatedDessert.perSliceNutrition && showPerSlice && (
+                    <p className="text-xs text-center text-white/60 mb-2">
+                      Per slice ({generatedDessert.perSliceNutrition.sliceSize || "1 oz"})
+                    </p>
+                  )}
+
                   <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                     {(["calories", "protein", "carbs", "fat"] as const).map(
-                      (key) => (
-                        <div
-                          key={key}
-                          className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md"
-                        >
-                          <div className="text-lg font-bold text-white">
-                            {getNutrition(generatedDessert)[key]}
-                            {key !== "calories" && "g"}
+                      (key) => {
+                        const nutritionSource = 
+                          generatedDessert.perSliceNutrition && showPerSlice
+                            ? generatedDessert.perSliceNutrition
+                            : getNutrition(generatedDessert);
+                        const value = Number(nutritionSource[key] ?? 0);
+                        return (
+                          <div
+                            key={key}
+                            className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md"
+                          >
+                            <div className="text-lg font-bold text-white">
+                              {value}
+                              {key !== "calories" && "g"}
+                            </div>
+                            <div className="text-xs text-white capitalize">
+                              {key}
+                            </div>
                           </div>
-                          <div className="text-xs text-white capitalize">
-                            {key}
-                          </div>
-                        </div>
-                      ),
+                        );
+                      },
                     )}
                   </div>
 
