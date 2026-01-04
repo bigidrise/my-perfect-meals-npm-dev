@@ -572,7 +572,7 @@ export default function MealFinder() {
                           </p>
                         </div>
 
-                        {/* Log This Meal Button */}
+                        {/* Add Your Macros Button */}
                         <Button
                           onClick={async () => {
                             try {
@@ -586,12 +586,12 @@ export default function MealFinder() {
                                 source: "find-meals",
                               });
                               toast({
-                                title: "Meal Logged!",
+                                title: "Macros Added!",
                                 description: `${result.meal.name} added to your daily macros.`,
                               });
                             } catch (error) {
                               toast({
-                                title: "Could Not Log Meal",
+                                title: "Could Not Add Macros",
                                 description: "Please try again.",
                                 variant: "destructive",
                               });
@@ -600,7 +600,7 @@ export default function MealFinder() {
                           className="w-full bg-black text-white font-medium"
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          Log This Meal
+                          Add Your Macros
                         </Button>
                       </div>
                     </div>
