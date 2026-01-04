@@ -1090,11 +1090,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
             {/* Title */}
             <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-              Performance & Competition Meal Builder
+              {mode === "procare" ? "Performance & Competition Meal Builder" : "Performance Builder"}
             </h1>
+
+            {/* Guide button in Row 1 for athlete mode only */}
+            {mode === "athlete" && (
+              <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            )}
           </div>
 
-          {/* Row 2: Client Dashboard + Guide */}
+          {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}
           {mode === "procare" && (
             <div className="flex items-center justify-between gap-2">
               <button
