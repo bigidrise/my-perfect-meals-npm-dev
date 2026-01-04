@@ -23,11 +23,15 @@ function getOpenAI(): OpenAI {
 
 const dessertCreatorRouter = Router();
 
-const SERVING_MULTIPLIERS: Record<string, { count: number; label: string }> = {
+const SERVING_MULTIPLIERS: Record<string, { count: number; label: string; tiers?: number }> = {
   single: { count: 1, label: "1 serving" },
   two: { count: 2, label: "2 servings" },
   family: { count: 6, label: "6 servings (family-style)" },
   batch: { count: 12, label: "12 servings (batch)" },
+  "small-wedding": { count: 40, label: "Small Wedding (30–50 guests)", tiers: 2 },
+  "medium-wedding": { count: 88, label: "Medium Wedding (75–100 guests)", tiers: 3 },
+  "large-wedding": { count: 135, label: "Large Wedding (120–150 guests)", tiers: 3 },
+  "extra-large-wedding": { count: 200, label: "Large Event (200+ guests)", tiers: 4 },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -127,12 +131,21 @@ NAKED/SEMI-NAKED CAKE REQUIREMENTS:
 ${isWeddingCake ? `
 WEDDING CAKE REQUIREMENTS:
 - This is for a CELEBRATION - present it elegantly without "diet language"
-- Reference event-scale servings (typically 60-120 servings for weddings)
+- Guest count: ${serving.count} guests
+- Recommended tiers: ${serving.tiers || 3} tiers
 - Focus on sophistication: subtle flavors, elegant presentation
 - Include a "perSliceNutrition" object with per-slice values (assume 1 oz slice)
 - Nutrition should be realistic for celebration portions
 - Fillings should complement the occasion: champagne, elderflower, rose, lavender work well
 - Avoid anything that sounds "healthy" or "diet" - this is a wedding!
+- Include "tiers" field in response indicating recommended tier count
+${isNakedCake && serving.count > 100 ? `
+⚠️ NAKED CAKE STRUCTURAL WARNING:
+- For ${serving.count}+ guests with naked style, recommend SEMI-NAKED instead of fully naked
+- Naked cakes at this scale need structural support
+- Use sturdier sponge recipes and consider dowel support between tiers
+- Include this structural guidance in the instructions
+` : ""}
 ` : ""}
 ${isCelebrationCake && !isWeddingCake ? `
 CELEBRATION CAKE REQUIREMENTS:
@@ -172,7 +185,8 @@ Return JSON ONLY, following this exact schema:
     "fat": 0,
     "sliceSize": "1 oz"
   },
-  "totalSlices": 0,` : ""}
+  "totalSlices": 0,${isWeddingCake ? `
+  "tiers": ${serving.tiers || 3},` : ""}` : ""}
   "servingSize": "${serving.label}",
   "reasoning": "",
   "imageUrl": ""

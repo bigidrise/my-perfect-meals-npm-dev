@@ -68,6 +68,13 @@ const SERVING_SIZES = [
   { value: "batch", label: "Batch" },
 ];
 
+const WEDDING_SERVING_SIZES = [
+  { value: "small-wedding", label: "Small Wedding (30–50 guests)" },
+  { value: "medium-wedding", label: "Medium Wedding (75–100 guests)" },
+  { value: "large-wedding", label: "Large Wedding (120–150 guests)" },
+  { value: "extra-large-wedding", label: "Large Event (200+ guests)" },
+];
+
 const DIETARY_OPTIONS = [
   { value: "low-sugar", label: "Low sugar" },
   { value: "gluten-free", label: "Gluten-free" },
@@ -161,6 +168,14 @@ export default function DessertCreator() {
       } catch {}
     }
   }, [generatedDessert]);
+
+  useEffect(() => {
+    if (cakeType === "wedding-cake") {
+      setServingSize("medium-wedding");
+    } else if (servingSize.includes("wedding")) {
+      setServingSize("single");
+    }
+  }, [cakeType]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -422,7 +437,10 @@ export default function DessertCreator() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SERVING_SIZES.map((size) => (
+                    {(cakeType === "wedding-cake"
+                      ? WEDDING_SERVING_SIZES
+                      : SERVING_SIZES
+                    ).map((size) => (
                       <SelectItem key={size.value} value={size.value}>
                         {size.label}
                       </SelectItem>
