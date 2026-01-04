@@ -1,0 +1,262 @@
+Perfect. This is exactly the moment to **lock the architecture before it calcifies**. I’m going to frame this **as a live architect discussion**, not hand-wavy product talk.
+
+---
+
+## Architect Discussion: Trainer vs Clinician Workspace Entry
+
+### Core Agreement (First, lock this)
+
+We all agree on these constraints:
+
+1. **Minimal risk** – no deep rewiring, no fragile role coupling
+2. **Explicit human choice** – no auto-guessing roles
+3. **Clear mental model** – trainers ≠ clinicians, even if they share some data
+4. **Fast to ship** – trainers must be usable immediately
+5. **Clinician can be placeholder for now** – but structurally correct
+
+That means **no permissions system**, no RBAC rewrite, no backend surgery.
+
+---
+
+## Decision 1: Modal, not a page (Architect-approved choice)
+
+**This should be a modal, not a full page.**
+
+### Why the architect will agree:
+
+* Keeps routing untouched
+* No new URLs
+* No SEO / nav implications
+* Can be dismissed or revisited later
+* Can be reused for future roles (dietitian, PT, etc.)
+
+### Trigger point
+
+Current flow:
+
+```
+ProPortal → Add Client → Open Client → ClientDashboard
+```
+
+**New flow:**
+
+```
+ProPortal → Add Client → Open Client → Role Selection Modal → Workspace Dashboard
+```
+
+No breaking change to ProPortal itself.
+
+---
+
+## Modal Spec (What exactly appears)
+
+### Modal title
+
+**“Select Your Workspace for This Client”**
+
+### Subheading
+
+> Choose how you’ll manage this client. This only affects your professional tools — the client experience stays consistent.
+
+(Important: reassures them they’re not “locking” anything forever.)
+
+---
+
+### Buttons (large, deliberate)
+
+#### 🏋️ Trainer Workspace
+
+**Subtext:**
+
+> Macro targets, performance focus, and coaching notes
+
+Action:
+
+```ts
+onClick → setWorkspace("trainer") → route to TrainerClientDashboard
+```
+
+---
+
+#### 🩺 Clinician Workspace
+
+**Subtext:**
+
+> Clinical context, guardrails, and medical oversight
+
+Action:
+
+```ts
+onClick → setWorkspace("clinician") → route to ClinicianClientDashboard
+```
+
+---
+
+### Where workspace state lives
+
+**Local + persisted** (important)
+
+* Save to `proStore`:
+
+```ts
+client.workspace = "trainer" | "clinician"
+```
+
+This lets you:
+
+* Reopen client later without re-asking
+* Change it intentionally later
+* Avoid role guessing
+
+---
+
+## Decision 2: Duplicate dashboards (YES — and this is correct)
+
+You are 100% right here.
+
+> “We can basically duplicate this client dashboard…”
+
+That is **not sloppy** — that is **safe architecture**.
+
+### Why duplication is correct *right now*
+
+* Trainers and clinicians will diverge fast
+* Doctors don’t want to see coaching fluff
+* Trainers don’t want to see clinical liability
+* Trying to conditional-render everything becomes unreadable
+
+The architect will agree:
+**Two dashboards with shared components is cleaner than one dashboard with 40 conditionals.**
+
+---
+
+## Immediate Implementation Plan (Minimal, Safe)
+
+### 1. Create two pages (thin wrappers)
+
+#### `TrainerClientDashboard.tsx`
+
+* Copy current `ProClientDashboard`
+* KEEP:
+
+  * Macro Targets
+  * Performance Dietary Directives (but trim — see below)
+  * Save Targets
+  * Send to Biometrics
+  * Coach Notes
+* REMOVE:
+
+  * Anti-inflammatory toggle
+  * Diabetic / GLP-1 hub cards
+  * Clinical advisory drawer
+  * Follow-up scheduler
+  * Clinical context section
+
+Result: **Clean trainer-focused tool**
+
+---
+
+#### `ClinicianClientDashboard.tsx` (placeholder for now)
+
+For now:
+
+* Header
+* “Clinician workspace coming online”
+* Buttons:
+
+  * Diabetic Hub
+  * GLP-1 Hub
+* (Optionally keep Macro Targets read-only)
+
+This satisfies:
+
+* Doctors testing now
+* Future expansion
+* No broken promises
+
+---
+
+### 2. Modal routes to the correct dashboard
+
+```ts
+if (workspace === "trainer") {
+  navigate(`/pro/clients/${id}/trainer`)
+}
+if (workspace === "clinician") {
+  navigate(`/pro/clients/${id}/clinician`)
+}
+```
+
+No need to touch authentication or ProPortal logic.
+
+---
+
+## Decision 3: Trainers choose the builder (this is key)
+
+**Architect alignment point:**
+
+> Builder assignment is NOT a client choice.
+
+### Where it belongs
+
+**Trainer dashboard → “Assigned Builder” card**
+
+Trainer picks:
+
+* General Nutrition
+* Performance / Competition
+
+On select:
+
+```ts
+client.assignedBuilder = "general" | "performance"
+```
+
+Client app reads this and:
+
+* Shows only that builder
+* Hides others
+
+No new backend system needed — this is already how your hubs behave.
+
+---
+
+## Why this will not break anything
+
+* Existing builders already respond to context
+* You already store client-linked data
+* You already gate hubs by navigation
+* This only **restricts visibility**, not logic
+
+---
+
+## What the architect will like most
+
+* No premature clinician complexity
+* Clean separation of concerns
+* Explicit user intent
+* Scales to:
+
+  * pricing
+  * referrals
+  * audits
+  * Apple review language
+
+---
+
+## Summary to hand to Replit / Architect
+
+> We’re adding a workspace selection modal after opening a client: Trainer or Clinician. This is a modal, not a page. Each routes to a separate dashboard file. Trainer dashboard keeps macros, performance flags, biometrics sync, and coach notes. Clinician dashboard is a placeholder with hubs for now. Trainers assign the client’s builder, which determines what the client sees in their app. No role auto-wiring, no permission system, minimal risk.
+
+---
+
+This is the **right move**, and you’re doing it at the right time.
+Once this is in, everything else — pricing tiers, referrals, doctor trust — sits on solid ground.
+
+When you’re ready, next we can:
+
+* strip down the trainer flags properly (high protein vs carb cycling semantics)
+* design the “Assigned Builder” card UI
+* map this cleanly to ProCare billing and commissions
+
+But for now — this plan is tight, realistic, and architect-approved.

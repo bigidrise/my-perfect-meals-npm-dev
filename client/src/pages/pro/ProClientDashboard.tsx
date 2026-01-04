@@ -419,6 +419,7 @@ export default function ProClientDashboard() {
                     />
                     High-Protein Focus
                   </label>
+
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
@@ -432,22 +433,7 @@ export default function ProClientDashboard() {
                     />
                     Carb Cycling Protocol
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-white/80">
-                    <input
-                      type="checkbox"
-                      checked={!!t.flags?.antiInflammatory}
-                      onChange={(e) =>
-                        setT({
-                          ...t,
-                          flags: {
-                            ...t.flags,
-                            antiInflammatory: e.target.checked,
-                          },
-                        })
-                      }
-                    />
-                    Anti-Inflammatory
-                  </label>
+
                 </div>
               )}
             </div>
