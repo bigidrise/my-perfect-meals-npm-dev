@@ -1092,14 +1092,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
               Performance & Competition Meal Builder
             </h1>
-
-            {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
           </div>
 
-          {/* Row 2: Client Dashboard Button (only in ProCare mode) */}
+          {/* Row 2: Client Dashboard + Guide */}
           {mode === "procare" && (
-            <div className="flex items-center">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setLocation(`/pro/clients/${clientId}`)}
                 className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
@@ -1108,6 +1105,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 <ArrowLeft className="h-5 w-5" />
                 <span>Client Dashboard</span>
               </button>
+
+              <QuickTourButton onClick={quickTour.openTour} />
             </div>
           )}
         </div>
