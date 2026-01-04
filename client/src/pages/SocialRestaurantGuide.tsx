@@ -813,7 +813,7 @@ export default function RestaurantGuidePage() {
                               </p>
                             </div>
 
-                            {/* Log This Meal Button */}
+                            {/* Add Your Macros Button */}
                             <Button
                               onClick={async () => {
                                 try {
@@ -827,12 +827,12 @@ export default function RestaurantGuidePage() {
                                     source: "restaurant-guide",
                                   });
                                   toast({
-                                    title: "Meal Logged!",
+                                    title: "Macros Added!",
                                     description: `${meal.name || meal.meal} added to your daily macros.`,
                                   });
                                 } catch (error) {
                                   toast({
-                                    title: "Could Not Log Meal",
+                                    title: "Could Not Add Macros",
                                     description: "Please try again.",
                                     variant: "destructive",
                                   });
@@ -841,7 +841,7 @@ export default function RestaurantGuidePage() {
                               className="w-full bg-black text-white font-medium"
                             >
                               <Plus className="h-4 w-4 mr-2" />
-                              Log This Meal
+                              Add Your Macros
                             </Button>
                           </div>
                         </div>
