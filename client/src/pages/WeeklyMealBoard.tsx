@@ -71,6 +71,7 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
+import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { WhyChip } from "@/components/WhyChip";
@@ -1614,6 +1615,26 @@ export default function WeeklyMealBoard() {
                 </div>
               )}
 
+            {/* ROW 3.5: Daily Starch Meal Indicator */}
+            {FEATURES.dayPlanning === "alpha" &&
+              planningMode === "day" &&
+              activeDayISO &&
+              board && (
+                <div className="flex justify-center">
+                  <DailyStarchIndicator 
+                    meals={(() => {
+                      const dayLists = getDayLists(board, activeDayISO);
+                      return [
+                        ...dayLists.breakfast,
+                        ...dayLists.lunch,
+                        ...dayLists.dinner,
+                        ...dayLists.snacks,
+                      ];
+                    })()}
+                  />
+                </div>
+              )}
+
             {/* ROW 4: Bottom Actions (Delete All + Save) */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
               <Button
@@ -1766,6 +1787,7 @@ export default function WeeklyMealBoard() {
                           date={activeDayISO}
                           slot={key}
                           meal={meal}
+                          showStarchBadge={true}
                           data-wt="wmb-meal-card"
                           onUpdated={(m) => {
                             if (m === null) {
@@ -1915,6 +1937,7 @@ export default function WeeklyMealBoard() {
                         date={"board"}
                         slot={key}
                         meal={meal}
+                        showStarchBadge={true}
                         onUpdated={(m) => {
                           if (m === null) {
                             // Guard: Check if day is locked before allowing delete
