@@ -253,6 +253,12 @@ CRITICAL INGREDIENT FORMAT REQUIREMENT:
 - For small amounts (spices): Use grams or "to taste"
 - NEVER use vague units like "piece", "fillet", or "breast" - always use exact gram weights
 
+CARB CLASSIFICATION RULES (CRITICAL):
+- starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
+- fibrousCarbs: Volume-dense carbs from vegetables, leafy greens, broccoli, cauliflower, peppers, tomatoes, cucumbers
+- Both are measured in grams
+- Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
+
 FORMAT: Return as JSON object:
 {
   "meals": [
@@ -263,7 +269,8 @@ FORMAT: Return as JSON object:
       "instructions": "Step-by-step cooking instructions as single string",
       "calories": number (${macroTargets ? 'calculated from hitting macro targets' : '200-500 range'}),
       "protein": number (${macroTargets?.protein_g ? `${macroTargets.protein_g}±5 grams - MUST hit this target` : '10-40 grams'}),
-      "carbs": number (total carbs ${macroTargets?.fibrous_carbs_g || macroTargets?.starchy_carbs_g ? `- should equal ${(macroTargets.fibrous_carbs_g || 0) + (macroTargets.starchy_carbs_g || 0)}±5g from combining fibrous and starchy sources` : '15-50 grams'}), 
+      "starchyCarbs": number (${macroTargets?.starchy_carbs_g ? `${macroTargets.starchy_carbs_g}±5 grams - energy carbs from grains/potatoes` : '10-30 grams from starches'}),
+      "fibrousCarbs": number (${macroTargets?.fibrous_carbs_g ? `${macroTargets.fibrous_carbs_g}±5 grams - volume carbs from vegetables` : '10-30 grams from vegetables'}),
       "fat": number (${macroTargets?.fat_g ? `${macroTargets.fat_g}±5 grams - MUST hit this target` : '5-25 grams'}),
       "cookingTime": "X minutes",
       "difficulty": "Easy or Medium"
@@ -366,8 +373,22 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
         displayText: ing.displayText || `${ing.amount} ${ing.unit} ${ing.name}`
       }));
       
-      const mealCarbs = meal.carbs || 25;
-      const { starchyGrams, fibrousGrams } = deriveCarbSplit(mealIngredients, mealCarbs);
+      // Prefer AI-provided starchyCarbs/fibrousCarbs, fallback to deriveCarbSplit
+      const aiStarchyCarbs = meal.starchyCarbs ?? null;
+      const aiFibrousCarbs = meal.fibrousCarbs ?? null;
+      const totalCarbs = meal.carbs ?? (((aiStarchyCarbs ?? 0) + (aiFibrousCarbs ?? 0)) || 25);
+      
+      // Use AI values if provided, otherwise derive from ingredients
+      let starchyCarbs: number;
+      let fibrousCarbs: number;
+      if (aiStarchyCarbs !== null && aiFibrousCarbs !== null) {
+        starchyCarbs = aiStarchyCarbs;
+        fibrousCarbs = aiFibrousCarbs;
+      } else {
+        const { starchyGrams, fibrousGrams } = deriveCarbSplit(mealIngredients, totalCarbs);
+        starchyCarbs = starchyGrams;
+        fibrousCarbs = fibrousGrams;
+      }
       
       const processedMeal: FridgeRescueMeal = {
         id: `fridge-rescue-${index}-${Date.now()}`,
@@ -377,10 +398,10 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
         instructions: meal.instructions || "Combine ingredients and cook until done.",
         calories: meal.calories || 300,
         protein: meal.protein || 20,
-        carbs: mealCarbs,
+        carbs: totalCarbs,
         fat: meal.fat || 12,
-        starchyCarbs: starchyGrams,
-        fibrousCarbs: fibrousGrams,
+        starchyCarbs: starchyCarbs,
+        fibrousCarbs: fibrousCarbs,
         cookingTime: meal.cookingTime || "20 minutes",
         difficulty: meal.difficulty || "Easy",
         medicalBadges: getMedicalBadges(meal, userConditions)
