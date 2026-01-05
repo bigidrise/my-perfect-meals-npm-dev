@@ -1,7 +1,7 @@
 // client/src/lib/macroResolver.ts
 // Unified macro targets resolver - connects ProCare professional targets with client self-set targets
 
-import { getMacroTargets, setMacroTargets, type MacroTargets } from './dailyLimits';
+import { getMacroTargets, setMacroTargets, type MacroTargets, type StarchStrategy } from './dailyLimits';
 import { proStore, type Targets } from './proData';
 
 export type MacroSource = 'pro' | 'self' | 'none';
@@ -14,6 +14,8 @@ export type ResolvedTargets = {
   // Carb breakdown (optional - only available when pro targets or explicit breakdown is set)
   starchyCarbs_g?: number;
   fibrousCarbs_g?: number;
+  // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = 2 meals
+  starchStrategy?: StarchStrategy;
   source: MacroSource;
   flags?: {
     // Medical flags (for doctors/dietitians)
@@ -110,6 +112,8 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
         // Include starchy/fibrous breakdown from pro targets
         starchyCarbs_g: proTargets.starchyCarbs || 0,
         fibrousCarbs_g: proTargets.fibrousCarbs || 0,
+        // Pro-set starch strategy (defaults to "one" if not specified by trainer)
+        starchStrategy: proTargets.starchStrategy || 'one',
         source: 'pro',
         flags: proTargets.flags,
         allergens: proTargets.allergens,
@@ -130,6 +134,8 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
       // Include starchy/fibrous breakdown if saved from Macro Calculator
       starchyCarbs_g: selfTargets.starchyCarbs_g,
       fibrousCarbs_g: selfTargets.fibrousCarbs_g,
+      // Starch strategy from Macro Calculator (defaults to "one")
+      starchStrategy: selfTargets.starchStrategy || 'one',
       source: 'self',
     };
   }
@@ -140,6 +146,7 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
     protein_g: 0,
     carbs_g: 0,
     fat_g: 0,
+    starchStrategy: 'one', // Default to one starch meal
     source: 'none',
   };
 }
