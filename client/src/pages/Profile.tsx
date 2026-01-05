@@ -33,6 +33,7 @@ import {
   Camera,
   Loader2,
   BookOpen,
+  Utensils,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -186,6 +187,9 @@ export default function Profile() {
   const userEmail = user?.email || "";
   const profilePhotoUrl = user?.profilePhotoUrl;
 
+  // Check if user is a Pro Care client (restricted from changing builder)
+  const isProCareClient = user?.isProCare && user?.role !== "admin";
+
   const profileSections = [
     {
       title: "My Biometrics",
@@ -194,6 +198,14 @@ export default function Profile() {
       route: "/my-biometrics",
       testId: "profile-biometrics",
     },
+    // Only show "Change Meal Builder" if NOT a Pro Care client
+    ...(!isProCareClient ? [{
+      title: "Change Meal Builder",
+      description: "Switch to a different dietary focus",
+      icon: Utensils,
+      route: "/select-builder",
+      testId: "profile-change-builder",
+    }] : []),
     {
       title: "ProCare Support",
       description: "Connect with nutrition experts",
