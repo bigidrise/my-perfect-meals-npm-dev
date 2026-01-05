@@ -871,7 +871,11 @@ export default function BeachBodyMealBoard() {
           protein: generatedMeal.protein || 0,
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
+          starchyCarbs: generatedMeal.starchyCarbs || 0,
+          fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         },
+        starchyCarbs: generatedMeal.starchyCarbs || 0,
+        fibrousCarbs: generatedMeal.fibrousCarbs || 0,
       };
 
       const newMeals = [transformedMeal];

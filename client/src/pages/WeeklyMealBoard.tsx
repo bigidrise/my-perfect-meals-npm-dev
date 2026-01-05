@@ -961,7 +961,11 @@ export default function WeeklyMealBoard() {
           protein: generatedMeal.protein || 0,
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
+          starchyCarbs: generatedMeal.starchyCarbs || 0,
+          fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         },
+        starchyCarbs: generatedMeal.starchyCarbs || 0,
+        fibrousCarbs: generatedMeal.fibrousCarbs || 0,
       };
 
       // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
@@ -1222,7 +1226,11 @@ export default function WeeklyMealBoard() {
           protein: p.protein ?? 0,
           carbs: p.carbs ?? 0,
           fat: p.fat ?? 0,
+          starchyCarbs: (p as any).starchyCarbs ?? 0,
+          fibrousCarbs: (p as any).fibrousCarbs ?? 0,
         },
+        starchyCarbs: (p as any).starchyCarbs ?? 0,
+        fibrousCarbs: (p as any).fibrousCarbs ?? 0,
         orderIndex: nextIndex,
         entryType: "quick" as const,
         brand: p.brand,
