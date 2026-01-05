@@ -152,10 +152,13 @@ export default function MealBuilderSelection() {
         </div>
       </div>
 
-      {/* Content area with padding for fixed header */}
+      {/* Content area with padding for fixed header and bottom nav */}
       <div 
-        className="pt-16"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 64px)" }}
+        className="pt-16 pb-24"
+        style={{ 
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 64px)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 100px)"
+        }}
       >
         {/* Member acknowledgment */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
