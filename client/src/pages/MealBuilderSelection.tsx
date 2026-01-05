@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Utensils, Heart, Pill, Flame } from "lucide-react";
+import { Check, Utensils, Heart, Pill, Flame, ArrowLeft} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -23,28 +23,28 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     title: "Weekly Meal Builder",
     description: "For everyday healthy eating. Build balanced weekly meal plans with variety.",
     icon: <Utensils className="w-8 h-8" />,
-    color: "from-emerald-600 to-emerald-500",
+    color: "from-black via-zinc-950 to-black",
   },
   {
     id: "diabetic",
     title: "Diabetic Meal Builder",
     description: "Blood sugar-friendly meals. Low glycemic options with carb counting.",
     icon: <Heart className="w-8 h-8" />,
-    color: "from-blue-600 to-blue-500",
+    color: "from-black via-zinc-950 to-black",
   },
   {
     id: "glp1",
     title: "GLP-1 Meal Builder",
     description: "Optimized for Ozempic, Wegovy, Mounjaro users. Protein-focused, smaller portions.",
     icon: <Pill className="w-8 h-8" />,
-    color: "from-purple-600 to-purple-500",
+    color: "from-black via-zinc-950 to-black",
   },
   {
     id: "anti_inflammatory",
     title: "Anti-Inflammatory Builder",
     description: "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
     icon: <Flame className="w-8 h-8" />,
-    color: "from-orange-600 to-orange-500",
+    color: "from-black via-zinc-950 to-black",
   },
 ];
 
@@ -131,16 +131,33 @@ export default function MealBuilderSelection() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black text-white p-4"
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white p-4"
     >
-      <div className="max-w-2xl mx-auto pt-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-3">Choose Your Meal Builder</h1>
-          <p className="text-white/70">
-            Select the builder that fits your dietary needs. You can change this anytime.
-          </p>
+        {/* Fixed Black Glass Navigation Banner */}
+        <div
+          className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ top: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Button
+              onClick={() => setLocation("/dashboard")}
+              className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+              data-testid="button-back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs font-medium">Back</span>
+            </Button>
+            <h1 className="text-lg font-bold text-white flex items-center gap-2">
+              Choose Your Meal Builder
+            </h1>
+          </div>
         </div>
 
+        {/* Content area with padding for fixed header */}
+        <div 
+          className="pt-16"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 64px)" }}
+        >
         <div className="space-y-4 mb-8">
           {/* Locked state: Pro Care client with no assigned board */}
           {isProCareClient && !user?.activeBoard && (
