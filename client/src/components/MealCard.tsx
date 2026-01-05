@@ -9,6 +9,7 @@ import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
+import { StarchMealBadge } from "@/components/StarchMealBadge";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -46,12 +47,13 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 }
 
 export function MealCard({
-  date, slot, meal, onUpdated,
+  date, slot, meal, onUpdated, showStarchBadge = false,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
   meal: Meal;
   onUpdated: (m: Meal | null) => void; // null = delete
+  showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
 }) {
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -135,17 +137,22 @@ export function MealCard({
         </div>
 
         <div className="pr-12">
-          <h3 className="text-white font-semibold leading-snug text-lg">
-            {title.includes('(') ? (
-              <>
-                {title.split('(')[0].trim()}
-                <br />
-                ({title.split('(')[1]}
-              </>
-            ) : (
-              title
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-white font-semibold leading-snug text-lg flex-1">
+              {title.includes('(') ? (
+                <>
+                  {title.split('(')[0].trim()}
+                  <br />
+                  ({title.split('(')[1]}
+                </>
+              ) : (
+                title
+              )}
+            </h3>
+            {showStarchBadge && (
+              <StarchMealBadge meal={{ name: title, ingredients: meal.ingredients }} />
             )}
-          </h3>
+          </div>
           
           {/* Description (EXACT COPY FROM FRIDGE RESCUE) */}
           {(meal as any).description && (
@@ -172,19 +179,15 @@ export function MealCard({
             );
           })()}
           
-          {/* Nutrition Grid - Product Rule: NO calories, show starchy/fibrous separately */}
-          <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+          {/* Nutrition Grid - Showing Protein | Total Carbs | Fat */}
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-blue-400">{Math.round(protein)}g</div>
               <div className="text-xs text-white/70">Protein</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-              <div className="text-sm font-bold text-amber-400">{Math.round(starchyCarbs || 0)}g</div>
-              <div className="text-xs text-white/70">Starchy</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-              <div className="text-sm font-bold text-green-400">{Math.round(fibrousCarbs || 0)}g</div>
-              <div className="text-xs text-white/70">Fibrous</div>
+              <div className="text-sm font-bold text-amber-400">{Math.round(carbs)}g</div>
+              <div className="text-xs text-white/70">Carbs</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-purple-400">{Math.round(fat)}g</div>
