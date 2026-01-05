@@ -62,6 +62,10 @@ export default function MealBuilderSelection() {
     ? BUILDER_OPTIONS.filter(opt => opt.id === user.activeBoard)
     : BUILDER_OPTIONS; // Admin and non-ProCare users see all
 
+  // Determine if user is an existing subscriber (not a new user needing trial)
+  // If they already have a selectedMealBuilder, they're switching - not starting fresh
+  const isExistingUser = !!user?.selectedMealBuilder;
+
   const handleContinue = async () => {
     if (!selected) {
       toast({
@@ -104,10 +108,18 @@ export default function MealBuilderSelection() {
 
       await refreshUser();
 
-      toast({
-        title: "Great choice!",
-        description: "Your 7-day free trial has started. Enjoy full access to all features!",
-      });
+      // Different messaging for new vs existing users
+      if (isExistingUser) {
+        toast({
+          title: "Builder Updated!",
+          description: "Your meal builder has been changed. Your plan continues as normal.",
+        });
+      } else {
+        toast({
+          title: "Great choice!",
+          description: "Your 7-day free trial has started. Enjoy full access to all features!",
+        });
+      }
 
       const disclaimerAccepted = localStorage.getItem("acceptedDisclaimer") === "true";
       if (disclaimerAccepted) {
@@ -213,13 +225,20 @@ export default function MealBuilderSelection() {
           ))}
         </div>
 
-        {/* Hide trial messaging for Pro Care clients */}
+        {/* Show appropriate messaging based on user status */}
         {!isProCareClient && (
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-            <p className="text-sm text-white/80 text-center">
-              Your 7-day free trial includes full access to all Premium features.
-              After the trial, you'll keep your chosen builder with the Basic plan.
-            </p>
+            {isExistingUser ? (
+              <p className="text-sm text-white/80 text-center">
+                Switching your meal builder will update your dietary focus.
+                Your current subscription continues at $19.99/month.
+              </p>
+            ) : (
+              <p className="text-sm text-white/80 text-center">
+                Your 7-day free trial includes full access to all Premium features.
+                After the trial, you'll keep your chosen builder with the Basic plan.
+              </p>
+            )}
           </div>
         )}
 
@@ -230,7 +249,12 @@ export default function MealBuilderSelection() {
             disabled={!selected || saving}
             className="w-full h-14 text-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
           >
-            {saving ? (isProCareClient ? "Saving..." : "Saving...") : (isProCareClient ? "Continue" : "Start My Free Trial")}
+            {saving 
+              ? "Saving..." 
+              : isExistingUser 
+                ? "Switch Builder" 
+                : "Start My Free Trial"
+            }
           </Button>
         )}
       </div>
