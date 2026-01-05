@@ -289,6 +289,10 @@ export const users = pgTable("users", {
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication
   authTokenCreatedAt: timestamp("auth_token_created_at", { withTimezone: true }),
   profilePhotoUrl: text("profile_photo_url"), // URL to user's profile photo in object storage
+  // Role-based access control for Pro Care
+  role: text("role").$type<"admin"|"coach"|"client">().notNull().default("client"), // admin = full access, coach = Pro Care tools, client = assigned board only
+  isProCare: boolean("is_pro_care").default(false), // true if user is managed by a coach
+  activeBoard: text("active_board"), // assigned meal builder for Pro Care clients (null = locked state)
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
