@@ -24,11 +24,15 @@ export type ClientProfile = {
   assignedBuilder?: BuilderType;
 };
 
+export type StarchStrategy = "one" | "flex";
+
 export type Targets = {
   protein: number;
   starchyCarbs: number;
   fibrousCarbs: number;
   fat: number;
+  // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = 2 meals
+  starchStrategy?: StarchStrategy;
   flags?: {
     // Medical flags (for doctors/dietitians)
     lowSodium?: boolean;

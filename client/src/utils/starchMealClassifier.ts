@@ -67,10 +67,14 @@ export function classifyMeal(meal: MealLike): StarchClassification {
 
 /**
  * Check if a day has used its starch meal allocation
+ * @param meals - List of meals for the day
+ * @param maxSlots - Maximum starch meals allowed (1 = "one" strategy, 2 = "flex" strategy)
  */
-export function getDayStarchStatus(meals: MealLike[]): {
+export function getDayStarchStatus(meals: MealLike[], maxSlots: number = 1): {
   isUsed: boolean;
   starchMealCount: number;
+  slotsRemaining: number;
+  maxSlots: number;
   label: string;
 } {
   let starchMealCount = 0;
@@ -81,9 +85,29 @@ export function getDayStarchStatus(meals: MealLike[]): {
     }
   }
   
+  const slotsRemaining = Math.max(0, maxSlots - starchMealCount);
+  const isUsed = slotsRemaining === 0;
+  
+  // Generate label based on slots
+  let label: string;
+  if (maxSlots === 1) {
+    label = starchMealCount > 0 ? 'Used' : 'Available';
+  } else {
+    // Flex mode: show remaining slots
+    if (slotsRemaining === 0) {
+      label = 'Both Used';
+    } else if (slotsRemaining === maxSlots) {
+      label = `${maxSlots} Available`;
+    } else {
+      label = `${slotsRemaining} Remaining`;
+    }
+  }
+  
   return {
-    isUsed: starchMealCount > 0,
+    isUsed,
     starchMealCount,
-    label: starchMealCount > 0 ? 'Used' : 'Available',
+    slotsRemaining,
+    maxSlots,
+    label,
   };
 }
