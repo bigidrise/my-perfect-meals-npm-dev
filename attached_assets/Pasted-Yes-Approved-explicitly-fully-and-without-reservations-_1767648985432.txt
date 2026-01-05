@@ -1,0 +1,160 @@
+Yes. **Approved — explicitly, fully, and without reservations.**
+
+This corrected plan is **exactly right**, and more importantly, it finally aligns **philosophy, data, and UI** into a single, enforceable system. This is the version that works. This is the version that sticks.
+
+Let me be very clear so there’s no ambiguity when this gets executed.
+
+---
+
+## ✅ OFFICIAL APPROVAL — CORRECTED PLAN
+
+You have my full approval to proceed **only under these exact conditions**:
+
+---
+
+## 🔒 NON-NEGOTIABLE PRODUCT DOCTRINE (LOCKED)
+
+> **Ingredient-based carb derivation must occur in the meal generation pipeline and be persisted.
+> The UI must not infer, calculate, guess, or repair macros. Ever.**
+
+This sentence is now **law** inside My Perfect Meals.
+
+If this rule is followed, the app becomes what you intended.
+If this rule is broken, the app collapses back into “calories culture.”
+
+---
+
+## ✅ FIX 1 — RemainingMacrosFooter (APPROVED)
+
+* Display ONLY:
+
+  * Protein
+  * **Starchy Carbs**
+  * **Fibrous Carbs**
+  * Fat
+* Remove entirely:
+
+  * Calories
+  * Total Carbs
+* Source values from:
+
+  * the same aggregation used by meal cards
+* **No math. No inference. Render-only.**
+
+This is a **decision surface**, not a report.
+
+Approved as written.
+
+---
+
+## ✅ FIX 2 — Data-Layer Enforcement (THE HEART) (APPROVED)
+
+This is the most important part, and you nailed it.
+
+### Location (correct):
+
+* `unifiedMealPipeline.ts`
+* `fridgeRescueGenerator.ts`
+* `restaurantMealGeneratorAI.ts`
+* Any shared meal creation service
+
+### Timing (critical):
+
+* **Post-parse**
+* **Before saving**
+* **Before logging**
+* **Before aggregation**
+* **Before UI ever sees the data**
+
+### Enforcement logic (approved):
+
+* If:
+
+  * `starchyCarbs === 0`
+  * `fibrousCarbs === 0`
+  * AND ingredients exist
+* THEN:
+
+  * Analyze ingredients **once**
+  * Classify:
+
+    * Potatoes, rice, oats, bread, pasta → **starchy**
+    * Spinach, broccoli, peppers, vegetables → **fibrous**
+  * **Persist these values with the meal**
+
+Once stored, they are truth everywhere.
+
+The UI’s job is to **tell the story**, not write it.
+
+Approved as written.
+
+---
+
+## ✅ FIX 3 — Macro Bar Consistency (APPROVED)
+
+* Must match meal cards exactly:
+
+  * Protein
+  * Starchy Carbs
+  * Fibrous Carbs
+  * Fat
+* No calories
+* No total carbs
+* Uses the **same shared display utility**
+
+This prevents drift forever.
+
+Approved.
+
+---
+
+## 🧠 WHY THIS VERSION IS THE RIGHT ONE (FINAL CONFIRMATION)
+
+This plan works because:
+
+* The **data contract is enforced**
+* Carb quality becomes **mandatory knowledge**, not optional metadata
+* Vegetables can never “disappear” again
+* Starches are always intentional
+* Users can *see*, in real time:
+
+  * “I’m done with starch”
+  * “I can still eat freely”
+
+That visual feedback is the education.
+
+That education is the moat.
+
+That moat is why My Perfect Meals is different.
+
+---
+
+## 🛑 WHAT IS NOT ALLOWED (REMINDER)
+
+Just so there’s no accidental backsliding:
+
+* ❌ No UI fallback math
+* ❌ No “if missing, derive in component”
+* ❌ No page-by-page fixes
+* ❌ No calories creeping back into decision surfaces
+* ❌ No treating fibrous carbs as optional
+
+If any of those happen, stop.
+
+---
+
+## 🚦 YOU HAVE THE GREEN LIGHT
+
+You are approved to proceed **exactly as written**.
+
+This is no longer a debate, an experiment, or a nice-to-have.
+This is the **core identity of the app**, now enforced correctly.
+
+If you want next steps, I can:
+
+* create a **pass/fail QA checklist** before merge
+* help you write a **“reject PR if…” gate**
+* or help you document this as a **permanent product principle** so it never gets diluted again
+
+But for now — yes.
+**Proceed.**

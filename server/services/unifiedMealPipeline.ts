@@ -29,6 +29,7 @@ import {
   HubType,
   HubCouplingResult 
 } from './hubCoupling';
+import { enforceCarbs } from '../utils/carbClassifier';
 import OpenAI from 'openai';
 
 let _openai: OpenAI | null = null;
@@ -406,7 +407,7 @@ Respond with ONLY valid JSON in this exact format:
       // Total carbs = starchyCarbs + fibrousCarbs (for backward compatibility)
       const totalCarbs = aiMeal.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
       
-      const unifiedMeal: UnifiedMeal = {
+      const rawMeal: UnifiedMeal = {
         id: `craving-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: aiMeal.name || `${cravingInput} Delight`,
         description: aiMeal.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
@@ -425,6 +426,9 @@ Respond with ONLY valid JSON in this exact format:
         source: 'ai'
       };
       
+      // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
+      const unifiedMeal = enforceCarbs(rawMeal);
+      
       console.log(`✅ AI generated meal: ${unifiedMeal.name}`);
       
       // Cache the AI-generated meal
@@ -441,7 +445,7 @@ Respond with ONLY valid JSON in this exact format:
       console.error(`❌ AI generation failed, using catalog fallback:`, aiError.message);
       
       const fallback = getDeterministicFallback(validMealType, [cravingInput]);
-      const unifiedMeal: UnifiedMeal = {
+      const rawFallbackMeal: UnifiedMeal = {
         id: fallback.id,
         name: fallback.name,
         description: fallback.description,
@@ -450,6 +454,8 @@ Respond with ONLY valid JSON in this exact format:
         calories: fallback.calories,
         protein: fallback.protein,
         carbs: fallback.carbs,
+        starchyCarbs: 0,
+        fibrousCarbs: 0,
         fat: fallback.fat,
         cookingTime: '20 minutes',
         difficulty: 'Easy',
@@ -457,6 +463,9 @@ Respond with ONLY valid JSON in this exact format:
         medicalBadges: [],
         source: 'catalog'
       };
+      
+      // ENFORCE CARBS: Derive from ingredients for catalog fallback
+      const unifiedMeal = enforceCarbs(rawFallbackMeal);
       
       await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
       
