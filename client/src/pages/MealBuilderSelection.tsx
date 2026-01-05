@@ -164,8 +164,8 @@ export default function MealBuilderSelection() {
             </div>
           )}
 
-          {/* Available builders (filtered for Pro Care clients) */}
-          {availableBuilders.map((option) => (
+          {/* Available builders (filtered for Pro Care clients) - only show if NOT in locked state */}
+          {!(isProCareClient && !user?.activeBoard) && availableBuilders.map((option) => (
             <motion.button
               key={option.id}
               onClick={() => setSelected(option.id)}

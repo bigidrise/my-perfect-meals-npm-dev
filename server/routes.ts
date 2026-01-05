@@ -1667,6 +1667,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
+      // Role-based access enforcement for Pro Care clients
+      // Pro Care clients can ONLY select their assigned activeBoard (admins bypass)
+      const isProCareClient = existingUser.isProCare && existingUser.role !== "admin";
+      if (isProCareClient) {
+        if (!existingUser.activeBoard) {
+          return res.status(403).json({ 
+            error: "No board assigned. Your coach will assign a meal builder for you."
+          });
+        }
+        if (selectedMealBuilder !== existingUser.activeBoard) {
+          return res.status(403).json({ 
+            error: "You can only use your assigned meal builder."
+          });
+        }
+      }
+      
       // If trial already started, only update the builder selection (not trial dates)
       if (existingUser.trialStartedAt) {
         const [user] = await db.update(users)
