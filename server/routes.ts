@@ -1488,7 +1488,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...userData,
         mealPlanVariant: userData.mealPlanVariant && ['A', 'B', 'AUTO'].includes(userData.mealPlanVariant as string) 
           ? (userData.mealPlanVariant as 'A' | 'B' | 'AUTO')
-          : undefined
+          : undefined,
+        // Ensure role is valid enum value
+        role: (userData as any).role && ['admin', 'coach', 'client'].includes((userData as any).role) 
+          ? ((userData as any).role as 'admin' | 'coach' | 'client')
+          : 'client'
       };
       const [user] = await db.insert(users).values([validatedData]).returning();
       res.json(user);

@@ -56,6 +56,12 @@ export default function MealBuilderSelection() {
   const [saving, setSaving] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
+  // Role-based access: Pro Care clients only see their assigned board
+  const isProCareClient = user?.isProCare && user?.role !== "admin";
+  const availableBuilders = isProCareClient && user?.activeBoard
+    ? BUILDER_OPTIONS.filter(opt => opt.id === user.activeBoard)
+    : BUILDER_OPTIONS; // Admin and non-ProCare users see all
+
   const handleContinue = async () => {
     if (!selected) {
       toast({
@@ -136,7 +142,30 @@ export default function MealBuilderSelection() {
         </div>
 
         <div className="space-y-4 mb-8">
-          {BUILDER_OPTIONS.map((option) => (
+          {/* Locked state: Pro Care client with no assigned board */}
+          {isProCareClient && !user?.activeBoard && (
+            <div className="bg-zinc-900/80 border border-zinc-700 rounded-2xl p-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 flex items-center justify-center">
+                <Utensils className="w-8 h-8 text-zinc-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Awaiting Assignment</h3>
+              <p className="text-zinc-400 text-sm">
+                Your meal builder will be assigned by your coach. Check back soon!
+              </p>
+            </div>
+          )}
+
+          {/* Pro Care client with assigned board - show badge */}
+          {isProCareClient && user?.activeBoard && (
+            <div className="bg-indigo-900/30 border border-indigo-500/50 rounded-xl p-3 text-center mb-4">
+              <p className="text-indigo-300 text-sm font-medium">
+                Assigned by your Coach
+              </p>
+            </div>
+          )}
+
+          {/* Available builders (filtered for Pro Care clients) */}
+          {availableBuilders.map((option) => (
             <motion.button
               key={option.id}
               onClick={() => setSelected(option.id)}
@@ -167,20 +196,26 @@ export default function MealBuilderSelection() {
           ))}
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-          <p className="text-sm text-white/80 text-center">
-            Your 7-day free trial includes full access to all Premium features.
-            After the trial, you'll keep your chosen builder with the Basic plan.
-          </p>
-        </div>
+        {/* Hide trial messaging for Pro Care clients */}
+        {!isProCareClient && (
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+            <p className="text-sm text-white/80 text-center">
+              Your 7-day free trial includes full access to all Premium features.
+              After the trial, you'll keep your chosen builder with the Basic plan.
+            </p>
+          </div>
+        )}
 
-        <Button
-          onClick={handleContinue}
-          disabled={!selected || saving}
-          className="w-full h-14 text-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Start My Free Trial"}
-        </Button>
+        {/* Hide button for Pro Care clients with no assigned board */}
+        {!(isProCareClient && !user?.activeBoard) && (
+          <Button
+            onClick={handleContinue}
+            disabled={!selected || saving}
+            className="w-full h-14 text-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {saving ? (isProCareClient ? "Saving..." : "Saving...") : (isProCareClient ? "Continue" : "Start My Free Trial")}
+          </Button>
+        )}
       </div>
 
       {showDisclaimer && (
