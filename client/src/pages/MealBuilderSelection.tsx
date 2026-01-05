@@ -250,7 +250,7 @@ export default function MealBuilderSelection() {
           <Button
             onClick={handleContinue}
             disabled={!selected || saving}
-            className="w-full h-14 text-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full h-14 text-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
           >
             {saving ? "Saving..." : "Continue with This Builder"}
           </Button>
