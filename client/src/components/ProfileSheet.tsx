@@ -34,6 +34,7 @@ import {
   Trash2,
   Camera,
   Loader2,
+  Utensils,
 } from "lucide-react";
 import { logout } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -221,7 +222,18 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     }
   };
 
+  // Check if user is a Pro Care client (restricted from changing builder)
+  const isProCareClient = user?.isProCare && user?.role !== "admin";
+
   const menuItems = [
+    // Only show "Change Meal Builder" if NOT a Pro Care client
+    ...(!isProCareClient ? [{
+      title: "Change Meal Builder",
+      description: "Switch to a different dietary focus",
+      icon: Utensils,
+      route: "/select-builder",
+      testId: "menu-change-builder",
+    }] : []),
     {
       title: "Privacy & Security",
       description: "Manage your privacy settings",
