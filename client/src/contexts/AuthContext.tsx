@@ -45,6 +45,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           selectedMealBuilder: userData.selectedMealBuilder,
           isTester: userData.isTester || false,
           profilePhotoUrl: userData.profilePhotoUrl || null,
+          // Role-based access control
+          role: userData.role || "client",
+          isProCare: userData.isProCare || false,
+          activeBoard: userData.activeBoard || null,
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));

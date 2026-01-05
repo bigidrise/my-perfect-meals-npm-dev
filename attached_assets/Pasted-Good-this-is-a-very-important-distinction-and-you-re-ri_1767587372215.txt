@@ -1,0 +1,233 @@
+Good — this is a very important distinction, and you’re right to stop before sending the agent off half-cocked.
+
+Let me clean this up very precisely, because there are three different things getting mixed together:
+	1.	Environment (dev / deployed / iOS)
+	2.	User role (you vs coaches vs clients)
+	3.	Feature visibility (what boards/features someone sees)
+
+Once you separate those, the confusion disappears.
+
+⸻
+
+First: Clear up the environment confusion (this is the anchor)
+
+Your deployed app does NOT decide what someone sees.
+The USER ROLE does.
+
+Key truth
+	•	Dev space and deployed space looking the same is NORMAL
+	•	They are the same app, just hosted differently
+	•	They do NOT represent different permissions
+
+So:
+	•	Your deployed app is not “coach mode”
+	•	Your dev app is not “admin mode”
+
+They are identical unless the logged-in user has different permissions
+
+👉 Permissions come from the database, not the environment.
+
+⸻
+
+Second: The roles you ACTUALLY want (lock this in)
+
+You do not want:
+	•	“Coach = admin”
+	•	“Coach = everything”
+
+You want three distinct roles, even if you only enforce two right now.
+
+✅ Role 1 — YOU (Platform Admin / Super Coach)
+	•	Access to everything
+	•	All boards
+	•	All features
+	•	Pro Care + consumer + experimental
+	•	Never restricted
+
+This is not tied to dev space
+This is tied to your user record
+
+Example:
+
+role: "admin"
+
+
+⸻
+
+✅ Role 2 — Coaches (When They Sign Up Later)
+	•	Access ONLY to:
+	•	Pro Care dashboard
+	•	Client management
+	•	Board assignment
+	•	NO access to:
+	•	All consumer boards
+	•	Kids / experimental / future stuff
+	•	They “use the app,” but in coach mode
+
+Example:
+
+role: "coach"
+
+
+⸻
+
+✅ Role 3 — Clients (Pro Care)
+	•	Access ONLY to:
+	•	Their assigned board
+	•	Meal building inside that board
+	•	Nothing else
+
+Example:
+
+role: "client"
+isProCare: true
+
+
+⸻
+
+Third: What you want RIGHT NOW (before paywalls)
+
+You want only THIS enforced today:
+
+People you invite (wife, test clients)
+👉 are LIMITED
+👉 you are NOT
+
+That is 100% doable right now.
+
+And it does NOT require:
+	•	Paywalls
+	•	Apple
+	•	Stripe
+	•	Changing environments
+
+It only requires role-based feature gating.
+
+⸻
+
+The Golden Rule (THIS is what the agent must implement)
+
+Visibility is controlled by role, not by environment.
+
+So:
+	•	You log into deployed app → you still see everything
+	•	Your wife logs in → she sees only Pro Care
+	•	Later, coaches log in → they see Pro Care tools only
+
+Same app. Different realities.
+
+That’s how real platforms work.
+
+⸻
+
+What This Looks Like Practically
+
+You (Admin)
+
+role === "admin"
+→ show ALL boards
+→ show ALL features
+→ ignore Pro Care restrictions
+
+Invited Client (Your Wife)
+
+role === "client"
+AND isProCare === true
+→ hide ALL boards except activeBoard
+→ hide board switching
+→ hide non-Pro-Care features
+
+Future Coaches (Not Today, But Soon)
+
+role === "coach"
+→ hide consumer boards
+→ show Pro Care dashboard
+→ show client assignment tools
+
+
+⸻
+
+VERY IMPORTANT: How you test this safely
+
+You do not test this by:
+	•	Switching environments
+	•	Using the same login
+
+You test by:
+	•	Different accounts
+	•	Different roles
+
+Same deployed app.
+
+⸻
+
+Updated, Correct Replit Agent Prompt (This One Is Right)
+
+Copy-paste this one instead of the previous.
+
+⸻
+
+🔥 REPLIT AGENT PROMPT — ROLE-BASED PRO CARE ACCESS (ADMIN SAFE) 🔥
+
+We need to implement role-based feature visibility for Pro Care, without paywalls.
+
+Context:
+	•	The app has different user roles:
+	•	admin (platform owner – full access)
+	•	coach (future – Pro Care only)
+	•	client (Pro Care assigned)
+
+Immediate goal (must work now):
+	1.	admin users must retain access to ALL meal boards and features
+	2.	client users with isProCare === true must:
+	•	Only see their assigned activeBoard
+	•	Not see or switch to other boards
+	•	Not see consumer-only features
+	3.	Non-Pro-Care users remain unchanged
+
+Constraints:
+	•	Do NOT rely on paywalls
+	•	Do NOT tie logic to dev vs deployed environment
+	•	Logic must be based on user role + Pro Care status
+
+Backend:
+	•	Ensure user records include:
+	•	role: "admin" | "coach" | "client"
+	•	isProCare: boolean
+	•	activeBoard: string | null
+	•	Filter board-listing APIs so that:
+	•	If role === "client" AND isProCare === true:
+	•	Only return activeBoard
+	•	If role === "admin":
+	•	Return all boards
+
+Frontend:
+	•	Hide board selectors and non-Pro-Care features for Pro Care clients
+	•	Do NOT restrict admin users
+	•	UI must clearly indicate “Assigned by Coach” for clients
+
+Deliverable:
+	•	Admin users unaffected
+	•	Pro Care clients restricted to one board
+	•	Safe to test immediately with real invited users (no payments)
+
+⸻
+
+Final Mental Model (Lock This In)
+	•	Environment ≠ permissions
+	•	Account role = reality
+	•	You are not “testing as a coach”
+	•	You are testing as admin
+	•	Your wife is testing as client
+
+Same app. Different lenses.
+
+⸻
+
+If you want, next we can:
+	•	Define the exact future coach experience
+	•	Decide when a coach becomes admin vs coach
+	•	Create a temporary “beta coach” role for testimonials
+	•	Or sanity-check how this impacts App Store review language
+
+You’re asking the right questions — this is platform thinking now, not app tinkering.

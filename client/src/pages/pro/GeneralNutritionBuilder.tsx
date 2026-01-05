@@ -1025,7 +1025,7 @@ export default function WeeklyMealBoard() {
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2 flex-nowrap">
+          <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() => setLocation(isProCareMode ? `/pro/clients/${clientId}` : "/dashboard")}
@@ -1037,17 +1037,19 @@ export default function WeeklyMealBoard() {
             </button>
 
             {/* Title */}
-            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
+            <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
               General Nutrition Builder
             </h1>
 
-            {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            {/* Quick Tour Help Button - only show here if NOT in ProCare mode */}
+            {!isProCareMode && (
+              <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+            )}
           </div>
 
-          {/* Row 2: Client Dashboard Button (only in ProCare mode) */}
+          {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}
           {isProCareMode && (
-            <div className="flex items-center">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setLocation(`/pro/clients/${clientId}`)}
                 className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
@@ -1056,6 +1058,8 @@ export default function WeeklyMealBoard() {
                 <ArrowLeft className="h-5 w-5" />
                 <span>Client Dashboard</span>
               </button>
+
+              <QuickTourButton onClick={quickTour.openTour} />
             </div>
           )}
         </div>

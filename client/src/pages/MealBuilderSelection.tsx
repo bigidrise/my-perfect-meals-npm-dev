@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Utensils, Heart, Pill, Flame } from "lucide-react";
+import { Check, Utensils, Heart, Pill, Flame, ArrowLeft, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -23,28 +23,28 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     title: "Weekly Meal Builder",
     description: "For everyday healthy eating. Build balanced weekly meal plans with variety.",
     icon: <Utensils className="w-8 h-8" />,
-    color: "from-emerald-600 to-emerald-500",
+    color: "from-black via-zinc-950 to-black",
   },
   {
     id: "diabetic",
     title: "Diabetic Meal Builder",
     description: "Blood sugar-friendly meals. Low glycemic options with carb counting.",
     icon: <Heart className="w-8 h-8" />,
-    color: "from-blue-600 to-blue-500",
+    color: "from-black via-zinc-950 to-black",
   },
   {
     id: "glp1",
     title: "GLP-1 Meal Builder",
     description: "Optimized for Ozempic, Wegovy, Mounjaro users. Protein-focused, smaller portions.",
     icon: <Pill className="w-8 h-8" />,
-    color: "from-purple-600 to-purple-500",
+    color: "from-black via-zinc-950 to-black",
   },
   {
     id: "anti_inflammatory",
     title: "Anti-Inflammatory Builder",
     description: "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
     icon: <Flame className="w-8 h-8" />,
-    color: "from-orange-600 to-orange-500",
+    color: "from-black via-zinc-950 to-black",
   },
 ];
 
@@ -56,11 +56,16 @@ export default function MealBuilderSelection() {
   const [saving, setSaving] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
+  const isProCareClient = user?.isProCare && user?.role !== "admin";
+  const availableBuilders = isProCareClient && user?.activeBoard
+    ? BUILDER_OPTIONS.filter(opt => opt.id === user.activeBoard)
+    : BUILDER_OPTIONS;
+
   const handleContinue = async () => {
     if (!selected) {
       toast({
         title: "Please select a meal builder",
-        description: "Choose the builder that best fits your dietary needs.",
+        description: "Choose the builder that best fits your needs going forward.",
         variant: "destructive",
       });
       return;
@@ -70,7 +75,7 @@ export default function MealBuilderSelection() {
     if (!authToken) {
       toast({
         title: "Please sign in",
-        description: "You need to create an account to start your free trial.",
+        description: "You need to be signed in to continue.",
         variant: "destructive",
       });
       setLocation("/auth");
@@ -99,8 +104,8 @@ export default function MealBuilderSelection() {
       await refreshUser();
 
       toast({
-        title: "Great choice!",
-        description: "Your 7-day free trial has started. Enjoy full access to all features!",
+        title: "Builder Updated",
+        description: "Your meal builder has been changed. You're all set to continue.",
       });
 
       const disclaimerAccepted = localStorage.getItem("acceptedDisclaimer") === "true";
@@ -125,18 +130,84 @@ export default function MealBuilderSelection() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black text-white p-4"
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white p-4"
     >
-      <div className="max-w-2xl mx-auto pt-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-3">Choose Your Meal Builder</h1>
-          <p className="text-white/70">
-            Select the builder that fits your dietary needs. You can change this anytime.
+      {/* Fixed Black Glass Navigation Banner */}
+      <div
+        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ top: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="px-4 py-3 flex items-center gap-3">
+          <Button
+            onClick={() => setLocation("/dashboard")}
+            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-xs font-medium">Back</span>
+          </Button>
+          <h1 className="text-lg font-bold text-white flex items-center gap-2">
+            Choose How You'll Continue
+          </h1>
+        </div>
+      </div>
+
+      {/* Content area with padding for fixed header and bottom nav */}
+      <div 
+        className="pt-16 pb-24"
+        style={{ 
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 64px)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 100px)"
+        }}
+      >
+        {/* Member acknowledgment */}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+          <p className="text-sm text-white/90 text-center leading-relaxed">
+            You're already a My Perfect Meals member. This page helps you switch meal boards as your needs change — whether you're continuing on your own, following a medical plan, or simplifying long-term.
+          </p>
+        </div>
+
+        {/* ProCare transition note */}
+        {user?.isProCare && (
+          <div className="bg-indigo-900/30 border border-indigo-500/50 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <MessageCircle className="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-indigo-200 text-sm font-medium mb-1">Coming from ProCare?</p>
+                <p className="text-indigo-300/80 text-xs leading-relaxed">
+                  Your coach or clinician may have recommended a next step. Choose the meal board that fits how you'll continue moving forward.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pricing clarity */}
+        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-3 mb-6">
+          <p className="text-emerald-300 text-sm text-center font-medium">
+            All options below continue at $19.99/month
+          </p>
+          <p className="text-emerald-400/70 text-xs text-center mt-1">
+            You keep your history, meals, macros, and preferences.
           </p>
         </div>
 
         <div className="space-y-4 mb-8">
-          {BUILDER_OPTIONS.map((option) => (
+          {/* Locked state: Pro Care client with no assigned board */}
+          {isProCareClient && !user?.activeBoard && (
+            <div className="bg-zinc-900/80 border border-zinc-700 rounded-2xl p-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 flex items-center justify-center">
+                <Utensils className="w-8 h-8 text-zinc-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Awaiting Assignment</h3>
+              <p className="text-zinc-400 text-sm">
+                Your meal builder will be assigned by your coach. Check back soon!
+              </p>
+            </div>
+          )}
+
+          {/* Available builders - only show if NOT in locked state */}
+          {!(isProCareClient && !user?.activeBoard) && availableBuilders.map((option) => (
             <motion.button
               key={option.id}
               onClick={() => setSelected(option.id)}
@@ -167,20 +238,23 @@ export default function MealBuilderSelection() {
           ))}
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-          <p className="text-sm text-white/80 text-center">
-            Your 7-day free trial includes full access to all Premium features.
-            After the trial, you'll keep your chosen builder with the Basic plan.
+        {/* Copilot guidance hint */}
+        <div className="bg-black/20 border border-white/5 rounded-xl p-3 mb-6">
+          <p className="text-white/60 text-xs text-center italic">
+            Not sure which to pick? If you've finished working with a coach, most people transition to the Weekly Meal Builder for long-term balance. If your health needs have changed, select the board that supports that condition.
           </p>
         </div>
 
-        <Button
-          onClick={handleContinue}
-          disabled={!selected || saving}
-          className="w-full h-14 text-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Start My Free Trial"}
-        </Button>
+        {/* Continue button - hide for Pro Care clients with no assigned board */}
+        {!(isProCareClient && !user?.activeBoard) && (
+          <Button
+            onClick={handleContinue}
+            disabled={!selected || saving}
+            className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Continue with This Builder"}
+          </Button>
+        )}
       </div>
 
       {showDisclaimer && (

@@ -1488,7 +1488,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...userData,
         mealPlanVariant: userData.mealPlanVariant && ['A', 'B', 'AUTO'].includes(userData.mealPlanVariant as string) 
           ? (userData.mealPlanVariant as 'A' | 'B' | 'AUTO')
-          : undefined
+          : undefined,
+        // Ensure role is valid enum value
+        role: (userData as any).role && ['admin', 'coach', 'client'].includes((userData as any).role) 
+          ? ((userData as any).role as 'admin' | 'coach' | 'client')
+          : 'client'
       };
       const [user] = await db.insert(users).values([validatedData]).returning();
       res.json(user);
@@ -1628,6 +1632,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
         profilePhotoUrl: user.profilePhotoUrl || null,
+        // Role-based access control
+        role: user.role || "client",
+        isProCare: user.isProCare || false,
+        activeBoard: user.activeBoard || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -1657,6 +1665,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!existingUser) {
         return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Role-based access enforcement for Pro Care clients
+      // Pro Care clients can ONLY select their assigned activeBoard (admins bypass)
+      const isProCareClient = existingUser.isProCare && existingUser.role !== "admin";
+      if (isProCareClient) {
+        if (!existingUser.activeBoard) {
+          return res.status(403).json({ 
+            error: "No board assigned. Your coach will assign a meal builder for you."
+          });
+        }
+        if (selectedMealBuilder !== existingUser.activeBoard) {
+          return res.status(403).json({ 
+            error: "You can only use your assigned meal builder."
+          });
+        }
       }
       
       // If trial already started, only update the builder selection (not trial dates)

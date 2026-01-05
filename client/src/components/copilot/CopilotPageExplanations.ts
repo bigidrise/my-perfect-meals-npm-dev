@@ -432,6 +432,66 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Welcome to the ProCare General Nutrition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. You can use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. From there, choose how many days you want to plan and decide how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Build each day with breakfast, lunch, dinner, and snacks by adjusting the meals themselves rather than traditional serving manipulation. Prep options help dial in details like protein amounts and preparation methods so meals stay practical, balanced, and consistent.If you’re a client, this is where you build meals using your coach’s or physician’s settings. Follow the targets shown at the bottom of the screen and create your day using Create with Chef, our multilingual, multi-cuisine, AI Meal Creator. As you build, focus on protein and carbs — those are the primary drivers of energy, recovery, and nutritional balance. Calories and fats still matter, but they play a supporting role. When you’re finished, you can save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.”",
     autoClose: true,
   },
+
+  "/select-builder": {
+    pageId: "select-builder",
+    title: "Choose How You'll Continue",
+    description:
+      "Switch meal boards as your needs change — whether you're graduating from ProCare, following a medical plan, or simplifying long-term.",
+    spokenText:
+      "This page is for choosing how you'll continue with My Perfect Meals. You're already a member — this is about switching your meal board as your needs evolve. If you've finished working with a coach or clinician, most people transition to the Weekly Meal Builder for long-term balance. If your health needs have changed — like starting a GLP-1 medication or managing diabetes — select the board that supports that condition. All options continue at nineteen ninety-nine per month, and you keep your history, meals, macros, and preferences. Just pick the board that fits your next chapter and tap Continue.",
+    autoClose: true,
+  },
+
+  "/privacy": {
+    pageId: "privacy",
+    title: "Privacy & Security",
+    description:
+      "Manage your privacy settings, data preferences, and account security options.",
+    spokenText:
+      "This is your Privacy and Security page. Here you can review how your data is handled, manage your privacy preferences, and control what information is stored. My Perfect Meals takes your privacy seriously — your health data, meal plans, and personal information are protected and never sold to third parties. You can also find information about how to request your data or delete your account if needed.",
+    autoClose: true,
+  },
+
+  "/pricing": {
+    pageId: "pricing",
+    title: "Subscription",
+    description:
+      "View your current plan, explore upgrade options, and manage your billing.",
+    spokenText:
+      "This is your Subscription page. Here you can see your current plan, explore what's included at each tier, and manage your billing. My Perfect Meals offers flexible plans to fit your needs — from individual meal planning to family options and professional coaching support. If you need to change your plan or update payment information, you can do it right here.",
+    autoClose: true,
+  },
+
+  "/learn": {
+    pageId: "learn",
+    title: "App Library",
+    description:
+      "Learn how the app works, understand nutrition basics, and explore Copilot walkthroughs.",
+    spokenText:
+      "Welcome to the App Library. This is your go-to resource for understanding how My Perfect Meals works and the nutrition science behind it. You'll find informative articles on topics like fiber and vegetables, meal planning basics, and the difference between tracking calories versus macros. There's also an interactive food comparison tool that shows you how fat content changes how much food you get per hundred calories. The Copilot Walkthroughs section explains how to use each feature — just tap any topic to read more. This is where the app teaches you the why, not just the how.",
+    autoClose: true,
+  },
+
+  "/founders": {
+    pageId: "founders",
+    title: "About My Perfect Meals",
+    description:
+      "Meet the founders and learn about the mission behind My Perfect Meals.",
+    spokenText:
+      "This is our About page. Here you'll learn about the people behind My Perfect Meals and why we built this app. Our mission is simple: help you understand where your calories come from and make healthy eating practical, not complicated. We believe nutrition should be personalized, accessible, and based on real science — not fads or restrictions. Thank you for being part of our community.",
+    autoClose: true,
+  },
+
+  "/terms": {
+    pageId: "terms",
+    title: "Terms of Service",
+    description:
+      "Review the terms and conditions for using My Perfect Meals.",
+    spokenText:
+      "This is our Terms of Service page. Here you can review the legal terms and conditions that govern your use of My Perfect Meals. This includes information about your rights as a user, our responsibilities as a service provider, and the guidelines for using the app. If you have questions about any of the terms, you can always reach out to our support team.",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {

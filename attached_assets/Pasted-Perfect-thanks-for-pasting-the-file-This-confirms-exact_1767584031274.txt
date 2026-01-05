@@ -1,0 +1,150 @@
+Perfect — thanks for pasting the file. This confirms **exactly** what’s wrong, and it’s a single, clean fix. No guessing now.
+
+---
+
+## 🚨 Root Cause (Confirmed)
+
+Both emails are still sending from:
+
+```ts
+from: 'My Perfect Meals <onboarding@resend.dev>'
+```
+
+That is **Resend’s sandbox sender**.
+
+### What that means:
+
+* ✅ Emails only deliver to **the Resend account owner**
+* ❌ Everyone else (your wife, clients, pros) will **never receive anything**
+* ❌ This will **fail App Store review** if left in place
+
+Your domains being verified **does nothing** unless the `from` address matches them.
+
+---
+
+## ✅ The Correct Fix (Do This Exactly)
+
+You already verified these domains:
+
+* `mail.myperfectmeals.com`
+* `updates.myperfectmeals.com`
+
+We’ll standardize on **one** sender for transactional email.
+
+### 🔒 Recommended sender (best practice + Apple-friendly)
+
+```txt
+noreply@mail.myperfectmeals.com
+```
+
+---
+
+## ✏️ Make These Code Changes
+
+### 1️⃣ Define a single sender constant (top of file)
+
+Add this near the top:
+
+```ts
+const EMAIL_FROM = 'My Perfect Meals <noreply@mail.myperfectmeals.com>';
+```
+
+---
+
+### 2️⃣ Update BOTH email functions
+
+#### ❌ Replace this everywhere:
+
+```ts
+from: 'My Perfect Meals <onboarding@resend.dev>',
+```
+
+#### ✅ With this:
+
+```ts
+from: EMAIL_FROM,
+```
+
+---
+
+### ✅ Final diff (what matters)
+
+```diff
+- from: 'My Perfect Meals <onboarding@resend.dev>',
++ from: EMAIL_FROM,
+```
+
+Do this in:
+
+* `sendPasswordResetEmail`
+* `sendCareTeamInvite`
+
+---
+
+## 🔁 After You Change the Code (Important)
+
+1. **Restart your server** (Resend reads nothing dynamically)
+2. Send a Care Team invite to:
+
+   * your wife
+   * a different email provider (Gmail, iCloud, Outlook)
+3. Check **Resend → Logs**
+   You should now see:
+
+   * ✅ Delivered
+   * Not “sandbox restricted”
+
+---
+
+## 🧪 If It Still Doesn’t Send (Quick Checks)
+
+If anything fails after this, check **only these two things**:
+
+### ✔️ API Key
+
+Make sure `RESEND_API_KEY` belongs to the **same Resend project** where `mail.myperfectmeals.com` is verified.
+
+### ✔️ DNS (GoDaddy)
+
+Ensure **one SPF record only**:
+
+```txt
+v=spf1 include:_spf.resend.com ~all
+```
+
+No duplicates.
+
+---
+
+## 🍏 Apple App Store Bonus (You’re now compliant)
+
+This change also:
+
+* ✅ Removes sandbox email usage
+* ✅ Uses branded sender
+* ✅ Supports password reset + invites
+* ✅ Passes Apple’s “Account & Authentication” scrutiny
+
+---
+
+## 🚀 Optional Next Upgrade (later, not required now)
+
+We can later add:
+
+* `support@myperfectmeals.com` for replies
+* Proper unsubscribe footer
+* Apple-style transactional footer language
+
+But **right now**, this fix will unblock everything.
+
+---
+
+## ✅ Your next move
+
+Reply with:
+
+* **“Updated and redeployed”** → I’ll give you a final verification checklist
+  or
+* **“Emails still failing”** → paste the Resend log entry and we’ll finish it in one pass
+
+You were 100% right to suspect Resend — this was a classic sandbox trap.
