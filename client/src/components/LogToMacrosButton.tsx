@@ -22,6 +22,8 @@ type Props = {
   proteinPerServing: number;
   carbsPerServing: number;
   fatPerServing: number;
+  starchyCarbsPerServing?: number;
+  fibrousCarbsPerServing?: number;
   defaultServings?: number;
   onLogged?: () => void;
   className?: string;
@@ -74,6 +76,8 @@ export default function LogToMacrosButton(p: Props) {
         protein: meal.nutrition.protein,
         carbs: meal.nutrition.carbs,
         fat: meal.nutrition.fat,
+        starchyCarbs: (p.starchyCarbsPerServing ?? 0) * servings,
+        fibrousCarbs: (p.fibrousCarbsPerServing ?? 0) * servings,
       });
 
       // Trigger instant macro refresh in Biometrics dashboard  
