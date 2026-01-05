@@ -25,7 +25,7 @@ import {
   ChefHat,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { setMacroTargets } from "@/lib/dailyLimits";
+import { setMacroTargets, getMacroTargets, type StarchStrategy } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -270,6 +270,12 @@ export default function MacroCounter() {
     savedSettings?.sugarCapMode ?? "AHA",
   );
   const [advisoryDeltas, setAdvisoryDeltas] = useState<MacroDeltas>({ protein: 0, carbs: 0, fat: 0 });
+  
+  // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = split across 2 meals
+  const existingTargets = getMacroTargets(user?.id);
+  const [starchStrategy, setStarchStrategy] = useState<StarchStrategy>(
+    existingTargets?.starchStrategy ?? "one"
+  );
 
   const macroCalculatorTourSteps: TourStep[] = [
     {
@@ -916,6 +922,65 @@ export default function MacroCounter() {
                 </CardContent>
               </Card>
 
+              {/* Starch Meal Strategy - Your Starch Game Plan */}
+              <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
+                <CardContent className="p-5">
+                  <h3 className="text-lg font-semibold flex items-center mb-3">
+                    <span className="text-amber-400 mr-2">🌾</span> Your Starch Game Plan
+                  </h3>
+                  <p className="text-sm text-white/70 mb-4">
+                    Starchy carbs (rice, pasta, potatoes, bread) need to be managed. Choose how you'll use your daily starch budget:
+                  </p>
+                  
+                  <RadioGroup
+                    value={starchStrategy}
+                    onValueChange={(v) => setStarchStrategy(v as StarchStrategy)}
+                    className="space-y-3"
+                  >
+                    <div 
+                      className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                        starchStrategy === "one" 
+                          ? "border-amber-500 bg-amber-500/10" 
+                          : "border-white/20 hover:border-white/40"
+                      }`}
+                      onClick={() => setStarchStrategy("one")}
+                    >
+                      <RadioGroupItem value="one" id="starch-one" className="mt-1" />
+                      <div className="flex-1">
+                        <Label htmlFor="starch-one" className="text-base font-semibold text-white cursor-pointer">
+                          One Starch Meal
+                          <span className="ml-2 text-xs bg-emerald-600 px-2 py-0.5 rounded-full">Recommended</span>
+                        </Label>
+                        <p className="text-sm text-white/60 mt-1">
+                          Use your full starch allowance ({getStarchyCarbs(sex, goal)}g) in one meal.
+                          Best for appetite control and fat loss.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div 
+                      className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                        starchStrategy === "flex" 
+                          ? "border-amber-500 bg-amber-500/10" 
+                          : "border-white/20 hover:border-white/40"
+                      }`}
+                      onClick={() => setStarchStrategy("flex")}
+                    >
+                      <RadioGroupItem value="flex" id="starch-flex" className="mt-1" />
+                      <div className="flex-1">
+                        <Label htmlFor="starch-flex" className="text-base font-semibold text-white cursor-pointer">
+                          Flex Split
+                        </Label>
+                        <p className="text-sm text-white/60 mt-1">
+                          Divide starch across two meals (~{Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
+                          Useful for training days or larger schedules.
+                        </p>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+
               {/* Save Targets - Two Options */}
               <div className="flex flex-col gap-3">
                 {/* Secondary: Save & Go to Biometrics (restores original flow for weight sync) */}
@@ -941,6 +1006,7 @@ export default function MacroCounter() {
                           fat_g: adjustedFat,
                           starchyCarbs_g: adjustedStarchy,
                           fibrousCarbs_g: adjustedFibrous,
+                          starchStrategy,
                         },
                         user?.id,
                       );
@@ -1012,6 +1078,7 @@ export default function MacroCounter() {
                           fat_g: adjustedFat,
                           starchyCarbs_g: adjustedStarchy,
                           fibrousCarbs_g: adjustedFibrous,
+                          starchStrategy,
                         },
                         user?.id,
                       );

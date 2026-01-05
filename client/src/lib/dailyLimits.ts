@@ -8,6 +8,9 @@ export type DailyLimits = {
   fat_g: number;
 };
 
+// Starch Meal Strategy: "one" = 1 starch meal per day (default), "flex" = 2 smaller portions
+export type StarchStrategy = "one" | "flex";
+
 export type MacroTargets = {
   calories: number;
   protein_g: number;
@@ -16,6 +19,8 @@ export type MacroTargets = {
   // Optional starchy/fibrous breakdown (when set by pro or calculated)
   starchyCarbs_g?: number;
   fibrousCarbs_g?: number;
+  // Starch Meal Strategy - defaults to "one" if not set
+  starchStrategy?: StarchStrategy;
 };
 
 const LS_KEY = (userId?: string) => `mpm.dailyLimits.${userId ?? "anon"}`;
