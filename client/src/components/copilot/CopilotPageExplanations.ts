@@ -442,6 +442,56 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "This page is for choosing how you'll continue with My Perfect Meals. You're already a member — this is about switching your meal board as your needs evolve. If you've finished working with a coach or clinician, most people transition to the Weekly Meal Builder for long-term balance. If your health needs have changed — like starting a GLP-1 medication or managing diabetes — select the board that supports that condition. All options continue at nineteen ninety-nine per month, and you keep your history, meals, macros, and preferences. Just pick the board that fits your next chapter and tap Continue.",
     autoClose: true,
   },
+
+  "/privacy": {
+    pageId: "privacy",
+    title: "Privacy & Security",
+    description:
+      "Manage your privacy settings, data preferences, and account security options.",
+    spokenText:
+      "This is your Privacy and Security page. Here you can review how your data is handled, manage your privacy preferences, and control what information is stored. My Perfect Meals takes your privacy seriously — your health data, meal plans, and personal information are protected and never sold to third parties. You can also find information about how to request your data or delete your account if needed.",
+    autoClose: true,
+  },
+
+  "/pricing": {
+    pageId: "pricing",
+    title: "Subscription",
+    description:
+      "View your current plan, explore upgrade options, and manage your billing.",
+    spokenText:
+      "This is your Subscription page. Here you can see your current plan, explore what's included at each tier, and manage your billing. My Perfect Meals offers flexible plans to fit your needs — from individual meal planning to family options and professional coaching support. If you need to change your plan or update payment information, you can do it right here.",
+    autoClose: true,
+  },
+
+  "/learn": {
+    pageId: "learn",
+    title: "App Library",
+    description:
+      "Learn how to use My Perfect Meals with video tutorials, nutrition basics, and feature guides.",
+    spokenText:
+      "Welcome to the App Library. This is where you can learn how to get the most out of My Perfect Meals. You'll find video tutorials that walk you through each feature, nutrition basics that explain the science behind your meals, and guides that help you understand how to use the tools effectively. Whether you're just getting started or want to master advanced features, the App Library has you covered.",
+    autoClose: true,
+  },
+
+  "/founders": {
+    pageId: "founders",
+    title: "About My Perfect Meals",
+    description:
+      "Meet the founders and learn about the mission behind My Perfect Meals.",
+    spokenText:
+      "This is our About page. Here you'll learn about the people behind My Perfect Meals and why we built this app. Our mission is simple: help you understand where your calories come from and make healthy eating practical, not complicated. We believe nutrition should be personalized, accessible, and based on real science — not fads or restrictions. Thank you for being part of our community.",
+    autoClose: true,
+  },
+
+  "/terms": {
+    pageId: "terms",
+    title: "Terms of Service",
+    description:
+      "Review the terms and conditions for using My Perfect Meals.",
+    spokenText:
+      "This is our Terms of Service page. Here you can review the legal terms and conditions that govern your use of My Perfect Meals. This includes information about your rights as a user, our responsibilities as a service provider, and the guidelines for using the app. If you have questions about any of the terms, you can always reach out to our support team.",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
