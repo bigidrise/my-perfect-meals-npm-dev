@@ -31,6 +31,8 @@ interface RestaurantMeal {
   calories: number;
   protein: number;
   carbs: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   fat: number;
   reason: string;
   modifications: string;
@@ -143,6 +145,12 @@ Generate 3 specific meal recommendations that would realistically be available a
 
 Request ID: ${varietyTimestamp}
 
+CARB CLASSIFICATION RULES (CRITICAL):
+- starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
+- fibrousCarbs: Volume-dense carbs from vegetables, leafy greens, broccoli, cauliflower, peppers, tomatoes, cucumbers
+- Both are measured in grams
+- Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
+
 Return ONLY a JSON array of 3 meals with this exact structure:
 [
   {
@@ -150,7 +158,8 @@ Return ONLY a JSON array of 3 meals with this exact structure:
     "description": "Brief description of the dish",
     "calories": 450,
     "protein": 35,
-    "carbs": 30,
+    "starchyCarbs": 20,
+    "fibrousCarbs": 10,
     "fat": 15,
     "reason": "Why this is a good choice for health goals",
     "modifications": "Specific ordering instructions (e.g., sauce on side, no cheese)",
@@ -210,13 +219,20 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
     const meals: RestaurantMeal[] = aiMeals.slice(0, 3).map((meal, index) => {
       const mealId = `${restaurantName.toLowerCase().replace(/\s+/g, '-')}-ai-meal-${index + 1}-${Date.now()}`;
       
+      // Extract starchyCarbs and fibrousCarbs from AI response
+      const starchyCarbs = meal.starchyCarbs ?? 0;
+      const fibrousCarbs = meal.fibrousCarbs ?? 0;
+      const totalCarbs = (meal.carbs ?? (starchyCarbs + fibrousCarbs)) || 30;
+      
       return {
         id: mealId,
         name: meal.name || `${cuisine} Specialty ${index + 1}`,
         description: meal.description || "A delicious and healthy option",
         calories: meal.calories || 400,
         protein: meal.protein || 25,
-        carbs: meal.carbs || 30,
+        carbs: totalCarbs,
+        starchyCarbs: starchyCarbs,
+        fibrousCarbs: fibrousCarbs,
         fat: meal.fat || 12,
         reason: meal.reason || "Balanced nutrition with quality ingredients",
         modifications: meal.modifications || "Request healthy preparation",

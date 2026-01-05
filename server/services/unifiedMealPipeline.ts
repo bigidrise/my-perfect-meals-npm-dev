@@ -355,6 +355,12 @@ CRITICAL INGREDIENT FORMAT RULES:
 - NEVER use grams (g), milliliters (ml), or metric units
 - Each ingredient must have: name, quantity (number), unit
 
+CARB CLASSIFICATION RULES (CRITICAL):
+- starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
+- fibrousCarbs: Volume-dense carbs from vegetables, leafy greens, broccoli, cauliflower, peppers, tomatoes, cucumbers
+- Both are measured in grams and should sum to approximate total carbs
+- Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
+
 Respond with ONLY valid JSON in this exact format:
 {
   "name": "Creative meal name matching the craving",
@@ -366,7 +372,8 @@ Respond with ONLY valid JSON in this exact format:
   "instructions": "Step-by-step cooking instructions as a single string",
   "calories": 400,
   "protein": 25,
-  "carbs": 35,
+  "starchyCarbs": 20,
+  "fibrousCarbs": 15,
   "fat": 15,
   "cookingTime": "20 minutes"
 }`;
@@ -393,6 +400,12 @@ Respond with ONLY valid JSON in this exact format:
       // Normalize ingredients to U.S. measurements
       const normalizedIngredients = normalizeIngredients(aiMeal.ingredients || []);
       
+      // Extract starchyCarbs and fibrousCarbs from AI response
+      const starchyCarbs = aiMeal.starchyCarbs ?? 0;
+      const fibrousCarbs = aiMeal.fibrousCarbs ?? 0;
+      // Total carbs = starchyCarbs + fibrousCarbs (for backward compatibility)
+      const totalCarbs = aiMeal.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+      
       const unifiedMeal: UnifiedMeal = {
         id: `craving-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: aiMeal.name || `${cravingInput} Delight`,
@@ -401,7 +414,9 @@ Respond with ONLY valid JSON in this exact format:
         instructions: aiMeal.instructions || "Prepare ingredients and cook to your preference.",
         calories: aiMeal.calories || 400,
         protein: aiMeal.protein || 25,
-        carbs: aiMeal.carbs || 35,
+        carbs: totalCarbs,
+        starchyCarbs: starchyCarbs,
+        fibrousCarbs: fibrousCarbs,
         fat: aiMeal.fat || 15,
         cookingTime: aiMeal.cookingTime || '20 minutes',
         difficulty: 'Easy',
