@@ -629,12 +629,22 @@ CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
 ${hubCoupling?.promptFragment?.userPromptAddition || ''}
+🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
+- Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
+- NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
+- Proteins (chicken, beef, fish, pork): use oz (e.g., "6 oz chicken breast")
+- Vegetables (broccoli, spinach, peppers, zucchini): use cup (e.g., "2 cup broccoli florets")
+- Leafy greens: use cup (e.g., "3 cup mixed greens")
+- Dense vegetables (asparagus, green beans): use oz (e.g., "8 oz asparagus")
+
 FORMAT: Return as JSON object:
 {
   "name": "Creative meal name based on the description",
   "description": "Brief 1-2 sentence appetizing description",
   "ingredients": [
-    {"name": "ingredient name", "quantity": "precise amount", "unit": "tbsp/cup/oz/etc"}
+    {"name": "chicken breast", "quantity": "6", "unit": "oz"},
+    {"name": "broccoli florets", "quantity": "2", "unit": "cup"},
+    {"name": "olive oil", "quantity": "1", "unit": "tbsp"}
   ],
   "instructions": "Detailed step-by-step cooking instructions as a single paragraph with numbered steps",
   "calories": number (realistic estimate 300-700),
@@ -899,12 +909,22 @@ CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
 - fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
 ${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
+🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
+- Use ONLY these units: oz, lb, cup, tbsp, tsp, each, fl oz
+- NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
+- Fruits: use cup or each (e.g., "1 cup berries", "1 each apple")
+- Vegetables: use cup (e.g., "1 cup carrot sticks", "1/2 cup celery")
+- Nuts/seeds: use oz or tbsp (e.g., "1 oz almonds", "2 tbsp sunflower seeds")
+- Yogurt/dairy: use cup or oz (e.g., "1 cup Greek yogurt", "4 oz cottage cheese")
+
 FORMAT: Return as JSON object:
 {
   "name": "Creative snack name that sounds appetizing",
   "description": "Brief 1-2 sentence appetizing description explaining how this satisfies the craving",
   "ingredients": [
-    {"name": "ingredient name", "quantity": "precise amount", "unit": "tbsp/cup/oz/etc"}
+    {"name": "Greek yogurt", "quantity": "1", "unit": "cup"},
+    {"name": "mixed berries", "quantity": "1/2", "unit": "cup"},
+    {"name": "almonds", "quantity": "1", "unit": "oz"}
   ],
   "instructions": "Clear step-by-step preparation instructions as a single paragraph with numbered steps. Even simple snacks need instructions.",
   "calories": number (realistic 100-300),
