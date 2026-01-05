@@ -432,6 +432,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Welcome to the ProCare General Nutrition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. You can use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. From there, choose how many days you want to plan and decide how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Build each day with breakfast, lunch, dinner, and snacks by adjusting the meals themselves rather than traditional serving manipulation. Prep options help dial in details like protein amounts and preparation methods so meals stay practical, balanced, and consistent.If you’re a client, this is where you build meals using your coach’s or physician’s settings. Follow the targets shown at the bottom of the screen and create your day using Create with Chef, our multilingual, multi-cuisine, AI Meal Creator. As you build, focus on protein and carbs — those are the primary drivers of energy, recovery, and nutritional balance. Calories and fats still matter, but they play a supporting role. When you’re finished, you can save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.”",
     autoClose: true,
   },
+
+  "/select-builder": {
+    pageId: "select-builder",
+    title: "Choose How You'll Continue",
+    description:
+      "Switch meal boards as your needs change — whether you're graduating from ProCare, following a medical plan, or simplifying long-term.",
+    spokenText:
+      "This page is for choosing how you'll continue with My Perfect Meals. You're already a member — this is about switching your meal board as your needs evolve. If you've finished working with a coach or clinician, most people transition to the Weekly Meal Builder for long-term balance. If your health needs have changed — like starting a GLP-1 medication or managing diabetes — select the board that supports that condition. All options continue at nineteen ninety-nine per month, and you keep your history, meals, macros, and preferences. Just pick the board that fits your next chapter and tap Continue.",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
