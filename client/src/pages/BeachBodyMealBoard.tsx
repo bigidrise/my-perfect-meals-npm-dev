@@ -63,6 +63,7 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
+import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import {
@@ -1254,6 +1255,26 @@ export default function BeachBodyMealBoard() {
                     weekDates={weekDatesList}
                     activeDayISO={activeDayISO}
                     onDayChange={setActiveDayISO}
+                  />
+                </div>
+              )}
+
+            {/* Daily Starch Indicator - Shows starch meal slots */}
+            {FEATURES.dayPlanning === "alpha" &&
+              planningMode === "day" &&
+              activeDayISO &&
+              board && (
+                <div className="flex justify-center">
+                  <DailyStarchIndicator 
+                    meals={(() => {
+                      const dayLists = getDayLists(board, activeDayISO);
+                      return [
+                        ...dayLists.breakfast,
+                        ...dayLists.lunch,
+                        ...dayLists.dinner,
+                        ...dayLists.snacks,
+                      ];
+                    })()}
                   />
                 </div>
               )}
