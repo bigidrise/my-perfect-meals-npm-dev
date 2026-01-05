@@ -12,23 +12,17 @@ import { Flame } from "lucide-react";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 export interface ConsumedMacros {
-  calories: number;
   protein: number;
-  carbs: number;
+  starchyCarbs: number;
+  fibrousCarbs: number;
   fat: number;
-  // Optional starchy/fibrous breakdown
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
 }
 
 export interface MacroTargets {
-  calories: number;
   protein_g: number;
-  carbs_g: number;
+  starchyCarbs_g: number;
+  fibrousCarbs_g: number;
   fat_g: number;
-  // Optional starchy/fibrous breakdown targets
-  starchyCarbs_g?: number;
-  fibrousCarbs_g?: number;
 }
 
 interface RemainingMacrosFooterProps {
@@ -55,43 +49,40 @@ export function RemainingMacrosFooter({
     if (targetsOverride) {
       return targetsOverride;
     }
-    // Use resolved targets which includes pro-set starchy/fibrous breakdown
     const resolved = getResolvedTargets(user?.id);
     return {
-      calories: resolved.calories,
       protein_g: resolved.protein_g,
-      carbs_g: resolved.carbs_g,
+      starchyCarbs_g: resolved.starchyCarbs_g ?? Math.round(resolved.carbs_g * 0.6),
+      fibrousCarbs_g: resolved.fibrousCarbs_g ?? Math.round(resolved.carbs_g * 0.4),
       fat_g: resolved.fat_g,
-      starchyCarbs_g: resolved.starchyCarbs_g,
-      fibrousCarbs_g: resolved.fibrousCarbs_g,
     };
   }, [user?.id, targetsOverride]);
 
-  const hasTargets = targets.calories > 0 || targets.protein_g > 0 || targets.carbs_g > 0 || targets.fat_g > 0;
+  const hasTargets = targets.protein_g > 0 || targets.starchyCarbs_g > 0 || targets.fibrousCarbs_g > 0 || targets.fat_g > 0;
 
   const consumed = useMemo(() => {
     if (consumedOverride) {
       return consumedOverride;
     }
     return {
-      calories: todayMacros.kcal,
       protein: todayMacros.protein,
-      carbs: todayMacros.carbs,
+      starchyCarbs: todayMacros.starchyCarbs,
+      fibrousCarbs: todayMacros.fibrousCarbs,
       fat: todayMacros.fat,
     };
   }, [consumedOverride, todayMacros]);
 
   const remaining = useMemo(() => ({
-    calories: Math.max(0, targets.calories - consumed.calories),
     protein: Math.max(0, targets.protein_g - consumed.protein),
-    carbs: Math.max(0, targets.carbs_g - consumed.carbs),
+    starchyCarbs: Math.max(0, targets.starchyCarbs_g - consumed.starchyCarbs),
+    fibrousCarbs: Math.max(0, targets.fibrousCarbs_g - consumed.fibrousCarbs),
     fat: Math.max(0, targets.fat_g - consumed.fat),
   }), [targets, consumed]);
 
   const colorState = useMemo(() => ({
-    calories: getMacroProgressColor(consumed.calories, targets.calories),
     protein: getMacroProgressColor(consumed.protein, targets.protein_g),
-    carbs: getMacroProgressColor(consumed.carbs, targets.carbs_g),
+    starchyCarbs: getMacroProgressColor(consumed.starchyCarbs, targets.starchyCarbs_g),
+    fibrousCarbs: getMacroProgressColor(consumed.fibrousCarbs, targets.fibrousCarbs_g),
     fat: getMacroProgressColor(consumed.fat, targets.fat_g),
   }), [consumed, targets]);
 
@@ -126,7 +117,7 @@ export function RemainingMacrosFooter({
           {showSaveButton && onSaveDay && (
             <button
               onClick={onSaveDay}
-              className="w-full mb-3 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-900 hover:from-zinc-900 hover:to-zinc-900 text-white text-sm font-semibold rounded-xl transition-all active:scale-[0.98] shadow-lg border-2 border-zinc-700/90 especially effective for00/60"
+              className="w-full mb-3 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-900 hover:from-zinc-900 hover:to-zinc-900 text-white text-sm font-semibold rounded-xl transition-all active:scale-[0.98] shadow-lg border-2 border-zinc-700/90"
             >
               Save Day to Biometrics
             </button>
@@ -139,16 +130,8 @@ export function RemainingMacrosFooter({
             <MedicalSourcesInfo asIconButton />
           </div>
 
-          {/* 4-column layout: Calories, Protein, Carbs, Fat */}
+          {/* 4-column layout: Protein, Starchy, Fibrous, Fat - NO CALORIES per product doctrine */}
           <div className="grid gap-2 grid-cols-4">
-            <MacroCell
-              label="Calories"
-              remaining={remaining.calories}
-              target={targets.calories}
-              consumed={consumed.calories}
-              colorState={colorState.calories}
-              suffix=""
-            />
             <MacroCell
               label="Protein"
               remaining={remaining.protein}
@@ -158,11 +141,19 @@ export function RemainingMacrosFooter({
               suffix="g"
             />
             <MacroCell
-              label="Carbs"
-              remaining={remaining.carbs}
-              target={targets.carbs_g}
-              consumed={consumed.carbs}
-              colorState={colorState.carbs}
+              label="Starchy"
+              remaining={remaining.starchyCarbs}
+              target={targets.starchyCarbs_g}
+              consumed={consumed.starchyCarbs}
+              colorState={colorState.starchyCarbs}
+              suffix="g"
+            />
+            <MacroCell
+              label="Fibrous"
+              remaining={remaining.fibrousCarbs}
+              target={targets.fibrousCarbs_g}
+              consumed={consumed.fibrousCarbs}
+              colorState={colorState.fibrousCarbs}
               suffix="g"
             />
             <MacroCell

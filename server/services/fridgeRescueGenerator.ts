@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
+import { enforceCarbs } from '../utils/carbClassifier';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -432,7 +433,8 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
     }
 
     console.log("✅ Fridge rescue meals generated successfully with images");
-    return processedMeals;
+    // ENFORCE CARBS: Final safety net - ensure all meals have valid starchy/fibrous values
+    return processedMeals.map(meal => enforceCarbs(meal));
 
   } catch (error: any) {
     console.error('OpenAI API error for fridge rescue meals:', error);

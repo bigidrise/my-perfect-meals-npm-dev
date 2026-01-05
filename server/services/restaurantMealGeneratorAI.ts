@@ -5,6 +5,7 @@ import { type User } from "@shared/schema";
 import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
+import { enforceCarbs } from '../utils/carbClassifier';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -243,9 +244,12 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
 
     console.log(`✅ AI generated ${meals.length} restaurant-specific meals for ${restaurantName}`);
 
+    // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
+    const enforcedMeals = meals.map(meal => enforceCarbs(meal));
+
     // Generate images in parallel for ALL meals at once (10x faster!)
-    console.log(`🖼️ Generating images for all ${meals.length} meals in parallel...`);
-    const imagePromises = meals.map(async (meal) => {
+    console.log(`🖼️ Generating images for all ${enforcedMeals.length} meals in parallel...`);
+    const imagePromises = enforcedMeals.map(async (meal) => {
       try {
         const imageUrl = await generateImage({
           name: meal.name,
@@ -270,9 +274,9 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
 
     // Wait for all images to complete
     await Promise.all(imagePromises);
-    console.log(`🎉 All ${meals.length} images generated!`);
+    console.log(`🎉 All ${enforcedMeals.length} images generated!`);
 
-    return meals;
+    return enforcedMeals;
 
   } catch (error) {
     console.error('❌ AI meal generation error:', error);
