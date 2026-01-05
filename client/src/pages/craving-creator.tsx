@@ -135,6 +135,8 @@ function getMealNutrition(meal: any) {
     protein_g: Number(n.protein ?? n.protein_g ?? meal.protein ?? 0),
     carbs_g: Number(n.carbs ?? n.carbs_g ?? meal.carbs ?? 0),
     fat_g: Number(n.fat ?? n.fat_g ?? meal.fat ?? 0),
+    starchyCarbs: Number(n.starchyCarbs ?? meal.starchyCarbs ?? 0),
+    fibrousCarbs: Number(n.fibrousCarbs ?? meal.fibrousCarbs ?? 0),
   };
 }
 
@@ -1014,6 +1016,8 @@ export default function CravingCreator() {
                             setQuickView({
                               protein: Math.round(macros.protein_g),
                               carbs: Math.round(macros.carbs_g),
+                              starchyCarbs: Math.round(macros.starchyCarbs),
+                              fibrousCarbs: Math.round(macros.fibrousCarbs),
                               fat: Math.round(macros.fat_g),
                               calories: Math.round(macros.calories),
                               dateISO: new Date().toISOString().slice(0, 10),

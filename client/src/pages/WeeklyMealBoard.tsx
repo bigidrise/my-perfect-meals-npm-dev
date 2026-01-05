@@ -2169,6 +2169,8 @@ export default function WeeklyMealBoard() {
                               setQuickView({
                                 protein: consumed.protein,
                                 carbs: consumed.carbs,
+                                starchyCarbs: consumed.starchyCarbs,
+                                fibrousCarbs: consumed.fibrousCarbs,
                                 fat: consumed.fat,
                                 calories: consumed.calories,
                                 dateISO: activeDayISO,

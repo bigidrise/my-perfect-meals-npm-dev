@@ -85,6 +85,8 @@ type OfflineDay = {
   protein: number;
   carbs: number;
   fat: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
 };
 interface WeightRow {
   id: string;
@@ -214,6 +216,8 @@ export default function MyBiometrics() {
   const [c, setC] = useState("");
   const [f, setF] = useState("");
   const [k, setK] = useState("");
+  const [sc, setSc] = useState(""); // starchyCarbs
+  const [fc, setFc] = useState(""); // fibrousCarbs
 
   // Check URL params for pre-filled values from photo log
   useEffect(() => {
@@ -421,6 +425,8 @@ export default function MyBiometrics() {
     setC(String(qv.carbs));
     setF(String(qv.fat));
     setK(String(qv.calories));
+    setSc(String(qv.starchyCarbs ?? 0));
+    setFc(String(qv.fibrousCarbs ?? 0));
   };
 
   const dismissQuickView = () => {
@@ -432,6 +438,9 @@ export default function MyBiometrics() {
     let P = Number(p || 0),
       C = Number(c || 0),
       F = Number(f || 0);
+    const SC = Number(sc || 0); // starchyCarbs
+    const FC = Number(fc || 0); // fibrousCarbs
+    
     // If nothing entered, do nothing (silent)
     if (![P, C, F, Number(k || 0)].some(Boolean)) return;
 
@@ -456,10 +465,12 @@ export default function MyBiometrics() {
           protein: next[idx].protein + P,
           carbs: next[idx].carbs + C,
           fat: next[idx].fat + F,
+          starchyCarbs: (next[idx].starchyCarbs ?? 0) + SC,
+          fibrousCarbs: (next[idx].fibrousCarbs ?? 0) + FC,
         };
         return next;
       }
-      return [{ day: today, kcal: K, protein: P, carbs: C, fat: F }, ...prev];
+      return [{ day: today, kcal: K, protein: P, carbs: C, fat: F, starchyCarbs: SC, fibrousCarbs: FC }, ...prev];
     });
 
     // Clear inputs (keep profile sticky)
@@ -467,6 +478,8 @@ export default function MyBiometrics() {
     setC("");
     setF("");
     setK("");
+    setSc("");
+    setFc("");
 
     // Dispatch "done" event after successfully adding macros (500ms debounce)
     setTimeout(() => {
@@ -486,6 +499,8 @@ export default function MyBiometrics() {
     setC("");
     setF("");
     setK("");
+    setSc("");
+    setFc("");
     // Show confirmation toast
     toast({
       title: "Reset Complete",
@@ -593,6 +608,8 @@ export default function MyBiometrics() {
 
     // Normalize macro data (handles protein/protein_g/proteinGrams etc.)
     const { protein, carbs, fat, calories } = normalizeMacros(d as any);
+    const starchyCarbs = Number((d as any).starchyCarbs) || 0;
+    const fibrousCarbs = Number((d as any).fibrousCarbs) || 0;
     const dateISO = (d as any).dateISO || (d as any).date || today;
     const mealSlot = (d as any).mealSlot;
 
@@ -607,11 +624,13 @@ export default function MyBiometrics() {
           protein: next[idx].protein + protein,
           carbs: next[idx].carbs + carbs,
           fat: next[idx].fat + fat,
+          starchyCarbs: (next[idx].starchyCarbs ?? 0) + starchyCarbs,
+          fibrousCarbs: (next[idx].fibrousCarbs ?? 0) + fibrousCarbs,
         };
         return next;
       }
       return [
-        { day: dateISO ?? today, kcal: calories, protein, carbs, fat },
+        { day: dateISO ?? today, kcal: calories, protein, carbs, fat, starchyCarbs, fibrousCarbs },
         ...prev,
       ];
     });
@@ -624,6 +643,8 @@ export default function MyBiometrics() {
         carbs,
         fat,
         calories,
+        starchyCarbs,
+        fibrousCarbs,
         mealSlot: mealSlot ?? null,
       }).then((online) => {
         console.log(online ? "Synced to server" : "Queued for sync");
@@ -637,6 +658,8 @@ export default function MyBiometrics() {
     setC("");
     setF("");
     setK("");
+    setSc("");
+    setFc("");
 
     // Remove ?draft=1 from URL
     const url = new URL(window.location.href);
