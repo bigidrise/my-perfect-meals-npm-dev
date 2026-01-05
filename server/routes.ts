@@ -1628,6 +1628,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
         profilePhotoUrl: user.profilePhotoUrl || null,
+        // Role-based access control
+        role: user.role || "client",
+        isProCare: user.isProCare || false,
+        activeBoard: user.activeBoard || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
