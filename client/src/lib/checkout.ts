@@ -15,13 +15,19 @@ export async function startCheckout(
   opts?: CheckoutOptions
 ) {
   if (isIosNativeShell()) {
-    const storeKitAvailable = await isStoreKitAvailable();
-    if (storeKitAvailable) {
-      const result = await iosPurchase(priceLookupKey);
-      if (!result.success) {
-        throw new Error(result.error || "Purchase failed");
+    try {
+      const storeKitAvailable = await isStoreKitAvailable();
+      if (storeKitAvailable) {
+        const result = await iosPurchase(priceLookupKey);
+        if (!result.success) {
+          throw new Error(result.error || "Purchase failed");
+        }
+        return { success: true, method: "storekit" };
       }
-      return { success: true, method: "storekit" };
+    } catch (storeKitError: any) {
+      console.error("[Checkout] StoreKit error:", storeKitError);
+      // Re-throw user-friendly error instead of crashing
+      throw new Error(storeKitError?.message || "In-app purchase temporarily unavailable. Please try again.");
     }
 
     const error = new Error("Stripe checkout is unavailable inside the iOS app.");

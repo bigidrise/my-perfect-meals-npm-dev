@@ -34,6 +34,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import { MacroDeltas } from "@/lib/clinicalAdvisory";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -456,6 +457,7 @@ export default function MacroCounter() {
 
             <div className="flex-grow" />
 
+            <MedicalSourcesInfo asIconButton />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
