@@ -34,6 +34,7 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 // Standalone 3-step onboarding for all onboarding routes
 import OnboardingStandalone from "@/pages/onboarding-standalone";
+import ExtendedOnboarding from "@/pages/onboarding/ExtendedOnboarding";
 import Welcome from "@/pages/Welcome";
 import GuestBuilder from "@/pages/GuestBuilder";
 import Auth from "@/pages/Auth";
@@ -187,6 +188,7 @@ export default function Router() {
         <Route path="/pricing" component={PricingPage} />
         <Route path="/paywall" component={PricingPage} />
         <Route path="/select-builder" component={MealBuilderSelection} />
+        <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />

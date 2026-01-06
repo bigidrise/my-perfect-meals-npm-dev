@@ -2,7 +2,8 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Activity, Pill, Trophy, ListChecks } from "lucide-react";
+import { Calendar, Activity, Pill, Trophy, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PlannerFeature {
   title: string;
@@ -10,10 +11,12 @@ interface PlannerFeature {
   icon: any;
   route: string;
   testId: string;
+  builderId: string;
 }
 
 export default function Planner() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     document.title = "Planner | My Perfect Meals";
@@ -28,6 +31,7 @@ export default function Planner() {
       icon: Calendar,
       route: "/weekly-meal-board",
       testId: "card-weekly-meal-board",
+      builderId: "weekly",
     },
     {
       title: "Diabetic Hub and Meal Builder",
@@ -36,6 +40,7 @@ export default function Planner() {
       icon: Activity,
       route: "/diabetic-hub",
       testId: "card-diabetic-hub",
+      builderId: "diabetic",
     },
     {
       title: "GLP-1 Hub and Meal Builder",
@@ -44,6 +49,7 @@ export default function Planner() {
       icon: Pill,
       route: "/glp1-hub",
       testId: "card-glp1-hub",
+      builderId: "glp1",
     },
     {
       title: "Anti-Inflammatory Meal Builder",
@@ -52,6 +58,7 @@ export default function Planner() {
       icon: Pill,
       route: "/anti-inflammatory-menu-builder",
       testId: "card-anti-inflammatory",
+      builderId: "anti_inflammatory",
     },
     {
       title: "Beach Body Meal Builder",
@@ -60,11 +67,28 @@ export default function Planner() {
       icon: Trophy,
       route: "/beach-body-meal-board",
       testId: "card-competition-beachbody",
+      builderId: "beach_body",
     },
   ];
 
-  const handleCardClick = (route: string) => {
-    setLocation(route);
+  const userActiveBoard = user?.activeBoard || user?.selectedMealBuilder;
+  const isAdmin = user?.role === "admin";
+  const needsOnboarding = !isAdmin && !userActiveBoard;
+
+  const isBuilderUnlocked = (builderId: string): boolean => {
+    if (isAdmin) return true;
+    if (!userActiveBoard) return false;
+    return builderId === userActiveBoard;
+  };
+
+  const handleCardClick = (feature: PlannerFeature) => {
+    if (needsOnboarding) {
+      setLocation("/onboarding/extended?repair=1");
+      return;
+    }
+    if (isBuilderUnlocked(feature.builderId)) {
+      setLocation(feature.route);
+    }
   };
 
   return (
@@ -91,6 +115,17 @@ export default function Planner() {
             style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
           >
             <div className="max-w-2xl mx-auto space-y-4">
+              {/* Needs Onboarding Banner */}
+              {needsOnboarding && (
+                <div 
+                  className="rounded-xl bg-orange-500/20 border border-orange-500/50 p-4 cursor-pointer hover:bg-orange-500/30 transition-colors"
+                  onClick={() => setLocation("/onboarding/extended?repair=1")}
+                >
+                  <p className="text-orange-200 text-sm font-medium mb-1">Complete Your Setup</p>
+                  <p className="text-orange-300/80 text-xs">Tap here to select your meal builder and set your targets.</p>
+                </div>
+              )}
+
               {/* Hero Image Section */}
               <div className="relative h-48 rounded-xl overflow-hidden">
                 <img
@@ -115,23 +150,32 @@ export default function Planner() {
               <div className="flex flex-col gap-3">
                 {plannerFeatures.map((feature) => {
                   const Icon = feature.icon;
+                  const unlocked = isBuilderUnlocked(feature.builderId);
+                  
                   return (
                     <Card
                       key={feature.testId}
-                      className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl shadow-md"
-                      onClick={() => handleCardClick(feature.route)}
+                      className={`transition-all duration-300 rounded-xl shadow-md ${
+                        unlocked
+                          ? "cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50"
+                          : "cursor-not-allowed bg-black/20 backdrop-blur-lg border border-white/5 opacity-60"
+                      }`}
+                      onClick={() => handleCardClick(feature)}
                       data-testid={feature.testId}
                     >
                       <CardContent className="p-3">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                            <h3 className="text-sm font-semibold text-white">
+                            <Icon className={`h-4 w-4 flex-shrink-0 ${unlocked ? "text-orange-500" : "text-zinc-500"}`} />
+                            <h3 className={`text-sm font-semibold ${unlocked ? "text-white" : "text-zinc-400"}`}>
                               {feature.title}
                             </h3>
+                            {!unlocked && (
+                              <Lock className="h-3 w-3 text-zinc-500 ml-auto" />
+                            )}
                           </div>
-                          <p className="text-xs text-white/80 ml-6">
-                            {feature.description}
+                          <p className={`text-xs ml-6 ${unlocked ? "text-white/80" : "text-zinc-500"}`}>
+                            {unlocked ? feature.description : "Change your builder in Settings to access"}
                           </p>
                         </div>
                       </CardContent>
