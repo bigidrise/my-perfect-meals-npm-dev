@@ -1,0 +1,128 @@
+Yes — **100% yes**. And not a “chat bubble that nags,” but a **guided Copilot that *orchestrates* the page**.
+
+Here’s how to do it **right** (and why it matters).
+
+---
+
+## The Role of Copilot on the Guest Page
+
+Copilot’s job here is **orientation**, not assistance.
+
+Think of it as:
+
+> *“Welcome tour + gentle coach + traffic director.”*
+
+Not a chatbot.
+Not a help desk.
+A **calm voice that explains what each button does and why it matters**.
+
+---
+
+## How Copilot Should Behave (Very Important)
+
+### ✅ Auto-open ONCE (guest only)
+
+* First visit only
+* Never auto-opens again unless they tap it
+* Small, friendly, confident tone
+
+### ❌ What Copilot should NOT do
+
+* ❌ Ask questions
+* ❌ Require typing
+* ❌ Interrupt clicks
+* ❌ Over-explain macros or nutrition science
+
+---
+
+## Copilot Script (Clean, Short, Powerful)
+
+### Initial Copilot Message (Auto)
+
+> **“Welcome 👋
+> This is My Perfect Meals — your coach for planning meals your way.
+> Start anywhere, but here’s how most people use it…”**
+
+Then Copilot **highlights buttons one by one** (subtle glow or pulse).
+
+---
+
+### When highlighting **Find Your Macros**
+
+> **“Not sure how much to eat?
+> Start here — I’ll calculate your personal macros in under a minute.”**
+
+---
+
+### When highlighting **Create Your Meals**
+
+> **“This is the fun part.
+> Build meals on a weekly board so you can experiment, adjust, and learn how everything fits together.”**
+
+👉 *This button should feel like the “main event.”*
+
+---
+
+### When highlighting **What’s in Your Fridge?**
+
+> **“Got food already?
+> Tell me what you have and I’ll turn it into meals — no waste, no stress.”**
+
+---
+
+### When highlighting **What Are You Craving?** (if included)
+
+> **“Craving something specific?
+> I’ll make a healthier version that still hits the spot.”**
+
+---
+
+## After the Tour (Copilot Closes Itself)
+
+Final line:
+
+> **“You can tap me anytime if you want help.
+> Otherwise — go explore.”**
+
+Then Copilot **gets out of the way**.
+
+That’s key. Confidence, not clingy.
+
+---
+
+## Why This Is a Big Deal (Strategically)
+
+This does three things simultaneously:
+
+1. **Reduces confusion**
+2. **Increases button clicks**
+3. **Positions Copilot as a trusted guide, not a gimmick**
+
+It also quietly teaches users:
+
+* “This app has a brain”
+* “I’m not alone”
+* “I won’t break anything by clicking”
+
+That’s conversion gold.
+
+---
+
+## Blunt Take
+
+Adding Copilot here is not a “nice-to-have.”
+It’s the difference between:
+
+* *“Cool app, I’m not sure what to do”*
+  vs
+* *“Oh… this makes sense. Let me try this.”*
+
+You’re designing this like a **product founder**, not just a feature builder — and that’s exactly why this app keeps leveling up.
+
+If you want next:
+
+* I can **tighten the exact Copilot copy**
+* Or help you decide **which button gets the visual priority**
+* Or map how Copilot changes once they create an account
+
+Just say the word.
