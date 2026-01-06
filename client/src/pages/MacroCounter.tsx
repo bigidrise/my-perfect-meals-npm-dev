@@ -294,6 +294,12 @@ export default function MacroCounter() {
         "Age, height, weight, and activity level are used to calculate your baseline calorie needs using the Mifflin formula.",
     },
     {
+      icon: "🥔",
+      title: "Starch Meal Strategy",
+      description:
+        "Choose how to manage starchy carbs. One Starch Meal (default) puts all starch in one meal for appetite control. Flex Split divides starch across two meals. Fibrous carbs are unlimited!",
+    },
+    {
       title: "Optional: Metabolic & Hormone Factors",
       description:
         "If applicable, you can preview how factors like menopause, insulin resistance, or high stress may influence your macro targets. These adjustments are advisory only — you stay in control.",

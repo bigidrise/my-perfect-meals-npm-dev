@@ -122,6 +122,12 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
     description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
   },
   {
+    icon: "🥔",
+    title: "Watch Your Starch Slots",
+    description:
+      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
+  },
+  {
     icon: "*",
     title: "What the Asterisks Mean",
     description:
