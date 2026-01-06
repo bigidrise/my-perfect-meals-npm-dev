@@ -502,6 +502,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "This is our Terms of Service page. Here you can review the legal terms and conditions that govern your use of My Perfect Meals. This includes information about your rights as a user, our responsibilities as a service provider, and the guidelines for using the app. If you have questions about any of the terms, you can always reach out to our support team.",
     autoClose: true,
   },
+
+  "/guest-builder": {
+    pageId: "guest-builder",
+    title: "Welcome to My Perfect Meals",
+    description:
+      "Try our AI-powered meal planning tools — no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
+    spokenText:
+      "Hey, welcome to My Perfect Meals! I'm so glad you're here. Let me show you around real quick. First, if you're not sure how much to eat, tap Find Your Macros — I'll calculate your personal targets in under a minute. Once you know your numbers, tap Create Your Meals to build meals on a weekly board. You can experiment, swap things around, and see how everything fits together. Got food at home but no ideas? Tap What's in Your Fridge — just tell me what you have and I'll turn it into real meals. And if you're craving something specific, tap What Are You Craving — I'll make a healthier version that still hits the spot. You can start anywhere you want. And whenever you need me, just tap this button and I'll be right here. Go explore — I've got your back.",
+    autoClose: false,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
