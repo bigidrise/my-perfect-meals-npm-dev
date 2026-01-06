@@ -258,9 +258,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "macro-counter",
     title: "Macro Calculator",
     description:
-      "Calculate personalized daily protein, carb, and fat targets using your goals, activity level, body composition, and key metabolic factors.",
+      "Calculate personalized daily protein, carb, and fat targets using your goals, activity level, body composition, and key metabolic factors. Choose your Starch Meal Strategy to control how you manage starchy carbs throughout the day.",
     spokenText:
-      "The Macro Calculator helps set personalized daily nutrition targets based on how your body actually works — not just calories. Start by choosing your goal, body type, and activity level, then enter your age, height, weight, and current weight for biometrics. You can also factor in important metabolic considerations like hormone changes, insulin resistance, or high stress, which can influence how your body responds to protein, carbs, and fat. I’ll calculate clear daily targets for protein, starchy carbs, fibrous carbs, and fat — giving you numbers that make sense for you. Once your targets are set, head to the planner and start building meals that align with those goals.",
+      "The Macro Calculator helps set personalized daily nutrition targets based on how your body actually works — not just calories. Start by choosing your goal, body type, and activity level, then enter your age, height, weight, and current weight for biometrics. You can also factor in important metabolic considerations like hormone changes, insulin resistance, or high stress, which can influence how your body responds to protein, carbs, and fat. I’ll calculate clear daily targets for protein, starchy carbs, fibrous carbs, and fat — giving you numbers that make sense for you. Here's something important to understand: fibrous carbs like vegetables are unlimited and actually help with weight loss, while starchy carbs like rice, pasta, and potatoes need to be managed. That's why we include a Starch Meal Strategy. You can choose One Starch Meal, which concentrates all your starchy carbs into a single meal — this is the default and works best for appetite control and fat loss. Or you can choose Flex Split, which divides your starch allowance across two meals if that fits your lifestyle better. Once your targets and strategy are set, head to the planner and start building meals that align with those goals.",
     autoClose: true,
   },
   "/shopping-list-v2": {
@@ -286,7 +286,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Weekly Meal Builder",
     description:
-      "Build meals across one or multiple days using structured or conversational meal tools guided by your goals.",
+      "Build meals across one or multiple days using structured or conversational meal tools guided by your goals. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to your Meal Builder. This is where everything comes together. No matter which builder you’re using, they all work the same way — you’re creating healthy meals in any cuisine or style you want, as long as you tell the Chef what you’re looking for. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe your meal — breakfast, lunch, dinner, or snacks — and be as specific as you like with cuisine, protein amount, carbs, and preferences. The more detail you give, the better the result. You can plan up to a full week at a time, build each day differently, or duplicate days to save time. As you build, focus on protein and carbs — those are the most important drivers of energy and results. When you’re done, you can send meals straight to your shopping list, log the day to your biometrics, or make changes anytime. This is your builder — open it up and start creating meals your way.",
     autoClose: true,
@@ -306,7 +306,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Diabetic Meal Builder",
     description:
-      "Build meals that support balanced blood sugar using diabetic-specific guardrails.",
+      "Build meals that support balanced blood sugar using diabetic-specific guardrails. The starch indicator helps you manage starchy carbs — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the Diabetic Meal Builder. This builder works just like the others, but it’s designed specifically to support blood-sugar control and consistency throughout the day. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe what you want — any cuisine, any style — and be as specific as you like with protein, carbs, and food choices. The Chef will build meals that stay within diabetic-friendly guardrails without feeling restrictive. You can plan a single day or build out an entire week, adjust each day differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps your energy steady and your numbers predictable. As you build, focus on protein and carbs — those matter most for blood-sugar balance. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start planning meals that work with your body, not against it.",
     autoClose: true,
@@ -325,7 +325,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/glp1-meal-builder": {
     pageId: "weekly-meal-board",
     title: "Glp1 Meal Builder",
-    description: "Create portion-aware meals designed to support GLP-1 goals.",
+    description: "Create portion-aware meals designed to support GLP-1 goals. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the Diabetic Meal Builder. This builder works just like the others, but it’s designed specifically to support blood-sugar control and consistency throughout the day. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe what you want — any cuisine, any style — and be as specific as you like with protein, carbs, and food choices. The Chef will build meals that stay within diabetic-friendly guardrails without feeling restrictive. You can plan a single day or build out an entire week, adjust each day differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps your energy steady and your numbers predictable. As you build, focus on protein and carbs — those matter most for blood-sugar balance. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start planning meals that work with your body, not against it.",
 
@@ -335,7 +335,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/anti-inflammatory-menu-builder": {
     pageId: "anti-inflammatory-menu-builder",
     title: "Anti-Inflammatory Meal Builder",
-    description: "Build meals focused on inflammation-friendly ingredients.",
+    description: "Build meals focused on inflammation-friendly ingredients. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the Anti-Inflammatory Meal Builder. This builder is designed to help reduce inflammation while still supporting energy, recovery, and long-term health. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe what you want — any cuisine, any style — and include details like protein, carbs, or ingredients you prefer to avoid. The Chef will build meals using anti-inflammatory guardrails without sacrificing flavor or variety. You can plan one day or build out a full week, adjust weekdays and weekends differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals balanced and easy to follow. As you build, focus on protein and carbs — those are the most important drivers for energy and recovery. When you’re done, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start creating meals that help your body feel and perform better.",
 
@@ -346,7 +346,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "beach-body-meal-board",
     title: "Beach Body Meal Builder",
     description:
-      "Create structured meals designed for performance and body composition.",
+      "Create structured meals designed for performance and body composition. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the Beach Body Meal Builder. This builder is designed for leaning out, tightening up, and dialing in your physique while keeping meals realistic and sustainable. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe what you want — any cuisine, any style — and include details like protein targets, carb levels, or foods you want to limit. The Chef will build meals that support fat loss, muscle tone, and performance without overcomplicating things. You can plan one day or build out a full week, keep weekdays structured, and loosen things slightly on weekends if you choose. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves instead of traditional serving math. As you build, prioritize protein and carbs — those drive energy, training output, and physique changes. When you’re done, send your day to biometrics, add ingredients to your shopping list, or make tweaks anytime. Open your builder and start creating meals that move your body where you want it to go.",
 
@@ -417,7 +417,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "procare-performance-competition-builder",
     title: "ProCare Performance & Competition Meal Builder",
     description:
-      "Create precision-based performance meals for your client using competition-level guardrails.",
+      "Create precision-based performance meals for your client using competition-level guardrails. The starch indicator shows daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the ProCare Performance and Competition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the targets, protocols, and performance guidelines you’ve already defined. You can use Create with Chef to describe meals and snacks, or the A.I.Meal Creator to guide ingredient-level choices. From there, choose how many days you want to plan and decide how each day should be structured, allowing flexibility while staying aligned with training demands, competition schedules, and recovery needs. Build each day with breakfast, lunch, dinner, and snacks by adjusting the meals themselves rather than traditional serving manipulation. Prep options help dial in details like protein amounts and preparation methods to support performance output, recovery, and body composition. If you’re a client, this is where you build meals using your coach’s or physician’s settings. Follow the targets shown at the bottom of the screen and create your day using Create with Chef our multilingual, multi-cuisine, AI Meal Creator. As you build, focus on protein and carbs — those are the primary drivers of energy availability, recovery, and competitive performance. Calories and fats still matter, but they play a supporting role. When you’re finished, you can save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.",
     autoClose: true,
@@ -427,7 +427,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "procare-general-nutrition-builder",
     title: "ProCare General Nutrition Meal Builder",
     description:
-      "Build balanced, everyday meals for your client using flexible nutrition guardrails.",
+      "Build balanced, everyday meals for your client using flexible nutrition guardrails. The starch indicator shows daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the ProCare General Nutrition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. You can use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. From there, choose how many days you want to plan and decide how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Build each day with breakfast, lunch, dinner, and snacks by adjusting the meals themselves rather than traditional serving manipulation. Prep options help dial in details like protein amounts and preparation methods so meals stay practical, balanced, and consistent.If you’re a client, this is where you build meals using your coach’s or physician’s settings. Follow the targets shown at the bottom of the screen and create your day using Create with Chef, our multilingual, multi-cuisine, AI Meal Creator. As you build, focus on protein and carbs — those are the primary drivers of energy, recovery, and nutritional balance. Calories and fats still matter, but they play a supporting role. When you’re finished, you can save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.”",
     autoClose: true,
