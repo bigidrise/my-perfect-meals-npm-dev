@@ -28,6 +28,7 @@ import { OnboardingFooter } from "./components/OnboardingFooter";
 import { CopilotProvider } from "./components/copilot/CopilotContext";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
+import { GlobalGuestBanner } from "./components/GlobalGuestBanner";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -121,6 +122,7 @@ export default function App() {
               {/* Update Banner removed - focus event auto-reload handles updates */}
               <CopilotSystem onAction={handleCopilotAction}>
                 <RootViewport>
+                  <GlobalGuestBanner />
                   <AppRouter>
                     <Router />
                   </AppRouter>

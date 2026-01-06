@@ -34,6 +34,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import { MacroDeltas } from "@/lib/clinicalAdvisory";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -314,6 +315,12 @@ export default function MacroCounter() {
       description:
         "Tap 'Set Macro Targets' to lock them in. Your targets stay persistent on Biometrics until you recalculate or update them.",
     },
+    {
+      icon: "💡",
+      title: "Pro Tip: Time Your Carbs",
+      description:
+        "Try to eat your starchy carbs earlier in the day. It's harder to get quality REM sleep when your body is busy metabolizing sugars. Front-load your carbs and sleep better.",
+    },
   ];
 
   const quickTour = useQuickTour("macro-calculator");
@@ -450,6 +457,7 @@ export default function MacroCounter() {
 
             <div className="flex-grow" />
 
+            <MedicalSourcesInfo asIconButton />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>

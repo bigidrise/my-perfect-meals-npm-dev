@@ -35,6 +35,7 @@ import TermsOfService from "@/pages/TermsOfService";
 // Standalone 3-step onboarding for all onboarding routes
 import OnboardingStandalone from "@/pages/onboarding-standalone";
 import Welcome from "@/pages/Welcome";
+import GuestBuilder from "@/pages/GuestBuilder";
 import Auth from "@/pages/Auth";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -158,6 +159,7 @@ export default function Router() {
     "/",
     "/auth",
     "/welcome",
+    "/guest-builder",
     "/forgot-password",
     "/reset-password",
     "/onboarding",
@@ -177,6 +179,7 @@ export default function Router() {
       <Switch>
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
+        <Route path="/guest-builder" component={GuestBuilder} />
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
         <Route path="/forgot-password" component={ForgotPassword} />

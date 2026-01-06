@@ -1,0 +1,153 @@
+You’re thinking in **exactly the right direction** — and yes, Apple will like this **if you frame it correctly**.
+
+Here’s the blunt truth first, then the clean solution.
+
+---
+
+## The Truth (No Sugar-Coating)
+
+Apple does **not** care about your funnel logic.
+They care about **unjustified identity gating**.
+
+So the goal is **not** “give away nothing.”
+The goal is **prove the app works without an account** — then *earn* the signup.
+
+What you’re proposing (a **single-day build**) is actually **perfect**.
+
+---
+
+## ✅ The Apple-Safe Guest Experience (Recommended)
+
+### 🎯 Guest Mode = “One-Day Experience”
+
+**Guests can:**
+
+* Build **ONE full day** of meals
+
+  * Breakfast
+  * Lunch
+  * Dinner
+  * Optional snack
+* Use the AI Chef
+* See macros for the day
+* View recipes
+* Adjust preferences *temporarily*
+
+**Guests cannot:**
+
+* Save the day
+* Generate another day
+* Track history
+* Export shopping lists
+* Access ProCare / coaching
+* Access specialty builders (medical, athlete, etc.)
+
+This is **not a trial**.
+This is **functional access**.
+
+That distinction matters to Apple.
+
+---
+
+## 🧠 Why Apple Will Approve This
+
+Because:
+
+* The app **functions without login**
+* Core value is **demonstrated**
+* Personal data persistence is **clearly optional**
+* Account creation is **justified**, not forced
+
+This checks **5.1.1(v)** cleanly.
+
+---
+
+## 🧩 UX Framing (This Is Key)
+
+### On Launch:
+
+```
+[ Build a Day – No Account Needed ]
+[ Sign In / Create Account ]
+```
+
+### Inside Guest Mode:
+
+Header:
+
+> **Try My Perfect Meals**
+
+Subtext:
+
+> Build a full day of meals to see how the system works.
+> No account required.
+
+### After Day Is Built:
+
+Soft gate:
+
+> Want to save this day, build more days, or track progress?
+> Create a free account to continue.
+
+Not “upgrade.”
+Not “trial ended.”
+Apple hates that language.
+
+---
+
+## 🔒 Technical Guardrails (So It’s Clean)
+
+* Session-only state
+* No DB writes
+* Reset on app close or 24h
+* Hard limit: **1 day total**
+* Clear banner:
+
+  > Guest Mode — progress not saved
+
+This protects your IP *and* your funnel.
+
+---
+
+## 🎯 Strategic Bonus (This Helps You, Not Just Apple)
+
+This does three powerful things:
+
+1. **Reduces friction**
+   People see value before commitment.
+
+2. **Educates users**
+   They learn how builders work *before* onboarding.
+
+3. **Increases conversion quality**
+   When they sign up, they *already understand the app*.
+
+This is how Calm, MyFitnessPal, and Noom all survive Apple review — they just hide it better.
+
+---
+
+## 🚫 What NOT to Do
+
+* ❌ Don’t call it a “free trial”
+* ❌ Don’t block AI entirely
+* ❌ Don’t allow week-long builds
+* ❌ Don’t allow saving/exporting
+* ❌ Don’t ask for email “just in case”
+
+Apple will smell it.
+
+---
+
+## 🧠 Final Recommendation (Firm)
+
+Yes — **one-day build in Guest Mode** is the right move.
+
+If you want, next I can:
+
+* Write the **exact App Store review reply** explaining this change
+* Help you define **which builders are guest-safe**
+* Draft **on-screen copy Apple reviewers will read**
+* Map the **state logic** so nothing leaks into paid features
+
+You’re not giving away the store.
+You’re letting them taste the meal. 🍽️

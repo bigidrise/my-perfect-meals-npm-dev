@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
+import { startGuestSession } from "@/lib/guestMode";
 
 // 🚩 FEATURE FLAG: Set to true to show carousel, false for simple layout
 const SHOW_CAROUSEL = false;
@@ -152,6 +153,12 @@ export default function Welcome() {
     setLocation("/auth");
   };
 
+  const exploreAsGuest = () => {
+    // Start guest session and route to guest builder
+    startGuestSession();
+    setLocation("/guest-builder");
+  };
+
   // 🎨 SIMPLE LAYOUT (Option 2 - Minimal Plus without trust indicator)
   if (!SHOW_CAROUSEL) {
     return (
@@ -187,6 +194,25 @@ export default function Welcome() {
 
         {/* Buttons */}
         <div className="w-full max-w-sm space-y-4">
+          {/* Guest Mode - Apple App Review Compliant */}
+          <Button
+            data-testid="button-explore-guest"
+            onClick={exploreAsGuest}
+            className="w-full h-14 text-md font-medium rounded-2xl
+                     bg-gradient-to-r from-lime-600 to-emerald-600 hover:from-lime-500 hover:to-emerald-500
+                     text-white shadow-lg border border-lime-400/30
+                     transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <Sparkles className="h-5 w-5" />
+            Build a Day — No Account Needed
+          </Button>
+
+          <div className="flex items-center gap-3 my-2">
+            <div className="flex-1 h-px bg-white/20" />
+            <span className="text-white/50 text-xs">or sign in</span>
+            <div className="flex-1 h-px bg-white/20" />
+          </div>
+
           <Button
             data-testid="button-signin"
             onClick={signIn}

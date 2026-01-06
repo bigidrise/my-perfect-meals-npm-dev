@@ -42,8 +42,13 @@ export interface PurchaseResult {
 
 export async function isStoreKitAvailable(): Promise<boolean> {
   if (!isIosNativeShell()) return false;
-  const plugin = await getPlugin();
-  return plugin !== null;
+  try {
+    const plugin = await getPlugin();
+    return plugin !== null;
+  } catch (e) {
+    console.warn("[StoreKit] isStoreKitAvailable check failed:", e);
+    return false;
+  }
 }
 
 export async function fetchProducts(): Promise<StoreKitProduct[]> {
@@ -83,9 +88,16 @@ export async function fetchProducts(): Promise<StoreKitProduct[]> {
 export async function purchaseProduct(
   internalSku: LookupKey
 ): Promise<PurchaseResult> {
-  const plugin = await getPlugin();
+  let plugin;
+  try {
+    plugin = await getPlugin();
+  } catch (e: any) {
+    console.error("[StoreKit] Failed to initialize plugin:", e);
+    return { success: false, error: "In-app purchases temporarily unavailable. Please try again later." };
+  }
+
   if (!plugin) {
-    return { success: false, error: "StoreKit not available" };
+    return { success: false, error: "In-app purchases not available on this device." };
   }
 
   const iosProduct = getIosProductByInternalSku(internalSku);
@@ -100,7 +112,13 @@ export async function purchaseProduct(
       productId: iosProduct.productId,
     });
 
-    const transaction = await plugin.getMostRecentTransaction();
+    let transaction;
+    try {
+      transaction = await plugin.getMostRecentTransaction();
+    } catch (txError) {
+      console.warn("[StoreKit] Failed to get transaction, using fallback:", txError);
+      transaction = null;
+    }
     const transactionId = transaction?.transactionId || transaction?.id || `tx_${Date.now()}`;
 
     console.log("[StoreKit] Purchase successful:", transactionId);
@@ -119,7 +137,12 @@ export async function purchaseProduct(
       return { success: false, error: "Purchase cancelled" };
     }
 
-    return { success: false, error: e.message || "Purchase failed" };
+    // iPad-specific: Handle layout/constraint errors gracefully
+    if (e.message?.includes("constraint") || e.message?.includes("layout")) {
+      return { success: false, error: "Purchase temporarily unavailable. Please try again." };
+    }
+
+    return { success: false, error: e.message || "Purchase failed. Please try again." };
   }
 }
 
