@@ -6,6 +6,8 @@ My Perfect Meals is a comprehensive meal planning and nutrition tracking applica
 ## User Preferences
 I prefer iterative development and expect the agent to ask before making major architectural changes. Do not modify the "Meal Visual Alignment System v1" without explicit approval. Specifically, do not change AI Prompts, Image Prompts, `ensureImage` Logic, Fallback Images, Cache Key Generation, or S3 Upload Logic within this system.
 
+**Product Doctrine**: See `/docs/STARCH_STRATEGY_AND_MEAL_BOARD_DOCTRINE.md` for authoritative decisions about starch strategy, meal board behavior, and intentionally hidden features. Do not violate without discussion.
+
 ## System Architecture
 The application is a monorepo utilizing React + Vite (TypeScript) for the frontend and Express.js (TypeScript) for the backend. Data persistence is handled by PostgreSQL and Drizzle ORM. OpenAI GPT-4 powers AI meal generation, including DALL-E 3 for image generation.
 
