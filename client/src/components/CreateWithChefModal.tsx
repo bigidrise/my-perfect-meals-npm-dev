@@ -14,6 +14,7 @@ import {
   useCreateWithChefRequest,
   DietType,
   BeachBodyPhase,
+  StarchContext,
 } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +29,7 @@ interface CreateWithChefModalProps {
   ) => void;
   dietType?: DietType; // Optional diet type for guardrails
   dietPhase?: BeachBodyPhase; // Optional phase for BeachBody
+  starchContext?: StarchContext; // Optional starch context for intelligent carb distribution
 }
 
 export function CreateWithChefModal({
@@ -37,6 +39,7 @@ export function CreateWithChefModal({
   onMealGenerated,
   dietType,
   dietPhase,
+  starchContext,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const { user } = useAuth();
@@ -76,6 +79,7 @@ export function CreateWithChefModal({
       mealType,
       dietType,
       dietPhase,
+      starchContext,
     );
 
     if (meal) {

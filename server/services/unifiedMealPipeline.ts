@@ -720,7 +720,11 @@ export async function generateFromDescriptionUnified(
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
-  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''}`);
+  // Get starch placement decision
+  const starchPlacement = determineStarchPlacement(validMealType, starchContext);
+  const starchGuidance = buildStarchGuidance(validMealType, starchContext);
+  
+  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})`);
   
   try {
     await ensureHubsRegistered();
@@ -760,6 +764,7 @@ REQUIREMENTS:
 - Provide detailed step-by-step cooking instructions
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
+${starchGuidance}
 
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
@@ -1281,10 +1286,11 @@ export async function generateMealUnified(
     case 'create-with-chef':
       // Create With Chef uses description-based generation (AI + DALL-E image)
       // Supports diet-specific guardrails when dietType is provided
+      // Supports Starch Game Plan for intelligent carb distribution
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      return generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType);
+      return generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext);
 
     case 'snack-creator':
       // Snack Creator uses craving-to-healthy transformation (AI + DALL-E image)

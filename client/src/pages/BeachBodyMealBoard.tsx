@@ -26,6 +26,8 @@ import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
 import { getResolvedTargets } from "@/lib/macroResolver";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useAuth } from "@/contexts/AuthContext";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
@@ -294,6 +296,22 @@ export default function BeachBodyMealBoard() {
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
     "breakfast" | "lunch" | "dinner"
   >("breakfast");
+
+  // Build StarchContext for Create With Chef modal
+  const starchContext: StarchContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const strategy = resolved?.starchStrategy || 'one';
+    const dayLists = getDayLists(board, activeDayISO);
+    const existingMeals: StarchContext['existingMeals'] = [];
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+      }
+    }
+    return { strategy, existingMeals };
+  }, [board, activeDayISO, user?.id]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -2115,6 +2133,7 @@ export default function BeachBodyMealBoard() {
           onMealGenerated={handleAIMealGenerated}
           dietType="beachbody"
           dietPhase="lean"
+          starchContext={starchContext}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with BeachBody guardrails */}
