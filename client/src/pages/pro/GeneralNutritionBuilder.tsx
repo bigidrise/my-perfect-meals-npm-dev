@@ -67,6 +67,7 @@ const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "4", title: "Duplicate Days", description: "Copy a day's meals to other days for consistent eating patterns." },
   { icon: "5", title: "Shopping List", description: "Export all ingredients for the week to create a shopping list." },
   { icon: "6", title: "Track Progress & Save Day", description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics." },
+  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
   { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
 

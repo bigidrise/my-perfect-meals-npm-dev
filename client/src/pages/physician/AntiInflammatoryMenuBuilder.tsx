@@ -96,6 +96,7 @@ const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "4", title: "Track Macros", description: "Send meals to the Macro Calculator for balanced nutrition." },
   { icon: "5", title: "Shopping List", description: "Export ingredients for healing-focused grocery shopping." },
   { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
+  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
   { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
 

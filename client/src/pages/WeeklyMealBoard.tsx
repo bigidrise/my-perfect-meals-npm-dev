@@ -146,6 +146,12 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
       "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics.",
   },
   {
+    icon: "🥔",
+    title: "Watch Your Starch Slots",
+    description:
+      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
+  },
+  {
     icon: "*",
     title: "What the Asterisks Mean",
     description:
