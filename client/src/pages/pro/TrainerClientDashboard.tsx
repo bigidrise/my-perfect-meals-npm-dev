@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { proStore, Targets, ClinicalContext, BuilderType } from "@/lib/proData";
+import { proStore, Targets, ClinicalContext, BuilderType, StarchStrategy } from "@/lib/proData";
 import {
   Settings,
   ClipboardList,
@@ -40,7 +40,13 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
       "Use options like High-Protein or Carb Cycling to influence how meals are generated — without micromanaging recipes.",
   },
   {
-    icon: "4",
+    icon: "🥔",
+    title: "Starch Game Plan",
+    description:
+      "Choose how starchy carbs are distributed. One Starch Meal concentrates all starch into one meal for appetite control. Flex Split divides across two meals. Fibrous carbs are always unlimited!",
+  },
+  {
+    icon: "5",
     title: "Assigned Meal Builder",
     description:
       "Choose which meal builder your client will use. This determines their entire in-app experience.",
@@ -254,6 +260,57 @@ export default function TrainerClientDashboard() {
                   />
                   Carb Cycling Protocol
                 </label>
+              </div>
+            </div>
+
+            <div className="col-span-full mt-3">
+              <label className="text-sm font-medium text-white/90 mb-2 block">
+                Starch Game Plan
+              </label>
+              <p className="text-xs text-white/60 mb-3">
+                Control how starchy carbs are distributed throughout the day. Fibrous carbs (vegetables) are always unlimited.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setT({ ...t, starchStrategy: 'one' })}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    (t.starchStrategy || 'one') === 'one'
+                      ? 'bg-orange-600/30 border-orange-400'
+                      : 'bg-black/30 border-white/20 hover:bg-black/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">🥔</span>
+                    <span className="font-semibold text-white">One Starch Meal</span>
+                    {(t.starchStrategy || 'one') === 'one' && (
+                      <Check className="h-4 w-4 text-orange-400 ml-auto" />
+                    )}
+                  </div>
+                  <p className="text-xs text-white/70">
+                    All starch in one meal. Best for appetite control and fat loss.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setT({ ...t, starchStrategy: 'flex' })}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    t.starchStrategy === 'flex'
+                      ? 'bg-yellow-600/30 border-yellow-400'
+                      : 'bg-black/30 border-white/20 hover:bg-black/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">🥗</span>
+                    <span className="font-semibold text-white">Flex Split</span>
+                    {t.starchStrategy === 'flex' && (
+                      <Check className="h-4 w-4 text-yellow-400 ml-auto" />
+                    )}
+                  </div>
+                  <p className="text-xs text-white/70">
+                    Divide starch across two meals for flexibility.
+                  </p>
+                </button>
               </div>
             </div>
 
