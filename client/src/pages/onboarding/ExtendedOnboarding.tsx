@@ -103,10 +103,10 @@ export default function ExtendedOnboarding() {
   const [saving, setSaving] = useState(false);
   
   const [macros, setMacros] = useState({
-    calories: 2000,
-    protein: 150,
-    carbs: 200,
-    fat: 70,
+    calories: "2000",
+    protein: "150",
+    carbs: "200",
+    fat: "70",
   });
 
   const isRepairMode = window.location.search.includes("repair=1");
@@ -117,10 +117,10 @@ export default function ExtendedOnboarding() {
     const existingTargets = getMacroTargets(user?.id);
     if (existingTargets) {
       setMacros({
-        calories: existingTargets.calories || 2000,
-        protein: existingTargets.protein_g || 150,
-        carbs: existingTargets.carbs_g || 200,
-        fat: existingTargets.fat_g || 70,
+        calories: String(existingTargets.calories || 2000),
+        protein: String(existingTargets.protein_g || 150),
+        carbs: String(existingTargets.carbs_g || 200),
+        fat: String(existingTargets.fat_g || 70),
       });
       if (existingTargets.starchStrategy) {
         setStarchStrategy(existingTargets.starchStrategy);
@@ -135,7 +135,7 @@ export default function ExtendedOnboarding() {
     // This handles both initial load AND mid-session coach assignment
     if (hasCoachAssignedBuilder && (currentStep === "goals" || currentStep === "builder")) {
       setCurrentStep("macros");
-      setSelectedBuilder(user.activeBoard);
+      setSelectedBuilder(user?.activeBoard ?? null);
     }
   }, [user, hasCoachAssignedBuilder, currentStep]);
 
@@ -185,10 +185,10 @@ export default function ExtendedOnboarding() {
 
     try {
       await setMacroTargets({
-        calories: macros.calories,
-        protein_g: macros.protein,
-        carbs_g: macros.carbs,
-        fat_g: macros.fat,
+        calories: parseInt(macros.calories) || 0,
+        protein_g: parseInt(macros.protein) || 0,
+        carbs_g: parseInt(macros.carbs) || 0,
+        fat_g: parseInt(macros.fat) || 0,
         starchStrategy: starchStrategy,
       }, user?.id);
 
@@ -429,7 +429,7 @@ export default function ExtendedOnboarding() {
         )}
 
         <div className="flex gap-3 mt-6">
-          <Button onClick={handleBack} variant="outline" className="flex-1 border-white/20 text-white hover:bg-white/10">
+          <Button onClick={handleBack} variant="outline" className="flex-1 border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
           <Button
@@ -458,8 +458,9 @@ export default function ExtendedOnboarding() {
             <input
               type="number"
               value={macros.calories}
-              onChange={(e) => setMacros({ ...macros, calories: parseInt(e.target.value) || 0 })}
+              onChange={(e) => setMacros({ ...macros, calories: e.target.value })}
               className="w-full mt-1 p-3 rounded-lg bg-black/50 border border-white/20 text-white text-lg"
+              inputMode="numeric"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -468,8 +469,9 @@ export default function ExtendedOnboarding() {
               <input
                 type="number"
                 value={macros.protein}
-                onChange={(e) => setMacros({ ...macros, protein: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setMacros({ ...macros, protein: e.target.value })}
                 className="w-full mt-1 p-3 rounded-lg bg-black/50 border border-white/20 text-white"
+                inputMode="numeric"
               />
             </div>
             <div>
@@ -477,8 +479,9 @@ export default function ExtendedOnboarding() {
               <input
                 type="number"
                 value={macros.carbs}
-                onChange={(e) => setMacros({ ...macros, carbs: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setMacros({ ...macros, carbs: e.target.value })}
                 className="w-full mt-1 p-3 rounded-lg bg-black/50 border border-white/20 text-white"
+                inputMode="numeric"
               />
             </div>
             <div>
@@ -486,8 +489,9 @@ export default function ExtendedOnboarding() {
               <input
                 type="number"
                 value={macros.fat}
-                onChange={(e) => setMacros({ ...macros, fat: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setMacros({ ...macros, fat: e.target.value })}
                 className="w-full mt-1 p-3 rounded-lg bg-black/50 border border-white/20 text-white"
+                inputMode="numeric"
               />
             </div>
           </div>
@@ -499,7 +503,7 @@ export default function ExtendedOnboarding() {
       </p>
 
       <div className="flex gap-3 mt-6">
-        <Button onClick={handleBack} variant="outline" className="flex-1 border-white/20 text-white hover:bg-white/10">
+        <Button onClick={handleBack} variant="outline" className="flex-1 border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
         <Button onClick={handleNext} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white">
@@ -567,7 +571,7 @@ export default function ExtendedOnboarding() {
       </div>
 
       <div className="flex gap-3 mt-6">
-        <Button onClick={handleBack} variant="outline" className="flex-1 border-white/20 text-white hover:bg-white/10">
+        <Button onClick={handleBack} variant="outline" className="flex-1 border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
         <Button onClick={handleNext} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white">
@@ -619,7 +623,7 @@ export default function ExtendedOnboarding() {
         </Card>
 
         <div className="flex gap-3 mt-6">
-          <Button onClick={handleBack} variant="outline" className="flex-1 border-white/20 text-white hover:bg-white/10">
+          <Button onClick={handleBack} variant="outline" className="flex-1 border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
             <ArrowLeft className="w-4 h-4 mr-2" /> Edit
           </Button>
           <Button
@@ -676,7 +680,7 @@ export default function ExtendedOnboarding() {
         className="px-4 py-6 max-w-md mx-auto"
         style={{
           paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 40px)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 120px)",
         }}
       >
         {renderStepIndicator()}
