@@ -53,12 +53,26 @@ export default function ShoppingListMasterView() {
   const replaceItems = useShoppingListStore((s) => s.replaceItems);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [opts, setOpts] = useState({
-    groupByAisle: false,
-    excludePantryStaples: false,
-    scopeByWeek: false,
-    rounding: "friendly" as "friendly" | "none",
+  
+  const SHOPPING_OPTS_KEY = "shoppingList.opts.v1";
+  
+  const [opts, setOpts] = useState(() => {
+    const defaults = {
+      groupByAisle: false,
+      excludePantryStaples: false,
+      scopeByWeek: false,
+      rounding: "friendly" as "friendly" | "none",
+    };
+    try {
+      const saved = localStorage.getItem(SHOPPING_OPTS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...defaults, ...parsed };
+      }
+    } catch {}
+    return defaults;
   });
+  
   const [purchasedOpen, setPurchasedOpen] = useState(true);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
@@ -69,8 +83,26 @@ export default function ShoppingListMasterView() {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any | null>(null);
 
-  const toggleOpt = useCallback(<K extends keyof typeof opts>(key: K) => {
-    setOpts((prev) => ({ ...prev, [key]: !prev[key] }));
+  type ShoppingOpts = typeof opts;
+  
+  const toggleOpt = useCallback(<K extends keyof ShoppingOpts>(key: K) => {
+    setOpts((prev: ShoppingOpts) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(SHOPPING_OPTS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+  
+  const setOptValue = useCallback(<K extends keyof ShoppingOpts>(key: K, value: ShoppingOpts[K]) => {
+    setOpts((prev: ShoppingOpts) => {
+      const next = { ...prev, [key]: value };
+      try {
+        localStorage.setItem(SHOPPING_OPTS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   }, []);
 
   // Wrapper for toggleItem with walkthrough event
@@ -455,10 +487,7 @@ export default function ShoppingListMasterView() {
             <select
               value={opts.rounding}
               onChange={(e) =>
-                setOpts({
-                  ...opts,
-                  rounding: e.target.value as "none" | "friendly",
-                })
+                setOptValue("rounding", e.target.value as "none" | "friendly")
               }
               className="bg-white/10 border border-white/20 text-white/90 text-sm rounded-md px-2 py-1"
               title="Rounding"
