@@ -15,9 +15,11 @@ import {
   Refrigerator,
   Heart,
   X,
+  Home,
   ChefHat
 } from "lucide-react";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
+import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
 import { 
   isGuestMode, 
   getGuestGenerationsRemaining, 
@@ -37,8 +39,8 @@ interface ActionButton {
 const ACTION_BUTTONS: ActionButton[] = [
   {
     id: "macros",
-    label: "Find Your Macros",
-    description: "Calculate your personal targets in under a minute",
+    label: "Macro-Calculator",
+    description: "Calculate your personal targets with our MACROCALCULATOR",
     icon: <Calculator className="h-6 w-6" />,
     iconColor: "text-orange-400",
     route: "/macro-counter",
@@ -46,28 +48,28 @@ const ACTION_BUTTONS: ActionButton[] = [
   },
   {
     id: "create",
-    label: "Create Your Meals",
-    description: "Build meals on a weekly board and see how everything fits",
+    label: "Weekly Meal Builder",
+    description: "Build meals with the WEEKLY MEAL BUILDER and see how everything fits",
     icon: <Calendar className="h-6 w-6" />,
-    iconColor: "text-lime-400",
+    iconColor: "text-orange-400",
     route: "/weekly-meal-board",
     copilotMessage: "This is the fun part. Build meals on a weekly board so you can experiment, adjust, and learn how everything fits together.",
   },
   {
     id: "fridge",
-    label: "What's in Your Fridge?",
-    description: "Turn what you have into meals — no waste, no stress",
+    label: "Fridge Rescue",
+    description: "Turn what you have into meals 3 different meals with FRIDGE RESCUE",
     icon: <Refrigerator className="h-6 w-6" />,
-    iconColor: "text-blue-400",
+    iconColor: "text-orange-400",
     route: "/fridge-rescue",
     copilotMessage: "Got food already? Tell me what you have and I'll turn it into meals — no waste, no stress.",
   },
   {
     id: "craving",
-    label: "What Are You Craving?",
-    description: "I'll make a healthier version that still hits the spot",
+    label: "Craving Creator",
+    description: "Make a healthier versions of your favorite pleasures with CRAVING CREATOR",
     icon: <Heart className="h-6 w-6" />,
-    iconColor: "text-pink-400",
+    iconColor: "text-orange-400",
     route: "/craving-creator",
     copilotMessage: "Craving something specific? I'll make a healthier version that still hits the spot.",
   },
@@ -105,6 +107,12 @@ export default function GuestBuilder() {
 
   const handleActionClick = (route: string) => {
     setLocation(route);
+  };
+
+  const handleChefClick = () => {
+    sessionStorage.removeItem("guest_copilot_tour_seen");
+    setTourStep(0);
+    setShowCopilotTour(true);
   };
 
   const handleNextTourStep = () => {
@@ -167,14 +175,7 @@ export default function GuestBuilder() {
               Try My Perfect Meals
             </h1>
           </div>
-          <Button
-            onClick={handleCreateAccount}
-            size="sm"
-            className="bg-lime-600 hover:bg-lime-500 text-white"
-          >
-            <UserPlus className="h-4 w-4 mr-1" />
-            Sign Up
-          </Button>
+         
         </div>
       </div>
 
@@ -237,22 +238,54 @@ export default function GuestBuilder() {
           </div>
         )}
 
-        <Card className="bg-gradient-to-r from-zinc-900/60 to-zinc-800/60 border border-white/10">
-          <CardContent className="p-5 text-center space-y-4">
-            <h3 className="text-lg font-bold text-white">Ready for the full experience?</h3>
-            <p className="text-white/70 text-sm">
-              Create an account to save your meals, track your progress, and get personalized nutrition guidance.
-            </p>
-            <Button
-              onClick={handleCreateAccount}
-              className="w-full bg-gradient-to-r from-lime-600 to-emerald-600 hover:from-lime-500 hover:to-emerald-500 text-white"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create Free Account
-            </Button>
-          </CardContent>
-        </Card>
+        
       </div>
+
+      {/* Guest Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-screen-xl mx-auto px-4">
+          <div className="relative h-12 flex items-center justify-between">
+            {/* LEFT - Back to Welcome */}
+            <div className="flex items-center justify-start flex-1">
+              <button
+                onClick={() => setLocation("/welcome")}
+                className="flex items-center justify-center px-4 h-full text-gray-400 hover:text-white transition-all duration-300"
+                style={{ flexDirection: "column" }}
+              >
+                <Home className="h-4 w-4" />
+                <span className="text-[11px] mt-0.5 font-medium">Welcome</span>
+              </button>
+            </div>
+
+            {/* CENTER - Chef Copilot Button */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-2 z-10">
+              <motion.button
+                onClick={handleChefClick}
+                className="flex items-center justify-center w-14 h-14 rounded-full bg-black/70 border-2 border-white/15 backdrop-blur-xl shadow-lg shadow-orange-500/60 hover:shadow-orange-500/100 hover:border-orange-400/100 transition-all duration-300"
+                whileTap={{ scale: 0.92 }}
+                whileHover={{ y: -2, scale: 1.08 }}
+                style={{
+                  boxShadow: "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
+                }}
+              >
+                <ChefCapIcon size={54} />
+              </motion.button>
+            </div>
+
+            {/* RIGHT - Sign Up */}
+            <div className="flex items-center justify-end flex-1">
+              <button
+                onClick={handleCreateAccount}
+                className="flex items-center justify-center px-4 h-full text-lime-400 hover:text-lime-300 transition-all duration-300"
+                style={{ flexDirection: "column" }}
+              >
+                <UserPlus className="h-4 w-4" />
+                <span className="text-[11px] mt-0.5 font-medium">Sign Up</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
 
       <AnimatePresence>
         {showCopilotTour && (
@@ -261,8 +294,8 @@ export default function GuestBuilder() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[100] p-4"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+            className="fixed left-0 right-0 z-[100] p-4"
+            style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4rem)" }}
           >
             <Card className="bg-zinc-900/95 backdrop-blur-xl border border-lime-500/30 shadow-2xl max-w-lg mx-auto">
               <CardContent className="p-4">
