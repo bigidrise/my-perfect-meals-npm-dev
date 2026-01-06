@@ -52,6 +52,9 @@ import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
+import { getResolvedTargets } from "@/lib/macroResolver";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
@@ -185,6 +188,22 @@ export default function WeeklyMealBoard() {
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
+
+  // Build StarchContext for Create With Chef modal
+  const starchContext: StarchContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const strategy = resolved?.starchStrategy || 'one';
+    const dayLists = getDayLists(board, activeDayISO);
+    const existingMeals: StarchContext['existingMeals'] = [];
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+      }
+    }
+    return { strategy, existingMeals };
+  }, [board, activeDayISO, user?.id]);
 
   // Handler for Create With Chef meal selection
   // NOTE: slot is passed from the modal to avoid stale state issues
@@ -1871,6 +1890,7 @@ export default function WeeklyMealBoard() {
         onOpenChange={setCreateWithChefOpen}
         mealType={createWithChefSlot}
         onMealGenerated={handleCreateWithChefSelect}
+        starchContext={starchContext}
       />
 
       {/* Quick Tour Modal */}

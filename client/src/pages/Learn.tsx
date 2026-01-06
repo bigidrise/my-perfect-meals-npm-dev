@@ -318,30 +318,50 @@ export default function Learn() {
       },
     },
     {
-      id: "meal-planning",
-      title: "Meal Planning Basics",
-      description: "Master the fundamentals of effective meal planning",
+      id: "how-mpm-works",
+      title: "How the My Perfect Meals System Works",
+      description: "A simple, hormone-aware approach to meal planning that actually works in real life",
       icon: BookOpen,
       gradient: "from-orange-500/20 to-orange-600/20",
       content: {
         sections: [
           {
-            heading: "Why Meal Planning Works",
-            text: "Planning your meals in advance saves time, reduces stress, prevents unhealthy choices, and helps you stick to your nutrition goals.",
+            heading: "This Is Not Traditional Meal Planning",
+            text: "Most nutrition apps focus on calories and restriction. My Perfect Meals is built differently. Our system is designed around how your body actually responds to food — hormones, hunger, energy, and metabolism — not just numbers on a label."
           },
           {
-            heading: "The 5-Step Process",
+            heading: "Step 1: Start With Macros (Not Calories)",
+            text: "Instead of obsessing over calories, we start with macros. Protein, carbs, and fats determine how full you feel, how stable your energy is, and how your body uses food. Calories are a result — not the driver."
+          },
+          {
+            heading: "Step 2: Understand Carbs the Right Way",
+            text: "All carbs are not the same. My Perfect Meals separates carbs into two types: fibrous carbs (vegetables) and starchy carbs (grains, potatoes, rice, sugars). Fibrous carbs support digestion, metabolism, and fullness. Starchy carbs must be intentional."
+          },
+          {
+            heading: "Step 3: Use the Starch Meal Strategy",
+            text: "Instead of forcing you to count carb grams all day, we convert your daily starch allowance into meals. Most people do best with one starch-based meal per day. Some can split starch across two meals. This makes eating simple and sustainable."
+          },
+          {
+            heading: "Step 4: Meals Are Built for Hormones, Not Willpower",
+            text: "Each meal is designed to stabilize blood sugar, control hunger, and support hormones. Protein anchors every meal. Fibrous carbs are encouraged. Starches are placed intentionally — not accidentally."
+          },
+          {
+            heading: "Step 5: Plan First, Track Less",
+            text: "When meals are planned correctly, tracking becomes easier — or unnecessary. You don’t need to micromanage every bite. The structure does the work for you."
+          },
+          {
+            heading: "Why This System Works",
             list: [
-              "Set your weekly goals: What do you want to achieve?",
-              "Choose your meals: Use our AI or browse templates",
-              "Make a shopping list: Generate automatically or customize",
-              "Prep ahead: Cook in batches when possible",
-              "Stay flexible: Allow for adjustments as needed",
-            ],
+              "You eat more vegetables without fear",
+              "You stop overeating starches by accident",
+              "You stay full longer with less effort",
+              "Your energy stays more consistent",
+              "Meal planning becomes simple, not stressful"
+            ]
           },
           {
-            heading: "Pro Tips",
-            text: "Start small with 3-4 meals per week, batch cook proteins and grains, use containers for portion control, and don't forget to include snacks!",
+            heading: "The Goal",
+            text: "My Perfect Meals isn’t about restriction. It’s about clarity. When you understand how food works in your body, eating well becomes automatic — not exhausting."
           },
         ],
       },

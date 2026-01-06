@@ -54,15 +54,18 @@ export default function ShoppingListMasterView() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [opts, setOpts] = useState({
-    groupByAisle: true,
+    groupByAisle: false,
     excludePantryStaples: false,
     scopeByWeek: false,
+    rounding: "friendly" as "friendly" | "none",
   });
   const [purchasedOpen, setPurchasedOpen] = useState(true);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
   const [voiceText, setVoiceText] = useState("");
   const [bulkText, setBulkText] = useState("");
+  const [barcodeText, setBarcodeText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any | null>(null);
 
@@ -393,6 +396,15 @@ export default function ShoppingListMasterView() {
             className="mt-4 flex flex-wrap gap-2"
           >
             <Button
+              data-wt="msl-barcode-button"
+              onClick={() => setBarcodeModalOpen(true)}
+              className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
+              size="sm"
+              data-testid="button-barcode-manual"
+            >
+              Enter Barcode
+            </Button>
+            <Button
               data-wt="msl-voice-add-button"
               onClick={() => setVoiceModalOpen(true)}
               className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
@@ -416,7 +428,18 @@ export default function ShoppingListMasterView() {
 
           {/* Options */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
-            
+            <Button
+              onClick={() => toggleOpt("groupByAisle")}
+              aria-pressed={opts.groupByAisle}
+              className={`text-sm px-3 py-1.5 h-auto transition-all ${
+                opts.groupByAisle
+                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
+                  : "bg-black/60 border border-white/20 text-white hover:bg-black/70"
+              }`}
+              data-testid="option-group-by-aisle"
+            >
+              Group by aisle
+            </Button>
             <Button
               onClick={() => toggleOpt("excludePantryStaples")}
               aria-pressed={opts.excludePantryStaples}
@@ -429,7 +452,21 @@ export default function ShoppingListMasterView() {
             >
               Exclude pantry staples
             </Button>
-            
+            <select
+              value={opts.rounding}
+              onChange={(e) =>
+                setOpts({
+                  ...opts,
+                  rounding: e.target.value as "none" | "friendly",
+                })
+              }
+              className="bg-white/10 border border-white/20 text-white/90 text-sm rounded-md px-2 py-1"
+              title="Rounding"
+              data-testid="select-rounding"
+            >
+              <option value="friendly">Rounding: Friendly</option>
+              <option value="none">Rounding: None</option>
+            </select>
           </div>
         </div>
         {/* Add Other Items Section */}
@@ -815,6 +852,86 @@ export default function ShoppingListMasterView() {
                     Add Items
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Barcode Manual Entry Modal */}
+        {barcodeModalOpen && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-black/90 border border-white/20 rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <h3 className="text-white text-xl font-semibold">
+                Enter Barcode
+              </h3>
+              <Input
+                value={barcodeText}
+                onChange={(e) => setBarcodeText(e.target.value)}
+                placeholder="Type barcode number..."
+                className="bg-black/40 border-white/30 text-white placeholder:text-white/40"
+                data-testid="input-barcode"
+              />
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  onClick={() => {
+                    setBarcodeModalOpen(false);
+                    setBarcodeText("");
+                  }}
+                  className="bg-white/10 border border-white/20 text-white"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    if (barcodeText.trim()) {
+                      // Dispatch "interacted" event
+                      setTimeout(() => {
+                        const interactedEvent = new CustomEvent(
+                          "walkthrough:event",
+                          {
+                            detail: {
+                              testId: "shopping-list-interacted",
+                              event: "interacted",
+                            },
+                          },
+                        );
+                        window.dispatchEvent(interactedEvent);
+                      }, 300);
+
+                      addItem({
+                        name: "Unknown Item",
+                        quantity: 1,
+                        unit: "",
+                        notes: `Barcode: ${barcodeText.trim()}`,
+                      });
+                      setBarcodeText("");
+                      setBarcodeModalOpen(false);
+                      toast({
+                        title: "Item added",
+                        description: `Barcode ${barcodeText.trim()} added`,
+                      });
+
+                      // Dispatch "completed" event
+                      setTimeout(() => {
+                        const completedEvent = new CustomEvent(
+                          "walkthrough:event",
+                          {
+                            detail: {
+                              testId: "shopping-list-completed",
+                              event: "completed",
+                            },
+                          },
+                        );
+                        window.dispatchEvent(completedEvent);
+                      }, 500);
+                    }
+                  }}
+                  className="bg-blue-600/40 border border-blue-300/40 text-blue-100 hover:bg-blue-600/50"
+                  data-testid="button-add-barcode"
+                >
+                  Add
+                </Button>
               </div>
             </div>
           </div>

@@ -100,7 +100,7 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
       // Map role to professional title
       let proTitle = 'Your professional';
       if (role === 'doctor') proTitle = 'Your physician';
-      else if (role === 'nurse' || role === 'pa') proTitle = 'Your clinician';
+      else if (role === 'rn' || role === 'np' || role === 'pa') proTitle = 'Your clinician';
       else if (role === 'nutritionist' || role === 'dietitian') proTitle = 'Your dietitian';
       else if (role === 'trainer') proTitle = 'Your trainer';
       

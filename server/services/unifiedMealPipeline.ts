@@ -108,6 +108,21 @@ export interface UnifiedMeal {
   source?: 'ai' | 'catalog' | 'fallback';
 }
 
+/**
+ * Starch Context - Used for intelligent carb distribution
+ * The starch strategy controls how many meals per day can contain starchy carbs.
+ * This is behavioral coaching, not macro tracking.
+ */
+export interface StarchContext {
+  strategy: 'one' | 'flex'; // "one" = 1 starch meal/day, "flex" = 2 meals
+  existingMeals?: Array<{
+    slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+    hasStarch: boolean;
+  }>;
+  forceStarch?: boolean; // User explicitly requested starch (overrides default)
+  forceFiberBased?: boolean; // User explicitly requested no starch
+}
+
 export interface MealGenerationRequest {
   type: 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef' | 'snack-creator';
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -121,6 +136,7 @@ export interface MealGenerationRequest {
   };
   count?: number; // number of meals to generate (default 1)
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
+  starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
 }
 
 export interface MealGenerationResponse {
@@ -129,6 +145,94 @@ export interface MealGenerationResponse {
   meals?: UnifiedMeal[];
   source: 'ai' | 'catalog' | 'fallback';
   error?: string;
+}
+
+/**
+ * Determine if this meal should be starch-based or fiber-based
+ * Based on the Starch Game Plan coaching system
+ */
+function determineStarchPlacement(
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
+  starchContext?: StarchContext
+): { shouldIncludeStarch: boolean; reason: string } {
+  // No context = allow starch (legacy behavior)
+  if (!starchContext) {
+    return { shouldIncludeStarch: true, reason: 'no_starch_context' };
+  }
+  
+  // User explicitly requested starch (e.g., "make me pasta")
+  if (starchContext.forceStarch) {
+    return { shouldIncludeStarch: true, reason: 'user_requested_starch' };
+  }
+  
+  // User explicitly requested fiber-based (e.g., "make it low carb")
+  if (starchContext.forceFiberBased) {
+    return { shouldIncludeStarch: false, reason: 'user_requested_fiber' };
+  }
+  
+  // Count existing starch meals
+  const existingStarchCount = (starchContext.existingMeals || [])
+    .filter(m => m.hasStarch).length;
+  
+  const maxStarchSlots = starchContext.strategy === 'flex' ? 2 : 1;
+  const slotsRemaining = maxStarchSlots - existingStarchCount;
+  
+  // If all slots are used, this meal should be fiber-based
+  if (slotsRemaining <= 0) {
+    return { shouldIncludeStarch: false, reason: 'starch_slots_used' };
+  }
+  
+  // Slots available - decide based on meal type priority
+  // Default priority: Lunch > Breakfast > Dinner (mirrors real coaching)
+  const existingSlots = (starchContext.existingMeals || []).map(m => m.slot);
+  const hasStarchAlready = existingStarchCount > 0;
+  
+  // If no starch meal yet and this is the preferred slot, make it the starch meal
+  if (!hasStarchAlready) {
+    // First meal of the day being generated - use priority order
+    if (mealType === 'lunch') {
+      return { shouldIncludeStarch: true, reason: 'lunch_is_default_starch_slot' };
+    }
+    if (mealType === 'breakfast' && !existingSlots.includes('lunch')) {
+      // Breakfast can be starch if lunch isn't already planned
+      return { shouldIncludeStarch: true, reason: 'breakfast_available_for_starch' };
+    }
+    if (mealType === 'dinner' && !existingSlots.includes('lunch') && !existingSlots.includes('breakfast')) {
+      // Dinner gets starch only if no other meals planned
+      return { shouldIncludeStarch: true, reason: 'dinner_fallback_for_starch' };
+    }
+  }
+  
+  // Flex mode: allow second starch meal
+  if (starchContext.strategy === 'flex' && slotsRemaining > 0) {
+    return { shouldIncludeStarch: true, reason: 'flex_mode_slot_available' };
+  }
+  
+  // Default: fiber-based to preserve starch slots
+  return { shouldIncludeStarch: false, reason: 'preserving_starch_slot' };
+}
+
+/**
+ * Build starch guidance for the AI prompt
+ */
+function buildStarchGuidance(
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
+  starchContext?: StarchContext
+): string {
+  const placement = determineStarchPlacement(mealType, starchContext);
+  
+  if (placement.shouldIncludeStarch) {
+    return `
+🍚 STARCH GUIDANCE: This meal MAY include starchy carbs (rice, pasta, bread, potatoes, beans, oats).
+Include starchy carbs as the primary carb source for this meal.`;
+  } else {
+    return `
+🥦 STARCH GUIDANCE: This meal should be FIBER-BASED (no starchy carbs).
+- DO NOT include: rice, pasta, bread, potatoes, beans, corn, oats, crackers, tortillas
+- DO include: vegetables (broccoli, spinach, peppers, zucchini, cauliflower), salads, leafy greens
+- Focus on: protein + vegetables + healthy fats
+- This creates a "protein + veggies" meal that keeps the user's starch slot available for another meal.`;
+  }
 }
 
 /**
@@ -605,16 +709,22 @@ export async function generateFridgeRescueUnified(
  * Generate a meal from a free-form description (Create With Chef)
  * Uses OpenAI to generate a complete recipe with ingredients, instructions, and image
  * Supports diet-specific guardrails for specialized builders
+ * Supports Starch Game Plan for intelligent carb distribution
  */
 export async function generateFromDescriptionUnified(
   description: string,
   mealType: string,
   userId?: string,
-  dietType?: DietType
+  dietType?: DietType,
+  starchContext?: StarchContext
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
-  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''}`);
+  // Get starch placement decision
+  const starchPlacement = determineStarchPlacement(validMealType, starchContext);
+  const starchGuidance = buildStarchGuidance(validMealType, starchContext);
+  
+  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})`);
   
   try {
     await ensureHubsRegistered();
@@ -654,6 +764,7 @@ REQUIREMENTS:
 - Provide detailed step-by-step cooking instructions
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
+${starchGuidance}
 
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
@@ -1175,10 +1286,11 @@ export async function generateMealUnified(
     case 'create-with-chef':
       // Create With Chef uses description-based generation (AI + DALL-E image)
       // Supports diet-specific guardrails when dietType is provided
+      // Supports Starch Game Plan for intelligent carb distribution
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      return generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType);
+      return generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext);
 
     case 'snack-creator':
       // Snack Creator uses craving-to-healthy transformation (AI + DALL-E image)

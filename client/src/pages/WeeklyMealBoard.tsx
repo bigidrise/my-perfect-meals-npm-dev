@@ -90,6 +90,8 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { getResolvedTargets } from "@/lib/macroResolver";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -289,6 +291,36 @@ export default function WeeklyMealBoard() {
     if (planningMode !== "week") return false;
     return hasLockedDaysInWeek(weekStartISO, user?.id);
   }, [planningMode, weekStartISO, user?.id]);
+
+  // Build StarchContext for Create With Chef modal
+  // This enables intelligent carb distribution based on existing meals
+  const starchContext: StarchContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+
+    // Get the starch strategy from resolved targets (default to 'one' if no user/targets)
+    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const strategy = resolved?.starchStrategy || 'one';
+
+    // Get existing meals for the active day
+    const dayLists = getDayLists(board, activeDayISO);
+    const existingMeals: StarchContext['existingMeals'] = [];
+
+    // Classify each meal slot
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        existingMeals.push({
+          slot,
+          hasStarch: classifyMeal(meal).isStarchMeal,
+        });
+      }
+    }
+
+    return {
+      strategy,
+      existingMeals,
+    };
+  }, [board, activeDayISO, user?.id]);
 
   // Guard function: checks if current day is locked before allowing edits
   // NOTE: Always recompute lock state fresh to avoid stale closure issues
@@ -2456,6 +2488,7 @@ export default function WeeklyMealBoard() {
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
           onMealGenerated={handleCreateWithChefSelect}
+          starchContext={starchContext}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) */}

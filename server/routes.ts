@@ -559,12 +559,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { 
-        type = 'craving',           // 'craving' | 'fridge-rescue' | 'premade'
+        type = 'craving',           // 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef'
         mealType = 'lunch',         // 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snacks'
         input,                      // string (craving) or string[] (ingredients)
         userId,
         macroTargets,
-        count = 1
+        count = 1,
+        dietType,                   // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
+        starchContext               // Starch Game Plan context for intelligent carb distribution
       } = req.body;
 
       // Feature gate for fridge-rescue and premade types
@@ -610,7 +612,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         input,
         userId,
         macroTargets,
-        count
+        count,
+        dietType,
+        starchContext
       });
 
       // Record metrics for AI health tracking
