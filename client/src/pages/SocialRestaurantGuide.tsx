@@ -46,6 +46,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
+import { classifyMeal } from "@/utils/starchMealClassifier";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
@@ -744,9 +745,27 @@ export default function RestaurantGuidePage() {
                           {/* Meal Details */}
                           <div className="md:col-span-2 p-4">
                             <div className="flex items-start justify-between mb-2">
-                              <h3 className="text-lg font-semibold text-white">
-                                {meal.name || meal.meal}
-                              </h3>
+                              <div className="flex flex-col gap-1">
+                                <h3 className="text-lg font-semibold text-white">
+                                  {meal.name || meal.meal}
+                                </h3>
+                                {/* Starch Classification Badge */}
+                                {(() => {
+                                  const starchClass = classifyMeal({
+                                    name: meal.name || meal.meal,
+                                    ingredients: meal.ingredients || [],
+                                  });
+                                  return (
+                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
+                                      starchClass.isStarchMeal 
+                                        ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
+                                        : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                    }`}>
+                                      {starchClass.emoji} {starchClass.label}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
                               <span className="text-sm text-white/90 bg-orange-600 px-2 py-1 rounded font-medium">
                                 {meal.calories} cal
                               </span>

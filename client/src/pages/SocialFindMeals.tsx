@@ -26,6 +26,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
+import { classifyMeal } from "@/utils/starchMealClassifier";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -512,6 +513,22 @@ export default function MealFinder() {
                           <h4 className="text-xl font-bold text-white mb-1">
                             {result.meal.name}
                           </h4>
+                          {/* Starch Classification Badge */}
+                          {(() => {
+                            const starchClass = classifyMeal({
+                              name: result.meal.name,
+                              ingredients: result.meal.ingredients || [],
+                            });
+                            return (
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit mb-2 ${
+                                starchClass.isStarchMeal 
+                                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
+                                  : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                              }`}>
+                                {starchClass.emoji} {starchClass.label}
+                              </span>
+                            );
+                          })()}
                           <p className="text-sm text-white/70">
                             {result.meal.description}
                           </p>
