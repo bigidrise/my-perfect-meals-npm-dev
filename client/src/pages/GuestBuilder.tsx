@@ -1,9 +1,9 @@
 // client/src/pages/GuestBuilder.tsx
-// Apple App Review Compliant: Simplified Guest Experience with Guided Copilot Tour
+// Apple App Review Compliant: Guest Experience with Real Talking Copilot
 
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -14,12 +14,13 @@ import {
   Calendar,
   Refrigerator,
   Heart,
-  X,
-  Home,
-  ChefHat
+  Home
 } from "lucide-react";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
+import { useCopilot } from "@/components/copilot/CopilotContext";
+import { getPageExplanation } from "@/components/copilot/CopilotPageExplanations";
+import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { 
   isGuestMode, 
   getGuestGenerationsRemaining, 
@@ -33,54 +34,47 @@ interface ActionButton {
   icon: React.ReactNode;
   iconColor: string;
   route: string;
-  copilotMessage: string;
 }
 
 const ACTION_BUTTONS: ActionButton[] = [
   {
     id: "macros",
-    label: "Macro-Calculator",
-    description: "Calculate your personal targets with our MACROCALCULATOR",
+    label: "Find Your Macros",
+    description: "Calculate your personal targets in under a minute",
     icon: <Calculator className="h-6 w-6" />,
     iconColor: "text-orange-400",
     route: "/macro-counter",
-    copilotMessage: "Not sure how much to eat? Start here — I'll calculate your personal macros in under a minute.",
   },
   {
     id: "create",
-    label: "Weekly Meal Builder",
-    description: "Build meals with the WEEKLY MEAL BUILDER and see how everything fits",
+    label: "Create Your Meals",
+    description: "Build meals on a weekly board and see how everything fits",
     icon: <Calendar className="h-6 w-6" />,
-    iconColor: "text-orange-400",
+    iconColor: "text-lime-400",
     route: "/weekly-meal-board",
-    copilotMessage: "This is the fun part. Build meals on a weekly board so you can experiment, adjust, and learn how everything fits together.",
   },
   {
     id: "fridge",
-    label: "Fridge Rescue",
-    description: "Turn what you have into meals 3 different meals with FRIDGE RESCUE",
+    label: "What's in Your Fridge?",
+    description: "Turn what you have into meals — no waste, no stress",
     icon: <Refrigerator className="h-6 w-6" />,
-    iconColor: "text-orange-400",
+    iconColor: "text-blue-400",
     route: "/fridge-rescue",
-    copilotMessage: "Got food already? Tell me what you have and I'll turn it into meals — no waste, no stress.",
   },
   {
     id: "craving",
-    label: "Craving Creator",
-    description: "Make a healthier versions of your favorite pleasures with CRAVING CREATOR",
+    label: "What Are You Craving?",
+    description: "I'll make a healthier version that still hits the spot",
     icon: <Heart className="h-6 w-6" />,
-    iconColor: "text-orange-400",
+    iconColor: "text-pink-400",
     route: "/craving-creator",
-    copilotMessage: "Craving something specific? I'll make a healthier version that still hits the spot.",
   },
 ];
 
 export default function GuestBuilder() {
   const [, setLocation] = useLocation();
-  const [showCopilotTour, setShowCopilotTour] = useState(false);
-  const [tourStep, setTourStep] = useState(0);
-  const [highlightedButton, setHighlightedButton] = useState<string | null>(null);
-  const buttonRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const { open, isOpen, setLastResponse } = useCopilot();
+  const hasAutoOpenedRef = useRef(false);
 
   useEffect(() => {
     if (!isGuestMode()) {
@@ -88,15 +82,28 @@ export default function GuestBuilder() {
       return;
     }
 
-    const hasSeenTour = sessionStorage.getItem("guest_copilot_tour_seen");
-    if (!hasSeenTour) {
+    const hasSeenWelcome = sessionStorage.getItem("guest_copilot_welcome_seen");
+    if (!hasSeenWelcome && !hasAutoOpenedRef.current) {
+      hasAutoOpenedRef.current = true;
       const timer = setTimeout(() => {
-        setShowCopilotTour(true);
-        setTourStep(0);
+        const explanation = getPageExplanation("/guest-builder");
+        if (explanation) {
+          CopilotExplanationStore.resetPath("/guest-builder");
+          open();
+          setTimeout(() => {
+            setLastResponse({
+              title: explanation.title,
+              description: explanation.description,
+              spokenText: explanation.spokenText,
+              autoClose: explanation.autoClose,
+            });
+          }, 300);
+        }
+        sessionStorage.setItem("guest_copilot_welcome_seen", "true");
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [setLocation]);
+  }, [setLocation, open, setLastResponse]);
 
   const remaining = getGuestGenerationsRemaining();
 
@@ -110,43 +117,20 @@ export default function GuestBuilder() {
   };
 
   const handleChefClick = () => {
-    sessionStorage.removeItem("guest_copilot_tour_seen");
-    setTourStep(0);
-    setShowCopilotTour(true);
-  };
-
-  const handleNextTourStep = () => {
-    if (tourStep < ACTION_BUTTONS.length) {
-      setTourStep(tourStep + 1);
-      setHighlightedButton(ACTION_BUTTONS[tourStep]?.id || null);
-    } else {
-      handleCloseTour();
+    const explanation = getPageExplanation("/guest-builder");
+    if (explanation) {
+      CopilotExplanationStore.resetPath("/guest-builder");
+      open();
+      setTimeout(() => {
+        setLastResponse({
+          title: explanation.title,
+          description: explanation.description,
+          spokenText: explanation.spokenText,
+          autoClose: explanation.autoClose,
+        });
+      }, 300);
     }
   };
-
-  const handleCloseTour = () => {
-    setShowCopilotTour(false);
-    setHighlightedButton(null);
-    sessionStorage.setItem("guest_copilot_tour_seen", "true");
-  };
-
-  const getCurrentCopilotMessage = () => {
-    if (tourStep === 0) {
-      return "Welcome 👋 This is My Perfect Meals — your coach for planning meals your way. Start anywhere, but here's how most people use it…";
-    }
-    if (tourStep <= ACTION_BUTTONS.length) {
-      return ACTION_BUTTONS[tourStep - 1]?.copilotMessage || "";
-    }
-    return "You can tap me anytime if you want help. Otherwise — go explore.";
-  };
-
-  useEffect(() => {
-    if (showCopilotTour && tourStep > 0 && tourStep <= ACTION_BUTTONS.length) {
-      setHighlightedButton(ACTION_BUTTONS[tourStep - 1]?.id || null);
-    } else {
-      setHighlightedButton(null);
-    }
-  }, [tourStep, showCopilotTour]);
 
   return (
     <motion.div
@@ -175,7 +159,6 @@ export default function GuestBuilder() {
               Try My Perfect Meals
             </h1>
           </div>
-         
         </div>
       </div>
 
@@ -200,17 +183,10 @@ export default function GuestBuilder() {
             Get Started
           </h3>
           
-          {ACTION_BUTTONS.map((action, index) => (
-            <div
-              key={action.id}
-              ref={(el) => { buttonRefs.current[action.id] = el; }}
-            >
+          {ACTION_BUTTONS.map((action) => (
+            <div key={action.id}>
               <Card 
-                className={`border transition-all cursor-pointer ${
-                  highlightedButton === action.id
-                    ? "bg-lime-900/30 border-lime-500/50 ring-2 ring-lime-500/30"
-                    : "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
-                }`}
+                className="border transition-all cursor-pointer bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
                 onClick={() => handleActionClick(action.route)}
               >
                 <CardContent className="p-4 flex items-center gap-4">
@@ -237,8 +213,6 @@ export default function GuestBuilder() {
             {remaining} AI generation{remaining !== 1 ? 's' : ''} remaining in guest mode
           </div>
         )}
-
-        
       </div>
 
       {/* Guest Bottom Nav */}
@@ -286,78 +260,6 @@ export default function GuestBuilder() {
           </div>
         </div>
       </nav>
-
-      <AnimatePresence>
-        {showCopilotTour && (
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-0 right-0 z-[100] p-4"
-            style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4rem)" }}
-          >
-            <Card className="bg-zinc-900/95 backdrop-blur-xl border border-lime-500/30 shadow-2xl max-w-lg mx-auto">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center flex-shrink-0">
-                    <ChefHat className="h-5 w-5 text-lime-400" />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm leading-relaxed">
-                      {getCurrentCopilotMessage()}
-                    </p>
-                    
-                    <div className="flex items-center gap-2 mt-3">
-                      <Button
-                        onClick={handleNextTourStep}
-                        size="sm"
-                        className="bg-lime-600 hover:bg-lime-500 text-white"
-                      >
-                        {tourStep < ACTION_BUTTONS.length ? "Next" : "Got it!"}
-                      </Button>
-                      
-                      {tourStep < ACTION_BUTTONS.length && (
-                        <Button
-                          onClick={handleCloseTour}
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/60 hover:text-white hover:bg-white/10"
-                        >
-                          Skip Tour
-                        </Button>
-                      )}
-                      
-                      <div className="flex-1" />
-                      
-                      <div className="flex gap-1">
-                        {[0, ...ACTION_BUTTONS.map((_, i) => i + 1)].map((step) => (
-                          <div
-                            key={step}
-                            className={`w-1.5 h-1.5 rounded-full transition-all ${
-                              step === tourStep ? "w-4 bg-lime-400" : step < tourStep ? "bg-lime-400/50" : "bg-white/20"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    onClick={handleCloseTour}
-                    size="sm"
-                    variant="ghost"
-                    className="text-white/40 hover:text-white hover:bg-white/10 p-1 h-auto"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
