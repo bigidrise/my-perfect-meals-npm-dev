@@ -174,17 +174,67 @@ Until then: **Do not expose in UI.**
 
 ---
 
-## 10. Non-Negotiable Rules for Future Development
+## 10. Shopping List Philosophy
+
+### What It Is
+
+A **concierge service** that helps users buy exactly what they need for their planned meals.
+
+### What It Is NOT
+
+* A shopping app
+* A grocery store competitor
+* A barcode scanner
+* A price comparison tool
+
+### Core Purpose
+
+Answer one question: **"What do I need to grab at the store?"**
+
+### Why This Matters
+
+* My Perfect Meals is a **nutrition app**, not a shopping app
+* The app teaches people **how to eat**
+* Shopping is a helpful bell-and-whistle, not core functionality
+* Users shouldn't overshop — the list is about **execution**, not exploration
+
+### UX Decisions (Locked)
+
+* **Always group by aisle** — no toggle, implicit behavior
+* **Friendly quantities** — implicit, invisible rounding
+* **No barcode scanning** — that's a grocery app feature
+* **No price tracking** — outside our scope
+* **No store integrations** — we're not competing with Instacart
+
+### Features That Belong
+
+* Voice add
+* Bulk add
+* Exclude pantry staples
+* Add non-food items (cleaning supplies, etc.)
+
+### Features That Do NOT Belong
+
+* Barcode scanning
+* Price comparison
+* Store selection
+* Coupon clipping
+* Inventory management
+
+---
+
+## 11. Non-Negotiable Rules for Future Development
 
 * Do not reintroduce hidden directives without discussion
 * Do not add new macro math to meal cards
 * Do not automate response-based protocols
 * Do not violate source-of-truth hierarchy
+* Do not add grocery-store features to shopping list
 * Behavior > tracking > analytics
 
 ---
 
-## 11. Why This File Exists
+## 12. Why This File Exists
 
 This document exists to:
 
