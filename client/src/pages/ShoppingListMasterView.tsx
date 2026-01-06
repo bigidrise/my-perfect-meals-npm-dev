@@ -53,12 +53,26 @@ export default function ShoppingListMasterView() {
   const replaceItems = useShoppingListStore((s) => s.replaceItems);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [opts, setOpts] = useState({
-    groupByAisle: false,
-    excludePantryStaples: false,
-    scopeByWeek: false,
-    rounding: "friendly" as "friendly" | "none",
+  
+  const SHOPPING_OPTS_KEY = "shoppingList.opts.v2";
+  
+  const [opts, setOpts] = useState(() => {
+    const defaults = {
+      groupByAisle: true,
+      excludePantryStaples: false,
+      scopeByWeek: false,
+      rounding: "none" as "friendly" | "none",
+    };
+    try {
+      const saved = localStorage.getItem(SHOPPING_OPTS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...defaults, ...parsed };
+      }
+    } catch {}
+    return defaults;
   });
+  
   const [purchasedOpen, setPurchasedOpen] = useState(true);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
@@ -69,8 +83,26 @@ export default function ShoppingListMasterView() {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any | null>(null);
 
-  const toggleOpt = useCallback(<K extends keyof typeof opts>(key: K) => {
-    setOpts((prev) => ({ ...prev, [key]: !prev[key] }));
+  type ShoppingOpts = typeof opts;
+  
+  const toggleOpt = useCallback(<K extends keyof ShoppingOpts>(key: K) => {
+    setOpts((prev: ShoppingOpts) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(SHOPPING_OPTS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+  
+  const setOptValue = useCallback(<K extends keyof ShoppingOpts>(key: K, value: ShoppingOpts[K]) => {
+    setOpts((prev: ShoppingOpts) => {
+      const next = { ...prev, [key]: value };
+      try {
+        localStorage.setItem(SHOPPING_OPTS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   }, []);
 
   // Wrapper for toggleItem with walkthrough event
@@ -395,15 +427,7 @@ export default function ShoppingListMasterView() {
             data-testid="shopping-add-buttons"
             className="mt-4 flex flex-wrap gap-2"
           >
-            <Button
-              data-wt="msl-barcode-button"
-              onClick={() => setBarcodeModalOpen(true)}
-              className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
-              size="sm"
-              data-testid="button-barcode-manual"
-            >
-              Enter Barcode
-            </Button>
+            {/* Barcode button hidden - feature not working */}
             <Button
               data-wt="msl-voice-add-button"
               onClick={() => setVoiceModalOpen(true)}
@@ -426,20 +450,8 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
-          {/* Options */}
+          {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => toggleOpt("groupByAisle")}
-              aria-pressed={opts.groupByAisle}
-              className={`text-sm px-3 py-1.5 h-auto transition-all ${
-                opts.groupByAisle
-                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
-                  : "bg-black/60 border border-white/20 text-white hover:bg-black/70"
-              }`}
-              data-testid="option-group-by-aisle"
-            >
-              Group by aisle
-            </Button>
             <Button
               onClick={() => toggleOpt("excludePantryStaples")}
               aria-pressed={opts.excludePantryStaples}
@@ -452,21 +464,6 @@ export default function ShoppingListMasterView() {
             >
               Exclude pantry staples
             </Button>
-            <select
-              value={opts.rounding}
-              onChange={(e) =>
-                setOpts({
-                  ...opts,
-                  rounding: e.target.value as "none" | "friendly",
-                })
-              }
-              className="bg-white/10 border border-white/20 text-white/90 text-sm rounded-md px-2 py-1"
-              title="Rounding"
-              data-testid="select-rounding"
-            >
-              <option value="friendly">Rounding: Friendly</option>
-              <option value="none">Rounding: None</option>
-            </select>
           </div>
         </div>
         {/* Add Other Items Section */}
