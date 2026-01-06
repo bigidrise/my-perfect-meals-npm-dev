@@ -1496,7 +1496,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Ensure role is valid enum value
         role: (userData as any).role && ['admin', 'coach', 'client'].includes((userData as any).role) 
           ? ((userData as any).role as 'admin' | 'coach' | 'client')
-          : 'client'
+          : 'client',
+        // Ensure onboardingMode is valid enum value
+        onboardingMode: (userData as any).onboardingMode && ['independent', 'procare'].includes((userData as any).onboardingMode)
+          ? ((userData as any).onboardingMode as 'independent' | 'procare')
+          : 'independent'
       };
       const [user] = await db.insert(users).values([validatedData]).returning();
       res.json(user);
@@ -1659,7 +1663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "selectedMealBuilder is required" });
       }
       
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory"];
+      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body"];
       if (!validBuilders.includes(selectedMealBuilder)) {
         return res.status(400).json({ error: "Invalid meal builder selection" });
       }
@@ -1740,7 +1744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "selectedMealBuilder is required" });
       }
       
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory"];
+      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body"];
       if (!validBuilders.includes(selectedMealBuilder)) {
         return res.status(400).json({ error: "Invalid meal builder selection" });
       }
@@ -1761,6 +1765,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating meal builder:", error);
       res.status(500).json({ error: "Failed to update meal builder" });
+    }
+  });
+
+  // Complete onboarding - marks user as having completed extended onboarding
+  // VALIDATION: Requires that builder, macros, and starch strategy are already set
+  app.post("/api/user/complete-onboarding", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { macrosDefined, starchPlanDefined, onboardingMode } = req.body;
+      
+      // First, fetch current user to verify prerequisites
+      const [existingUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Validation: User must have selected a meal builder
+      const hasBuilder = existingUser.selectedMealBuilder || existingUser.activeBoard;
+      if (!hasBuilder) {
+        return res.status(400).json({ 
+          error: "Cannot complete onboarding without selecting a meal builder",
+          code: "MISSING_BUILDER"
+        });
+      }
+      
+      // Validation: Client must confirm macros and starch were set
+      if (!macrosDefined || !starchPlanDefined) {
+        return res.status(400).json({ 
+          error: "Cannot complete onboarding without setting macros and starch strategy",
+          code: "MISSING_SETUP"
+        });
+      }
+      
+      // Validate onboardingMode if provided
+      const validModes = ['independent', 'procare'];
+      const resolvedMode = onboardingMode && validModes.includes(onboardingMode) 
+        ? (onboardingMode as 'independent' | 'procare')
+        : 'independent';
+      
+      const [user] = await db.update(users)
+        .set({
+          onboardingCompletedAt: new Date(),
+          macrosDefined: true,
+          starchPlanDefined: true,
+          onboardingMode: resolvedMode,
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      res.json({
+        success: true,
+        onboardingCompletedAt: user.onboardingCompletedAt?.toISOString(),
+        macrosDefined: user.macrosDefined,
+        starchPlanDefined: user.starchPlanDefined,
+        onboardingMode: user.onboardingMode,
+      });
+    } catch (error: any) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: "Failed to complete onboarding" });
     }
   });
 
