@@ -34,12 +34,6 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
       "Set protein, carbs, and fats for your client. These targets drive every meal they see in the app.",
   },
   {
-    icon: "3",
-    title: "Performance Directives",
-    description:
-      "Use options like High-Protein or Carb Cycling to influence how meals are generated — without micromanaging recipes.",
-  },
-  {
     icon: "🥔",
     title: "Starch Game Plan",
     description:
@@ -229,39 +223,7 @@ export default function TrainerClientDashboard() {
               />
             </div>
 
-            <div className="col-span-full mt-3">
-              <label className="text-sm font-medium text-white/90 mb-2 block">
-                Performance Dietary Directives
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input
-                    type="checkbox"
-                    checked={!!t.flags?.highProtein}
-                    onChange={(e) =>
-                      setT({
-                        ...t,
-                        flags: { ...t.flags, highProtein: e.target.checked },
-                      })
-                    }
-                  />
-                  High-Protein Focus
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input
-                    type="checkbox"
-                    checked={!!t.flags?.carbCycling}
-                    onChange={(e) =>
-                      setT({
-                        ...t,
-                        flags: { ...t.flags, carbCycling: e.target.checked },
-                      })
-                    }
-                  />
-                  Carb Cycling Protocol
-                </label>
-              </div>
-            </div>
+            {/* Performance Dietary Directives - hidden until properly wired */}
 
             <div className="col-span-full mt-3">
               <label className="text-sm font-medium text-white/90 mb-2 block">
