@@ -6,25 +6,25 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  ArrowLeft, 
-  Sparkles, 
+import {
+  ArrowLeft,
+  Sparkles,
   UserPlus,
   Calculator,
   Calendar,
   Refrigerator,
   Heart,
-  Home
+  Home,
 } from "lucide-react";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
-import { 
-  isGuestMode, 
-  getGuestGenerationsRemaining, 
-  endGuestSession 
+import {
+  isGuestMode,
+  getGuestGenerationsRemaining,
+  endGuestSession,
 } from "@/lib/guestMode";
 
 interface ActionButton {
@@ -39,7 +39,7 @@ interface ActionButton {
 const ACTION_BUTTONS: ActionButton[] = [
   {
     id: "macros",
-    label: "Find Your Macros",
+    label: "Macro Calculator",
     description: "Calculate your personal targets in under a minute",
     icon: <Calculator className="h-6 w-6" />,
     iconColor: "text-orange-400",
@@ -47,26 +47,26 @@ const ACTION_BUTTONS: ActionButton[] = [
   },
   {
     id: "create",
-    label: "Create Your Meals",
+    label: "Weekly Meal Builder",
     description: "Build meals on a weekly board and see how everything fits",
     icon: <Calendar className="h-6 w-6" />,
-    iconColor: "text-lime-400",
+    iconColor: "text-orange-400",
     route: "/weekly-meal-board",
   },
   {
     id: "fridge",
-    label: "What's in Your Fridge?",
+    label: "Fridge Rescue",
     description: "Turn what you have into meals — no waste, no stress",
     icon: <Refrigerator className="h-6 w-6" />,
-    iconColor: "text-blue-400",
+    iconColor: "text-orange-400",
     route: "/fridge-rescue",
   },
   {
     id: "craving",
-    label: "What Are You Craving?",
+    label: "Craving Creator",
     description: "I'll make a healthier version that still hits the spot",
     icon: <Heart className="h-6 w-6" />,
-    iconColor: "text-pink-400",
+    iconColor: "text-orange-400",
     route: "/craving-creator",
   },
 ];
@@ -170,10 +170,12 @@ export default function GuestBuilder() {
 
         <Card className="bg-zinc-900/60 border border-white/10">
           <CardContent className="p-5">
-            <h2 className="text-xl font-bold text-white mb-2">Welcome to My Perfect Meals</h2>
+            <h2 className="text-xl font-bold text-white mb-2">
+              Welcome to My Perfect Meals
+            </h2>
             <p className="text-white/70 text-sm">
-              Explore how our AI-powered meal planning works. Try any feature below — 
-              no account required to get started.
+              Explore how our AI-powered meal planning works. Try any feature
+              below — no account required to get started.
             </p>
           </CardContent>
         </Card>
@@ -182,21 +184,27 @@ export default function GuestBuilder() {
           <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide px-1">
             Get Started
           </h3>
-          
+
           {ACTION_BUTTONS.map((action) => (
             <div key={action.id}>
-              <Card 
+              <Card
                 className="border transition-all cursor-pointer bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
                 onClick={() => handleActionClick(action.route)}
               >
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 ${action.iconColor}`}>
+                  <div
+                    className={`w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 ${action.iconColor}`}
+                  >
                     {action.icon}
                   </div>
-                  
+
                   <div className="flex-1">
-                    <div className="font-semibold text-white">{action.label}</div>
-                    <div className="text-sm text-white/60 mt-0.5">{action.description}</div>
+                    <div className="font-semibold text-white">
+                      {action.label}
+                    </div>
+                    <div className="text-sm text-white/60 mt-0.5">
+                      {action.description}
+                    </div>
                   </div>
 
                   <div className="text-white/30">
@@ -210,7 +218,8 @@ export default function GuestBuilder() {
 
         {remaining > 0 && (
           <div className="text-center text-white/40 text-xs py-4">
-            {remaining} AI generation{remaining !== 1 ? 's' : ''} remaining in guest mode
+            {remaining} AI generation{remaining !== 1 ? "s" : ""} remaining in
+            guest mode
           </div>
         )}
       </div>
@@ -239,7 +248,8 @@ export default function GuestBuilder() {
                 whileTap={{ scale: 0.92 }}
                 whileHover={{ y: -2, scale: 1.08 }}
                 style={{
-                  boxShadow: "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
+                  boxShadow:
+                    "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
                 }}
               >
                 <ChefCapIcon size={54} />
