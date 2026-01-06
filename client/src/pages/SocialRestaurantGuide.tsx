@@ -28,8 +28,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft, MapPin, Loader2, Plus, Navigation, Copy } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft, MapPin, Loader2, Plus, Navigation, Copy, CalendarPlus } from "lucide-react";
 import { useLocation } from "wouter";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -837,24 +838,46 @@ export default function RestaurantGuidePage() {
                               </p>
                             </div>
 
-                            {/* Add Your Macros Button */}
-                            <Button
-                              onClick={() => {
-                                setQuickView({
-                                  protein: Math.round(meal.protein || 0),
-                                  carbs: Math.round(meal.carbs || 0),
-                                  fat: Math.round(meal.fat || 0),
-                                  calories: Math.round(meal.calories || 0),
-                                  dateISO: new Date().toISOString().slice(0, 10),
-                                  mealSlot: "lunch",
-                                });
-                                setLocation("/biometrics?from=restaurant-guide&view=macros");
-                              }}
-                              className="w-full bg-black text-white font-medium"
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Your Macros
-                            </Button>
+                            {/* Action Buttons */}
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                onClick={() => {
+                                  setQuickView({
+                                    protein: Math.round(meal.protein || 0),
+                                    carbs: Math.round(meal.carbs || 0),
+                                    fat: Math.round(meal.fat || 0),
+                                    calories: Math.round(meal.calories || 0),
+                                    dateISO: new Date().toISOString().slice(0, 10),
+                                    mealSlot: "lunch",
+                                  });
+                                  setLocation("/biometrics?from=restaurant-guide&view=macros");
+                                }}
+                                className="w-full bg-black text-white font-medium"
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Your Macros
+                              </Button>
+
+                              {/* Add to Meal Plan Button */}
+                              <AddToMealPlanButton
+                                meal={{
+                                  id: meal.id || `restaurant-${index}-${Date.now()}`,
+                                  title: meal.name || meal.meal,
+                                  name: meal.name || meal.meal,
+                                  description: meal.description || meal.reason,
+                                  imageUrl: meal.imageUrl,
+                                  ingredients: meal.ingredients?.map((ing: string) => ({
+                                    item: ing,
+                                    amount: "1 serving",
+                                  })) || [],
+                                  instructions: meal.modifications ? [meal.modifications] : [],
+                                  calories: meal.calories,
+                                  protein: meal.protein,
+                                  carbs: meal.carbs,
+                                  fat: meal.fat,
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                       </Card>

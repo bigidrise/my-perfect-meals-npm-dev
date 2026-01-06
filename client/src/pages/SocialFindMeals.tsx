@@ -9,8 +9,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus, Navigation, Copy } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus, Navigation, Copy, CalendarPlus } from "lucide-react";
 import { useLocation } from "wouter";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -599,24 +600,46 @@ export default function MealFinder() {
                           </p>
                         </div>
 
-                        {/* Add Your Macros Button */}
-                        <Button
-                          onClick={() => {
-                            setQuickView({
-                              protein: Math.round(result.meal.protein || 0),
-                              carbs: Math.round(result.meal.carbs || 0),
-                              fat: Math.round(result.meal.fat || 0),
-                              calories: Math.round(result.meal.calories || 0),
-                              dateISO: new Date().toISOString().slice(0, 10),
-                              mealSlot: "lunch",
-                            });
-                            setLocation("/biometrics?from=find-meals&view=macros");
-                          }}
-                          className="w-full bg-black text-white font-medium"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Your Macros
-                        </Button>
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            onClick={() => {
+                              setQuickView({
+                                protein: Math.round(result.meal.protein || 0),
+                                carbs: Math.round(result.meal.carbs || 0),
+                                fat: Math.round(result.meal.fat || 0),
+                                calories: Math.round(result.meal.calories || 0),
+                                dateISO: new Date().toISOString().slice(0, 10),
+                                mealSlot: "lunch",
+                              });
+                              setLocation("/biometrics?from=find-meals&view=macros");
+                            }}
+                            className="w-full bg-black text-white font-medium"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Your Macros
+                          </Button>
+
+                          {/* Add to Meal Plan Button */}
+                          <AddToMealPlanButton
+                            meal={{
+                              id: `find-meals-${result.restaurantName}-${Date.now()}`,
+                              title: result.meal.name,
+                              name: result.meal.name,
+                              description: result.meal.description,
+                              imageUrl: result.meal.imageUrl,
+                              ingredients: result.meal.ingredients?.map((ing: string) => ({
+                                item: ing,
+                                amount: "1 serving",
+                              })) || [],
+                              instructions: result.meal.modifications ? [result.meal.modifications] : [],
+                              calories: result.meal.calories,
+                              protein: result.meal.protein,
+                              carbs: result.meal.carbs,
+                              fat: result.meal.fat,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </Card>
