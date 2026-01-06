@@ -1769,20 +1769,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Complete onboarding - marks user as having completed extended onboarding
-  // VALIDATION: Requires that builder, macros, and starch strategy are already set
+  // VALIDATION: Requires that builder and macros are actually persisted in the database
   app.post("/api/user/complete-onboarding", requireAuth, async (req: any, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const { macrosDefined, starchPlanDefined, onboardingMode } = req.body;
+      const { onboardingMode } = req.body;
       
-      // First, fetch current user to verify prerequisites
+      // First, fetch current user to verify prerequisites in DATABASE
       const [existingUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!existingUser) {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Validation: User must have selected a meal builder
+      // SERVER-SIDE VALIDATION: User must have selected a meal builder
       const hasBuilder = existingUser.selectedMealBuilder || existingUser.activeBoard;
       if (!hasBuilder) {
         return res.status(400).json({ 
@@ -1791,13 +1791,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Validation: Client must confirm macros and starch were set
-      if (!macrosDefined || !starchPlanDefined) {
+      // SERVER-SIDE VALIDATION: Macros must be set in the database (not just client claim)
+      const hasMacros = existingUser.dailyCalorieTarget && existingUser.dailyProteinTarget;
+      if (!hasMacros) {
         return res.status(400).json({ 
-          error: "Cannot complete onboarding without setting macros and starch strategy",
-          code: "MISSING_SETUP"
+          error: "Cannot complete onboarding without setting macro targets",
+          code: "MISSING_MACROS"
         });
       }
+      
+      // Starch strategy is stored in localStorage and synced; we trust client here
+      // since starch strategy is a behavioral preference, not critical data
       
       // Validate onboardingMode if provided
       const validModes = ['independent', 'procare'];

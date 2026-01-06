@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AppRouterProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface AppRouterProps {
 export default function AppRouter({ children }: AppRouterProps) {
   const [location, setLocation] = useLocation();
   const [showWelcomeGate, setShowWelcomeGate] = useState(false);
+  const { user, loading } = useAuth();
 
   const shouldShowBottomNav = useMemo(() => {
     const hideOnRoutes = [
@@ -30,9 +32,22 @@ export default function AppRouter({ children }: AppRouterProps) {
     return !hideOnRoutes.some(route => location.startsWith(route));
   }, [location]);
 
+  // Check if user needs onboarding repair (authenticated but missing activeBoard)
+  const needsOnboardingRepair = useMemo(() => {
+    if (!user || loading) return false;
+    if (user.role === "admin") return false;
+    const hasActiveBoard = user.activeBoard || user.selectedMealBuilder;
+    return !hasActiveBoard;
+  }, [user, loading]);
+
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
     const hasChosenCoachMode = localStorage.getItem("coachMode") !== null;
+
+    // Onboarding routes should never trigger redirects
+    if (location.startsWith("/onboarding")) {
+      return;
+    }
 
     // Handle root path "/"
     if (location === "/") {
@@ -45,6 +60,12 @@ export default function AppRouter({ children }: AppRouterProps) {
       if (!hasChosenCoachMode) {
         // Authenticated but hasn't chosen coach mode → show WelcomeGate
         setShowWelcomeGate(true);
+        return;
+      }
+
+      // Repair redirect: if user needs onboarding, redirect there
+      if (needsOnboardingRepair) {
+        setLocation("/onboarding/extended?repair=1");
         return;
       }
 
@@ -61,7 +82,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (!isAuthenticated && !publicRoutes.includes(location)) {
       setLocation("/welcome");
     }
-  }, [location, setLocation]);
+  }, [location, setLocation, needsOnboardingRepair]);
 
   // Show WelcomeGate modal
   if (showWelcomeGate) {

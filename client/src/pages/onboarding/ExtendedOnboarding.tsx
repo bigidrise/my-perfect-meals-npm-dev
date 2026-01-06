@@ -88,7 +88,15 @@ export default function ExtendedOnboarding() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("goals");
+  // ProCare mode: coach assigns builder, user only sets macros/starch
+  // ProCare users with no activeBoard yet are in "awaiting assignment" state
+  const isProCareUser = user?.isProCare === true;
+  const hasCoachAssignedBuilder = isProCareUser && user?.activeBoard;
+  const isAwaitingCoachAssignment = isProCareUser && !user?.activeBoard;
+  
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(
+    hasCoachAssignedBuilder ? "macros" : isProCareUser ? "goals" : "goals"
+  );
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [selectedBuilder, setSelectedBuilder] = useState<string | null>(null);
   const [starchStrategy, setStarchStrategy] = useState<StarchStrategy>("one");
@@ -104,7 +112,7 @@ export default function ExtendedOnboarding() {
   const isRepairMode = window.location.search.includes("repair=1");
 
   useEffect(() => {
-    document.title = "Setup | My Perfect Meals";
+    document.title = hasCoachAssignedBuilder ? "Complete Your Setup | My Perfect Meals" : "Setup | My Perfect Meals";
     
     const existingTargets = getMacroTargets(user?.id);
     if (existingTargets) {
@@ -122,10 +130,24 @@ export default function ExtendedOnboarding() {
     if (user?.selectedMealBuilder || user?.activeBoard) {
       setSelectedBuilder(user.activeBoard || user.selectedMealBuilder || null);
     }
-  }, [user]);
+    
+    // ProCare with assignment: automatically advance to macros step
+    // This handles both initial load AND mid-session coach assignment
+    if (hasCoachAssignedBuilder && (currentStep === "goals" || currentStep === "builder")) {
+      setCurrentStep("macros");
+      setSelectedBuilder(user.activeBoard);
+    }
+  }, [user, hasCoachAssignedBuilder, currentStep]);
 
-  const steps: OnboardingStep[] = ["goals", "builder", "macros", "starch", "finish"];
-  const currentStepIndex = steps.indexOf(currentStep);
+  // ProCare with assigned builder: skip goals and builder selection
+  // ProCare awaiting assignment: show waiting state
+  // Independent: full 5-step flow
+  const steps: OnboardingStep[] = hasCoachAssignedBuilder 
+    ? ["macros", "starch", "finish"]  // ProCare: coach assigns builder
+    : ["goals", "builder", "macros", "starch", "finish"];  // Independent or awaiting
+  const rawStepIndex = steps.indexOf(currentStep);
+  // Guard against -1 during step transitions (e.g., ProCare assignment mid-flow)
+  const currentStepIndex = rawStepIndex === -1 ? 0 : rawStepIndex;
 
   const getRecommendedBuilders = () => {
     if (!selectedGoal) return BUILDER_OPTIONS;
@@ -147,7 +169,10 @@ export default function ExtendedOnboarding() {
   };
 
   const handleFinish = async () => {
-    if (!selectedBuilder) {
+    // ProCare mode: builder is already assigned by coach
+    const builderToUse = hasCoachAssignedBuilder ? user?.activeBoard : selectedBuilder;
+    
+    if (!builderToUse && !hasCoachAssignedBuilder) {
       toast({
         title: "Please select a meal builder",
         variant: "destructive",
@@ -169,19 +194,22 @@ export default function ExtendedOnboarding() {
 
       const authToken = getAuthToken();
       if (authToken) {
-        const response = await fetch(apiUrl("/api/user/select-meal-builder"), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-auth-token": authToken,
-          },
-          body: JSON.stringify({
-            selectedMealBuilder: selectedBuilder,
-          }),
-        });
+        // Only call select-meal-builder for independent mode (not ProCare)
+        if (!hasCoachAssignedBuilder && builderToUse) {
+          const response = await fetch(apiUrl("/api/user/select-meal-builder"), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": authToken,
+            },
+            body: JSON.stringify({
+              selectedMealBuilder: builderToUse,
+            }),
+          });
 
-        if (!response.ok) {
-          throw new Error("Failed to save builder selection");
+          if (!response.ok) {
+            throw new Error("Failed to save builder selection");
+          }
         }
 
         const completeResponse = await fetch(apiUrl("/api/user/complete-onboarding"), {
@@ -191,9 +219,7 @@ export default function ExtendedOnboarding() {
             "x-auth-token": authToken,
           },
           body: JSON.stringify({
-            macrosDefined: true,
-            starchPlanDefined: true,
-            onboardingMode: "independent",
+            onboardingMode: isProCareUser ? "procare" : "independent",
           }),
         });
 
@@ -207,7 +233,9 @@ export default function ExtendedOnboarding() {
 
       toast({
         title: "Setup Complete!",
-        description: "Your meal builder is ready to use.",
+        description: hasCoachAssignedBuilder 
+          ? "Your coach's assigned builder is ready."
+          : "Your meal builder is ready to use.",
       });
 
       setLocation("/planner");
@@ -294,6 +322,39 @@ export default function ExtendedOnboarding() {
   );
 
   const renderBuilderStep = () => {
+    // ProCare users without assignment: show waiting state
+    if (isAwaitingCoachAssignment) {
+      return (
+        <div className="space-y-4">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <Heart className="w-8 h-8 text-blue-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Awaiting Your Coach</h2>
+            <p className="text-white/70 text-sm">
+              Your coach will assign your meal builder. You'll be notified when it's ready.
+            </p>
+          </div>
+
+          <Card className="border-blue-500/30 bg-blue-500/10">
+            <CardContent className="p-4 text-center">
+              <p className="text-blue-200 text-sm">
+                You're enrolled in Pro Care. Your coach will select the best meal builder for your goals and assign it to your account.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Button
+            onClick={() => setLocation("/dashboard")}
+            variant="outline"
+            className="w-full mt-6 border-white/20 text-white hover:bg-white/10"
+          >
+            Return to Dashboard
+          </Button>
+        </div>
+      );
+    }
+
     const recommended = getRecommendedBuilders();
     const others = BUILDER_OPTIONS.filter(b => !recommended.includes(b));
 
@@ -517,7 +578,8 @@ export default function ExtendedOnboarding() {
   );
 
   const renderFinishStep = () => {
-    const builderInfo = BUILDER_OPTIONS.find(b => b.id === selectedBuilder);
+    const builderToShow = hasCoachAssignedBuilder ? user?.activeBoard : selectedBuilder;
+    const builderInfo = BUILDER_OPTIONS.find(b => b.id === builderToShow);
     
     return (
       <div className="space-y-4">
@@ -526,14 +588,20 @@ export default function ExtendedOnboarding() {
             <Utensils className="w-8 h-8 text-orange-500" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">You're all set!</h2>
-          <p className="text-white/70 text-sm">Here's your setup summary.</p>
+          <p className="text-white/70 text-sm">
+            {hasCoachAssignedBuilder 
+              ? "Your coach has assigned your builder. Review your setup below."
+              : "Here's your setup summary."}
+          </p>
         </div>
 
         <Card className="border-white/10 bg-black/30">
           <CardContent className="p-4 space-y-3">
             <div className="flex justify-between items-center py-2 border-b border-white/10">
-              <span className="text-white/60 text-sm">Primary Builder</span>
-              <span className="text-white font-medium">{builderInfo?.title || selectedBuilder}</span>
+              <span className="text-white/60 text-sm">
+                {hasCoachAssignedBuilder ? "Assigned Builder" : "Primary Builder"}
+              </span>
+              <span className="text-white font-medium">{builderInfo?.title || builderToShow}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-white/10">
               <span className="text-white/60 text-sm">Daily Calories</span>
@@ -595,7 +663,11 @@ export default function ExtendedOnboarding() {
       >
         <div className="px-4 py-3">
           <h1 className="text-lg font-bold text-white text-center">
-            {isRepairMode ? "Complete Your Setup" : "Let's Get You Started"}
+            {hasCoachAssignedBuilder 
+              ? "Complete Your Setup" 
+              : isRepairMode 
+                ? "Complete Your Setup" 
+                : "Let's Get You Started"}
           </h1>
         </div>
       </div>
