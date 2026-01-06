@@ -41,9 +41,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-desserts",
     title: "Dessert Creator",
     description:
-    "Create healthier desserts — from everyday cravings to special-occasion treats — without restriction or guilt.",
+      "Create healthier desserts — from everyday cravings to special-occasion treats — without restriction or guilt.",
     spokenText:
-    "Dessert Creator is for people who love dessert — not people who want to pretend they don’t.  Start by choosing the kind of dessert you want, whether that’s cake, pie, cookies, brownies, frozen treats, or just hit Surprise Me. Cakes can be anything from a simple slice to a layered celebration or even a wedding-style cake.  Next, pick a flavor direction like chocolate, vanilla, fruit, or spice. If you have something specific in mind — like lemon naked cake, chocolate peanut butter, bakery-style, or rustic wedding cake — just type it in. If not, leave it blank and I’ll handle it.  Then choose how many people you’re serving. This keeps portions realistic, whether it’s just for you, your family, or a bigger event. Add any dietary preferences if needed, then tap Create.  I’ll build you a dessert that actually feels like a dessert — one you can enjoy — without turning it into a cheat-day disaster.",
+      "Dessert Creator is for people who love dessert — not people who want to pretend they don’t.  Start by choosing the kind of dessert you want, whether that’s cake, pie, cookies, brownies, frozen treats, or just hit Surprise Me. Cakes can be anything from a simple slice to a layered celebration or even a wedding-style cake.  Next, pick a flavor direction like chocolate, vanilla, fruit, or spice. If you have something specific in mind — like lemon naked cake, chocolate peanut butter, bakery-style, or rustic wedding cake — just type it in. If not, leave it blank and I’ll handle it.  Then choose how many people you’re serving. This keeps portions realistic, whether it’s just for you, your family, or a bigger event. Add any dietary preferences if needed, then tap Create.  I’ll build you a dessert that actually feels like a dessert — one you can enjoy — without turning it into a cheat-day disaster.",
     autoClose: true,
   },
 
@@ -325,7 +325,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/glp1-meal-builder": {
     pageId: "weekly-meal-board",
     title: "Glp1 Meal Builder",
-    description: "Create portion-aware meals designed to support GLP-1 goals. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
+    description:
+      "Create portion-aware meals designed to support GLP-1 goals. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the Diabetic Meal Builder. This builder works just like the others, but it’s designed specifically to support blood-sugar control and consistency throughout the day. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe what you want — any cuisine, any style — and be as specific as you like with protein, carbs, and food choices. The Chef will build meals that stay within diabetic-friendly guardrails without feeling restrictive. You can plan a single day or build out an entire week, adjust each day differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps your energy steady and your numbers predictable. As you build, focus on protein and carbs — those matter most for blood-sugar balance. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start planning meals that work with your body, not against it.",
 
@@ -335,7 +336,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/anti-inflammatory-menu-builder": {
     pageId: "anti-inflammatory-menu-builder",
     title: "Anti-Inflammatory Meal Builder",
-    description: "Build meals focused on inflammation-friendly ingredients. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
+    description:
+      "Build meals focused on inflammation-friendly ingredients. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the Anti-Inflammatory Meal Builder. This builder is designed to help reduce inflammation while still supporting energy, recovery, and long-term health. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe what you want — any cuisine, any style — and include details like protein, carbs, or ingredients you prefer to avoid. The Chef will build meals using anti-inflammatory guardrails without sacrificing flavor or variety. You can plan one day or build out a full week, adjust weekdays and weekends differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals balanced and easy to follow. As you build, focus on protein and carbs — those are the most important drivers for energy and recovery. When you’re done, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start creating meals that help your body feel and perform better.",
 
@@ -496,8 +498,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/terms": {
     pageId: "terms",
     title: "Terms of Service",
-    description:
-      "Review the terms and conditions for using My Perfect Meals.",
+    description: "Review the terms and conditions for using My Perfect Meals.",
     spokenText:
       "This is our Terms of Service page. Here you can review the legal terms and conditions that govern your use of My Perfect Meals. This includes information about your rights as a user, our responsibilities as a service provider, and the guidelines for using the app. If you have questions about any of the terms, you can always reach out to our support team.",
     autoClose: true,
@@ -505,11 +506,11 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/guest-builder": {
     pageId: "guest-builder",
-    title: "Welcome to My Perfect Meals",
+    title: "MPM Guest Suite",
     description:
       "Try our AI-powered meal planning tools — no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
     spokenText:
-      "Hey, welcome to My Perfect Meals! I'm so glad you're here. Let me show you around real quick. First, if you're not sure how much to eat, tap Find Your Macros — I'll calculate your personal targets in under a minute. Once you know your numbers, tap Create Your Meals to build meals on a weekly board. You can experiment, swap things around, and see how everything fits together. Got food at home but no ideas? Tap What's in Your Fridge — just tell me what you have and I'll turn it into real meals. And if you're craving something specific, tap What Are You Craving — I'll make a healthier version that still hits the spot. You can start anywhere you want. And whenever you need me, just tap this button and I'll be right here. Go explore — I've got your back.",
+      "Hey, welcome to the My Perfect Meals Guest Suite — I’m really glad you’re here. Let me show you around real quick. My Perfect Meals is your meal-prep concierge, built to help you figure out what to eat, create healthy meals you don’t get bored with, and make better choices without overthinking it. Start your Guest experience by creating your macro targets with the Macro Calculator — it’s designed to give you a clear, personalized starting point before you build meals. Once you know your numbers, tap Create Your Meals to build meals on the weekly board, experiment, swap things around, and see how everything fits together. If you’ve got food at home but no ideas, tap Fridge Rescue and tell me what you have, and I’ll turn it into real meals. And if you’re craving something specific, tap Craving Creator — I’ll make a healthier version that still hits the spot. Feel free to explore. Copilot is always in the bottom navigator, so tap it anytime and I’ll guide you step by step through whatever you’re using. Go explore — I’ve got your back.",
     autoClose: false,
   },
 };
