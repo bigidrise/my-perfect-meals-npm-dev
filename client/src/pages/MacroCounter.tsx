@@ -314,6 +314,12 @@ export default function MacroCounter() {
       description:
         "Tap 'Set Macro Targets' to lock them in. Your targets stay persistent on Biometrics until you recalculate or update them.",
     },
+    {
+      icon: "💡",
+      title: "Pro Tip: Time Your Carbs",
+      description:
+        "Try to eat your starchy carbs earlier in the day. It's harder to get quality REM sleep when your body is busy metabolizing sugars. Front-load your carbs and sleep better.",
+    },
   ];
 
   const quickTour = useQuickTour("macro-calculator");
