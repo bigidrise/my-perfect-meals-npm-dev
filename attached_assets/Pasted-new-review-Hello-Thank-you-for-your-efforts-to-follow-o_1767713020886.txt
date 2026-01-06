@@ -1,0 +1,83 @@
+new review...Hello,
+
+Thank you for your efforts to follow our guidelines. There are still some issues that need your attention.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+
+Review Environment
+
+Submission ID: 69016b54-570b-4178-bc84-86b6bfb35e80
+Review date: January 06, 2026
+Review Device: iPad Air 11-inch (M3)
+Version reviewed: 1.0
+
+
+Guideline 5.1.1 - Legal - Privacy - Data Collection and Storage
+
+Issue Description
+
+The app requires users to register or log in to access features that are not account based.
+
+Specifically, the app requires users to register before accessing the AI and recipes. Apps may not require users to enter personal information to function, except when directly relevant to the core functionality of the app or required by law. 
+
+Next Steps
+
+Revise the app to let users freely access the app's features that are not account based. The app may still require registration for other features that are account based.
+
+Resources 
+
+Learn more about requirements for apps with account-based content and features in guideline 5.1.1(v) - Account Sign-In.
+
+
+Guideline 2.1 - Performance - App Completeness
+Issue Description
+
+The app exhibited one or more bugs that would negatively impact users.
+
+Bug description: error appeared when we tapped "Select Plan" in the Subscriptions page.
+
+Review device details:
+
+- Device type: iPad Air 11-inch (M3) 
+- OS version: iPadOS 26.1
+
+Next Steps
+
+Test the app on supported devices to identify and resolve bugs and stability issues before submitting for review.
+
+If the bug cannot be reproduced, try the following:
+
+- For new apps, uninstall all previous versions of the app from a device, then install and follow the steps to reproduce.
+- For app updates, install the new version as an update to the previous version, then follow the steps to reproduce.
+
+Note that users expect apps they download to function on all the devices where they are available. Since your app may be downloaded onto iPad devices, it is important that it also function as expected for iPad users. 
+
+Resources
+
+- For information about testing apps and preparing them for review, see Testing a Release Build.
+- To learn about troubleshooting networking issues, see Networking Overview.
+
+
+
+Guideline 1.4.1 - Safety - Physical Harm
+
+The app includes medical information but does not include citations for the medical information. 
+
+Specifically, the app still provides health or medical calculations in the Macro calculator without citations, such as links to sources for this information.
+
+All apps with medical and health information should include citations to ensure users are provided accurate information.
+
+Next Steps
+
+Include citations in the app of the sources of the recommendations or information, such as links to those sources. The citations to the sources should be easy for the user to find. 
+
+Resources 
+
+Learn more about requirements for medical apps in guideline 1.4.1.
+
+Support
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Request an App Review Appointment at Meet with Apple to discuss your app's review. Appointments subject to availability during your local business hours on Tuesdays and Thursdays.
+- Provide feedback on this message and your review experience by completing a short survey.
