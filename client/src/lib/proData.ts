@@ -280,6 +280,7 @@ export const proStore = {
         starchyCarbs: legacy.carbs ? Math.round(legacy.carbs * 0.7) : 180,
         fibrousCarbs: legacy.carbs ? Math.round(legacy.carbs * 0.3) : 50,
         fat: legacy.fat || 70,
+        starchStrategy: 'one',
         flags: legacy.flags || {},
         carbDirective: legacy.carbDirective || {},
       };
@@ -295,6 +296,7 @@ export const proStore = {
         starchyCarbs: 180,
         fibrousCarbs: 50,
         fat: 70,
+        starchStrategy: 'one',
         flags: {},
         carbDirective: {},
       }
@@ -307,6 +309,7 @@ export const proStore = {
       starchyCarbs: Math.max(0, Number(t.starchyCarbs || 0)),
       fibrousCarbs: Math.max(0, Number(t.fibrousCarbs || 0)),
       fat: Math.max(0, Number(t.fat || 0)),
+      starchStrategy: t.starchStrategy || 'one',
       carbDirective: {
         starchyCapG:
           t.carbDirective?.starchyCapG == null

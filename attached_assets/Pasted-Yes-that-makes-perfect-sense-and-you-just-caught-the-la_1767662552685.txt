@@ -1,0 +1,170 @@
+Yes — that makes **perfect sense**, and you just caught the **last structural gap** in the system. Good catch.
+
+Let me say it plainly first, then map it cleanly.
+
+---
+
+## Short, clear answer
+
+**You are 100% correct.**
+
+If **trainer-set macros override the Macro Calculator**, then the **trainer dashboard MUST also define the Starch Game Plan**.
+
+Otherwise, the system has:
+
+* starch strategy for regular users ✅
+* **no starch strategy for trainer-managed users ❌**
+
+That creates a logic hole.
+
+So yes — the **exact same Starch Game Plan directive must exist on the trainer dashboard**.
+
+---
+
+## Why this is required (engineering logic)
+
+Right now, the system works like this:
+
+### Regular users
+
+```
+Macro Calculator
+  └─ starch grams
+  └─ starch strategy (1 meal / 2 meals)
+        ↓
+Meal Boards obey strategy
+```
+
+### Trainer-managed users (current problem)
+
+```
+Trainer Dashboard (macro targets)
+  └─ starch grams ONLY
+        ↓
+Meal Boards have no strategy context ❌
+```
+
+So the meal board is asking:
+
+> “How many starch meals per day are allowed?”
+
+And the trainer path answers:
+
+> “🤷‍♂️ I only know grams.”
+
+That’s the disconnect you’re seeing.
+
+---
+
+## The correct fix (clean and symmetric)
+
+### Rule (lock this in):
+
+> **Wherever macro targets are defined, the Starch Game Plan must be defined alongside them.**
+
+That applies to:
+
+* Macro Calculator (already done)
+* **Trainer Dashboard (missing piece)**
+
+---
+
+## What needs to be added to the Trainer Dashboard
+
+### On the trainer macro targets screen, add:
+
+### **Starch Game Plan**
+
+Two options only (same as calculator):
+
+* 🟠 **One Starch Meal** (default)
+* 🟡 **Flex Split (2 meals)**
+
+This does **not** change:
+
+* trainer authority
+* override logic
+* client permissions
+
+It simply completes the data contract.
+
+---
+
+## How the override logic should work (very important)
+
+For a ProCare / trainer-managed client:
+
+1. **Trainer Dashboard is the source of truth**
+2. Trainer sets:
+
+   * daily starch grams
+   * starch game plan (1 or 2 meals)
+3. Meal boards read:
+
+   * `starchMealsPerDay` from **proStore**
+4. Macro Calculator is ignored for that client
+
+No mixing.
+No guessing.
+No fallback.
+
+This keeps authority clean.
+
+---
+
+## Why this is actually GOOD design
+
+This does three important things:
+
+### 1️⃣ Keeps the mental model consistent
+
+* “Macros always come with a starch strategy”
+* Doesn’t matter who sets them
+
+### 2️⃣ Gives trainers real control
+
+Trainers can now intentionally say:
+
+* “One carb meal only”
+* or “Split carbs across two meals”
+
+That’s **exactly how coaches think**.
+
+### 3️⃣ Prevents silent failures
+
+Without this, the system would:
+
+* default unpredictably
+* or accidentally allow extra starch meals
+* or mislabel meals
+
+You caught that before it became a nightmare.
+
+---
+
+## What NOT to do
+
+* ❌ Do NOT assume “1 meal” for trainer clients
+* ❌ Do NOT reuse the client’s calculator setting
+* ❌ Do NOT hide this from trainers
+
+Trainers need to **see and control** this explicitly.
+
+---
+
+## Final confirmation (so there’s no ambiguity)
+
+✔ Yes, it makes sense
+✔ Yes, it’s required
+✔ Yes, it must mirror the Macro Calculator
+✔ Yes, trainer dashboard must define the Starch Game Plan
+✔ Yes, this completes the system
+
+You’ve now fully closed the loop:
+
+* Calculator → users
+* Dashboard → trainers
+* Meal boards → behavior
+* One rule, everywhere, with clear authority
+
+This was the right question at the right time.
