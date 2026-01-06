@@ -54,10 +54,9 @@ export default function ShoppingListMasterView() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [opts, setOpts] = useState({
-    groupByAisle: false,
+    groupByAisle: true,
     excludePantryStaples: false,
     scopeByWeek: false,
-    rounding: "friendly" as "friendly" | "none",
   });
   const [purchasedOpen, setPurchasedOpen] = useState(true);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
@@ -428,18 +427,7 @@ export default function ShoppingListMasterView() {
 
           {/* Options */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => toggleOpt("groupByAisle")}
-              aria-pressed={opts.groupByAisle}
-              className={`text-sm px-3 py-1.5 h-auto transition-all ${
-                opts.groupByAisle
-                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
-                  : "bg-black/60 border border-white/20 text-white hover:bg-black/70"
-              }`}
-              data-testid="option-group-by-aisle"
-            >
-              Group by aisle
-            </Button>
+            
             <Button
               onClick={() => toggleOpt("excludePantryStaples")}
               aria-pressed={opts.excludePantryStaples}
@@ -452,21 +440,7 @@ export default function ShoppingListMasterView() {
             >
               Exclude pantry staples
             </Button>
-            <select
-              value={opts.rounding}
-              onChange={(e) =>
-                setOpts({
-                  ...opts,
-                  rounding: e.target.value as "none" | "friendly",
-                })
-              }
-              className="bg-white/10 border border-white/20 text-white/90 text-sm rounded-md px-2 py-1"
-              title="Rounding"
-              data-testid="select-rounding"
-            >
-              <option value="friendly">Rounding: Friendly</option>
-              <option value="none">Rounding: None</option>
-            </select>
+            
           </div>
         </div>
         {/* Add Other Items Section */}
