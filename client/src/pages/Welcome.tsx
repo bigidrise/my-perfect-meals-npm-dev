@@ -210,7 +210,7 @@ export default function Welcome() {
                 setLocation("/dashboard");
               }}
               className="w-full h-14 text-md font-medium rounded-2xl
-                       bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400
+              bg-gradient-to-r from-black via-orange-600 to-black hover:from-orange-600 hover:to-amber-400
                        text-white shadow-lg border border-orange-400/30
                        transition-all duration-200 flex items-center justify-center gap-2"
             >
@@ -224,7 +224,7 @@ export default function Welcome() {
             data-testid="button-explore-guest"
             onClick={exploreAsGuest}
             className="w-full h-14 text-md font-medium rounded-2xl
-                     bg-gradient-to-r from-lime-600 to-emerald-600 hover:from-lime-500 hover:to-emerald-500
+            bg-gradient-to-r from-black via-lime-600 to-black hover:to-lime-600
                      text-white shadow-lg border border-lime-400/30
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
