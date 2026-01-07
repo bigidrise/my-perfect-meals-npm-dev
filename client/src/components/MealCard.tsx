@@ -8,7 +8,7 @@ import { queryClient } from "@/lib/queryClient";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
@@ -282,15 +282,17 @@ export function MealCard({
               label="Add to Macros"
             />
           )}
-          <CopyRecipeButton
-            recipe={{
+          <MealCardActions
+            meal={{
               name: title,
+              description: meal.description,
               ingredients: (meal.ingredients ?? []).map((ing: any) => ({
                 name: typeof ing === "string" ? ing : (ing.name || ing.item),
                 amount: typeof ing === "string" ? "" : (ing.quantity || ing.amount),
                 unit: typeof ing === "string" ? "" : ing.unit,
               })),
               instructions: meal.instructions || [],
+              nutrition: meal.nutrition,
             }}
           />
         </div>

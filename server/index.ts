@@ -89,6 +89,7 @@ import stripeWebhookRouter from "./routes/stripeWebhook";
 import builderPlansRouter from "./routes/builderPlans";
 import passwordResetRouter from "./routes/password-reset";
 import iosVerifyRouter from "./routes/iosVerify";
+import translateRouter from "./routes/translate";
 
 const app = express();
 
@@ -354,6 +355,9 @@ app.use("/api", manualMacrosRouter);
 
 // Meal Templates System - Library browsing for meal replacement
 app.use("/api/meal-templates", templateRouter);
+
+// Translation API - UI-level translation for meal content
+app.use("/api/translate", translateRouter);
 
 // Game Leaderboards System
 app.use("/api/games", gamesRouter);

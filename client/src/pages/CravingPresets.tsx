@@ -16,7 +16,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 const SERVING_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
@@ -334,15 +334,17 @@ export default function CravingPresetsPage() {
                       medicalBadges: selected.badges || [],
                     }}
                   />
-                  <CopyRecipeButton
-                    recipe={{
+                  <MealCardActions
+                    meal={{
                       name: selected.name,
+                      description: selected.summary,
                       ingredients: scaledIngs.map((ing) => ({
                         name: ing.name,
                         amount: formatQty(ing.quantity),
                         unit: pluralize(ing.unit, ing.quantity),
                       })),
                       instructions: selected.instructions,
+                      nutrition: selected.macros,
                     }}
                   />
                 </div>

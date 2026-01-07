@@ -5,7 +5,7 @@ import { ArrowLeft, Home, Sparkles } from "lucide-react";
 import { mocktailsData } from "@/data/mocktailsData";
 import { useState, useEffect } from "react";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 
 export default function MocktailsLowCalMixersPage() {
   const [, setLocation] = useLocation();
@@ -152,15 +152,19 @@ export default function MocktailsLowCalMixersPage() {
                 <div className="mb-4">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <h3 className="font-bold text-lg text-white">Ingredients</h3>
-                    <CopyRecipeButton recipe={{
-                      name: selected.name,
-                      ingredients: selected.ingredients.map(ing => ({
-                        name: ing.name,
-                        amount: String(ing.quantity),
-                        unit: ing.unit
-                      })),
-                      instructions: selected.instructions
-                    }} />
+                    <MealCardActions
+                      meal={{
+                        name: selected.name,
+                        description: selected.description,
+                        ingredients: selected.ingredients.map(ing => ({
+                          name: ing.name,
+                          amount: String(ing.quantity),
+                          unit: ing.unit
+                        })),
+                        instructions: selected.instructions,
+                        nutrition: { calories: selected.calories },
+                      }}
+                    />
                   </div>
                   <ul className="list-disc list-inside space-y-1">
                     {selected.ingredients.map((ingredient, idx) => (

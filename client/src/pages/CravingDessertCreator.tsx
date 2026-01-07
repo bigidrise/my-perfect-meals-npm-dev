@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -630,9 +630,10 @@ export default function DessertCreator() {
                     </div>
                     <div className="flex gap-2 mb-4">
                       <AddToMealPlanButton meal={generatedDessert} />
-                      <CopyRecipeButton
-                        recipe={{
+                      <MealCardActions
+                        meal={{
                           name: generatedDessert.name,
+                          description: generatedDessert.description,
                           ingredients: (generatedDessert.ingredients ?? []).map(
                             (ing: any) => ({
                               name: ing.name || ing.item,
@@ -649,6 +650,7 @@ export default function DessertCreator() {
                                   .split("\n")
                                   .filter((s: string) => s.trim())
                               : [],
+                          nutrition: generatedDessert.nutrition,
                         }}
                       />
                     </div>
