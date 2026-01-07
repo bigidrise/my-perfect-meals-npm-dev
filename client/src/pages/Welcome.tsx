@@ -8,6 +8,10 @@ import { startGuestSession } from "@/lib/guestMode";
 // 🚩 FEATURE FLAG: Set to true to show carousel, false for simple layout
 const SHOW_CAROUSEL = false;
 
+// 🍎 APPLE REVIEW FLAG: Set to true to hide Sign In/Create Account for App Store review
+// After Apple approval, set this back to false to restore authentication options
+const APPLE_REVIEW_MODE = true;
+
 const slides = [
   {
     id: 1,
@@ -207,43 +211,50 @@ export default function Welcome() {
             Build a Day — No Account Needed
           </Button>
 
-          <div className="flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-white/20" />
-            <span className="text-white/50 text-xs">or sign in</span>
-            <div className="flex-1 h-px bg-white/20" />
-          </div>
+          {/* Auth options hidden during Apple Review */}
+          {!APPLE_REVIEW_MODE && (
+            <>
+              <div className="flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-white/20" />
+                <span className="text-white/50 text-xs">or sign in</span>
+                <div className="flex-1 h-px bg-white/20" />
+              </div>
 
-          <Button
-            data-testid="button-signin"
-            onClick={signIn}
-            className="w-full h-14 text-md font-medium rounded-2xl
-                     bg-white/10 hover:bg-white/20 backdrop-blur-md
-                     border border-white/20 text-white
-                     transition-all duration-200"
-          >
-            Sign In
-          </Button>
+              <Button
+                data-testid="button-signin"
+                onClick={signIn}
+                className="w-full h-14 text-md font-medium rounded-2xl
+                         bg-white/10 hover:bg-white/20 backdrop-blur-md
+                         border border-white/20 text-white
+                         transition-all duration-200"
+              >
+                Sign In
+              </Button>
 
-          <Button
-            data-testid="button-createaccount"
-            onClick={createAccount}
-            className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
-                     text-white shadow-lg
-                     transition-all duration-200"
-          >
-            Create Account
-          </Button>
+              <Button
+                data-testid="button-createaccount"
+                onClick={createAccount}
+                className="w-full h-14 text-md font-medium rounded-2xl
+                bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
+                         text-white shadow-lg
+                         transition-all duration-200"
+              >
+                Create Account
+              </Button>
+            </>
+          )}
         </div>
 
-        {/* Forgot Password Link */}
-        <button
-          data-testid="link-forgotpassword"
-          onClick={() => setLocation("/forgot-password")}
-          className="mt-8 text-sm text-white/60 hover:text-white/90 underline transition-colors"
-        >
-          Forgot Password?
-        </button>
+        {/* Forgot Password Link - hidden during Apple Review */}
+        {!APPLE_REVIEW_MODE && (
+          <button
+            data-testid="link-forgotpassword"
+            onClick={() => setLocation("/forgot-password")}
+            className="mt-8 text-sm text-white/60 hover:text-white/90 underline transition-colors"
+          >
+            Forgot Password?
+          </button>
+        )}
       </div>
     );
   }
