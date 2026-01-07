@@ -178,10 +178,10 @@ export default function MealReminders() {
       {!hasPermission && isNative && (
         <button
           onClick={openAppSettings}
-          className="flex items-center gap-2 bg-blue-600 rounded-lg px-6 py-3 mt-3 w-full justify-center hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-1.5 bg-blue-600/80 rounded-md px-3 py-1.5 mt-2 hover:bg-blue-700 transition-colors"
         >
-          <ExternalLink className="w-5 h-5 text-white" />
-          <span className="text-white text-lg font-bold">Open iPhone Settings</span>
+          <ExternalLink className="w-3.5 h-3.5 text-white" />
+          <span className="text-white text-xs font-medium">Open Settings</span>
         </button>
       )}
     </div>
