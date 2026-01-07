@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, LogIn } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
 import { startGuestSession } from "@/lib/guestMode";
 
@@ -198,6 +198,27 @@ export default function Welcome() {
 
         {/* Buttons */}
         <div className="w-full max-w-sm space-y-4">
+          {/* Full Access - For Apple Reviewers */}
+          {APPLE_REVIEW_MODE && (
+            <Button
+              data-testid="button-full-access"
+              onClick={() => {
+                // Set as authenticated to bypass all route protection
+                localStorage.setItem("isAuthenticated", "true");
+                localStorage.setItem("coachMode", "self");
+                localStorage.setItem("appleReviewFullAccess", "true");
+                setLocation("/dashboard");
+              }}
+              className="w-full h-14 text-md font-medium rounded-2xl
+                       bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400
+                       text-white shadow-lg border border-orange-400/30
+                       transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <LogIn className="h-5 w-5" />
+              Full Access — Explore Everything
+            </Button>
+          )}
+
           {/* Guest Mode - Apple App Review Compliant */}
           <Button
             data-testid="button-explore-guest"
