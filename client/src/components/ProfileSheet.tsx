@@ -1,8 +1,6 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { Capacitor } from "@capacitor/core";
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import {
   Sheet,
   SheetContent,
@@ -34,8 +32,6 @@ import {
   Video,
   FileText,
   Trash2,
-  Camera as CameraIcon,
-  Loader2,
   Utensils,
 } from "lucide-react";
 import { logout } from "@/lib/auth";
@@ -49,176 +45,12 @@ interface ProfileSheetProps {
 
 export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
-  const { user, setUser, refreshUser } = useAuth();
+  const { user, setUser } = useAuth();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userName = user?.name || user?.username || "User";
   const userEmail = user?.email || "";
-  const profilePhotoUrl = user?.profilePhotoUrl;
-
-  const userInitials = userName
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
-  const isNative = Capacitor.isNativePlatform();
-
-  // Convert base64 to blob for upload
-  const base64ToBlob = (base64: string, contentType: string): Blob => {
-    const byteCharacters = atob(base64);
-    const byteArrays = [];
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-      const slice = byteCharacters.slice(offset, offset + 512);
-      const byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-    return new Blob(byteArrays, { type: contentType });
-  };
-
-  // Upload photo to S3 and update profile
-  const uploadPhotoToS3 = async (blob: Blob, filename: string, contentType: string) => {
-    const presignedRes = await fetch(apiUrl("/api/uploads/request-url"), {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: filename,
-        size: blob.size,
-        contentType: contentType,
-      }),
-    });
-
-    if (!presignedRes.ok) {
-      throw new Error("Failed to get upload URL");
-    }
-
-    const { uploadURL, objectPath } = await presignedRes.json();
-
-    const uploadRes = await fetch(uploadURL, {
-      method: "PUT",
-      headers: { "Content-Type": contentType },
-      body: blob,
-    });
-
-    if (!uploadRes.ok) {
-      throw new Error("Failed to upload image");
-    }
-
-    const updateRes = await fetch(apiUrl("/api/users/profile-photo"), {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ profilePhotoUrl: objectPath }),
-    });
-
-    if (!updateRes.ok) {
-      throw new Error("Failed to update profile photo");
-    }
-
-    await refreshUser();
-  };
-
-  // Native photo capture using Capacitor Camera
-  const handleNativePhotoCapture = async () => {
-    if (isUploadingPhoto) return;
-    
-    try {
-      const photo = await Camera.getPhoto({
-        quality: 80,
-        allowEditing: true,
-        resultType: CameraResultType.Base64,
-        source: CameraSource.Prompt, // Shows both camera and photo library options
-      });
-
-      if (!photo.base64String) {
-        throw new Error("No image data received");
-      }
-
-      setIsUploadingPhoto(true);
-      const contentType = `image/${photo.format || 'jpeg'}`;
-      const blob = base64ToBlob(photo.base64String, contentType);
-      const filename = `profile-${Date.now()}.${photo.format || 'jpg'}`;
-
-      await uploadPhotoToS3(blob, filename, contentType);
-
-      toast({
-        title: "Photo updated",
-        description: "Your profile photo has been updated.",
-      });
-    } catch (error: any) {
-      console.error("Photo capture error:", error);
-      // Don't show error if user cancelled
-      if (error.message?.includes("cancelled") || error.message?.includes("canceled")) {
-        return;
-      }
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to capture photo.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingPhoto(false);
-    }
-  };
-
-  // Web file input handler (fallback for non-native)
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an image file.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 5MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploadingPhoto(true);
-    try {
-      await uploadPhotoToS3(file, file.name, file.type);
-
-      toast({
-        title: "Photo updated",
-        description: "Your profile photo has been updated.",
-      });
-    } catch (error: any) {
-      console.error("Photo upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload photo.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingPhoto(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -361,74 +193,12 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         {/* User Info Section */}
         <div className="mt-6 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              {/* Hidden file input for web fallback */}
-              {!isNative && (
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                  id="profile-photo-input-sheet"
-                />
-              )}
-              {isNative ? (
-                <button
-                  onClick={handleNativePhotoCapture}
-                  disabled={isUploadingPhoto}
-                  className="cursor-pointer block"
-                >
-                  <div className="relative h-12 w-12 rounded-full bg-orange-600/80 border-2 border-orange-400/30 overflow-hidden shadow-lg">
-                    {profilePhotoUrl ? (
-                      <img
-                        src={profilePhotoUrl}
-                        alt={userName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white font-semibold text-lg">
-                        {userInitials || "?"}
-                      </div>
-                    )}
-                    {isUploadingPhoto && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <Loader2 className="h-5 w-5 text-white animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-purple-600 border border-black/40">
-                    <CameraIcon className="h-2.5 w-2.5 text-white" />
-                  </div>
-                </button>
-              ) : (
-                <label
-                  htmlFor="profile-photo-input-sheet"
-                  className="cursor-pointer block"
-                >
-                  <div className="relative h-12 w-12 rounded-full bg-orange-600/80 border-2 border-orange-400/30 overflow-hidden shadow-lg">
-                    {profilePhotoUrl ? (
-                      <img
-                        src={profilePhotoUrl}
-                        alt={userName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white font-semibold text-lg">
-                        {userInitials || "?"}
-                      </div>
-                    )}
-                    {isUploadingPhoto && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <Loader2 className="h-5 w-5 text-white animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-purple-600 border border-black/40">
-                    <CameraIcon className="h-2.5 w-2.5 text-white" />
-                  </div>
-                </label>
-              )}
+            <div className="h-12 w-12 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg flex items-center justify-center">
+              <img
+                src="/assets/MPMFlameChefLogo.png"
+                alt="My Perfect Meals"
+                className="w-10 h-10 object-contain"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold truncate">{userName}</h3>
