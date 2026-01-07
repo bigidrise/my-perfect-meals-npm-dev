@@ -39,6 +39,7 @@ import {
 import { logout } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import MealReminders from "@/components/MealReminders";
 
 interface ProfileSheetProps {
   children: React.ReactNode;
@@ -335,6 +336,11 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Meal Reminders */}
+        <div className="mt-4">
+          <MealReminders />
         </div>
 
         {/* Menu Items */}

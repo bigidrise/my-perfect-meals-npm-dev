@@ -29,6 +29,7 @@ import { CopilotProvider } from "./components/copilot/CopilotContext";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { GlobalGuestBanner } from "./components/GlobalGuestBanner";
+import { setupNotificationListeners } from "@/services/mealReminderService";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -49,6 +50,15 @@ export default function App() {
     setModalHandler((modalId) => {
       console.log("🪟 Copilot opening modal:", modalId);
     });
+  }, [setLocation]);
+
+  // Setup meal reminder notification tap handler
+  useEffect(() => {
+    const cleanup = setupNotificationListeners((route) => {
+      console.log("🔔 Notification tap, navigating to:", route);
+      setLocation(route);
+    });
+    return cleanup;
   }, [setLocation]);
 
   useEffect(() => {

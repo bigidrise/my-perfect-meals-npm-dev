@@ -49,5 +49,7 @@
         <true/>
         <key>NSLocationWhenInUseUsageDescription</key>
         <string>My Perfect Meals needs your location to find restaurants and meal options near you.</string>
+        <key>NSUserNotificationsUsageDescription</key>
+        <string>My Perfect Meals uses notifications to remind you when it's time to eat.</string>
 </dict>
 </plist>
