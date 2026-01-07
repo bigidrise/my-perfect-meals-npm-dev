@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bell, BellOff, Clock } from "lucide-react";
+import { Bell, BellOff, Clock, ExternalLink } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
+import { NativeSettings, IOSSettings } from "capacitor-native-settings";
 import {
   loadReminderSchedule,
   saveReminderSchedule,
@@ -50,6 +51,15 @@ export default function MealReminders() {
   const { toast } = useToast();
 
   const isNative = Capacitor.isNativePlatform();
+
+  const openAppSettings = async () => {
+    try {
+      // iOS: opens the app's settings page directly (Apple-approved)
+      await NativeSettings.openIOS({ option: IOSSettings.App });
+    } catch (err) {
+      console.error("Failed to open settings:", err);
+    }
+  };
 
   useEffect(() => {
     async function init() {
@@ -171,10 +181,14 @@ export default function MealReminders() {
         />
       </div>
 
-      {!hasPermission && schedule.enabled && (
-        <p className="text-orange-400 text-xs mt-3">
-          Notification permission required. Check your device settings.
-        </p>
+      {!hasPermission && (
+        <button
+          onClick={openAppSettings}
+          className="flex items-center gap-2 text-orange-400 text-xs mt-3 hover:text-orange-300 transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" />
+          <span>Open Settings to enable notifications</span>
+        </button>
       )}
     </div>
   );
