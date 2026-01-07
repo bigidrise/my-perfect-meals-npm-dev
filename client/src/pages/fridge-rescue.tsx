@@ -35,7 +35,7 @@ import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilot } from "@/components/copilot/CopilotContext";
@@ -876,9 +876,10 @@ const FridgeRescuePage = () => {
                       <div className="mt-auto pt-4 space-y-2">
                         <div className="flex gap-2">
                           <AddToMealPlanButton meal={meal} />
-                          <CopyRecipeButton
-                            recipe={{
+                          <MealCardActions
+                            meal={{
                               name: meal.name,
+                              description: meal.description,
                               ingredients: (meal.ingredients ?? []).map((ing: any) => ({
                                 name: typeof ing === "string" ? ing : ing.name,
                                 amount: typeof ing === "string" ? "" : ing.quantity,
@@ -887,6 +888,7 @@ const FridgeRescuePage = () => {
                               instructions: typeof meal.instructions === "string"
                                 ? meal.instructions.split(/\.\s+/).filter(Boolean)
                                 : meal.instructions,
+                              nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
                             }}
                           />
                         </div>

@@ -9,7 +9,7 @@ import { Users, ChefHat, ArrowLeft } from "lucide-react";
 import { toddlersMeals, type ToddlersMeal } from "@/data/toddlersMealsData";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -286,15 +286,18 @@ export default function ToddlersMealsHub() {
                     <h3 className="font-bold text-lg text-white">
                       Health Benefits
                     </h3>
-                    <CopyRecipeButton recipe={{
-                      name: selected.name,
-                      ingredients: scaledIngs.map(ing => ({
-                        name: ing.name,
-                        amount: formatQty(ing.quantity),
-                        unit: pluralize(ing.unit, ing.quantity)
-                      })),
-                      instructions: selected.instructions
-                    }} />
+                    <MealCardActions
+                      meal={{
+                        name: selected.name,
+                        description: selected.description,
+                        ingredients: scaledIngs.map(ing => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity)
+                        })),
+                        instructions: selected.instructions,
+                      }}
+                    />
                   </div>
                   <HealthBadgesPopover
                     badges={selected.healthBadges}
