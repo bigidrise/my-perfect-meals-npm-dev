@@ -8,7 +8,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 
 const LEAN_SOCIAL_TOUR_STEPS: TourStep[] = [
   { title: "Browse Smart Drinks", description: "Find lower-calorie drink options for social occasions." },
@@ -432,15 +432,18 @@ export default function AlcoholLeanAndSocial() {
                 <div className="mb-4">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <h3 className="font-bold text-lg text-white">Ingredients</h3>
-                    <CopyRecipeButton recipe={{
-                      name: selected.name,
-                      ingredients: selected.ingredients.map(ing => ({
-                        name: ing.name,
-                        amount: String(ing.quantity),
-                        unit: ing.unit
-                      })),
-                      instructions: [selected.how]
-                    }} />
+                    <MealCardActions
+                      meal={{
+                        name: selected.name,
+                        ingredients: selected.ingredients.map(ing => ({
+                          name: ing.name,
+                          amount: String(ing.quantity),
+                          unit: ing.unit
+                        })),
+                        instructions: [selected.how],
+                      }}
+                      showTranslate={false}
+                    />
                   </div>
                   <ul className="list-disc list-inside space-y-1">
                     {selected.ingredients.map((ingredient, idx) => (

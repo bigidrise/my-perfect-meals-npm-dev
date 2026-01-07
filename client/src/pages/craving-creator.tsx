@@ -41,7 +41,7 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { post } from "@/lib/api";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
@@ -873,9 +873,10 @@ export default function CravingCreator() {
                       {/* Action Buttons - Always show */}
                       <div className="flex gap-2 mb-4">
                         <AddToMealPlanButton meal={meal} />
-                        <CopyRecipeButton
-                          recipe={{
+                        <MealCardActions
+                          meal={{
                             name: meal.name,
+                            description: meal.description,
                             ingredients: (meal.ingredients ?? []).map(
                               (ing: any) => ({
                                 name: ing.item || ing.name,
@@ -890,6 +891,7 @@ export default function CravingCreator() {
                                     .split("\n")
                                     .filter((s: string) => s.trim())
                                 : [],
+                            nutrition: meal.nutrition,
                           }}
                         />
                       </div>
