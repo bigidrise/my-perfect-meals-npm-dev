@@ -78,8 +78,8 @@ export default function MealReminders() {
       const granted = await requestNotificationPermission();
       if (!granted) {
         toast({
-          title: "Permission Required",
-          description: "Enable notifications in Settings to get meal reminders.",
+          title: "Notifications Blocked",
+          description: "Go to iPhone Settings > My Perfect Meals > Allow Notifications",
           variant: "destructive",
         });
         return;
@@ -178,10 +178,10 @@ export default function MealReminders() {
       {!hasPermission && isNative && (
         <button
           onClick={openAppSettings}
-          className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 mt-3 w-full justify-center hover:bg-white/20 transition-colors"
+          className="flex items-center gap-2 bg-blue-600 rounded-lg px-6 py-3 mt-3 w-full justify-center hover:bg-blue-700 transition-colors"
         >
-          <ExternalLink className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-medium">Open iPhone Settings to Allow Notifications</span>
+          <ExternalLink className="w-5 h-5 text-white" />
+          <span className="text-white text-lg font-bold">Open iPhone Settings</span>
         </button>
       )}
     </div>
