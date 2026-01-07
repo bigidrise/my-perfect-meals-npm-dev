@@ -90,6 +90,7 @@ export const GUEST_ALLOWED_ROUTES = [
   "/welcome",
   "/guest-builder",
   "/macro-counter",
+  "/weekly-meal-board",
   "/craving-creator",
   "/fridge-rescue",
   "/privacy-policy",
@@ -99,7 +100,6 @@ export const GUEST_ALLOWED_ROUTES = [
 // Pages that require account (show soft gate)
 export const ACCOUNT_REQUIRED_ROUTES = [
   "/dashboard",
-  "/weekly-meal-board",
   "/shopping-list",
   "/procare-cover",
   "/care-team",
