@@ -282,7 +282,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent className="bg-gradient-to-br from-black/95 via-orange-900/40 to-black/95 border-l border-white/10 backdrop-blur-xl overflow-y-auto">
+      <SheetContent className="bg-gradient-to-br from-black/95 via-orange-900/40 to-black/95 border-l border-white/10 backdrop-blur-xl overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
           <SheetTitle className="text-white">My Hub</SheetTitle>
           <SheetDescription className="text-white/70">
