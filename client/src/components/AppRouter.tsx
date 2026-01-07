@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
 
 interface AppRouterProps {
   children: React.ReactNode;
@@ -80,7 +81,12 @@ export default function AppRouter({ children }: AppRouterProps) {
     // Protect all routes except public pages
     const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
-    if (!isAuthenticated && !isPublicRoute) {
+    
+    // Allow guest mode to access guest-allowed routes
+    const guestModeActive = isGuestMode();
+    const guestCanAccess = guestModeActive && isGuestAllowedRoute(location);
+    
+    if (!isAuthenticated && !isPublicRoute && !guestCanAccess) {
       setLocation("/welcome");
     }
   }, [location, setLocation, needsOnboardingRepair]);
