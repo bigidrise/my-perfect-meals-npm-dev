@@ -44,3 +44,18 @@ The application is a monorepo utilizing React + Vite (TypeScript) for the fronte
 - **Twilio**: Optional for SMS notifications (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`).
 - **SendGrid**: Optional for email services (`SENDGRID_API_KEY`).
 - **Apple StoreKit 2**: For iOS in-app purchases via `@squareetlabs/capacitor-subscriptions` plugin.
+
+## Apple App Review
+
+**Review Mode Flag**: `APPLE_REVIEW_MODE` in `client/src/pages/Welcome.tsx` (line 16)
+- Set to `true` before submitting to Apple (hides Sign In, Create Account, Forgot Password)
+- Set to `false` after approval to restore authentication options
+
+**App Store Connect Review Notes (for next submission)**:
+> **Review Instructions:**
+> This app includes a guest preview experience. Reviewers can access the core functionality by tapping **"Build a Day — No Account Needed"** on launch. No account or sign-in is required to explore the app during review.
+
+**Guest Access Routes** (public, no auth required):
+- `/welcome` - Landing page with guest button
+- `/guest-builder` - Guest feature hub (4 action buttons)
+- `/guest/*` - All guest sub-routes
