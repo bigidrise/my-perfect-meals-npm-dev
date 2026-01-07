@@ -78,8 +78,9 @@ export default function AppRouter({ children }: AppRouterProps) {
     }
 
     // Protect all routes except public pages
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password"];
-    if (!isAuthenticated && !publicRoutes.includes(location)) {
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest"];
+    const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
+    if (!isAuthenticated && !isPublicRoute) {
       setLocation("/welcome");
     }
   }, [location, setLocation, needsOnboardingRepair]);
