@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -422,6 +422,49 @@ export default function MealFinder() {
                           <p className="text-orange-200 text-sm">
                             {result.meal.modifications}
                           </p>
+                        </div>
+
+                        {/* Share Button */}
+                        <div className="mt-4 flex justify-end">
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const shareText = `🍽️ ${result.meal.name} at ${result.restaurantName}\n\n` +
+                                `📍 ${result.address}\n\n` +
+                                `${result.meal.calories} cal | ${result.meal.protein}g protein | ${result.meal.carbs}g carbs | ${result.meal.fat}g fat\n\n` +
+                                `${result.meal.description}\n\n` +
+                                `💡 Ask For: ${result.meal.modifications}\n\n` +
+                                `Found with My Perfect Meals`;
+                              
+                              try {
+                                if (navigator.share) {
+                                  await navigator.share({
+                                    title: `${result.meal.name} at ${result.restaurantName}`,
+                                    text: shareText,
+                                  });
+                                } else {
+                                  await navigator.clipboard.writeText(shareText);
+                                  toast({
+                                    title: "Copied!",
+                                    description: "Meal info copied to clipboard",
+                                  });
+                                }
+                              } catch (err) {
+                                if ((err as Error).name !== 'AbortError') {
+                                  await navigator.clipboard.writeText(shareText);
+                                  toast({
+                                    title: "Copied!",
+                                    description: "Meal info copied to clipboard",
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <Share2 className="h-4 w-4 mr-1" />
+                            Share
+                          </Button>
                         </div>
                       </div>
                     </div>
