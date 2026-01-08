@@ -9,12 +9,40 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Share2 } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus, Navigation, Copy, CalendarPlus, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import {
+  generateMedicalBadges,
+  getUserMedicalProfile,
+} from "@/utils/medicalPersonalization";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { getLocation } from "@/lib/capacitorLocation";
+import { setQuickView } from "@/lib/macrosQuickView";
+import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+
+const FIND_MEALS_TOUR_STEPS: TourStep[] = [
+  {
+    title: "Enter Your Craving",
+    description: "Tell us what you're in the mood for.",
+  },
+  {
+    title: "Add Your ZIP Code",
+    description: "Enter your location so we can find nearby restaurants.",
+  },
+  {
+    title: "Get Recommendations",
+    description:
+      "See nearby restaurants with two healthy meal options from each, along with ordering tips.",
+  },
+];
 
 const CACHE_KEY = "mealFinder.cache.v1";
 
@@ -78,6 +106,7 @@ interface MealResult {
 export default function MealFinder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const quickTour = useQuickTour("social-find-meals");
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -88,6 +117,7 @@ export default function MealFinder() {
 
   const [mealQuery, setMealQuery] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [results, setResults] = useState<MealResult[]>([]);
   const [progress, setProgress] = useState(0);
   const hasRestoredRef = useRef(false);
@@ -198,6 +228,42 @@ export default function MealFinder() {
     findMealsMutation.mutate({ mealQuery, zipCode });
   };
 
+  const handleUseLocation = async () => {
+    setIsGettingLocation(true);
+    
+    try {
+      const coords = await getLocation();
+      
+      const response = await apiRequest(
+        "/api/restaurants/reverse-geocode",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lat: coords.latitude,
+            lng: coords.longitude,
+          }),
+        },
+      );
+      
+      if (response.zipCode) {
+        setZipCode(response.zipCode);
+        toast({
+          title: "Location Found",
+          description: `ZIP Code: ${response.zipCode}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Location Access Denied",
+        description: "Please enable location access or enter ZIP manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
   const handleGoBack = () => {
     setLocation("/social-hub");
   };
@@ -205,23 +271,37 @@ export default function MealFinder() {
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
+        {/* iOS Safe Area Background Cover - prevents content showing through notch */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black"
+          style={{ height: "env(safe-area-inset-top, 0px)" }}
+        />
+
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ top: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-8 py-3 flex items-center gap-3">
+          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() => setLocation("/social-hub")}
-              className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
+              className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
               <span className="text-sm font-medium">Back</span>
             </button>
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white">Meal Finder</h1>
+            <h1 className="text-lg font-bold text-white truncate min-w-0">
+              Meal Finder
+            </h1>
+
+            <div className="flex-grow" />
+            <QuickTourButton
+              onClick={quickTour.openTour}
+              className="flex-shrink-0"
+            />
           </div>
         </div>
 
@@ -261,23 +341,56 @@ export default function MealFinder() {
                   <label className="block text-md text-white/80 mb-2">
                     Zip Code
                   </label>
-                  <Input
-                    placeholder="e.g., 30303, 90210, 10001"
-                    value={zipCode}
-                    onChange={(e) =>
-                      setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
-                    }
-                    className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                    maxLength={5}
-                    onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                    data-testid="input-zip-code"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., 30303, 90210, 10001"
+                      value={zipCode}
+                      onChange={(e) =>
+                        setZipCode(
+                          e.target.value.replace(/\D/g, "").slice(0, 5),
+                        )
+                      }
+                      className="flex-1 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                      maxLength={5}
+                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      data-testid="input-zip-code"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleUseLocation}
+                      disabled={isGettingLocation}
+                      className={`px-3 flex-shrink-0 text-white ${
+                        isGettingLocation
+                          ? "bg-blue-700 cursor-wait"
+                          : "bg-blue-600 hover:bg-blue-500"
+                      }`}
+                      aria-label={
+                        isGettingLocation
+                          ? "Finding your location"
+                          : "Use my location"
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        {isGettingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Finding location…</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4" />
+                            <span className="text-sm">Use my location</span>
+                          </>
+                        )}
+                      </div>
+                    </Button>
+                  </div>
                 </div>
 
                 <Button
                   onClick={handleSearch}
                   disabled={findMealsMutation.isPending}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
+                  className="w-full bg-lime-600 hover:bg-lime-600 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
                   data-testid="button-find-meals"
                 >
                   {findMealsMutation.isPending
@@ -300,9 +413,7 @@ export default function MealFinder() {
                     value={progress}
                     className="h-3 bg-black/30 border border-white/20"
                   />
-                  <p className="text-white/70 text-sm text-center mt-3">
-                    
-                  </p>
+                  <p className="text-white/70 text-sm text-center mt-3"></p>
                 </div>
               )}
             </CardContent>
@@ -310,11 +421,25 @@ export default function MealFinder() {
 
           {results.length > 0 && (
             <div className="space-y-6 mb-6">
-              <h2 className="text-xl font-bold text-white">
-                🍽️ Found{" "}
-                {new Set(results.map((r: MealResult) => r.restaurantName)).size}{" "}
-                Restaurants with {results.length} Meals:
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">
+                  🍽️ Found{" "}
+                  {new Set(results.map((r: MealResult) => r.restaurantName)).size}{" "}
+                  Restaurants with {results.length} Meals:
+                </h2>
+                <button
+                  onClick={() => {
+                    setResults([]);
+                    clearMealFinderCache();
+                    setMealQuery("");
+                    setZipCode("");
+                  }}
+                  className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                  data-testid="button-create-new"
+                >
+                  Create New
+                </button>
+              </div>
               <div className="grid gap-4">
                 {results.map((result, index) => (
                   <Card
@@ -345,8 +470,33 @@ export default function MealFinder() {
                                 {result.restaurantName}
                               </h3>
                               <p className="text-sm text-white/60">
-                                {result.cuisine} • {result.address}
+                                {result.cuisine}
                               </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <button
+                                  onClick={() => openInMaps(result.address)}
+                                  className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                  aria-label="Open in Maps"
+                                >
+                                  <Navigation className="h-3 w-3" />
+                                  <span className="underline">{result.address}</span>
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    const success = await copyAddressToClipboard(result.address);
+                                    toast({
+                                      title: success ? "Address copied" : "Copy failed",
+                                      description: success 
+                                        ? "Paste into Maps or Waze." 
+                                        : "Please copy manually.",
+                                    });
+                                  }}
+                                  className="p-1 text-white/50 hover:text-white/80 transition-colors"
+                                  aria-label="Copy address"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
                             {result.rating && (
                               <div className="flex items-center gap-1 bg-orange-600 px-2 py-1 rounded">
@@ -363,21 +513,64 @@ export default function MealFinder() {
                           <h4 className="text-xl font-bold text-white mb-1">
                             {result.meal.name}
                           </h4>
+                          {/* Starch Classification Badge */}
+                          {(() => {
+                            const starchClass = classifyMeal({
+                              name: result.meal.name,
+                              ingredients: result.meal.ingredients || [],
+                            });
+                            return (
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit mb-2 ${
+                                starchClass.isStarchMeal 
+                                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
+                                  : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                              }`}>
+                                {starchClass.emoji} {starchClass.label}
+                              </span>
+                            );
+                          })()}
                           <p className="text-sm text-white/70">
                             {result.meal.description}
                           </p>
                         </div>
 
-                        {result.medicalBadges &&
-                          result.medicalBadges.length > 0 && (
-                            <div className="mb-3">
-                              <HealthBadgesPopover
-                                badges={result.medicalBadges.map(
-                                  (b) => b.condition,
-                                )}
-                              />
-                            </div>
-                          )}
+                        {/* Medical Safety Badges - Generated Client-Side */}
+                        {(() => {
+                          const userProfile = getUserMedicalProfile(1);
+                          const mealForBadges = {
+                            name: result.meal.name,
+                            calories: result.meal.calories,
+                            protein: result.meal.protein,
+                            carbs: result.meal.carbs,
+                            fat: result.meal.fat,
+                            ingredients:
+                              result.meal.ingredients?.map((ing: string) => ({
+                                name: ing,
+                                amount: 1,
+                                unit: "serving",
+                              })) || [],
+                          };
+                          const medicalBadges = generateMedicalBadges(
+                            mealForBadges as any,
+                            userProfile,
+                          );
+                          const badgeStrings = medicalBadges.map(
+                            (b: any) => b.badge || b.label || b.id,
+                          );
+                          return (
+                            badgeStrings &&
+                            badgeStrings.length > 0 && (
+                              <div className="mb-3">
+                                <div className="flex items-center gap-3">
+                                  <HealthBadgesPopover
+                                    badges={badgeStrings}
+                                  />
+                                  <h3 className="font-semibold text-white">Medical Safety</h3>
+                                </div>
+                              </div>
+                            )
+                          );
+                        })()}
 
                         <div className="grid grid-cols-4 gap-2 mb-3">
                           <div className="text-center bg-white/10 rounded p-2">
@@ -415,7 +608,7 @@ export default function MealFinder() {
                           </p>
                         </div>
 
-                        <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 backdrop-blur-sm">
+                        <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
                           <h5 className="font-medium text-orange-300 text-sm mb-1">
                             Ask For:
                           </h5>
@@ -424,13 +617,49 @@ export default function MealFinder() {
                           </p>
                         </div>
 
-                        {/* Share Button */}
-                        <div className="mt-4 flex justify-end">
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-2">
                           <Button
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                            onClick={async (e) => {
-                              e.stopPropagation();
+                            onClick={() => {
+                              setQuickView({
+                                protein: Math.round(result.meal.protein || 0),
+                                carbs: Math.round(result.meal.carbs || 0),
+                                fat: Math.round(result.meal.fat || 0),
+                                calories: Math.round(result.meal.calories || 0),
+                                dateISO: new Date().toISOString().slice(0, 10),
+                                mealSlot: "lunch",
+                              });
+                              setLocation("/biometrics?from=find-meals&view=macros");
+                            }}
+                            className="w-full bg-black text-white font-medium"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Your Macros
+                          </Button>
+
+                          {/* Add to Meal Plan Button */}
+                          <AddToMealPlanButton
+                            meal={{
+                              id: `find-meals-${result.restaurantName}-${Date.now()}`,
+                              title: result.meal.name,
+                              name: result.meal.name,
+                              description: result.meal.description,
+                              imageUrl: result.meal.imageUrl,
+                              ingredients: result.meal.ingredients?.map((ing: string) => ({
+                                item: ing,
+                                amount: "1 serving",
+                              })) || [],
+                              instructions: result.meal.modifications ? [result.meal.modifications] : [],
+                              calories: result.meal.calories,
+                              protein: result.meal.protein,
+                              carbs: result.meal.carbs,
+                              fat: result.meal.fat,
+                            }}
+                          />
+
+                          {/* Share Button */}
+                          <Button
+                            onClick={async () => {
                               const shareText = `🍽️ ${result.meal.name} at ${result.restaurantName}\n\n` +
                                 `📍 ${result.address}\n\n` +
                                 `${result.meal.calories} cal | ${result.meal.protein}g protein | ${result.meal.carbs}g carbs | ${result.meal.fat}g fat\n\n` +
@@ -461,8 +690,9 @@ export default function MealFinder() {
                                 }
                               }
                             }}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
                           >
-                            <Share2 className="h-4 w-4 mr-1" />
+                            <Share2 className="h-4 w-4 mr-2" />
                             Share
                           </Button>
                         </div>
@@ -486,6 +716,14 @@ export default function MealFinder() {
             </div>
           )}
         </div>
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Find Meals Near Me"
+          steps={FIND_MEALS_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+        />
       </div>
     </>
   );
