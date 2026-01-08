@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -671,6 +671,50 @@ export default function RestaurantGuidePage() {
                               <p className="text-orange-200 text-sm">
                                 {meal.modifications || meal.orderInstructions}
                               </p>
+                            </div>
+
+                            {/* Share Button */}
+                            <div className="mt-4 flex justify-end">
+                              <Button
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const mealName = meal.name || meal.meal;
+                                  const restaurant = restaurantInfo?.name || restaurantInput;
+                                  const shareText = `🍽️ ${mealName} at ${restaurant}\n\n` +
+                                    `${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat\n\n` +
+                                    `${meal.description || meal.reason}\n\n` +
+                                    `💡 Ask For: ${meal.modifications || meal.orderInstructions}\n\n` +
+                                    `Found with My Perfect Meals`;
+                                  
+                                  try {
+                                    if (navigator.share) {
+                                      await navigator.share({
+                                        title: `${mealName} at ${restaurant}`,
+                                        text: shareText,
+                                      });
+                                    } else {
+                                      await navigator.clipboard.writeText(shareText);
+                                      toast({
+                                        title: "Copied!",
+                                        description: "Meal info copied to clipboard",
+                                      });
+                                    }
+                                  } catch (err) {
+                                    if ((err as Error).name !== 'AbortError') {
+                                      await navigator.clipboard.writeText(shareText);
+                                      toast({
+                                        title: "Copied!",
+                                        description: "Meal info copied to clipboard",
+                                      });
+                                    }
+                                  }
+                                }}
+                              >
+                                <Share2 className="h-4 w-4 mr-1" />
+                                Share
+                              </Button>
                             </div>
                           </div>
                         </div>
