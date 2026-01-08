@@ -30,6 +30,7 @@ import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { GlobalGuestBanner } from "./components/GlobalGuestBanner";
 import { setupNotificationListeners } from "@/services/mealReminderService";
+import DevBadge from "./components/DevBadge";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -114,6 +115,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <DevBadge />
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
