@@ -361,15 +361,15 @@ export default function ExtendedOnboarding() {
         )}
 
         <div className="flex gap-3 mt-6">
-          <Button onClick={handleBack} variant="outline" className="flex-1 border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+          <Button onClick={handleBack} variant="outline" className="flex-1 bg-black border-black text-white">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
           <Button
             disabled={!selectedBuilder || saving}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+            className="flex-1 bg-orange-500 text-white"
             onClick={handleBuilderContinue}
           >
-            {saving ? "Saving..." : "Continue to Macro Calculator"} <ArrowRight className="w-4 h-4 ml-2" />
+            {saving ? "Saving..." : "Macro Calculator"} <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
       </div>
