@@ -1,7 +1,7 @@
 // 🔒🔒🔒 RESTAURANT GUIDE - GOOGLE PLACES UPGRADE (DECEMBER 11, 2025) 🔒🔒🔒
 // STATUS: Upgraded with Google Places API integration
 // UPGRADE: Added ZIP code input + real restaurant data (name, address, rating) from Google Places
-//
+// 
 // ⚠️ ZERO-TOLERANCE LOCKDOWN POLICY ⚠️
 // DO NOT MODIFY ANY CODE IN THIS FILE WITHOUT EXPLICIT USER APPROVAL
 //
@@ -28,9 +28,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft, MapPin, Loader2, Plus, Navigation, Copy, CalendarPlus, Share2 } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
-import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -40,30 +39,6 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import PhaseGate from "@/components/PhaseGate";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import { getLocation } from "@/lib/capacitorLocation";
-import { setQuickView } from "@/lib/macrosQuickView";
-import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
-import { classifyMeal } from "@/utils/starchMealClassifier";
-
-const RESTAURANT_TOUR_STEPS: TourStep[] = [
-  {
-    title: "Describe What You Want",
-    description:
-      "Enter what you’re craving or the type of food you want to eat.",
-  },
-  {
-    title: "Enter Restaurant & ZIP",
-    description: "Add the restaurant name and a nearby zip code.",
-  },
-  {
-    title: "Get Smart Options",
-    description:
-      "View three goal-friendly meal options with simple tips on how to order them healthier.",
-  },
-];
 
 // ---- Persist the generated restaurant meal so it never "disappears" ----
 const CACHE_KEY = "restaurantGuide.cache.v1";
@@ -211,19 +186,12 @@ const cuisineKeywords: Record<string, string> = {
 
 export default function RestaurantGuidePage() {
   const [, setLocation] = useLocation();
-  const quickTour = useQuickTour("restaurant-guide");
   const [cravingInput, setCravingInput] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [matchedCuisine, setMatchedCuisine] = useState<string | null>(null);
   const [generatedMeals, setGeneratedMeals] = useState<any[]>([]);
-  const [restaurantInfo, setRestaurantInfo] = useState<{
-    name: string;
-    address: string;
-    rating?: number;
-    photoUrl?: string;
-  } | null>(null);
+  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; address: string; rating?: number; photoUrl?: string } | null>(null);
   const { toast } = useToast();
 
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
@@ -261,23 +229,14 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     if (generatedMeals.length > 0) {
       saveRestaurantCache({
-        restaurantData: {
-          meals: generatedMeals,
-          restaurantInfo: restaurantInfo || undefined,
-        },
+        restaurantData: { meals: generatedMeals, restaurantInfo: restaurantInfo || undefined },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
         generatedAtISO: new Date().toISOString(),
       });
     }
-  }, [
-    generatedMeals,
-    restaurantInput,
-    cravingInput,
-    matchedCuisine,
-    restaurantInfo,
-  ]);
+  }, [generatedMeals, restaurantInput, cravingInput, matchedCuisine, restaurantInfo]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -327,7 +286,7 @@ export default function RestaurantGuidePage() {
     onSuccess: (data) => {
       stopProgressTicker();
       setGeneratedMeals(data.recommendations || []);
-
+      
       // Store restaurant info from Google Places
       if (data.restaurantInfo) {
         setRestaurantInfo(data.restaurantInfo);
@@ -335,10 +294,7 @@ export default function RestaurantGuidePage() {
 
       // Immediately cache the new restaurant meals so they survive navigation/refresh
       saveRestaurantCache({
-        restaurantData: {
-          meals: data.recommendations || [],
-          restaurantInfo: data.restaurantInfo,
-        },
+        restaurantData: { meals: data.recommendations || [], restaurantInfo: data.restaurantInfo },
         restaurant: restaurantInput,
         craving: cravingInput,
         cuisine: matchedCuisine || "",
@@ -414,39 +370,6 @@ export default function RestaurantGuidePage() {
     });
   };
 
-  const handleUseLocation = async () => {
-    setIsGettingLocation(true);
-
-    try {
-      const coords = await getLocation();
-
-      const response = await apiRequest("/api/restaurants/reverse-geocode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat: coords.latitude,
-          lng: coords.longitude,
-        }),
-      });
-
-      if (response.zipCode) {
-        setZipCode(response.zipCode);
-        toast({
-          title: "Location Found",
-          description: `ZIP Code: ${response.zipCode}`,
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Location Access Denied",
-        description: "Please enable location access or enter ZIP manually.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGettingLocation(false);
-    }
-  };
-
   return (
     <PhaseGate phase="PHASE_1_CORE" feature="restaurant-guide">
       <motion.div
@@ -459,37 +382,23 @@ export default function RestaurantGuidePage() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        {/* iOS Safe Area Background Cover - prevents content showing through notch */}
-        <div
-          className="fixed top-0 left-0 right-0 z-50 bg-black"
-          style={{ height: "env(safe-area-inset-top, 0px)" }}
-        />
-
         {/* Universal Safe-Area Header */}
         <div
           className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ top: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
+          <div className="px-8 py-3 flex items-center gap-3">
             {/* Back Button */}
             <button
               onClick={() => setLocation("/social-hub")}
-              className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
+              className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
             >
               <ArrowLeft className="h-5 w-5" />
               <span className="text-sm font-medium">Back</span>
             </button>
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Restaurant Guide
-            </h1>
-
-            <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
+            <h1 className="text-lg font-bold text-white">Restaurant Guide</h1>
           </div>
         </div>
 
@@ -570,68 +479,33 @@ export default function RestaurantGuidePage() {
                   >
                     Your ZIP Code
                   </label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        data-testid="restaurantguide-zip"
-                        id="zip-input"
-                        placeholder="e.g. 30303, 90210, 10001"
-                        value={zipCode}
-                        onChange={(e) =>
-                          setZipCode(
-                            e.target.value.replace(/\D/g, "").slice(0, 5),
-                          )
-                        }
-                        className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                        maxLength={5}
-                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                      />
-                      {zipCode && (
-                        <button
-                          onClick={() => setZipCode("")}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
-                          type="button"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleUseLocation}
-                      disabled={isGettingLocation}
-                      className={`px-3 flex-shrink-0 text-white ${
-                        isGettingLocation
-                          ? "bg-blue-700 cursor-wait"
-                          : "bg-blue-600 hover:bg-blue-500"
-                      }`}
-                      aria-label={
-                        isGettingLocation
-                          ? "Finding your location"
-                          : "Use my location"
-                      }
-                    >
-                      <div className="flex items-center gap-2">
-                        {isGettingLocation ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">Finding location…</span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">Use my location</span>
-                          </>
-                        )}
-                      </div>
-                    </Button>
+                  <div className="relative">
+                    <Input
+                      data-testid="restaurantguide-zip"
+                      id="zip-input"
+                      placeholder="e.g. 30303, 90210, 10001"
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                      className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                      maxLength={5}
+                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                    />
+                    {zipCode && (
+                      <button
+                        onClick={() => setZipCode("")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
+                        type="button"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 </div>
                 <Button
                   data-wt="rg-search-button"
                   onClick={handleSearch}
                   disabled={generateMealsMutation.isPending}
-                  className="w-full bg-lime-600 hover:bg-lime-600 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
                 >
                   {generateMealsMutation.isPending
                     ? "Finding Dishes..."
@@ -661,62 +535,24 @@ export default function RestaurantGuidePage() {
               {generatedMeals.length > 0 && (
                 <div data-wt="rg-results-list" className="space-y-6 mb-6">
                   <div className="mb-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-bold text-white">
-                        🍽️ Recommended Meals at{" "}
-                        {restaurantInfo?.name ||
-                          restaurantInput
-                            .split(" ")
-                            .map(
-                              (word) =>
-                                word.charAt(0).toUpperCase() +
-                                word.slice(1).toLowerCase(),
-                            )
-                            .join(" ")}
-                      </h2>
-                      <button
-                        onClick={() => {
-                          setGeneratedMeals([]);
-                          clearRestaurantCache();
-                          setRestaurantInput("");
-                        }}
-                        className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
-                        data-testid="button-create-new"
-                      >
-                        Create New
-                      </button>
-                    </div>
+                    <h2 className="text-xl font-bold text-white">
+                      🍽️ Recommended Meals at{" "}
+                      {restaurantInfo?.name || restaurantInput
+                        .split(" ")
+                        .map(
+                          (word) =>
+                            word.charAt(0).toUpperCase() +
+                            word.slice(1).toLowerCase(),
+                        )
+                        .join(" ")}
+                    </h2>
                     {restaurantInfo?.address && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <button
-                          onClick={() => openInMaps(restaurantInfo.address)}
-                          className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                          aria-label="Open in Maps"
-                        >
-                          <Navigation className="h-3 w-3" />
-                          <span className="underline">{restaurantInfo.address}</span>
-                        </button>
-                        <button
-                          onClick={async () => {
-                            const success = await copyAddressToClipboard(restaurantInfo.address);
-                            toast({
-                              title: success ? "Address copied" : "Copy failed",
-                              description: success 
-                                ? "Paste into Maps or Waze." 
-                                : "Please copy manually.",
-                            });
-                          }}
-                          className="p-1 text-white/50 hover:text-white/80 transition-colors"
-                          aria-label="Copy address"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
+                      <p className="text-white/70 text-sm mt-1">
+                        📍 {restaurantInfo.address}
                         {restaurantInfo.rating && (
-                          <span className="text-sm text-white/70 ml-1">
-                            ⭐ {restaurantInfo.rating}
-                          </span>
+                          <span className="ml-2">⭐ {restaurantInfo.rating}</span>
                         )}
-                      </div>
+                      </p>
                     )}
                   </div>
                   <div className="grid gap-4">
@@ -745,27 +581,9 @@ export default function RestaurantGuidePage() {
                           {/* Meal Details */}
                           <div className="md:col-span-2 p-4">
                             <div className="flex items-start justify-between mb-2">
-                              <div className="flex flex-col gap-1">
-                                <h3 className="text-lg font-semibold text-white">
-                                  {meal.name || meal.meal}
-                                </h3>
-                                {/* Starch Classification Badge */}
-                                {(() => {
-                                  const starchClass = classifyMeal({
-                                    name: meal.name || meal.meal,
-                                    ingredients: meal.ingredients || [],
-                                  });
-                                  return (
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
-                                      starchClass.isStarchMeal 
-                                        ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
-                                        : 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                    }`}>
-                                      {starchClass.emoji} {starchClass.label}
-                                    </span>
-                                  );
-                                })()}
-                              </div>
+                              <h3 className="text-lg font-semibold text-white">
+                                {meal.name || meal.meal}
+                              </h3>
                               <span className="text-sm text-white/90 bg-orange-600 px-2 py-1 rounded font-medium">
                                 {meal.calories} cal
                               </span>
@@ -775,7 +593,7 @@ export default function RestaurantGuidePage() {
                               {meal.description || meal.reason}
                             </p>
 
-                            {/* Medical Safety Badges */}
+                            {/* Medical Badges */}
                             {(() => {
                               // Generate medical badges client-side like weekly meal calendar
                               const userProfile = getUserMedicalProfile(1);
@@ -804,12 +622,10 @@ export default function RestaurantGuidePage() {
                                 badgeStrings &&
                                 badgeStrings.length > 0 && (
                                   <div className="mb-3">
-                                    <div className="flex items-center gap-3">
-                                      <HealthBadgesPopover
-                                        badges={badgeStrings}
-                                      />
-                                      <h3 className="font-semibold text-white">Medical Safety</h3>
-                                    </div>
+                                    <HealthBadgesPopover
+                                      badges={badgeStrings}
+                                      className="mt-2"
+                                    />
                                   </div>
                                 )
                               );
@@ -848,94 +664,13 @@ export default function RestaurantGuidePage() {
                             </div>
 
                             {/* Modifications */}
-                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
+                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm">
                               <h4 className="font-medium text-orange-300 text-sm mb-1">
                                 Ask For:
                               </h4>
                               <p className="text-orange-200 text-sm">
                                 {meal.modifications || meal.orderInstructions}
                               </p>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                onClick={() => {
-                                  setQuickView({
-                                    protein: Math.round(meal.protein || 0),
-                                    carbs: Math.round(meal.carbs || 0),
-                                    fat: Math.round(meal.fat || 0),
-                                    calories: Math.round(meal.calories || 0),
-                                    dateISO: new Date().toISOString().slice(0, 10),
-                                    mealSlot: "lunch",
-                                  });
-                                  setLocation("/biometrics?from=restaurant-guide&view=macros");
-                                }}
-                                className="w-full bg-black text-white font-medium"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Your Macros
-                              </Button>
-
-                              {/* Add to Meal Plan Button */}
-                              <AddToMealPlanButton
-                                meal={{
-                                  id: meal.id || `restaurant-${index}-${Date.now()}`,
-                                  title: meal.name || meal.meal,
-                                  name: meal.name || meal.meal,
-                                  description: meal.description || meal.reason,
-                                  imageUrl: meal.imageUrl,
-                                  ingredients: meal.ingredients?.map((ing: string) => ({
-                                    item: ing,
-                                    amount: "1 serving",
-                                  })) || [],
-                                  instructions: meal.modifications ? [meal.modifications] : [],
-                                  calories: meal.calories,
-                                  protein: meal.protein,
-                                  carbs: meal.carbs,
-                                  fat: meal.fat,
-                                }}
-                              />
-
-                              {/* Share Button */}
-                              <Button
-                                onClick={async () => {
-                                  const mealName = meal.name || meal.meal;
-                                  const restaurant = restaurantInfo?.name || restaurantInput;
-                                  const shareText = `🍽️ ${mealName} at ${restaurant}\n\n` +
-                                    `${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat\n\n` +
-                                    `${meal.description || meal.reason}\n\n` +
-                                    `💡 Ask For: ${meal.modifications || meal.orderInstructions}\n\n` +
-                                    `Found with My Perfect Meals`;
-                                  
-                                  try {
-                                    if (navigator.share) {
-                                      await navigator.share({
-                                        title: `${mealName} at ${restaurant}`,
-                                        text: shareText,
-                                      });
-                                    } else {
-                                      await navigator.clipboard.writeText(shareText);
-                                      toast({
-                                        title: "Copied!",
-                                        description: "Meal info copied to clipboard",
-                                      });
-                                    }
-                                  } catch (err) {
-                                    if ((err as Error).name !== 'AbortError') {
-                                      await navigator.clipboard.writeText(shareText);
-                                      toast({
-                                        title: "Copied!",
-                                        description: "Meal info copied to clipboard",
-                                      });
-                                    }
-                                  }
-                                }}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                              >
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Share
-                              </Button>
                             </div>
                           </div>
                         </div>
@@ -991,28 +726,17 @@ export default function RestaurantGuidePage() {
                         setRestaurantInput(`${cuisine} restaurant`);
                         setMatchedCuisine(cuisine);
                       }}
-                      className="px-3 py-1 bg-black text-white rounded-full text-sm transition-colors font-medium"
+                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-full text-sm transition-colors font-medium"
                     >
                       {cuisine}
                     </button>
                   ))}
                 </div>
-                <p className="text-white/60 text-xs mt-2">
-                  Tap a cuisine to fill in the restaurant field, then enter your
-                  craving and ZIP to search.
-                </p>
+                <p className="text-white/60 text-xs mt-2">Tap a cuisine to fill in the restaurant field, then enter your craving and ZIP to search.</p>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        <QuickTourModal
-          isOpen={quickTour.shouldShow}
-          onClose={quickTour.closeTour}
-          title="How to Use Restaurant Guide"
-          steps={RESTAURANT_TOUR_STEPS}
-          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
-        />
       </motion.div>
     </PhaseGate>
   );
