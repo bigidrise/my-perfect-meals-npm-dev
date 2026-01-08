@@ -139,7 +139,14 @@ export default function ExtendedOnboarding() {
 
     try {
       const authToken = getAuthToken();
-      if (!authToken) throw new Error("No auth token");
+      
+      // Guest mode: skip server save, just navigate
+      if (!authToken) {
+        // Store builder selection in localStorage for guest users
+        localStorage.setItem("guestSelectedBuilder", selectedBuilder);
+        setLocation("/macro-counter");
+        return;
+      }
 
       // Save builder selection (independent users only)
       if (!hasCoachAssignedBuilder) {
