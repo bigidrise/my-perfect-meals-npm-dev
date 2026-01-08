@@ -34,6 +34,7 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 // Standalone 3-step onboarding for all onboarding routes
 import OnboardingStandalone from "@/pages/onboarding-standalone";
+import ExtendedOnboarding from "@/pages/onboarding/ExtendedOnboarding";
 import Welcome from "@/pages/Welcome";
 import Auth from "@/pages/Auth";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -161,6 +162,7 @@ export default function Router() {
     "/onboarding",
     "/onboarding-v2",
     "/onboarding-legacy",
+    "/onboarding/extended",
     "/pricing",
     "/checkout/success",
     "/weekly-meal-board",
@@ -213,6 +215,10 @@ export default function Router() {
         <Route
           path="/onboarding-legacy"
           component={withPageErrorBoundary(OnboardingStandalone, "Onboarding")}
+        />
+        <Route
+          path="/onboarding/extended"
+          component={withPageErrorBoundary(ExtendedOnboarding, "Extended Onboarding")}
         />
         <Route
           path="/dashboard"
