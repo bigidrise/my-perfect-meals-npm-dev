@@ -394,6 +394,10 @@ export type GuestFeature =
 /**
  * Check if a guest feature is unlocked
  * This is the SINGLE SOURCE OF TRUTH for feature access
+ * 
+ * Unlock progression:
+ * - Phase 1: Macro Calculator always open, Weekly Meal Builder opens after macros
+ * - Phase 2: After first full cycle, ALL other features unlock (Biometrics, Shopping, Fridge Rescue, Craving Creator)
  */
 export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
   if (!isGuestMode()) return true; // Non-guests have full access
@@ -403,7 +407,7 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
   
   switch (feature) {
     case "macro-calculator":
-      // Always available to guests
+      // Always available to guests - entry point
       return true;
       
     case "weekly-meal-builder":
@@ -412,14 +416,11 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
       
     case "fridge-rescue":
     case "craving-creator":
-      // Unlocked after completing first loop (Shopping → Biometrics)
-      // Uses hasCompletedFirstLoop from guestSuiteNavigator
-      return hasCompletedFirstLoopFlag();
-      
     case "biometrics":
     case "shopping-list":
-      // Available after completing macros
-      return progress.macrosCompleted;
+      // ALL these unlock together after completing first full cycle
+      // (Macros → Meal Builder → Shopping → Biometrics → Guest Suite)
+      return hasCompletedFirstLoopFlag();
       
     default:
       return false;
@@ -437,11 +438,9 @@ export function getFeatureUnlockMessage(feature: GuestFeature): string {
       
     case "fridge-rescue":
     case "craving-creator":
-      return "Complete the guided tour (Macros → Meals → Shopping → Biometrics) to unlock.";
-      
     case "biometrics":
     case "shopping-list":
-      return "Complete the Macro Calculator to unlock this feature.";
+      return "Complete your first guided cycle to unlock all features.";
       
     default:
       return "Complete the guided steps to unlock this feature.";

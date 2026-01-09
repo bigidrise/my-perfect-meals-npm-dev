@@ -352,7 +352,7 @@ export default function GuestBuilder() {
           </h3>
 
           {PHASE_2_BUTTONS.map((action) => {
-            const unlocked = isFeatureUnlocked(action.feature) || firstLoopComplete;
+            const unlocked = isFeatureUnlocked(action.feature);
             const isRevealed = action.id === "biometrics" && biometricsRevealed;
             
             return (
