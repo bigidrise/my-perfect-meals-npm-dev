@@ -53,6 +53,13 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
   - Soft nudge at 3 meal days, hard gate at 4 meal days redirecting to pricing
   - Key files: `client/src/lib/guestMode.ts`, `client/src/lib/guestSuiteBranding.ts`, `client/src/hooks/useGuestProgress.ts`, `client/src/pages/GuestBuilder.tsx`, `client/src/pages/WeeklyMealBoard.tsx`
   - **Coaching Philosophy**: MPM is "coach in your pocket" - supportive but serious. The app talks to users, not just provides tools. Guest Suite messaging encourages building COMPLETE meal days (breakfast, lunch, dinner, snacks), actually cooking them, and using passes wisely. Tone is cheerleader + drill sergeant.
+  - **Guest Copilot Marketing Scripts v1.0**: Guest-specific Copilot explanations delivered via `getGuestPageExplanation(pathname, isGuestMode())` with `guestSpokenText` and `guestDescription` fields in `CopilotPageExplanations.ts`. Marketing-focused copy per page:
+    - Macro Calculator: "We personalize, not guess"
+    - Weekly Meal Board: "Structure beats willpower — this pass counts, build the full day"
+    - Shopping List: "Planning turns into action — real-world execution"
+    - Biometrics: "Food → numbers → feedback — progress lens"
+    - Fridge Rescue: "Life happens, we adapt — use what you have"
+    - Craving Creator: "We redesign cravings — stay satisfied, stay on plan"
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
