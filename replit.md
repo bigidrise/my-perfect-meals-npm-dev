@@ -38,7 +38,12 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Meal Card Share + Translate System v1.0**: Replaced copy function with native Share and Translate toggle on meal cards, using GPT-4o-mini for content-hash cached translation.
 - **Local Meal Reminders v1.0**: Device-local notification system using `@capacitor/local-notifications` for up to 3 daily meal reminders.
 - **iOS Build Workflow**: Supports building with a remote server URL (for TestFlight/App Store) or locally served `dist` folder.
-- **iOS App Store Compliance v1.1** (Jan 2026): Updated `isIosNativeShell()` in `client/src/lib/platform.ts` to use Capacitor's `isNativePlatform()` and `getPlatform()` for reliable iOS detection during Apple App Review. Added inline citations with NIH/USDA links directly under macro calculation results in `MacroCounter.tsx` to satisfy Guideline 1.4.1 (medical information sources).
+- **iOS App Store Compliance v1.2** (Jan 2026): Full compliance with Guidelines 3.1.1 and 1.4.1:
+  - Updated `isIosNativeShell()` to use Capacitor's `isNativePlatform()` and `getPlatform()` for reliable iOS detection during Apple App Review.
+  - Added inline citations with NIH/USDA links directly under macro calculation results in `MacroCounter.tsx` to satisfy Guideline 1.4.1.
+  - Completely rewrote iOS PricingPage to show StoreKit purchase buttons (Basic $9.99, Premium $19.99, Ultimate $29.99) instead of redirecting to website.
+  - Implemented Apple subscription deep-link using `@capacitor/app-launcher` with `openAppleSubscriptions()` function.
+  - Removed ALL references to web billing/external payments on iOS to satisfy Guideline 3.1.1.
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
