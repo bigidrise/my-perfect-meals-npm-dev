@@ -1,17 +1,21 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, ArrowLeft, CreditCard, Globe, Smartphone } from "lucide-react";
+import { Check, ArrowLeft, CreditCard, Apple, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
 import AffiliateOnPricing from "@/components/AffiliateOnPricing";
 import { PLAN_SKUS, getPlansByGroup } from "@/data/planSkus";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
-import { isIosNativeShell, IOS_PAYMENT_MESSAGE } from "@/lib/platform";
+import { isIosNativeShell, IOS_PAYMENT_MESSAGE, openAppleSubscriptions } from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchProducts, restorePurchases, purchaseProduct, type StoreKitProduct } from "@/lib/storekit";
+import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
+import type { LookupKey } from "@/data/planSkus";
 
 export default function PricingPage() {
   const [, setLocation] = useLocation();
@@ -21,9 +25,90 @@ export default function PricingPage() {
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
 
-  // iOS App Store Compliance: Hide pricing UI on iOS native shell
-  // Apple Guideline 3.1.1 - No external payment options allowed
+  // iOS App Store Compliance: Show StoreKit products and Apple subscription management
+  // Apple Guideline 3.1.1 - All purchases through Apple In-App Purchase
+  const [iosProducts, setIosProducts] = useState<StoreKitProduct[]>([]);
+  const [iosLoading, setIosLoading] = useState(true);
+  const [purchasingProduct, setPurchasingProduct] = useState<string | null>(null);
+  const [restoringPurchases, setRestoringPurchases] = useState(false);
+
+  useEffect(() => {
+    if (isIosNativeShell()) {
+      loadIosProducts();
+    }
+  }, []);
+
+  async function loadIosProducts() {
+    setIosLoading(true);
+    try {
+      const products = await fetchProducts();
+      setIosProducts(products);
+    } catch (e) {
+      console.error("[iOS Pricing] Failed to load products:", e);
+    } finally {
+      setIosLoading(false);
+    }
+  }
+
+  async function handleIosPurchase(product: IosProduct) {
+    setPurchasingProduct(product.productId);
+    try {
+      const result = await purchaseProduct(product.internalSku);
+      if (result.success) {
+        toast({
+          title: "Purchase Successful",
+          description: "Your subscription is now active. Enjoy premium features!",
+        });
+        setLocation("/dashboard");
+      } else if (result.error !== "Purchase cancelled") {
+        toast({
+          title: "Purchase Failed",
+          description: result.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (e: any) {
+      toast({
+        title: "Purchase Error",
+        description: e.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPurchasingProduct(null);
+    }
+  }
+
+  async function handleRestorePurchases() {
+    setRestoringPurchases(true);
+    try {
+      const results = await restorePurchases();
+      const successful = results.filter(r => r.success);
+      if (successful.length > 0) {
+        toast({
+          title: "Purchases Restored",
+          description: "Your subscription has been restored successfully.",
+        });
+        setLocation("/dashboard");
+      } else {
+        toast({
+          title: "No Purchases Found",
+          description: "No previous purchases were found to restore.",
+        });
+      }
+    } catch (e: any) {
+      toast({
+        title: "Restore Failed",
+        description: e.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRestoringPurchases(false);
+    }
+  }
+
   if (isIosNativeShell()) {
+    const hasSubscription = !!user?.planLookupKey;
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -48,46 +133,115 @@ export default function PricingPage() {
         </div>
 
         <div
-          className="max-w-md mx-auto px-6 text-white flex flex-col items-center justify-center"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
+          className="max-w-md mx-auto px-6 text-white"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
         >
-          <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-2xl p-8 text-center space-y-6">
-            <div className="w-16 h-16 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
-              <Globe className="w-8 h-8 text-orange-400" />
+          {/* Current subscription status */}
+          {hasSubscription && (
+            <div className="bg-lime-500/20 border border-lime-500/30 rounded-xl p-4 mb-6 text-center">
+              <p className="text-lime-400 font-medium text-sm">Active Subscription</p>
+              <p className="text-white text-lg font-bold mt-1">
+                {user.planLookupKey?.replace(/_/g, ' ').replace('mpm ', '').replace(' monthly', '')}
+              </p>
+            </div>
+          )}
+
+          {/* Subscription plans */}
+          {!hasSubscription && (
+            <div className="space-y-4 mb-6">
+              <h2 className="text-xl font-bold text-center mb-4">Choose Your Plan</h2>
+              
+              {iosLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
+                </div>
+              ) : (
+                IOS_PRODUCTS.map((product) => {
+                  const storeProduct = iosProducts.find(p => p.productId === product.productId);
+                  const displayPrice = storeProduct?.displayPrice || `$${product.price.toFixed(2)}/mo`;
+                  const isPurchasing = purchasingProduct === product.productId;
+
+                  return (
+                    <div
+                      key={product.productId}
+                      className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-5"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-white font-bold text-lg">{product.label}</h3>
+                          <p className="text-white/60 text-sm">{displayPrice}</p>
+                        </div>
+                        {product.internalSku === "mpm_premium_monthly" && (
+                          <Badge className="bg-orange-500/80 text-white text-xs">Popular</Badge>
+                        )}
+                      </div>
+                      <Button
+                        onClick={() => handleIosPurchase(product)}
+                        disabled={isPurchasing}
+                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                      >
+                        {isPurchasing ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                        ) : (
+                          "Subscribe"
+                        )}
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* Manage subscription section */}
+          <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-2xl p-6 text-center space-y-4">
+            <div className="w-14 h-14 mx-auto bg-white/10 rounded-full flex items-center justify-center">
+              <Apple className="w-7 h-7 text-white" />
             </div>
             
-            <div className="space-y-3">
-              <h2 className="text-xl font-bold text-white">Manage Your Subscription</h2>
+            <div className="space-y-2">
+              <h2 className="text-lg font-bold text-white">Manage Your Subscription</h2>
               <p className="text-white/70 text-sm leading-relaxed">
-                To subscribe or manage your plan, please visit our website on a desktop or mobile browser.
+                Subscriptions are managed securely through Apple. Tap below to view, upgrade, or cancel your subscription.
               </p>
             </div>
 
-            <div className="bg-black/30 rounded-xl p-4 border border-white/10">
-              <p className="text-orange-300 font-medium text-sm">myperfectmeals.com</p>
-              <p className="text-white/50 text-xs mt-1">Sign in with your account to manage billing</p>
-            </div>
+            <Button
+              onClick={openAppleSubscriptions}
+              className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Open Apple Subscriptions
+            </Button>
 
-            {user?.planLookupKey && (
-              <div className="pt-2">
-                <p className="text-white/60 text-xs">
-                  Current plan: <span className="text-lime-400 font-medium">{user.planLookupKey.replace(/_/g, ' ').replace('mpm ', '').replace(' monthly', '')}</span>
-                </p>
-              </div>
-            )}
-
-            <div className="pt-4 space-y-3">
+            {!hasSubscription && (
               <Button
-                onClick={() => user ? setLocation("/dashboard") : setLocation("/welcome")}
-                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                onClick={handleRestorePurchases}
+                disabled={restoringPurchases}
+                variant="ghost"
+                className="w-full text-white/60 hover:text-white hover:bg-white/5"
               >
-                Continue to App
+                {restoringPurchases ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Restoring...</>
+                ) : (
+                  <><RefreshCw className="w-4 h-4 mr-2" /> Restore Purchases</>
+                )}
               </Button>
-              
-              <p className="text-white/40 text-xs">
-                Need help? <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a>
-              </p>
-            </div>
+            )}
+          </div>
+
+          <div className="pt-6 space-y-3 text-center">
+            <Button
+              onClick={() => user ? setLocation("/dashboard") : setLocation("/welcome")}
+              variant="ghost"
+              className="text-white/60 hover:text-white"
+            >
+              Continue to App
+            </Button>
+            
+            <p className="text-white/40 text-xs">
+              Need help? <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a>
+            </p>
           </div>
         </div>
       </motion.div>
