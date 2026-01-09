@@ -15,10 +15,13 @@ export default function BottomNav() {
   
   const handleNavClick = useCallback((targetPath: string) => {
     if (isGuestMode()) {
-      const currentPage = getGuestSuitePage(location);
+      // Normalize path to remove query params before checking
+      const cleanPath = location.replace(/\/+$/, '').split('?')[0];
+      const currentPage = getGuestSuitePage(cleanPath);
       if (currentPage === "shopping-list" || currentPage === "biometrics") {
         const override = getGuestNavigationOverride(currentPage);
         if (override) {
+          console.log(`🔒 Guest nav override: ${currentPage} → ${override}`);
           setLocation(override);
           return;
         }
