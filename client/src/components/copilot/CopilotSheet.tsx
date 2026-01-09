@@ -5,9 +5,13 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
+import { useGuestProgress } from "@/hooks/useGuestProgress";
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
+  
+  const { isGuest, nextStepMessage } = useGuestProgress();
+  const guestNudgeMessage = isGuest ? nextStepMessage : null;
 
   // =========================================
   // AUDIO - Visual-First with Graceful Degradation
@@ -550,6 +554,17 @@ export const CopilotSheet: React.FC = () => {
                 ============================= */}
                 {!lastResponse && (
                   <div className="mt-3 max-h-60 space-y-1 overflow-y-auto px-2 pb-2">
+                    {/* Guest Mode Nudge Card - Shows next step for guest progression */}
+                    {guestNudgeMessage && (
+                      <div className="mb-2 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 to-orange-500/10 px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-400 text-sm">✨</span>
+                          <span className="text-xs font-medium text-amber-200">
+                            {guestNudgeMessage}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     {suggestions.map((s) => (
                       <button
                         key={s.id}
