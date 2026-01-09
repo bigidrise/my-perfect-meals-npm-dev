@@ -229,7 +229,7 @@ export default function Welcome() {
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
             <Sparkles className="h-5 w-5" />
-            Build a Day — No Account Needed
+            Enter Guest Suite
           </Button>
 
           {/* Auth options hidden during Apple Review */}
