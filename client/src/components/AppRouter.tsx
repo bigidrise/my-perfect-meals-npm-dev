@@ -88,7 +88,12 @@ export default function AppRouter({ children }: AppRouterProps) {
     const guestCanAccess = guestModeActive && isGuestAllowedRoute(location);
     
     if (!isAuthenticated && !isPublicRoute && !guestCanAccess) {
-      setLocation("/welcome");
+      // Guests go back to Guest Suite, non-guests go to Welcome
+      if (guestModeActive) {
+        setLocation("/guest-builder");
+      } else {
+        setLocation("/welcome");
+      }
     }
   }, [location, setLocation, needsOnboardingRepair]);
 
