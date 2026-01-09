@@ -8,7 +8,7 @@ const GUEST_GENERATIONS_KEY = "mpm_guest_generations";
 
 // Configuration
 const MAX_GUEST_GENERATIONS = 4; // Maximum meals a guest can build
-const GUEST_DURATION_DAYS = 3; // Guest mode expires after 3 days
+const GUEST_DURATION_DAYS = 14; // Guest mode expires after 14-day concierge trial
 const MAX_GUEST_LOOPS = 4; // Maximum full loops (hard gate at 4)
 const SOFT_NUDGE_LOOP = 3; // Show soft nudge at loop 3
 
