@@ -9,6 +9,20 @@ const GUEST_GENERATIONS_KEY = "mpm_guest_generations";
 // Configuration
 const MAX_GUEST_GENERATIONS = 4; // Maximum meals a guest can build
 const GUEST_DURATION_DAYS = 3; // Guest mode expires after 3 days
+const MAX_GUEST_LOOPS = 4; // Maximum full loops (hard gate at 4)
+const SOFT_NUDGE_LOOP = 3; // Show soft nudge at loop 3
+
+// ============================================
+// GUEST SUITE JOURNEY STATE (Phase System)
+// ============================================
+
+export type GuestSuitePhase = 1 | 2;
+
+export type GuestCompletedStep = 
+  | "macros_saved"
+  | "meal_built"
+  | "shopping_viewed"
+  | "biometrics_viewed";
 
 // ============================================
 // GUEST PROGRESS STATE (Single Source of Truth)
@@ -19,6 +33,10 @@ export interface GuestProgress {
   mealsBuiltCount: number;
   guestUsesRemaining: number;
   guestStartDate: number;
+  // Phase system
+  phase: GuestSuitePhase;
+  completedSteps: GuestCompletedStep[];
+  loopCount: number;
 }
 
 export interface GuestSession {
@@ -37,6 +55,10 @@ function createDefaultProgress(): GuestProgress {
     mealsBuiltCount: 0,
     guestUsesRemaining: MAX_GUEST_GENERATIONS,
     guestStartDate: Date.now(),
+    // Phase system
+    phase: 1,
+    completedSteps: [],
+    loopCount: 0,
   };
 }
 
@@ -390,6 +412,120 @@ export function hasGuestBuiltDay(): boolean {
 }
 
 // ============================================
+// GUEST SUITE PHASE SYSTEM
+// ============================================
+
+/**
+ * Get current phase (1 = Guided Build, 2 = Revealed/Unlocked)
+ */
+export function getGuestSuitePhase(): GuestSuitePhase {
+  const progress = getGuestProgress();
+  return progress?.phase ?? 1;
+}
+
+/**
+ * Get completed steps
+ */
+export function getCompletedSteps(): GuestCompletedStep[] {
+  const progress = getGuestProgress();
+  return progress?.completedSteps ?? [];
+}
+
+/**
+ * Check if a step is completed
+ */
+export function isStepCompleted(step: GuestCompletedStep): boolean {
+  return getCompletedSteps().includes(step);
+}
+
+/**
+ * Mark a step as completed
+ */
+export function markStepCompleted(step: GuestCompletedStep): void {
+  const progress = getGuestProgress();
+  if (!progress) return;
+  
+  if (!progress.completedSteps.includes(step)) {
+    const newSteps = [...progress.completedSteps, step];
+    updateGuestProgress({ completedSteps: newSteps });
+    console.log(`✅ Guest: Step completed - ${step}`);
+    
+    // Dispatch event for UI updates
+    window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+      detail: { action: "stepCompleted", step }
+    }));
+  }
+}
+
+/**
+ * Transition to Phase 2 (Revealed/Unlocked state)
+ * Called when guest exits Shopping List after first loop
+ */
+export function unlockGuestSuitePhase2(): void {
+  const progress = getGuestProgress();
+  if (!progress || progress.phase === 2) return;
+  
+  updateGuestProgress({ phase: 2 });
+  console.log("🔓 Guest Suite: Phase 2 unlocked - Biometrics revealed");
+  
+  // Dispatch event for UI updates
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "phase2Unlocked" }
+  }));
+}
+
+/**
+ * Get current loop count
+ */
+export function getGuestLoopCount(): number {
+  const progress = getGuestProgress();
+  return progress?.loopCount ?? 0;
+}
+
+/**
+ * Increment loop count (called when exiting Shopping List)
+ */
+export function incrementGuestLoop(): void {
+  const progress = getGuestProgress();
+  if (!progress) return;
+  
+  const newLoopCount = progress.loopCount + 1;
+  updateGuestProgress({ loopCount: newLoopCount });
+  console.log(`🔄 Guest Suite: Loop ${newLoopCount} completed`);
+  
+  // If first loop completion, unlock Phase 2
+  if (newLoopCount === 1) {
+    unlockGuestSuitePhase2();
+  }
+  
+  // Dispatch event for UI updates
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "loopCompleted", loopCount: newLoopCount }
+  }));
+}
+
+/**
+ * Check if soft nudge should be shown (at loop 3)
+ */
+export function shouldShowSoftNudge(): boolean {
+  return getGuestLoopCount() >= SOFT_NUDGE_LOOP;
+}
+
+/**
+ * Check if hard gate should be shown (at loop 4)
+ */
+export function shouldShowHardGate(): boolean {
+  return getGuestLoopCount() >= MAX_GUEST_LOOPS;
+}
+
+/**
+ * Check if biometrics is revealed (Phase 2)
+ */
+export function isBiometricsRevealed(): boolean {
+  return getGuestSuitePhase() === 2;
+}
+
+// ============================================
 // ROUTE ACCESS
 // ============================================
 
@@ -397,10 +533,13 @@ export function hasGuestBuiltDay(): boolean {
 export const GUEST_ALLOWED_ROUTES = [
   "/welcome",
   "/guest-builder",
+  "/guest-suite",
   "/macro-counter",
   "/weekly-meal-board",
   "/craving-creator",
   "/fridge-rescue",
+  "/my-biometrics",
+  "/shopping-list",
   "/privacy-policy",
   "/terms",
 ];

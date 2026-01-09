@@ -79,7 +79,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     }
 
     // Protect all routes except public pages
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest"];
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
     
     // Allow guest mode to access guest-allowed routes

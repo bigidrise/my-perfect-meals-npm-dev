@@ -69,6 +69,8 @@ import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
+import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -1185,6 +1187,22 @@ export default function MyBiometrics() {
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3">
+          {/* Guest Mode: Back to Guest Suite button */}
+          {isGuestMode() && (
+            <Button
+              onClick={() => {
+                markStepCompleted("biometrics_viewed");
+                setLocation("/guest-suite");
+              }}
+              variant="ghost"
+              size="sm"
+              className="text-lime-400 hover:bg-lime-500/10 -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              {GUEST_SUITE_BRANDING.phase2.backToSuiteButton}
+            </Button>
+          )}
+          
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
             My Biometrics

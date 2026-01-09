@@ -8,6 +8,8 @@ import {
   getGuestProgress,
   GuestProgress,
   GuestFeature,
+  GuestSuitePhase,
+  GuestCompletedStep,
   isGuestFeatureUnlocked,
   getFeatureUnlockMessage,
   getGuestNextStepMessage,
@@ -19,6 +21,13 @@ import {
   shouldShowGuestUpgradePrompt,
   markMacrosCompleted,
   incrementMealsBuilt,
+  getGuestSuitePhase,
+  getGuestLoopCount,
+  shouldShowSoftNudge,
+  shouldShowHardGate,
+  isBiometricsRevealed,
+  markStepCompleted,
+  incrementGuestLoop,
 } from "@/lib/guestMode";
 
 export interface UseGuestProgressResult {
@@ -48,6 +57,17 @@ export interface UseGuestProgressResult {
   
   // Refresh state
   refresh: () => void;
+  
+  // Phase system
+  phase: GuestSuitePhase;
+  loopCount: number;
+  showSoftNudge: boolean;
+  showHardGate: boolean;
+  biometricsRevealed: boolean;
+  
+  // Phase actions
+  completeStep: (step: GuestCompletedStep) => void;
+  completeLoop: () => void;
 }
 
 export function useGuestProgress(): UseGuestProgressResult {
@@ -97,6 +117,16 @@ export function useGuestProgress(): UseGuestProgressResult {
     }));
   }, [refresh]);
 
+  const completeStep = useCallback((step: GuestCompletedStep) => {
+    markStepCompleted(step);
+    refresh();
+  }, [refresh]);
+
+  const completeLoop = useCallback(() => {
+    incrementGuestLoop();
+    refresh();
+  }, [refresh]);
+
   return {
     isGuest,
     progress,
@@ -124,6 +154,17 @@ export function useGuestProgress(): UseGuestProgressResult {
     
     // Refresh
     refresh,
+    
+    // Phase system
+    phase: getGuestSuitePhase(),
+    loopCount: getGuestLoopCount(),
+    showSoftNudge: shouldShowSoftNudge(),
+    showHardGate: shouldShowHardGate(),
+    biometricsRevealed: isBiometricsRevealed(),
+    
+    // Phase actions
+    completeStep,
+    completeLoop,
   };
 }
 
