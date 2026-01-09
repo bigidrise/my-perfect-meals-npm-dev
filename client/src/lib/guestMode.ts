@@ -191,10 +191,10 @@ export function hasCompletedMacros(): boolean {
 /**
  * Increment meal count when a meal is actually added to the board.
  * This handles unlock progression (Fridge Rescue & Craving Creator).
- * Generation limits are tracked separately via trackGuestGenerationUsage().
+ * Also triggers meal day counting if within a meal board visit.
  * 
- * NOTE: This does NOT increment loopCount - that's handled by countMealDayUsed()
- * which tracks per-visit usage. This function only increments mealsBuiltCount.
+ * This is the SINGLE entry point for all meal additions - ensures
+ * both mealsBuiltCount and loopCount are properly tracked.
  */
 export function incrementMealsBuilt(): void {
   const progress = getGuestProgress();
@@ -202,8 +202,7 @@ export function incrementMealsBuilt(): void {
   
   const newCount = progress.mealsBuiltCount + 1;
   
-  // Update mealsBuiltCount for unlock progression ONLY
-  // Loop count is now tracked separately per meal board visit
+  // Update mealsBuiltCount for unlock progression
   updateGuestProgress({
     mealsBuiltCount: newCount,
   });
@@ -222,7 +221,11 @@ export function incrementMealsBuilt(): void {
     console.log("🔓 Guest: First meal built - Fridge Rescue & Craving Creator unlocked");
   }
   
-  // Dispatch event for meal updates (not loop updates)
+  // Also count this as a meal day used (if within a meal board visit)
+  // This centralizes loop counting so ALL meal add paths are covered
+  countMealDayUsed();
+  
+  // Dispatch event for meal updates
   window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
     detail: { action: "mealBuilt", mealsBuiltCount: newCount }
   }));

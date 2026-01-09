@@ -96,7 +96,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, countMealDayUsed } from "@/lib/guestMode";
+import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit } from "@/lib/guestMode";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -1445,9 +1445,9 @@ export default function WeeklyMealBoard() {
       }
 
       // Guest mode: Track meal building for unlocks and meal day counting
+      // incrementMealsBuilt() now handles both mealsBuiltCount AND countMealDayUsed() internally
       if (isGuestMode()) {
-        incrementMealsBuilt(); // For Phase 2 unlock progression
-        countMealDayUsed(); // For loop counting (only increments on first meal of visit)
+        incrementMealsBuilt();
       }
     } catch (error) {
       console.error("Failed to add meal:", error);
