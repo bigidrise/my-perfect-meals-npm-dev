@@ -35,6 +35,7 @@ import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import { MacroDeltas } from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -1030,6 +1031,11 @@ export default function MacroCounter() {
                         new CustomEvent("mpm:targetsUpdated"),
                       );
 
+                      // Guest mode: Mark macros completed to unlock Weekly Meal Builder
+                      if (isGuestMode()) {
+                        markMacrosCompleted();
+                      }
+
                       toast({
                         title: "Macro Targets Saved",
                         description: "Your biometrics have been updated.",
@@ -1101,6 +1107,11 @@ export default function MacroCounter() {
                       window.dispatchEvent(
                         new CustomEvent("mpm:targetsUpdated"),
                       );
+
+                      // Guest mode: Mark macros completed to unlock Weekly Meal Builder
+                      if (isGuestMode()) {
+                        markMacrosCompleted();
+                      }
 
                       const assignedBuilder = getAssignedBuilderFromStorage();
                       toast({
