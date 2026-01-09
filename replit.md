@@ -44,6 +44,12 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
   - Completely rewrote iOS PricingPage to show StoreKit purchase buttons (Basic $9.99, Premium $19.99, Ultimate $29.99) instead of redirecting to website.
   - Implemented Apple subscription deep-link using `@capacitor/app-launcher` with `openAppleSubscriptions()` function.
   - Removed ALL references to web billing/external payments on iOS to satisfy Guideline 3.1.1.
+- **Guest Suite Guided Unlock Flow v1.1** (Jan 2026): Progressive feature unlocking for unauthenticated users with 14-day trial, 4 meal generation limit:
+  - Phase 1 (Initial): Macro Calculator + Weekly Meal Builder available
+  - Phase 2 (After first meal + shopping viewed): Biometrics, Shopping List, Fridge Rescue, Craving Creator unlocked
+  - Loop counter tied to actual meal builds (via `incrementMealsBuilt()`), not navigation
+  - Soft nudge at loop 3, hard gate at loop 4 redirecting to pricing
+  - Key files: `client/src/lib/guestMode.ts`, `client/src/lib/guestSuiteBranding.ts`, `client/src/hooks/useGuestProgress.ts`, `client/src/pages/GuestBuilder.tsx`
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
