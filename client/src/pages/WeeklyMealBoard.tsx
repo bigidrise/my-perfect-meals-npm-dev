@@ -199,14 +199,33 @@ export default function WeeklyMealBoard() {
   }, [user?.id]);
 
   // Guest mode: Hard gate enforcement - redirect if 4 meal days used
+  // Checks on mount AND listens for guestProgressUpdate events during session
   React.useEffect(() => {
-    if (isGuestMode() && shouldShowHardGate()) {
-      toast({
-        title: GUEST_SUITE_BRANDING.loopLimits.blockedAccessTitle,
-        description: GUEST_SUITE_BRANDING.loopLimits.blockedAccessDescription,
-      });
-      setLocation("/pricing");
-    }
+    const checkHardGate = () => {
+      if (isGuestMode() && shouldShowHardGate()) {
+        toast({
+          title: GUEST_SUITE_BRANDING.loopLimits.blockedAccessTitle,
+          description: GUEST_SUITE_BRANDING.loopLimits.blockedAccessDescription,
+        });
+        setLocation("/pricing");
+      }
+    };
+    
+    // Check on mount
+    checkHardGate();
+    
+    // Listen for progress updates (fires when loopCount changes)
+    const handleProgressUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.action === "mealDayUsed") {
+        checkHardGate();
+      }
+    };
+    
+    window.addEventListener("guestProgressUpdate", handleProgressUpdate);
+    return () => {
+      window.removeEventListener("guestProgressUpdate", handleProgressUpdate);
+    };
   }, [setLocation, toast]);
 
   // Guest mode: Track meal board visits for "meal day" counting
