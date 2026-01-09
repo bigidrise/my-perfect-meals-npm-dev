@@ -4,6 +4,9 @@ export interface PageExplanation {
   description: string;
   spokenText: string;
   autoClose: boolean;
+  // Guest-specific marketing copy - used when in guest mode for onboarding/sales
+  guestSpokenText?: string;
+  guestDescription?: string;
 }
 
 export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
@@ -262,6 +265,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     spokenText:
       "The Macro Calculator helps set personalized daily nutrition targets based on how your body actually works — not just calories. Start by choosing your goal, body type, and activity level, then enter your age, height, weight, and current weight for biometrics. You can also factor in important metabolic considerations like hormone changes, insulin resistance, or high stress, which can influence how your body responds to protein, carbs, and fat. I’ll calculate clear daily targets for protein, starchy carbs, fibrous carbs, and fat — giving you numbers that make sense for you. Here's something important to understand: fibrous carbs like vegetables are unlimited and actually help with weight loss, while starchy carbs like rice, pasta, and potatoes need to be managed. In the Starch section, you’ll choose how you want to manage starchy carbs for the day. You can select One Starch Meal, which places all your starchy carbs into a single meal for better appetite control and fat loss, or Flex Split, which allows starchy carbs to be divided across two meals for more flexibility or higher activity days. This choice controls how starchy carbs are allocated across your meals and is saved automatically when you finish the calculator. Here's a pro tip: try to eat your starchy carbs earlier in the day. It's harder to get quality REM sleep when your body is busy metabolizing sugars — so front-load your carbs and you'll sleep better. Once your targets and strategy are set, head to the planner and start building meals that align with those goals. If you’re using Guest Mode, once you finish and save your macros, head straight to the Weekly Meal Builder to start creating meals and unlock the next features.",
     autoClose: true,
+    guestDescription: "This is where your plan becomes yours — personalized nutrition targets based on your body, not generic calorie counting.",
+    guestSpokenText: "This is your Macro Calculator — and this is where your plan becomes yours. Most apps just count calories. We don't. We calculate personalized daily targets for protein, starchy carbs, fibrous carbs, and fat based on how your body actually works — your age, your activity level, your goals, and even factors like hormone changes, insulin resistance, or stress that most apps ignore completely. Here's something important: fibrous carbs like vegetables are unlimited and actually help with weight loss. Starchy carbs like rice, pasta, and potatoes need to be managed — and that's what the Starch Strategy section is for. You'll choose One Starch Meal for better appetite control, or Flex Split for more flexibility on active days. Pro tip: eat your starchy carbs earlier in the day. Your body metabolizes sugars better during the day, and you'll sleep better at night. Once you save your numbers, everything you build in this app will be built around YOU — not some generic template. This is the foundation. When you're done, the Weekly Meal Builder unlocks, and you'll see exactly how we turn these numbers into real meals you actually want to eat. Take your time here. Get these numbers right. Then let's build.",
   },
   "/shopping-list-v2": {
     pageId: "shopping-list-v2",
@@ -510,7 +515,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Try our AI-powered meal planning tools — no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
     spokenText:
-      "Hey, welcome to the My Perfect Meals Guest Suite — I'm really glad you're here. Before we start, let me introduce myself. I'm Copilot — your personal guide inside this app. You'll find me in the bottom navigation bar — look for the Guide button right next to Home and Lifestyle. Anytime you're on any page and want to know what it does or how to use it, just tap the Guide button, then hit Listen, and I'll explain exactly what you're looking at and what to do next. If you turn Auto on inside the Copilot panel, I'll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You're always in control. Now, let's talk about what you're here to do. This is a guided preview of how the app works, and I'll walk you through it step by step so you actually get the full experience instead of guessing where to start. As a guest, you'll begin with the Macro Calculator to set your personal numbers — that's the foundation for everything else in the app. You may notice that some features like the Weekly Meal Builder, Fridge Rescue, and Craving Creator aren't fully open yet, and that's intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Remember, I'm always here in the bottom navigation bar under Guide if you need me. Let's start by setting your macros and take it from there.",
+      "Hey, welcome to the My Perfect Meals Guest Suite — I'm really glad you're here. Before we start, let me introduce myself. I'm Copilot, your personal guide inside this app. You'll find me in the bottom navigation bar — look for the Chef button in the center of the bottom navigation. Anytime you're on any page and want to know what it does or how to use it, just tap the Chef button, then hit Listen, and I'll explain exactly what you're looking at and what to do next. If you turn Auto on inside the Copilot panel, I'll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You're always in control. Now, let's talk about what you're here to do. This is a guided preview of how the app works, and I'll walk you through it step by step so you actually get the full experience instead of guessing where to start. As a guest, you'll begin with the Macro Calculator to set your personal numbers — that's the foundation for everything else in the app. You may notice that some features like the Weekly Meal Builder, Fridge Rescue, and Craving Creator aren't fully open yet, and that's intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Remember, I'm always here in the bottom navigation bar under Guide if you need me. Let's start by setting your macros and take it from there.",
     autoClose: false,
   },
 };
@@ -535,6 +540,35 @@ export function getPageExplanation(pathname: string): PageExplanation | null {
   }
 
   return null;
+}
+
+/**
+ * Get page explanation with guest-specific marketing copy when in guest mode.
+ * This returns a modified explanation with guestSpokenText and guestDescription
+ * replacing the default text when available.
+ * 
+ * IMPORTANT: Guest Suite = Guided, Coach-Led Marketing Experience
+ * - Copilot is the voice, coaching philosophy, and closer
+ * - Guest copilots teach, coach, and sell the value in real time
+ * - Tone = calm, confident, coach-led (not tooltip-y)
+ */
+export function getGuestPageExplanation(pathname: string, isGuest: boolean): PageExplanation | null {
+  const base = getPageExplanation(pathname);
+  if (!base) return null;
+  
+  // If not in guest mode, return the standard explanation
+  if (!isGuest) return base;
+  
+  // If guest-specific copy exists, use it
+  if (base.guestSpokenText || base.guestDescription) {
+    return {
+      ...base,
+      spokenText: base.guestSpokenText || base.spokenText,
+      description: base.guestDescription || base.description,
+    };
+  }
+  
+  return base;
 }
 
 export function hasPageExplanation(pathname: string): boolean {
