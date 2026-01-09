@@ -160,6 +160,13 @@ export default function MyBiometrics() {
 
   const quickTour = useQuickTour("my-biometrics");
 
+  // Mark biometrics as viewed for guest users on mount
+  useEffect(() => {
+    if (isGuestMode()) {
+      markStepCompleted("biometrics_viewed");
+    }
+  }, []);
+
   // ------- MACROS (local) -------
   const [macroRows, setMacroRows] = useState<OfflineDay[]>(() => {
     const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
