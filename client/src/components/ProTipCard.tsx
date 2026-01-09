@@ -59,7 +59,7 @@ export const ProTipCard: React.FC = () => {
           
           <motion.button
             onClick={handleToggle}
-            className={`flex items-center justify-center w-14 h-14 rounded-full border-2 backdrop-blur-xl transition-all duration-300 ${
+            className={`flex items-center justify-center w-10 h-10 rounded-2xl border-2 backdrop-blur-xl transition-all duration-300 ${
               isPlaying 
                 ? "bg-green-900/70 border-green-500/60 shadow-lg shadow-green-500/50"
                 : "bg-amber-900/70 border-amber-500/60 shadow-lg shadow-amber-500/50"
