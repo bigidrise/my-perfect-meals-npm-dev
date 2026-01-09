@@ -11,6 +11,7 @@ import { AddSnackModal } from "@/components/AddSnackModal";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
+import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1511,6 +1512,9 @@ export default function WeeklyMealBoard() {
             Set targets from Client Dashboard
           </p>
         </div>
+
+        {/* Pro Tip Card */}
+        <ProTipCard />
 
         {/* Daily Targets Card */}
         <div className="col-span-full">

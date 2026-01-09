@@ -26,6 +26,7 @@ import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
+import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1863,6 +1864,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               ))}
             </>
           )}
+
+          {/* Pro Tip Card */}
+          <ProTipCard />
 
           {/* Daily Targets Card */}
           <div className="col-span-full">

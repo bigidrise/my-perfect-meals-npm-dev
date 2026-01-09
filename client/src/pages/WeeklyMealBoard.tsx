@@ -98,6 +98,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount, hasActiveMealDaySession, getActiveMealDaySessionRemaining } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
+import { ProTipCard } from "@/components/ProTipCard";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -2112,6 +2113,9 @@ export default function WeeklyMealBoard() {
               ))}
             </>
           )}
+
+          {/* Pro Tip Card */}
+          <ProTipCard />
 
           {/* Quick Add - Daily Targets Reference Card */}
           <div className="col-span-full">
