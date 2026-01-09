@@ -33,7 +33,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create healthier versions of the foods you crave — and add them directly to your meal plan.",
     spokenText:
-      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, like dairy-free or gluten-free, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s breakfast, lunch, dinner, or snacks, log the macros, or save it for later. You eat what you want — and still stay on track.",
+      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, like dairy-free or gluten-free, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s breakfast, lunch, dinner, or snacks, log the macros, or save it for later. You eat what you want — and still stay on track. If you're exploring as a guest, don't just look — experiment. Use the Add to Plan button to drop this meal into your day and see how it connects to your overall macros and shopping list.",
     autoClose: true,
   },
 
