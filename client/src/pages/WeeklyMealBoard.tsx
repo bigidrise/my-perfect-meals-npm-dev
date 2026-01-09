@@ -1884,8 +1884,8 @@ export default function WeeklyMealBoard() {
                         if (checkLockedDay(activeDayISO)) return;
                         openManualModal(key);
                       }}
-                      onLogSnack={() => setLocation("/my-biometrics")}
-                      showLogSnack={key === "snacks"}
+                      onLogSnack={() => !isGuestMode() && setLocation("/my-biometrics")}
+                      showLogSnack={key === "snacks" && !isGuestMode()}
                     />
                   </div>
 
@@ -2026,8 +2026,8 @@ export default function WeeklyMealBoard() {
                         <Plus className="h-4 w-4" />
                       </Button>
 
-                      {/* Special Log Snack button for snacks section only - navigates to Biometrics photo log */}
-                      {key === "snacks" && (
+                      {/* Special Log Snack button for snacks section only - navigates to Biometrics photo log (hidden in guest mode) */}
+                      {key === "snacks" && !isGuestMode() && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -2323,7 +2323,10 @@ export default function WeeklyMealBoard() {
                                 title: "Day Saved to Biometrics",
                                 description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" }, "America/Chicago")} has been locked.`,
                               });
-                              setLocation("/my-biometrics");
+                              // Only navigate to biometrics for non-guests; guests stay on builder
+                              if (!isGuestMode()) {
+                                setLocation("/my-biometrics");
+                              }
                             }
                           }
                         : undefined
@@ -2512,6 +2515,7 @@ export default function WeeklyMealBoard() {
                         </Button>
                         <Button
                           onClick={() => {
+                            if (isGuestMode()) return; // Disabled in guest mode
                             handleAddEntireWeekToShoppingList();
                             setTimeout(
                               () =>
@@ -2521,7 +2525,12 @@ export default function WeeklyMealBoard() {
                               100,
                             );
                           }}
-                          className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
+                          disabled={isGuestMode()}
+                          className={`flex-1 min-h-[44px] border border-white/30 ${
+                            isGuestMode()
+                              ? "bg-emerald-600/40 text-white/50 cursor-not-allowed"
+                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          }`}
                           data-testid="send-week-to-shopping"
                         >
                           {/* Hidden event emitter for walkthrough system */}
