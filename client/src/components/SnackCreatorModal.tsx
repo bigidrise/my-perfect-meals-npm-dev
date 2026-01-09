@@ -13,6 +13,7 @@ import { Cookie, Loader2 } from "lucide-react";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { isGuestMode, getGuestSession, canGuestGenerate, incrementGuestGeneration } from "@/lib/guestMode";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -31,7 +32,12 @@ export function SnackCreatorModal({
 }: SnackCreatorModalProps) {
   const [description, setDescription] = useState("");
   const { user } = useAuth();
-  const userId = user?.id?.toString() || "";
+  
+  // Support both authenticated users and guests
+  const isGuest = isGuestMode();
+  const guestSession = isGuest ? getGuestSession() : null;
+  const userId = user?.id?.toString() || guestSession?.sessionId || "";
+  
   const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest(userId);
   const { toast } = useToast();
 
@@ -52,6 +58,16 @@ export function SnackCreatorModal({
       return;
     }
     
+    // Check guest generation limits
+    if (isGuest && !canGuestGenerate()) {
+      toast({
+        title: "Guest limit reached",
+        description: "Create a free account to continue generating snacks",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!description.trim()) {
       toast({
         title: "Please describe your snack craving",
@@ -64,6 +80,11 @@ export function SnackCreatorModal({
     const snack = await generateSnack(description.trim(), dietType, dietPhase);
 
     if (snack) {
+      // Record guest generation for limit tracking
+      if (isGuest) {
+        incrementGuestGeneration();
+      }
+      
       toast({
         title: "Snack Created!",
         description: `${snack.name} is ready for you`,
