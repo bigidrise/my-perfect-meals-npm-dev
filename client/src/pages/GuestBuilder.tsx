@@ -30,6 +30,7 @@ import {
   GuestFeature,
 } from "@/lib/guestMode";
 import { useGuestProgress } from "@/hooks/useGuestProgress";
+import { hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GuestUpgradePromptModal } from "@/components/modals/GuestUpgradePromptModal";
@@ -138,6 +139,18 @@ export default function GuestBuilder() {
   const { toast } = useToast();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [hasShownPhase2Toast, setHasShownPhase2Toast] = useState(false);
+  const [firstLoopComplete, setFirstLoopComplete] = useState(() => hasCompletedFirstLoop());
+  
+  useEffect(() => {
+    const handleProgressUpdate = (event: CustomEvent) => {
+      if (event.detail?.action === "firstLoopComplete") {
+        setFirstLoopComplete(true);
+      }
+    };
+    
+    window.addEventListener("guestProgressUpdate", handleProgressUpdate as EventListener);
+    return () => window.removeEventListener("guestProgressUpdate", handleProgressUpdate as EventListener);
+  }, []);
 
   useEffect(() => {
     if (!isGuestMode()) {
