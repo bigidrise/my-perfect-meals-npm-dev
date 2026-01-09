@@ -193,44 +193,107 @@ export function hasCompletedMacros(): boolean {
  * This handles unlock progression (Fridge Rescue & Craving Creator).
  * Generation limits are tracked separately via trackGuestGenerationUsage().
  * 
- * NOTE: This does NOT decrement guestUsesRemaining - that's handled by
- * trackGuestGenerationUsage() when a meal is generated. This function
- * only increments mealsBuiltCount for unlock gates AND increments loopCount.
+ * NOTE: This does NOT increment loopCount - that's handled by countMealDayUsed()
+ * which tracks per-visit usage. This function only increments mealsBuiltCount.
  */
 export function incrementMealsBuilt(): void {
   const progress = getGuestProgress();
   if (!progress) return;
   
   const newCount = progress.mealsBuiltCount + 1;
-  const newLoopCount = progress.loopCount + 1;
   
-  // Update mealsBuiltCount for unlock progression AND increment loopCount
-  // Loop count is tied to actual meal builds, not navigation
+  // Update mealsBuiltCount for unlock progression ONLY
+  // Loop count is now tracked separately per meal board visit
   updateGuestProgress({
     mealsBuiltCount: newCount,
-    loopCount: newLoopCount,
   });
   
   // Keep legacy counters in sync for backwards compatibility
-  // Note: This uses mealsBuiltCount for legacy generationsUsed (same semantics)
   const session = getGuestSession();
   if (session) {
     session.generationsUsed = newCount;
     localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
-    // Legacy key represents meals built, not generation uses
     localStorage.setItem(GUEST_GENERATIONS_KEY, newCount.toString());
   }
   
-  console.log(`✅ Guest: Meal ${newCount} added to board (Loop ${newLoopCount})`);
+  console.log(`✅ Guest: Meal ${newCount} added to board`);
   
   if (newCount === 1) {
     console.log("🔓 Guest: First meal built - Fridge Rescue & Craving Creator unlocked");
   }
   
-  // Dispatch event for loop/meal updates
+  // Dispatch event for meal updates (not loop updates)
   window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
-    detail: { action: "mealBuilt", mealsBuiltCount: newCount, loopCount: newLoopCount }
+    detail: { action: "mealBuilt", mealsBuiltCount: newCount }
   }));
+}
+
+// Session key for tracking current meal board visit
+const MEAL_BOARD_VISIT_KEY = "mpm_guest_current_visit";
+
+/**
+ * Start a new meal board visit session.
+ * Call this when WeeklyMealBoard mounts.
+ * Returns the visit ID.
+ */
+export function startMealBoardVisit(): string {
+  const visitId = `visit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  sessionStorage.setItem(MEAL_BOARD_VISIT_KEY, visitId);
+  console.log(`📋 Guest: Started meal board visit ${visitId}`);
+  return visitId;
+}
+
+/**
+ * End the current meal board visit session.
+ * Call this when WeeklyMealBoard unmounts.
+ */
+export function endMealBoardVisit(): void {
+  const visitId = sessionStorage.getItem(MEAL_BOARD_VISIT_KEY);
+  if (visitId) {
+    sessionStorage.removeItem(MEAL_BOARD_VISIT_KEY);
+    console.log(`📋 Guest: Ended meal board visit ${visitId}`);
+  }
+}
+
+/**
+ * Count a "meal day" as used when the FIRST meal is built during a visit.
+ * This increments loopCount only once per meal board visit.
+ * Call this when a meal is added to the board.
+ * 
+ * Returns true if this was the first meal of the visit (loop was incremented).
+ */
+export function countMealDayUsed(): boolean {
+  if (!isGuestMode()) return false;
+  
+  const progress = getGuestProgress();
+  if (!progress) return false;
+  
+  // Get current visit ID from session
+  const currentVisitId = sessionStorage.getItem(MEAL_BOARD_VISIT_KEY);
+  if (!currentVisitId) return false;
+  
+  // Check if we've already counted a meal day for this visit
+  if (progress.lastVisitId === currentVisitId) {
+    // Already counted this visit, don't increment again
+    return false;
+  }
+  
+  // First meal of this visit - count as a new meal day
+  const newLoopCount = progress.loopCount + 1;
+  
+  updateGuestProgress({
+    loopCount: newLoopCount,
+    lastVisitId: currentVisitId,
+  });
+  
+  console.log(`🗓️ Guest: Meal Day ${newLoopCount} of ${MAX_GUEST_LOOPS} used`);
+  
+  // Dispatch event for loop updates
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "mealDayUsed", loopCount: newLoopCount }
+  }));
+  
+  return true;
 }
 
 /**

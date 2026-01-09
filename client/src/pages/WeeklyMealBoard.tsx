@@ -96,7 +96,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { isGuestMode, incrementMealsBuilt } from "@/lib/guestMode";
+import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, countMealDayUsed } from "@/lib/guestMode";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -196,6 +196,16 @@ export default function WeeklyMealBoard() {
       initLockedDaysCache(user.id);
     }
   }, [user?.id]);
+
+  // Guest mode: Track meal board visits for "meal day" counting
+  React.useEffect(() => {
+    if (isGuestMode()) {
+      startMealBoardVisit();
+      return () => {
+        endMealBoardVisit();
+      };
+    }
+  }, []);
 
   // Sync hook board to local state only after loading completes
   React.useEffect(() => {
@@ -1434,9 +1444,10 @@ export default function WeeklyMealBoard() {
         /* no-op, safest on older browsers */
       }
 
-      // Guest mode: Increment meals built to unlock Fridge Rescue & Craving Creator
+      // Guest mode: Track meal building for unlocks and meal day counting
       if (isGuestMode()) {
-        incrementMealsBuilt();
+        incrementMealsBuilt(); // For Phase 2 unlock progression
+        countMealDayUsed(); // For loop counting (only increments on first meal of visit)
       }
     } catch (error) {
       console.error("Failed to add meal:", error);

@@ -31,13 +31,14 @@ export const GUEST_SUITE_BRANDING = {
     backToSuiteSubtext: "View biometrics & explore features",
   },
   
-  // Loop limits
+  // Loop limits (based on meal day visits, not individual meals)
   loopLimits: {
-    softNudgeBanner: "You've used most of your Guest Suite access",
-    hardGateTitle: "Your Guest Suite experience is complete",
-    hardGateDescription: "Save your meals, keep your biometrics, and unlock unlimited planning.",
+    softNudgeBanner: "You've planned 3 of 4 meal days — one trip left",
+    hardGateTitle: "Your 4 meal day passes are complete",
+    hardGateDescription: "You've experienced the concierge. Save your meals, keep your biometrics, and unlock unlimited planning.",
     createAccountButton: "Create Account",
     comparePlansButton: "Compare Plans",
+    mealDayToast: "Meal Day {count} of 4 used",
   },
   
   // Feature cards
