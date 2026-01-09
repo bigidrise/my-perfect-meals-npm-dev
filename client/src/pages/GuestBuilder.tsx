@@ -23,9 +23,13 @@ import { getPageExplanation } from "@/components/copilot/CopilotPageExplanations
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import {
   isGuestMode,
-  getGuestGenerationsRemaining,
   endGuestSession,
+  GuestFeature,
 } from "@/lib/guestMode";
+import { useGuestProgress } from "@/hooks/useGuestProgress";
+import { Lock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { GuestUpgradePromptModal } from "@/components/modals/GuestUpgradePromptModal";
 
 interface ActionButton {
   id: string;
@@ -34,6 +38,7 @@ interface ActionButton {
   icon: React.ReactNode;
   iconColor: string;
   route: string;
+  feature: GuestFeature;
 }
 
 const ACTION_BUTTONS: ActionButton[] = [
@@ -44,6 +49,7 @@ const ACTION_BUTTONS: ActionButton[] = [
     icon: <Calculator className="h-6 w-6" />,
     iconColor: "text-orange-400",
     route: "/macro-counter",
+    feature: "macro-calculator",
   },
   {
     id: "create",
@@ -52,6 +58,7 @@ const ACTION_BUTTONS: ActionButton[] = [
     icon: <Calendar className="h-6 w-6" />,
     iconColor: "text-orange-400",
     route: "/weekly-meal-board",
+    feature: "weekly-meal-builder",
   },
   {
     id: "fridge",
@@ -60,6 +67,7 @@ const ACTION_BUTTONS: ActionButton[] = [
     icon: <Refrigerator className="h-6 w-6" />,
     iconColor: "text-orange-400",
     route: "/fridge-rescue",
+    feature: "fridge-rescue",
   },
   {
     id: "craving",
@@ -68,6 +76,7 @@ const ACTION_BUTTONS: ActionButton[] = [
     icon: <Heart className="h-6 w-6" />,
     iconColor: "text-orange-400",
     route: "/craving-creator",
+    feature: "craving-creator",
   },
 ];
 
@@ -75,6 +84,9 @@ export default function GuestBuilder() {
   const [, setLocation] = useLocation();
   const { open, isOpen, setLastResponse } = useCopilot();
   const hasAutoOpenedRef = useRef(false);
+  const { isFeatureUnlocked, getUnlockMessage, nextStepMessage, shouldShowUpgrade, generationsRemaining, daysRemaining } = useGuestProgress();
+  const { toast } = useToast();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     if (!isGuestMode()) {
@@ -105,15 +117,34 @@ export default function GuestBuilder() {
     }
   }, [setLocation, open, setLastResponse]);
 
-  const remaining = getGuestGenerationsRemaining();
+  useEffect(() => {
+    if (shouldShowUpgrade && !showUpgradeModal) {
+      const hasSeenUpgradePrompt = sessionStorage.getItem("guest_upgrade_prompt_seen");
+      if (!hasSeenUpgradePrompt) {
+        setShowUpgradeModal(true);
+        sessionStorage.setItem("guest_upgrade_prompt_seen", "true");
+      }
+    }
+  }, [shouldShowUpgrade, showUpgradeModal]);
 
   const handleCreateAccount = () => {
     endGuestSession();
     setLocation("/auth");
   };
 
-  const handleActionClick = (route: string) => {
-    setLocation(route);
+  const handleActionClick = (action: ActionButton) => {
+    const unlocked = isFeatureUnlocked(action.feature);
+    
+    if (!unlocked) {
+      toast({
+        title: "Feature Locked",
+        description: getUnlockMessage(action.feature),
+        duration: 4000,
+      });
+      return;
+    }
+    
+    setLocation(action.route);
   };
 
   const handleChefClick = () => {
@@ -185,42 +216,73 @@ export default function GuestBuilder() {
             Get Started
           </h3>
 
-          {ACTION_BUTTONS.map((action) => (
-            <div key={action.id}>
-              <Card
-                className="border transition-all cursor-pointer bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
-                onClick={() => handleActionClick(action.route)}
-              >
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 ${action.iconColor}`}
-                  >
-                    {action.icon}
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="font-semibold text-white">
-                      {action.label}
+          {ACTION_BUTTONS.map((action) => {
+            const unlocked = isFeatureUnlocked(action.feature);
+            
+            return (
+              <div key={action.id}>
+                <Card
+                  className={`border transition-all cursor-pointer ${
+                    unlocked 
+                      ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40" 
+                      : "bg-zinc-900/20 border-white/5 opacity-60"
+                  }`}
+                  onClick={() => handleActionClick(action)}
+                >
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div
+                      className={`w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 ${
+                        unlocked ? action.iconColor : "text-white/40"
+                      }`}
+                    >
+                      {unlocked ? action.icon : <Lock className="h-6 w-6" />}
                     </div>
-                    <div className="text-sm text-white/60 mt-0.5">
-                      {action.description}
-                    </div>
-                  </div>
 
-                  <div className="text-white/30">
-                    <ArrowLeft className="h-4 w-4 rotate-180" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ))}
+                    <div className="flex-1">
+                      <div className={`font-semibold ${unlocked ? "text-white" : "text-white/50"}`}>
+                        {action.label}
+                        {!unlocked && (
+                          <Lock className="inline-block h-3.5 w-3.5 ml-2 text-white/40" />
+                        )}
+                      </div>
+                      <div className={`text-sm mt-0.5 ${unlocked ? "text-white/60" : "text-white/40"}`}>
+                        {unlocked ? action.description : getUnlockMessage(action.feature)}
+                      </div>
+                    </div>
+
+                    <div className={unlocked ? "text-white/30" : "text-white/20"}>
+                      {unlocked ? (
+                        <ArrowLeft className="h-4 w-4 rotate-180" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })}
         </div>
 
-        {remaining > 0 && (
+        {generationsRemaining > 0 && !shouldShowUpgrade && (
           <div className="text-center text-white/40 text-xs py-4">
-            {remaining} AI generation{remaining !== 1 ? "s" : ""} remaining in
+            {generationsRemaining} AI generation{generationsRemaining !== 1 ? "s" : ""} remaining in
             guest mode
           </div>
+        )}
+        
+        {shouldShowUpgrade && (
+          <button
+            onClick={() => setShowUpgradeModal(true)}
+            className="w-full mt-4 p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/15 border border-amber-400/30 text-center"
+          >
+            <div className="text-sm font-semibold text-amber-300">
+              You've used your guest meals
+            </div>
+            <div className="text-xs text-white/60 mt-1">
+              Tap here to create a free account and continue
+            </div>
+          </button>
         )}
       </div>
 
@@ -270,6 +332,12 @@ export default function GuestBuilder() {
           </div>
         </div>
       </nav>
+
+      <GuestUpgradePromptModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        reason={daysRemaining <= 0 ? "expired" : "limit"}
+      />
     </motion.div>
   );
 }

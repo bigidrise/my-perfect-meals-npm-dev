@@ -96,6 +96,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { isGuestMode, incrementMealsBuilt } from "@/lib/guestMode";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -1431,6 +1432,11 @@ export default function WeeklyMealBoard() {
         window.dispatchEvent(new Event("macros:updated"));
       } catch {
         /* no-op, safest on older browsers */
+      }
+
+      // Guest mode: Increment meals built to unlock Fridge Rescue & Craving Creator
+      if (isGuestMode()) {
+        incrementMealsBuilt();
       }
     } catch (error) {
       console.error("Failed to add meal:", error);
