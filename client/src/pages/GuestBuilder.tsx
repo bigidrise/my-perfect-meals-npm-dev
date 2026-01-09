@@ -30,6 +30,7 @@ import {
   GuestFeature,
 } from "@/lib/guestMode";
 import { useGuestProgress } from "@/hooks/useGuestProgress";
+import { hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GuestUpgradePromptModal } from "@/components/modals/GuestUpgradePromptModal";
@@ -138,6 +139,18 @@ export default function GuestBuilder() {
   const { toast } = useToast();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [hasShownPhase2Toast, setHasShownPhase2Toast] = useState(false);
+  const [firstLoopComplete, setFirstLoopComplete] = useState(() => hasCompletedFirstLoop());
+  
+  useEffect(() => {
+    const handleProgressUpdate = (event: CustomEvent) => {
+      if (event.detail?.action === "firstLoopComplete") {
+        setFirstLoopComplete(true);
+      }
+    };
+    
+    window.addEventListener("guestProgressUpdate", handleProgressUpdate as EventListener);
+    return () => window.removeEventListener("guestProgressUpdate", handleProgressUpdate as EventListener);
+  }, []);
 
   useEffect(() => {
     if (!isGuestMode()) {
@@ -331,70 +344,63 @@ export default function GuestBuilder() {
           })}
         </div>
 
-        {/* Phase 2 - Revealed/Unlocked (only show when phase === 2) */}
-        {phase === 2 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="space-y-3"
-          >
-            <h3 className="text-sm font-semibold text-lime-400/80 uppercase tracking-wide px-1 flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              {GUEST_SUITE_BRANDING.phase2.sectionTitle}
-            </h3>
+        {/* Phase 2 - Additional Tools (always visible, unlocked progressively) */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-lime-400/80 uppercase tracking-wide px-1 flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            {GUEST_SUITE_BRANDING.phase2.sectionTitle}
+          </h3>
 
-            {PHASE_2_BUTTONS.map((action) => {
-              const unlocked = isFeatureUnlocked(action.feature);
-              const isRevealed = action.id === "biometrics" && biometricsRevealed;
-              
-              return (
-                <Card
-                  key={action.id}
-                  className={`border transition-all cursor-pointer ${
-                    unlocked 
-                      ? isRevealed
-                        ? "bg-lime-900/20 border-lime-500/30 hover:border-lime-400/50 hover:bg-lime-800/30 ring-1 ring-lime-500/20"
-                        : "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
-                      : "bg-zinc-900/20 border-white/5 opacity-60"
-                  }`}
-                  onClick={() => handleActionClick(action)}
-                >
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div
-                      className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                        isRevealed ? "bg-lime-500/20" : "bg-white/10"
-                      } ${unlocked ? action.iconColor : "text-white/40"}`}
-                    >
-                      {unlocked ? action.icon : <Lock className="h-6 w-6" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className={`font-semibold ${unlocked ? "text-white" : "text-white/50"}`}>
-                        {action.label}
-                        {action.isPreview && unlocked && (
-                          <span className="text-xs text-amber-400/80 ml-2">Preview</span>
-                        )}
-                        {!unlocked && (
-                          <Lock className="inline-block h-3.5 w-3.5 ml-2 text-white/40" />
-                        )}
-                      </div>
-                      <div className={`text-sm mt-0.5 ${unlocked ? "text-white/60" : "text-white/40"}`}>
-                        {unlocked ? action.description : (action.lockedDescription || getUnlockMessage(action.feature))}
-                      </div>
-                    </div>
-                    <div className={unlocked ? "text-white/30" : "text-white/20"}>
-                      {unlocked ? (
-                        <ArrowLeft className="h-4 w-4 rotate-180" />
-                      ) : (
-                        <Lock className="h-4 w-4" />
+          {PHASE_2_BUTTONS.map((action) => {
+            const unlocked = isFeatureUnlocked(action.feature);
+            const isRevealed = action.id === "biometrics" && biometricsRevealed;
+            
+            return (
+              <Card
+                key={action.id}
+                className={`border transition-all cursor-pointer ${
+                  unlocked 
+                    ? isRevealed
+                      ? "bg-lime-900/20 border-lime-500/30 hover:border-lime-400/50 hover:bg-lime-800/30 ring-1 ring-lime-500/20"
+                      : "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
+                    : "bg-zinc-900/20 border-white/5 opacity-60"
+                }`}
+                onClick={() => handleActionClick(action)}
+              >
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div
+                    className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                      isRevealed ? "bg-lime-500/20" : "bg-white/10"
+                    } ${unlocked ? action.iconColor : "text-white/40"}`}
+                  >
+                    {unlocked ? action.icon : <Lock className="h-6 w-6" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-semibold ${unlocked ? "text-white" : "text-white/50"}`}>
+                      {action.label}
+                      {action.isPreview && unlocked && (
+                        <span className="text-xs text-amber-400/80 ml-2">Preview</span>
+                      )}
+                      {!unlocked && (
+                        <Lock className="inline-block h-3.5 w-3.5 ml-2 text-white/40" />
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </motion.div>
-        )}
+                    <div className={`text-sm mt-0.5 ${unlocked ? "text-white/60" : "text-white/40"}`}>
+                      {unlocked ? action.description : (action.lockedDescription || getUnlockMessage(action.feature))}
+                    </div>
+                  </div>
+                  <div className={unlocked ? "text-white/30" : "text-white/20"}>
+                    {unlocked ? (
+                      <ArrowLeft className="h-4 w-4 rotate-180" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
         {/* Soft nudge banner (at loop 3) */}
         {showSoftNudge && !showHardGate && (

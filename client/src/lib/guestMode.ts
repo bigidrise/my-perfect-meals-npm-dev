@@ -87,6 +87,9 @@ export function startGuestSession(): GuestSession {
   localStorage.setItem(GUEST_PROGRESS_KEY, JSON.stringify(progress));
   localStorage.setItem(GUEST_GENERATIONS_KEY, "0");
   
+  // Clear any stale first-loop flag from previous sessions
+  localStorage.removeItem("mpm_guest_first_loop_complete");
+  
   console.log("🎫 Guest session started:", session.sessionId);
   
   return session;
@@ -394,6 +397,8 @@ export type GuestFeature =
 /**
  * Check if a guest feature is unlocked
  * This is the SINGLE SOURCE OF TRUTH for feature access
+ * 
+ * Simple unlock: Macro Calculator always open, everything else unlocks when macros completed
  */
 export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
   if (!isGuestMode()) return true; // Non-guests have full access
@@ -403,22 +408,15 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
   
   switch (feature) {
     case "macro-calculator":
-      // Always available to guests
+      // Always available to guests - entry point
       return true;
       
     case "weekly-meal-builder":
-      // Unlocked after completing macros
-      return progress.macrosCompleted;
-      
     case "fridge-rescue":
     case "craving-creator":
-      // Unlocked after completing first loop (Shopping → Biometrics)
-      // Uses hasCompletedFirstLoop from guestSuiteNavigator
-      return hasCompletedFirstLoopFlag();
-      
     case "biometrics":
     case "shopping-list":
-      // Available after completing macros
+      // ALL features unlock together after completing macros
       return progress.macrosCompleted;
       
     default:
@@ -433,15 +431,11 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
 export function getFeatureUnlockMessage(feature: GuestFeature): string {
   switch (feature) {
     case "weekly-meal-builder":
-      return "Complete the Macro Calculator to unlock this feature.";
-      
     case "fridge-rescue":
     case "craving-creator":
-      return "Complete the guided tour (Macros → Meals → Shopping → Biometrics) to unlock.";
-      
     case "biometrics":
     case "shopping-list":
-      return "Complete the Macro Calculator to unlock this feature.";
+      return "Complete the Macro Calculator to unlock all features.";
       
     default:
       return "Complete the guided steps to unlock this feature.";

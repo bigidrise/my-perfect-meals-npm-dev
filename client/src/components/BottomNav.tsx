@@ -7,10 +7,28 @@ import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplana
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { motion } from "framer-motion";
 import { isGuestMode } from "@/lib/guestMode";
+import { getGuestNavigationOverride, getGuestSuitePage } from "@/lib/guestSuiteNavigator";
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
   const { open, close, isOpen, setLastResponse } = useCopilot();
+  
+  const handleNavClick = useCallback((targetPath: string) => {
+    if (isGuestMode()) {
+      // Normalize path to remove query params before checking
+      const cleanPath = location.replace(/\/+$/, '').split('?')[0];
+      const currentPage = getGuestSuitePage(cleanPath);
+      if (currentPage === "shopping-list" || currentPage === "biometrics") {
+        const override = getGuestNavigationOverride(currentPage);
+        if (override) {
+          console.log(`🔒 Guest nav override: ${currentPage} → ${override}`);
+          setLocation(override);
+          return;
+        }
+      }
+    }
+    setLocation(targetPath);
+  }, [location, setLocation]);
   
   const normalizePath = useCallback((path: string) => {
     return path.replace(/\/+$/, '').split('?')[0];
@@ -92,7 +110,7 @@ export default function BottomNav() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setLocation(item.path)}
+                  onClick={() => handleNavClick(item.path)}
                   style={{ flexDirection: "column" }}
                   className={`flex items-center justify-center px-4 h-full transition-all duration-300 ${
                     active
@@ -144,7 +162,7 @@ export default function BottomNav() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setLocation(item.path)}
+                  onClick={() => handleNavClick(item.path)}
                   style={{ flexDirection: "column" }}
                   className={`flex items-center justify-center px-4 h-full transition-all duration-300 ${
                     active
