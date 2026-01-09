@@ -96,7 +96,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount } from "@/lib/guestMode";
+import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount, hasActiveMealDaySession, getActiveMealDaySessionRemaining } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 
 // Helper function to create new snacks
@@ -228,19 +228,31 @@ export default function WeeklyMealBoard() {
     };
   }, [setLocation, toast]);
 
-  // Guest mode: Track meal board visits for "meal day" counting
+  // Guest mode: Track meal board visits for "meal day" counting (24-hour sessions)
   React.useEffect(() => {
     if (isGuestMode() && !shouldShowHardGate()) {
-      startMealBoardVisit();
-      
-      // Show coaching message on entry
+      // Check if returning to an active session or starting a new one
+      const hadActiveSession = hasActiveMealDaySession();
+      const newMealDayConsumed = startMealBoardVisit();
       const loopCount = getGuestLoopCount();
-      if (loopCount < 4) {
+      
+      if (newMealDayConsumed) {
+        // NEW meal day session started
         toast({
-          title: `Meal Day ${loopCount + 1} of 4`,
+          title: `Meal Day ${loopCount} of 4 Started`,
           description: GUEST_SUITE_BRANDING.coaching.welcomeToBoard,
           duration: 6000,
         });
+      } else if (hadActiveSession) {
+        // Returning to active session
+        const remaining = getActiveMealDaySessionRemaining();
+        if (remaining) {
+          toast({
+            title: "Welcome Back",
+            description: `You're still in Meal Day ${loopCount}. Session active for ${remaining.hours}h ${remaining.minutes}m more. Keep building!`,
+            duration: 4000,
+          });
+        }
       }
       
       return () => {

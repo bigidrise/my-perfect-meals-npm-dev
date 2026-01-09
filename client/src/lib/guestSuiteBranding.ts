@@ -34,13 +34,15 @@ export const GUEST_SUITE_BRANDING = {
   },
   
   // Loop limits - Coach them to use passes wisely
+  // NOTE: Each meal day is a 24-HOUR SESSION, not a single visit
   loopLimits: {
     softNudgeBanner: "One meal day left. Make it count.",
     hardGateTitle: "Your 4 Meal Days Are Complete",
     hardGateDescription: "You've experienced what real coaching feels like. Now it's time to commit — save your meals, keep your progress, and let's do this for real.",
     createAccountButton: "I'm Ready — Create Account",
     comparePlansButton: "See What's Included",
-    mealDayToast: "Meal Day {count} of 4 used",
+    mealDayStartedToast: "Meal Day {count} of 4 Started",
+    returningToSessionToast: "Welcome back — your meal day session is still active",
     blockedAccessTitle: "Guest Access Complete",
     blockedAccessDescription: "You've used your 4 meal days. Create an account to continue planning.",
   },

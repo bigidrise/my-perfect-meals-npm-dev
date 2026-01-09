@@ -47,8 +47,9 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Guest Suite Guided Unlock Flow v1.2** (Jan 2026): Progressive feature unlocking for unauthenticated users with 14-day trial, 4 "meal day" limit:
   - Phase 1 (Initial): Macro Calculator + Weekly Meal Builder available
   - Phase 2 (After first meal + shopping viewed): Biometrics, Shopping List, Fridge Rescue, Craving Creator unlocked
-  - **Meal Day Counting**: Loop counter tracks per-visit usage (not per-meal). Each visit to Weekly Meal Board where at least one meal is built = 1 "meal day" used
-  - Functions: `startMealBoardVisit()`, `endMealBoardVisit()`, `countMealDayUsed()` manage visit-based tracking
+  - **Meal Day = 24-Hour Session**: Entering Weekly Meal Board WITHOUT an active session consumes 1 of 4 meal days. Session lasts 24 hours, allowing guests to freely explore Fridge Rescue, Craving Creator, and return to the meal board without burning additional days.
+  - **Fridge Rescue & Craving Creator are FREE**: These are "idea generators" — guests can explore freely. Adding to meal plan routes to Weekly Meal Board but only consumes a day if no active session exists.
+  - Functions: `startMealBoardVisit()` checks/starts 24h session, `hasActiveMealDaySession()`, `getActiveMealDaySessionRemaining()` for session awareness
   - Soft nudge at 3 meal days, hard gate at 4 meal days redirecting to pricing
   - Key files: `client/src/lib/guestMode.ts`, `client/src/lib/guestSuiteBranding.ts`, `client/src/hooks/useGuestProgress.ts`, `client/src/pages/GuestBuilder.tsx`, `client/src/pages/WeeklyMealBoard.tsx`
   - **Coaching Philosophy**: MPM is "coach in your pocket" - supportive but serious. The app talks to users, not just provides tools. Guest Suite messaging encourages building COMPLETE meal days (breakfast, lunch, dinner, snacks), actually cooking them, and using passes wisely. Tone is cheerleader + drill sergeant.

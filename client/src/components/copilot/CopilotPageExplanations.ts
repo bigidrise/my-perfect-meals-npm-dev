@@ -53,7 +53,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Choose from three options: Creator for custom AI-generated cravings, Premades for ready-made craving recipes, or Dessert Creator for healthy desserts like pies, cakes, cookies, and more.",
     spokenText:
-      "Craving something but can't come up with a healthy option? That's what Craving Creator is for. Tell it what you're craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals. If you’re exploring as a guest, try adding a craving meal to your plan so you can see how cravings still fit into your overall meals and macros. ",
+      "Craving something but can't come up with a healthy option? That's what Craving Creator is for. Tell it what you're craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals. ",
     autoClose: true,
   },
 

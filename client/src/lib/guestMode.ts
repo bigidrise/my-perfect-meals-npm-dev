@@ -11,6 +11,7 @@ const MAX_GUEST_GENERATIONS = 4; // Maximum meals a guest can build
 const GUEST_DURATION_DAYS = 14; // Guest mode expires after 14-day concierge trial
 const MAX_GUEST_LOOPS = 4; // Maximum full loops (hard gate at 4)
 const SOFT_NUDGE_LOOP = 3; // Show soft nudge at loop 3
+const MEAL_DAY_SESSION_HOURS = 24; // Active meal day session lasts 24 hours
 
 // ============================================
 // GUEST SUITE JOURNEY STATE (Phase System)
@@ -37,8 +38,9 @@ export interface GuestProgress {
   phase: GuestSuitePhase;
   completedSteps: GuestCompletedStep[];
   loopCount: number;
-  // Visit tracking - each trip to Weekly Meal Board = 1 loop
-  lastVisitId?: string;
+  // Active meal day session (24-hour window)
+  // When set, guest can freely explore and return to meal board without consuming another day
+  activeMealDaySessionStart?: number;
 }
 
 export interface GuestSession {
@@ -231,72 +233,113 @@ export function incrementMealsBuilt(): void {
   }));
 }
 
-// Session key for tracking current meal board visit
-const MEAL_BOARD_VISIT_KEY = "mpm_guest_current_visit";
+// ============================================
+// MEAL DAY SESSION (24-Hour Active Session)
+// ============================================
+// CONCEPT: A "meal day" is a 24-hour window, not a single visit.
+// Fridge Rescue & Craving Creator are FREE to explore.
+// Only entering Weekly Meal Board WITHOUT an active session consumes a meal day.
+// Once a session is active, guest can explore, leave, and return freely.
 
 /**
- * Start a new meal board visit session.
- * Call this when WeeklyMealBoard mounts.
- * Returns the visit ID.
+ * Check if there's an active meal day session (within 24 hours).
  */
-export function startMealBoardVisit(): string {
-  const visitId = `visit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  sessionStorage.setItem(MEAL_BOARD_VISIT_KEY, visitId);
-  console.log(`📋 Guest: Started meal board visit ${visitId}`);
-  return visitId;
+export function hasActiveMealDaySession(): boolean {
+  if (!isGuestMode()) return false;
+  
+  const progress = getGuestProgress();
+  if (!progress?.activeMealDaySessionStart) return false;
+  
+  const now = Date.now();
+  const sessionStart = progress.activeMealDaySessionStart;
+  const hoursElapsed = (now - sessionStart) / (1000 * 60 * 60);
+  
+  return hoursElapsed < MEAL_DAY_SESSION_HOURS;
 }
 
 /**
- * End the current meal board visit session.
- * Call this when WeeklyMealBoard unmounts.
+ * Get remaining time in active session (for UI display).
+ * Returns null if no active session.
  */
-export function endMealBoardVisit(): void {
-  const visitId = sessionStorage.getItem(MEAL_BOARD_VISIT_KEY);
-  if (visitId) {
-    sessionStorage.removeItem(MEAL_BOARD_VISIT_KEY);
-    console.log(`📋 Guest: Ended meal board visit ${visitId}`);
-  }
+export function getActiveMealDaySessionRemaining(): { hours: number; minutes: number } | null {
+  if (!isGuestMode()) return null;
+  
+  const progress = getGuestProgress();
+  if (!progress?.activeMealDaySessionStart) return null;
+  
+  const now = Date.now();
+  const sessionStart = progress.activeMealDaySessionStart;
+  const msElapsed = now - sessionStart;
+  const msTotal = MEAL_DAY_SESSION_HOURS * 60 * 60 * 1000;
+  const msRemaining = msTotal - msElapsed;
+  
+  if (msRemaining <= 0) return null;
+  
+  const hours = Math.floor(msRemaining / (1000 * 60 * 60));
+  const minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return { hours, minutes };
 }
 
 /**
- * Count a "meal day" as used when the FIRST meal is built during a visit.
- * This increments loopCount only once per meal board visit.
- * Call this when a meal is added to the board.
- * 
- * Returns true if this was the first meal of the visit (loop was incremented).
+ * Start a meal board visit. Called when WeeklyMealBoard mounts.
+ * Consumes a meal day ONLY if there's no active session.
+ * Returns true if a NEW meal day was consumed.
  */
-export function countMealDayUsed(): boolean {
+export function startMealBoardVisit(): boolean {
   if (!isGuestMode()) return false;
   
   const progress = getGuestProgress();
   if (!progress) return false;
   
-  // Get current visit ID from session
-  const currentVisitId = sessionStorage.getItem(MEAL_BOARD_VISIT_KEY);
-  if (!currentVisitId) return false;
-  
-  // Check if we've already counted a meal day for this visit
-  if (progress.lastVisitId === currentVisitId) {
-    // Already counted this visit, don't increment again
-    return false;
+  // Check if there's an active session (within 24 hours)
+  if (hasActiveMealDaySession()) {
+    console.log(`📋 Guest: Returning to active meal day session (still valid)`);
+    return false; // No new meal day consumed
   }
   
-  // First meal of this visit - count as a new meal day
+  // No active session - start a new one and consume a meal day
   const newLoopCount = progress.loopCount + 1;
   
   updateGuestProgress({
     loopCount: newLoopCount,
-    lastVisitId: currentVisitId,
+    activeMealDaySessionStart: Date.now(),
   });
   
-  console.log(`🗓️ Guest: Meal Day ${newLoopCount} of ${MAX_GUEST_LOOPS} used`);
+  console.log(`🗓️ Guest: Meal Day ${newLoopCount} of ${MAX_GUEST_LOOPS} started (24-hour session)`);
   
-  // Dispatch event for loop updates
+  // Dispatch event for meal day consumption
   window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
     detail: { action: "mealDayUsed", loopCount: newLoopCount }
   }));
   
   return true;
+}
+
+/**
+ * End the current meal board visit.
+ * Note: This does NOT end the 24-hour session - just the current visit.
+ * Guest can return to the meal board within 24 hours without consuming another day.
+ */
+export function endMealBoardVisit(): void {
+  // Session persists for 24 hours, so nothing to do here
+  // Just log for debugging
+  if (isGuestMode()) {
+    const remaining = getActiveMealDaySessionRemaining();
+    if (remaining) {
+      console.log(`📋 Guest: Left meal board. Session active for ${remaining.hours}h ${remaining.minutes}m more.`);
+    }
+  }
+}
+
+/**
+ * DEPRECATED: Use startMealBoardVisit() instead.
+ * Kept for backward compatibility - now just checks/extends session.
+ */
+export function countMealDayUsed(): boolean {
+  // This is now a no-op since meal days are consumed on board ENTRY, not meal building
+  // Kept for backward compatibility with existing incrementMealsBuilt() call
+  return false;
 }
 
 /**
