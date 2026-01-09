@@ -34,6 +34,7 @@ import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
+import { recordShoppingToBiometricsTransition } from "@/lib/guestSuiteNavigator";
 
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
@@ -403,21 +404,20 @@ export default function ShoppingListMasterView() {
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3">
-          {/* Guest Mode: Back to Guest Suite button */}
+          {/* Guest Mode: Continue to Biometrics button (enforces Guest Suite flow) */}
           {isGuestMode() && (
             <Button
               onClick={() => {
                 markStepCompleted("shopping_viewed");
-                // NOTE: Loop increment is now handled by meal build + shopping view combo
-                // Not on every navigation back to suite
-                setLocation("/guest-suite");
+                recordShoppingToBiometricsTransition();
+                setLocation("/my-biometrics");
               }}
               variant="ghost"
               size="sm"
               className="text-lime-400 hover:bg-lime-500/10 -ml-2"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
-              {GUEST_SUITE_BRANDING.phase2.backToSuiteButton}
+              Continue to Biometrics
             </Button>
           )}
 
