@@ -23,13 +23,13 @@ import { getPageExplanation } from "@/components/copilot/CopilotPageExplanations
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import {
   isGuestMode,
-  getGuestGenerationsRemaining,
   endGuestSession,
   GuestFeature,
 } from "@/lib/guestMode";
 import { useGuestProgress } from "@/hooks/useGuestProgress";
 import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { GuestUpgradePromptModal } from "@/components/modals/GuestUpgradePromptModal";
 
 interface ActionButton {
   id: string;
@@ -84,8 +84,9 @@ export default function GuestBuilder() {
   const [, setLocation] = useLocation();
   const { open, isOpen, setLastResponse } = useCopilot();
   const hasAutoOpenedRef = useRef(false);
-  const { isFeatureUnlocked, getUnlockMessage, nextStepMessage } = useGuestProgress();
+  const { isFeatureUnlocked, getUnlockMessage, nextStepMessage, shouldShowUpgrade, generationsRemaining, daysRemaining } = useGuestProgress();
   const { toast } = useToast();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     if (!isGuestMode()) {
@@ -116,7 +117,15 @@ export default function GuestBuilder() {
     }
   }, [setLocation, open, setLastResponse]);
 
-  const remaining = getGuestGenerationsRemaining();
+  useEffect(() => {
+    if (shouldShowUpgrade && !showUpgradeModal) {
+      const hasSeenUpgradePrompt = sessionStorage.getItem("guest_upgrade_prompt_seen");
+      if (!hasSeenUpgradePrompt) {
+        setShowUpgradeModal(true);
+        sessionStorage.setItem("guest_upgrade_prompt_seen", "true");
+      }
+    }
+  }, [shouldShowUpgrade, showUpgradeModal]);
 
   const handleCreateAccount = () => {
     endGuestSession();
@@ -255,11 +264,25 @@ export default function GuestBuilder() {
           })}
         </div>
 
-        {remaining > 0 && (
+        {generationsRemaining > 0 && !shouldShowUpgrade && (
           <div className="text-center text-white/40 text-xs py-4">
-            {remaining} AI generation{remaining !== 1 ? "s" : ""} remaining in
+            {generationsRemaining} AI generation{generationsRemaining !== 1 ? "s" : ""} remaining in
             guest mode
           </div>
+        )}
+        
+        {shouldShowUpgrade && (
+          <button
+            onClick={() => setShowUpgradeModal(true)}
+            className="w-full mt-4 p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/15 border border-amber-400/30 text-center"
+          >
+            <div className="text-sm font-semibold text-amber-300">
+              You've used your guest meals
+            </div>
+            <div className="text-xs text-white/60 mt-1">
+              Tap here to create a free account and continue
+            </div>
+          </button>
         )}
       </div>
 
@@ -309,6 +332,12 @@ export default function GuestBuilder() {
           </div>
         </div>
       </nav>
+
+      <GuestUpgradePromptModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        reason={daysRemaining <= 0 ? "expired" : "limit"}
+      />
     </motion.div>
   );
 }
