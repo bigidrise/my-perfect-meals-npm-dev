@@ -1,6 +1,13 @@
 import dotenv from "dotenv";
 dotenv.config(); // Load .env file FIRST before anything else
 
+// Alias VITE_OPENAI_API_KEY to OPENAI_API_KEY if the latter isn't set
+// (VITE_ prefix is for client-side Vite builds, server code uses OPENAI_API_KEY)
+if (!process.env.OPENAI_API_KEY && process.env.VITE_OPENAI_API_KEY) {
+  process.env.OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
+  console.log("✅ Aliased VITE_OPENAI_API_KEY to OPENAI_API_KEY");
+}
+
 import "./bootstrap-fetch"; // Ensure fetch is available
 import express, {
   type Request,

@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -43,7 +44,12 @@ export function CreateWithChefModal({
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const { user } = useAuth();
-  const userId = user?.id?.toString() || "";
+  
+  // Support both authenticated users and guests
+  const isGuest = isGuestMode();
+  const guestSession = isGuest ? getGuestSession() : null;
+  const userId = user?.id?.toString() || guestSession?.sessionId || "";
+  
   const { generating, progress, error, generateMeal, cancel } =
     useCreateWithChefRequest(userId);
   const { toast } = useToast();
@@ -60,6 +66,16 @@ export function CreateWithChefModal({
       toast({
         title: "Please sign in",
         description: "You need to be signed in to create meals",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check guest generation limits
+    if (isGuest && !canGuestGenerate()) {
+      toast({
+        title: "Guest limit reached",
+        description: "Create a free account to continue generating meals",
         variant: "destructive",
       });
       return;
@@ -83,6 +99,11 @@ export function CreateWithChefModal({
     );
 
     if (meal) {
+      // Record guest generation for limit tracking (does not affect unlock progression)
+      if (isGuest) {
+        trackGuestGenerationUsage();
+      }
+      
       toast({
         title: "Meal Created!",
         description: `${meal.name} is ready for you`,

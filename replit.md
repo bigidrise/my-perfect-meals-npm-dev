@@ -38,6 +38,7 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Meal Card Share + Translate System v1.0**: Replaced copy function with native Share and Translate toggle on meal cards, using GPT-4o-mini for content-hash cached translation.
 - **Local Meal Reminders v1.0**: Device-local notification system using `@capacitor/local-notifications` for up to 3 daily meal reminders.
 - **iOS Build Workflow**: Supports building with a remote server URL (for TestFlight/App Store) or locally served `dist` folder.
+- **iOS App Store Compliance v1.1** (Jan 2026): Updated `isIosNativeShell()` in `client/src/lib/platform.ts` to use Capacitor's `isNativePlatform()` and `getPlatform()` for reliable iOS detection during Apple App Review. Added inline citations with NIH/USDA links directly under macro calculation results in `MacroCounter.tsx` to satisfy Guideline 1.4.1 (medical information sources).
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.

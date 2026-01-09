@@ -934,6 +934,25 @@ export default function MacroCounter() {
                     />
                     <MacroRow label="Fats" grams={Math.max(0, results.macros.fat.g + advisoryDeltas.fat)} />
                   </div>
+                  
+                  {/* Inline citations for Apple App Review compliance (Guideline 1.4.1) */}
+                  <div className="mt-4 pt-3 border-t border-white/10">
+                    <p className="text-xs text-white/50 leading-relaxed">
+                      <span className="font-medium text-white/70">Calculation sources:</span>{" "}
+                      Based on <a href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx" target="_blank" rel="noopener noreferrer" className="text-lime-400/70 underline">NIH Dietary Reference Intakes (DRIs)</a>,{" "}
+                      <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener noreferrer" className="text-lime-400/70 underline">USDA FoodData Central</a>, and the Mifflin-St Jeor equation.{" "}
+                      Consult a healthcare professional before making dietary changes.
+                    </p>
+                    <div className="mt-2">
+                      <MedicalSourcesInfo 
+                        trigger={
+                          <button className="text-xs text-lime-400/80 hover:text-lime-400 underline flex items-center gap-1">
+                            <Info className="w-3 h-3" /> View all sources & methodology
+                          </button>
+                        } 
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

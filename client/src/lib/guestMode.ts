@@ -165,30 +165,37 @@ export function hasCompletedMacros(): boolean {
 }
 
 /**
- * Increment meal count when a meal is actually added to the board
- * This unlocks Fridge Rescue & Craving Creator after first meal
+ * Increment meal count when a meal is actually added to the board.
+ * This handles unlock progression (Fridge Rescue & Craving Creator).
+ * Generation limits are tracked separately via trackGuestGenerationUsage().
+ * 
+ * NOTE: This does NOT decrement guestUsesRemaining - that's handled by
+ * trackGuestGenerationUsage() when a meal is generated. This function
+ * only increments mealsBuiltCount for unlock gates.
  */
 export function incrementMealsBuilt(): void {
   const progress = getGuestProgress();
   if (!progress) return;
   
   const newCount = progress.mealsBuiltCount + 1;
-  const newRemaining = Math.max(0, progress.guestUsesRemaining - 1);
   
+  // Only update mealsBuiltCount for unlock progression
+  // Do NOT decrement guestUsesRemaining here - that's handled by trackGuestGenerationUsage()
   updateGuestProgress({
     mealsBuiltCount: newCount,
-    guestUsesRemaining: newRemaining,
   });
   
-  // Also update legacy counter for backwards compatibility
+  // Keep legacy counters in sync for backwards compatibility
+  // Note: This uses mealsBuiltCount for legacy generationsUsed (same semantics)
   const session = getGuestSession();
   if (session) {
     session.generationsUsed = newCount;
     localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
+    // Legacy key represents meals built, not generation uses
     localStorage.setItem(GUEST_GENERATIONS_KEY, newCount.toString());
   }
   
-  console.log(`✅ Guest: Meal ${newCount} built - ${newRemaining} remaining`);
+  console.log(`✅ Guest: Meal ${newCount} added to board`);
   
   if (newCount === 1) {
     console.log("🔓 Guest: First meal built - Fridge Rescue & Craving Creator unlocked");
@@ -334,17 +341,39 @@ export function shouldShowGuestUpgradePrompt(): boolean {
 }
 
 // ============================================
-// LEGACY COMPATIBILITY
+// GENERATION TRACKING (separate from meal-building unlocks)
 // ============================================
 
-export function incrementGuestGeneration(): boolean {
+/**
+ * Track a generation usage WITHOUT affecting mealsBuiltCount or unlock progression.
+ * mealsBuiltCount should only increment when a meal is placed on the board.
+ * This function only decrements guestUsesRemaining for limit enforcement.
+ * 
+ * NOTE: Legacy counters (generationsUsed, GUEST_GENERATIONS_KEY) are updated by
+ * incrementMealsBuilt() when meals are added to the board, not here.
+ */
+export function trackGuestGenerationUsage(): boolean {
   const progress = getGuestProgress();
   if (!progress || progress.guestUsesRemaining <= 0) {
     return false;
   }
   
-  incrementMealsBuilt();
+  const newRemaining = Math.max(0, progress.guestUsesRemaining - 1);
+  
+  updateGuestProgress({
+    guestUsesRemaining: newRemaining,
+  });
+  
+  console.log(`✅ Guest: Generation used - ${newRemaining} remaining`);
   return true;
+}
+
+/**
+ * @deprecated Use trackGuestGenerationUsage() instead
+ * Legacy function maintained for backwards compatibility
+ */
+export function incrementGuestGeneration(): boolean {
+  return trackGuestGenerationUsage();
 }
 
 export function markGuestDayBuilt(): void {
