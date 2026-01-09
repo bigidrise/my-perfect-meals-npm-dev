@@ -368,6 +368,21 @@ export function getMealsBuiltCount(): number {
 // FEATURE ACCESS CHECKS
 // ============================================
 
+const GUEST_FIRST_LOOP_KEY = "mpm_guest_first_loop_complete";
+
+/**
+ * Check if guest has completed their first loop (Shopping → Biometrics transition)
+ * This is a local helper to avoid circular imports with guestSuiteNavigator
+ */
+function hasCompletedFirstLoopFlag(): boolean {
+  if (!isGuestMode()) return true;
+  try {
+    return localStorage.getItem(GUEST_FIRST_LOOP_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 export type GuestFeature = 
   | "macro-calculator"
   | "weekly-meal-builder"
@@ -397,8 +412,9 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
       
     case "fridge-rescue":
     case "craving-creator":
-      // Unlocked after building first meal
-      return progress.mealsBuiltCount >= 1;
+      // Unlocked after completing first loop (Shopping → Biometrics)
+      // Uses hasCompletedFirstLoop from guestSuiteNavigator
+      return hasCompletedFirstLoopFlag();
       
     case "biometrics":
     case "shopping-list":
@@ -421,7 +437,7 @@ export function getFeatureUnlockMessage(feature: GuestFeature): string {
       
     case "fridge-rescue":
     case "craving-creator":
-      return "Build your first meal in the Weekly Meal Builder to unlock this feature.";
+      return "Complete the guided tour (Macros → Meals → Shopping → Biometrics) to unlock.";
       
     case "biometrics":
     case "shopping-list":
