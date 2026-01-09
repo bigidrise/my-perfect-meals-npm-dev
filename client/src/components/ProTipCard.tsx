@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Lightbulb } from "lucide-react";
 import { ttsService } from "@/lib/tts";
@@ -6,10 +6,15 @@ import { PRO_TIP_SCRIPT } from "@/components/copilot/scripts/proTipScript";
 
 export const ProTipCard: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleToggle = useCallback(async () => {
     if (isPlaying) {
       ttsService.stop();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
       setIsPlaying(false);
       return;
     }
@@ -17,11 +22,25 @@ export const ProTipCard: React.FC = () => {
     setIsPlaying(true);
     
     try {
-      await ttsService.speak(PRO_TIP_SCRIPT, {
+      const result = await ttsService.speak(PRO_TIP_SCRIPT, {
         onStart: () => setIsPlaying(true),
         onEnd: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),
       });
+      
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
     } catch {
       setIsPlaying(false);
     }
