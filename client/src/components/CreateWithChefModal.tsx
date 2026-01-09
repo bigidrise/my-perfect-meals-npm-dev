@@ -18,7 +18,7 @@ import {
 } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { isGuestMode, getGuestSession, canGuestGenerate, incrementGuestGeneration } from "@/lib/guestMode";
+import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -99,9 +99,9 @@ export function CreateWithChefModal({
     );
 
     if (meal) {
-      // Record guest generation for limit tracking
+      // Record guest generation for limit tracking (does not affect unlock progression)
       if (isGuest) {
-        incrementGuestGeneration();
+        trackGuestGenerationUsage();
       }
       
       toast({

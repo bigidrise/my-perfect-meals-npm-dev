@@ -13,7 +13,7 @@ import { Cookie, Loader2 } from "lucide-react";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { isGuestMode, getGuestSession, canGuestGenerate, incrementGuestGeneration } from "@/lib/guestMode";
+import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -80,9 +80,9 @@ export function SnackCreatorModal({
     const snack = await generateSnack(description.trim(), dietType, dietPhase);
 
     if (snack) {
-      // Record guest generation for limit tracking
+      // Record guest generation for limit tracking (does not affect unlock progression)
       if (isGuest) {
-        incrementGuestGeneration();
+        trackGuestGenerationUsage();
       }
       
       toast({
