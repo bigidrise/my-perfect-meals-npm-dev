@@ -30,7 +30,12 @@ export default function AppRouter({ children }: AppRouterProps) {
       "/admin-moderation",
       "/alcohol/lean-and-social"
     ];
-    return !hideOnRoutes.some(route => location.startsWith(route));
+    
+    // In guest mode, hide bottom nav on shopping list and biometrics to enforce linear flow
+    const guestLockedRoutes = ["/shopping-list", "/my-biometrics"];
+    const isGuestLockedRoute = isGuestMode() && guestLockedRoutes.some(route => location.startsWith(route));
+    
+    return !hideOnRoutes.some(route => location.startsWith(route)) && !isGuestLockedRoute;
   }, [location]);
 
   // Check if user needs onboarding repair (authenticated but missing activeBoard)

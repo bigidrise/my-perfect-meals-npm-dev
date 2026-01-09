@@ -184,14 +184,12 @@ export function recordGuestPageEntry(page: GuestSuitePage): void {
 }
 
 /**
- * Record transition from Shopping to Biometrics (completes first loop)
+ * Record transition from Shopping to Biometrics
+ * NOTE: This does NOT mark first loop complete - only biometrics does that
+ * after verifying the session marker to prevent premature unlocks
  */
 export function recordShoppingToBiometricsTransition(): void {
   if (!isGuestMode()) return;
-  
-  if (!hasCompletedFirstLoop()) {
-    markFirstLoopComplete();
-  }
   
   markStepCompleted("shopping_viewed");
 }

@@ -51,7 +51,12 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
   - **Fridge Rescue & Craving Creator are FREE**: These are "idea generators" — guests can explore freely. Adding to meal plan routes to Weekly Meal Board but only consumes a day if no active session exists.
   - Functions: `startMealBoardVisit()` checks/starts 24h session, `hasActiveMealDaySession()`, `getActiveMealDaySessionRemaining()` for session awareness
   - Soft nudge at 3 meal days, hard gate at 4 meal days redirecting to pricing
-  - Key files: `client/src/lib/guestMode.ts`, `client/src/lib/guestSuiteBranding.ts`, `client/src/hooks/useGuestProgress.ts`, `client/src/pages/GuestBuilder.tsx`, `client/src/pages/WeeklyMealBoard.tsx`
+  - Key files: `client/src/lib/guestMode.ts`, `client/src/lib/guestSuiteBranding.ts`, `client/src/lib/guestSuiteNavigator.ts`, `client/src/hooks/useGuestProgress.ts`, `client/src/hooks/useGuestNavigationGuard.ts`, `client/src/pages/GuestBuilder.tsx`, `client/src/pages/WeeklyMealBoard.tsx`
+  - **Navigation Enforcement v1.0**: Linear flow enforcement on Shopping List and Biometrics pages:
+    - Bottom navigation hidden on these pages in guest mode
+    - `useGuestNavigationGuard` hook intercepts browser back button attempts
+    - Session marker (`mpm_guest_from_shopping`) tracks Shopping → Biometrics transition
+    - First loop marked complete ONLY when biometrics confirms session marker presence
   - **Coaching Philosophy**: MPM is "coach in your pocket" - supportive but serious. The app talks to users, not just provides tools. Guest Suite messaging encourages building COMPLETE meal days (breakfast, lunch, dinner, snacks), actually cooking them, and using passes wisely. Tone is cheerleader + drill sergeant.
   - **Guest Copilot Marketing Scripts v1.0**: Guest-specific Copilot explanations delivered via `getGuestPageExplanation(pathname, isGuestMode())` with `guestSpokenText` and `guestDescription` fields in `CopilotPageExplanations.ts`. Marketing-focused copy per page:
     - Macro Calculator: "We personalize, not guess"

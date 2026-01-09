@@ -35,10 +35,13 @@ import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition } from "@/lib/guestSuiteNavigator";
+import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  useGuestNavigationGuard("shopping-list");
 
   // Extract "from" query parameter once on mount
   const [fromSlug, setFromSlug] = useState<string>(() => {
@@ -410,6 +413,8 @@ export default function ShoppingListMasterView() {
               onClick={() => {
                 markStepCompleted("shopping_viewed");
                 recordShoppingToBiometricsTransition();
+                // Set session marker so biometrics knows we came from shopping
+                sessionStorage.setItem("mpm_guest_from_shopping", "true");
                 setLocation("/my-biometrics");
               }}
               variant="ghost"

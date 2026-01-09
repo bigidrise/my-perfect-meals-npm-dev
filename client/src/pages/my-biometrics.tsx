@@ -71,6 +71,8 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
+import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
+import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -124,6 +126,8 @@ const saveJSON = (k: string, v: any) => {
 export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  
+  useGuestNavigationGuard("biometrics");
 
   const biometricsTourSteps: TourStep[] = [
     {
@@ -161,9 +165,18 @@ export default function MyBiometrics() {
   const quickTour = useQuickTour("my-biometrics");
 
   // Mark biometrics as viewed for guest users on mount
+  // Also mark first loop complete if coming from shopping (this unlocks Fridge Rescue & Craving Creator)
   useEffect(() => {
     if (isGuestMode()) {
       markStepCompleted("biometrics_viewed");
+      
+      // Only mark first loop complete if user came from shopping list
+      // We check for a session marker set by the shopping list page
+      const cameFromShopping = sessionStorage.getItem("mpm_guest_from_shopping") === "true";
+      if (cameFromShopping && !hasCompletedFirstLoop()) {
+        markFirstLoopComplete();
+        sessionStorage.removeItem("mpm_guest_from_shopping"); // Clear the marker
+      }
     }
   }, []);
 
@@ -1295,7 +1308,7 @@ export default function MyBiometrics() {
                             : "You can change your macro targets anytime from:"}
                         </p>
 
-                        {targetSource !== "pro" && (
+                        {targetSource !== "pro" && !isGuestMode() && (
                           <div className="grid grid-cols-2 gap-3">
                             <Button
                               onClick={() => setLocation("/macro-calculator")}
