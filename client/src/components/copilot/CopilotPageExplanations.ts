@@ -4,6 +4,9 @@ export interface PageExplanation {
   description: string;
   spokenText: string;
   autoClose: boolean;
+  // Guest-specific marketing copy - used when in guest mode for onboarding/sales
+  guestSpokenText?: string;
+  guestDescription?: string;
 }
 
 export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
@@ -25,6 +28,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     spokenText:
       "My Biometrics is your tracking and review center. Your daily macro targets live at the top of this page and stay persistent until you recalculate them in the Macro Calculator. You can log packaged foods using MacroScan by taking a photo of a nutrition label, review the AI-read values, and add them to your day. This page also shows your daily, weekly, and monthly macro totals, your weight trends over time, and your daily water intake. Use Biometrics to monitor progress, not plan your meals — it's where everything comes together so you can see how you're doing. For guests, Biometrics is where you review what you’ve built, and once your meals are set, this page helps you understand how everything connects.",
     autoClose: true,
+    guestDescription: "This is where food turns into numbers, and numbers turn into feedback. Your personal progress lens.",
+    guestSpokenText: "This is your Biometrics page — and this is where food turns into data. Most people eat without ever knowing what's actually working. Here, you'll see exactly how your meals add up — protein, carbs, fat, calories — all in one place. You can scan packaged food labels, log meals you've built, and watch your weekly and monthly trends unfold. This isn't just tracking — it's feedback. It's the difference between hoping your plan works and actually knowing it does. For subscribers, this page becomes your personal progress lens — weight trends, water intake, macro consistency over time. It's where the system closes the loop. Right now, explore what's here. Build a meal, log it, and watch your numbers update. That's how you'll know this app actually works.",
   },
 
   "/craving-creator": {
@@ -35,6 +40,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     spokenText:
       "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, like dairy-free or gluten-free, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s breakfast, lunch, dinner, or snacks, log the macros, or save it for later. You eat what you want — and still stay on track. If you're exploring as a guest, don't just look — experiment. Use the Add to Plan button to drop this meal into your day and see how it connects to your overall macros and shopping list.",
     autoClose: true,
+    guestDescription: "We redesign cravings. Stay satisfied, stay on plan — without giving up what you love.",
+    guestSpokenText: "This is Craving Creator — and this is how you stay on plan without feeling deprived. Most diets tell you to ignore your cravings. We don't. We redesign them. Craving something sweet? Tell me. Something crunchy, creamy, salty — tell me. I'll build a healthier version that actually satisfies you, with ingredients, instructions, and real nutrition. When you find one you like, add it straight to today's breakfast, lunch, dinner, or snacks. This feature is free for guests because it's an idea generator — explore freely, experiment, and see how cravings can fit into a real plan without derailing your progress.",
   },
 
   "/craving-desserts": {
@@ -75,6 +82,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     spokenText:
       "Fridge Rescue is for those nights when you’ve got food at home, but no ideas. Type or speak the ingredients you already have, then tap Generate. I’ll create real meals using what’s in your fridge — no grocery run, no guessing. Each meal comes with ingredients, instructions, and nutrition. If you like one, you can add it directly to today’s breakfast, lunch, dinner, or snacks, log the macros, or send ingredients to your shopping list. It turns what you already have into an actual plan. If you’re a guest, don’t forget to use the Add to Meal buttons so you can see how Fridge Rescue connects back to your meal plan and shopping list.",
     autoClose: true,
+    guestDescription: "Life happens. We adapt. Use what you have and turn it into something real.",
+    guestSpokenText: "This is Fridge Rescue — and this is what happens when life doesn't go according to plan. You've got random ingredients at home, no time to shop, and no idea what to make. Sound familiar? Just tell me what you've got — chicken, eggs, leftover rice, whatever — and I'll turn it into a real meal with ingredients, instructions, and nutrition. No grocery run. No guessing. No wasted food. This feature is free for guests because it's an idea generator — explore freely, see what's possible. When you find something you like, add it to your meal plan and watch how it connects back to your day.",
   },
 
   "/healthy-kids-meals": {
@@ -262,6 +271,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     spokenText:
       "The Macro Calculator helps set personalized daily nutrition targets based on how your body actually works — not just calories. Start by choosing your goal, body type, and activity level, then enter your age, height, weight, and current weight for biometrics. You can also factor in important metabolic considerations like hormone changes, insulin resistance, or high stress, which can influence how your body responds to protein, carbs, and fat. I’ll calculate clear daily targets for protein, starchy carbs, fibrous carbs, and fat — giving you numbers that make sense for you. Here's something important to understand: fibrous carbs like vegetables are unlimited and actually help with weight loss, while starchy carbs like rice, pasta, and potatoes need to be managed. In the Starch section, you’ll choose how you want to manage starchy carbs for the day. You can select One Starch Meal, which places all your starchy carbs into a single meal for better appetite control and fat loss, or Flex Split, which allows starchy carbs to be divided across two meals for more flexibility or higher activity days. This choice controls how starchy carbs are allocated across your meals and is saved automatically when you finish the calculator. Here's a pro tip: try to eat your starchy carbs earlier in the day. It's harder to get quality REM sleep when your body is busy metabolizing sugars — so front-load your carbs and you'll sleep better. Once your targets and strategy are set, head to the planner and start building meals that align with those goals. If you’re using Guest Mode, once you finish and save your macros, head straight to the Weekly Meal Builder to start creating meals and unlock the next features.",
     autoClose: true,
+    guestDescription: "This is where your plan becomes yours — personalized nutrition targets based on your body, not generic calorie counting.",
+    guestSpokenText: "This is your Macro Calculator — and this is where your plan becomes yours. Most apps just count calories. We don't. We calculate personalized daily targets for protein, starchy carbs, fibrous carbs, and fat based on how your body actually works — your age, your activity level, your goals, and even factors like hormone changes, insulin resistance, or stress that most apps ignore completely. Here's something important: fibrous carbs like vegetables are unlimited and actually help with weight loss. Starchy carbs like rice, pasta, and potatoes need to be managed — and that's what the Starch Strategy section is for. You'll choose One Starch Meal for better appetite control, or Flex Split for more flexibility on active days. Pro tip: eat your starchy carbs earlier in the day. Your body metabolizes sugars better during the day, and you'll sleep better at night. Once you save your numbers, everything you build in this app will be built around YOU — not some generic template. This is the foundation. When you're done, the Weekly Meal Builder unlocks, and you'll see exactly how we turn these numbers into real meals you actually want to eat. Take your time here. Get these numbers right. Then let's build.",
   },
   "/shopping-list-v2": {
     pageId: "shopping-list-v2",
@@ -271,6 +282,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     spokenText:
       "The Master Shopping List helps you organize everything you need in one place. You can add items by barcode, voice, or bulk entry, group them by aisle, and exclude pantry staples. Use Add Other Items for non food needs like household, personal care, pets, or pharmacy items, then check things off as you shop or send your list to a delivery service. If you’re exploring as a guest, this is where you see how meals turn into real shopping, and when you’re ready, head back to the Guest Suite to keep exploring or try Fridge Rescue and Craving Creator.",
     autoClose: true,
+    guestDescription: "Planning turns into action here. This is real-world execution — shopping made simple.",
+    guestSpokenText: "This is your Shopping List — and this is where planning turns into action. Most people build meal plans and then guess what to buy. We don't. Every meal you create in this app can be sent directly here — organized, ready to shop. You can add items by barcode, voice, or manual entry. You can group by aisle, exclude pantry staples, and check things off as you go. If you use delivery, send the list straight to your service. This is how meal planning actually works in the real world — and it's one of the reasons subscribers love this app. Right now, explore what's here. When you build a meal and send it to shopping, you'll see exactly how the system comes together.",
   },
   "/get-inspiration": {
     pageId: "get-inspiration",
@@ -290,6 +303,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     spokenText:
       "Welcome to your Meal Builder. This is where everything comes together. No matter which builder you’re using, they all work the same way — you’re creating healthy meals in any cuisine or style you want. At the top of the screen, you’ll see your daily starch indicator, which shows how many starchy meals you have available based on the starch strategy you set in the Macro Calculator. Green means you still have starch meals available, orange means you’ve used them, and red means you’re over your daily starch limit. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe your meal — breakfast, lunch, dinner, or snacks — and be as specific as you like with cuisine, protein amount, carbs, and preferences. The more detail you give, the better the result. You can plan up to a full week at a time, build each day differently, or duplicate days to save time. As you build, focus on protein and carbs — those are the most important drivers of energy and results. When you’re done, you can send meals straight to your shopping list, log the day to your biometrics, or make changes anytime. This is your builder — open it up and start creating meals your way. Build your meals here, then send them to Biometrics or the Shopping List — this is how you see the system work end to end. If you’re a guest, building at least one meal here unlocks Fridge Rescue and Craving Creator, so focus on creating a meal you’d actually eat and adding it to your day.",
     autoClose: true,
+    guestDescription: "Structure beats willpower. This pass counts — build the full day.",
+    guestSpokenText: "This is your Weekly Meal Builder — and this is where your plan becomes real. Most apps give you a list of recipes and hope you figure it out. We don't. Here, you'll build complete meal days — breakfast, lunch, dinner, and snacks — in any cuisine, any style, any dietary need. The more specific you are, the better the result: 'Mediterranean lunch, 50 grams of protein, low fat' works just as well as 'surprise me.' As a guest, you have a limited number of meal day passes. When you enter this page without an active session, you'll use one of those passes — but once you're in, you have 24 hours to build, explore, come back, and build more. That's the deal: structure beats willpower, and this is where you prove it. Take your time. Build a full day. Make it something you'd actually eat. Then send it to your shopping list and see how everything connects.",
   },
 
   "/diabetic-hub": {
@@ -510,7 +525,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Try our AI-powered meal planning tools — no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
     spokenText:
-      "Hey, welcome to the My Perfect Meals Guest Suite — I’m really glad you’re here. This is a guided preview of how the app works, and I’ll walk you through it step by step so you actually get the full experience instead of guessing where to start. As a guest, you’ll begin with the Macro Calculator to set your personal numbers — that’s the foundation for everything else in the app. You may notice that some features like the Weekly Meal Builder, Fridge Rescue, and Craving Creator aren’t fully open yet, and that’s intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few chances to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Anytime you’re on a page and want help, Copilot is right here in the bottom navigator, ready to guide you through exactly what to do next. Let’s start by setting your macros and take it from there.",
+      "Hey, welcome to the My Perfect Meals Guest Suite — I'm really glad you're here. Before we start, let me introduce myself. I'm Copilot, your personal guide inside this app. You'll find me in the bottom navigation bar — look for the Chef button in the center of the bottom navigation. Anytime you're on any page and want to know what it does or how to use it, just tap the Chef button, then hit Listen, and I'll explain exactly what you're looking at and what to do next. If you turn Auto on inside the Copilot panel, I'll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You're always in control. Now, let's talk about what you're here to do. This is a guided preview of how the app works, and I'll walk you through it step by step so you actually get the full experience instead of guessing where to start. As a guest, you'll begin with the Macro Calculator to set your personal numbers — that's the foundation for everything else in the app. You may notice that some features like the Weekly Meal Builder, Fridge Rescue, and Craving Creator aren't fully open yet, and that's intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Remember, I'm always here in the bottom navigation bar under Guide if you need me. Let's start by setting your macros and take it from there.",
     autoClose: false,
   },
 };
@@ -535,6 +550,41 @@ export function getPageExplanation(pathname: string): PageExplanation | null {
   }
 
   return null;
+}
+
+/**
+ * Get page explanation with guest-specific marketing copy when in guest mode.
+ * This returns a modified explanation with guestSpokenText and guestDescription
+ * replacing the default text when available.
+ * 
+ * IMPORTANT: Guest Suite = Guided, Coach-Led Marketing Experience
+ * - Copilot is the voice, coaching philosophy, and closer
+ * - Guest copilots teach, coach, and sell the value in real time
+ * - Tone = calm, confident, coach-led (not tooltip-y)
+ */
+export function getGuestPageExplanation(pathname: string, isGuest: boolean): PageExplanation | null {
+  // Path aliases for routes that have multiple names
+  const pathAliases: Record<string, string> = {
+    "/shopping-list": "/shopping-list-v2",
+  };
+  
+  const normalizedPath = pathAliases[pathname] || pathname;
+  const base = getPageExplanation(normalizedPath);
+  if (!base) return null;
+  
+  // If not in guest mode, return the standard explanation
+  if (!isGuest) return base;
+  
+  // If guest-specific copy exists, use it
+  if (base.guestSpokenText || base.guestDescription) {
+    return {
+      ...base,
+      spokenText: base.guestSpokenText || base.spokenText,
+      description: base.guestDescription || base.description,
+    };
+  }
+  
+  return base;
 }
 
 export function hasPageExplanation(pathname: string): boolean {

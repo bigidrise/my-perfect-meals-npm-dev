@@ -22,7 +22,7 @@ import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
 import { useCopilot } from "@/components/copilot/CopilotContext";
-import { getPageExplanation } from "@/components/copilot/CopilotPageExplanations";
+import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import {
   isGuestMode,
@@ -149,7 +149,7 @@ export default function GuestBuilder() {
     if (!hasSeenWelcome && !hasAutoOpenedRef.current) {
       hasAutoOpenedRef.current = true;
       const timer = setTimeout(() => {
-        const explanation = getPageExplanation("/guest-builder");
+        const explanation = getGuestPageExplanation("/guest-builder", true);
         if (explanation) {
           CopilotExplanationStore.resetPath("/guest-builder");
           open();
@@ -215,7 +215,7 @@ export default function GuestBuilder() {
   };
 
   const handleChefClick = () => {
-    const explanation = getPageExplanation("/guest-builder");
+    const explanation = getGuestPageExplanation("/guest-builder", true);
     if (explanation) {
       CopilotExplanationStore.resetPath("/guest-builder");
       open();

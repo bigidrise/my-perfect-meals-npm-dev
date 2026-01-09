@@ -23,6 +23,7 @@ import {
   type ConsumedMacros,
 } from "@/components/biometrics/RemainingMacrosFooter";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
+import { ProTipCard } from "@/components/ProTipCard";
 import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1823,6 +1824,9 @@ export default function DiabeticMenuBuilder() {
                 </div>
               </section>
             ))}
+
+        {/* Pro Tip Card */}
+          <ProTipCard />
 
         {/* Daily Targets Card with Quick Add */}
           <div className="col-span-full">

@@ -3,9 +3,10 @@ import { useCallback } from "react";
 import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
-import { getPageExplanation } from "@/components/copilot/CopilotPageExplanations";
+import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { motion } from "framer-motion";
+import { isGuestMode } from "@/lib/guestMode";
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
@@ -22,7 +23,7 @@ export default function BottomNav() {
     }
 
     const normalizedPath = normalizePath(location);
-    const explanation = getPageExplanation(normalizedPath);
+    const explanation = getGuestPageExplanation(normalizedPath, isGuestMode());
 
     CopilotExplanationStore.resetPath(normalizedPath);
 
