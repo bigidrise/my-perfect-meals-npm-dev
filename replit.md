@@ -60,6 +60,14 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
     - Biometrics: "Food → numbers → feedback — progress lens"
     - Fridge Rescue: "Life happens, we adapt — use what you have"
     - Craving Creator: "We redesign cravings — stay satisfied, stay on plan"
+- **Pro Tip Audio Card v1.0** (Jan 2026): Global instructional audio feature on all Meal Builder pages teaching macro accuracy:
+  - Positioned between Snack section and Daily Targets card on all builders
+  - Uses existing Copilot TTS system (`ttsService.speak`) for audio playback
+  - Button matches Copilot toggle style with amber (idle) / green (playing) states
+  - Single canonical script stored in `client/src/components/copilot/scripts/proTipScript.ts`
+  - Teaches: specificity in meal requests, how to use Quick Add, macro accuracy tips
+  - Tone: Neutral, system-focused, instructional (~30 seconds)
+  - Key files: `client/src/components/ProTipCard.tsx`, all Meal Builder pages
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.

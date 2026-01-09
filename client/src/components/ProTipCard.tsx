@@ -16,11 +16,15 @@ export const ProTipCard: React.FC = () => {
 
     setIsPlaying(true);
     
-    await ttsService.speak(PRO_TIP_SCRIPT, {
-      onStart: () => setIsPlaying(true),
-      onEnd: () => setIsPlaying(false),
-      onError: () => setIsPlaying(false),
-    });
+    try {
+      await ttsService.speak(PRO_TIP_SCRIPT, {
+        onStart: () => setIsPlaying(true),
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+    } catch {
+      setIsPlaying(false);
+    }
   }, [isPlaying]);
 
   return (
