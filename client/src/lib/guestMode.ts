@@ -87,6 +87,9 @@ export function startGuestSession(): GuestSession {
   localStorage.setItem(GUEST_PROGRESS_KEY, JSON.stringify(progress));
   localStorage.setItem(GUEST_GENERATIONS_KEY, "0");
   
+  // Clear any stale first-loop flag from previous sessions
+  localStorage.removeItem("mpm_guest_first_loop_complete");
+  
   console.log("🎫 Guest session started:", session.sessionId);
   
   return session;
@@ -395,9 +398,7 @@ export type GuestFeature =
  * Check if a guest feature is unlocked
  * This is the SINGLE SOURCE OF TRUTH for feature access
  * 
- * Unlock progression:
- * - Phase 1: Macro Calculator always open, Weekly Meal Builder opens after macros
- * - Phase 2: After first full cycle, ALL other features unlock (Biometrics, Shopping, Fridge Rescue, Craving Creator)
+ * Simple unlock: Macro Calculator always open, everything else unlocks when macros completed
  */
 export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
   if (!isGuestMode()) return true; // Non-guests have full access
@@ -411,16 +412,12 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
       return true;
       
     case "weekly-meal-builder":
-      // Unlocked after completing macros
-      return progress.macrosCompleted;
-      
     case "fridge-rescue":
     case "craving-creator":
     case "biometrics":
     case "shopping-list":
-      // ALL these unlock together after completing first full cycle
-      // (Macros → Meal Builder → Shopping → Biometrics → Guest Suite)
-      return hasCompletedFirstLoopFlag();
+      // ALL features unlock together after completing macros
+      return progress.macrosCompleted;
       
     default:
       return false;
@@ -434,13 +431,11 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
 export function getFeatureUnlockMessage(feature: GuestFeature): string {
   switch (feature) {
     case "weekly-meal-builder":
-      return "Complete the Macro Calculator to unlock this feature.";
-      
     case "fridge-rescue":
     case "craving-creator":
     case "biometrics":
     case "shopping-list":
-      return "Complete your first guided cycle to unlock all features.";
+      return "Complete the Macro Calculator to unlock all features.";
       
     default:
       return "Complete the guided steps to unlock this feature.";
