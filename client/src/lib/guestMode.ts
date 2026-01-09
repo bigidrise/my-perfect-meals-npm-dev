@@ -37,6 +37,8 @@ export interface GuestProgress {
   phase: GuestSuitePhase;
   completedSteps: GuestCompletedStep[];
   loopCount: number;
+  // Visit tracking - each trip to Weekly Meal Board = 1 loop
+  lastVisitId?: string;
 }
 
 export interface GuestSession {
