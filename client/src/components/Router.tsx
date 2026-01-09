@@ -161,6 +161,7 @@ export default function Router() {
     "/auth",
     "/welcome",
     "/guest-builder",
+    "/guest-suite",
     "/forgot-password",
     "/reset-password",
     "/onboarding",
@@ -181,6 +182,7 @@ export default function Router() {
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
         <Route path="/guest-builder" component={GuestBuilder} />
+        <Route path="/guest-suite" component={GuestBuilder} />
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
         <Route path="/forgot-password" component={ForgotPassword} />

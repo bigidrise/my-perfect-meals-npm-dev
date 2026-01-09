@@ -8,7 +8,22 @@ const GUEST_GENERATIONS_KEY = "mpm_guest_generations";
 
 // Configuration
 const MAX_GUEST_GENERATIONS = 4; // Maximum meals a guest can build
-const GUEST_DURATION_DAYS = 3; // Guest mode expires after 3 days
+const GUEST_DURATION_DAYS = 14; // Guest mode expires after 14-day concierge trial
+const MAX_GUEST_LOOPS = 4; // Maximum full loops (hard gate at 4)
+const SOFT_NUDGE_LOOP = 3; // Show soft nudge at loop 3
+const MEAL_DAY_SESSION_HOURS = 24; // Active meal day session lasts 24 hours
+
+// ============================================
+// GUEST SUITE JOURNEY STATE (Phase System)
+// ============================================
+
+export type GuestSuitePhase = 1 | 2;
+
+export type GuestCompletedStep = 
+  | "macros_saved"
+  | "meal_built"
+  | "shopping_viewed"
+  | "biometrics_viewed";
 
 // ============================================
 // GUEST PROGRESS STATE (Single Source of Truth)
@@ -19,6 +34,13 @@ export interface GuestProgress {
   mealsBuiltCount: number;
   guestUsesRemaining: number;
   guestStartDate: number;
+  // Phase system
+  phase: GuestSuitePhase;
+  completedSteps: GuestCompletedStep[];
+  loopCount: number;
+  // Active meal day session (24-hour window)
+  // When set, guest can freely explore and return to meal board without consuming another day
+  activeMealDaySessionStart?: number;
 }
 
 export interface GuestSession {
@@ -37,6 +59,10 @@ function createDefaultProgress(): GuestProgress {
     mealsBuiltCount: 0,
     guestUsesRemaining: MAX_GUEST_GENERATIONS,
     guestStartDate: Date.now(),
+    // Phase system
+    phase: 1,
+    completedSteps: [],
+    loopCount: 0,
   };
 }
 
@@ -167,11 +193,10 @@ export function hasCompletedMacros(): boolean {
 /**
  * Increment meal count when a meal is actually added to the board.
  * This handles unlock progression (Fridge Rescue & Craving Creator).
- * Generation limits are tracked separately via trackGuestGenerationUsage().
+ * Also triggers meal day counting if within a meal board visit.
  * 
- * NOTE: This does NOT decrement guestUsesRemaining - that's handled by
- * trackGuestGenerationUsage() when a meal is generated. This function
- * only increments mealsBuiltCount for unlock gates.
+ * This is the SINGLE entry point for all meal additions - ensures
+ * both mealsBuiltCount and loopCount are properly tracked.
  */
 export function incrementMealsBuilt(): void {
   const progress = getGuestProgress();
@@ -179,19 +204,16 @@ export function incrementMealsBuilt(): void {
   
   const newCount = progress.mealsBuiltCount + 1;
   
-  // Only update mealsBuiltCount for unlock progression
-  // Do NOT decrement guestUsesRemaining here - that's handled by trackGuestGenerationUsage()
+  // Update mealsBuiltCount for unlock progression
   updateGuestProgress({
     mealsBuiltCount: newCount,
   });
   
   // Keep legacy counters in sync for backwards compatibility
-  // Note: This uses mealsBuiltCount for legacy generationsUsed (same semantics)
   const session = getGuestSession();
   if (session) {
     session.generationsUsed = newCount;
     localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
-    // Legacy key represents meals built, not generation uses
     localStorage.setItem(GUEST_GENERATIONS_KEY, newCount.toString());
   }
   
@@ -200,6 +222,130 @@ export function incrementMealsBuilt(): void {
   if (newCount === 1) {
     console.log("🔓 Guest: First meal built - Fridge Rescue & Craving Creator unlocked");
   }
+  
+  // NOTE: Meal day consumption now happens on board ENTRY (startMealBoardVisit)
+  // NOT on meal building. This enables the 24-hour session model where
+  // guests can freely explore and return without burning additional days.
+  
+  // Dispatch event for meal updates
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "mealBuilt", mealsBuiltCount: newCount }
+  }));
+}
+
+// ============================================
+// MEAL DAY SESSION (24-Hour Active Session)
+// ============================================
+// CONCEPT: A "meal day" is a 24-hour window, not a single visit.
+// Fridge Rescue & Craving Creator are FREE to explore.
+// Only entering Weekly Meal Board WITHOUT an active session consumes a meal day.
+// Once a session is active, guest can explore, leave, and return freely.
+
+/**
+ * Check if there's an active meal day session (within 24 hours).
+ */
+export function hasActiveMealDaySession(): boolean {
+  if (!isGuestMode()) return false;
+  
+  const progress = getGuestProgress();
+  if (!progress?.activeMealDaySessionStart) return false;
+  
+  const now = Date.now();
+  const sessionStart = progress.activeMealDaySessionStart;
+  const hoursElapsed = (now - sessionStart) / (1000 * 60 * 60);
+  
+  return hoursElapsed < MEAL_DAY_SESSION_HOURS;
+}
+
+/**
+ * Get remaining time in active session (for UI display).
+ * Returns null if no active session.
+ */
+export function getActiveMealDaySessionRemaining(): { hours: number; minutes: number } | null {
+  if (!isGuestMode()) return null;
+  
+  const progress = getGuestProgress();
+  if (!progress?.activeMealDaySessionStart) return null;
+  
+  const now = Date.now();
+  const sessionStart = progress.activeMealDaySessionStart;
+  const msElapsed = now - sessionStart;
+  const msTotal = MEAL_DAY_SESSION_HOURS * 60 * 60 * 1000;
+  const msRemaining = msTotal - msElapsed;
+  
+  if (msRemaining <= 0) return null;
+  
+  const hours = Math.floor(msRemaining / (1000 * 60 * 60));
+  const minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return { hours, minutes };
+}
+
+/**
+ * Start a meal board visit. Called when WeeklyMealBoard mounts.
+ * Consumes a meal day ONLY if there's no active session.
+ * Returns true if a NEW meal day was consumed.
+ */
+export function startMealBoardVisit(): boolean {
+  if (!isGuestMode()) return false;
+  
+  const progress = getGuestProgress();
+  if (!progress) return false;
+  
+  // GUARD: Prevent exceeding the meal day cap
+  if (progress.loopCount >= MAX_GUEST_LOOPS) {
+    console.log(`🚫 Guest: Already at max meal days (${progress.loopCount}/${MAX_GUEST_LOOPS})`);
+    return false;
+  }
+  
+  // Check if there's an active session (within 24 hours)
+  if (hasActiveMealDaySession()) {
+    console.log(`📋 Guest: Returning to active meal day session (still valid)`);
+    return false; // No new meal day consumed
+  }
+  
+  // No active session - start a new one and consume a meal day
+  const newLoopCount = progress.loopCount + 1;
+  
+  updateGuestProgress({
+    loopCount: newLoopCount,
+    activeMealDaySessionStart: Date.now(),
+  });
+  
+  console.log(`🗓️ Guest: Meal Day ${newLoopCount} of ${MAX_GUEST_LOOPS} started (24-hour session)`);
+  
+  // Dispatch event for meal day consumption
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "mealDayUsed", loopCount: newLoopCount }
+  }));
+  
+  return true;
+}
+
+/**
+ * End the current meal board visit.
+ * Note: This does NOT end the 24-hour session - just the current visit.
+ * Guest can return to the meal board within 24 hours without consuming another day.
+ */
+export function endMealBoardVisit(): void {
+  // Session persists for 24 hours, so nothing to do here
+  // Just log for debugging
+  if (isGuestMode()) {
+    const remaining = getActiveMealDaySessionRemaining();
+    if (remaining) {
+      console.log(`📋 Guest: Left meal board. Session active for ${remaining.hours}h ${remaining.minutes}m more.`);
+    }
+  }
+}
+
+/**
+ * DEPRECATED: Use startMealBoardVisit() instead.
+ * Kept for backward compatibility - now just checks/extends session.
+ */
+export function countMealDayUsed(): boolean {
+  // This is now a no-op since meal days are consumed on board ENTRY, not meal building
+  // Kept for backward compatibility with existing incrementMealsBuilt() call
+  return false;
 }
 
 /**
@@ -390,6 +536,126 @@ export function hasGuestBuiltDay(): boolean {
 }
 
 // ============================================
+// GUEST SUITE PHASE SYSTEM
+// ============================================
+
+/**
+ * Get current phase (1 = Guided Build, 2 = Revealed/Unlocked)
+ */
+export function getGuestSuitePhase(): GuestSuitePhase {
+  const progress = getGuestProgress();
+  return progress?.phase ?? 1;
+}
+
+/**
+ * Get completed steps
+ */
+export function getCompletedSteps(): GuestCompletedStep[] {
+  const progress = getGuestProgress();
+  return progress?.completedSteps ?? [];
+}
+
+/**
+ * Check if a step is completed
+ */
+export function isStepCompleted(step: GuestCompletedStep): boolean {
+  return getCompletedSteps().includes(step);
+}
+
+/**
+ * Mark a step as completed
+ * Phase 2 unlocks when shopping_viewed is completed AND a meal has been built
+ */
+export function markStepCompleted(step: GuestCompletedStep): void {
+  const progress = getGuestProgress();
+  if (!progress) return;
+  
+  if (!progress.completedSteps.includes(step)) {
+    const newSteps = [...progress.completedSteps, step];
+    updateGuestProgress({ completedSteps: newSteps });
+    console.log(`✅ Guest: Step completed - ${step}`);
+    
+    // Trigger Phase 2 unlock when shopping is viewed after building a meal
+    if (step === "shopping_viewed" && progress.mealsBuiltCount >= 1 && progress.phase === 1) {
+      unlockGuestSuitePhase2();
+    }
+    
+    // Dispatch event for UI updates
+    window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+      detail: { action: "stepCompleted", step }
+    }));
+  }
+}
+
+/**
+ * Transition to Phase 2 (Revealed/Unlocked state)
+ * Called when guest exits Shopping List after first loop
+ */
+export function unlockGuestSuitePhase2(): void {
+  const progress = getGuestProgress();
+  if (!progress || progress.phase === 2) return;
+  
+  updateGuestProgress({ phase: 2 });
+  console.log("🔓 Guest Suite: Phase 2 unlocked - Biometrics revealed");
+  
+  // Dispatch event for UI updates
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "phase2Unlocked" }
+  }));
+}
+
+/**
+ * Get current loop count
+ */
+export function getGuestLoopCount(): number {
+  const progress = getGuestProgress();
+  return progress?.loopCount ?? 0;
+}
+
+/**
+ * Increment loop count (called when exiting Shopping List)
+ */
+export function incrementGuestLoop(): void {
+  const progress = getGuestProgress();
+  if (!progress) return;
+  
+  const newLoopCount = progress.loopCount + 1;
+  updateGuestProgress({ loopCount: newLoopCount });
+  console.log(`🔄 Guest Suite: Loop ${newLoopCount} completed`);
+  
+  // If first loop completion, unlock Phase 2
+  if (newLoopCount === 1) {
+    unlockGuestSuitePhase2();
+  }
+  
+  // Dispatch event for UI updates
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "loopCompleted", loopCount: newLoopCount }
+  }));
+}
+
+/**
+ * Check if soft nudge should be shown (at loop 3)
+ */
+export function shouldShowSoftNudge(): boolean {
+  return getGuestLoopCount() >= SOFT_NUDGE_LOOP;
+}
+
+/**
+ * Check if hard gate should be shown (at loop 4)
+ */
+export function shouldShowHardGate(): boolean {
+  return getGuestLoopCount() >= MAX_GUEST_LOOPS;
+}
+
+/**
+ * Check if biometrics is revealed (Phase 2)
+ */
+export function isBiometricsRevealed(): boolean {
+  return getGuestSuitePhase() === 2;
+}
+
+// ============================================
 // ROUTE ACCESS
 // ============================================
 
@@ -397,10 +663,13 @@ export function hasGuestBuiltDay(): boolean {
 export const GUEST_ALLOWED_ROUTES = [
   "/welcome",
   "/guest-builder",
+  "/guest-suite",
   "/macro-counter",
   "/weekly-meal-board",
   "/craving-creator",
   "/fridge-rescue",
+  "/my-biometrics",
+  "/shopping-list",
   "/privacy-policy",
   "/terms",
 ];

@@ -33,7 +33,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create healthier versions of the foods you crave — and add them directly to your meal plan.",
     spokenText:
-      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, like dairy-free or gluten-free, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s breakfast, lunch, dinner, or snacks, log the macros, or save it for later. You eat what you want — and still stay on track.",
+      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, like dairy-free or gluten-free, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s breakfast, lunch, dinner, or snacks, log the macros, or save it for later. You eat what you want — and still stay on track. If you're exploring as a guest, don't just look — experiment. Use the Add to Plan button to drop this meal into your day and see how it connects to your overall macros and shopping list.",
     autoClose: true,
   },
 
@@ -53,7 +53,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Choose from three options: Creator for custom AI-generated cravings, Premades for ready-made craving recipes, or Dessert Creator for healthy desserts like pies, cakes, cookies, and more.",
     spokenText:
-      "Craving something but can't come up with a healthy option? That's what Craving Creator is for. Tell it what you're craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals. If you’re exploring as a guest, try adding a craving meal to your plan so you can see how cravings still fit into your overall meals and macros. ",
+      "Craving something but can't come up with a healthy option? That's what Craving Creator is for. Tell it what you're craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals. ",
     autoClose: true,
   },
 

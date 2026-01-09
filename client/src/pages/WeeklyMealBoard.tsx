@@ -96,7 +96,8 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { isGuestMode, incrementMealsBuilt } from "@/lib/guestMode";
+import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount, hasActiveMealDaySession, getActiveMealDaySessionRemaining } from "@/lib/guestMode";
+import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -196,6 +197,69 @@ export default function WeeklyMealBoard() {
       initLockedDaysCache(user.id);
     }
   }, [user?.id]);
+
+  // Guest mode: Hard gate enforcement - redirect if 4 meal days used
+  // Checks on mount AND listens for guestProgressUpdate events during session
+  React.useEffect(() => {
+    const checkHardGate = () => {
+      if (isGuestMode() && shouldShowHardGate()) {
+        toast({
+          title: GUEST_SUITE_BRANDING.loopLimits.blockedAccessTitle,
+          description: GUEST_SUITE_BRANDING.loopLimits.blockedAccessDescription,
+        });
+        setLocation("/pricing");
+      }
+    };
+    
+    // Check on mount
+    checkHardGate();
+    
+    // Listen for progress updates (fires when loopCount changes)
+    const handleProgressUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.action === "mealDayUsed") {
+        checkHardGate();
+      }
+    };
+    
+    window.addEventListener("guestProgressUpdate", handleProgressUpdate);
+    return () => {
+      window.removeEventListener("guestProgressUpdate", handleProgressUpdate);
+    };
+  }, [setLocation, toast]);
+
+  // Guest mode: Track meal board visits for "meal day" counting (24-hour sessions)
+  React.useEffect(() => {
+    if (isGuestMode() && !shouldShowHardGate()) {
+      // Check if returning to an active session or starting a new one
+      const hadActiveSession = hasActiveMealDaySession();
+      const newMealDayConsumed = startMealBoardVisit();
+      const loopCount = getGuestLoopCount();
+      
+      if (newMealDayConsumed) {
+        // NEW meal day session started
+        toast({
+          title: `Meal Day ${loopCount} of 4 Started`,
+          description: GUEST_SUITE_BRANDING.coaching.welcomeToBoard,
+          duration: 6000,
+        });
+      } else if (hadActiveSession) {
+        // Returning to active session
+        const remaining = getActiveMealDaySessionRemaining();
+        if (remaining) {
+          toast({
+            title: "Welcome Back",
+            description: `You're still in Meal Day ${loopCount}. Session active for ${remaining.hours}h ${remaining.minutes}m more. Keep building!`,
+            duration: 4000,
+          });
+        }
+      }
+      
+      return () => {
+        endMealBoardVisit();
+      };
+    }
+  }, [toast]);
 
   // Sync hook board to local state only after loading completes
   React.useEffect(() => {
@@ -1434,7 +1498,8 @@ export default function WeeklyMealBoard() {
         /* no-op, safest on older browsers */
       }
 
-      // Guest mode: Increment meals built to unlock Fridge Rescue & Craving Creator
+      // Guest mode: Track meal building for unlocks and meal day counting
+      // incrementMealsBuilt() now handles both mealsBuiltCount AND countMealDayUsed() internally
       if (isGuestMode()) {
         incrementMealsBuilt();
       }
