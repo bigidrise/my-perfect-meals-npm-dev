@@ -96,7 +96,8 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit } from "@/lib/guestMode";
+import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount } from "@/lib/guestMode";
+import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -197,15 +198,37 @@ export default function WeeklyMealBoard() {
     }
   }, [user?.id]);
 
+  // Guest mode: Hard gate enforcement - redirect if 4 meal days used
+  React.useEffect(() => {
+    if (isGuestMode() && shouldShowHardGate()) {
+      toast({
+        title: GUEST_SUITE_BRANDING.loopLimits.blockedAccessTitle,
+        description: GUEST_SUITE_BRANDING.loopLimits.blockedAccessDescription,
+      });
+      setLocation("/pricing");
+    }
+  }, [setLocation, toast]);
+
   // Guest mode: Track meal board visits for "meal day" counting
   React.useEffect(() => {
-    if (isGuestMode()) {
+    if (isGuestMode() && !shouldShowHardGate()) {
       startMealBoardVisit();
+      
+      // Show coaching message on entry
+      const loopCount = getGuestLoopCount();
+      if (loopCount < 4) {
+        toast({
+          title: `Meal Day ${loopCount + 1} of 4`,
+          description: GUEST_SUITE_BRANDING.coaching.welcomeToBoard,
+          duration: 6000,
+        });
+      }
+      
       return () => {
         endMealBoardVisit();
       };
     }
-  }, []);
+  }, [toast]);
 
   // Sync hook board to local state only after loading completes
   React.useEffect(() => {
