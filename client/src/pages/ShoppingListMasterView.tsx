@@ -31,7 +31,7 @@ import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
-import { isGuestMode, markStepCompleted, incrementGuestLoop } from "@/lib/guestMode";
+import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
 
@@ -408,7 +408,8 @@ export default function ShoppingListMasterView() {
             <Button
               onClick={() => {
                 markStepCompleted("shopping_viewed");
-                incrementGuestLoop();
+                // NOTE: Loop increment is now handled by meal build + shopping view combo
+                // Not on every navigation back to suite
                 setLocation("/guest-suite");
               }}
               variant="ghost"

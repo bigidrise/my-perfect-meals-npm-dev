@@ -193,18 +193,20 @@ export function hasCompletedMacros(): boolean {
  * 
  * NOTE: This does NOT decrement guestUsesRemaining - that's handled by
  * trackGuestGenerationUsage() when a meal is generated. This function
- * only increments mealsBuiltCount for unlock gates.
+ * only increments mealsBuiltCount for unlock gates AND increments loopCount.
  */
 export function incrementMealsBuilt(): void {
   const progress = getGuestProgress();
   if (!progress) return;
   
   const newCount = progress.mealsBuiltCount + 1;
+  const newLoopCount = progress.loopCount + 1;
   
-  // Only update mealsBuiltCount for unlock progression
-  // Do NOT decrement guestUsesRemaining here - that's handled by trackGuestGenerationUsage()
+  // Update mealsBuiltCount for unlock progression AND increment loopCount
+  // Loop count is tied to actual meal builds, not navigation
   updateGuestProgress({
     mealsBuiltCount: newCount,
+    loopCount: newLoopCount,
   });
   
   // Keep legacy counters in sync for backwards compatibility
@@ -217,11 +219,16 @@ export function incrementMealsBuilt(): void {
     localStorage.setItem(GUEST_GENERATIONS_KEY, newCount.toString());
   }
   
-  console.log(`✅ Guest: Meal ${newCount} added to board`);
+  console.log(`✅ Guest: Meal ${newCount} added to board (Loop ${newLoopCount})`);
   
   if (newCount === 1) {
     console.log("🔓 Guest: First meal built - Fridge Rescue & Craving Creator unlocked");
   }
+  
+  // Dispatch event for loop/meal updates
+  window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
+    detail: { action: "mealBuilt", mealsBuiltCount: newCount, loopCount: newLoopCount }
+  }));
 }
 
 /**
@@ -440,6 +447,7 @@ export function isStepCompleted(step: GuestCompletedStep): boolean {
 
 /**
  * Mark a step as completed
+ * Phase 2 unlocks when shopping_viewed is completed AND a meal has been built
  */
 export function markStepCompleted(step: GuestCompletedStep): void {
   const progress = getGuestProgress();
@@ -449,6 +457,11 @@ export function markStepCompleted(step: GuestCompletedStep): void {
     const newSteps = [...progress.completedSteps, step];
     updateGuestProgress({ completedSteps: newSteps });
     console.log(`✅ Guest: Step completed - ${step}`);
+    
+    // Trigger Phase 2 unlock when shopping is viewed after building a meal
+    if (step === "shopping_viewed" && progress.mealsBuiltCount >= 1 && progress.phase === 1) {
+      unlockGuestSuitePhase2();
+    }
     
     // Dispatch event for UI updates
     window.dispatchEvent(new CustomEvent("guestProgressUpdate", {

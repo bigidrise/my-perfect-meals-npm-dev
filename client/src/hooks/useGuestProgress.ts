@@ -27,7 +27,6 @@ import {
   shouldShowHardGate,
   isBiometricsRevealed,
   markStepCompleted,
-  incrementGuestLoop,
 } from "@/lib/guestMode";
 
 export interface UseGuestProgressResult {
@@ -67,7 +66,6 @@ export interface UseGuestProgressResult {
   
   // Phase actions
   completeStep: (step: GuestCompletedStep) => void;
-  completeLoop: () => void;
 }
 
 export function useGuestProgress(): UseGuestProgressResult {
@@ -122,11 +120,6 @@ export function useGuestProgress(): UseGuestProgressResult {
     refresh();
   }, [refresh]);
 
-  const completeLoop = useCallback(() => {
-    incrementGuestLoop();
-    refresh();
-  }, [refresh]);
-
   return {
     isGuest,
     progress,
@@ -164,7 +157,6 @@ export function useGuestProgress(): UseGuestProgressResult {
     
     // Phase actions
     completeStep,
-    completeLoop,
   };
 }
 
