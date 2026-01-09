@@ -72,7 +72,7 @@ export default function Planner() {
   ];
 
   const userActiveBoard = user?.activeBoard || user?.selectedMealBuilder;
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
   const needsOnboarding = !isAdmin && !userActiveBoard;
 
   const isBuilderUnlocked = (builderId: string): boolean => {
