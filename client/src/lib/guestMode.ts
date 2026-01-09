@@ -223,9 +223,9 @@ export function incrementMealsBuilt(): void {
     console.log("🔓 Guest: First meal built - Fridge Rescue & Craving Creator unlocked");
   }
   
-  // Also count this as a meal day used (if within a meal board visit)
-  // This centralizes loop counting so ALL meal add paths are covered
-  countMealDayUsed();
+  // NOTE: Meal day consumption now happens on board ENTRY (startMealBoardVisit)
+  // NOT on meal building. This enables the 24-hour session model where
+  // guests can freely explore and return without burning additional days.
   
   // Dispatch event for meal updates
   window.dispatchEvent(new CustomEvent("guestProgressUpdate", {
@@ -291,6 +291,12 @@ export function startMealBoardVisit(): boolean {
   
   const progress = getGuestProgress();
   if (!progress) return false;
+  
+  // GUARD: Prevent exceeding the meal day cap
+  if (progress.loopCount >= MAX_GUEST_LOOPS) {
+    console.log(`🚫 Guest: Already at max meal days (${progress.loopCount}/${MAX_GUEST_LOOPS})`);
+    return false;
+  }
   
   // Check if there's an active session (within 24 hours)
   if (hasActiveMealDaySession()) {
