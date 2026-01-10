@@ -19,7 +19,7 @@ export type AssignedBuilder = {
 
 const BUILDER_MAP: Record<string, AssignedBuilder> = {
   diabetic: {
-    path: "/diabetic-meal-builder",
+    path: "/diabetic-menu-builder",
     name: "Diabetic Meal Builder",
     type: "diabetic",
   },
@@ -29,7 +29,7 @@ const BUILDER_MAP: Record<string, AssignedBuilder> = {
     type: "glp1",
   },
   "anti-inflammatory": {
-    path: "/anti-inflammatory-builder",
+    path: "/anti-inflammatory-menu-builder",
     name: "Anti-Inflammatory Builder",
     type: "anti-inflammatory",
   },

@@ -121,7 +121,7 @@ export default function Planner() {
                   className="rounded-xl bg-orange-500/20 border border-orange-500/50 p-4 cursor-pointer hover:bg-orange-500/30 transition-colors"
                   onClick={() => setLocation("/onboarding/extended?repair=1")}
                 >
-                  <p className="text-orange-200 text-sm font-medium mb-1">Complete Your Setup</p>
+                  <p className="text-orange-200 text-sm font-medium mb-1">Select Your Meal Builder</p>
                   <p className="text-orange-300/80 text-xs">Tap here to select your meal builder and set your targets.</p>
                 </div>
               )}
