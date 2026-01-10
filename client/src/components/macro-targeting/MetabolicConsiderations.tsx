@@ -151,15 +151,16 @@ export default function MetabolicConsiderations({
                         onClick={() => handleToggle(key, !isEnabled)}
                         aria-pressed={isEnabled}
                         className={`
-                          inline-flex items-center justify-center
-                          px-4 py-1 min-w-[48px] h-6 rounded-full
-                          text-[10px] font-semibold uppercase tracking-wide
+                          !min-h-0 !min-w-0 inline-flex items-center justify-center
+                          px-4 py-[2px] min-w-[44px] rounded-full
+                          text-[9px] font-semibold uppercase tracking-wide
                           transition-all duration-150 ease-out whitespace-nowrap
                           ${isEnabled
-                            ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-                            : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
+                            ? "bg-emerald-600/80 text-white border border-emerald-400/40"
+                            : "bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 border border-amber-400/40"
                           }
                         `}
+
                       >
                         {isEnabled ? "On" : "Off"}
                       </button>
