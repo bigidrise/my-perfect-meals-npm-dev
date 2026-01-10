@@ -462,11 +462,11 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/select-builder": {
     pageId: "select-builder",
-    title: "Choose How You'll Continue",
+    title: "Meal Builder Exchange",
     description:
       "Switch meal boards as your needs change — whether you're graduating from ProCare, following a medical plan, or simplifying long-term.",
     spokenText:
-      "This page is for choosing how you'll continue with My Perfect Meals. You're already a member — this is about switching your meal board as your needs evolve. If you've finished working with a coach or clinician, most people transition to the Weekly Meal Builder for long-term balance. If your health needs have changed — like starting a GLP-1 medication or managing diabetes — select the board that supports that condition. All options continue at nineteen ninety-nine per month, and you keep your history, meals, macros, and preferences. Just pick the board that fits your next chapter and tap Continue.",
+      "Meal Builder Exchange is where you switch Meal Builders when your medical needs, goals, or coaching situation changes. If a clinician updates your care—like a new Diabetes diagnosis (or a change in status)—you can switch to the appropriate clinical builder so your meals follow the right rules automatically. If you’re working with a coach or trainer in ProCare, you may be placed into a specific program-based builder for a limited phase; when that program ends, you can continue independently by switching out of the coaching-only builder while keeping a builder that fits your lifestyle. If you’re on General Nutrition, you can stay there long-term or switch to Weekly Meal Builder—they’re built to feel the same for everyday use. Clinical builders like Diabetes can also stay active even after you stop working with a clinician, because the app is designed to help you maintain results long after professional care ends.",
     autoClose: true,
   },
 
