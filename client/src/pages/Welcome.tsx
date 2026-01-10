@@ -196,7 +196,7 @@ export default function Welcome() {
           </div>
         </div>
 
-        {/* Buttons */}
+        {/* Buttons - Clean 3-button layout */}
         <div className="w-full max-w-sm space-y-4">
           {/* Guest Mode - Marketing Experience */}
           <Button
@@ -211,42 +211,20 @@ export default function Welcome() {
             Enter Guest Suite
           </Button>
 
-          {/* Auth options - For real users, testers, coaches, doctors */}
-          <div className="flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-white/20" />
-            <span className="text-white/50 text-xs">or sign in</span>
-            <div className="flex-1 h-px bg-white/20" />
-          </div>
-
+          {/* Sign In / Create Account - Combined auth button */}
           <Button
             data-testid="button-signin"
             onClick={signIn}
             className="w-full h-14 text-md font-medium rounded-2xl
-                     bg-white/10 hover:bg-white/20 backdrop-blur-md
-                     border border-white/20 text-white
-                     transition-all duration-200"
-          >
-            Sign In
-          </Button>
-
-          <Button
-            data-testid="button-createaccount"
-            onClick={createAccount}
-            className="w-full h-14 text-md font-medium rounded-2xl
             bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
                      text-white shadow-lg
-                     transition-all duration-200"
+                     transition-all duration-200 flex items-center justify-center gap-2"
           >
-            Create Account
+            <LogIn className="h-5 w-5" />
+            Sign In / Create Account
           </Button>
 
           {/* Full Access - Apple Review Bypass */}
-          <div className="flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-white/10" />
-            <span className="text-white/30 text-xs">Apple Review Only</span>
-            <div className="flex-1 h-px bg-white/10" />
-          </div>
-
           <Button
             data-testid="button-full-access"
             onClick={() => {
@@ -260,19 +238,9 @@ export default function Welcome() {
                      border border-white/10 text-white/60 hover:text-white/80
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
-            <LogIn className="h-4 w-4" />
-            Full Access (Review Mode)
+            Full Access (Apple Review)
           </Button>
         </div>
-
-        {/* Forgot Password Link */}
-        <button
-          data-testid="link-forgotpassword"
-          onClick={() => setLocation("/forgot-password")}
-          className="mt-8 text-sm text-white/60 hover:text-white/90 underline transition-colors"
-        >
-          Forgot Password?
-        </button>
       </div>
     );
   }
