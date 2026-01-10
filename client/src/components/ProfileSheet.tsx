@@ -63,15 +63,16 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       title: "Restoring Purchases...",
       description: "Looking for active subscriptions...",
     });
-    
+
     try {
       // TODO: Integrate with StoreKit restore when Capacitor plugin is ready
       // For now, show feedback that the feature is ready for iOS integration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       toast({
         title: "Restore Complete",
-        description: "No active subscription found. If you believe this is an error, please contact support.",
+        description:
+          "No active subscription found. If you believe this is an error, please contact support.",
       });
     } catch (error) {
       toast({
@@ -82,7 +83,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     }
   };
 
-  const handleMenuItemClick = (item: typeof menuItems[0]) => {
+  const handleMenuItemClick = (item: (typeof menuItems)[0]) => {
     if (item.action === "restorePurchases") {
       handleRestorePurchases();
     } else if (item.route) {
@@ -115,7 +116,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       console.error("Delete account error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete account. Please try again.",
+        description:
+          error.message || "Failed to delete account. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -128,13 +130,17 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
   const menuItems = [
     // Only show "Change Meal Builder" if NOT a Pro Care client
-    ...(!isProCareClient ? [{
-      title: "Change Meal Builder",
-      description: "Switch to a different dietary focus",
-      icon: Utensils,
-      route: "/select-builder",
-      testId: "menu-change-builder",
-    }] : []),
+    ...(!isProCareClient
+      ? [
+          {
+            title: "Meal Builder Exchange",
+            description: "Switch to a different dietary focus",
+            icon: Utensils,
+            route: "/select-builder",
+            testId: "menu-change-builder",
+          },
+        ]
+      : []),
     {
       title: "Privacy & Security",
       description: "Manage your privacy settings",
@@ -158,7 +164,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     },
     {
       title: "App Library",
-      description: "Learn the systems, the nutrition basics, and how to get the most out of the app.",
+      description:
+        "Learn the systems, the nutrition basics, and how to get the most out of the app.",
       icon: Video,
       route: "/learn",
       testId: "menu-tutorials",
@@ -264,9 +271,13 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
             </AlertDialogTrigger>
             <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-white">Delete Account Permanently?</AlertDialogTitle>
+                <AlertDialogTitle className="text-white">
+                  Delete Account Permanently?
+                </AlertDialogTitle>
                 <AlertDialogDescription className="text-white/70 space-y-2">
-                  <p>This action cannot be undone. This will permanently delete:</p>
+                  <p>
+                    This action cannot be undone. This will permanently delete:
+                  </p>
                   <ul className="list-disc list-inside text-sm space-y-1 mt-2">
                     <li>Your account and profile information</li>
                     <li>All meal plans and saved recipes</li>
