@@ -2515,7 +2515,6 @@ export default function WeeklyMealBoard() {
                         </Button>
                         <Button
                           onClick={() => {
-                            if (isGuestMode()) return; // Disabled in guest mode
                             handleAddEntireWeekToShoppingList();
                             setTimeout(
                               () =>
@@ -2525,12 +2524,7 @@ export default function WeeklyMealBoard() {
                               100,
                             );
                           }}
-                          disabled={isGuestMode()}
-                          className={`flex-1 min-h-[44px] border border-white/30 ${
-                            isGuestMode()
-                              ? "bg-emerald-600/40 text-white/50 cursor-not-allowed"
-                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                          }`}
+                          className="flex-1 min-h-[44px] border border-white/30 bg-emerald-600 hover:bg-emerald-700 text-white"
                           data-testid="send-week-to-shopping"
                         >
                           {/* Hidden event emitter for walkthrough system */}
