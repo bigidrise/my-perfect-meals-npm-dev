@@ -10,7 +10,7 @@ const SHOW_CAROUSEL = false;
 
 // 🍎 APPLE REVIEW FLAG: Set to true to hide Sign In/Create Account for App Store review
 // After Apple approval, set this back to false to restore authentication options
-const APPLE_REVIEW_MODE = true;
+const APPLE_REVIEW_MODE = false;
 
 const slides = [
   {
