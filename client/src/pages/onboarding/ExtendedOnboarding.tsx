@@ -77,7 +77,7 @@ const GOAL_OPTIONS = [
   { id: "diabetes", label: "Diabetes / Blood Sugar", description: "Manage blood sugar with carb-conscious meals" },
   { id: "glp1", label: "GLP-1 / Appetite Support", description: "Optimize meals for medication users" },
   { id: "anti_inflammatory", label: "Anti-Inflammatory", description: "Reduce inflammation through food choices" },
-  { id: "performance", label: "Performance / Athlete", description: "Fuel training and competition" },
+  { id: "performance", label: "Beach Body", description: "Contest prep and leaning out for visible change" },
   { id: "weight_loss", label: "Weight Loss", description: "Simple, effective fat loss approach" },
 ];
 

@@ -25,7 +25,11 @@ import {
   ChefHat,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { setMacroTargets, getMacroTargets, type StarchStrategy } from "@/lib/dailyLimits";
+import {
+  setMacroTargets,
+  getMacroTargets,
+  type StarchStrategy,
+} from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -271,12 +275,16 @@ export default function MacroCounter() {
   const [sugarCapMode, setSugarCapMode] = useState<"AHA" | "DGA">(
     savedSettings?.sugarCapMode ?? "AHA",
   );
-  const [advisoryDeltas, setAdvisoryDeltas] = useState<MacroDeltas>({ protein: 0, carbs: 0, fat: 0 });
-  
+  const [advisoryDeltas, setAdvisoryDeltas] = useState<MacroDeltas>({
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  });
+
   // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = split across 2 meals
   const existingTargets = getMacroTargets(user?.id);
   const [starchStrategy, setStarchStrategy] = useState<StarchStrategy>(
-    existingTargets?.starchStrategy ?? "one"
+    existingTargets?.starchStrategy ?? "one",
   );
 
   const macroCalculatorTourSteps: TourStep[] = [
@@ -891,7 +899,8 @@ export default function MacroCounter() {
                 });
                 toast({
                   title: "Adjustments Applied",
-                  description: "Your macro targets have been fine-tuned based on your metabolic considerations.",
+                  description:
+                    "Your macro targets have been fine-tuned based on your metabolic considerations.",
                 });
               }}
             />
@@ -920,36 +929,72 @@ export default function MacroCounter() {
                     </div>
                     <MacroRow
                       label="Protein"
-                      grams={Math.max(0, results.macros.protein.g + advisoryDeltas.protein)}
+                      grams={Math.max(
+                        0,
+                        results.macros.protein.g + advisoryDeltas.protein,
+                      )}
                     />
                     <MacroRow
                       label="Carbs - Starchy"
-                      grams={Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5))}
+                      grams={Math.max(
+                        0,
+                        getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
+                      )}
                     />
                     <MacroRow
                       label="Carbs - Fibrous"
-                      grams={Math.max(0,
-                        (results.macros.carbs.g - getStarchyCarbs(sex, goal)) + Math.round(advisoryDeltas.carbs * 0.5)
+                      grams={Math.max(
+                        0,
+                        results.macros.carbs.g -
+                          getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
                       )}
                     />
-                    <MacroRow label="Fats" grams={Math.max(0, results.macros.fat.g + advisoryDeltas.fat)} />
+                    <MacroRow
+                      label="Fats"
+                      grams={Math.max(
+                        0,
+                        results.macros.fat.g + advisoryDeltas.fat,
+                      )}
+                    />
                   </div>
-                  
+
                   {/* Inline citations for Apple App Review compliance (Guideline 1.4.1) */}
                   <div className="mt-4 pt-3 border-t border-white/10">
                     <p className="text-xs text-white/50 leading-relaxed">
-                      <span className="font-medium text-white/70">Calculation sources:</span>{" "}
-                      Based on <a href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx" target="_blank" rel="noopener noreferrer" className="text-lime-400/70 underline">NIH Dietary Reference Intakes (DRIs)</a>,{" "}
-                      <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener noreferrer" className="text-lime-400/70 underline">USDA FoodData Central</a>, and the Mifflin-St Jeor equation.{" "}
-                      Consult a healthcare professional before making dietary changes.
+                      <span className="font-medium text-white/70">
+                        Calculation sources:
+                      </span>{" "}
+                      Based on{" "}
+                      <a
+                        href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-lime-400/70 underline"
+                      >
+                        NIH Dietary Reference Intakes (DRIs)
+                      </a>
+                      ,{" "}
+                      <a
+                        href="https://fdc.nal.usda.gov/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-lime-400/70 underline"
+                      >
+                        USDA FoodData Central
+                      </a>
+                      , and the Mifflin-St Jeor equation. Consult a healthcare
+                      professional before making dietary changes.
                     </p>
                     <div className="mt-2">
-                      <MedicalSourcesInfo 
+                      <MedicalSourcesInfo
                         trigger={
                           <button className="text-xs text-lime-400/80 hover:text-lime-400 underline flex items-center gap-1">
-                            <Info className="w-3 h-3" /> View all sources & methodology
+                            <Info className="w-3 h-3" /> View all sources &
+                            methodology
                           </button>
-                        } 
+                        }
                       />
                     </div>
                   </div>
@@ -960,53 +1005,75 @@ export default function MacroCounter() {
               <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
                 <CardContent className="p-5">
                   <h3 className="text-lg font-semibold flex items-center mb-3">
-                    <span className="text-amber-400 mr-2">🌾</span> Your Starch Game Plan
+                    <span className="text-amber-400 mr-2">🌾</span> Your Starch
+                    Game Plan
                   </h3>
                   <p className="text-sm text-white/70 mb-4">
-                    Starchy carbs (rice, pasta, potatoes, bread) need to be managed. Choose how you'll use your daily starch budget:
+                    Starchy carbs (rice, pasta, potatoes, bread) need to be
+                    managed. Choose how you'll use your daily starch budget:
                   </p>
-                  
+
                   <RadioGroup
                     value={starchStrategy}
-                    onValueChange={(v) => setStarchStrategy(v as StarchStrategy)}
+                    onValueChange={(v) =>
+                      setStarchStrategy(v as StarchStrategy)
+                    }
                     className="space-y-3"
                   >
-                    <div 
+                    <div
                       className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                        starchStrategy === "one" 
-                          ? "border-amber-500 bg-amber-500/10" 
+                        starchStrategy === "one"
+                          ? "border-amber-500 bg-amber-500/10"
                           : "border-white/20 hover:border-white/40"
                       }`}
                       onClick={() => setStarchStrategy("one")}
                     >
-                      <RadioGroupItem value="one" id="starch-one" className="mt-1" />
+                      <RadioGroupItem
+                        value="one"
+                        id="starch-one"
+                        className="mt-1"
+                      />
                       <div className="flex-1">
-                        <Label htmlFor="starch-one" className="text-base font-semibold text-white cursor-pointer">
+                        <Label
+                          htmlFor="starch-one"
+                          className="text-base font-semibold text-white cursor-pointer"
+                        >
                           One Starch Meal
-                          <span className="ml-2 text-xs bg-emerald-600 px-2 py-0.5 rounded-full">Recommended</span>
+                          <span className="ml-2 text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
+                            Recommended
+                          </span>
                         </Label>
                         <p className="text-sm text-white/60 mt-1">
-                          Use your full starch allowance ({getStarchyCarbs(sex, goal)}g) in one meal.
-                          Best for appetite control and fat loss.
+                          Use your full starch allowance (
+                          {getStarchyCarbs(sex, goal)}g) in one meal. Best for
+                          appetite control and fat loss.
                         </p>
                       </div>
                     </div>
-                    
-                    <div 
+
+                    <div
                       className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                        starchStrategy === "flex" 
-                          ? "border-amber-500 bg-amber-500/10" 
+                        starchStrategy === "flex"
+                          ? "border-amber-500 bg-amber-500/10"
                           : "border-white/20 hover:border-white/40"
                       }`}
                       onClick={() => setStarchStrategy("flex")}
                     >
-                      <RadioGroupItem value="flex" id="starch-flex" className="mt-1" />
+                      <RadioGroupItem
+                        value="flex"
+                        id="starch-flex"
+                        className="mt-1"
+                      />
                       <div className="flex-1">
-                        <Label htmlFor="starch-flex" className="text-base font-semibold text-white cursor-pointer">
+                        <Label
+                          htmlFor="starch-flex"
+                          className="text-base font-semibold text-white cursor-pointer"
+                        >
                           Flex Split
                         </Label>
                         <p className="text-sm text-white/60 mt-1">
-                          Divide starch across two meals (~{Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
+                          Divide starch across two meals (~
+                          {Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
                           Useful for training days or larger schedules.
                         </p>
                       </div>
@@ -1026,12 +1093,28 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
-                      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
-                      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
-                      const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                      const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
-                      
+                      const adjustedProtein = Math.max(
+                        0,
+                        results.macros.protein.g + advisoryDeltas.protein,
+                      );
+                      const adjustedCarbs = Math.max(
+                        0,
+                        results.macros.carbs.g + advisoryDeltas.carbs,
+                      );
+                      const adjustedFat = Math.max(
+                        0,
+                        results.macros.fat.g + advisoryDeltas.fat,
+                      );
+                      const adjustedStarchy = Math.max(
+                        0,
+                        getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
+                      );
+                      const adjustedFibrous = Math.max(
+                        0,
+                        adjustedCarbs - adjustedStarchy,
+                      );
+
                       await setMacroTargets(
                         {
                           calories: results.target,
@@ -1078,9 +1161,7 @@ export default function MacroCounter() {
                   className="w-full bg-lime-600 border-2 border-lime-400 text-white hover:bg-lime-800 hover:border-lime-300 text-lg font-semibold mt-4"
                 >
                   <Target className="h-4 w-4 mr-2" />
-                  {isSaving
-                    ? "Saving..."
-                    : "1st Step → Save to Biometrics"}
+                  {isSaving ? "Saving..." : "1st Step → Save to Biometrics"}
                 </Button>
 
                 {/* Primary CTA: Use These Macros → Build Meals */}
@@ -1103,12 +1184,28 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
-                      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
-                      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
-                      const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                      const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
-                      
+                      const adjustedProtein = Math.max(
+                        0,
+                        results.macros.protein.g + advisoryDeltas.protein,
+                      );
+                      const adjustedCarbs = Math.max(
+                        0,
+                        results.macros.carbs.g + advisoryDeltas.carbs,
+                      );
+                      const adjustedFat = Math.max(
+                        0,
+                        results.macros.fat.g + advisoryDeltas.fat,
+                      );
+                      const adjustedStarchy = Math.max(
+                        0,
+                        getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
+                      );
+                      const adjustedFibrous = Math.max(
+                        0,
+                        adjustedCarbs - adjustedStarchy,
+                      );
+
                       await setMacroTargets(
                         {
                           calories: results.target,
@@ -1154,7 +1251,7 @@ export default function MacroCounter() {
                   className="w-full bg-black/90 border-2 border-white/90 text-white hover:bg-black/60 hover:border-black/20 text-white font-semi-bold px-8 text-lg py-4 rounded-2xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChefHat className="h-5 w-5 mr-2" />
-                  {isSaving ? "Saving..." : "2nd Step → Go To Meal Planner"}
+                  {isSaving ? "Saving..." : "2nd Step → Your Meal Builder"}
                 </Button>
               </div>
             </>
