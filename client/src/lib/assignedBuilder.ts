@@ -66,12 +66,24 @@ export function getAssignedBuilder(healthConditions?: string[]): AssignedBuilder
 }
 
 /**
- * Get the assigned builder from localStorage - checks user profile first,
- * then falls back to onboarding profile
+ * Get the assigned builder from localStorage - checks multiple sources
+ * Priority: guestSelectedBuilder → user.activeBoard → user.selectedMealBuilder → onboarding profile
  */
 export function getAssignedBuilderFromStorage(): AssignedBuilder {
   try {
-    // First, check the current user's selectedMealBuilder (set by AuthContext)
+    // First, check guest-specific builder selection (set during extended onboarding)
+    const guestBuilder = localStorage.getItem("guestSelectedBuilder");
+    if (guestBuilder) {
+      if (BUILDER_MAP[guestBuilder]) {
+        return BUILDER_MAP[guestBuilder];
+      }
+      // Handle underscore variant (anti_inflammatory)
+      if (guestBuilder === "anti_inflammatory") {
+        return BUILDER_MAP["anti-inflammatory"];
+      }
+    }
+
+    // Second, check the current user's selectedMealBuilder (set by AuthContext)
     const userStr = localStorage.getItem("mpm_current_user");
     if (userStr) {
       const user = JSON.parse(userStr);
