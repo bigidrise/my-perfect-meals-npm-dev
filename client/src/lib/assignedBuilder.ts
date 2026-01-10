@@ -33,9 +33,19 @@ const BUILDER_MAP: Record<string, AssignedBuilder> = {
     name: "Anti-Inflammatory Builder",
     type: "anti-inflammatory",
   },
+  anti_inflammatory: {
+    path: "/anti-inflammatory-menu-builder",
+    name: "Anti-Inflammatory Builder",
+    type: "anti-inflammatory",
+  },
   weekly: {
     path: "/weekly-meal-board",
     name: "Weekly Meal Board",
+    type: "weekly",
+  },
+  beach_body: {
+    path: "/beach-body-meal-board",
+    name: "Beach Body Meal Builder",
     type: "weekly",
   },
 };
