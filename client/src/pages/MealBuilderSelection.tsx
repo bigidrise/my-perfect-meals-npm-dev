@@ -207,10 +207,10 @@ export default function MealBuilderSelection() {
         {/* Pricing clarity */}
         <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-3 mb-6">
           <p className="text-emerald-300 text-sm text-center font-medium">
-            All options below continue at $19.99/month
+            Update the Meal Builder used to create your meals.
           </p>
           <p className="text-emerald-400/70 text-xs text-center mt-1">
-            You keep your history, meals, macros, and preferences.
+            Your plan adjusts based on the builder or program selected.
           </p>
         </div>
 
