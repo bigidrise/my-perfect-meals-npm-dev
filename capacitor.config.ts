@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.myperfectmeals.app',
   appName: 'My Perfect Meals',
-  webDir: 'dist',
+  webDir: 'client/dist',
   // NOTE: Temporarily removed server.url to test native plugins with local bundle.
   // Once confirmed working, redeploy production and restore this:
   // server: {
