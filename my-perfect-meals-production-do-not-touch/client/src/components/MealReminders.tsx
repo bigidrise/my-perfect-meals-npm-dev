@@ -153,6 +153,7 @@ export default function MealReminders() {
         >
           {schedule.enabled ? "On" : "Off"}
         </button>
+
       </div>
 
       {schedule.enabled && (
@@ -172,6 +173,9 @@ export default function MealReminders() {
             value={schedule.dinner}
             onChange={(time) => handleTimeChange("dinner", time)}
           />
+          <p className="text-white/50 text-[10px] mt-3 leading-relaxed">
+            Reminders are sent on your iPhone at meal times based on your current Meal Builder.
+          </p>
         </div>
       )}
 

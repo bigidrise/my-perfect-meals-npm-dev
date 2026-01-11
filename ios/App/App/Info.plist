@@ -51,5 +51,11 @@
         <string>My Perfect Meals needs your location to find restaurants and meal options near you.</string>
         <key>NSUserNotificationsUsageDescription</key>
         <string>My Perfect Meals uses notifications to remind you when it's time to eat.</string>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>My Perfect Meals needs access to your photo library to select photos for your profile and meals.</string>
+        <key>NSPhotoLibraryAddUsageDescription</key>
+        <string>My Perfect Meals needs permission to save meal photos to your library.</string>
+        <key>NSCameraUsageDescription</key>
+        <string>My Perfect Meals needs camera access to take photos of your meals.</string>
 </dict>
 </plist>
