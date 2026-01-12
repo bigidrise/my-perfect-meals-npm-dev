@@ -982,43 +982,18 @@ export default function MacroCounter() {
                     />
                   </div>
 
-                  {/* Inline citations for Apple App Review compliance (Guideline 1.4.1) */}
+                  {/* Secondary methodology link - Primary citation is ABOVE results */}
                   <div className="mt-4 pt-3 border-t border-white/10">
-                    <p className="text-xs text-white/50 leading-relaxed">
-                      <span className="font-medium text-white/70">
-                        Calculation sources:
-                      </span>{" "}
-                      Based on{" "}
-                      <a
-                        href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-lime-400/70 underline"
-                      >
-                        NIH Dietary Reference Intakes (DRIs)
-                      </a>
-                      ,{" "}
-                      <a
-                        href="https://fdc.nal.usda.gov/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-lime-400/70 underline"
-                      >
-                        USDA FoodData Central
-                      </a>
-                      , and the Mifflin-St Jeor equation. Consult a healthcare
-                      professional before making dietary changes.
+                    <p className="text-xs text-white/50 leading-relaxed mb-2">
+                      Detailed methodology and clinical references available below.
                     </p>
-                    <div className="mt-2">
-                      <MedicalSourcesInfo
-                        trigger={
-                          <button className="text-xs text-lime-400/80 hover:text-lime-400 underline flex items-center gap-1">
-                            <Info className="w-3 h-3" /> View all sources &
-                            methodology
-                          </button>
-                        }
-                      />
-                    </div>
+                    <MedicalSourcesInfo
+                      trigger={
+                        <button className="text-xs text-lime-400/80 hover:text-lime-400 underline flex items-center gap-1">
+                          <Info className="w-3 h-3" /> View all sources & methodology
+                        </button>
+                      }
+                    />
                   </div>
                 </CardContent>
               </Card>
