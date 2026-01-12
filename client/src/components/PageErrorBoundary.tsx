@@ -55,10 +55,11 @@ export class PageErrorBoundary extends Component<Props, State> {
               >
                 Try Again
               </button>
-              <Link href="/dashboard">
-                <a className="block bg-muted text-muted-foreground px-6 py-3 rounded-lg font-semibold hover:bg-muted/80 transition-colors">
-                  Go to Dashboard
-                </a>
+              <Link 
+                href="/dashboard"
+                className="block bg-muted text-muted-foreground px-6 py-3 rounded-lg font-semibold hover:bg-muted/80 transition-colors"
+              >
+                Go to Dashboard
               </Link>
             </div>
           </div>

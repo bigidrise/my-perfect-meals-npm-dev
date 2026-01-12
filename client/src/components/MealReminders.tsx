@@ -73,13 +73,14 @@ export default function MealReminders() {
 
   const handleToggle = async () => {
     const enabled = !schedule.enabled;
-    
+
     if (enabled && isNative) {
       const granted = await requestNotificationPermission();
       if (!granted) {
         toast({
           title: "Notifications Blocked",
-          description: "Go to iPhone Settings > My Perfect Meals > Allow Notifications",
+          description:
+            "Go to iPhone Settings > My Perfect Meals > Allow Notifications",
           variant: "destructive",
         });
         return;
@@ -100,7 +101,10 @@ export default function MealReminders() {
     });
   };
 
-  const handleTimeChange = async (meal: "breakfast" | "lunch" | "dinner", time: string) => {
+  const handleTimeChange = async (
+    meal: "breakfast" | "lunch" | "dinner",
+    time: string,
+  ) => {
     const newSchedule = { ...schedule, [meal]: time };
     setSchedule(newSchedule);
     await saveReminderSchedule(newSchedule);
@@ -146,15 +150,15 @@ export default function MealReminders() {
             px-3 py-px min-w-[32px] rounded-full
             text-[7px] font-semibold uppercase tracking-wide
             transition-all duration-150 ease-out whitespace-nowrap
-            ${schedule.enabled
-              ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-              : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
+            ${
+              schedule.enabled
+                ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
+                : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
             }
           `}
         >
           {schedule.enabled ? "On" : "Off"}
         </button>
-
       </div>
 
       {schedule.enabled && (
@@ -175,7 +179,8 @@ export default function MealReminders() {
             onChange={(time) => handleTimeChange("dinner", time)}
           />
           <p className="text-white/50 text-[10px] mt-3 leading-relaxed">
-            Reminders are sent on your iPhone at meal times based on your current Meal Builder.
+            Reminders are sent on your iPhone at meal times based on your
+            current Meal Builder.
           </p>
         </div>
       )}
