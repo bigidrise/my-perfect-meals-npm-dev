@@ -1309,17 +1309,7 @@ export default function WeeklyMealBoard() {
                       <Plus className="h-4 w-4" />
                     </Button>
 
-                    {/* Special Log Snack button for snacks section only - navigates to Biometrics photo log */}
-                    {key === "snacks" && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/70 hover:bg-white/10 text-xs font-medium"
-                        onClick={() => setLocation("/my-biometrics")}
-                      >
-                        📸 Log Snack
-                      </Button>
-                    )}
+                    {/* Log Snack button hidden - using macro logger instead */}
                   </div>
                 </div>
 
@@ -1403,17 +1393,7 @@ export default function WeeklyMealBoard() {
                   <Plus className="h-4 w-4" />
                 </Button>
 
-                {/* Special Log Snack button for snacks section only - navigates to Biometrics photo log */}
-                {key === "snacks" && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-white/70 hover:bg-white/10 text-xs font-medium"
-                    onClick={() => setLocation("/my-biometrics")}
-                  >
-                    📸 Log Snack
-                  </Button>
-                )}
+                {/* Log Snack button hidden - using macro logger instead */}
               </div>
             </div>
 

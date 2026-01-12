@@ -1587,8 +1587,8 @@ export default function AntiInflammatoryMenuBuilder() {
                           setSnackCreatorOpen(true);
                         }}
                         onManualAdd={() => openManualModal(key)}
-                        onLogSnack={() => setLocation("/my-biometrics")}
-                        showLogSnack={key === "snacks"}
+                        onLogSnack={() => {}}
+                        showLogSnack={false}
                       />
                     </div>
 

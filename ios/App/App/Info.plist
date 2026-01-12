@@ -45,17 +45,15 @@
         </array>
         <key>UIViewControllerBasedStatusBarAppearance</key>
         <true/>
-        <key>WKWebViewInspectable</key>
-        <true/>
-        <key>NSLocationWhenInUseUsageDescription</key>
-        <string>My Perfect Meals needs your location to find restaurants and meal options near you.</string>
-        <key>NSUserNotificationsUsageDescription</key>
-        <string>My Perfect Meals uses notifications to remind you when it's time to eat.</string>
-        <key>NSPhotoLibraryUsageDescription</key>
-        <string>My Perfect Meals needs access to your photo library to select photos for your profile and meals.</string>
-        <key>NSPhotoLibraryAddUsageDescription</key>
-        <string>My Perfect Meals needs permission to save meal photos to your library.</string>
         <key>NSCameraUsageDescription</key>
-        <string>My Perfect Meals needs camera access to take photos of your meals.</string>
+        <string>My Perfect Meals needs camera access to scan barcodes and take photos of your meals.</string>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>My Perfect Meals needs photo library access to select meal photos.</string>
+        <key>NSPhotoLibraryAddUsageDescription</key>
+        <string>My Perfect Meals needs to save photos to your library.</string>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>My Perfect Meals uses your location to find nearby grocery stores and restaurants.</string>
+        <key>NSMicrophoneUsageDescription</key>
+        <string>My Perfect Meals needs microphone access for voice input features.</string>
 </dict>
 </plist>
