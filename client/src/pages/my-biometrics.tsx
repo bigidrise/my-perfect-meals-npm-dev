@@ -127,6 +127,9 @@ export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   
+  // === DEFERRED STORAGE READS (Option A: No localStorage during render) ===
+  const [storageLoaded, setStorageLoaded] = useState(false);
+  
   useGuestNavigationGuard("biometrics");
 
   const biometricsTourSteps: TourStep[] = [
@@ -181,11 +184,29 @@ export default function MyBiometrics() {
   }, []);
 
   // ------- MACROS (local) -------
-  const [macroRows, setMacroRows] = useState<OfflineDay[]>(() => {
-    const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
-    return stored.rows || [];
-  });
-  useEffect(() => saveJSON(LS_MACROS, { rows: macroRows }), [macroRows]);
+  // SAFE: Start with empty array, load from storage in useEffect
+  const [macroRows, setMacroRows] = useState<OfflineDay[]>([]);
+  
+  // Load macro rows from storage on mount (deferred read)
+  useEffect(() => {
+    try {
+      const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
+      if (stored.rows && stored.rows.length > 0) {
+        setMacroRows(stored.rows);
+      }
+      setStorageLoaded(true);
+    } catch (e) {
+      console.error("Failed to load macro rows:", e);
+      setStorageLoaded(true);
+    }
+  }, []);
+  
+  // Save macro rows to storage when they change (after initial load)
+  useEffect(() => {
+    if (storageLoaded) {
+      saveJSON(LS_MACROS, { rows: macroRows });
+    }
+  }, [macroRows, storageLoaded]);
 
   const today = todayKey();
   const sortedRows = useMemo(
@@ -425,10 +446,18 @@ export default function MyBiometrics() {
   }, [summaryBadges, today, toast]);
 
   // Quick View panel state (non-auto-logging preview from meal cards)
-  const [qv, setQv] = useState<QuickView | null>(() => {
-    if (typeof window === "undefined") return null;
-    return getQuickView();
-  });
+  // SAFE: Start with null, load from storage in useEffect
+  const [qv, setQv] = useState<QuickView | null>(null);
+  
+  // Load Quick View from storage on mount (deferred read)
+  useEffect(() => {
+    try {
+      const stored = getQuickView();
+      if (stored) setQv(stored);
+    } catch (e) {
+      console.error("Failed to load quick view:", e);
+    }
+  }, []);
 
   // Clear Quick View at midnight automatically
   useEffect(() => {
@@ -784,15 +813,49 @@ export default function MyBiometrics() {
   );
 
   // ------- BODY / WEIGHT (local) -------
-  const [body, setBody] = useState<{ heightIn?: number }>(() =>
-    loadJSON(LS_BODY, { heightIn: 68 }),
-  );
-  useEffect(() => saveJSON(LS_BODY, body), [body]);
+  // SAFE: Start with defaults, load from storage in useEffect
+  const [body, setBody] = useState<{ heightIn?: number }>({ heightIn: 68 });
+  const [bodyLoaded, setBodyLoaded] = useState(false);
+  
+  // Load body data from storage on mount (deferred read)
+  useEffect(() => {
+    try {
+      const stored = loadJSON<{ heightIn?: number }>(LS_BODY, { heightIn: 68 });
+      setBody(stored);
+      setBodyLoaded(true);
+    } catch (e) {
+      console.error("Failed to load body data:", e);
+      setBodyLoaded(true);
+    }
+  }, []);
+  
+  // Save body to storage when it changes (after initial load)
+  useEffect(() => {
+    if (bodyLoaded) saveJSON(LS_BODY, body);
+  }, [body, bodyLoaded]);
 
-  const [weightHistory, setWeightHistory] = useState<WeightRow[]>(() =>
-    loadJSON(LS_WEIGHT, [] as WeightRow[]),
-  );
-  useEffect(() => saveJSON(LS_WEIGHT, weightHistory), [weightHistory]);
+  // SAFE: Start with empty, load from storage/database
+  const [weightHistory, setWeightHistory] = useState<WeightRow[]>([]);
+  const [weightLoaded, setWeightLoaded] = useState(false);
+  
+  // Load weight history from storage on mount (deferred read, before DB fetch)
+  useEffect(() => {
+    try {
+      const stored = loadJSON<WeightRow[]>(LS_WEIGHT, []);
+      if (stored.length > 0) setWeightHistory(stored);
+      setWeightLoaded(true);
+    } catch (e) {
+      console.error("Failed to load weight history:", e);
+      setWeightLoaded(true);
+    }
+  }, []);
+  
+  // Save weight history to storage when it changes (after initial load)
+  useEffect(() => {
+    if (weightLoaded) {
+      saveJSON(LS_WEIGHT, weightHistory);
+    }
+  }, [weightHistory, weightLoaded]);
 
   // Fetch weight history from database (server as source of truth)
   useEffect(() => {
@@ -1952,17 +2015,28 @@ export default function MyBiometrics() {
 
 // ============================== WATER LOG ==============================
 function WaterLog() {
-  const [water, setWater] = useState(() => {
-    const saved = localStorage.getItem("mpm_bio_water");
-    const today = new Date().toDateString();
-    if (!saved) return { date: today, ounces: 0 };
-    const parsed = JSON.parse(saved);
-    return parsed.date === today ? parsed : { date: today, ounces: 0 };
-  });
-
-  const goal = useMemo(() => {
-    const w = Number(localStorage.getItem("latestWeight")) || 180;
-    return Math.round(w * 0.67); // standard hydration formula
+  // SAFE: Start with defaults, load from storage in useEffect
+  const today = new Date().toDateString();
+  const [water, setWater] = useState({ date: today, ounces: 0 });
+  const [goal, setGoal] = useState(121); // default: 180 * 0.67
+  
+  // Load water and goal from storage on mount (deferred read)
+  useEffect(() => {
+    try {
+      const savedWater = localStorage.getItem("mpm_bio_water");
+      if (savedWater) {
+        const parsed = JSON.parse(savedWater);
+        const todayStr = new Date().toDateString();
+        if (parsed.date === todayStr) {
+          setWater(parsed);
+        }
+      }
+      
+      const w = Number(localStorage.getItem("latestWeight")) || 180;
+      setGoal(Math.round(w * 0.67));
+    } catch (e) {
+      console.error("Failed to load water data:", e);
+    }
   }, []);
 
   const save = (oz: number) => {
