@@ -1,45 +1,60 @@
 /**
  * Bootstrap Entry Point
- * Production-safe: no alerts, no debug popups.
+ * Production-safe: web + iOS
  */
 
-import { SplashScreen } from "@capacitor/splash-screen";
+import { Capacitor } from "@capacitor/core";
+
+/**
+ * Safely hides the native splash screen.
+ * - No-op on web
+ * - Dynamically imported on iOS
+ */
+async function hideSplashSafely() {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { SplashScreen } = await import("@capacitor/splash-screen");
+    await SplashScreen.hide();
+  } catch {
+    // Never block boot
+  }
+}
 
 import("./app-entry")
   .then(({ AppEntry }) => {
-    // Mount the React app
     const rootEl = document.getElementById("root");
 
-    // Safety: ensure root exists
     if (!rootEl) {
       console.error("Root element not found");
-      SplashScreen.hide().catch(() => {});
+      hideSplashSafely();
       return;
     }
 
-    // Lazy-load React only when needed
     import("react")
       .then((React) =>
-        import("react-dom/client").then((ReactDOM) => {
-          const root = ReactDOM.createRoot(rootEl);
-          root.render(
-            <React.StrictMode>
-              <AppEntry />
-            </React.StrictMode>,
-          );
+        import("react-dom/client")
+          .then((ReactDOM) => {
+            const root = ReactDOM.createRoot(rootEl);
+            root.render(
+              <React.StrictMode>
+                <AppEntry />
+              </React.StrictMode>,
+            );
 
-          // 🔥 Hide native splash once the UI is ready
-          SplashScreen.hide().catch(() => {});
-        }),
+            // ✅ Correct splash hide
+            hideSplashSafely();
+          })
+          .catch((err) => {
+            console.error("React bootstrap failed:", err);
+            hideSplashSafely();
+          }),
       )
       .catch((err) => {
-        console.error("React bootstrap failed:", err);
-        SplashScreen.hide().catch(() => {});
+        console.error("React import failed:", err);
+        hideSplashSafely();
       });
   })
   .catch((error) => {
     console.error("Failed to load app-entry:", error);
-
-    // Even on failure, don't leave the user stuck on the splash
-    SplashScreen.hide().catch(() => {});
+    hideSplashSafely();
   });
