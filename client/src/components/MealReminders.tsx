@@ -137,23 +137,23 @@ export default function MealReminders() {
           <span className="text-white text-sm font-medium">Meal Reminders</span>
         </div>
         <button
-          onClick={handleToggle}
-          aria-pressed={schedule.enabled}
-          aria-label={`Meal reminders ${schedule.enabled ? "on" : "off"}`}
-          className={`
-            !min-h-0 !min-w-0
-            inline-flex items-center justify-center
-            px-3 py-px min-w-[32px] rounded-full
-            text-[7px] font-semibold uppercase tracking-wide
-            transition-all duration-150 ease-out whitespace-nowrap
-            ${schedule.enabled
-              ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-              : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
-            }
-          `}
-        >
-          {schedule.enabled ? "On" : "Off"}
-        </button>
+  onClick={handleToggle}
+  aria-pressed={schedule.enabled}
+  aria-label={`Meal reminders ${schedule.enabled ? "on" : "off"}`}
+  className={`
+    !min-h-0 !min-w-0
+    inline-flex items-center justify-center
+    px-3 py-px min-w-[32px] rounded-full
+    text-[7px] font-semibold uppercase tracking-wide
+    transition-all duration-150 ease-out whitespace-nowrap
+    ${schedule.enabled
+      ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
+      : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
+    }
+  `}
+>
+  {schedule.enabled ? "On" : "Off"}
+</button>
 
       </div>
 
