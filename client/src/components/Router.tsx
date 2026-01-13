@@ -90,6 +90,10 @@ import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
 import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
 
+// Separated ProCare Portals (Trainer vs Physician)
+import TrainerPortal from "@/pages/procare/TrainerPortal";
+import PhysicianPortal from "@/pages/procare/PhysicianPortal";
+
 // Physician Hub Pages
 import DiabeticHub from "@/pages/physician/DiabeticHub";
 import DiabetesSupportPage from "@/pages/physician/DiabetesSupportPage";
