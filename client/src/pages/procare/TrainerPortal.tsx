@@ -117,32 +117,33 @@ export default function TrainerPortal() {
         className="max-w-4xl mx-auto px-4 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        <div className="grid grid-cols-2 gap-3">
-          <Card
-            className="bg-lime-600/20 border border-lime-500/30 cursor-pointer hover:bg-lime-600/30 transition-all"
-            onClick={() => setLocation("/pro/general-nutrition")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Target className="h-6 w-6 text-lime-400" />
-              <div>
-                <div className="font-semibold text-white">General Nutrition</div>
-                <div className="text-xs text-white/70">Balanced meal plans</div>
+        <Card className="bg-lime-600/20 border border-lime-500/30">
+          <CardContent className="p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Dumbbell className="h-5 w-5 text-lime-400" />
+              Available Trainer Builders
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 bg-lime-500/10 rounded-lg border border-lime-500/20">
+                <Target className="h-6 w-6 text-lime-400" />
+                <div>
+                  <div className="font-semibold text-white text-sm">General Nutrition</div>
+                  <div className="text-xs text-white/60">Balanced meal plans</div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="bg-lime-600/20 border border-lime-500/30 cursor-pointer hover:bg-lime-600/30 transition-all"
-            onClick={() => setLocation("/performance-competition-builder")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Trophy className="h-6 w-6 text-lime-400" />
-              <div>
-                <div className="font-semibold text-white">Competition</div>
-                <div className="text-xs text-white/70">Athlete performance</div>
+              <div className="flex items-center gap-3 p-3 bg-lime-500/10 rounded-lg border border-lime-500/20">
+                <Trophy className="h-6 w-6 text-lime-400" />
+                <div>
+                  <div className="font-semibold text-white text-sm">Competition</div>
+                  <div className="text-xs text-white/60">Athlete performance</div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <p className="text-white/60 text-xs mt-3 text-center">
+              Select an athlete below to access these builders
+            </p>
+          </CardContent>
+        </Card>
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>

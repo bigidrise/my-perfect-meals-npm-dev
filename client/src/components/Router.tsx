@@ -86,13 +86,15 @@ import ProCareCover from "@/pages/ProCareCover";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
 import ProClientDashboard from "@/pages/pro/ProClientDashboard";
-import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
-import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
+import TrainerClientDashboardBase from "@/pages/pro/TrainerClientDashboard";
+import ClinicianClientDashboardBase from "@/pages/pro/ClinicianClientDashboard";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
 
 // Separated ProCare Portals (Trainer vs Physician)
 import TrainerPortal from "@/pages/procare/TrainerPortal";
 import PhysicianPortal from "@/pages/procare/PhysicianPortal";
+import TrainerClientDashboard from "@/pages/procare/TrainerClientDashboard";
+import PhysicianClientDashboard from "@/pages/procare/PhysicianClientDashboard";
 
 // Physician Hub Pages
 import DiabeticHub from "@/pages/physician/DiabeticHub";
@@ -357,6 +359,50 @@ export default function Router() {
           component={withPageErrorBoundary(ProCareCover, "ProCare Cover")}
         />
         <Route
+          path="/procare"
+          component={withPageErrorBoundary(ProCareCover, "ProCare Cover")}
+        />
+        {/* Separated Portal Routes */}
+        <Route
+          path="/procare/trainer"
+          component={withPageErrorBoundary(TrainerPortal, "Trainer Portal")}
+        />
+        <Route
+          path="/procare/physician"
+          component={withPageErrorBoundary(PhysicianPortal, "Physician Portal")}
+        />
+        {/* Portal-specific client dashboards */}
+        <Route
+          path="/procare/trainer/clients/:id"
+          component={withPageErrorBoundary(TrainerClientDashboard, "Trainer Client Dashboard")}
+        />
+        <Route
+          path="/procare/physician/clients/:id"
+          component={withPageErrorBoundary(PhysicianClientDashboard, "Physician Client Dashboard")}
+        />
+        {/* Portal-specific builders - Trainer */}
+        <Route
+          path="/procare/trainer/clients/:id/general-nutrition-builder"
+          component={GeneralNutritionBuilder}
+        />
+        <Route
+          path="/procare/trainer/clients/:id/performance-competition-builder"
+          component={PerformanceCompetitionBuilderProCare}
+        />
+        {/* Portal-specific builders - Physician */}
+        <Route
+          path="/procare/physician/clients/:id/diabetic-builder"
+          component={DiabeticMenuBuilder}
+        />
+        <Route
+          path="/procare/physician/clients/:id/glp1-builder"
+          component={GLP1MealBuilder}
+        />
+        <Route
+          path="/procare/physician/clients/:id/anti-inflammatory-builder"
+          component={AntiInflammatoryMenuBuilder}
+        />
+        <Route
           path="/care-team"
           component={withPageErrorBoundary(CareTeam, "Care Team")}
         />
@@ -378,14 +424,14 @@ export default function Router() {
         <Route
           path="/pro/clients/:id/trainer"
           component={withPageErrorBoundary(
-            TrainerClientDashboard,
+            TrainerClientDashboardBase,
             "Trainer Dashboard",
           )}
         />
         <Route
           path="/pro/clients/:id/clinician"
           component={withPageErrorBoundary(
-            ClinicianClientDashboard,
+            ClinicianClientDashboardBase,
             "Clinician Dashboard",
           )}
         />

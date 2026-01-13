@@ -47,11 +47,18 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-export default function TrainerClientDashboard() {
+interface TrainerClientDashboardProps {
+  portalBackPath?: string;
+}
+
+export default function TrainerClientDashboard({ portalBackPath }: TrainerClientDashboardProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:id/trainer");
-  const clientId = params?.id as string;
+  const [, procareParams] = useRoute("/procare/trainer/clients/:id");
+  const clientId = params?.id || procareParams?.id as string;
+  
+  const backPath = portalBackPath || localStorage.getItem("mpm_pro_portal_back_path") || "/care-team";
 
   const quickTour = useQuickTour("trainer-client-dashboard");
 
@@ -120,7 +127,7 @@ export default function TrainerClientDashboard() {
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
-            onClick={() => setLocation("/care-team")}
+            onClick={() => setLocation(backPath)}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -419,20 +426,22 @@ export default function TrainerClientDashboard() {
             <Button
               onClick={() => {
                 localStorage.setItem("pro-client-id", clientId);
-                setLocation(
-                  `/pro/clients/${clientId}/general-nutrition-builder`,
-                );
+                const builderPath = portalBackPath
+                  ? `/procare/trainer/clients/${clientId}/general-nutrition-builder`
+                  : `/pro/clients/${clientId}/general-nutrition-builder`;
+                setLocation(builderPath);
               }}
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
               General Nutrition Builder
             </Button>
             <Button
-              onClick={() =>
-                setLocation(
-                  `/pro/clients/${clientId}/performance-competition-builder`,
-                )
-              }
+              onClick={() => {
+                const builderPath = portalBackPath
+                  ? `/procare/trainer/clients/${clientId}/performance-competition-builder`
+                  : `/pro/clients/${clientId}/performance-competition-builder`;
+                setLocation(builderPath);
+              }}
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
               Performance & Competition Builder

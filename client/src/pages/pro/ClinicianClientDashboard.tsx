@@ -40,10 +40,17 @@ const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-export default function ClinicianClientDashboard() {
+interface ClinicianClientDashboardProps {
+  portalBackPath?: string;
+}
+
+export default function ClinicianClientDashboard({ portalBackPath }: ClinicianClientDashboardProps) {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:id/clinician");
-  const clientId = params?.id as string;
+  const [, procareParams] = useRoute("/procare/physician/clients/:id");
+  const clientId = params?.id || procareParams?.id as string;
+  
+  const backPath = portalBackPath || localStorage.getItem("mpm_pro_portal_back_path") || "/care-team";
 
   const quickTour = useQuickTour("clinician-client-dashboard");
 
@@ -67,7 +74,7 @@ export default function ClinicianClientDashboard() {
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
-            onClick={() => setLocation("/care-team")}
+            onClick={() => setLocation(backPath)}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -122,7 +129,10 @@ export default function ClinicianClientDashboard() {
             </p>
             <Button
               onClick={() => {
-                setLocation(`/pro/clients/${clientId}/diabetic-builder`);
+                const builderPath = portalBackPath 
+                  ? `/procare/physician/clients/${clientId}/diabetic-builder`
+                  : `/pro/clients/${clientId}/diabetic-builder`;
+                setLocation(builderPath);
               }}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
@@ -130,7 +140,10 @@ export default function ClinicianClientDashboard() {
             </Button>
             <Button
               onClick={() => {
-                setLocation(`/pro/clients/${clientId}/glp1-builder`);
+                const builderPath = portalBackPath 
+                  ? `/procare/physician/clients/${clientId}/glp1-builder`
+                  : `/pro/clients/${clientId}/glp1-builder`;
+                setLocation(builderPath);
               }}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
@@ -138,7 +151,10 @@ export default function ClinicianClientDashboard() {
             </Button>
             <Button
               onClick={() => {
-                setLocation(`/pro/clients/${clientId}/anti-inflammatory-builder`);
+                const builderPath = portalBackPath 
+                  ? `/procare/physician/clients/${clientId}/anti-inflammatory-builder`
+                  : `/pro/clients/${clientId}/anti-inflammatory-builder`;
+                setLocation(builderPath);
               }}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg"
             >
