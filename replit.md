@@ -81,3 +81,25 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Twilio**: For SMS notifications.
 - **SendGrid**: For email services.
 - **Apple StoreKit 2**: For iOS in-app purchases via `@squareetlabs/capacitor-subscriptions` plugin.
+
+## Deferred Features (Post-App Store Approval)
+
+### Profile Photo Upload (v1.0.1 or v1.1)
+**Status**: Intentionally deferred — not broken, not technical debt.
+
+**Context**: Profile photo upload previously existed and worked on web, but was removed from iOS during early builds due to missing camera permission stability. At that time, MacroScan and other camera features were not functioning reliably on iOS.
+
+**Current State (Jan 2026)**:
+- MacroScan camera is now fully functional on iOS
+- Location and permission handling are stable
+- Capacitor camera plugin is confirmed working
+- Profile photo UI is currently hidden/disabled in the profile sheet
+
+**Implementation Plan**:
+- Re-enable profile photo upload in the user profile sheet
+- Default to **photo library selection**, with optional camera capture
+- Ensure camera usage is isolated to profile personalization only
+- Reuse existing web logic where possible
+- Add clear permission messaging ("Used only to personalize your profile")
+
+**Why Deferred**: Camera permission stack wasn't ready during initial iOS builds. Prioritized App Store approval over cosmetic personalization features. Dependencies are now resolved — this is a fast follow, not a rebuild.
