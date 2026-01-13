@@ -119,34 +119,35 @@ export default function PhysicianPortal() {
         className="max-w-4xl mx-auto px-4 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        <Card className="bg-blue-600/20 border border-blue-500/30">
-          <CardContent className="p-4">
-            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-blue-400" />
-              Available Clinical Builders
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex flex-col items-center gap-2 text-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                <Activity className="h-6 w-6 text-blue-400" />
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="bg-blue-600/20 border border-blue-500/30 opacity-60">
+            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+              <Activity className="h-6 w-6 text-blue-400" />
+              <div>
                 <div className="font-semibold text-white text-sm">Diabetic</div>
-                <div className="text-xs text-white/60">Glycemic control</div>
+                <div className="text-xs text-white/70">Select patient first</div>
               </div>
-              <div className="flex flex-col items-center gap-2 text-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                <Pill className="h-6 w-6 text-blue-400" />
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-600/20 border border-blue-500/30 opacity-60">
+            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+              <Pill className="h-6 w-6 text-blue-400" />
+              <div>
                 <div className="font-semibold text-white text-sm">GLP-1</div>
-                <div className="text-xs text-white/60">Medication support</div>
+                <div className="text-xs text-white/70">Select patient first</div>
               </div>
-              <div className="flex flex-col items-center gap-2 text-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                <Leaf className="h-6 w-6 text-blue-400" />
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-600/20 border border-blue-500/30 opacity-60">
+            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+              <Leaf className="h-6 w-6 text-blue-400" />
+              <div>
                 <div className="font-semibold text-white text-sm">Anti-Inflam</div>
-                <div className="text-xs text-white/60">Therapeutic</div>
+                <div className="text-xs text-white/70">Select patient first</div>
               </div>
-            </div>
-            <p className="text-white/60 text-xs mt-3 text-center">
-              Select a patient below to access these builders
-            </p>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
