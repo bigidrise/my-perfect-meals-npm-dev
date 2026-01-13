@@ -211,7 +211,8 @@ export default function Learn() {
     {
       id: "emotion-ai",
       title: "The Brain Behind Emotion AI",
-      description: "How your meals are decided, checked, and protected",
+      description:
+        "How your meals are decided, protected, and informed by evidence-based nutrition principles",
       icon: Brain,
       gradient: "from-orange-500/20 to-orange-600/20",
       content: {
@@ -248,6 +249,14 @@ export default function Learn() {
               "Athletes rely on it",
               "Users feel confident using it daily",
             ],
+          },
+          {
+            heading: "Nutrition Sources & Methodology",
+            text: "My Perfect Meals is built using established nutrition principles and publicly available dietary guidelines from recognized health organizations, including the American Diabetes Association (ADA), the National Institutes of Health (NIH), the CDC, and the Academy of Nutrition and Dietetics. These sources inform how specialty meal builders — including GLP-1, diabetic, and anti-inflammatory plans — are structured and safeguarded within the system.",
+          },
+          {
+            heading: "Important Medical Disclaimer",
+            text: "My Perfect Meals does not provide medical advice, diagnosis, or treatment. The app is intended for general nutrition guidance and lifestyle support. Users should consult a qualified healthcare professional for personalized medical decisions, especially when managing medical conditions or medications.",
           },
           {
             heading: "In One Sentence",
@@ -320,34 +329,35 @@ export default function Learn() {
     {
       id: "how-mpm-works",
       title: "How the My Perfect Meals System Works",
-      description: "A simple, hormone-aware approach to meal planning that actually works in real life",
+      description:
+        "A simple, hormone-aware approach to meal planning that actually works in real life",
       icon: BookOpen,
       gradient: "from-orange-500/20 to-orange-600/20",
       content: {
         sections: [
           {
             heading: "This Is Not Traditional Meal Planning",
-            text: "Most nutrition apps focus on calories and restriction. My Perfect Meals is built differently. Our system is designed around how your body actually responds to food — hormones, hunger, energy, and metabolism — not just numbers on a label."
+            text: "Most nutrition apps focus on calories and restriction. My Perfect Meals is built differently. Our system is designed around how your body actually responds to food — hormones, hunger, energy, and metabolism — not just numbers on a label.",
           },
           {
             heading: "Step 1: Start With Macros (Not Calories)",
-            text: "Instead of obsessing over calories, we start with macros. Protein, carbs, and fats determine how full you feel, how stable your energy is, and how your body uses food. Calories are a result — not the driver."
+            text: "Instead of obsessing over calories, we start with macros. Protein, carbs, and fats determine how full you feel, how stable your energy is, and how your body uses food. Calories are a result — not the driver.",
           },
           {
             heading: "Step 2: Understand Carbs the Right Way",
-            text: "All carbs are not the same. My Perfect Meals separates carbs into two types: fibrous carbs (vegetables) and starchy carbs (grains, potatoes, rice, sugars). Fibrous carbs support digestion, metabolism, and fullness. Starchy carbs must be intentional."
+            text: "All carbs are not the same. My Perfect Meals separates carbs into two types: fibrous carbs (vegetables) and starchy carbs (grains, potatoes, rice, sugars). Fibrous carbs support digestion, metabolism, and fullness. Starchy carbs must be intentional.",
           },
           {
             heading: "Step 3: Use the Starch Meal Strategy",
-            text: "Instead of forcing you to count carb grams all day, we convert your daily starch allowance into meals. Most people do best with one starch-based meal per day. Some can split starch across two meals. This makes eating simple and sustainable."
+            text: "Instead of forcing you to count carb grams all day, we convert your daily starch allowance into meals. Most people do best with one starch-based meal per day. Some can split starch across two meals. This makes eating simple and sustainable.",
           },
           {
             heading: "Step 4: Meals Are Built for Hormones, Not Willpower",
-            text: "Each meal is designed to stabilize blood sugar, control hunger, and support hormones. Protein anchors every meal. Fibrous carbs are encouraged. Starches are placed intentionally — not accidentally."
+            text: "Each meal is designed to stabilize blood sugar, control hunger, and support hormones. Protein anchors every meal. Fibrous carbs are encouraged. Starches are placed intentionally — not accidentally.",
           },
           {
             heading: "Step 5: Plan First, Track Less",
-            text: "When meals are planned correctly, tracking becomes easier — or unnecessary. You don’t need to micromanage every bite. The structure does the work for you."
+            text: "When meals are planned correctly, tracking becomes easier — or unnecessary. You don’t need to micromanage every bite. The structure does the work for you.",
           },
           {
             heading: "Why This System Works",
@@ -356,12 +366,12 @@ export default function Learn() {
               "You stop overeating starches by accident",
               "You stay full longer with less effort",
               "Your energy stays more consistent",
-              "Meal planning becomes simple, not stressful"
-            ]
+              "Meal planning becomes simple, not stressful",
+            ],
           },
           {
             heading: "The Goal",
-            text: "My Perfect Meals isn’t about restriction. It’s about clarity. When you understand how food works in your body, eating well becomes automatic — not exhausting."
+            text: "My Perfect Meals isn’t about restriction. It’s about clarity. When you understand how food works in your body, eating well becomes automatic — not exhausting.",
           },
         ],
       },
@@ -478,123 +488,124 @@ export default function Learn() {
         className="max-w-7xl mx-auto px-4 text-white space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-
-      {/* Search Bar */}
-      <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-400" />
-          <Input
-            type="text"
-            placeholder="Search topics or guides..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-black/30 backdrop-blur-lg border border-white/10 text-white placeholder:text-gray-400 focus:border-orange-400"
-            data-testid="input-search-topics"
-          />
-        </div>
-      </div>
-
-      {/* Content - Learning Library Grid */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-          {filteredTopics.map((topic) => {
-            const Icon = topic.icon;
-            return (
-              <Card
-                key={topic.id}
-                className={`bg-black/30 backdrop-blur-lg border-2 border-white/10 cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 hover:border-orange-400/50 rounded-2xl shadow-md`}
-                onClick={() => handleTopicClick(topic)}
-                data-testid={`card-learn-${topic.id}`}
-              >
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col items-center text-center space-y-2">
-                    <Icon className="h-8 w-8 md:h-10 md:w-10 text-white" />
-                    <h3 className="text-base md:text-lg font-semibold text-white">
-                      {topic.title}
-                    </h3>
-                    <p className="text-xs md:text-sm text-white/90 leading-snug">
-                      {topic.description}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* No Results Message */}
-        {filteredTopics.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 text-lg">
-              No topics found matching "{searchQuery}"
-            </p>
-            <Button
-              onClick={() => setSearchQuery("")}
-              variant="ghost"
-              className="mt-4"
-              data-testid="button-clear-search"
-            >
-              Clear search
-            </Button>
+        {/* Search Bar */}
+        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-400" />
+            <Input
+              type="text"
+              placeholder="Search topics or guides..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-black/30 backdrop-blur-lg border border-white/10 text-white placeholder:text-gray-400 focus:border-orange-400"
+              data-testid="input-search-topics"
+            />
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Content Modal */}
-      <Dialog open={!!selectedTopic} onOpenChange={handleCloseModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-black/40 backdrop-blur-lg border border-white/10">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              {selectedTopic && (
-                <>
-                  <div className="p-3 bg-gradient-primary rounded-xl">
-                    <selectedTopic.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <DialogTitle className="text-2xl font-bold text-white">
-                    {selectedTopic.title}
-                  </DialogTitle>
-                </>
-              )}
-            </div>
-            <DialogDescription className="text-base text-white/90">
-              {selectedTopic?.description}
-            </DialogDescription>
-          </DialogHeader>
+        {/* Content - Learning Library Grid */}
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+            {filteredTopics.map((topic) => {
+              const Icon = topic.icon;
+              return (
+                <Card
+                  key={topic.id}
+                  className={`bg-black/30 backdrop-blur-lg border-2 border-white/10 cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 hover:border-orange-400/50 rounded-2xl shadow-md`}
+                  onClick={() => handleTopicClick(topic)}
+                  data-testid={`card-learn-${topic.id}`}
+                >
+                  <CardContent className="p-4 md:p-6">
+                    <div className="flex flex-col items-center text-center space-y-2">
+                      <Icon className="h-8 w-8 md:h-10 md:w-10 text-white" />
+                      <h3 className="text-base md:text-lg font-semibold text-white">
+                        {topic.title}
+                      </h3>
+                      <p className="text-xs md:text-sm text-white/90 leading-snug">
+                        {topic.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-          {selectedTopic && (
-            <div className="space-y-6 py-4">
-              {selectedTopic.content.sections.map((section, index) => (
-                <div key={index} className="space-y-3">
-                  <h3 className="text-lg font-bold text-white">
-                    {section.heading}
-                  </h3>
-                  {section.text && (
-                    <p className="text-white/90 leading-relaxed">
-                      {section.text}
-                    </p>
-                  )}
-                  {section.list && (
-                    <ul className="space-y-2 ml-4">
-                      {section.list.map((item, i) => (
-                        <li
-                          key={i}
-                          className="text-white/90 flex items-start gap-2"
-                        >
-                          <span className="text-orange-400 mt-1">•</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-
-              {/* Pocket Math Food Comparison Tool for Calories vs Macros */}
-              {selectedTopic.id === "calories-vs-macros" && <PocketMathCard />}
+          {/* No Results Message */}
+          {filteredTopics.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400 text-lg">
+                No topics found matching "{searchQuery}"
+              </p>
+              <Button
+                onClick={() => setSearchQuery("")}
+                variant="ghost"
+                className="mt-4"
+                data-testid="button-clear-search"
+              >
+                Clear search
+              </Button>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        {/* Content Modal */}
+        <Dialog open={!!selectedTopic} onOpenChange={handleCloseModal}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-black/40 backdrop-blur-lg border border-white/10">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                {selectedTopic && (
+                  <>
+                    <div className="p-3 bg-gradient-primary rounded-xl">
+                      <selectedTopic.icon className="h-6 w-6 text-white" />
+                    </div>
+                    <DialogTitle className="text-2xl font-bold text-white">
+                      {selectedTopic.title}
+                    </DialogTitle>
+                  </>
+                )}
+              </div>
+              <DialogDescription className="text-base text-white/90">
+                {selectedTopic?.description}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedTopic && (
+              <div className="space-y-6 py-4">
+                {selectedTopic.content.sections.map((section, index) => (
+                  <div key={index} className="space-y-3">
+                    <h3 className="text-lg font-bold text-white">
+                      {section.heading}
+                    </h3>
+                    {section.text && (
+                      <p className="text-white/90 leading-relaxed">
+                        {section.text}
+                      </p>
+                    )}
+                    {section.list && (
+                      <ul className="space-y-2 ml-4">
+                        {section.list.map((item, i) => (
+                          <li
+                            key={i}
+                            className="text-white/90 flex items-start gap-2"
+                          >
+                            <span className="text-orange-400 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+
+                {/* Pocket Math Food Comparison Tool for Calories vs Macros */}
+                {selectedTopic.id === "calories-vs-macros" && (
+                  <PocketMathCard />
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </motion.div>
   );
