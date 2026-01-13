@@ -6,6 +6,13 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Alias VITE_OPENAI_API_KEY to OPENAI_API_KEY if the latter isn't set
+// (VITE_ prefix is for client-side Vite builds, server code uses OPENAI_API_KEY)
+if (!process.env.OPENAI_API_KEY && process.env.VITE_OPENAI_API_KEY) {
+  process.env.OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
+  console.log("✅ Aliased VITE_OPENAI_API_KEY to OPENAI_API_KEY");
+}
+
 // Crash prevention: log errors instead of dying silently
 process.on('unhandledRejection', (reason, promise) => {
   console.error('🚨 UNHANDLED REJECTION:', reason);
