@@ -104,6 +104,8 @@ Automated safeguards to prevent production issues and catch regressions early.
 
 **Release Checklist**: See `/docs/RELEASE_CHECKLIST.md` for pre-deployment verification steps.
 
+**Production Handoff Document**: See `/docs/PRODUCTION_HANDOFF.md` for complete context on deployment safety systems, the Jan 2026 incident, and how to diagnose issues.
+
 **Critical Files That Must Stay In Sync**:
 - `server/prod.ts` and `server/index.ts` - Both must have VITE_OPENAI_API_KEY aliasing
 - Drift between these files caused the Jan 2026 production fallback bug
