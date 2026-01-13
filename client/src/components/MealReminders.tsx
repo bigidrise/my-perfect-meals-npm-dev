@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Bell, BellOff, Clock, ExternalLink } from "lucide-react";
+import { Bell, BellOff, Clock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
-import { NativeSettings, IOSSettings } from "capacitor-native-settings";
 import {
   loadReminderSchedule,
   saveReminderSchedule,
@@ -49,14 +48,6 @@ export default function MealReminders() {
   const { toast } = useToast();
 
   const isNative = Capacitor.isNativePlatform();
-
-  const openAppSettings = async () => {
-    try {
-      await NativeSettings.openIOS({ option: IOSSettings.App });
-    } catch (err) {
-      console.error("Failed to open settings:", err);
-    }
-  };
 
   useEffect(() => {
     async function init() {
@@ -180,15 +171,6 @@ export default function MealReminders() {
         </div>
       )}
 
-      {!hasPermission && isNative && (
-        <button
-          onClick={openAppSettings}
-          className="flex items-center gap-1.5 bg-blue-600/80 rounded-md px-3 py-1.5 mt-2 hover:bg-blue-700 transition-colors"
-        >
-          <ExternalLink className="w-3.5 h-3.5 text-white" />
-          <span className="text-white text-xs font-medium">Open Settings</span>
-        </button>
-      )}
     </div>
   );
 }

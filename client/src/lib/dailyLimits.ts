@@ -61,9 +61,14 @@ export async function setMacroTargets(targets: MacroTargets, userId?: string): P
 }
 
 export function getMacroTargets(userId?: string): MacroTargets | null {
-  const key = TARGETS_KEY(userId);
-  const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : null;
+  try {
+    const key = TARGETS_KEY(userId);
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error('Failed to parse macro targets:', error);
+    return null;
+  }
 }
 
 // OLD: Date-specific limits (kept for backward compatibility)
@@ -75,7 +80,12 @@ export function setDailyLimits(limits: DailyLimits, userId?: string) {
 }
 
 export function getDailyLimits(date: string, userId?: string): DailyLimits | null {
-  const key = LS_KEY(userId);
-  const map: Record<string, DailyLimits> = JSON.parse(localStorage.getItem(key) || "{}");
-  return map[date] ?? null;
+  try {
+    const key = LS_KEY(userId);
+    const map: Record<string, DailyLimits> = JSON.parse(localStorage.getItem(key) || "{}");
+    return map[date] ?? null;
+  } catch (error) {
+    console.error('Failed to parse daily limits:', error);
+    return null;
+  }
 }
