@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dumbbell, Stethoscope, Crown } from "lucide-react";
+import { Trophy, Users, Crown,} from "lucide-react";
 
 interface ProCareFeature {
   title: string;
@@ -10,7 +10,6 @@ interface ProCareFeature {
   icon: any;
   route: string;
   testId: string;
-  gradient: string;
 }
 
 export default function ProCareCover() {
@@ -23,20 +22,11 @@ export default function ProCareCover() {
 
   const proCareFeatures: ProCareFeature[] = [
     {
-      title: "Trainer Portal",
-      description: "Performance coaching and athlete meal planning",
-      icon: Dumbbell,
-      route: "/procare/trainer",
-      testId: "card-trainer-portal",
-      gradient: "from-lime-600/20 to-green-600/20",
-    },
-    {
-      title: "Physician Portal",
-      description: "Clinical nutrition management for patients",
-      icon: Stethoscope,
-      route: "/procare/physician",
-      testId: "card-physician-portal",
-      gradient: "from-blue-600/20 to-indigo-600/20",
+      title: "Trainer/ Physician Portal",
+      description: "Professional client management and coaching tools",
+      icon: Users,
+      route: "/care-team",
+      testId: "card-procare-portal",
     },
     {
       title: "Supplement Hub",
@@ -44,7 +34,6 @@ export default function ProCareCover() {
       icon: Crown,
       route: "/supplement-hub",
       testId: "card-supplement-hub",
-      gradient: "from-orange-600/20 to-amber-600/20",
     },
   ];
 
@@ -103,21 +92,19 @@ export default function ProCareCover() {
               return (
                 <Card
                   key={feature.testId}
-                  className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-gradient-to-br ${feature.gradient} backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl shadow-md`}
+                  className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl shadow-md"
                   onClick={() => handleCardClick(feature.route)}
                   data-testid={feature.testId}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white/10">
-                          <Icon className="h-5 w-5 text-white flex-shrink-0" />
-                        </div>
-                        <h3 className="text-base font-semibold text-white">
+                  <CardContent className="p-3">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                        <h3 className="text-sm font-semibold text-white">
                           {feature.title}
                         </h3>
                       </div>
-                      <p className="text-sm text-white/80 ml-12">
+                      <p className="text-xs text-white/80 ml-6">
                         {feature.description}
                       </p>
                     </div>
