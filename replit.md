@@ -82,6 +82,36 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **SendGrid**: For email services.
 - **Apple StoreKit 2**: For iOS in-app purchases via `@squareetlabs/capacitor-subscriptions` plugin.
 
+## Deployment Safety System v1.0 (Jan 2026)
+Automated safeguards to prevent production issues and catch regressions early.
+
+**Boot-Time Health Logging**:
+- Production server logs critical service status at startup
+- Shows OpenAI key presence, S3 bucket, database connection
+- Look for `[BOOT]` entries in logs to verify configuration
+
+**Fallback Usage Tracking**:
+- `server/services/fallbackMealService.ts` logs 🚨 FALLBACK ALERT when fallback meals are used
+- Fallback usage indicates OpenAI is not working
+- Stats available via `/api/health` endpoint
+
+**Health Endpoint** (`/api/health`):
+- `hasOpenAI: true/false` - Is OpenAI connected?
+- `openAIKeyLength: number` - Key length (non-zero = configured)
+- `hasS3: true/false` - Is S3 image storage configured?
+- `aiHealth.fallbacksUsed` - Number of times fallback meals were served
+- `aiHealth.healthy` - Overall AI health status
+
+**Release Checklist**: See `/docs/RELEASE_CHECKLIST.md` for pre-deployment verification steps.
+
+**Critical Files That Must Stay In Sync**:
+- `server/prod.ts` and `server/index.ts` - Both must have VITE_OPENAI_API_KEY aliasing
+- Drift between these files caused the Jan 2026 production fallback bug
+
+**Quick Sanity Check**:
+- If meal generation is INSTANT (< 2 seconds), AI is not working
+- Real AI generation takes 15-30 seconds
+
 ## Deferred Features (Post-App Store Approval)
 
 ### Profile Photo Upload (v1.0.1 or v1.1)

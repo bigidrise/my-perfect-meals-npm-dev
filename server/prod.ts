@@ -1,4 +1,6 @@
 import "./bootstrap-fetch";
+import "./bootstrap/envSetup"; // Shared environment setup - MUST be first import after bootstrap-fetch
+import { logBootStatus, validateCriticalEnv } from "./bootstrap/envSetup";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -6,11 +8,13 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Alias VITE_OPENAI_API_KEY to OPENAI_API_KEY if the latter isn't set
-// (VITE_ prefix is for client-side Vite builds, server code uses OPENAI_API_KEY)
-if (!process.env.OPENAI_API_KEY && process.env.VITE_OPENAI_API_KEY) {
-  process.env.OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
-  console.log("✅ Aliased VITE_OPENAI_API_KEY to OPENAI_API_KEY");
+// Log boot status using shared module
+const bootStatus = logBootStatus('production');
+
+// Validate critical environment variables
+const envValidation = validateCriticalEnv();
+if (!envValidation.valid) {
+  console.error("🚨 [BOOT] CRITICAL: Missing environment variables:", envValidation.missing.join(', '));
 }
 
 // Crash prevention: log errors instead of dying silently
@@ -32,6 +36,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import dessertCreatorRouter from "./routes/dessert-creator";
 import restaurantRoutes from "./routes/restaurants";
 import { resolveCuisineMiddleware } from "./middleware/resolveCuisineMiddleware";
+import { getFallbackStats } from "./services/fallbackMealService";
 
 const app = express();
 
@@ -40,15 +45,25 @@ app.set('trust proxy', 1);
 
 // CRITICAL: Health check MUST be first
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
-app.get("/api/health", (_req, res) => res.json({ 
-  ok: true, 
-  timestamp: new Date().toISOString(),
-  env: process.env.NODE_ENV || "production",
-  hasDatabase: !!process.env.DATABASE_URL,
-  hasOpenAI: !!process.env.OPENAI_API_KEY,
-  openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
-  isDeployment: process.env.REPLIT_DEPLOYMENT === "1"
-}));
+app.get("/api/health", (_req, res) => {
+  const fallbackStats = getFallbackStats();
+  res.json({ 
+    ok: true, 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || "production",
+    hasDatabase: !!process.env.DATABASE_URL,
+    hasOpenAI: !!process.env.OPENAI_API_KEY,
+    openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+    hasS3: !!(process.env.S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID),
+    s3Bucket: process.env.S3_BUCKET_NAME || "NOT SET",
+    isDeployment: process.env.REPLIT_DEPLOYMENT === "1",
+    aiHealth: {
+      fallbacksUsed: fallbackStats.totalFallbacksUsed,
+      lastFallback: fallbackStats.lastFallbackTime,
+      healthy: fallbackStats.aiHealthy
+    }
+  });
+});
 
 // Version endpoint
 app.get("/__version", (_req, res) => {
