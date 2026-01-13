@@ -1,0 +1,89 @@
+PODS:
+  - Capacitor (7.4.4):
+    - CapacitorCordova
+  - CapacitorApp (8.0.0):
+    - Capacitor
+  - CapacitorAppLauncher (8.0.0):
+    - Capacitor
+  - CapacitorCamera (8.0.0):
+    - Capacitor
+  - CapacitorCordova (7.4.4)
+  - CapacitorGeolocation (8.0.0):
+    - Capacitor
+    - IONGeolocationLib (= 2.0.0)
+  - CapacitorLocalNotifications (8.0.0):
+    - Capacitor
+  - CapacitorNativeSettings (7.0.2):
+    - Capacitor
+  - CapacitorPreferences (8.0.0):
+    - Capacitor
+  - CapacitorShare (8.0.0):
+    - Capacitor
+  - CapacitorSplashScreen (8.0.0):
+    - Capacitor
+  - IONGeolocationLib (2.0.0)
+  - SquareetlabsCapacitorSubscriptions (1.0.25):
+    - Capacitor
+
+DEPENDENCIES:
+  - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
+  - "CapacitorAppLauncher (from `../../node_modules/@capacitor/app-launcher`)"
+  - "CapacitorCamera (from `../../node_modules/@capacitor/camera`)"
+  - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
+  - "CapacitorLocalNotifications (from `../../node_modules/@capacitor/local-notifications`)"
+  - CapacitorNativeSettings (from `../../node_modules/capacitor-native-settings`)
+  - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
+  - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
+  - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
+  - "SquareetlabsCapacitorSubscriptions (from `../../node_modules/@squareetlabs/capacitor-subscriptions`)"
+
+SPEC REPOS:
+  trunk:
+    - IONGeolocationLib
+
+EXTERNAL SOURCES:
+  Capacitor:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorApp:
+    :path: "../../node_modules/@capacitor/app"
+  CapacitorAppLauncher:
+    :path: "../../node_modules/@capacitor/app-launcher"
+  CapacitorCamera:
+    :path: "../../node_modules/@capacitor/camera"
+  CapacitorCordova:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorGeolocation:
+    :path: "../../node_modules/@capacitor/geolocation"
+  CapacitorLocalNotifications:
+    :path: "../../node_modules/@capacitor/local-notifications"
+  CapacitorNativeSettings:
+    :path: "../../node_modules/capacitor-native-settings"
+  CapacitorPreferences:
+    :path: "../../node_modules/@capacitor/preferences"
+  CapacitorShare:
+    :path: "../../node_modules/@capacitor/share"
+  CapacitorSplashScreen:
+    :path: "../../node_modules/@capacitor/splash-screen"
+  SquareetlabsCapacitorSubscriptions:
+    :path: "../../node_modules/@squareetlabs/capacitor-subscriptions"
+
+SPEC CHECKSUMS:
+  Capacitor: 358dd1c3fdd71d969547b17e159fd8a7736cb45f
+  CapacitorApp: 3963a84197280757b84f126afd1520a85ae3b092
+  CapacitorAppLauncher: 7f2330aa2d8a72a4767ab05af9df4bf68166ebf0
+  CapacitorCamera: 592acb7ab9fb748e2d8571eb03af30ec4e1ace12
+  CapacitorCordova: bf648a636f3c153f652d312ae145fb508b6ffced
+  CapacitorGeolocation: 8a405e707de9aff6ac9eca7f408966a370f7ca33
+  CapacitorLocalNotifications: 177cfbf8228d9bd82a147e094cb7984d7afb9e29
+  CapacitorNativeSettings: 3cd2e2ef431fe471674f381609cfb29154ddfcfa
+  CapacitorPreferences: 443fabe9670226200e595658a87ef0b1566716d4
+  CapacitorShare: 12f1d192170cbcf9f108fd675ac8e343761a4638
+  CapacitorSplashScreen: 422880d7117605c30699eb4b21644b62db42e86c
+  IONGeolocationLib: a5e40b54edc2ee9902036eda5aaa41ddf07bb68d
+  SquareetlabsCapacitorSubscriptions: 9ebfcd67efe366bdd10f1e7b5ff15e50aa5cb548
+
+PODFILE CHECKSUM: 86170a419af2f91690b54c9e690ea929c2ce25c7
+
+COCOAPODS: 1.16.2
