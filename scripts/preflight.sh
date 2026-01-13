@@ -86,6 +86,55 @@ else
     check_warn "Fallback meals used: ${FALLBACKS} (may indicate previous AI failures)"
 fi
 
+# Step 3: AI Generation Probe (Critical - this is what caught the Jan 2026 bug)
+echo ""
+echo "🤖 Step 3: Testing AI meal generation..."
+
+# Record start time
+START_TIME=$(date +%s)
+
+# Make a real Create With Chef request
+AI_RESPONSE=$(curl -s -X POST "${DEPLOYED_URL}/api/meals/generate" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "type": "create-with-chef",
+        "input": "test scrambled eggs",
+        "mealType": "breakfast",
+        "dietType": "Mediterranean"
+    }' 2>/dev/null || echo '{"error": "request_failed"}')
+
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+# Check if generation took time (AI) or was instant (fallback)
+if [ "$DURATION" -lt 3 ]; then
+    check_fail "AI generation too fast (${DURATION}s) - likely using FALLBACKS!"
+    echo "  💡 Real AI generation takes 15-30 seconds"
+else
+    check_pass "AI generation took ${DURATION}s (real AI, not fallback)"
+fi
+
+# Check response for fallback indicators
+if echo "$AI_RESPONSE" | grep -qi "Mediterranean Breakfast Bowl\|Mediterranean Chicken\|fallback"; then
+    check_fail "Response contains fallback meal names - AI not connected!"
+elif echo "$AI_RESPONSE" | grep -qi "scrambled\|eggs\|egg"; then
+    check_pass "AI response matches request (contains 'eggs')"
+else
+    check_warn "Could not verify AI response content"
+fi
+
+# Check health again after AI test to see if fallback was used
+echo ""
+echo "🔄 Re-checking health after AI test..."
+HEALTH_AFTER=$(curl -s "${DEPLOYED_URL}/api/health" 2>/dev/null || echo '{}')
+FALLBACKS_AFTER=$(echo "$HEALTH_AFTER" | grep -o '"fallbacksUsed":[0-9]*' | grep -o '[0-9]*' || echo "0")
+
+if [ "$FALLBACKS_AFTER" -gt "$FALLBACKS" ]; then
+    check_fail "Fallback count increased during test (${FALLBACKS} -> ${FALLBACKS_AFTER}) - AI NOT WORKING!"
+else
+    check_pass "No new fallbacks during AI test"
+fi
+
 # Summary
 echo ""
 echo "=========================================="
