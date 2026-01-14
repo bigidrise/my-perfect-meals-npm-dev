@@ -67,7 +67,7 @@ export default function ChefsKitchenPage() {
   // Kitchen Studio state (6 steps: Dish, Method, Preferences, Servings, Equipment, Generate)
   const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { speak } = useChefVoice(setIsPlaying);
+  const { speak, stop: stopChef } = useChefVoice(setIsPlaying);
 
   // Step 1 - Dish Idea
   const [dishIdea, setDishIdea] = useState("");
@@ -504,6 +504,7 @@ export default function ChefsKitchenPage() {
                 isPlaying={isPlaying}
                 placeholder="Describe the dish, flavor, or vibe..."
                 inputType="textarea"
+                onInputFocus={stopChef}
                 onListen={() => {
                   if (step1Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_INTRO, () => setStep1Listened(true));
@@ -531,6 +532,7 @@ export default function ChefsKitchenPage() {
                 isPlaying={isPlaying}
                 inputType="buttons"
                 buttonOptions={["Stovetop", "Oven", "Air Fryer", "Grill"]}
+                onInputFocus={stopChef}
                 onListen={() => {
                   if (step2Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_COOK_METHOD, () =>
@@ -564,6 +566,7 @@ export default function ChefsKitchenPage() {
                 isPlaying={isPlaying}
                 placeholder="e.g., low sugar, gluten-free, no dairy, quick 15 min meal..."
                 inputType="textarea"
+                onInputFocus={stopChef}
                 onListen={() => {
                   if (step3Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_INGREDIENTS_PACE, () =>
@@ -593,6 +596,7 @@ export default function ChefsKitchenPage() {
                 isPlaying={isPlaying}
                 inputType="buttons"
                 buttonOptions={["1", "2", "3", "4", "5", "6"]}
+                onInputFocus={stopChef}
                 onListen={() => {
                   if (step4Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_SERVINGS, () => setStep4Listened(true));
@@ -621,6 +625,7 @@ export default function ChefsKitchenPage() {
                 placeholder="Yes, all set / I don't have a skillet but I have a pan..."
                 inputType="textarea"
                 equipmentList={suggestedEquipment}
+                onInputFocus={stopChef}
                 onListen={() => {
                   if (step5Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep5Listened(true));
@@ -905,12 +910,7 @@ export default function ChefsKitchenPage() {
                       </button>
 
                       {/* Done Button */}
-                      <button
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                        onClick={() => setLocation("/lifestyle")}
-                      >
-                        Done
-                      </button>
+                      
                     </div>
                   )}
                 </CardContent>

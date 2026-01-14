@@ -18,6 +18,7 @@ interface KitchenStepCardProps {
   inputType?: "textarea" | "buttons";
   buttonOptions?: string[];
   equipmentList?: string[];
+  onInputFocus?: () => void;
 }
 
 export function KitchenStepCard({
@@ -37,6 +38,7 @@ export function KitchenStepCard({
   inputType = "textarea",
   buttonOptions = [],
   equipmentList,
+  onInputFocus,
 }: KitchenStepCardProps) {
   return (
     <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
@@ -103,6 +105,7 @@ export function KitchenStepCard({
                   <textarea
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
+                    onFocus={onInputFocus}
                     placeholder={placeholder}
                     className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                     maxLength={300}

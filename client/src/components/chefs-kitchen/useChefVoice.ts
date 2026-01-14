@@ -43,5 +43,15 @@ export function useChefVoice(
     [setIsPlaying]
   );
 
-  return { speak, audioRef };
+  const stop = useCallback(() => {
+    ttsService.stop();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    setIsPlaying(false);
+  }, [setIsPlaying]);
+
+  return { speak, stop, audioRef };
 }
