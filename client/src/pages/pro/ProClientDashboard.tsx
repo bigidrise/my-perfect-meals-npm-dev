@@ -133,13 +133,7 @@ export default function ProClientDashboard() {
   // Read role from CLIENT first (set when client was added), then ctx, then default to trainer
   const role = (client?.role ?? ctx.role ?? "trainer") as ProRole;
   const isTrainer = role === "trainer";
-  const isClinician = [
-    "doctor",
-    "nurse",
-    "pa",
-    "nutritionist",
-    "dietitian",
-  ].includes(role);
+  const isClinician = ["doctor", "np", "rn", "pa", "nutritionist", "dietitian"].includes(role);
   const roleLabel = getRoleLabel(role);
 
   const saveTargets = () => {

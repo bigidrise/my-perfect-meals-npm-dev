@@ -1,14 +1,9 @@
 import dotenv from "dotenv";
 dotenv.config(); // Load .env file FIRST before anything else
 
-// Alias VITE_OPENAI_API_KEY to OPENAI_API_KEY if the latter isn't set
-// (VITE_ prefix is for client-side Vite builds, server code uses OPENAI_API_KEY)
-if (!process.env.OPENAI_API_KEY && process.env.VITE_OPENAI_API_KEY) {
-  process.env.OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
-  console.log("✅ Aliased VITE_OPENAI_API_KEY to OPENAI_API_KEY");
-}
-
 import "./bootstrap-fetch"; // Ensure fetch is available
+import "./bootstrap/envSetup"; // Shared environment setup (same as prod.ts)
+import { logBootStatus } from "./bootstrap/envSetup";
 import express, {
   type Request,
   type Response,
@@ -133,15 +128,28 @@ app.set('trust proxy', isProd ? 1 : false);
 // Create rate limiter ONCE at app initialization (after trust proxy is set)
 const apiRateLimit = createApiRateLimit();
 
-// Enhanced health check for Railway debugging
-app.get("/api/health", (_req, res) => res.json({ 
-  ok: true, 
-  timestamp: new Date().toISOString(),
-  env: process.env.NODE_ENV || "development",
-  hasDatabase: !!process.env.DATABASE_URL,
-  trustProxy: app.get("trust proxy"),
-  platform: process.env.RAILWAY_ENVIRONMENT ? "railway" : "replit"
-}));
+// Enhanced health check with OpenAI/S3 status (same fields as prod.ts)
+import { getFallbackStats } from "./services/fallbackMealService";
+app.get("/api/health", (_req, res) => {
+  const fallbackStats = getFallbackStats();
+  res.json({ 
+    ok: true, 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || "development",
+    hasDatabase: !!process.env.DATABASE_URL,
+    hasOpenAI: !!process.env.OPENAI_API_KEY,
+    openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+    hasS3: !!(process.env.S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID),
+    s3Bucket: process.env.S3_BUCKET_NAME || "NOT SET",
+    trustProxy: app.get("trust proxy"),
+    platform: process.env.RAILWAY_ENVIRONMENT ? "railway" : "replit",
+    aiHealth: {
+      fallbacksUsed: fallbackStats.totalFallbacksUsed,
+      lastFallback: fallbackStats.lastFallbackTime,
+      healthy: fallbackStats.aiHealthy
+    }
+  });
+});
 
 // ---------- Production Middleware ----------
 app.use(requestId);
