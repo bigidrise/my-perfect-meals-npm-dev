@@ -104,6 +104,7 @@ import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuB
 
 // Craving pages
 // DELETED: CravingHub (moved to _quarantine - replaced by CravingCreatorLanding)
+import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import CravingPresets from "@/pages/CravingPresets";
@@ -229,6 +230,7 @@ export default function Router() {
         <Route path="/kids-meals" component={KidsMealsHub} />
         <Route path="/toddler-meals" component={ToddlersMealsHub} />
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
+        <Route path="/lifestyle/chefs-kitchen" component={ChefsKitchenPage} />
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
