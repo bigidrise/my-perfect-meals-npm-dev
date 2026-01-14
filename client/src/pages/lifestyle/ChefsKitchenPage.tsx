@@ -9,6 +9,8 @@ import { ttsService } from "@/lib/tts";
 import {
   KITCHEN_STUDIO_INTRO,
   KITCHEN_STUDIO_STEP2,
+  KITCHEN_STUDIO_COOK_METHOD,
+  KITCHEN_STUDIO_COOK_CONFIRMED,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 
 type KitchenMode = "entry" | "studio";
@@ -25,6 +27,11 @@ export default function ChefsKitchenPage() {
   const [isLocked, setIsLocked] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Step 2 state
+  const [cookMethod, setCookMethod] = useState("");
+  const [hasListenedStep2, setHasListenedStep2] = useState(false);
+  const [isLockedStep2, setIsLockedStep2] = useState(false);
 
   // Voice handler - same pattern as ProTip
   const handleListenToChef = useCallback(async () => {
@@ -94,6 +101,75 @@ export default function ChefsKitchenPage() {
       setIsPlaying(false);
     }
   }, [dishIdea]);
+
+  // Voice handler for step 2 - cooking method
+  const handleListenCookMethod = useCallback(async () => {
+    if (hasListenedStep2 || isPlaying) return;
+
+    setIsPlaying(true);
+
+    try {
+      ttsService.stop();
+      const result = await ttsService.speak(KITCHEN_STUDIO_COOK_METHOD, {
+        onStart: () => {
+          setIsPlaying(true);
+          setHasListenedStep2(true);
+        },
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
+    } catch {
+      setIsPlaying(false);
+      setHasListenedStep2(true);
+    }
+  }, [hasListenedStep2, isPlaying]);
+
+  // Voice handler for step 2 submit
+  const handleSubmitCookMethod = useCallback(async () => {
+    if (!cookMethod) return;
+
+    setIsLockedStep2(true);
+    setStudioStep(3);
+
+    try {
+      ttsService.stop();
+      const result = await ttsService.speak(KITCHEN_STUDIO_COOK_CONFIRMED, {
+        onStart: () => setIsPlaying(true),
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
+    } catch {
+      setIsPlaying(false);
+    }
+  }, [cookMethod]);
 
   useEffect(() => {
     document.title = "Chef's Kitchen | My Perfect Meals";
@@ -273,13 +349,83 @@ export default function ChefsKitchenPage() {
               </Card>
             )}
 
-            {/* Card 2 placeholder - will appear after step 1 is locked */}
+            {/* ───────── Kitchen Studio – Step 2 ───────── */}
             {studioStep >= 2 && (
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
-                <CardContent className="p-4">
-                  <p className="text-sm text-white/70">
-                    (Card 2: Cooking method will go here)
-                  </p>
+                <CardContent className="p-4 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center gap-2">
+                    <UtensilsCrossed className="h-4 w-4 text-orange-500" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Cooking Method
+                    </h3>
+                  </div>
+
+                  {/* Locked State */}
+                  {isLockedStep2 ? (
+                    <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                      <p className="text-sm text-white/90 font-medium">
+                        How are we cooking this?
+                      </p>
+                      <p className="text-sm text-white/70 mt-1">{cookMethod}</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Intro */}
+                      <p className="text-sm text-white/80">
+                        Tap <strong>Listen</strong> and we'll set the cooking
+                        method.
+                      </p>
+
+                      {/* Listen Button */}
+                      {!hasListenedStep2 && (
+                        <button
+                          className={`w-full py-3 rounded-xl border text-white font-medium transition ${
+                            isPlaying
+                              ? "bg-green-900/40 border-green-500/40"
+                              : "bg-black/40 border-white/20 hover:bg-black/50"
+                          }`}
+                          onClick={handleListenCookMethod}
+                          disabled={isPlaying}
+                          data-testid="button-listen-cook-method"
+                        >
+                          {isPlaying ? "Speaking..." : "Listen to Chef"}
+                        </button>
+                      )}
+
+                      {/* Options */}
+                      {hasListenedStep2 && (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            {["Stovetop", "Oven", "Air Fryer", "Grill"].map(
+                              (method) => (
+                                <button
+                                  key={method}
+                                  onClick={() => setCookMethod(method)}
+                                  className={`py-2 rounded-lg border text-sm transition ${
+                                    cookMethod === method
+                                      ? "bg-lime-600 text-black border-lime-600"
+                                      : "bg-black/40 text-white border-white/20 hover:bg-black/50"
+                                  }`}
+                                >
+                                  {method}
+                                </button>
+                              )
+                            )}
+                          </div>
+
+                          <button
+                            className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
+                            disabled={!cookMethod || isPlaying}
+                            onClick={handleSubmitCookMethod}
+                            data-testid="button-submit-cook-method"
+                          >
+                            Continue
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}
