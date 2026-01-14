@@ -213,7 +213,7 @@ export default function ChefsKitchenPage() {
           </button>
 
           <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Chef's Kitchen 👨🏿‍🍳
+            Chef&apos;s Kitchen <span className="text-4xl leading-none">👨🏿‍🍳</span>
           </h1>
 
           <div className="flex-grow" />
