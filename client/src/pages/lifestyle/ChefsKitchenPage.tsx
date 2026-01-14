@@ -716,144 +716,201 @@ export default function ChefsKitchenPage() {
                     </div>
                   )}
 
-                  {/* Meal Ready */}
+                  {/* Meal Ready - Matching Craving Creator Card */}
                   {generatedMeal && mealToShow && (
                     <div className="space-y-4">
-                      {mealToShow.imageUrl && (
-                        <img
-                          src={mealToShow.imageUrl}
-                          alt={mealToShow.name}
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
+                      {/* Title + Create New */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Sparkles className="h-6 w-6 text-yellow-600" />
+                          <h3 className="text-xl font-bold text-white">
+                            {mealToShow.name}
+                          </h3>
+                        </div>
+                        <button
+                          onClick={restartKitchenStudio}
+                          className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                        >
+                          Create New
+                        </button>
+                      </div>
+
+                      {mealToShow.description && (
+                        <p className="text-white/90">{mealToShow.description}</p>
                       )}
 
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-lg font-bold text-white flex-1">
-                            {mealToShow.name}
-                          </h4>
-                          <TranslateToggle
-                            content={{
-                              name: generatedMeal.name,
-                              description: generatedMeal.description,
-                              instructions: generatedMeal.instructions,
-                            }}
-                            onTranslate={(translated) => {
-                              setDisplayMeal({
-                                ...generatedMeal,
-                                name: translated.name,
-                                description: translated.description,
-                                instructions: translated.instructions || generatedMeal.instructions,
-                              });
-                            }}
-                            className="flex-shrink-0"
+                      {/* Image */}
+                      {mealToShow.imageUrl && (
+                        <div className="rounded-lg overflow-hidden">
+                          <img
+                            src={mealToShow.imageUrl}
+                            alt={mealToShow.name}
+                            className="w-full h-64 object-cover"
                           />
                         </div>
+                      )}
 
-                        {mealToShow.description && (
-                          <p className="text-sm text-white/70">
-                            {mealToShow.description}
-                          </p>
-                        )}
-
-                        {/* Serving Size */}
-                        <div className="flex items-center gap-2 text-sm text-white/80">
-                          <span className="text-orange-400 font-medium">Serving Size:</span>
+                      {/* Serving Size Display */}
+                      <div className="p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-white">
+                          <Users className="h-4 w-4" />
+                          <span className="font-medium">Serving Size:</span>
                           <span>{mealToShow.servingSize || `${servings} ${servings === 1 ? 'serving' : 'servings'}`}</span>
                         </div>
+                      </div>
 
-                        {/* Macros */}
-                        <div className="grid grid-cols-4 gap-2 py-2">
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-white">
-                              {mealToShow.calories || 0}
-                            </p>
-                            <p className="text-xs text-white/60">cal</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-blue-400">
-                              {mealToShow.protein || 0}g
-                            </p>
-                            <p className="text-xs text-white/60">protein</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-green-400">
-                              {mealToShow.carbs || 0}g
-                            </p>
-                            <p className="text-xs text-white/60">carbs</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-yellow-400">
-                              {mealToShow.fat || 0}g
-                            </p>
-                            <p className="text-xs text-white/60">fat</p>
+                      {/* Per-Serving Info for Multiple Servings */}
+                      {servings > 1 && (
+                        <div className="p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/20">
+                          <div className="text-xs text-white text-center">
+                            <strong>Total nutrition below is for {servings} servings.</strong>
+                            <br />
+                            Per serving: {Math.round((mealToShow.calories || 0) / servings)} cal | {Math.round((mealToShow.protein || 0) / servings)}g protein | {Math.round((mealToShow.carbs || 0) / servings)}g carbs | {Math.round((mealToShow.fat || 0) / servings)}g fat
                           </div>
                         </div>
+                      )}
 
-                        {/* Ingredients */}
-                        {generatedMeal.ingredients?.length > 0 && (
-                          <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                            <p className="text-sm font-semibold text-white mb-2">
-                              Ingredients
-                            </p>
-                            <ul className="space-y-1">
-                              {generatedMeal.ingredients.map((ing, i) => (
-                                <li
-                                  key={i}
-                                  className="text-sm text-white/70 flex justify-between"
-                                >
-                                  <span>{ing.name}</span>
-                                  <span className="text-white/50">
-                                    {ing.amount ?? ing.quantity} {ing.unit}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Instructions */}
-                        {mealToShow.instructions && (
-                          <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                            <p className="text-sm font-semibold text-white mb-2">
-                              Instructions
-                            </p>
-                            {Array.isArray(mealToShow.instructions) ? (
-                              <ol className="space-y-2 list-decimal list-inside">
-                                {mealToShow.instructions.map((step, i) => (
-                                  <li key={i} className="text-sm text-white/70">
-                                    {step}
-                                  </li>
-                                ))}
-                              </ol>
-                            ) : (
-                              <p className="text-sm text-white/70">
-                                {mealToShow.instructions}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Add to Meal Plan */}
-                        <div className="pt-2">
-                          <AddToMealPlanButton meal={generatedMeal} />
+                      {/* Macros Grid */}
+                      <div className="grid grid-cols-4 gap-4 text-center">
+                        <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                          <div className="text-lg font-bold text-white">{mealToShow.calories || 0}</div>
+                          <div className="text-xs text-white">Calories</div>
                         </div>
-
-                        <div className="flex gap-3">
-                          <button
-                            className="flex-1 py-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-semibold text-sm transition border border-white/20"
-                            onClick={restartKitchenStudio}
-                          >
-                            Start Over
-                          </button>
-                          <button
-                            className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                            onClick={() => setLocation("/lifestyle")}
-                          >
-                            Done
-                          </button>
+                        <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                          <div className="text-lg font-bold text-white">{mealToShow.protein || 0}g</div>
+                          <div className="text-xs text-white">Protein</div>
+                        </div>
+                        <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                          <div className="text-lg font-bold text-white">{mealToShow.carbs || 0}g</div>
+                          <div className="text-xs text-white">Carbs</div>
+                        </div>
+                        <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                          <div className="text-lg font-bold text-white">{mealToShow.fat || 0}g</div>
+                          <div className="text-xs text-white">Fat</div>
                         </div>
                       </div>
+
+                      {/* Action Buttons Row */}
+                      <div className="flex gap-2">
+                        <AddToMealPlanButton meal={generatedMeal} />
+                        <MealCardActions
+                          meal={{
+                            name: generatedMeal.name,
+                            description: generatedMeal.description,
+                            ingredients: generatedMeal.ingredients.map((ing) => ({
+                              name: ing.name,
+                              amount: String(ing.amount ?? ing.quantity ?? ''),
+                              unit: ing.unit,
+                            })),
+                            instructions: generatedMeal.instructions,
+                            nutrition: generatedMeal.nutrition,
+                          }}
+                          onContentUpdate={(updated) => {
+                            setDisplayMeal({
+                              ...generatedMeal,
+                              name: updated.name || generatedMeal.name,
+                              description: updated.description || generatedMeal.description,
+                              instructions: updated.instructions || generatedMeal.instructions,
+                            });
+                          }}
+                        />
+                      </div>
+
+                      {/* Medical Badges */}
+                      {(() => {
+                        const profile = getUserMedicalProfile(1);
+                        const mealForBadges = {
+                          name: generatedMeal.name,
+                          calories: generatedMeal.calories || 0,
+                          protein: generatedMeal.protein || 0,
+                          carbs: generatedMeal.carbs || 0,
+                          fat: generatedMeal.fat || 0,
+                          ingredients: generatedMeal.ingredients.map((ing) => ({
+                            name: ing.name,
+                            amount: ing.amount ?? 1,
+                            unit: (ing.unit ?? 'serving').toLowerCase(),
+                          })),
+                        };
+                        const medicalBadges = generatedMeal.medicalBadges?.length
+                          ? generatedMeal.medicalBadges
+                          : generateMedicalBadges(mealForBadges as any, profile);
+
+                        return medicalBadges && medicalBadges.length > 0 ? (
+                          <div className="flex items-center gap-3">
+                            <HealthBadgesPopover
+                              badges={medicalBadges.map((b: any) =>
+                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)
+                              )}
+                            />
+                            <h3 className="font-semibold text-white">Medical Safety</h3>
+                          </div>
+                        ) : null;
+                      })()}
+
+                      {/* Ingredients */}
+                      {generatedMeal.ingredients?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2 text-white">Ingredients:</h4>
+                          <ul className="text-sm text-white/80 space-y-1">
+                            {generatedMeal.ingredients.map((ing, i) => (
+                              <li key={i}>
+                                {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Instructions */}
+                      {mealToShow.instructions && (
+                        <div>
+                          <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                          <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
+                            {Array.isArray(mealToShow.instructions)
+                              ? mealToShow.instructions.join('\n')
+                              : mealToShow.instructions}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reasoning */}
+                      {mealToShow.reasoning && (
+                        <div>
+                          <h4 className="font-semibold mb-2 flex items-center gap-2 text-white">
+                            <Brain className="h-4 w-4" />
+                            Why This Works For You:
+                          </h4>
+                          <p className="text-sm text-white/80">{mealToShow.reasoning}</p>
+                        </div>
+                      )}
+
+                      {/* Add Your Macros */}
+                      <button
+                        onClick={() => {
+                          setQuickView({
+                            protein: Math.round(generatedMeal.protein || 0),
+                            carbs: Math.round(generatedMeal.carbs || 0),
+                            starchyCarbs: 0,
+                            fibrousCarbs: 0,
+                            fat: Math.round(generatedMeal.fat || 0),
+                            calories: Math.round(generatedMeal.calories || 0),
+                            dateISO: new Date().toISOString().slice(0, 10),
+                            mealSlot: 'snacks',
+                          });
+                          setLocation('/biometrics?from=chefs-kitchen&view=macros');
+                        }}
+                        className="w-full py-3 rounded-xl bg-black hover:bg-black/80 text-white font-semibold text-sm transition"
+                      >
+                        Add Your Macros
+                      </button>
+
+                      {/* Done Button */}
+                      <button
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                        onClick={() => setLocation("/lifestyle")}
+                      >
+                        Done
+                      </button>
                     </div>
                   )}
                 </CardContent>
