@@ -189,7 +189,7 @@ export default function ChefsKitchenPage() {
       <div
         className="px-4 space-y-4"
         style={{
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 64px)",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)",
         }}
       >
         {/* ENTRY MODE */}
