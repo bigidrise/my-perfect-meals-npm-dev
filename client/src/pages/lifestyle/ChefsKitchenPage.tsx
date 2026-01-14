@@ -13,8 +13,14 @@ export default function ChefsKitchenPage() {
   const quickTour = useQuickTour("chefs-kitchen");
   const [mode, setMode] = useState<KitchenMode>("entry");
 
+  // Kitchen Studio state
+  const [studioStep, setStudioStep] = useState<1 | 2 | 3>(1);
+  const [dishIdea, setDishIdea] = useState("");
+  const [hasListened, setHasListened] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+
   useEffect(() => {
-    document.title = "Chef’s Kitchen | My Perfect Meals";
+    document.title = "Chef's Kitchen | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -25,7 +31,7 @@ export default function ChefsKitchenPage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
-      {/* 🔒 Universal Safe-Area Header — SAME AS CRAVING CREATOR */}
+      {/* Universal Safe-Area Header */}
       <div
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
@@ -43,7 +49,7 @@ export default function ChefsKitchenPage() {
 
           {/* Title */}
           <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Chef’s Kitchen
+            Chef's Kitchen
           </h1>
 
           <div className="flex-grow" />
@@ -61,7 +67,7 @@ export default function ChefsKitchenPage() {
         className="max-w-2xl mx-auto px-4 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        {/* ───────────────── ENTRY MODE ───────────────── */}
+        {/* ENTRY MODE */}
         {mode === "entry" && (
           <div className="space-y-4">
             <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
@@ -91,7 +97,7 @@ export default function ChefsKitchenPage() {
                       What are we cooking today?
                     </h3>
                     <p className="text-xs text-white/70">
-                      Start with an idea, a craving, or an ingredient — we’ll
+                      Start with an idea, a craving, or an ingredient - we'll
                       build it together.
                     </p>
                   </div>
@@ -109,28 +115,102 @@ export default function ChefsKitchenPage() {
           </div>
         )}
 
-        {/* ───────────────── STUDIO MODE ───────────────── */}
+        {/* STUDIO MODE */}
         {mode === "studio" && (
           <div className="space-y-4">
-            <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
-              <CardContent className="p-4 space-y-2">
-                <h2 className="text-base font-semibold text-white">
-                  What are we making today?
-                </h2>
+            {/* Kitchen Studio - Step 1 */}
+            {studioStep >= 1 && (
+              <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <CardContent className="p-4 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center gap-2">
+                    <UtensilsCrossed className="h-4 w-4 text-orange-500" />
+                    <h2 className="text-base font-semibold text-white">
+                      Kitchen Studio
+                    </h2>
+                  </div>
 
-                <p className="text-sm text-white/80">
-                  Describe the dish, flavor, or vibe you’re going for.
-                </p>
+                  {/* Locked State (after submit) */}
+                  {isLocked ? (
+                    <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                      <p className="text-sm text-white/90 font-medium">
+                        What are we making today?
+                      </p>
+                      <p className="text-sm text-white/70 mt-1">{dishIdea}</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Intro */}
+                      <p className="text-sm text-white/80">
+                        Ready to cook together? Tap <strong>Listen</strong> to
+                        start.
+                      </p>
 
-                <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                  <p className="text-xs text-white/70">
-                    (Next step) This is where the main input box, clarifying
-                    questions, equipment roll call, and Open Kitchen narration
-                    will live.
+                      {/* Listen Button */}
+                      {!hasListened && (
+                        <button
+                          className="w-full py-3 rounded-xl bg-black/40 border border-white/20 text-white font-medium hover:bg-black/50 transition"
+                          onClick={() => {
+                            setHasListened(true);
+                            // Trigger Copilot voice here:
+                            // "Alright - what are we making today?"
+                          }}
+                          data-testid="button-listen-to-chef"
+                        >
+                          Listen to Chef
+                        </button>
+                      )}
+
+                      {/* Input appears AFTER listening */}
+                      {hasListened && (
+                        <>
+                          <div>
+                            <label className="block text-sm text-white mb-1">
+                              What are we making today?
+                            </label>
+                            <textarea
+                              value={dishIdea}
+                              onChange={(e) => setDishIdea(e.target.value)}
+                              placeholder="Describe the dish, flavor, or vibe..."
+                              className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
+                              maxLength={300}
+                            />
+                            <p className="text-xs text-white/60 mt-1 text-right">
+                              {dishIdea.length}/300
+                            </p>
+                          </div>
+
+                          <button
+                            className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
+                            disabled={!dishIdea.trim()}
+                            onClick={() => {
+                              setIsLocked(true);
+                              setStudioStep(2);
+                              // Copilot voice next:
+                              // "Nice. Let's dial it in."
+                            }}
+                            data-testid="button-submit-dish-idea"
+                          >
+                            Submit
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Card 2 placeholder - will appear after step 1 is locked */}
+            {studioStep >= 2 && (
+              <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <CardContent className="p-4">
+                  <p className="text-sm text-white/70">
+                    (Card 2: Cooking method will go here)
                   </p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
