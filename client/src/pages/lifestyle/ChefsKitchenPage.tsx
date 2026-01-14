@@ -240,37 +240,53 @@ export default function ChefsKitchenPage() {
         throw new Error("No meal data returned from API");
       }
       
-      // Normalize the meal response - preserve all fields for complete Meal Card
-      const nutrition = meal.nutrition || {};
+      // Normalize the meal response - preserve all fields exactly as Craving Creator returns
+      // FinalMeal from stableMealGenerator has: nutrition.{calories, protein, carbs, fat}
+      const srcNutrition = meal.nutrition || {};
+      
+      // Compute nutrition values - prioritize nested nutrition object (what Craving Creator returns)
+      const nutritionCalories = srcNutrition.calories ?? meal.calories ?? 0;
+      const nutritionProtein = srcNutrition.protein ?? meal.protein ?? 0;
+      const nutritionCarbs = srcNutrition.carbs ?? meal.carbs ?? 0;
+      const nutritionFat = srcNutrition.fat ?? meal.fat ?? 0;
+      
       const normalizedMeal: GeneratedMeal = {
         id: meal.id || crypto.randomUUID(),
         name: meal.name || meal.title || "Chef's Creation",
         description: meal.description || meal.reasoning,
         mealType: meal.mealType || "dinner",
+        // Preserve ingredient objects exactly - FinalMeal uses amount/unit/notes
         ingredients: Array.isArray(meal.ingredients) 
-          ? meal.ingredients.map((ing: any) => ({
-              name: typeof ing === 'string' ? ing : ing.name,
-              quantity: ing.quantity || '',
-              amount: ing.amount || ing.grams,
-              unit: ing.unit || 'g',
-              notes: ing.notes || ''
-            }))
+          ? meal.ingredients.map((ing: any) => {
+              // Handle both string ingredients and full objects
+              if (typeof ing === 'string') {
+                return { name: ing, amount: undefined, unit: undefined, notes: undefined };
+              }
+              return {
+                name: ing.name || '',
+                quantity: ing.quantity,
+                amount: ing.amount ?? ing.grams, // FinalMeal uses 'amount', skeleton uses 'grams'
+                unit: ing.unit ?? 'g',
+                notes: ing.notes ?? ''
+              };
+            })
           : [],
         instructions: meal.cookingInstructions || meal.instructions || [],
         imageUrl: meal.imageUrl,
-        // Support both flat and nested nutrition fields
-        calories: meal.calories || nutrition.calories || 0,
-        protein: meal.protein || nutrition.protein || nutrition.protein_g || 0,
-        carbs: meal.carbs || nutrition.carbs || nutrition.carbs_g || 0,
-        fat: meal.fat || nutrition.fat || nutrition.fat_g || 0,
+        // Flat nutrition fields for components that expect them
+        calories: nutritionCalories,
+        protein: nutritionProtein,
+        carbs: nutritionCarbs,
+        fat: nutritionFat,
+        // Nested nutrition object for Meal Card compatibility
         nutrition: {
-          calories: meal.calories || nutrition.calories || 0,
-          protein: meal.protein || nutrition.protein || nutrition.protein_g || 0,
-          carbs: meal.carbs || nutrition.carbs || nutrition.carbs_g || 0,
-          fat: meal.fat || nutrition.fat || nutrition.fat_g || 0,
+          calories: nutritionCalories,
+          protein: nutritionProtein,
+          carbs: nutritionCarbs,
+          fat: nutritionFat,
         },
-        medicalBadges: meal.medicalBadges || [],
-        flags: meal.flags || [],
+        medicalBadges: Array.isArray(meal.medicalBadges) ? meal.medicalBadges : [],
+        flags: Array.isArray(meal.flags) ? meal.flags : [],
         servingSize: meal.servingSize || "1 serving",
         reasoning: meal.reasoning,
       };
