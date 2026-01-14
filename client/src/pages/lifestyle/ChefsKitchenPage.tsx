@@ -30,13 +30,24 @@ interface GeneratedMeal {
   id: string;
   name: string;
   description?: string;
-  ingredients: Array<{ name: string; quantity: string; unit: string }>;
+  mealType?: string;
+  ingredients: Array<{ name: string; quantity?: string; amount?: number; unit?: string; notes?: string }>;
   instructions: string[] | string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   calories?: number;
   protein?: number;
   carbs?: number;
   fat?: number;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
+  medicalBadges?: string[];
+  flags?: string[];
+  servingSize?: string;
+  reasoning?: string;
 }
 
 export default function ChefsKitchenPage() {
@@ -107,6 +118,35 @@ export default function ChefsKitchenPage() {
     setStudioStep(4);
   };
 
+  // Restart Kitchen Studio - clears all state without page reload
+  const restartKitchenStudio = () => {
+    // Clear step states
+    setStudioStep(1);
+    setDishIdea("");
+    setStep1Listened(false);
+    setStep1Locked(false);
+    setCookMethod("");
+    setStep2Listened(false);
+    setStep2Locked(false);
+    setIngredientNotes("");
+    setStep3Listened(false);
+    setStep3Locked(false);
+    setEquipment("");
+    setStep4Listened(false);
+    setStep4Locked(false);
+    
+    // Clear generation state
+    setIsGeneratingMeal(false);
+    setGenerationProgress(0);
+    setGeneratedMeal(null);
+    setGenerationError(null);
+    
+    // Clear any running progress interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+  };
+
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -151,15 +191,33 @@ export default function ChefsKitchenPage() {
     setTimeout(() => speak(KITCHEN_STUDIO_OPEN_PROGRESS2), 4000);
 
     try {
-      // Build the description for the API
-      const description = `${dishIdea}. Cooking method: ${cookMethod}. ${ingredientNotes ? `Notes: ${ingredientNotes}.` : ""} Equipment: ${equipment}.`;
+      // Build "Create with Chef" prompt wrapper for Craving Creator
+      // This includes all context from the guided steps
+      const chefPromptParts = [
+        `Create with Chef: ${dishIdea}`,
+        `Cooking method: ${cookMethod}`,
+      ];
+      
+      // Add preferences/guardrails from Step 3 (dietary, pace, etc.)
+      if (ingredientNotes) {
+        chefPromptParts.push(`Preferences: ${ingredientNotes}`);
+      }
+      
+      // Equipment context (informational - helps AI understand constraints)
+      const equipmentContext = equipment || suggestedEquipment.join(", ");
+      if (equipmentContext) {
+        chefPromptParts.push(`Equipment available: ${equipmentContext}`);
+      }
 
-      const response = await fetch(apiUrl("/api/meals/generate"), {
+      const cravingPrompt = chefPromptParts.join(". ");
+
+      // Call Craving Creator endpoint (intent-first generation)
+      const response = await fetch(apiUrl("/api/craving-creator/generate"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          description,
+          craving: cravingPrompt,
           mealType: "dinner",
           source: "chefs-kitchen",
         }),
@@ -173,10 +231,55 @@ export default function ChefsKitchenPage() {
         throw new Error("Failed to generate meal");
       }
 
-      const meal = await response.json();
+      const data = await response.json();
+      console.log("🍳 Chef's Kitchen API response:", data);
+      
+      const meal = data.meal;
+      
+      if (!meal) {
+        throw new Error("No meal data returned from API");
+      }
+      
+      // Normalize the meal response - preserve all fields for complete Meal Card
+      const nutrition = meal.nutrition || {};
+      const normalizedMeal: GeneratedMeal = {
+        id: meal.id || crypto.randomUUID(),
+        name: meal.name || meal.title || "Chef's Creation",
+        description: meal.description || meal.reasoning,
+        mealType: meal.mealType || "dinner",
+        ingredients: Array.isArray(meal.ingredients) 
+          ? meal.ingredients.map((ing: any) => ({
+              name: typeof ing === 'string' ? ing : ing.name,
+              quantity: ing.quantity || '',
+              amount: ing.amount || ing.grams,
+              unit: ing.unit || 'g',
+              notes: ing.notes || ''
+            }))
+          : [],
+        instructions: meal.cookingInstructions || meal.instructions || [],
+        imageUrl: meal.imageUrl,
+        // Support both flat and nested nutrition fields
+        calories: meal.calories || nutrition.calories || 0,
+        protein: meal.protein || nutrition.protein || nutrition.protein_g || 0,
+        carbs: meal.carbs || nutrition.carbs || nutrition.carbs_g || 0,
+        fat: meal.fat || nutrition.fat || nutrition.fat_g || 0,
+        nutrition: {
+          calories: meal.calories || nutrition.calories || 0,
+          protein: meal.protein || nutrition.protein || nutrition.protein_g || 0,
+          carbs: meal.carbs || nutrition.carbs || nutrition.carbs_g || 0,
+          fat: meal.fat || nutrition.fat || nutrition.fat_g || 0,
+        },
+        medicalBadges: meal.medicalBadges || [],
+        flags: meal.flags || [],
+        servingSize: meal.servingSize || "1 serving",
+        reasoning: meal.reasoning,
+      };
+      
+      console.log("✅ Chef's Kitchen normalized meal:", normalizedMeal);
+      
       setGenerationProgress(100);
       setIsGeneratingMeal(false);
-      setGeneratedMeal(meal);
+      setGeneratedMeal(normalizedMeal);
 
       // Final narration
       setTimeout(() => speak(KITCHEN_STUDIO_OPEN_COMPLETE), 500);
@@ -185,8 +288,9 @@ export default function ChefsKitchenPage() {
         clearInterval(progressIntervalRef.current);
       }
       setIsGeneratingMeal(false);
-      setGenerationError("Something went wrong. Please try again.");
-      console.error("Meal generation error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
+      setGenerationError(`${errorMessage}. Please try again.`);
+      console.error("🚨 Chef's Kitchen generation error:", error);
     }
   };
 
@@ -570,12 +674,20 @@ export default function ChefsKitchenPage() {
                           </div>
                         )}
 
-                        <button
-                          className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                          onClick={() => setLocation("/lifestyle")}
-                        >
-                          Done - Back to Lifestyle
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            className="flex-1 py-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-semibold text-sm transition border border-white/20"
+                            onClick={restartKitchenStudio}
+                          >
+                            Start Over
+                          </button>
+                          <button
+                            className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                            onClick={() => setLocation("/lifestyle")}
+                          >
+                            Done
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
