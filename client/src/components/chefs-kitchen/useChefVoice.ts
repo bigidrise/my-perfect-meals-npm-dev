@@ -12,11 +12,12 @@ export function useChefVoice(
 
       try {
         ttsService.stop();
+        
+        // Immediately unlock UI - don't wait for TTS onStart which may fire late
+        onListened?.();
+        
         const result = await ttsService.speak(text, {
-          onStart: () => {
-            setIsPlaying(true);
-            onListened?.();
-          },
+          onStart: () => setIsPlaying(true),
           onEnd: () => setIsPlaying(false),
           onError: () => setIsPlaying(false),
         });
@@ -36,7 +37,7 @@ export function useChefVoice(
         }
       } catch {
         setIsPlaying(false);
-        onListened?.();
+        // onListened already called above, no need to call again
       }
     },
     [setIsPlaying]
