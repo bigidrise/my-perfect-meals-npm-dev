@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, ChefHat, Loader2, Users, Brain } from "lucide-react";
+import { ArrowLeft, Sparkles, ChefHat, Loader2, Users, Brain, Play, Pause, RotateCcw, Volume2 } from "lucide-react";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
@@ -13,6 +13,7 @@ import MealCardActions from "@/components/MealCardActions";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
 import { setQuickView } from "@/lib/macrosQuickView";
+import { extractTimerSeconds, formatTimeRemaining } from "@/components/chefs-kitchen/timerUtils";
 import {
   KITCHEN_STUDIO_INTRO,
   KITCHEN_STUDIO_STEP2,
@@ -32,7 +33,7 @@ import {
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
-type KitchenMode = "entry" | "studio";
+type KitchenMode = "entry" | "studio" | "prepare";
 
 interface GeneratedMeal {
   id: string;
@@ -93,6 +94,12 @@ export default function ChefsKitchenPage() {
   const [equipment, setEquipment] = useState("");
   const [step5Listened, setStep5Listened] = useState(false);
   const [step5Locked, setStep5Locked] = useState(false);
+
+  // Phase Two - Preparation Mode
+  const [prepStep, setPrepStep] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Get equipment list based on cooking method
   const suggestedEquipment = cookMethod ? EQUIPMENT_BY_METHOD[cookMethod] || [] : [];
@@ -171,9 +178,19 @@ export default function ChefsKitchenPage() {
     setGeneratedMeal(null);
     setGenerationError(null);
     
-    // Clear persisted meal
+    // Clear Phase Two state
+    setPrepStep(0);
+    setIsTimerRunning(false);
+    setTimerSeconds(0);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Clear persisted meal and prep state
     try {
       localStorage.removeItem("mpm_chefs_kitchen_meal");
+      localStorage.removeItem("mpm_chefs_kitchen_prep");
     } catch {
       // Ignore storage errors
     }
@@ -182,7 +199,35 @@ export default function ChefsKitchenPage() {
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
+    
+    // Return to studio mode
+    setMode("studio");
   };
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (isTimerRunning && timerSeconds > 0) {
+      timerRef.current = setInterval(() => {
+        setTimerSeconds((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [isTimerRunning, timerSeconds > 0]);
 
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
@@ -238,6 +283,42 @@ export default function ChefsKitchenPage() {
       }
     }
   }, [generatedMeal]);
+
+  // Persist prep state
+  useEffect(() => {
+    if (mode === "prepare" && generatedMeal) {
+      try {
+        localStorage.setItem("mpm_chefs_kitchen_prep", JSON.stringify({
+          prepStep,
+          timerSeconds,
+          isTimerRunning,
+          mealId: generatedMeal.id,
+        }));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [mode, prepStep, timerSeconds, isTimerRunning, generatedMeal]);
+
+  // Load prep state when meal is restored
+  useEffect(() => {
+    if (generatedMeal && mode === "studio") {
+      try {
+        const saved = localStorage.getItem("mpm_chefs_kitchen_prep");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.mealId === generatedMeal.id && parsed.prepStep > 0) {
+            setPrepStep(parsed.prepStep);
+            setTimerSeconds(parsed.timerSeconds || 0);
+            setIsTimerRunning(parsed.isTimerRunning || false);
+            setMode("prepare");
+          }
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+  }, [generatedMeal?.id]);
 
   useEffect(() => {
     document.title = "Chef's Kitchen 👨🏿‍🍳 | My Perfect Meals";
@@ -909,13 +990,313 @@ export default function ChefsKitchenPage() {
                         Add Your Macros
                       </button>
 
-                      {/* Done Button */}
+                      {/* Prepare This Meal - Entry to Phase Two */}
+                      <button
+                        onClick={() => {
+                          stopChef();
+                          setPrepStep(0);
+                          setMode("prepare");
+                        }}
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                        data-testid="button-prepare-meal"
+                      >
+                        Prepare This Meal
+                      </button>
                       
                     </div>
                   )}
                 </CardContent>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* PHASE TWO - PREPARE MODE */}
+        {mode === "prepare" && generatedMeal && (
+          <div className="space-y-4">
+            <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+              <CardContent className="p-4 space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-orange-500" />
+                    Preparing: {generatedMeal.name}
+                  </h2>
+                  <button
+                    onClick={() => setMode("studio")}
+                    className="text-sm text-white/70 hover:text-white"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* STEP 0 — Mise en Place */}
+                {prepStep === 0 && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-white/80">
+                      Before we start cooking, let's get everything ready.
+                    </p>
+
+                    {/* Ingredients */}
+                    <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                      <p className="text-sm font-semibold text-white mb-2">
+                        Ingredients
+                      </p>
+                      <ul className="space-y-1">
+                        {generatedMeal.ingredients.map((ing, i) => (
+                          <li key={i} className="text-sm text-white/70 flex items-center gap-2">
+                            <span className="text-lime-500">•</span>
+                            {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Equipment */}
+                    {suggestedEquipment.length > 0 && (
+                      <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                        <p className="text-sm font-semibold text-white mb-2">
+                          Equipment
+                        </p>
+                        <ul className="space-y-1">
+                          {suggestedEquipment.map((item, i) => (
+                            <li key={i} className="text-sm text-white/70 flex items-center gap-2">
+                              <span className="text-lime-500">•</span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Listen to Chef */}
+                    <button
+                      className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                      onClick={() => speak("Before we start cooking, let's get everything ready. Make sure you have all your ingredients measured out and your equipment within reach. This is called mise en place - everything in its place. Take your time, there's no rush.")}
+                    >
+                      <Volume2 className="h-4 w-4" />
+                      Listen to Chef
+                    </button>
+
+                    <button
+                      className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
+                      onClick={() => {
+                        stopChef();
+                        setPrepStep(1);
+                      }}
+                    >
+                      I'm Ready — Let's Cook
+                    </button>
+                  </div>
+                )}
+
+                {/* COOKING STEPS (prepStep > 0) */}
+                {prepStep > 0 && (() => {
+                  const instructions = Array.isArray(generatedMeal.instructions)
+                    ? generatedMeal.instructions
+                    : [generatedMeal.instructions || ""];
+                  const totalSteps = instructions.length;
+                  const currentInstruction = instructions[prepStep - 1] || "";
+                  const detectedTimer = extractTimerSeconds(currentInstruction);
+                  const isFinalStep = prepStep === totalSteps;
+                  const isPastFinalStep = prepStep > totalSteps;
+
+                  // Plating & Serving (after final cooking step)
+                  if (isPastFinalStep) {
+                    return (
+                      <div className="space-y-4">
+                        <div className="text-center py-4">
+                          <Sparkles className="h-8 w-8 text-yellow-500 mx-auto mb-3" />
+                          <h3 className="text-lg font-bold text-white mb-2">
+                            Plating & Serving
+                          </h3>
+                          <p className="text-sm text-white/80">
+                            Divide evenly into {servings} {servings === 1 ? 'portion' : 'portions'}. Serve warm.
+                          </p>
+                          <p className="text-sm text-white/60 mt-2">
+                            Optional: garnish with herbs, lemon, or fresh greens.
+                          </p>
+                        </div>
+
+                        {/* Listen to Chef */}
+                        <button
+                          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                          onClick={() => speak(`Nice work! Time to plate up. Divide this evenly into ${servings} ${servings === 1 ? 'portion' : 'portions'}. Serve it warm, and if you want to add a finishing touch, try some fresh herbs, a squeeze of lemon, or some greens on the side.`)}
+                        >
+                          <Volume2 className="h-4 w-4" />
+                          Listen to Chef
+                        </button>
+
+                        <div className="flex gap-3">
+                          <button
+                            className="flex-1 py-3 rounded-xl bg-black/40 border border-white/20 text-white text-sm"
+                            onClick={() => {
+                              stopChef();
+                              setPrepStep(0);
+                              setMode("studio");
+                              try {
+                                localStorage.removeItem("mpm_chefs_kitchen_prep");
+                              } catch {}
+                            }}
+                          >
+                            Back to Meal Card
+                          </button>
+                          <button
+                            className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
+                            onClick={() => {
+                              stopChef();
+                              restartKitchenStudio();
+                            }}
+                          >
+                            Cook Another Meal
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Step Progress */}
+                      <div className="flex items-center justify-between text-sm text-white/70">
+                        <span>Step {prepStep} of {totalSteps}</span>
+                        <div className="flex gap-1">
+                          {Array.from({ length: totalSteps }, (_, i) => (
+                            <div
+                              key={i}
+                              className={`w-2 h-2 rounded-full ${
+                                i < prepStep ? 'bg-lime-500' : 'bg-white/30'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Current Instruction */}
+                      <div className="rounded-xl border border-white/20 bg-black/40 p-4">
+                        <p className="text-sm text-white/90 leading-relaxed">
+                          {currentInstruction}
+                        </p>
+                      </div>
+
+                      {/* Listen to Chef for this step */}
+                      <button
+                        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                        onClick={() => speak(currentInstruction)}
+                      >
+                        <Volume2 className="h-4 w-4" />
+                        Listen to Chef
+                      </button>
+
+                      {/* Timer Controls (if detected or running) */}
+                      {(detectedTimer || isTimerRunning || timerSeconds > 0) && (
+                        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+                          {!isTimerRunning && timerSeconds === 0 && detectedTimer && (
+                            <button
+                              className="w-full py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-black font-medium text-sm flex items-center justify-center gap-2"
+                              onClick={() => {
+                                stopChef();
+                                setTimerSeconds(detectedTimer);
+                                setIsTimerRunning(true);
+                              }}
+                            >
+                              <Play className="h-4 w-4" />
+                              Start Timer ({Math.round(detectedTimer / 60)} min)
+                            </button>
+                          )}
+
+                          {(isTimerRunning || timerSeconds > 0) && (
+                            <div className="text-center space-y-3">
+                              <p className="text-3xl font-mono font-bold text-white">
+                                {formatTimeRemaining(timerSeconds)}
+                              </p>
+                              <div className="flex gap-2 justify-center">
+                                {isTimerRunning ? (
+                                  <button
+                                    className="px-4 py-2 rounded-lg bg-black/40 border border-white/20 text-white text-sm flex items-center gap-2"
+                                    onClick={() => {
+                                      stopChef();
+                                      setIsTimerRunning(false);
+                                    }}
+                                  >
+                                    <Pause className="h-4 w-4" />
+                                    Pause
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="px-4 py-2 rounded-lg bg-lime-600 text-black text-sm flex items-center gap-2"
+                                    onClick={() => {
+                                      stopChef();
+                                      setIsTimerRunning(true);
+                                    }}
+                                  >
+                                    <Play className="h-4 w-4" />
+                                    Resume
+                                  </button>
+                                )}
+                                <button
+                                  className="px-4 py-2 rounded-lg bg-black/40 border border-white/20 text-white text-sm flex items-center gap-2"
+                                  onClick={() => {
+                                    stopChef();
+                                    setTimerSeconds(0);
+                                    setIsTimerRunning(false);
+                                  }}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                  Reset
+                                </button>
+                              </div>
+                              {timerSeconds === 0 && (
+                                <p className="text-lime-400 font-medium">Timer finished!</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Navigation */}
+                      <div className="flex gap-3">
+                        {prepStep > 1 && (
+                          <button
+                            className="flex-1 py-3 rounded-xl bg-black/40 border border-white/20 text-white text-sm"
+                            onClick={() => {
+                              stopChef();
+                              setTimerSeconds(0);
+                              setIsTimerRunning(false);
+                              setPrepStep((s) => s - 1);
+                            }}
+                          >
+                            Previous
+                          </button>
+                        )}
+                        <button
+                          className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
+                          onClick={() => {
+                            stopChef();
+                            setTimerSeconds(0);
+                            setIsTimerRunning(false);
+                            setPrepStep((s) => s + 1);
+                          }}
+                        >
+                          {isFinalStep ? "Finish Cooking" : "Next Step"}
+                        </button>
+                      </div>
+
+                      {/* Exit Control */}
+                      <button
+                        className="w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white/70 text-sm"
+                        onClick={() => {
+                          stopChef();
+                          setMode("studio");
+                        }}
+                      >
+                        Back to Meal Card
+                      </button>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
           </div>
         )}
         
