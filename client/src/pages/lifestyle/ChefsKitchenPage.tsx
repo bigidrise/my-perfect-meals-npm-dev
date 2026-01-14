@@ -11,6 +11,8 @@ import {
   KITCHEN_STUDIO_STEP2,
   KITCHEN_STUDIO_COOK_METHOD,
   KITCHEN_STUDIO_COOK_CONFIRMED,
+  KITCHEN_STUDIO_INGREDIENTS_PACE,
+  KITCHEN_STUDIO_INGREDIENTS_CONFIRMED,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 
 type KitchenMode = "entry" | "studio";
@@ -21,7 +23,7 @@ export default function ChefsKitchenPage() {
   const [mode, setMode] = useState<KitchenMode>("entry");
 
   // Kitchen Studio state
-  const [studioStep, setStudioStep] = useState<1 | 2 | 3>(1);
+  const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4>(1);
   const [dishIdea, setDishIdea] = useState("");
   const [hasListened, setHasListened] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -32,6 +34,12 @@ export default function ChefsKitchenPage() {
   const [cookMethod, setCookMethod] = useState("");
   const [hasListenedStep2, setHasListenedStep2] = useState(false);
   const [isLockedStep2, setIsLockedStep2] = useState(false);
+
+  // Step 3 state
+  const [ingredientNotes, setIngredientNotes] = useState("");
+  const [cookPace, setCookPace] = useState("");
+  const [hasListenedStep3, setHasListenedStep3] = useState(false);
+  const [isLockedStep3, setIsLockedStep3] = useState(false);
 
   // Voice handler - same pattern as ProTip
   const handleListenToChef = useCallback(async () => {
@@ -170,6 +178,75 @@ export default function ChefsKitchenPage() {
       setIsPlaying(false);
     }
   }, [cookMethod]);
+
+  // Voice handler for step 3 - ingredients & pace
+  const handleListenIngredients = useCallback(async () => {
+    if (hasListenedStep3 || isPlaying) return;
+
+    setIsPlaying(true);
+
+    try {
+      ttsService.stop();
+      const result = await ttsService.speak(KITCHEN_STUDIO_INGREDIENTS_PACE, {
+        onStart: () => {
+          setIsPlaying(true);
+          setHasListenedStep3(true);
+        },
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
+    } catch {
+      setIsPlaying(false);
+      setHasListenedStep3(true);
+    }
+  }, [hasListenedStep3, isPlaying]);
+
+  // Voice handler for step 3 submit
+  const handleSubmitIngredients = useCallback(async () => {
+    if (!cookPace) return;
+
+    setIsLockedStep3(true);
+    setStudioStep(4);
+
+    try {
+      ttsService.stop();
+      const result = await ttsService.speak(KITCHEN_STUDIO_INGREDIENTS_CONFIRMED, {
+        onStart: () => setIsPlaying(true),
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
+    } catch {
+      setIsPlaying(false);
+    }
+  }, [cookPace]);
 
   useEffect(() => {
     document.title = "Chef's Kitchen | My Perfect Meals";
@@ -419,6 +496,118 @@ export default function ChefsKitchenPage() {
                             disabled={!cookMethod || isPlaying}
                             onClick={handleSubmitCookMethod}
                             data-testid="button-submit-cook-method"
+                          >
+                            Continue
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ───────── Kitchen Studio – Step 3 ───────── */}
+            {studioStep >= 3 && (
+              <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <CardContent className="p-4 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center gap-2">
+                    <UtensilsCrossed className="h-4 w-4 text-orange-500" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Ingredients & Pace
+                    </h3>
+                  </div>
+
+                  {/* Locked State */}
+                  {isLockedStep3 ? (
+                    <div className="rounded-xl border border-white/20 bg-black/40 p-3 space-y-1">
+                      <p className="text-sm text-white/90 font-medium">
+                        Any ingredients to include or avoid?
+                      </p>
+                      <p className="text-sm text-white/70">
+                        {ingredientNotes || "No preferences"}
+                      </p>
+
+                      <p className="text-sm text-white/90 font-medium mt-2">
+                        How are we cooking today?
+                      </p>
+                      <p className="text-sm text-white/70">{cookPace}</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Intro */}
+                      <p className="text-sm text-white/80">
+                        Tap <strong>Listen</strong> to fine-tune the details.
+                      </p>
+
+                      {/* Listen Button */}
+                      {!hasListenedStep3 && (
+                        <button
+                          className={`w-full py-3 rounded-xl border text-white font-medium transition ${
+                            isPlaying
+                              ? "bg-green-900/40 border-green-500/40"
+                              : "bg-black/40 border-white/20 hover:bg-black/50"
+                          }`}
+                          onClick={handleListenIngredients}
+                          disabled={isPlaying}
+                          data-testid="button-listen-ingredients-pace"
+                        >
+                          {isPlaying ? "Speaking..." : "Listen to Chef"}
+                        </button>
+                      )}
+
+                      {/* Inputs */}
+                      {hasListenedStep3 && (
+                        <>
+                          {/* Ingredient Notes */}
+                          <div>
+                            <label className="block text-sm text-white mb-1">
+                              Ingredients to include or avoid (optional)
+                            </label>
+                            <textarea
+                              value={ingredientNotes}
+                              onChange={(e) =>
+                                setIngredientNotes(e.target.value)
+                              }
+                              placeholder="e.g., no mushrooms, extra garlic, dairy-free..."
+                              className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-16 resize-none text-sm"
+                              maxLength={250}
+                            />
+                            <p className="text-xs text-white/60 mt-1 text-right">
+                              {ingredientNotes.length}/250
+                            </p>
+                          </div>
+
+                          {/* Cooking Pace */}
+                          <div className="space-y-2">
+                            <label className="block text-sm text-white">
+                              Cooking pace
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {["Quick & Simple", "Taking My Time"].map(
+                                (pace) => (
+                                  <button
+                                    key={pace}
+                                    onClick={() => setCookPace(pace)}
+                                    className={`py-2 rounded-lg border text-sm transition ${
+                                      cookPace === pace
+                                        ? "bg-lime-600 text-black border-lime-600"
+                                        : "bg-black/40 text-white border-white/20 hover:bg-black/50"
+                                    }`}
+                                  >
+                                    {pace}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
+                            disabled={!cookPace || isPlaying}
+                            onClick={handleSubmitIngredients}
+                            data-testid="button-submit-ingredients-pace"
                           >
                             Continue
                           </button>

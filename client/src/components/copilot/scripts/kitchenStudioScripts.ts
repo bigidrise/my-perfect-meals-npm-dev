@@ -11,3 +11,11 @@ export const KITCHEN_STUDIO_COOK_METHOD =
 
 // Kitchen Studio - After cooking method selected
 export const KITCHEN_STUDIO_COOK_CONFIRMED = "Perfect. Let's keep going.";
+
+// Kitchen Studio - Ingredients & pace question
+export const KITCHEN_STUDIO_INGREDIENTS_PACE =
+  "Any ingredients you want to use or avoid? And are we cooking quick and simple, or taking our time?";
+
+// Kitchen Studio - After ingredients/pace confirmed
+export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
+  "Got it. Let's set up your kitchen.";
