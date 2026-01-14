@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Sparkles, UtensilsCrossed } from "lucide-react";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
+import { ttsService } from "@/lib/tts";
+import {
+  KITCHEN_STUDIO_INTRO,
+  KITCHEN_STUDIO_STEP2,
+} from "@/components/copilot/scripts/kitchenStudioScripts";
 
 type KitchenMode = "entry" | "studio";
 
@@ -18,6 +23,77 @@ export default function ChefsKitchenPage() {
   const [dishIdea, setDishIdea] = useState("");
   const [hasListened, setHasListened] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Voice handler - same pattern as ProTip
+  const handleListenToChef = useCallback(async () => {
+    if (hasListened || isPlaying) return;
+
+    setIsPlaying(true);
+
+    try {
+      ttsService.stop();
+      const result = await ttsService.speak(KITCHEN_STUDIO_INTRO, {
+        onStart: () => {
+          setIsPlaying(true);
+          setHasListened(true);
+        },
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
+    } catch {
+      setIsPlaying(false);
+      setHasListened(true);
+    }
+  }, [hasListened, isPlaying]);
+
+  // Voice handler for step 2 transition
+  const handleSubmitDishIdea = useCallback(async () => {
+    if (!dishIdea.trim()) return;
+
+    setIsLocked(true);
+    setStudioStep(2);
+
+    try {
+      ttsService.stop();
+      const result = await ttsService.speak(KITCHEN_STUDIO_STEP2, {
+        onStart: () => setIsPlaying(true),
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
+    } catch {
+      setIsPlaying(false);
+    }
+  }, [dishIdea]);
 
   useEffect(() => {
     document.title = "Chef's Kitchen | My Perfect Meals";
@@ -149,15 +225,16 @@ export default function ChefsKitchenPage() {
                       {/* Listen Button */}
                       {!hasListened && (
                         <button
-                          className="w-full py-3 rounded-xl bg-black/40 border border-white/20 text-white font-medium hover:bg-black/50 transition"
-                          onClick={() => {
-                            setHasListened(true);
-                            // Trigger Copilot voice here:
-                            // "Alright - what are we making today?"
-                          }}
+                          className={`w-full py-3 rounded-xl border text-white font-medium transition ${
+                            isPlaying
+                              ? "bg-green-900/40 border-green-500/40"
+                              : "bg-black/40 border-white/20 hover:bg-black/50"
+                          }`}
+                          onClick={handleListenToChef}
+                          disabled={isPlaying}
                           data-testid="button-listen-to-chef"
                         >
-                          Listen to Chef
+                          {isPlaying ? "Speaking..." : "Listen to Chef"}
                         </button>
                       )}
 
@@ -182,13 +259,8 @@ export default function ChefsKitchenPage() {
 
                           <button
                             className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
-                            disabled={!dishIdea.trim()}
-                            onClick={() => {
-                              setIsLocked(true);
-                              setStudioStep(2);
-                              // Copilot voice next:
-                              // "Nice. Let's dial it in."
-                            }}
+                            disabled={!dishIdea.trim() || isPlaying}
+                            onClick={handleSubmitDishIdea}
                             data-testid="button-submit-dish-idea"
                           >
                             Submit
