@@ -2,14 +2,17 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, ChefHat, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, ChefHat, Loader2, Users, Brain } from "lucide-react";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import { apiUrl } from "@/lib/resolveApiBase";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions from "@/components/MealCardActions";
+import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
+import { setQuickView } from "@/lib/macrosQuickView";
 import {
   KITCHEN_STUDIO_INTRO,
   KITCHEN_STUDIO_STEP2,
