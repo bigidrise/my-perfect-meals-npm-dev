@@ -26,4 +26,17 @@ export const KITCHEN_STUDIO_EQUIPMENT =
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "Alright. Here's what we're making.";
+  "Perfect. Let's get into the kitchen.";
+
+// Open Kitchen narration beats
+export const KITCHEN_STUDIO_OPEN_START =
+  "Alright. I'm putting this together now.";
+
+export const KITCHEN_STUDIO_OPEN_PROGRESS1 =
+  "Balancing flavor and nutrition.";
+
+export const KITCHEN_STUDIO_OPEN_PROGRESS2 =
+  "Finalizing ingredients and cooking steps.";
+
+export const KITCHEN_STUDIO_OPEN_COMPLETE =
+  "Here it is. Let's take a look.";

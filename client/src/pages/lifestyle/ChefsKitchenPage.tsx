@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, ChefHat, Loader2 } from "lucide-react";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
+import { apiUrl } from "@/lib/resolveApiBase";
 import {
   KITCHEN_STUDIO_INTRO,
   KITCHEN_STUDIO_STEP2,
@@ -16,9 +17,26 @@ import {
   KITCHEN_STUDIO_INGREDIENTS_CONFIRMED,
   KITCHEN_STUDIO_EQUIPMENT,
   KITCHEN_STUDIO_EQUIPMENT_CONFIRMED,
+  KITCHEN_STUDIO_OPEN_START,
+  KITCHEN_STUDIO_OPEN_PROGRESS1,
+  KITCHEN_STUDIO_OPEN_PROGRESS2,
+  KITCHEN_STUDIO_OPEN_COMPLETE,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 
 type KitchenMode = "entry" | "studio";
+
+interface GeneratedMeal {
+  id: string;
+  name: string;
+  description?: string;
+  ingredients: Array<{ name: string; quantity: string; unit: string }>;
+  instructions: string[] | string;
+  imageUrl?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+}
 
 export default function ChefsKitchenPage() {
   const [, setLocation] = useLocation();
@@ -50,10 +68,88 @@ export default function ChefsKitchenPage() {
   const [step4Listened, setStep4Listened] = useState(false);
   const [step4Locked, setStep4Locked] = useState(false);
 
+  // Step 5 - Open Kitchen
+  const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(
+    null
+  );
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     document.title = "Chef's Kitchen | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const startOpenKitchen = async () => {
+    setIsGeneratingMeal(true);
+    setGenerationProgress(10);
+    setGenerationError(null);
+
+    // Start narration
+    speak(KITCHEN_STUDIO_OPEN_START);
+
+    // Progress ticker
+    progressIntervalRef.current = setInterval(() => {
+      setGenerationProgress((p) => {
+        if (p >= 90) return p;
+        return p + Math.floor(Math.random() * 8) + 4;
+      });
+    }, 700);
+
+    // Narration beats
+    setTimeout(() => speak(KITCHEN_STUDIO_OPEN_PROGRESS1), 2000);
+    setTimeout(() => speak(KITCHEN_STUDIO_OPEN_PROGRESS2), 4000);
+
+    try {
+      // Build the description for the API
+      const description = `${dishIdea}. Cooking method: ${cookMethod}. ${ingredientNotes ? `Notes: ${ingredientNotes}.` : ""} Equipment: ${equipment}.`;
+
+      const response = await fetch(apiUrl("/api/meals/generate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          description,
+          mealType: "dinner",
+          source: "chefs-kitchen",
+        }),
+      });
+
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to generate meal");
+      }
+
+      const meal = await response.json();
+      setGenerationProgress(100);
+      setIsGeneratingMeal(false);
+      setGeneratedMeal(meal);
+
+      // Final narration
+      setTimeout(() => speak(KITCHEN_STUDIO_OPEN_COMPLETE), 500);
+    } catch (error) {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      setIsGeneratingMeal(false);
+      setGenerationError("Something went wrong. Please try again.");
+      console.error("Meal generation error:", error);
+    }
+  };
 
   return (
     <motion.div
@@ -254,42 +350,187 @@ export default function ChefsKitchenPage() {
               />
             )}
 
-            {/* Step 5 - Final: Meal Generation (placeholder) */}
+            {/* Step 5 - Open Kitchen */}
             {studioStep >= 5 && (
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
                 <CardContent className="p-4 space-y-4">
-                  <div className="text-center py-8">
-                    <Sparkles className="h-8 w-8 text-orange-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-bold text-white mb-2">
-                      Ready to Create Your Meal
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="h-4 w-4 text-orange-500" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Open Kitchen
                     </h3>
-                    <p className="text-sm text-white/70 mb-4">
-                      Based on your preferences, we'll generate a complete meal
-                      with macros, ingredients, and instructions.
-                    </p>
-                    <div className="rounded-xl border border-white/20 bg-black/40 p-4 text-left space-y-2">
-                      <p className="text-xs text-white/60">Your session:</p>
-                      <p className="text-sm text-white/90">
-                        <strong>Dish:</strong> {dishIdea}
-                      </p>
-                      <p className="text-sm text-white/90">
-                        <strong>Method:</strong> {cookMethod}
-                      </p>
-                      <p className="text-sm text-white/90">
-                        <strong>Notes:</strong>{" "}
-                        {ingredientNotes || "None"}
-                      </p>
-                      <p className="text-sm text-white/90">
-                        <strong>Equipment:</strong> {equipment}
-                      </p>
-                    </div>
-                    <button
-                      className="w-full py-3 mt-4 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                      data-testid="button-generate-meal"
-                    >
-                      Generate My Meal
-                    </button>
                   </div>
+
+                  {/* Not started yet */}
+                  {!isGeneratingMeal && !generatedMeal && !generationError && (
+                    <div className="text-center py-6">
+                      <Sparkles className="h-8 w-8 text-orange-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-bold text-white mb-2">
+                        Ready to Create Your Meal
+                      </h3>
+                      <p className="text-sm text-white/70 mb-4">
+                        Based on your preferences, we'll generate a complete
+                        meal with macros, ingredients, and instructions.
+                      </p>
+                      <div className="rounded-xl border border-white/20 bg-black/40 p-4 text-left space-y-2 mb-4">
+                        <p className="text-xs text-white/60">Your session:</p>
+                        <p className="text-sm text-white/90">
+                          <strong>Dish:</strong> {dishIdea}
+                        </p>
+                        <p className="text-sm text-white/90">
+                          <strong>Method:</strong> {cookMethod}
+                        </p>
+                        <p className="text-sm text-white/90">
+                          <strong>Notes:</strong> {ingredientNotes || "None"}
+                        </p>
+                        <p className="text-sm text-white/90">
+                          <strong>Equipment:</strong> {equipment}
+                        </p>
+                      </div>
+                      <button
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                        onClick={startOpenKitchen}
+                        data-testid="button-generate-meal"
+                      >
+                        Generate My Meal
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Generating */}
+                  {isGeneratingMeal && !generatedMeal && (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-8 w-8 text-lime-500 mx-auto mb-4 animate-spin" />
+                      <p className="text-sm text-white/80 mb-4">
+                        Creating your dish...
+                      </p>
+                      <div className="w-full bg-black/40 border border-white/20 rounded-lg h-3 overflow-hidden">
+                        <div
+                          className="bg-lime-600 h-full transition-all duration-500"
+                          style={{ width: `${generationProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error */}
+                  {generationError && (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-red-400 mb-4">
+                        {generationError}
+                      </p>
+                      <button
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                        onClick={startOpenKitchen}
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Meal Ready */}
+                  {generatedMeal && (
+                    <div className="space-y-4">
+                      {generatedMeal.imageUrl && (
+                        <img
+                          src={generatedMeal.imageUrl}
+                          alt={generatedMeal.name}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      )}
+
+                      <div className="space-y-3">
+                        <h4 className="text-lg font-bold text-white">
+                          {generatedMeal.name}
+                        </h4>
+
+                        {generatedMeal.description && (
+                          <p className="text-sm text-white/70">
+                            {generatedMeal.description}
+                          </p>
+                        )}
+
+                        {/* Macros */}
+                        <div className="grid grid-cols-4 gap-2 py-2">
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-white">
+                              {generatedMeal.calories || 0}
+                            </p>
+                            <p className="text-xs text-white/60">cal</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-blue-400">
+                              {generatedMeal.protein || 0}g
+                            </p>
+                            <p className="text-xs text-white/60">protein</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-green-400">
+                              {generatedMeal.carbs || 0}g
+                            </p>
+                            <p className="text-xs text-white/60">carbs</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-yellow-400">
+                              {generatedMeal.fat || 0}g
+                            </p>
+                            <p className="text-xs text-white/60">fat</p>
+                          </div>
+                        </div>
+
+                        {/* Ingredients */}
+                        {generatedMeal.ingredients?.length > 0 && (
+                          <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                            <p className="text-sm font-semibold text-white mb-2">
+                              Ingredients
+                            </p>
+                            <ul className="space-y-1">
+                              {generatedMeal.ingredients.map((ing, i) => (
+                                <li
+                                  key={i}
+                                  className="text-sm text-white/70 flex justify-between"
+                                >
+                                  <span>{ing.name}</span>
+                                  <span className="text-white/50">
+                                    {ing.quantity} {ing.unit}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Instructions */}
+                        {generatedMeal.instructions && (
+                          <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                            <p className="text-sm font-semibold text-white mb-2">
+                              Instructions
+                            </p>
+                            {Array.isArray(generatedMeal.instructions) ? (
+                              <ol className="space-y-2 list-decimal list-inside">
+                                {generatedMeal.instructions.map((step, i) => (
+                                  <li key={i} className="text-sm text-white/70">
+                                    {step}
+                                  </li>
+                                ))}
+                              </ol>
+                            ) : (
+                              <p className="text-sm text-white/70">
+                                {generatedMeal.instructions}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <button
+                          className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                          onClick={() => setLocation("/lifestyle")}
+                        >
+                          Done - Back to Lifestyle
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
