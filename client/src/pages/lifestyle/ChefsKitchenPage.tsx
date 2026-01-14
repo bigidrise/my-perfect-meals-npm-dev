@@ -52,6 +52,7 @@ interface GeneratedMeal {
   medicalBadges?: string[];
   flags?: string[];
   servingSize?: string;
+  servings?: number;
   reasoning?: string;
 }
 
@@ -214,6 +215,10 @@ export default function ChefsKitchenPage() {
         setStep4Locked(true);
         setStep5Locked(true);
         setDishIdea(parsed.name || "");
+        // Hydrate servings from persisted meal
+        if (parsed.servings) {
+          setServings(parsed.servings);
+        }
       }
     } catch {
       // Ignore parse errors
@@ -368,7 +373,8 @@ export default function ChefsKitchenPage() {
         },
         medicalBadges: Array.isArray(meal.medicalBadges) ? meal.medicalBadges : [],
         flags: Array.isArray(meal.flags) ? meal.flags : [],
-        servingSize: meal.servingSize || "1 serving",
+        servingSize: meal.servingSize || `${servings} ${servings === 1 ? 'serving' : 'servings'}`,
+        servings: meal.servings || servings,
         reasoning: meal.reasoning,
       };
       
