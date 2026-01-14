@@ -12,21 +12,29 @@ export const KITCHEN_STUDIO_COOK_METHOD =
 // Kitchen Studio - After cooking method selected
 export const KITCHEN_STUDIO_COOK_CONFIRMED = "Perfect. Let's keep going.";
 
-// Kitchen Studio - Ingredients & pace question
+// Kitchen Studio - Preferences question (more specific)
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
-  "Any ingredients you want to use or avoid? And are we cooking quick and simple, or taking our time?";
+  "Before we lock this in, let me know if you want to adjust anything — lower sugar, less salt, gluten-free, dairy-free, or anything personal you want me to respect. And are we cooking quick and simple, or taking our time?";
 
-// Kitchen Studio - After ingredients/pace confirmed
+// Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
-  "Got it. Let's set up your kitchen.";
+  "Got it. Let me show you what you'll need.";
 
-// Kitchen Studio - Equipment roll call
+// Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "What equipment do you have ready? Skillet, cutting board, mixing bowl — whatever you've got.";
+  "Before we start cooking, here's what you'll need. Nothing fancy — just the basics to make this work. Get these lined up, and let me know if you're missing anything or using a substitute.";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "Perfect. Let's get into the kitchen.";
+  "Perfect. Now we're ready to cook.";
+
+// Equipment mapping based on cooking method
+export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
+  Stovetop: ["Skillet or pan", "Knife", "Cutting board", "Spatula or spoon"],
+  Oven: ["Baking dish or sheet pan", "Knife", "Cutting board", "Oven mitts"],
+  "Air Fryer": ["Air fryer basket", "Knife", "Cutting board", "Tongs"],
+  Grill: ["Grill or grill pan", "Knife", "Cutting board", "Tongs", "Grill brush"],
+};
 
 // Open Kitchen narration beats
 export const KITCHEN_STUDIO_OPEN_START =

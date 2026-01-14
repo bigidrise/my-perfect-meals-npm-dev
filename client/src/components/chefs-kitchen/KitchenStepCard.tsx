@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed, Pencil, Check } from "lucide-react";
 
 interface KitchenStepCardProps {
   stepTitle: string;
@@ -12,9 +12,12 @@ interface KitchenStepCardProps {
   isPlaying: boolean;
   onListen: () => void;
   onSubmit: () => void;
+  onEdit?: () => void;
+  canEdit?: boolean;
   placeholder?: string;
   inputType?: "textarea" | "buttons";
   buttonOptions?: string[];
+  equipmentList?: string[];
 }
 
 export function KitchenStepCard({
@@ -28,21 +31,38 @@ export function KitchenStepCard({
   isPlaying,
   onListen,
   onSubmit,
+  onEdit,
+  canEdit = true,
   placeholder,
   inputType = "textarea",
   buttonOptions = [],
+  equipmentList,
 }: KitchenStepCardProps) {
   return (
     <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
       <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <UtensilsCrossed className="h-4 w-4 text-orange-500" />
-          <h3 className="text-sm font-semibold text-white">{stepTitle}</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UtensilsCrossed className="h-4 w-4 text-orange-500" />
+            <h3 className="text-sm font-semibold text-white">{stepTitle}</h3>
+          </div>
+          {isLocked && canEdit && onEdit && (
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1 text-xs text-white/60 hover:text-white/90 transition px-2 py-1 rounded-lg hover:bg-white/10"
+            >
+              <Pencil className="h-3 w-3" />
+              Change
+            </button>
+          )}
         </div>
 
         {isLocked ? (
           <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-            <p className="text-sm text-white/90 font-medium">{summaryText}</p>
+            <p className="text-sm text-white/90 font-medium flex items-center gap-2">
+              <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
+              {summaryText}
+            </p>
           </div>
         ) : (
           <>
@@ -63,6 +83,20 @@ export function KitchenStepCard({
 
             {hasListened && (
               <>
+                {equipmentList && equipmentList.length > 0 && (
+                  <div className="rounded-xl border border-white/20 bg-black/40 p-3 space-y-2">
+                    <p className="text-xs text-white/60 font-medium">You'll need:</p>
+                    <ul className="space-y-1">
+                      {equipmentList.map((item, i) => (
+                        <li key={i} className="text-sm text-white/90 flex items-center gap-2">
+                          <span className="text-lime-500">•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <label className="block text-sm text-white">{question}</label>
 
                 {inputType === "textarea" ? (

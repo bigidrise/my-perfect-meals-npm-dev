@@ -21,6 +21,7 @@ import {
   KITCHEN_STUDIO_OPEN_PROGRESS1,
   KITCHEN_STUDIO_OPEN_PROGRESS2,
   KITCHEN_STUDIO_OPEN_COMPLETE,
+  EQUIPMENT_BY_METHOD,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 
 type KitchenMode = "entry" | "studio";
@@ -67,6 +68,44 @@ export default function ChefsKitchenPage() {
   const [equipment, setEquipment] = useState("");
   const [step4Listened, setStep4Listened] = useState(false);
   const [step4Locked, setStep4Locked] = useState(false);
+
+  // Get equipment list based on cooking method
+  const suggestedEquipment = cookMethod ? EQUIPMENT_BY_METHOD[cookMethod] || [] : [];
+
+  // Edit handlers - unlock step and reset downstream
+  const editStep1 = () => {
+    setStep1Locked(false);
+    setStep2Locked(false);
+    setStep3Locked(false);
+    setStep4Locked(false);
+    setStep2Listened(false);
+    setStep3Listened(false);
+    setStep4Listened(false);
+    setStudioStep(1);
+  };
+
+  const editStep2 = () => {
+    setStep2Locked(false);
+    setStep3Locked(false);
+    setStep4Locked(false);
+    setStep3Listened(false);
+    setStep4Listened(false);
+    setCookMethod("");
+    setEquipment("");
+    setStudioStep(2);
+  };
+
+  const editStep3 = () => {
+    setStep3Locked(false);
+    setStep4Locked(false);
+    setStep4Listened(false);
+    setStudioStep(3);
+  };
+
+  const editStep4 = () => {
+    setStep4Locked(false);
+    setStudioStep(4);
+  };
 
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
@@ -264,6 +303,8 @@ export default function ChefsKitchenPage() {
                   setStudioStep(2);
                   speak(KITCHEN_STUDIO_STEP2);
                 }}
+                onEdit={editStep1}
+                canEdit={studioStep < 5}
               />
             )}
 
@@ -291,25 +332,27 @@ export default function ChefsKitchenPage() {
                   setStudioStep(3);
                   speak(KITCHEN_STUDIO_COOK_CONFIRMED);
                 }}
+                onEdit={editStep2}
+                canEdit={studioStep < 5}
               />
             )}
 
-            {/* Step 3 - Ingredients & Pace */}
+            {/* Step 3 - Preferences & Guardrails */}
             {studioStep >= 3 && (
               <KitchenStepCard
-                stepTitle="Step 3 · Ingredients & Pace"
-                question="Any ingredients to include or avoid?"
+                stepTitle="Step 3 · Preferences"
+                question="Anything to adjust — lower sugar, less salt, gluten-free, dairy-free? Quick or taking your time?"
                 summaryText={
                   ingredientNotes
-                    ? `Notes: ${ingredientNotes}`
-                    : "No ingredient restrictions"
+                    ? `Preferences: ${ingredientNotes}`
+                    : "No special preferences"
                 }
                 value={ingredientNotes}
                 setValue={setIngredientNotes}
                 hasListened={step3Listened}
                 isLocked={step3Locked}
                 isPlaying={isPlaying}
-                placeholder="e.g., no mushrooms, extra garlic, dairy-free..."
+                placeholder="e.g., low sugar, gluten-free, no dairy, quick 15 min meal..."
                 inputType="textarea"
                 onListen={() => {
                   if (step3Listened || isPlaying) return;
@@ -322,22 +365,25 @@ export default function ChefsKitchenPage() {
                   setStudioStep(4);
                   speak(KITCHEN_STUDIO_INGREDIENTS_CONFIRMED);
                 }}
+                onEdit={editStep3}
+                canEdit={studioStep < 5}
               />
             )}
 
-            {/* Step 4 - Equipment */}
+            {/* Step 4 - Chef's Setup (Equipment) */}
             {studioStep >= 4 && (
               <KitchenStepCard
-                stepTitle="Step 4 · Equipment Roll Call"
-                question="What equipment do you have ready?"
-                summaryText={`Equipment: ${equipment}`}
+                stepTitle="Step 4 · Chef's Setup"
+                question="Do you have these, or are you missing anything?"
+                summaryText={`Kitchen setup: ${equipment || suggestedEquipment.join(", ")}`}
                 value={equipment}
                 setValue={setEquipment}
                 hasListened={step4Listened}
                 isLocked={step4Locked}
                 isPlaying={isPlaying}
-                placeholder="Skillet, cutting board, knife, mixing bowl..."
+                placeholder="Yes, all set / I don't have a skillet but I have a pan..."
                 inputType="textarea"
+                equipmentList={suggestedEquipment}
                 onListen={() => {
                   if (step4Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep4Listened(true));
@@ -347,6 +393,8 @@ export default function ChefsKitchenPage() {
                   setStudioStep(5);
                   speak(KITCHEN_STUDIO_EQUIPMENT_CONFIRMED);
                 }}
+                onEdit={editStep4}
+                canEdit={studioStep < 5}
               />
             )}
 
