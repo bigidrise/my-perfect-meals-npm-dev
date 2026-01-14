@@ -115,7 +115,10 @@ export function KitchenStepCard({
                     {buttonOptions.map((option) => (
                       <button
                         key={option}
-                        onClick={() => setValue(option)}
+                        onClick={() => {
+                          onInputFocus?.();
+                          setValue(option);
+                        }}
                         className={`py-2 rounded-lg border text-sm transition ${
                           value === option
                             ? "bg-lime-600 text-black border-lime-600"
