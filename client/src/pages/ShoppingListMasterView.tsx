@@ -34,7 +34,7 @@ import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
-import { recordShoppingToBiometricsTransition } from "@/lib/guestSuiteNavigator";
+import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 
 export default function ShoppingListMasterView() {
@@ -407,8 +407,8 @@ export default function ShoppingListMasterView() {
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3">
-          {/* Guest Mode: Continue to Biometrics button (enforces Guest Suite flow) */}
-          {isGuestMode() && (
+          {/* Guest Mode: Continue to Biometrics button (only during first loop - guided tour) */}
+          {isGuestMode() && !hasCompletedFirstLoop() && (
             <Button
               onClick={() => {
                 markStepCompleted("shopping_viewed");

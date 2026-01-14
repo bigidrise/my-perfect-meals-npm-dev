@@ -143,6 +143,13 @@ export default function ChefsKitchenPage() {
     setGeneratedMeal(null);
     setGenerationError(null);
     
+    // Clear persisted meal
+    try {
+      localStorage.removeItem("mpm_chefs_kitchen_meal");
+    } catch {
+      // Ignore storage errors
+    }
+    
     // Clear any running progress interval
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
@@ -163,6 +170,41 @@ export default function ChefsKitchenPage() {
   
   // Use displayMeal for rendering, fallback to generatedMeal
   const mealToShow = displayMeal || generatedMeal;
+  
+  // Persistence key for Chef's Kitchen meal
+  const CHEF_MEAL_KEY = "mpm_chefs_kitchen_meal";
+
+  // Load persisted meal on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CHEF_MEAL_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as GeneratedMeal;
+        setGeneratedMeal(parsed);
+        setMode("studio");
+        setStudioStep(5);
+        // Lock all steps since we have a generated meal
+        setStep1Locked(true);
+        setStep2Locked(true);
+        setStep3Locked(true);
+        setStep4Locked(true);
+        setDishIdea(parsed.name || "");
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []);
+  
+  // Persist meal when generated
+  useEffect(() => {
+    if (generatedMeal) {
+      try {
+        localStorage.setItem(CHEF_MEAL_KEY, JSON.stringify(generatedMeal));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [generatedMeal]);
 
   useEffect(() => {
     document.title = "Chef's Kitchen 👨🏿‍🍳 | My Perfect Meals";
