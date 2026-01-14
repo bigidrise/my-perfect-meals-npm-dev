@@ -3,8 +3,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, RefrigeratorIcon, Utensils, Baby, Wine } from "lucide-react";
-
+import { Sparkles, RefrigeratorIcon, Utensils, Baby, Wine, UtensilsCrossed } from "lucide-react";
 interface AIFeature {
   title: string;
   description: string;
@@ -23,6 +22,14 @@ export default function LifestyleLandingPage() {
   }, []);
 
   const lifestyleFeatures: AIFeature[] = [
+    {
+      title: "Chef’s Kitchen",
+      description: "Cook alongside AI. Learn, create, and have fun in the kitchen.",
+      icon: UtensilsCrossed,
+      route: "/lifestyle/chefs-kitchen",
+      gradient: "from-orange-500/20 to-red-500/20",
+      testId: "card-chefs-kitchen",
+    },
     {
       title: "Craving Creator Hub",
       description: "AI-powered personalized meal suggestions based on your cravings",
