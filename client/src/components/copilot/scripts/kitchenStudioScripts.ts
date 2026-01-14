@@ -20,15 +20,7 @@ export const KITCHEN_STUDIO_INGREDIENTS_PACE =
 
 // Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
-  "Got it. Now tell me - how many people are we cooking for?";
-
-// Kitchen Studio - Serving size question
-export const KITCHEN_STUDIO_SERVINGS =
-  "Are you cooking just for yourself, or are we feeding a crew? This helps us scale the ingredients and nutrition correctly.";
-
-// Kitchen Studio - After servings confirmed
-export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
-  "Perfect. Now let me walk you through the cookware you'll need.";
+  "Got it. Let me walk you through the cookware you'll need.";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
