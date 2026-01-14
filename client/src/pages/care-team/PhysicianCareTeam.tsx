@@ -274,7 +274,29 @@ export default function PhysicianCareTeamPage() {
               </Button>
             </GlassCardContent>
           </GlassCard>
-        </div>
+          
+          {/* How it Works */}
+            <GlassCard className="border-2 border-orange-500/40">
+              <GlassCardContent className="p-6 space-y-3">
+                <h2 className="text-xl font-bold text-white">How it Works</h2>
+                <ul className="list-disc pl-5 text-white/80 text-sm space-y-2">
+                  <li>You invite your pro or connect with their access code.</li>
+                  <li>
+                    They get limited access based on the permissions you set.
+                  </li>
+                  <li>Trainers can add meals; doctors can review macros.</li>
+                  <li>
+                    You can revoke access anytime. You're always in control.
+                  </li>
+                </ul>
+                <div className="text-xs text-white/60">
+                  Note: This is not medical advice. Always follow your licensed
+                  provider's instructions.
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+          </div>
+        
 
         {error && (
           <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
