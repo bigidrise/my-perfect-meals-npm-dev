@@ -1302,6 +1302,32 @@ export default function MyBiometrics() {
         className="max-w-6xl mx-auto space-y-6 px-4 md:px-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
+        <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
+          <p className="text-sm text-white/90 leading-relaxed">
+            <span className="font-semibold text-blue-300">Scientific Sources:</span>{" "}
+            Nutrient data from{" "}
+            <a
+              href="https://fdc.nal.usda.gov/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 underline font-medium"
+            >
+              USDA FoodData Central
+            </a>
+            . Daily values per{" "}
+            <a
+              href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 underline font-medium"
+            >
+              NIH Dietary Reference Intakes
+            </a>
+            .
+          </p>
+        </div>
+
         {/* MACROS */}
         <Card
           data-testid="biometrics-macro-summary"
