@@ -78,7 +78,7 @@ export default function ChefsKitchenPage() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    document.title = "Chef's Kitchen | My Perfect Meals";
+    document.title = "Chef's Kitchen 👨‍🍳 | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -174,7 +174,7 @@ export default function ChefsKitchenPage() {
           </button>
 
           <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Chef's Kitchen
+            Chef's Kitchen 👨‍🍳
           </h1>
 
           <div className="flex-grow" />
