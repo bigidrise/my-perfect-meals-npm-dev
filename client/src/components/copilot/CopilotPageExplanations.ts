@@ -546,7 +546,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "A creative, hands-on cooking experience where you build a dish from idea to plate with step-by-step guidance.",
     spokenText:
-      "Hey—welcome to my kitchen. Come on in. This is where we stop worrying about labels, rules, or perfect diets and just have fun with food. You don’t need to know macros, calories, or cooking terms to be here. You bring the idea, the craving, or even just the mood—and we’ll build something real together. I’ll walk you through it step by step: what you’re making, how you want to cook it, how many people you’re cooking for and how much time you want to spend. Nothing complicated. Nothing judgmental. From the first idea all the way to the plate, I’ve got you. Take your time, explore, adjust things as you go, and when you’re ready, we’ll turn it into a full meal with ingredients, instructions, and nutrition. Alright—let’s get started. What are we making today?",
+      "Hey—welcome to my kitchen. Come on in. This is where we stop worrying about labels, rules, or perfect diets and just have fun with food. You don’t need to know macros, calories, or cooking terms to be here. You bring the idea, the craving, or even just the mood—and we’ll build something real together. I’ll walk you through it step by step: what you’re making, how you want to cook it, how many people you’re cooking for and how much time you want to spend. From the first idea all the way to the plate, I’ve got you. Take your time, explore, adjust things as you go, and when you’re ready, we’ll turn it into a full meal with ingredients, instructions, and nutrition. Alright—let’s get started. What are we making today?",
     autoClose: true,
   },
 };
