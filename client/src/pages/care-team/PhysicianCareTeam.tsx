@@ -36,32 +36,33 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
 
+/* -------------------------------- TOUR -------------------------------- */
+
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
-    title: "Invite a Physician",
+    title: "Invite Your Care Team",
     description:
-      "Invite licensed healthcare professionals to review nutrition data and clinical guardrails.",
+      "Invite physicians and licensed clinicians to review nutrition data and guardrails.",
   },
   {
     icon: "2",
-    title: "Set Clinical Permissions",
-    description:
-      "Control which data your care team can review, including macros and biometrics.",
+    title: "Set Permissions",
+    description: "Control what each clinician can review or edit.",
   },
   {
     icon: "3",
-    title: "Secure Access Codes",
-    description:
-      "Use access codes to safely connect with your clinical care team.",
+    title: "Access Codes",
+    description: "Use secure access codes to connect care professionals.",
   },
   {
     icon: "4",
     title: "Manage Access",
-    description:
-      "Approve or revoke access at any time. You remain in full control.",
+    description: "Revoke access anytime. You stay in control.",
   },
 ];
+
+/* -------------------------------- TYPES -------------------------------- */
 
 type Permissions = {
   canViewMacros: boolean;
@@ -78,15 +79,19 @@ type CareMember = {
   permissions: Permissions;
 };
 
+/* --------------------------- DEFAULT PERMS ------------------------------ */
+
 const DEFAULT_PERMS: Record<ProRole, Permissions> = {
-  trainer: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
+  trainer: { canViewMacros: true, canAddMeals: true, canEditPlan: true }, // unused here
   doctor: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
-  dietitian: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
-  nutritionist: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
-  pa: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
   np: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
   rn: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
+  pa: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
+  nutritionist: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
+  dietitian: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
 };
+
+/* =============================== PAGE =================================== */
 
 export default function PhysicianCareTeamPage() {
   const [, setLocation] = useLocation();
@@ -100,9 +105,7 @@ export default function PhysicianCareTeamPage() {
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const goToProClients = () => {
-    setLocation("/pro/clients");
-  };
+  /* ------------------------------ LOAD --------------------------------- */
 
   useEffect(() => {
     let mounted = true;
@@ -130,6 +133,8 @@ export default function PhysicianCareTeamPage() {
     () => members.filter((m) => m.status === "active"),
     [members],
   );
+
+  /* ----------------------------- ACTIONS ------------------------------- */
 
   async function inviteByEmail() {
     if (!invEmail.trim()) return;
@@ -172,19 +177,23 @@ export default function PhysicianCareTeamPage() {
     );
   }
 
+  /* ------------------------------ RENDER ------------------------------- */
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
+      {/* HEADER */}
       <div
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-orange-500" />
-          <h1 className="text-base font-bold text-white flex-1">
+          <h1 className="text-base font-bold text-white flex-1 truncate">
             Physician Care Team
           </h1>
           <QuickTourButton onClick={quickTour.openTour} />
@@ -192,50 +201,94 @@ export default function PhysicianCareTeamPage() {
       </div>
 
       <div
-        className="max-w-6xl mx-auto px-4 space-y-6"
+        className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* INVITE ROW */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <GlassCard>
+          <GlassCard className="border-2 border-orange-500/40">
             <GlassCardContent className="p-6 space-y-4">
-              <Label>Clinical Role</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as ProRole)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="np">NP</SelectItem>
-                  <SelectItem value="rn">RN</SelectItem>
-                  <SelectItem value="pa">PA</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="provider@clinic.com"
-                value={invEmail}
-                onChange={(e) => setInvEmail(e.target.value)}
-              />
-              <Button onClick={inviteByEmail} disabled={loading}>
-                <UserPlus2 className="h-4 w-4 mr-2" /> Send Invite
+              <div className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-orange-600" />
+                <h2 className="text-xl font-bold text-white">
+                  Invite by Email
+                </h2>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white/80">Professional Role</Label>
+                  <Select
+                    value={role}
+                    onValueChange={(v) => setRole(v as ProRole)}
+                  >
+                    <SelectTrigger className="bg-black/40 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="doctor">Doctor</SelectItem>
+                      <SelectItem value="np">Nurse Practitioner</SelectItem>
+                      <SelectItem value="rn">RN</SelectItem>
+                      <SelectItem value="pa">PA</SelectItem>
+                      <SelectItem value="nutritionist">Nutritionist</SelectItem>
+                      <SelectItem value="dietitian">Dietitian</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-white/80">Email</Label>
+                  <Input
+                    value={invEmail}
+                    onChange={(e) => setInvEmail(e.target.value)}
+                    placeholder="provider@clinic.com"
+                    className="bg-black/40 text-white border-white/20"
+                  />
+                </div>
+              </div>
+
+              <Button
+                disabled={loading}
+                onClick={inviteByEmail}
+                className="w-full bg-lime-600 hover:bg-lime-600 text-white"
+              >
+                <UserPlus2 className="h-4 w-4 mr-2" />
+                Send Invite
               </Button>
             </GlassCardContent>
           </GlassCard>
 
-          <GlassCard>
+          <GlassCard className="border-2 border-orange-500/40">
             <GlassCardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-orange-500" />
+                <h2 className="text-xl font-bold text-white">
+                  Connect with Access Code
+                </h2>
+              </div>
               <Input
-                placeholder="MP-XXXX-XXX"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
+                placeholder="MP-XXXX-XXX"
+                className="bg-black/40 text-white border-white/20"
               />
-              <Button onClick={connectWithCode} disabled={loading}>
-                <ClipboardEdit className="h-4 w-4 mr-2" /> Link with Code
+              <Button
+                disabled={loading}
+                onClick={connectWithCode}
+                className="w-full bg-lime-600 hover:bg-lime-600 text-white"
+              >
+                <ClipboardEdit className="h-4 w-4 mr-2" />
+                Link with Code
               </Button>
             </GlassCardContent>
           </GlassCard>
         </div>
 
-        {error && <div className="text-red-400">{error}</div>}
+        {error && (
+          <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
+            {error}
+          </div>
+        )}
 
         <h3 className="text-white font-bold text-lg">
           Active Physician Connections
@@ -249,15 +302,13 @@ export default function PhysicianCareTeamPage() {
                 {m.email && (
                   <div className="text-sm text-white/70">{m.email}</div>
                 )}
-                <Badge className="bg-green-600/20 text-green-300">
-                  Active
-                </Badge>
+                <Badge className="bg-green-600/20 text-green-300">Active</Badge>
 
                 <Button
-                  onClick={goToProClients}
+                  onClick={() => setLocation("/pro/clients")}
                   className="w-full bg-lime-600 text-white"
                 >
-                  Open Patient Portal
+                  Open Pro Portal
                 </Button>
 
                 <Button
