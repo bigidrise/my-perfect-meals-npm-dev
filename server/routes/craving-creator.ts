@@ -38,9 +38,9 @@ const logMealSchema = z.object({
 // POST /api/craving-creator/generate - Generate recipe based on craving
 router.post('/generate', requireAuth, async (req, res) => {
   try {
-    const { craving, mealType = 'dinner', userId = '1', macroTargets } = req.body;
+    const { craving, mealType = 'dinner', userId = '1', macroTargets, servings = 2 } = req.body;
     
-    console.log('🍳 Craving Creator generating meal:', { craving, mealType, userId });
+    console.log('🍳 Craving Creator generating meal:', { craving, mealType, userId, servings });
     
     // Import the actual AI meal generator
     const { generateCravingMeal } = await import('../services/stableMealGenerator');
@@ -59,10 +59,14 @@ router.post('/generate', requireAuth, async (req, res) => {
       }
     }
 
-    // Generate the meal using AI
+    // Generate the meal using AI (include servings in the craving text for scaling)
+    const cravingWithServings = servings > 1 
+      ? `${craving} (for ${servings} servings)` 
+      : craving;
+    
     const generatedMeal = await generateCravingMeal(
       mealType,
-      craving,
+      cravingWithServings,
       {
         userId: userId?.toString() || "1",
         dietaryRestrictions: user?.dietaryRestrictions || [],
@@ -72,10 +76,18 @@ router.post('/generate', requireAuth, async (req, res) => {
       }
     );
 
+    // Add servings info to the meal response
+    const mealWithServings = {
+      ...generatedMeal,
+      servingSize: `${servings} ${servings === 1 ? 'serving' : 'servings'}`,
+      servings: servings
+    };
+
     console.log('✅ Craving Creator generated:', generatedMeal.name);
     console.log('🏥 Medical badges:', generatedMeal.medicalBadges?.length || 0);
+    console.log('🍽️ Servings:', servings);
 
-    res.json({ meal: generatedMeal });
+    res.json({ meal: mealWithServings });
   } catch (error) {
     console.error("❌ Craving Creator error:", error);
     res.status(500).json({ error: "Failed to generate craving meal" });

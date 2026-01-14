@@ -17,6 +17,8 @@ import {
   KITCHEN_STUDIO_COOK_CONFIRMED,
   KITCHEN_STUDIO_INGREDIENTS_PACE,
   KITCHEN_STUDIO_INGREDIENTS_CONFIRMED,
+  KITCHEN_STUDIO_SERVINGS,
+  KITCHEN_STUDIO_SERVINGS_CONFIRMED,
   KITCHEN_STUDIO_EQUIPMENT,
   KITCHEN_STUDIO_EQUIPMENT_CONFIRMED,
   KITCHEN_STUDIO_OPEN_START,
@@ -25,6 +27,7 @@ import {
   KITCHEN_STUDIO_OPEN_COMPLETE,
   EQUIPMENT_BY_METHOD,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 type KitchenMode = "entry" | "studio";
 
@@ -57,8 +60,8 @@ export default function ChefsKitchenPage() {
   const quickTour = useQuickTour("chefs-kitchen");
   const [mode, setMode] = useState<KitchenMode>("entry");
 
-  // Kitchen Studio state
-  const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  // Kitchen Studio state (6 steps: Dish, Method, Preferences, Servings, Equipment, Generate)
+  const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const { speak } = useChefVoice(setIsPlaying);
 
@@ -77,10 +80,15 @@ export default function ChefsKitchenPage() {
   const [step3Listened, setStep3Listened] = useState(false);
   const [step3Locked, setStep3Locked] = useState(false);
 
-  // Step 4 - Equipment
-  const [equipment, setEquipment] = useState("");
+  // Step 4 - Servings
+  const [servings, setServings] = useState<number>(2);
   const [step4Listened, setStep4Listened] = useState(false);
   const [step4Locked, setStep4Locked] = useState(false);
+
+  // Step 5 - Equipment
+  const [equipment, setEquipment] = useState("");
+  const [step5Listened, setStep5Listened] = useState(false);
+  const [step5Locked, setStep5Locked] = useState(false);
 
   // Get equipment list based on cooking method
   const suggestedEquipment = cookMethod ? EQUIPMENT_BY_METHOD[cookMethod] || [] : [];
@@ -91,9 +99,11 @@ export default function ChefsKitchenPage() {
     setStep2Locked(false);
     setStep3Locked(false);
     setStep4Locked(false);
+    setStep5Locked(false);
     setStep2Listened(false);
     setStep3Listened(false);
     setStep4Listened(false);
+    setStep5Listened(false);
     setStudioStep(1);
   };
 
@@ -101,8 +111,10 @@ export default function ChefsKitchenPage() {
     setStep2Locked(false);
     setStep3Locked(false);
     setStep4Locked(false);
+    setStep5Locked(false);
     setStep3Listened(false);
     setStep4Listened(false);
+    setStep5Listened(false);
     setCookMethod("");
     setEquipment("");
     setStudioStep(2);
@@ -111,13 +123,22 @@ export default function ChefsKitchenPage() {
   const editStep3 = () => {
     setStep3Locked(false);
     setStep4Locked(false);
+    setStep5Locked(false);
     setStep4Listened(false);
+    setStep5Listened(false);
     setStudioStep(3);
   };
 
   const editStep4 = () => {
     setStep4Locked(false);
+    setStep5Locked(false);
+    setStep5Listened(false);
     setStudioStep(4);
+  };
+
+  const editStep5 = () => {
+    setStep5Locked(false);
+    setStudioStep(5);
   };
 
   // Restart Kitchen Studio - clears all state without page reload
@@ -133,9 +154,12 @@ export default function ChefsKitchenPage() {
     setIngredientNotes("");
     setStep3Listened(false);
     setStep3Locked(false);
-    setEquipment("");
+    setServings(2);
     setStep4Listened(false);
     setStep4Locked(false);
+    setEquipment("");
+    setStep5Listened(false);
+    setStep5Locked(false);
     
     // Clear generation state
     setIsGeneratingMeal(false);
@@ -182,12 +206,13 @@ export default function ChefsKitchenPage() {
         const parsed = JSON.parse(saved) as GeneratedMeal;
         setGeneratedMeal(parsed);
         setMode("studio");
-        setStudioStep(5);
+        setStudioStep(6);
         // Lock all steps since we have a generated meal
         setStep1Locked(true);
         setStep2Locked(true);
         setStep3Locked(true);
         setStep4Locked(true);
+        setStep5Locked(true);
         setDishIdea(parsed.name || "");
       }
     } catch {
@@ -275,6 +300,7 @@ export default function ChefsKitchenPage() {
           craving: cravingPrompt,
           mealType: "dinner",
           source: "chefs-kitchen",
+          servings: servings,
         }),
       });
 
@@ -479,7 +505,7 @@ export default function ChefsKitchenPage() {
                   speak(KITCHEN_STUDIO_STEP2);
                 }}
                 onEdit={editStep1}
-                canEdit={studioStep < 5}
+                canEdit={studioStep < 6}
               />
             )}
 
@@ -508,7 +534,7 @@ export default function ChefsKitchenPage() {
                   speak(KITCHEN_STUDIO_COOK_CONFIRMED);
                 }}
                 onEdit={editStep2}
-                canEdit={studioStep < 5}
+                canEdit={studioStep < 6}
               />
             )}
 
@@ -541,40 +567,67 @@ export default function ChefsKitchenPage() {
                   speak(KITCHEN_STUDIO_INGREDIENTS_CONFIRMED);
                 }}
                 onEdit={editStep3}
-                canEdit={studioStep < 5}
+                canEdit={studioStep < 6}
               />
             )}
 
-            {/* Step 4 - Chef's Setup (Equipment) */}
+            {/* Step 4 - Servings */}
             {studioStep >= 4 && (
               <KitchenStepCard
-                stepTitle="Step 4 · Chef's Setup"
+                stepTitle="Step 4 · Servings"
+                question="How many people are we cooking for?"
+                summaryText={`Cooking for: ${servings} ${servings === 1 ? 'person' : 'people'}`}
+                value={String(servings)}
+                setValue={(v) => setServings(Number(v) || 2)}
+                hasListened={step4Listened}
+                isLocked={step4Locked}
+                isPlaying={isPlaying}
+                inputType="buttons"
+                buttonOptions={["1", "2", "3", "4", "5", "6"]}
+                onListen={() => {
+                  if (step4Listened || isPlaying) return;
+                  speak(KITCHEN_STUDIO_SERVINGS, () => setStep4Listened(true));
+                }}
+                onSubmit={() => {
+                  setStep4Locked(true);
+                  setStudioStep(5);
+                  speak(KITCHEN_STUDIO_SERVINGS_CONFIRMED);
+                }}
+                onEdit={editStep4}
+                canEdit={studioStep < 6}
+              />
+            )}
+
+            {/* Step 5 - Chef's Setup (Equipment) */}
+            {studioStep >= 5 && (
+              <KitchenStepCard
+                stepTitle="Step 5 · Chef's Setup"
                 question="Do you have these, or are you missing anything?"
                 summaryText={`Kitchen setup: ${equipment || suggestedEquipment.join(", ")}`}
                 value={equipment}
                 setValue={setEquipment}
-                hasListened={step4Listened}
-                isLocked={step4Locked}
+                hasListened={step5Listened}
+                isLocked={step5Locked}
                 isPlaying={isPlaying}
                 placeholder="Yes, all set / I don't have a skillet but I have a pan..."
                 inputType="textarea"
                 equipmentList={suggestedEquipment}
                 onListen={() => {
-                  if (step4Listened || isPlaying) return;
-                  speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep4Listened(true));
+                  if (step5Listened || isPlaying) return;
+                  speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep5Listened(true));
                 }}
                 onSubmit={() => {
-                  setStep4Locked(true);
-                  setStudioStep(5);
+                  setStep5Locked(true);
+                  setStudioStep(6);
                   speak(KITCHEN_STUDIO_EQUIPMENT_CONFIRMED);
                 }}
-                onEdit={editStep4}
-                canEdit={studioStep < 5}
+                onEdit={editStep5}
+                canEdit={studioStep < 6}
               />
             )}
 
-            {/* Step 5 - Open Kitchen */}
-            {studioStep >= 5 && (
+            {/* Step 6 - Open Kitchen */}
+            {studioStep >= 6 && (
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-center gap-2">
@@ -605,6 +658,9 @@ export default function ChefsKitchenPage() {
                         </p>
                         <p className="text-sm text-white/90">
                           <strong>Notes:</strong> {ingredientNotes || "None"}
+                        </p>
+                        <p className="text-sm text-white/90">
+                          <strong>Servings:</strong> {servings} {servings === 1 ? 'person' : 'people'}
                         </p>
                         <p className="text-sm text-white/90">
                           <strong>Equipment:</strong> {equipment}
@@ -691,6 +747,12 @@ export default function ChefsKitchenPage() {
                           </p>
                         )}
 
+                        {/* Serving Size */}
+                        <div className="flex items-center gap-2 text-sm text-white/80">
+                          <span className="text-orange-400 font-medium">Serving Size:</span>
+                          <span>{mealToShow.servingSize || `${servings} ${servings === 1 ? 'serving' : 'servings'}`}</span>
+                        </div>
+
                         {/* Macros */}
                         <div className="grid grid-cols-4 gap-2 py-2">
                           <div className="text-center">
@@ -762,6 +824,11 @@ export default function ChefsKitchenPage() {
                             )}
                           </div>
                         )}
+
+                        {/* Add to Meal Plan */}
+                        <div className="pt-2">
+                          <AddToMealPlanButton meal={generatedMeal} />
+                        </div>
 
                         <div className="flex gap-3">
                           <button

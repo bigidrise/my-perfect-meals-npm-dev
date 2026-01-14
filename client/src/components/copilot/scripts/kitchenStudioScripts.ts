@@ -20,7 +20,15 @@ export const KITCHEN_STUDIO_INGREDIENTS_PACE =
 
 // Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
-  "Got it. Let me walk you through the cookware you'll need.";
+  "Got it. Now tell me - how many people are we cooking for?";
+
+// Kitchen Studio - Serving size question
+export const KITCHEN_STUDIO_SERVINGS =
+  "Are you cooking just for yourself, or are we feeding a crew? This helps us scale the ingredients and nutrition correctly.";
+
+// Kitchen Studio - After servings confirmed
+export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
+  "Perfect. Now let me walk you through the cookware you'll need.";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
@@ -46,11 +54,11 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 
 // Open Kitchen narration beats
 export const KITCHEN_STUDIO_OPEN_START =
-  "Alright. I'm putting this together now.";
+  "";
 
-export const KITCHEN_STUDIO_OPEN_PROGRESS1 = "Balancing flavor and nutrition.";
+export const KITCHEN_STUDIO_OPEN_PROGRESS1 = "";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 =
-  "Finalizing ingredients and cooking steps.";
+  "";
 
-export const KITCHEN_STUDIO_OPEN_COMPLETE = "Here it is. Let's take a look.";
+export const KITCHEN_STUDIO_OPEN_COMPLETE = "";
