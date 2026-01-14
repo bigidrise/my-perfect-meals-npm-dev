@@ -540,6 +540,15 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Hey, welcome to the My Perfect Meals Guest Suite — I'm really glad you're here. Before we start, let me introduce myself. I'm Chef Copilot, your personal guide inside this app. You'll find me in the bottom navigation bar — look for the Chef button in the center of the bottom navigation. Anytime you're on any page and want to know what it does or how to use it, just tap the Chef button, then hit Listen, and I'll explain exactly what you're looking at and what to do next. If you turn Auto on inside the Copilot panel, I'll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You're always in control. Now, let's talk about what you're here to do. This is a guided preview of how the app works, and I'll walk you through it step by step so you actually get the full experience instead of guessing where to start. As a guest, you'll begin with the Macro Calculator to set your personal numbers — that's the foundation for everything else in the app. You may notice that some features like the Weekly Meal Builder, Fridge Rescue, and Craving Creator aren't fully open yet, and that's intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Remember, I'm always here in the bottom navigation bar under Guide if you need me. Let's start by setting your macros and take it from there.",
     autoClose: false,
   },
+  "/chefs-kitchen": {
+    pageId: "chefs-kitchen",
+    title: "Chef’s Kitchen",
+    description:
+      "A creative, hands-on cooking experience where you build a dish from idea to plate with step-by-step guidance.",
+    spokenText:
+      "Hey—welcome to my kitchen. Come on in. This is where we stop worrying about labels, rules, or perfect diets and just have fun with food. You don’t need to know macros, calories, or cooking terms to be here. You bring the idea, the craving, or even just the mood—and we’ll build something real together. I’ll walk you through it step by step: what you’re making, how you want to cook it, how many people you’re cooking for, what you’ve got in your kitchen, and how much time you want to spend. Nothing complicated. Nothing judgmental. From the first idea all the way to the plate, I’ve got you. Take your time, explore, adjust things as you go, and when you’re ready, we’ll turn it into a full meal with ingredients, instructions, and nutrition. Alright—let’s get started. What are we making today?",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {

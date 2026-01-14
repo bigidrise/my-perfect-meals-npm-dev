@@ -44,6 +44,14 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
   ],
 };
 
+// Kitchen Studio - Servings question
+export const KITCHEN_STUDIO_SERVINGS =
+  "How many servings do you need? This helps me portion the ingredients correctly.";
+
+// Kitchen Studio - After servings confirmed
+export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
+  "Got it. Now let's check your kitchen setup.";
+
 // Open Kitchen narration beats
 export const KITCHEN_STUDIO_OPEN_START =
   "";
