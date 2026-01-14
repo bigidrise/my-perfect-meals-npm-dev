@@ -20,14 +20,21 @@ export default function ProCareCover() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  const proCareFeatures: ProCareFeature[] = [
-    {
-      title: "Trainer/ Physician Portal",
-      description: "Professional client management and coaching tools",
-      icon: Users,
-      route: "/care-team",
-      testId: "card-procare-portal",
-    },
+    const proCareFeatures: ProCareFeature[] = [
+      {
+        title: "Physician Portal",
+        description: "Clinical nutrition tools and medical-focused meal builders",
+        icon: Users,
+        route: "/care-team/physician",
+        testId: "card-procare-physician",
+      },
+      {
+        title: "Trainer Portal",
+        description: "Coaching, performance, and lifestyle nutrition tools",
+        icon: Users,
+        route: "/care-team/trainer",
+        testId: "card-procare-trainer",
+      },
     {
       title: "Supplement Hub",
       description: "Evidence-based supplement guidance and trusted partners",

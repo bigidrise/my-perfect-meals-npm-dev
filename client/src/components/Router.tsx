@@ -82,6 +82,7 @@ import ShoppingListMasterView from "@/pages/ShoppingListMasterView";
 
 // Pro Portal (core MVP feature)
 import CareTeam from "@/pages/CareTeam";
+import PhysicianPortal from "@/pages/pro/PhysicianPortal";
 import ProCareCover from "@/pages/ProCareCover";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
@@ -352,6 +353,7 @@ export default function Router() {
           path="/procare-cover"
           component={withPageErrorBoundary(ProCareCover, "ProCare Cover")}
         />
+        <Route path="/pro/physician" component={PhysicianPortal} />
         <Route
           path="/care-team"
           component={withPageErrorBoundary(CareTeam, "Care Team")}
@@ -364,6 +366,7 @@ export default function Router() {
           path="/pro/clients"
           component={withPageErrorBoundary(ProClients, "Pro Clients")}
         />
+        <Route path="/pro/clients/:id" component={ProClientDashboard} />
         <Route
           path="/pro/clients/:id"
           component={withPageErrorBoundary(
