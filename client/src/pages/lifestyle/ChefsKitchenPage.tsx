@@ -8,6 +8,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import { apiUrl } from "@/lib/resolveApiBase";
+import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
+import TranslateToggle from "@/components/TranslateToggle";
 import {
   KITCHEN_STUDIO_INTRO,
   KITCHEN_STUDIO_STEP2,
@@ -155,11 +157,22 @@ export default function ChefsKitchenPage() {
   );
   const [generationError, setGenerationError] = useState<string | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Display meal for translations (allows showing translated content while preserving original)
+  const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
+  
+  // Use displayMeal for rendering, fallback to generatedMeal
+  const mealToShow = displayMeal || generatedMeal;
 
   useEffect(() => {
     document.title = "Chef's Kitchen 👨🏿‍🍳 | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+  
+  // Reset displayMeal when generatedMeal changes
+  useEffect(() => {
+    setDisplayMeal(null);
+  }, [generatedMeal]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -597,24 +610,42 @@ export default function ChefsKitchenPage() {
                   )}
 
                   {/* Meal Ready */}
-                  {generatedMeal && (
+                  {generatedMeal && mealToShow && (
                     <div className="space-y-4">
-                      {generatedMeal.imageUrl && (
+                      {mealToShow.imageUrl && (
                         <img
-                          src={generatedMeal.imageUrl}
-                          alt={generatedMeal.name}
+                          src={mealToShow.imageUrl}
+                          alt={mealToShow.name}
                           className="w-full h-48 object-cover rounded-lg"
                         />
                       )}
 
                       <div className="space-y-3">
-                        <h4 className="text-lg font-bold text-white">
-                          {generatedMeal.name}
-                        </h4>
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-lg font-bold text-white flex-1">
+                            {mealToShow.name}
+                          </h4>
+                          <TranslateToggle
+                            content={{
+                              name: generatedMeal.name,
+                              description: generatedMeal.description,
+                              instructions: generatedMeal.instructions,
+                            }}
+                            onTranslate={(translated) => {
+                              setDisplayMeal({
+                                ...generatedMeal,
+                                name: translated.name,
+                                description: translated.description,
+                                instructions: translated.instructions || generatedMeal.instructions,
+                              });
+                            }}
+                            className="flex-shrink-0"
+                          />
+                        </div>
 
-                        {generatedMeal.description && (
+                        {mealToShow.description && (
                           <p className="text-sm text-white/70">
-                            {generatedMeal.description}
+                            {mealToShow.description}
                           </p>
                         )}
 
@@ -622,25 +653,25 @@ export default function ChefsKitchenPage() {
                         <div className="grid grid-cols-4 gap-2 py-2">
                           <div className="text-center">
                             <p className="text-lg font-bold text-white">
-                              {generatedMeal.calories || 0}
+                              {mealToShow.calories || 0}
                             </p>
                             <p className="text-xs text-white/60">cal</p>
                           </div>
                           <div className="text-center">
                             <p className="text-lg font-bold text-blue-400">
-                              {generatedMeal.protein || 0}g
+                              {mealToShow.protein || 0}g
                             </p>
                             <p className="text-xs text-white/60">protein</p>
                           </div>
                           <div className="text-center">
                             <p className="text-lg font-bold text-green-400">
-                              {generatedMeal.carbs || 0}g
+                              {mealToShow.carbs || 0}g
                             </p>
                             <p className="text-xs text-white/60">carbs</p>
                           </div>
                           <div className="text-center">
                             <p className="text-lg font-bold text-yellow-400">
-                              {generatedMeal.fat || 0}g
+                              {mealToShow.fat || 0}g
                             </p>
                             <p className="text-xs text-white/60">fat</p>
                           </div>
@@ -669,14 +700,14 @@ export default function ChefsKitchenPage() {
                         )}
 
                         {/* Instructions */}
-                        {generatedMeal.instructions && (
+                        {mealToShow.instructions && (
                           <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                             <p className="text-sm font-semibold text-white mb-2">
                               Instructions
                             </p>
-                            {Array.isArray(generatedMeal.instructions) ? (
+                            {Array.isArray(mealToShow.instructions) ? (
                               <ol className="space-y-2 list-decimal list-inside">
-                                {generatedMeal.instructions.map((step, i) => (
+                                {mealToShow.instructions.map((step, i) => (
                                   <li key={i} className="text-sm text-white/70">
                                     {step}
                                   </li>
@@ -684,7 +715,7 @@ export default function ChefsKitchenPage() {
                               </ol>
                             ) : (
                               <p className="text-sm text-white/70">
-                                {generatedMeal.instructions}
+                                {mealToShow.instructions}
                               </p>
                             )}
                           </div>
@@ -712,7 +743,26 @@ export default function ChefsKitchenPage() {
             )}
           </div>
         )}
+        
+        {/* Extra padding when shopping bar is visible */}
+        {generatedMeal && generatedMeal.ingredients?.length > 0 && (
+          <div className="h-28" />
+        )}
       </div>
+      
+      {/* Shopping Aggregate Bar - appears after meal is generated */}
+      {generatedMeal && generatedMeal.ingredients?.length > 0 && (
+        <ShoppingAggregateBar
+          ingredients={generatedMeal.ingredients.map((ing) => ({
+            name: ing.name,
+            qty: ing.amount ?? ing.quantity,
+            unit: ing.unit || "",
+          }))}
+          source="Chef's Kitchen"
+          sourceSlug="chefs-kitchen"
+          hideCopyButton={false}
+        />
+      )}
     </motion.div>
   );
 }
