@@ -20,16 +20,8 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { ClipboardEdit, XCircle, Users, ShieldCheck, Mail, KeyRound, UserPlus2 } from "lucide-react";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import {
-  Users,
-  ShieldCheck,
-  Mail,
-  KeyRound,
-  UserPlus2,
-  ClipboardEdit,
-  XCircle,
-} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -297,27 +289,39 @@ export default function PhysicianCareTeamPage() {
         <div className="grid md:grid-cols-3 gap-4">
           {active.map((m) => (
             <GlassCard key={m.id}>
-              <GlassCardContent className="p-4 space-y-3">
-                <div className="font-bold text-white">{m.name}</div>
-                {m.email && (
-                  <div className="text-sm text-white/70">{m.email}</div>
-                )}
-                <Badge className="bg-green-600/20 text-green-300">Active</Badge>
+        <GlassCardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <div className="font-bold text-white truncate">{m.name}</div>
+              {m.email && <div className="text-sm text-white/70 truncate">{m.email}</div>}
+            </div>
 
-                <Button
-                  onClick={() => setLocation("/pro/clients")}
-                  className="w-full bg-lime-600 text-white"
-                >
-                  Open Pro Portal
-                </Button>
+            <Badge className="bg-green-600/20 text-green-300 border border-green-400/40">
+              Active
+            </Badge>
+          </div>
 
-                <Button
-                  variant="destructive"
-                  onClick={() => revokeMember(m.id)}
-                >
-                  <XCircle className="h-4 w-4 mr-2" /> Revoke
-                </Button>
-              </GlassCardContent>
+          <div className="mt-3 flex items-center gap-2">
+            <Button
+              onClick={() => setLocation("/pro/clients")}
+              className="bg-lime-600 hover:bg-lime-600 text-white"
+              data-testid="button-open-pro-portal"
+            >
+              <ClipboardEdit className="h-4 w-4 mr-2" />
+              Open Pro Portal
+            </Button>
+
+            <Button
+              onClick={() => revokeMember(m.id)}
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-revoke-member"
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Revoke
+            </Button>
+          </div>
+        </GlassCardContent>
             </GlassCard>
           ))}
         </div>
