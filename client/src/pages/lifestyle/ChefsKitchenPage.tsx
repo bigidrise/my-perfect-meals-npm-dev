@@ -660,7 +660,7 @@ export default function ChefsKitchenPage() {
                                 >
                                   <span>{ing.name}</span>
                                   <span className="text-white/50">
-                                    {ing.quantity} {ing.unit}
+                                    {ing.amount ?? ing.quantity} {ing.unit}
                                   </span>
                                 </li>
                               ))}
