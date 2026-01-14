@@ -1,11 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
-import { ttsService } from "@/lib/tts";
+import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
+import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import {
   KITCHEN_STUDIO_INTRO,
   KITCHEN_STUDIO_STEP2,
@@ -13,6 +14,8 @@ import {
   KITCHEN_STUDIO_COOK_CONFIRMED,
   KITCHEN_STUDIO_INGREDIENTS_PACE,
   KITCHEN_STUDIO_INGREDIENTS_CONFIRMED,
+  KITCHEN_STUDIO_EQUIPMENT,
+  KITCHEN_STUDIO_EQUIPMENT_CONFIRMED,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 
 type KitchenMode = "entry" | "studio";
@@ -23,230 +26,29 @@ export default function ChefsKitchenPage() {
   const [mode, setMode] = useState<KitchenMode>("entry");
 
   // Kitchen Studio state
-  const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4>(1);
-  const [dishIdea, setDishIdea] = useState("");
-  const [hasListened, setHasListened] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
+  const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { speak } = useChefVoice(setIsPlaying);
 
-  // Step 2 state
+  // Step 1 - Dish Idea
+  const [dishIdea, setDishIdea] = useState("");
+  const [step1Listened, setStep1Listened] = useState(false);
+  const [step1Locked, setStep1Locked] = useState(false);
+
+  // Step 2 - Cooking Method
   const [cookMethod, setCookMethod] = useState("");
-  const [hasListenedStep2, setHasListenedStep2] = useState(false);
-  const [isLockedStep2, setIsLockedStep2] = useState(false);
+  const [step2Listened, setStep2Listened] = useState(false);
+  const [step2Locked, setStep2Locked] = useState(false);
 
-  // Step 3 state
+  // Step 3 - Ingredients & Pace
   const [ingredientNotes, setIngredientNotes] = useState("");
-  const [cookPace, setCookPace] = useState("");
-  const [hasListenedStep3, setHasListenedStep3] = useState(false);
-  const [isLockedStep3, setIsLockedStep3] = useState(false);
+  const [step3Listened, setStep3Listened] = useState(false);
+  const [step3Locked, setStep3Locked] = useState(false);
 
-  // Voice handler - same pattern as ProTip
-  const handleListenToChef = useCallback(async () => {
-    if (hasListened || isPlaying) return;
-
-    setIsPlaying(true);
-
-    try {
-      ttsService.stop();
-      const result = await ttsService.speak(KITCHEN_STUDIO_INTRO, {
-        onStart: () => {
-          setIsPlaying(true);
-          setHasListened(true);
-        },
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
-
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-      setHasListened(true);
-    }
-  }, [hasListened, isPlaying]);
-
-  // Voice handler for step 2 transition
-  const handleSubmitDishIdea = useCallback(async () => {
-    if (!dishIdea.trim()) return;
-
-    setIsLocked(true);
-    setStudioStep(2);
-
-    try {
-      ttsService.stop();
-      const result = await ttsService.speak(KITCHEN_STUDIO_STEP2, {
-        onStart: () => setIsPlaying(true),
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
-
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-    }
-  }, [dishIdea]);
-
-  // Voice handler for step 2 - cooking method
-  const handleListenCookMethod = useCallback(async () => {
-    if (hasListenedStep2 || isPlaying) return;
-
-    setIsPlaying(true);
-
-    try {
-      ttsService.stop();
-      const result = await ttsService.speak(KITCHEN_STUDIO_COOK_METHOD, {
-        onStart: () => {
-          setIsPlaying(true);
-          setHasListenedStep2(true);
-        },
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
-
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-      setHasListenedStep2(true);
-    }
-  }, [hasListenedStep2, isPlaying]);
-
-  // Voice handler for step 2 submit
-  const handleSubmitCookMethod = useCallback(async () => {
-    if (!cookMethod) return;
-
-    setIsLockedStep2(true);
-    setStudioStep(3);
-
-    try {
-      ttsService.stop();
-      const result = await ttsService.speak(KITCHEN_STUDIO_COOK_CONFIRMED, {
-        onStart: () => setIsPlaying(true),
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
-
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-    }
-  }, [cookMethod]);
-
-  // Voice handler for step 3 - ingredients & pace
-  const handleListenIngredients = useCallback(async () => {
-    if (hasListenedStep3 || isPlaying) return;
-
-    setIsPlaying(true);
-
-    try {
-      ttsService.stop();
-      const result = await ttsService.speak(KITCHEN_STUDIO_INGREDIENTS_PACE, {
-        onStart: () => {
-          setIsPlaying(true);
-          setHasListenedStep3(true);
-        },
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
-
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-      setHasListenedStep3(true);
-    }
-  }, [hasListenedStep3, isPlaying]);
-
-  // Voice handler for step 3 submit
-  const handleSubmitIngredients = useCallback(async () => {
-    if (!cookPace) return;
-
-    setIsLockedStep3(true);
-    setStudioStep(4);
-
-    try {
-      ttsService.stop();
-      const result = await ttsService.speak(KITCHEN_STUDIO_INGREDIENTS_CONFIRMED, {
-        onStart: () => setIsPlaying(true),
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
-
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-    }
-  }, [cookPace]);
+  // Step 4 - Equipment
+  const [equipment, setEquipment] = useState("");
+  const [step4Listened, setStep4Listened] = useState(false);
+  const [step4Locked, setStep4Locked] = useState(false);
 
   useEffect(() => {
     document.title = "Chef's Kitchen | My Perfect Meals";
@@ -266,7 +68,6 @@ export default function ChefsKitchenPage() {
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-          {/* Back */}
           <button
             onClick={() => setLocation("/lifestyle")}
             className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
@@ -276,14 +77,12 @@ export default function ChefsKitchenPage() {
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          {/* Title */}
           <h1 className="text-lg font-bold text-white truncate min-w-0">
             Chef's Kitchen
           </h1>
 
           <div className="flex-grow" />
 
-          {/* Guided Tour */}
           <QuickTourButton
             onClick={quickTour.openTour}
             className="flex-shrink-0"
@@ -291,23 +90,23 @@ export default function ChefsKitchenPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div
-        className="max-w-2xl mx-auto px-4 pb-8"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        className="px-4 space-y-4"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 64px)",
+        }}
       >
         {/* ENTRY MODE */}
         {mode === "entry" && (
           <div className="space-y-4">
             <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
-              <CardContent className="p-4 space-y-2">
+              <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <UtensilsCrossed className="h-4 w-4 text-orange-500" />
-                  <h2 className="text-base font-semibold text-white">
-                    Kitchen Studio
+                  <Sparkles className="h-5 w-5 text-orange-500" />
+                  <h2 className="text-lg font-bold text-white">
+                    Welcome to Chef's Kitchen
                   </h2>
                 </div>
-
                 <p className="text-sm text-white/80">
                   Create great-tasting, healthy food with AI. This is where
                   ideas turn into dishes.
@@ -333,7 +132,7 @@ export default function ChefsKitchenPage() {
                 </div>
 
                 <button
-                  className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-600 text-black font-semibold text-sm active:scale-[0.98] transition"
+                  className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm active:scale-[0.98] transition"
                   data-testid="button-enter-kitchen-studio"
                   onClick={() => setMode("studio")}
                 >
@@ -347,274 +146,150 @@ export default function ChefsKitchenPage() {
         {/* STUDIO MODE */}
         {mode === "studio" && (
           <div className="space-y-4">
-            {/* Kitchen Studio - Step 1 */}
+            {/* Step 1 - Dish Idea */}
             {studioStep >= 1 && (
-              <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
-                <CardContent className="p-4 space-y-4">
-                  {/* Header */}
-                  <div className="flex items-center gap-2">
-                    <UtensilsCrossed className="h-4 w-4 text-orange-500" />
-                    <h2 className="text-base font-semibold text-white">
-                      Kitchen Studio
-                    </h2>
-                  </div>
-
-                  {/* Locked State (after submit) */}
-                  {isLocked ? (
-                    <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                      <p className="text-sm text-white/90 font-medium">
-                        What are we making today?
-                      </p>
-                      <p className="text-sm text-white/70 mt-1">{dishIdea}</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Intro */}
-                      <p className="text-sm text-white/80">
-                        Ready to cook together? Tap <strong>Listen</strong> to
-                        start.
-                      </p>
-
-                      {/* Listen Button */}
-                      {!hasListened && (
-                        <button
-                          className={`w-full py-3 rounded-xl border text-white font-medium transition ${
-                            isPlaying
-                              ? "bg-green-900/40 border-green-500/40"
-                              : "bg-black/40 border-white/20 hover:bg-black/50"
-                          }`}
-                          onClick={handleListenToChef}
-                          disabled={isPlaying}
-                          data-testid="button-listen-to-chef"
-                        >
-                          {isPlaying ? "Speaking..." : "Listen to Chef"}
-                        </button>
-                      )}
-
-                      {/* Input appears AFTER listening */}
-                      {hasListened && (
-                        <>
-                          <div>
-                            <label className="block text-sm text-white mb-1">
-                              What are we making today?
-                            </label>
-                            <textarea
-                              value={dishIdea}
-                              onChange={(e) => setDishIdea(e.target.value)}
-                              placeholder="Describe the dish, flavor, or vibe..."
-                              className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
-                              maxLength={300}
-                            />
-                            <p className="text-xs text-white/60 mt-1 text-right">
-                              {dishIdea.length}/300
-                            </p>
-                          </div>
-
-                          <button
-                            className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
-                            disabled={!dishIdea.trim() || isPlaying}
-                            onClick={handleSubmitDishIdea}
-                            data-testid="button-submit-dish-idea"
-                          >
-                            Submit
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <KitchenStepCard
+                stepTitle="Step 1 · The Dish"
+                question="What are we making today?"
+                summaryText={`We're making: ${dishIdea}`}
+                value={dishIdea}
+                setValue={setDishIdea}
+                hasListened={step1Listened}
+                isLocked={step1Locked}
+                isPlaying={isPlaying}
+                placeholder="Describe the dish, flavor, or vibe..."
+                inputType="textarea"
+                onListen={() => {
+                  if (step1Listened || isPlaying) return;
+                  speak(KITCHEN_STUDIO_INTRO, () => setStep1Listened(true));
+                }}
+                onSubmit={() => {
+                  setStep1Locked(true);
+                  setStudioStep(2);
+                  speak(KITCHEN_STUDIO_STEP2);
+                }}
+              />
             )}
 
-            {/* ───────── Kitchen Studio – Step 2 ───────── */}
+            {/* Step 2 - Cooking Method */}
             {studioStep >= 2 && (
-              <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
-                <CardContent className="p-4 space-y-4">
-                  {/* Header */}
-                  <div className="flex items-center gap-2">
-                    <UtensilsCrossed className="h-4 w-4 text-orange-500" />
-                    <h3 className="text-sm font-semibold text-white">
-                      Cooking Method
-                    </h3>
-                  </div>
-
-                  {/* Locked State */}
-                  {isLockedStep2 ? (
-                    <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                      <p className="text-sm text-white/90 font-medium">
-                        How are we cooking this?
-                      </p>
-                      <p className="text-sm text-white/70 mt-1">{cookMethod}</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Intro */}
-                      <p className="text-sm text-white/80">
-                        Tap <strong>Listen</strong> and we'll set the cooking
-                        method.
-                      </p>
-
-                      {/* Listen Button */}
-                      {!hasListenedStep2 && (
-                        <button
-                          className={`w-full py-3 rounded-xl border text-white font-medium transition ${
-                            isPlaying
-                              ? "bg-green-900/40 border-green-500/40"
-                              : "bg-black/40 border-white/20 hover:bg-black/50"
-                          }`}
-                          onClick={handleListenCookMethod}
-                          disabled={isPlaying}
-                          data-testid="button-listen-cook-method"
-                        >
-                          {isPlaying ? "Speaking..." : "Listen to Chef"}
-                        </button>
-                      )}
-
-                      {/* Options */}
-                      {hasListenedStep2 && (
-                        <>
-                          <div className="grid grid-cols-2 gap-2">
-                            {["Stovetop", "Oven", "Air Fryer", "Grill"].map(
-                              (method) => (
-                                <button
-                                  key={method}
-                                  onClick={() => setCookMethod(method)}
-                                  className={`py-2 rounded-lg border text-sm transition ${
-                                    cookMethod === method
-                                      ? "bg-lime-600 text-black border-lime-600"
-                                      : "bg-black/40 text-white border-white/20 hover:bg-black/50"
-                                  }`}
-                                >
-                                  {method}
-                                </button>
-                              )
-                            )}
-                          </div>
-
-                          <button
-                            className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
-                            disabled={!cookMethod || isPlaying}
-                            onClick={handleSubmitCookMethod}
-                            data-testid="button-submit-cook-method"
-                          >
-                            Continue
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <KitchenStepCard
+                stepTitle="Step 2 · Cooking Method"
+                question="How are we cooking this?"
+                summaryText={`Cooking method: ${cookMethod}`}
+                value={cookMethod}
+                setValue={setCookMethod}
+                hasListened={step2Listened}
+                isLocked={step2Locked}
+                isPlaying={isPlaying}
+                inputType="buttons"
+                buttonOptions={["Stovetop", "Oven", "Air Fryer", "Grill"]}
+                onListen={() => {
+                  if (step2Listened || isPlaying) return;
+                  speak(KITCHEN_STUDIO_COOK_METHOD, () =>
+                    setStep2Listened(true)
+                  );
+                }}
+                onSubmit={() => {
+                  setStep2Locked(true);
+                  setStudioStep(3);
+                  speak(KITCHEN_STUDIO_COOK_CONFIRMED);
+                }}
+              />
             )}
 
-            {/* ───────── Kitchen Studio – Step 3 ───────── */}
+            {/* Step 3 - Ingredients & Pace */}
             {studioStep >= 3 && (
+              <KitchenStepCard
+                stepTitle="Step 3 · Ingredients & Pace"
+                question="Any ingredients to include or avoid?"
+                summaryText={
+                  ingredientNotes
+                    ? `Notes: ${ingredientNotes}`
+                    : "No ingredient restrictions"
+                }
+                value={ingredientNotes}
+                setValue={setIngredientNotes}
+                hasListened={step3Listened}
+                isLocked={step3Locked}
+                isPlaying={isPlaying}
+                placeholder="e.g., no mushrooms, extra garlic, dairy-free..."
+                inputType="textarea"
+                onListen={() => {
+                  if (step3Listened || isPlaying) return;
+                  speak(KITCHEN_STUDIO_INGREDIENTS_PACE, () =>
+                    setStep3Listened(true)
+                  );
+                }}
+                onSubmit={() => {
+                  setStep3Locked(true);
+                  setStudioStep(4);
+                  speak(KITCHEN_STUDIO_INGREDIENTS_CONFIRMED);
+                }}
+              />
+            )}
+
+            {/* Step 4 - Equipment */}
+            {studioStep >= 4 && (
+              <KitchenStepCard
+                stepTitle="Step 4 · Equipment Roll Call"
+                question="What equipment do you have ready?"
+                summaryText={`Equipment: ${equipment}`}
+                value={equipment}
+                setValue={setEquipment}
+                hasListened={step4Listened}
+                isLocked={step4Locked}
+                isPlaying={isPlaying}
+                placeholder="Skillet, cutting board, knife, mixing bowl..."
+                inputType="textarea"
+                onListen={() => {
+                  if (step4Listened || isPlaying) return;
+                  speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep4Listened(true));
+                }}
+                onSubmit={() => {
+                  setStep4Locked(true);
+                  setStudioStep(5);
+                  speak(KITCHEN_STUDIO_EQUIPMENT_CONFIRMED);
+                }}
+              />
+            )}
+
+            {/* Step 5 - Final: Meal Generation (placeholder) */}
+            {studioStep >= 5 && (
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
                 <CardContent className="p-4 space-y-4">
-                  {/* Header */}
-                  <div className="flex items-center gap-2">
-                    <UtensilsCrossed className="h-4 w-4 text-orange-500" />
-                    <h3 className="text-sm font-semibold text-white">
-                      Ingredients & Pace
+                  <div className="text-center py-8">
+                    <Sparkles className="h-8 w-8 text-orange-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      Ready to Create Your Meal
                     </h3>
-                  </div>
-
-                  {/* Locked State */}
-                  {isLockedStep3 ? (
-                    <div className="rounded-xl border border-white/20 bg-black/40 p-3 space-y-1">
-                      <p className="text-sm text-white/90 font-medium">
-                        Any ingredients to include or avoid?
+                    <p className="text-sm text-white/70 mb-4">
+                      Based on your preferences, we'll generate a complete meal
+                      with macros, ingredients, and instructions.
+                    </p>
+                    <div className="rounded-xl border border-white/20 bg-black/40 p-4 text-left space-y-2">
+                      <p className="text-xs text-white/60">Your session:</p>
+                      <p className="text-sm text-white/90">
+                        <strong>Dish:</strong> {dishIdea}
                       </p>
-                      <p className="text-sm text-white/70">
-                        {ingredientNotes || "No preferences"}
+                      <p className="text-sm text-white/90">
+                        <strong>Method:</strong> {cookMethod}
                       </p>
-
-                      <p className="text-sm text-white/90 font-medium mt-2">
-                        How are we cooking today?
+                      <p className="text-sm text-white/90">
+                        <strong>Notes:</strong>{" "}
+                        {ingredientNotes || "None"}
                       </p>
-                      <p className="text-sm text-white/70">{cookPace}</p>
+                      <p className="text-sm text-white/90">
+                        <strong>Equipment:</strong> {equipment}
+                      </p>
                     </div>
-                  ) : (
-                    <>
-                      {/* Intro */}
-                      <p className="text-sm text-white/80">
-                        Tap <strong>Listen</strong> to fine-tune the details.
-                      </p>
-
-                      {/* Listen Button */}
-                      {!hasListenedStep3 && (
-                        <button
-                          className={`w-full py-3 rounded-xl border text-white font-medium transition ${
-                            isPlaying
-                              ? "bg-green-900/40 border-green-500/40"
-                              : "bg-black/40 border-white/20 hover:bg-black/50"
-                          }`}
-                          onClick={handleListenIngredients}
-                          disabled={isPlaying}
-                          data-testid="button-listen-ingredients-pace"
-                        >
-                          {isPlaying ? "Speaking..." : "Listen to Chef"}
-                        </button>
-                      )}
-
-                      {/* Inputs */}
-                      {hasListenedStep3 && (
-                        <>
-                          {/* Ingredient Notes */}
-                          <div>
-                            <label className="block text-sm text-white mb-1">
-                              Ingredients to include or avoid (optional)
-                            </label>
-                            <textarea
-                              value={ingredientNotes}
-                              onChange={(e) =>
-                                setIngredientNotes(e.target.value)
-                              }
-                              placeholder="e.g., no mushrooms, extra garlic, dairy-free..."
-                              className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-16 resize-none text-sm"
-                              maxLength={250}
-                            />
-                            <p className="text-xs text-white/60 mt-1 text-right">
-                              {ingredientNotes.length}/250
-                            </p>
-                          </div>
-
-                          {/* Cooking Pace */}
-                          <div className="space-y-2">
-                            <label className="block text-sm text-white">
-                              Cooking pace
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                              {["Quick & Simple", "Taking My Time"].map(
-                                (pace) => (
-                                  <button
-                                    key={pace}
-                                    onClick={() => setCookPace(pace)}
-                                    className={`py-2 rounded-lg border text-sm transition ${
-                                      cookPace === pace
-                                        ? "bg-lime-600 text-black border-lime-600"
-                                        : "bg-black/40 text-white border-white/20 hover:bg-black/50"
-                                    }`}
-                                  >
-                                    {pace}
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          </div>
-
-                          <button
-                            className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
-                            disabled={!cookPace || isPlaying}
-                            onClick={handleSubmitIngredients}
-                            data-testid="button-submit-ingredients-pace"
-                          >
-                            Continue
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
+                    <button
+                      className="w-full py-3 mt-4 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                      data-testid="button-generate-meal"
+                    >
+                      Generate My Meal
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             )}

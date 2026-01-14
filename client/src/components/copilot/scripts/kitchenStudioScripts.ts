@@ -19,3 +19,11 @@ export const KITCHEN_STUDIO_INGREDIENTS_PACE =
 // Kitchen Studio - After ingredients/pace confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
   "Got it. Let's set up your kitchen.";
+
+// Kitchen Studio - Equipment roll call
+export const KITCHEN_STUDIO_EQUIPMENT =
+  "What equipment do you have ready? Skillet, cutting board, mixing bowl — whatever you've got.";
+
+// Kitchen Studio - After equipment confirmed
+export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
+  "Alright. Here's what we're making.";
