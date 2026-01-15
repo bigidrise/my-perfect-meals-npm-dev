@@ -4,15 +4,14 @@
 export const KITCHEN_STUDIO_INTRO =
   "Alright - What do we feel like making today?";
 
-export const KITCHEN_STUDIO_STEP2 =
-  "Nice. What cooking method? ";
+export const KITCHEN_STUDIO_STEP2 = "Nice. What are using to cook? ";
 
 // Kitchen Studio - Cooking method question
-export const KITCHEN_STUDIO_COOK_METHOD =
-  "Stovetop, oven, air fryer, or grill?";
+export const KITCHEN_STUDIO_COOK_METHOD = "";
 
 // Kitchen Studio - After cooking method selected
-export const KITCHEN_STUDIO_COOK_CONFIRMED = "Perfect. Now let me explain how the Chefs Kitchen works.";
+export const KITCHEN_STUDIO_COOK_CONFIRMED =
+  "Perfect. Now let me explain how this works.";
 
 // Kitchen Studio - Preferences question (more specific)
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
@@ -23,8 +22,7 @@ export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
   "Got it. How many people are you cooking for?";
 
 // Kitchen Studio - Servings question
-export const KITCHEN_STUDIO_SERVINGS =
-  "How many people are you cooking for?";
+export const KITCHEN_STUDIO_SERVINGS = "";
 
 // Kitchen Studio - After servings confirmed
 export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
@@ -53,12 +51,10 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 };
 
 // Open Kitchen narration beats
-export const KITCHEN_STUDIO_OPEN_START =
-  "";
+export const KITCHEN_STUDIO_OPEN_START = "";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS1 = "";
 
-export const KITCHEN_STUDIO_OPEN_PROGRESS2 =
-  "";
+export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 
 export const KITCHEN_STUDIO_OPEN_COMPLETE = "";

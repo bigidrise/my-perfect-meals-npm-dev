@@ -2,7 +2,18 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, ChefHat, Loader2, Users, Brain, Play, Pause, RotateCcw, Volume2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Sparkles,
+  ChefHat,
+  Loader2,
+  Users,
+  Brain,
+  Play,
+  Pause,
+  RotateCcw,
+  Volume2,
+} from "lucide-react";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
@@ -11,9 +22,15 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import MealCardActions from "@/components/MealCardActions";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
-import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
+import {
+  generateMedicalBadges,
+  getUserMedicalProfile,
+} from "@/utils/medicalPersonalization";
 import { setQuickView } from "@/lib/macrosQuickView";
-import { extractTimerSeconds, formatTimeRemaining } from "@/components/chefs-kitchen/timerUtils";
+import {
+  extractTimerSeconds,
+  formatTimeRemaining,
+} from "@/components/chefs-kitchen/timerUtils";
 import {
   KITCHEN_STUDIO_INTRO,
   KITCHEN_STUDIO_STEP2,
@@ -38,9 +55,11 @@ type KitchenMode = "entry" | "studio" | "prepare";
 // Check for external prepare mode synchronously on load
 function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
   try {
-    const externalPrepare = localStorage.getItem("mpm_chefs_kitchen_external_prepare");
+    const externalPrepare = localStorage.getItem(
+      "mpm_chefs_kitchen_external_prepare",
+    );
     const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
-    
+
     if (externalPrepare === "true" && saved) {
       // Clear flags immediately
       localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
@@ -59,7 +78,13 @@ interface GeneratedMeal {
   name: string;
   description?: string;
   mealType?: string;
-  ingredients: Array<{ name: string; quantity?: string; amount?: number; unit?: string; notes?: string }>;
+  ingredients: Array<{
+    name: string;
+    quantity?: string;
+    amount?: number;
+    unit?: string;
+    notes?: string;
+  }>;
   instructions: string[] | string;
   imageUrl?: string | null;
   calories?: number;
@@ -82,7 +107,7 @@ interface GeneratedMeal {
 export default function ChefsKitchenPage() {
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("chefs-kitchen");
-  
+
   // Check for external prepare mode SYNCHRONOUSLY on first render
   const initialState = getInitialMode();
   const [mode, setMode] = useState<KitchenMode>(initialState.mode);
@@ -125,7 +150,9 @@ export default function ChefsKitchenPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Get equipment list based on cooking method
-  const suggestedEquipment = cookMethod ? EQUIPMENT_BY_METHOD[cookMethod] || [] : [];
+  const suggestedEquipment = cookMethod
+    ? EQUIPMENT_BY_METHOD[cookMethod] || []
+    : [];
 
   // Edit handlers - unlock step and reset downstream
   const editStep1 = () => {
@@ -194,13 +221,13 @@ export default function ChefsKitchenPage() {
     setEquipment("");
     setStep5Listened(false);
     setStep5Locked(false);
-    
+
     // Clear generation state
     setIsGeneratingMeal(false);
     setGenerationProgress(0);
     setGeneratedMeal(null);
     setGenerationError(null);
-    
+
     // Clear Phase Two state
     setPrepStep(0);
     setIsTimerRunning(false);
@@ -209,7 +236,7 @@ export default function ChefsKitchenPage() {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
+
     // Clear persisted meal and prep state
     try {
       localStorage.removeItem("mpm_chefs_kitchen_meal");
@@ -217,12 +244,12 @@ export default function ChefsKitchenPage() {
     } catch {
       // Ignore storage errors
     }
-    
+
     // Clear any running progress interval
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
-    
+
     // Return to studio mode
     setMode("studio");
   };
@@ -243,7 +270,7 @@ export default function ChefsKitchenPage() {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
+
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -257,17 +284,17 @@ export default function ChefsKitchenPage() {
   const [generationProgress, setGenerationProgress] = useState(0);
   // Initialize with external meal if coming from prepare mode
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(
-    externalMeal
+    externalMeal,
   );
   const [generationError, setGenerationError] = useState<string | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Display meal for translations (allows showing translated content while preserving original)
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
-  
+
   // Use displayMeal for rendering, fallback to generatedMeal
   const mealToShow = displayMeal || generatedMeal;
-  
+
   // Persistence key for Chef's Kitchen meal
   const CHEF_MEAL_KEY = "mpm_chefs_kitchen_meal";
 
@@ -275,10 +302,10 @@ export default function ChefsKitchenPage() {
   useEffect(() => {
     // Skip if we already have an external meal loaded for prepare mode
     if (externalMeal) return;
-    
+
     try {
       const saved = localStorage.getItem(CHEF_MEAL_KEY);
-      
+
       if (saved) {
         const parsed = JSON.parse(saved) as GeneratedMeal;
         setGeneratedMeal(parsed);
@@ -300,7 +327,7 @@ export default function ChefsKitchenPage() {
       // Ignore parse errors
     }
   }, [externalMeal]);
-  
+
   // Persist meal when generated
   useEffect(() => {
     if (generatedMeal) {
@@ -316,12 +343,15 @@ export default function ChefsKitchenPage() {
   useEffect(() => {
     if (mode === "prepare" && generatedMeal) {
       try {
-        localStorage.setItem("mpm_chefs_kitchen_prep", JSON.stringify({
-          prepStep,
-          timerSeconds,
-          isTimerRunning,
-          mealId: generatedMeal.id,
-        }));
+        localStorage.setItem(
+          "mpm_chefs_kitchen_prep",
+          JSON.stringify({
+            prepStep,
+            timerSeconds,
+            isTimerRunning,
+            mealId: generatedMeal.id,
+          }),
+        );
       } catch {
         // Ignore storage errors
       }
@@ -352,7 +382,7 @@ export default function ChefsKitchenPage() {
     document.title = "Chef's Kitchen 👨🏿‍🍳 | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
-  
+
   // Reset displayMeal when generatedMeal changes
   useEffect(() => {
     setDisplayMeal(null);
@@ -394,12 +424,12 @@ export default function ChefsKitchenPage() {
         `Create with Chef: ${dishIdea}`,
         `Cooking method: ${cookMethod}`,
       ];
-      
+
       // Add preferences/guardrails from Step 3 (dietary, pace, etc.)
       if (ingredientNotes) {
         chefPromptParts.push(`Preferences: ${ingredientNotes}`);
       }
-      
+
       // Equipment context (informational - helps AI understand constraints)
       const equipmentContext = equipment || suggestedEquipment.join(", ");
       if (equipmentContext) {
@@ -431,41 +461,46 @@ export default function ChefsKitchenPage() {
 
       const data = await response.json();
       console.log("🍳 Chef's Kitchen API response:", data);
-      
+
       const meal = data.meal;
-      
+
       if (!meal) {
         throw new Error("No meal data returned from API");
       }
-      
+
       // Normalize the meal response - preserve all fields exactly as Craving Creator returns
       // FinalMeal from stableMealGenerator has: nutrition.{calories, protein, carbs, fat}
       const srcNutrition = meal.nutrition || {};
-      
+
       // Compute nutrition values - prioritize nested nutrition object (what Craving Creator returns)
       const nutritionCalories = srcNutrition.calories ?? meal.calories ?? 0;
       const nutritionProtein = srcNutrition.protein ?? meal.protein ?? 0;
       const nutritionCarbs = srcNutrition.carbs ?? meal.carbs ?? 0;
       const nutritionFat = srcNutrition.fat ?? meal.fat ?? 0;
-      
+
       const normalizedMeal: GeneratedMeal = {
         id: meal.id || crypto.randomUUID(),
         name: meal.name || meal.title || "Chef's Creation",
         description: meal.description || meal.reasoning,
         mealType: meal.mealType || "dinner",
         // Preserve ingredient objects exactly - FinalMeal uses amount/unit/notes
-        ingredients: Array.isArray(meal.ingredients) 
+        ingredients: Array.isArray(meal.ingredients)
           ? meal.ingredients.map((ing: any) => {
               // Handle both string ingredients and full objects
-              if (typeof ing === 'string') {
-                return { name: ing, amount: undefined, unit: undefined, notes: undefined };
+              if (typeof ing === "string") {
+                return {
+                  name: ing,
+                  amount: undefined,
+                  unit: undefined,
+                  notes: undefined,
+                };
               }
               return {
-                name: ing.name || '',
+                name: ing.name || "",
                 quantity: ing.quantity,
                 amount: ing.amount ?? ing.grams, // FinalMeal uses 'amount', skeleton uses 'grams'
-                unit: ing.unit ?? 'g',
-                notes: ing.notes ?? ''
+                unit: ing.unit ?? "g",
+                notes: ing.notes ?? "",
               };
             })
           : [],
@@ -483,15 +518,19 @@ export default function ChefsKitchenPage() {
           carbs: nutritionCarbs,
           fat: nutritionFat,
         },
-        medicalBadges: Array.isArray(meal.medicalBadges) ? meal.medicalBadges : [],
+        medicalBadges: Array.isArray(meal.medicalBadges)
+          ? meal.medicalBadges
+          : [],
         flags: Array.isArray(meal.flags) ? meal.flags : [],
-        servingSize: meal.servingSize || `${servings} ${servings === 1 ? 'serving' : 'servings'}`,
+        servingSize:
+          meal.servingSize ||
+          `${servings} ${servings === 1 ? "serving" : "servings"}`,
         servings: meal.servings || servings,
         reasoning: meal.reasoning,
       };
-      
+
       console.log("✅ Chef's Kitchen normalized meal:", normalizedMeal);
-      
+
       setGenerationProgress(100);
       setIsGeneratingMeal(false);
       setGeneratedMeal(normalizedMeal);
@@ -503,7 +542,8 @@ export default function ChefsKitchenPage() {
         clearInterval(progressIntervalRef.current);
       }
       setIsGeneratingMeal(false);
-      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
+      const errorMessage =
+        error instanceof Error ? error.message : "Something went wrong";
       setGenerationError(`${errorMessage}. Please try again.`);
       console.error("🚨 Chef's Kitchen generation error:", error);
     }
@@ -532,7 +572,8 @@ export default function ChefsKitchenPage() {
           </button>
 
           <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Chef&apos;s Kitchen <span className="text-5xl leading-none">👨🏿‍🍳</span>
+            Chef&apos;s Kitchen{" "}
+            <span className="text-5xl leading-none">👨🏿‍🍳</span>
           </h1>
 
           <div className="flex-grow" />
@@ -645,7 +686,7 @@ export default function ChefsKitchenPage() {
                 onListen={() => {
                   if (step2Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_COOK_METHOD, () =>
-                    setStep2Listened(true)
+                    setStep2Listened(true),
                   );
                 }}
                 onSubmit={() => {
@@ -679,7 +720,7 @@ export default function ChefsKitchenPage() {
                 onListen={() => {
                   if (step3Listened || isPlaying) return;
                   speak(KITCHEN_STUDIO_INGREDIENTS_PACE, () =>
-                    setStep3Listened(true)
+                    setStep3Listened(true),
                   );
                 }}
                 onSubmit={() => {
@@ -697,7 +738,7 @@ export default function ChefsKitchenPage() {
               <KitchenStepCard
                 stepTitle="Step 4 · Servings"
                 question="How many people are we cooking for?"
-                summaryText={`Cooking for: ${servings} ${servings === 1 ? 'person' : 'people'}`}
+                summaryText={`Cooking for: ${servings} ${servings === 1 ? "person" : "people"}`}
                 value={String(servings)}
                 setValue={(v) => setServings(Number(v) || 2)}
                 hasListened={step4Listened}
@@ -783,7 +824,8 @@ export default function ChefsKitchenPage() {
                           <strong>Notes:</strong> {ingredientNotes || "None"}
                         </p>
                         <p className="text-sm text-white/90">
-                          <strong>Servings:</strong> {servings} {servings === 1 ? 'person' : 'people'}
+                          <strong>Servings:</strong> {servings}{" "}
+                          {servings === 1 ? "person" : "people"}
                         </p>
                         <p className="text-sm text-white/90">
                           <strong>Equipment:</strong> {equipment}
@@ -850,7 +892,9 @@ export default function ChefsKitchenPage() {
                       </div>
 
                       {mealToShow.description && (
-                        <p className="text-white/90">{mealToShow.description}</p>
+                        <p className="text-white/90">
+                          {mealToShow.description}
+                        </p>
                       )}
 
                       {/* Image */}
@@ -869,7 +913,10 @@ export default function ChefsKitchenPage() {
                         <div className="flex items-center gap-2 text-sm text-white">
                           <Users className="h-4 w-4" />
                           <span className="font-medium">Serving Size:</span>
-                          <span>{mealToShow.servingSize || `${servings} ${servings === 1 ? 'serving' : 'servings'}`}</span>
+                          <span>
+                            {mealToShow.servingSize ||
+                              `${servings} ${servings === 1 ? "serving" : "servings"}`}
+                          </span>
                         </div>
                       </div>
 
@@ -877,9 +924,20 @@ export default function ChefsKitchenPage() {
                       {servings > 1 && (
                         <div className="p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/20">
                           <div className="text-xs text-white text-center">
-                            <strong>Total nutrition below is for {servings} servings.</strong>
+                            <strong>
+                              Total nutrition below is for {servings} servings.
+                            </strong>
                             <br />
-                            Per serving: {Math.round((mealToShow.calories || 0) / servings)} cal | {Math.round((mealToShow.protein || 0) / servings)}g protein | {Math.round((mealToShow.carbs || 0) / servings)}g carbs | {Math.round((mealToShow.fat || 0) / servings)}g fat
+                            Per serving:{" "}
+                            {Math.round(
+                              (mealToShow.calories || 0) / servings,
+                            )}{" "}
+                            cal |{" "}
+                            {Math.round((mealToShow.protein || 0) / servings)}g
+                            protein |{" "}
+                            {Math.round((mealToShow.carbs || 0) / servings)}g
+                            carbs |{" "}
+                            {Math.round((mealToShow.fat || 0) / servings)}g fat
                           </div>
                         </div>
                       )}
@@ -887,19 +945,27 @@ export default function ChefsKitchenPage() {
                       {/* Macros Grid */}
                       <div className="grid grid-cols-4 gap-4 text-center">
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                          <div className="text-lg font-bold text-white">{mealToShow.calories || 0}</div>
+                          <div className="text-lg font-bold text-white">
+                            {mealToShow.calories || 0}
+                          </div>
                           <div className="text-xs text-white">Calories</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                          <div className="text-lg font-bold text-white">{mealToShow.protein || 0}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {mealToShow.protein || 0}g
+                          </div>
                           <div className="text-xs text-white">Protein</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                          <div className="text-lg font-bold text-white">{mealToShow.carbs || 0}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {mealToShow.carbs || 0}g
+                          </div>
                           <div className="text-xs text-white">Carbs</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                          <div className="text-lg font-bold text-white">{mealToShow.fat || 0}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {mealToShow.fat || 0}g
+                          </div>
                           <div className="text-xs text-white">Fat</div>
                         </div>
                       </div>
@@ -911,11 +977,15 @@ export default function ChefsKitchenPage() {
                           meal={{
                             name: generatedMeal.name,
                             description: generatedMeal.description,
-                            ingredients: generatedMeal.ingredients.map((ing) => ({
-                              name: ing.name,
-                              amount: String(ing.amount ?? ing.quantity ?? ''),
-                              unit: ing.unit,
-                            })),
+                            ingredients: generatedMeal.ingredients.map(
+                              (ing) => ({
+                                name: ing.name,
+                                amount: String(
+                                  ing.amount ?? ing.quantity ?? "",
+                                ),
+                                unit: ing.unit,
+                              }),
+                            ),
                             instructions: generatedMeal.instructions,
                             nutrition: generatedMeal.nutrition,
                           }}
@@ -923,8 +993,12 @@ export default function ChefsKitchenPage() {
                             setDisplayMeal({
                               ...generatedMeal,
                               name: updated.name || generatedMeal.name,
-                              description: updated.description || generatedMeal.description,
-                              instructions: updated.instructions || generatedMeal.instructions,
+                              description:
+                                updated.description ||
+                                generatedMeal.description,
+                              instructions:
+                                updated.instructions ||
+                                generatedMeal.instructions,
                             });
                           }}
                         />
@@ -942,21 +1016,29 @@ export default function ChefsKitchenPage() {
                           ingredients: generatedMeal.ingredients.map((ing) => ({
                             name: ing.name,
                             amount: ing.amount ?? 1,
-                            unit: (ing.unit ?? 'serving').toLowerCase(),
+                            unit: (ing.unit ?? "serving").toLowerCase(),
                           })),
                         };
-                        const medicalBadges = generatedMeal.medicalBadges?.length
+                        const medicalBadges = generatedMeal.medicalBadges
+                          ?.length
                           ? generatedMeal.medicalBadges
-                          : generateMedicalBadges(mealForBadges as any, profile);
+                          : generateMedicalBadges(
+                              mealForBadges as any,
+                              profile,
+                            );
 
                         return medicalBadges && medicalBadges.length > 0 ? (
                           <div className="flex items-center gap-3">
                             <HealthBadgesPopover
                               badges={medicalBadges.map((b: any) =>
-                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)
+                                typeof b === "string"
+                                  ? b
+                                  : b.badge || b.id || b.condition || b.label,
                               )}
                             />
-                            <h3 className="font-semibold text-white">Medical Safety</h3>
+                            <h3 className="font-semibold text-white">
+                              Medical Safety
+                            </h3>
                           </div>
                         ) : null;
                       })()}
@@ -964,11 +1046,14 @@ export default function ChefsKitchenPage() {
                       {/* Ingredients */}
                       {generatedMeal.ingredients?.length > 0 && (
                         <div>
-                          <h4 className="font-semibold mb-2 text-white">Ingredients:</h4>
+                          <h4 className="font-semibold mb-2 text-white">
+                            Ingredients:
+                          </h4>
                           <ul className="text-sm text-white/80 space-y-1">
                             {generatedMeal.ingredients.map((ing, i) => (
                               <li key={i}>
-                                {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
+                                {ing.amount ?? ing.quantity} {ing.unit}{" "}
+                                {ing.name}
                               </li>
                             ))}
                           </ul>
@@ -978,10 +1063,12 @@ export default function ChefsKitchenPage() {
                       {/* Instructions */}
                       {mealToShow.instructions && (
                         <div>
-                          <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                          <h4 className="font-semibold mb-2 text-white">
+                            Instructions:
+                          </h4>
                           <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
                             {Array.isArray(mealToShow.instructions)
-                              ? mealToShow.instructions.join('\n')
+                              ? mealToShow.instructions.join("\n")
                               : mealToShow.instructions}
                           </div>
                         </div>
@@ -994,7 +1081,9 @@ export default function ChefsKitchenPage() {
                             <Brain className="h-4 w-4" />
                             Why This Works For You:
                           </h4>
-                          <p className="text-sm text-white/80">{mealToShow.reasoning}</p>
+                          <p className="text-sm text-white/80">
+                            {mealToShow.reasoning}
+                          </p>
                         </div>
                       )}
 
@@ -1009,9 +1098,11 @@ export default function ChefsKitchenPage() {
                             fat: Math.round(generatedMeal.fat || 0),
                             calories: Math.round(generatedMeal.calories || 0),
                             dateISO: new Date().toISOString().slice(0, 10),
-                            mealSlot: 'snacks',
+                            mealSlot: "snacks",
                           });
-                          setLocation('/biometrics?from=chefs-kitchen&view=macros');
+                          setLocation(
+                            "/biometrics?from=chefs-kitchen&view=macros",
+                          );
                         }}
                         className="w-full py-3 rounded-xl bg-black hover:bg-black/80 text-white font-semibold text-sm transition"
                       >
@@ -1030,7 +1121,6 @@ export default function ChefsKitchenPage() {
                       >
                         Prepare This Meal
                       </button>
-                      
                     </div>
                   )}
                 </CardContent>
@@ -1072,7 +1162,10 @@ export default function ChefsKitchenPage() {
                       </p>
                       <ul className="space-y-1">
                         {generatedMeal.ingredients.map((ing, i) => (
-                          <li key={i} className="text-sm text-white/70 flex items-center gap-2">
+                          <li
+                            key={i}
+                            className="text-sm text-white/70 flex items-center gap-2"
+                          >
                             <span className="text-lime-500">•</span>
                             {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
                           </li>
@@ -1088,7 +1181,10 @@ export default function ChefsKitchenPage() {
                         </p>
                         <ul className="space-y-1">
                           {suggestedEquipment.map((item, i) => (
-                            <li key={i} className="text-sm text-white/70 flex items-center gap-2">
+                            <li
+                              key={i}
+                              className="text-sm text-white/70 flex items-center gap-2"
+                            >
                               <span className="text-lime-500">•</span>
                               {item}
                             </li>
@@ -1100,7 +1196,11 @@ export default function ChefsKitchenPage() {
                     {/* Listen to Chef */}
                     <button
                       className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
-                      onClick={() => speak("Before we start cooking, let's get everything ready. Make sure you have all your ingredients measured out and your equipment within reach. This is called mise en place - everything in its place. Take your time, there's no rush.")}
+                      onClick={() =>
+                        speak(
+                          "Before we start cooking, let's get everything ready. Make sure you have all your ingredients measured out and your equipment within reach.",
+                        )
+                      }
                     >
                       <Volume2 className="h-4 w-4" />
                       Listen to Chef
@@ -1119,221 +1219,245 @@ export default function ChefsKitchenPage() {
                 )}
 
                 {/* COOKING STEPS (prepStep > 0) */}
-                {prepStep > 0 && (() => {
-                  const instructions = Array.isArray(generatedMeal.instructions)
-                    ? generatedMeal.instructions
-                    : [generatedMeal.instructions || ""];
-                  const totalSteps = instructions.length;
-                  const currentInstruction = instructions[prepStep - 1] || "";
-                  const detectedTimer = extractTimerSeconds(currentInstruction);
-                  const isFinalStep = prepStep === totalSteps;
-                  const isPastFinalStep = prepStep > totalSteps;
+                {prepStep > 0 &&
+                  (() => {
+                    const instructions = Array.isArray(
+                      generatedMeal.instructions,
+                    )
+                      ? generatedMeal.instructions
+                      : [generatedMeal.instructions || ""];
+                    const totalSteps = instructions.length;
+                    const currentInstruction = instructions[prepStep - 1] || "";
+                    const detectedTimer =
+                      extractTimerSeconds(currentInstruction);
+                    const isFinalStep = prepStep === totalSteps;
+                    const isPastFinalStep = prepStep > totalSteps;
 
-                  // Plating & Serving (after final cooking step)
-                  if (isPastFinalStep) {
+                    // Plating & Serving (after final cooking step)
+                    if (isPastFinalStep) {
+                      return (
+                        <div className="space-y-4">
+                          <div className="text-center py-4">
+                            <Sparkles className="h-8 w-8 text-yellow-500 mx-auto mb-3" />
+                            <h3 className="text-lg font-bold text-white mb-2">
+                              Plating & Serving
+                            </h3>
+                            <p className="text-sm text-white/80">
+                              Divide evenly into {servings}{" "}
+                              {servings === 1 ? "portion" : "portions"}. Serve
+                              warm.
+                            </p>
+                            <p className="text-sm text-white/60 mt-2">
+                              Optional: garnish with herbs, lemon, or fresh
+                              greens.
+                            </p>
+                          </div>
+
+                          {/* Listen to Chef */}
+                          <button
+                            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                            onClick={() =>
+                              speak(
+                                `Nice work! Time to plate up. Divide this evenly into ${servings} ${servings === 1 ? "portion" : "portions"}. Serve it warm, and if you want to add a finishing touch, try some fresh herbs, a squeeze of lemon, or some greens on the side.`,
+                              )
+                            }
+                          >
+                            <Volume2 className="h-4 w-4" />
+                            Listen to Chef
+                          </button>
+
+                          <div className="flex gap-3">
+                            <button
+                              className="flex-1 py-3 rounded-xl bg-black/40 border border-white/20 text-white text-sm"
+                              onClick={() => {
+                                stopChef();
+                                setPrepStep(0);
+                                setMode("studio");
+                                try {
+                                  localStorage.removeItem(
+                                    "mpm_chefs_kitchen_prep",
+                                  );
+                                } catch {}
+                              }}
+                            >
+                              Back to Meal Card
+                            </button>
+                            <button
+                              className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
+                              onClick={() => {
+                                stopChef();
+                                restartKitchenStudio();
+                              }}
+                            >
+                              Cook Another Meal
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div className="space-y-4">
-                        <div className="text-center py-4">
-                          <Sparkles className="h-8 w-8 text-yellow-500 mx-auto mb-3" />
-                          <h3 className="text-lg font-bold text-white mb-2">
-                            Plating & Serving
-                          </h3>
-                          <p className="text-sm text-white/80">
-                            Divide evenly into {servings} {servings === 1 ? 'portion' : 'portions'}. Serve warm.
-                          </p>
-                          <p className="text-sm text-white/60 mt-2">
-                            Optional: garnish with herbs, lemon, or fresh greens.
+                        {/* Step Progress */}
+                        <div className="flex items-center justify-between text-sm text-white/70">
+                          <span>
+                            Step {prepStep} of {totalSteps}
+                          </span>
+                          <div className="flex gap-1">
+                            {Array.from({ length: totalSteps }, (_, i) => (
+                              <div
+                                key={i}
+                                className={`w-2 h-2 rounded-full ${
+                                  i < prepStep ? "bg-lime-500" : "bg-white/30"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Current Instruction */}
+                        <div className="rounded-xl border border-white/20 bg-black/40 p-4">
+                          <p className="text-sm text-white/90 leading-relaxed">
+                            {currentInstruction}
                           </p>
                         </div>
 
-                        {/* Listen to Chef */}
+                        {/* Listen to Chef for this step */}
                         <button
                           className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
-                          onClick={() => speak(`Nice work! Time to plate up. Divide this evenly into ${servings} ${servings === 1 ? 'portion' : 'portions'}. Serve it warm, and if you want to add a finishing touch, try some fresh herbs, a squeeze of lemon, or some greens on the side.`)}
+                          onClick={() => speak(currentInstruction)}
                         >
                           <Volume2 className="h-4 w-4" />
                           Listen to Chef
                         </button>
 
-                        <div className="flex gap-3">
-                          <button
-                            className="flex-1 py-3 rounded-xl bg-black/40 border border-white/20 text-white text-sm"
-                            onClick={() => {
-                              stopChef();
-                              setPrepStep(0);
-                              setMode("studio");
-                              try {
-                                localStorage.removeItem("mpm_chefs_kitchen_prep");
-                              } catch {}
-                            }}
-                          >
-                            Back to Meal Card
-                          </button>
-                          <button
-                            className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
-                            onClick={() => {
-                              stopChef();
-                              restartKitchenStudio();
-                            }}
-                          >
-                            Cook Another Meal
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }
+                        {/* Timer Controls (if detected or running) */}
+                        {(detectedTimer ||
+                          isTimerRunning ||
+                          timerSeconds > 0) && (
+                          <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+                            {!isTimerRunning &&
+                              timerSeconds === 0 &&
+                              detectedTimer && (
+                                <button
+                                  className="w-full py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-black font-medium text-sm flex items-center justify-center gap-2"
+                                  onClick={() => {
+                                    stopChef();
+                                    setTimerSeconds(detectedTimer);
+                                    setIsTimerRunning(true);
+                                  }}
+                                >
+                                  <Play className="h-4 w-4" />
+                                  Start Timer ({Math.round(
+                                    detectedTimer / 60,
+                                  )}{" "}
+                                  min)
+                                </button>
+                              )}
 
-                  return (
-                    <div className="space-y-4">
-                      {/* Step Progress */}
-                      <div className="flex items-center justify-between text-sm text-white/70">
-                        <span>Step {prepStep} of {totalSteps}</span>
-                        <div className="flex gap-1">
-                          {Array.from({ length: totalSteps }, (_, i) => (
-                            <div
-                              key={i}
-                              className={`w-2 h-2 rounded-full ${
-                                i < prepStep ? 'bg-lime-500' : 'bg-white/30'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Current Instruction */}
-                      <div className="rounded-xl border border-white/20 bg-black/40 p-4">
-                        <p className="text-sm text-white/90 leading-relaxed">
-                          {currentInstruction}
-                        </p>
-                      </div>
-
-                      {/* Listen to Chef for this step */}
-                      <button
-                        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
-                        onClick={() => speak(currentInstruction)}
-                      >
-                        <Volume2 className="h-4 w-4" />
-                        Listen to Chef
-                      </button>
-
-                      {/* Timer Controls (if detected or running) */}
-                      {(detectedTimer || isTimerRunning || timerSeconds > 0) && (
-                        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
-                          {!isTimerRunning && timerSeconds === 0 && detectedTimer && (
-                            <button
-                              className="w-full py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-black font-medium text-sm flex items-center justify-center gap-2"
-                              onClick={() => {
-                                stopChef();
-                                setTimerSeconds(detectedTimer);
-                                setIsTimerRunning(true);
-                              }}
-                            >
-                              <Play className="h-4 w-4" />
-                              Start Timer ({Math.round(detectedTimer / 60)} min)
-                            </button>
-                          )}
-
-                          {(isTimerRunning || timerSeconds > 0) && (
-                            <div className="text-center space-y-3">
-                              <p className="text-3xl font-mono font-bold text-white">
-                                {formatTimeRemaining(timerSeconds)}
-                              </p>
-                              <div className="flex gap-2 justify-center">
-                                {isTimerRunning ? (
+                            {(isTimerRunning || timerSeconds > 0) && (
+                              <div className="text-center space-y-3">
+                                <p className="text-3xl font-mono font-bold text-white">
+                                  {formatTimeRemaining(timerSeconds)}
+                                </p>
+                                <div className="flex gap-2 justify-center">
+                                  {isTimerRunning ? (
+                                    <button
+                                      className="px-4 py-2 rounded-lg bg-black/40 border border-white/20 text-white text-sm flex items-center gap-2"
+                                      onClick={() => {
+                                        stopChef();
+                                        setIsTimerRunning(false);
+                                      }}
+                                    >
+                                      <Pause className="h-4 w-4" />
+                                      Pause
+                                    </button>
+                                  ) : (
+                                    <button
+                                      className="px-4 py-2 rounded-lg bg-lime-600 text-black text-sm flex items-center gap-2"
+                                      onClick={() => {
+                                        stopChef();
+                                        setIsTimerRunning(true);
+                                      }}
+                                    >
+                                      <Play className="h-4 w-4" />
+                                      Resume
+                                    </button>
+                                  )}
                                   <button
                                     className="px-4 py-2 rounded-lg bg-black/40 border border-white/20 text-white text-sm flex items-center gap-2"
                                     onClick={() => {
                                       stopChef();
+                                      setTimerSeconds(0);
                                       setIsTimerRunning(false);
                                     }}
                                   >
-                                    <Pause className="h-4 w-4" />
-                                    Pause
+                                    <RotateCcw className="h-4 w-4" />
+                                    Reset
                                   </button>
-                                ) : (
-                                  <button
-                                    className="px-4 py-2 rounded-lg bg-lime-600 text-black text-sm flex items-center gap-2"
-                                    onClick={() => {
-                                      stopChef();
-                                      setIsTimerRunning(true);
-                                    }}
-                                  >
-                                    <Play className="h-4 w-4" />
-                                    Resume
-                                  </button>
+                                </div>
+                                {timerSeconds === 0 && (
+                                  <p className="text-lime-400 font-medium">
+                                    Timer finished!
+                                  </p>
                                 )}
-                                <button
-                                  className="px-4 py-2 rounded-lg bg-black/40 border border-white/20 text-white text-sm flex items-center gap-2"
-                                  onClick={() => {
-                                    stopChef();
-                                    setTimerSeconds(0);
-                                    setIsTimerRunning(false);
-                                  }}
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                  Reset
-                                </button>
                               </div>
-                              {timerSeconds === 0 && (
-                                <p className="text-lime-400 font-medium">Timer finished!</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                            )}
+                          </div>
+                        )}
 
-                      {/* Navigation */}
-                      <div className="flex gap-3">
-                        {prepStep > 1 && (
+                        {/* Navigation */}
+                        <div className="flex gap-3">
+                          {prepStep > 1 && (
+                            <button
+                              className="flex-1 py-3 rounded-xl bg-black/40 border border-white/20 text-white text-sm"
+                              onClick={() => {
+                                stopChef();
+                                setTimerSeconds(0);
+                                setIsTimerRunning(false);
+                                setPrepStep((s) => s - 1);
+                              }}
+                            >
+                              Previous
+                            </button>
+                          )}
                           <button
-                            className="flex-1 py-3 rounded-xl bg-black/40 border border-white/20 text-white text-sm"
+                            className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
                             onClick={() => {
                               stopChef();
                               setTimerSeconds(0);
                               setIsTimerRunning(false);
-                              setPrepStep((s) => s - 1);
+                              setPrepStep((s) => s + 1);
                             }}
                           >
-                            Previous
+                            {isFinalStep ? "Finish Cooking" : "Next Step"}
                           </button>
-                        )}
+                        </div>
+
+                        {/* Exit Control */}
                         <button
-                          className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
+                          className="w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white/70 text-sm"
                           onClick={() => {
                             stopChef();
-                            setTimerSeconds(0);
-                            setIsTimerRunning(false);
-                            setPrepStep((s) => s + 1);
+                            setMode("studio");
                           }}
                         >
-                          {isFinalStep ? "Finish Cooking" : "Next Step"}
+                          Back to Meal Card
                         </button>
                       </div>
-
-                      {/* Exit Control */}
-                      <button
-                        className="w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white/70 text-sm"
-                        onClick={() => {
-                          stopChef();
-                          setMode("studio");
-                        }}
-                      >
-                        Back to Meal Card
-                      </button>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
               </CardContent>
             </Card>
           </div>
         )}
-        
+
         {/* Extra padding when shopping bar is visible */}
         {generatedMeal && generatedMeal.ingredients?.length > 0 && (
           <div className="h-28" />
         )}
       </div>
-      
+
       {/* Shopping Aggregate Bar - appears after meal is generated */}
       {generatedMeal && generatedMeal.ingredients?.length > 0 && (
         <ShoppingAggregateBar
