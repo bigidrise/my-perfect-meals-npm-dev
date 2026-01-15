@@ -73,6 +73,15 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
   - Teaches: specificity in meal requests, how to use Quick Add, macro accuracy tips
   - Tone: Neutral, system-focused, instructional (~30 seconds)
   - Key files: `client/src/components/ProTipCard.tsx`, all Meal Builder pages
+- **Prepare with Chef System v1.0** (Jan 2026): Global guided cooking mode for step-by-step meal preparation:
+  - Any meal card with instructions can launch the "Prepare with Chef" button (lime-600 color)
+  - Routes to `/prepare-meal` page with Chef narration and step navigation
+  - Auto-detects timers from instruction text (e.g., "cook for 5 minutes")
+  - Session persistence via localStorage allows resume after leaving page
+  - Progress tracking with step completion checkmarks
+  - Chef voice reads each step aloud on demand
+  - Key files: `client/src/pages/PrepareMealPage.tsx`, `client/src/components/ui/meal-card.tsx`, `client/src/components/MealCardActions.tsx`
+  - Uses existing `useChefVoice` hook and TTS infrastructure
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
