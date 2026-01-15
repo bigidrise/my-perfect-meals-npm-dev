@@ -476,6 +476,41 @@ export default function MacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
+          <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
+            <p className="text-sm text-white/90 leading-relaxed">
+              <span className="font-semibold text-blue-300">Scientific Sources:</span>{" "}
+              Calculations based on{" "}
+              <a
+                href="https://pubmed.ncbi.nlm.nih.gov/2305711/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline font-medium"
+              >
+                Mifflin-St Jeor (NCBI/NIH)
+              </a>
+              {" "}and{" "}
+              <a
+                href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline font-medium"
+              >
+                NIH Dietary Reference Intakes
+              </a>
+              . Nutrient data from{" "}
+              <a
+                href="https://fdc.nal.usda.gov/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline font-medium"
+              >
+                USDA FoodData Central
+              </a>
+              .
+            </p>
+          </div>
+
           {/* ⚠️ RENDER GUARD: Goal & Body Type cards MUST ALWAYS render */}
           <div className="grid md:grid-cols-2 gap-4">
             <Card
