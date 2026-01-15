@@ -2,11 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Zap } from "lucide-react";
+import { Clock, Users, Zap, ChefHat } from "lucide-react";
 import type { Recipe } from "@shared/schema";
 import MedicalInfoBubble from "@/components/MedicalInfoBubble";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 
 interface MealCardProps {
   recipe?: Recipe;
@@ -21,6 +22,42 @@ interface MealCardProps {
 export default function MealCard({ recipe, compact = false, onSelect, onViewRecipe, onSendToShoppingList, onCreateMeal, onReplace }: MealCardProps) {
   const { user } = useAuth();
   const userId = user?.id?.toString() || "";
+  const [, setLocation] = useLocation();
+  
+  const hasInstructions = recipe?.instructions && recipe.instructions.length > 0;
+  
+  const handlePrepareWithChef = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!recipe || !hasInstructions) return;
+    
+    const mealData = {
+      id: recipe.id?.toString(),
+      name: recipe.name,
+      description: recipe.description,
+      mealType: recipe.mealType,
+      ingredients: recipe.ingredients || [],
+      instructions: recipe.instructions,
+      imageUrl: recipe.imageUrl,
+      calories: recipe.calories,
+      protein: recipe.protein,
+      carbs: recipe.carbs,
+      fat: recipe.fat,
+      servings: recipe.servings,
+      servingSize: (recipe as any).servingSize,
+      medicalBadges: (recipe as any).medicalBadges || [],
+    };
+    
+    // Store meal data in localStorage before navigation (avoids history state issues)
+    localStorage.setItem("mpm_prepare_meal", JSON.stringify({
+      meal: mealData,
+      source: "meal-card",
+      currentStep: 0,
+      completedSteps: [],
+      timestamp: Date.now(),
+    }));
+    
+    setLocation("/prepare-meal");
+  };
   
   if (!recipe) {
     return (
@@ -229,6 +266,18 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
                 Mark as Eaten
               </Button>
             </div>
+            {hasInstructions && (
+              <div className="flex justify-center">
+                <Button 
+                  size="sm" 
+                  className="text-xs bg-lime-600 hover:bg-lime-500 text-black font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 flex items-center gap-1.5"
+                  onClick={handlePrepareWithChef}
+                >
+                  <ChefHat className="h-3.5 w-3.5" />
+                  Prepare with Chef
+                </Button>
+              </div>
+            )}
           </div>
         )}
         
