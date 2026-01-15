@@ -367,6 +367,25 @@ export default function ChefsKitchenPage() {
     };
   }, []);
 
+  // Listen for "Prepare with Chef" events when already on this page
+  useEffect(() => {
+    const handlePrepareEvent = (e: CustomEvent<GeneratedMeal>) => {
+      const meal = e.detail;
+      if (meal) {
+        setGeneratedMeal(meal);
+        setPrepStep(0);
+        setMode("prepare");
+        // Clear any stale prep state
+        localStorage.removeItem("mpm_chefs_kitchen_prep");
+      }
+    };
+    
+    window.addEventListener("chefs-kitchen-prepare", handlePrepareEvent as EventListener);
+    return () => {
+      window.removeEventListener("chefs-kitchen-prepare", handlePrepareEvent as EventListener);
+    };
+  }, []);
+
   const startOpenKitchen = async () => {
     setIsGeneratingMeal(true);
     setGenerationProgress(10);
