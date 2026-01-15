@@ -87,6 +87,8 @@ export default function ChefsKitchenPage() {
   const initialState = getInitialMode();
   const [mode, setMode] = useState<KitchenMode>(initialState.mode);
   const [externalMeal] = useState<GeneratedMeal | null>(initialState.meal);
+  // Track if we started in prepare mode to prevent later effects from overriding
+  const [startedInPrepareMode] = useState(initialState.mode === "prepare");
 
   // Kitchen Studio state (6 steps: Dish, Method, Preferences, Servings, Equipment, Generate)
   const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
@@ -273,6 +275,8 @@ export default function ChefsKitchenPage() {
 
   // Load persisted meal on mount (only for studio/entry mode - external prepare is handled synchronously)
   useEffect(() => {
+    // Skip if we started in prepare mode - don't override to studio
+    if (startedInPrepareMode) return;
     // Skip if we already have an external meal loaded for prepare mode
     if (externalMeal) return;
     
@@ -299,7 +303,7 @@ export default function ChefsKitchenPage() {
     } catch {
       // Ignore parse errors
     }
-  }, [externalMeal]);
+  }, [externalMeal, startedInPrepareMode]);
   
   // Persist meal when generated
   useEffect(() => {
