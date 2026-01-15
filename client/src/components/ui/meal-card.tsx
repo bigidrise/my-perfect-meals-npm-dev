@@ -31,7 +31,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
     if (!recipe || !hasInstructions) return;
     
     const mealData = {
-      id: recipe.id?.toString(),
+      id: recipe.id?.toString() || crypto.randomUUID(),
       name: recipe.name,
       description: recipe.description,
       mealType: recipe.mealType,
@@ -47,16 +47,11 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
       medicalBadges: (recipe as any).medicalBadges || [],
     };
     
-    // Store meal data in localStorage before navigation (avoids history state issues)
-    localStorage.setItem("mpm_prepare_meal", JSON.stringify({
-      meal: mealData,
-      source: "meal-card",
-      currentStep: 0,
-      completedSteps: [],
-      timestamp: Date.now(),
-    }));
+    // Store meal in Chef's Kitchen format + flag to enter prepare mode
+    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     
-    setLocation("/prepare-meal");
+    setLocation("/chefs-kitchen");
   };
   
   if (!recipe) {

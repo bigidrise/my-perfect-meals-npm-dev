@@ -56,7 +56,7 @@ export default function MealCardActions({
     if (!hasInstructions) return;
     
     const mealData = {
-      id: meal.id,
+      id: meal.id || crypto.randomUUID(),
       name: meal.name,
       description: meal.description,
       mealType: meal.mealType,
@@ -72,16 +72,11 @@ export default function MealCardActions({
       medicalBadges: meal.medicalBadges || [],
     };
     
-    // Store meal data in localStorage before navigation (avoids history state issues)
-    localStorage.setItem("mpm_prepare_meal", JSON.stringify({
-      meal: mealData,
-      source,
-      currentStep: 0,
-      completedSteps: [],
-      timestamp: Date.now(),
-    }));
+    // Store meal in Chef's Kitchen format + flag to enter prepare mode
+    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     
-    setLocation("/prepare-meal");
+    setLocation("/chefs-kitchen");
   };
 
   const currentName = displayContent.name || meal.name;

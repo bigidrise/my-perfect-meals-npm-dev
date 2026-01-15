@@ -73,15 +73,14 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
   - Teaches: specificity in meal requests, how to use Quick Add, macro accuracy tips
   - Tone: Neutral, system-focused, instructional (~30 seconds)
   - Key files: `client/src/components/ProTipCard.tsx`, all Meal Builder pages
-- **Prepare with Chef System v1.0** (Jan 2026): Global guided cooking mode for step-by-step meal preparation:
-  - Any meal card with instructions can launch the "Prepare with Chef" button (lime-600 color)
-  - Routes to `/prepare-meal` page with Chef narration and step navigation
-  - Auto-detects timers from instruction text (e.g., "cook for 5 minutes")
-  - Session persistence via localStorage allows resume after leaving page
-  - Progress tracking with step completion checkmarks
-  - Chef voice reads each step aloud on demand
-  - Key files: `client/src/pages/PrepareMealPage.tsx`, `client/src/components/ui/meal-card.tsx`, `client/src/components/MealCardActions.tsx`
-  - Uses existing `useChefVoice` hook and TTS infrastructure
+- **Prepare with Chef System v1.0** (Jan 2026): Global guided cooking mode reusing Chef's Kitchen Phase Two:
+  - Any meal card with instructions shows "Prepare with Chef" button (lime-600 color)
+  - Button stores meal in `mpm_chefs_kitchen_meal` + sets `mpm_chefs_kitchen_external_prepare` flag
+  - Routes to `/chefs-kitchen` which enters `mode: "prepare"` directly
+  - Reuses existing Phase Two UI in `ChefsKitchenPage.tsx` (no separate page needed)
+  - Features: step-by-step navigation, auto-detected timers, "Listen to Chef" voice, session persistence
+  - Key files: `client/src/pages/lifestyle/ChefsKitchenPage.tsx`, `client/src/components/ui/meal-card.tsx`, `client/src/components/MealCardActions.tsx`
+  - Architecture rule: One system, two entry points (internal from Chef's Kitchen, external from any meal card)
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
