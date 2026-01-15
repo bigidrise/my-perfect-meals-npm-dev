@@ -54,3 +54,11 @@ export const KITCHEN_STUDIO_OPEN_PROGRESS2 =
   "";
 
 export const KITCHEN_STUDIO_OPEN_COMPLETE = "";
+
+// Kitchen Studio - Servings question
+export const KITCHEN_STUDIO_SERVINGS =
+  "How many servings would you like to make?";
+
+// Kitchen Studio - After servings confirmed
+export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
+  "Perfect. I'll prepare that for you.";
