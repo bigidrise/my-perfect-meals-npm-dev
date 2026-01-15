@@ -352,11 +352,12 @@ export default function PricingPage() {
     ],
     premium: [
       "Everything in Basic",
-      "Craving Creator",
-      "Find Meals Near Me / Restaurant Guide",
-      "Fridge Rescue",
-      "Healthy Kids Meals Hub",
-      "Spirit & Lifestyle Hub",
+      "Chef’s Kitchen (create & customize meals)",
+      "Craving Creator (healthy versions of what you want)",
+      "Fridge Rescue (turn what you have into meals)",
+      "Restaurant & Eating Out Guide",
+      "Healthy Kids & Family Meals",
+      "Spirits & Lifestyle Hub",
     ],
     ultimate: [
       "Everything in Premium",
@@ -413,13 +414,16 @@ export default function PricingPage() {
                             : legacyFeatures.ultimate;
 
                       return (
-                        <Card
-                          key={plan.sku}
-                          className={`relative h-full bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl ${
-                            plan.badge ? "ring-1 ring-purple-400/30" : ""
-                          }`}
-                          data-testid={`plan-card-${plan.sku}`}
-                        >
+                          <Card
+                            key={plan.sku}
+                            className={`relative h-full bg-black/30 backdrop-blur-lg text-white shadow-xl ${
+                              plan.sku === "mpm_premium_monthly"
+                                ? "border-2 border-orange-400/60 ring-2 ring-orange-400/40"
+                                : "border border-white/15"
+                            }`}
+                            data-testid={`plan-card-${plan.sku}`}
+                          >
+                            
                           {plan.badge && (
                             <Badge className="absolute top-3 right-3 bg-purple-600/80 text-white backdrop-blur-sm border border-white/10">
                               {plan.badge}
