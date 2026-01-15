@@ -8,7 +8,7 @@ export default function AffiliateOnPricing() {
   const [, setLocation] = useLocation();
 
   return (
-    <Card className="bg-black/60 border-white/10 text-white backdrop-blur-md">
+      <Card className="bg-black/60 text-white backdrop-blur-md border border-purple-400/40 ring-2 ring-purple-400/30 shadow-xl">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
