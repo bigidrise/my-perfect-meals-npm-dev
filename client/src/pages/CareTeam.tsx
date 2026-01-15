@@ -38,7 +38,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { ProRole } from "@/lib/proData";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
@@ -66,30 +65,27 @@ const CARE_TEAM_TOUR_STEPS: TourStep[] = [
 ];
 
 // Types
+type Role = "trainer" | "doctor" | "nutritionist" | "other";
 type Permissions = {
   canViewMacros: boolean;
   canAddMeals: boolean;
   canEditPlan: boolean;
 };
-
 type CareMember = {
   id: string;
   name: string;
   email?: string;
-  role: ProRole;
+  role: Role;
   status: "pending" | "active" | "revoked";
   permissions: Permissions;
 };
 
-// Default permissions by role
-const DEFAULT_PERMS: Record<ProRole, Permissions> = {
+// Default permissions by role (you can tweak later)
+const DEFAULT_PERMS: Record<Role, Permissions> = {
   trainer: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
   doctor: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
-  dietitian: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
   nutritionist: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
-  pa: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
-  np: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
-  rn: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
+  other: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
 };
 
 export default function CareTeamPage() {
@@ -100,7 +96,7 @@ export default function CareTeamPage() {
   const [members, setMembers] = useState<CareMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [invEmail, setInvEmail] = useState("");
-  const [role, setRole] = useState<ProRole>("trainer");
+  const [role, setRole] = useState<Role>("trainer");
   const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS["trainer"]);
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -281,7 +277,7 @@ export default function CareTeamPage() {
                   <Label className="text-white/80">Professional Role</Label>
                   <Select
                     value={role}
-                    onValueChange={(v) => setRole(v as ProRole)}
+                    onValueChange={(v) => setRole(v as Role)}
                   >
                     <SelectTrigger className="bg-black/40 border-white/20 text-white">
                       <SelectValue placeholder="Choose role" />
@@ -289,11 +285,8 @@ export default function CareTeamPage() {
                     <SelectContent>
                       <SelectItem value="trainer">Trainer</SelectItem>
                       <SelectItem value="doctor">Doctor</SelectItem>
-                      <SelectItem value="np">Nurse Practitioner</SelectItem>
-                      <SelectItem value="rn">RN</SelectItem>
-                      <SelectItem value="pa">PA</SelectItem>
                       <SelectItem value="nutritionist">Nutritionist</SelectItem>
-                      <SelectItem value="dietitian">Dietitian</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -498,35 +491,23 @@ function PermToggle({
   );
 }
 
-function roleBadge(role: ProRole) {
-  const map: Record<ProRole, { text: string; className: string }> = {
+function roleBadge(role: Role) {
+  const map: Record<Role, { text: string; className: string }> = {
     trainer: {
       text: "Trainer",
-      className: "bg-orange-600/20 text-orange-300 border-orange-400/40",
+      className: "bg-orange-600/20 text-orange-600/20 border-orange-600/20",
     },
     doctor: {
       text: "Doctor",
       className: "bg-sky-600/20 text-sky-300 border-sky-400/40",
     },
-    np: {
-      text: "Nurse Practitioner",
-      className: "bg-indigo-600/20 text-indigo-300 border-indigo-400/40",
-    },
-    rn: {
-      text: "RN",
-      className: "bg-purple-600/20 text-purple-300 border-purple-400/40",
-    },
-    pa: {
-      text: "PA",
-      className: "bg-teal-600/20 text-teal-300 border-teal-400/40",
-    },
     nutritionist: {
       text: "Nutritionist",
       className: "bg-amber-600/20 text-amber-300 border-amber-400/40",
     },
-    dietitian: {
-      text: "Dietitian",
-      className: "bg-lime-600/20 text-lime-300 border-lime-400/40",
+    other: {
+      text: "Other",
+      className: "bg-zinc-600/20 text-zinc-300 border-zinc-400/40",
     },
   };
   const r = map[role];

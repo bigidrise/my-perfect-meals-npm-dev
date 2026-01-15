@@ -1,0 +1,174 @@
+Perfect. Let’s lock this in and move **cleanly, fast, and without breaking anything**.
+
+Below is the **exact execution plan** — no fluff, no guessing.
+
+---
+
+## ✅ PHASE 1: Define the Feature (once, globally)
+
+### Feature name (internal + UI)
+
+**Prepare with Chef**
+(optional subtitle later: *Guided Cooking Mode*)
+
+### What it is
+
+* A **read-only guided cooking mode**
+* Uses an **existing meal card**
+* No regeneration
+* No macro changes
+* No shopping changes
+* No plan mutation unless user explicitly chooses
+
+Think of it as **“playback + guidance”**, not creation.
+
+---
+
+## ✅ PHASE 2: Global Button (one rule, everywhere)
+
+### Button rules (non-negotiable)
+
+* **Label:** `Prepare with Chef`
+* **Color:** `lime-600` (same as generation)
+* **Visibility condition:**
+
+  ```ts
+  meal.instructions && meal.instructions.length > 0
+  ```
+* **Placement:**
+  On **every meal card**, under:
+
+  * Add to Plan
+  * Add to Macros
+    (same position everywhere)
+
+No branching logic. No builder-specific versions.
+
+---
+
+## ✅ PHASE 3: Routing (this is the key insight)
+
+### You do NOT create multiple pages
+
+You create **one Prepare Mode entry point**.
+
+Two valid approaches — pick **A** (recommended):
+
+### ✅ A) Shared Prepare Mode Route
+
+```
+/prepare/:mealId
+```
+
+What gets passed:
+
+* meal object (or mealId → hydrate from store)
+* source (craving, planner, kids, etc.)
+* readOnly = true
+
+This keeps everything centralized.
+
+---
+
+## ✅ PHASE 4: Prepare Mode UX (Phase Two feature)
+
+### Structure (simple, calm, powerful)
+
+**Header**
+
+* Meal name
+* Medical badges
+* Servings
+* Optional timer icon
+
+**Step List (auto-generated)**
+
+1. Prep
+2. Cooking
+3. Waiting (timers)
+4. Plating / Serving
+
+Each step:
+
+* Instruction text
+* Optional “Listen to Chef”
+* Optional timer
+* Next / Back controls
+* Pause / Resume state
+
+---
+
+## ✅ PHASE 5: Intelligence (light, not heavy AI)
+
+This is **not** generation. It’s enhancement.
+
+### Behind the scenes:
+
+* Parse existing instructions
+* Auto-detect:
+
+  * durations (“cook 20 minutes”)
+  * rest times
+  * temperature cues
+* Attach timers automatically
+* Allow manual override
+
+No LLM calls required initially.
+
+---
+
+## ✅ PHASE 6: Exit Paths (important UX detail)
+
+From Prepare Mode, user can:
+
+* ✅ Finish cooking → **Back to meal card**
+* ✅ Cook again later (state persists)
+* ✅ Create New Meal (explicit action only)
+
+Meal is **never destroyed automatically**.
+
+---
+
+## ✅ PHASE 7: Copilot Script (tone you want)
+
+This is NOT clinical.
+
+Chef tone:
+
+* Confident
+* Friendly
+* Calm
+* “I’ve got you”
+
+Example opening:
+
+> “Alright, let’s cook. I’ll walk you through this step by step. Take your time — I’m right here.”
+
+---
+
+## 🔒 Architectural Rule (write this down)
+
+> **Any meal card with instructions automatically supports Prepare with Chef.**
+
+This makes the feature:
+
+* Future-proof
+* Builder-agnostic
+* Impossible to forget later
+
+---
+
+## What we do next (your call)
+
+Say the word and I will:
+
+1. **Design the Prepare Mode component contract**
+2. **Write the exact props interface**
+3. **Map how existing meal cards hook into it**
+4. **Draft the Copilot scripts for Phase Two**
+5. **Create a rollout checklist for Apple (this feature is review-safe)**
+
+You’re not just adding a feature —
+you’re turning meals into **experiences**.
+
+Whenever you’re ready: **next**.

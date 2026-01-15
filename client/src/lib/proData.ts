@@ -2,16 +2,12 @@
 export type Slot = 'breakfast'|'lunch'|'dinner'|'snack';
 
 export type ProRole =
-  | "trainer"
   | "doctor"
-  | "dietitian"
-  | "nutritionist"
+  | "nurse"
   | "pa"
-  | "np"
-  | "rn";
-
-export type WorkspaceType = "trainer" | "clinician";
-export type BuilderType = "general" | "performance";
+  | "nutritionist"
+  | "dietitian"
+  | "trainer";
 
 export type ClientProfile = {
   id: string;
@@ -20,19 +16,13 @@ export type ClientProfile = {
   notes?: string;
   role?: ProRole;
   archived?: boolean;
-  workspace?: WorkspaceType;
-  assignedBuilder?: BuilderType;
 };
-
-export type StarchStrategy = "one" | "flex";
 
 export type Targets = {
   protein: number;
   starchyCarbs: number;
   fibrousCarbs: number;
   fat: number;
-  // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = 2 meals
-  starchStrategy?: StarchStrategy;
   flags?: {
     // Medical flags (for doctors/dietitians)
     lowSodium?: boolean;
@@ -55,19 +45,6 @@ export type Targets = {
   };
 };
 
-export type ClinicalAdvisoryToggle = {
-  id: string;
-  enabled: boolean;
-  appliedAt?: string;
-  appliedBy?: string;
-};
-
-export type ClinicalAdvisory = {
-  menopause?: ClinicalAdvisoryToggle;
-  insulinResistance?: ClinicalAdvisoryToggle;
-  highStress?: ClinicalAdvisoryToggle;
-};
-
 export type ClinicalContext = {
   role: ProRole;
   diagnosis?: string;
@@ -83,7 +60,6 @@ export type ClinicalContext = {
   followupWeeks?: 4 | 8 | 12;
   patientNote?: string;
   coachNote?: string;
-  advisory?: ClinicalAdvisory;
 };
 
 export type Prefs = {
@@ -280,7 +256,6 @@ export const proStore = {
         starchyCarbs: legacy.carbs ? Math.round(legacy.carbs * 0.7) : 180,
         fibrousCarbs: legacy.carbs ? Math.round(legacy.carbs * 0.3) : 50,
         fat: legacy.fat || 70,
-        starchStrategy: 'one',
         flags: legacy.flags || {},
         carbDirective: legacy.carbDirective || {},
       };
@@ -296,7 +271,6 @@ export const proStore = {
         starchyCarbs: 180,
         fibrousCarbs: 50,
         fat: 70,
-        starchStrategy: 'one',
         flags: {},
         carbDirective: {},
       }
@@ -309,7 +283,6 @@ export const proStore = {
       starchyCarbs: Math.max(0, Number(t.starchyCarbs || 0)),
       fibrousCarbs: Math.max(0, Number(t.fibrousCarbs || 0)),
       fat: Math.max(0, Number(t.fat || 0)),
-      starchStrategy: t.starchStrategy || 'one',
       carbDirective: {
         starchyCapG:
           t.carbDirective?.starchyCapG == null
@@ -359,7 +332,6 @@ export const proStore = {
       followupWeeks: ctx.followupWeeks,
       patientNote: ctx.patientNote?.trim() || undefined,
       coachNote: ctx.coachNote?.trim() || undefined,
-      advisory: ctx.advisory,
     };
     saveState(state);
   },

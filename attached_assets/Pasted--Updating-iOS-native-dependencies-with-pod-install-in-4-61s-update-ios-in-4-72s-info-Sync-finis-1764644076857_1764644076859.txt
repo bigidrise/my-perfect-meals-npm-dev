@@ -1,0 +1,32 @@
+✔ Updating iOS native dependencies with pod install in 4.61s
+✔ update ios in 4.72s
+[info] Sync finished in 5.46s
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % npx cap open ios
+✔ Opening the Xcode workspace... in 3.01s
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % 
+  [Restored Dec 1, 2025 at 8:39:57 PM]
+Last login: Mon Dec  1 20:17:47 on ttys000
+Restored session: Mon Dec  1 20:39:53 CST 2025
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % chmod -R +x ~/Projects/my-perfect-meals-clean-ai/ios/App/Pods/
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % cd ~/Projects/my-perfect-meals-clean-ai
+git pull
+remote: Enumerating objects: 35, done.
+remote: Counting objects: 100% (35/35), done.
+remote: Compressing objects: 100% (11/11), done.
+remote: Total 27 (delta 20), reused 23 (delta 16), pack-reused 0 (from 0)
+Unpacking objects: 100% (27/27), 8.41 KiB | 453.00 KiB/s, done.
+From https://github.com/bigidrise/my-perfect-meals-clean-ai
+   d71fff3..73082a9  main       -> origin/main
+Updating d71fff3..73082a9
+Fast-forward
+ ...AYS-test-on-Tes-1764605498274_1764605498275.txt | 102 +++++++++++++++
+ ...o-your-Replit-A-1764624748742_1764624748744.txt |  91 +++++++++++++
+ ...t-is-generated--1764605388032_1764605388033.txt | 144 +++++++++++++++++++++
+ client/src/pages/DashboardNew.tsx                  |  42 +-----
+ client/src/pages/home.tsx                          |   2 +-
+ client/src/pages/my-biometrics.tsx                 |  26 ++++
+ 6 files changed, 366 insertions(+), 41 deletions(-)
+ create mode 100644 attached_assets/Pasted-Coach-here-s-the-truth-clean-and-simple-You-ALWAYS-go-to-Xcode-first-You-ALWAYS-test-on-Tes-1764605498274_1764605498275.txt
+ create mode 100644 attached_assets/Pasted-Here-you-go-Coach-clean-direct-architect-grade-Copy-paste-this-straight-into-your-Replit-A-1764624748742_1764624748744.txt
+ create mode 100644 attached_assets/Pasted-Perfect-the-architect-did-exactly-what-we-needed-Capacitor-is-live-the-iOS-project-is-generated--1764605388032_1764605388033.txt
+bigidrise@Idrises-iMac my-perfect-meals-clean-ai % 

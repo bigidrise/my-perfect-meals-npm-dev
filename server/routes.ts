@@ -63,7 +63,6 @@ import physicianReportsRoutes from "./routes/physicianReports";
 import mealFinderRouter from "./routes/mealFinder";
 import { registerAdminSql } from "./adminSql";
 import glp1ShotsRoutes from "./routes/glp1Shots"; // Added import for glp1ShotsRoutes
-import glp1Routes from "./routes/glp1"; // GLP-1 profile routes
 import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for stripeCheckoutRouter
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
 import lockedDaysRouter from "./routes/lockedDays";
@@ -559,14 +558,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { 
-        type = 'craving',           // 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef'
+        type = 'craving',           // 'craving' | 'fridge-rescue' | 'premade'
         mealType = 'lunch',         // 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snacks'
         input,                      // string (craving) or string[] (ingredients)
         userId,
         macroTargets,
-        count = 1,
-        dietType,                   // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
-        starchContext               // Starch Game Plan context for intelligent carb distribution
+        count = 1
       } = req.body;
 
       // Feature gate for fridge-rescue and premade types
@@ -612,9 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         input,
         userId,
         macroTargets,
-        count,
-        dietType,
-        starchContext
+        count
       });
 
       // Record metrics for AI health tracking
@@ -681,24 +676,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("[FRIDGE] valid request, items:", fridgeItems.length, "items:", fridgeItems);
 
-      // Fetch user health conditions from database for medical badge generation
-      let userHealthConditions: string[] = [];
-      if (userId && userId !== "demo-user") {
-        try {
-          const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-          if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
-            userHealthConditions = dbUser.healthConditions;
-            console.log("[FRIDGE] User health conditions loaded:", userHealthConditions.length, "conditions");
-          }
-        } catch (err) {
-          console.log("[FRIDGE] Could not fetch user health conditions:", err);
-        }
-      }
-
       // Generate multiple meals with proper macros and amounts
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
-        user: { healthConditions: userHealthConditions },
+        user: { healthConditions: [] },
         macroTargets 
       });
 
@@ -1492,15 +1473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...userData,
         mealPlanVariant: userData.mealPlanVariant && ['A', 'B', 'AUTO'].includes(userData.mealPlanVariant as string) 
           ? (userData.mealPlanVariant as 'A' | 'B' | 'AUTO')
-          : undefined,
-        // Ensure role is valid enum value
-        role: (userData as any).role && ['admin', 'coach', 'client'].includes((userData as any).role) 
-          ? ((userData as any).role as 'admin' | 'coach' | 'client')
-          : 'client',
-        // Ensure onboardingMode is valid enum value
-        onboardingMode: (userData as any).onboardingMode && ['independent', 'procare'].includes((userData as any).onboardingMode)
-          ? ((userData as any).onboardingMode as 'independent' | 'procare')
-          : 'independent'
+          : undefined
       };
       const [user] = await db.insert(users).values([validatedData]).returning();
       res.json(user);
@@ -1640,10 +1613,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
         profilePhotoUrl: user.profilePhotoUrl || null,
-        // Role-based access control
-        role: user.role || "client",
-        isProCare: user.isProCare || false,
-        activeBoard: user.activeBoard || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -1663,7 +1632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "selectedMealBuilder is required" });
       }
       
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body"];
+      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory"];
       if (!validBuilders.includes(selectedMealBuilder)) {
         return res.status(400).json({ error: "Invalid meal builder selection" });
       }
@@ -1673,22 +1642,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!existingUser) {
         return res.status(404).json({ error: "User not found" });
-      }
-      
-      // Role-based access enforcement for Pro Care clients
-      // Pro Care clients can ONLY select their assigned activeBoard (admins bypass)
-      const isProCareClient = existingUser.isProCare && existingUser.role !== "admin";
-      if (isProCareClient) {
-        if (!existingUser.activeBoard) {
-          return res.status(403).json({ 
-            error: "No board assigned. Your coach will assign a meal builder for you."
-          });
-        }
-        if (selectedMealBuilder !== existingUser.activeBoard) {
-          return res.status(403).json({ 
-            error: "You can only use your assigned meal builder."
-          });
-        }
       }
       
       // If trial already started, only update the builder selection (not trial dates)
@@ -1744,7 +1697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "selectedMealBuilder is required" });
       }
       
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body"];
+      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory"];
       if (!validBuilders.includes(selectedMealBuilder)) {
         return res.status(400).json({ error: "Invalid meal builder selection" });
       }
@@ -1765,70 +1718,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating meal builder:", error);
       res.status(500).json({ error: "Failed to update meal builder" });
-    }
-  });
-
-  // Complete onboarding - marks user as having completed extended onboarding
-  // VALIDATION: Requires that builder and macros are actually persisted in the database
-  app.post("/api/user/complete-onboarding", requireAuth, async (req: any, res) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const { onboardingMode } = req.body;
-      
-      // First, fetch current user to verify prerequisites in DATABASE
-      const [existingUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (!existingUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      // SERVER-SIDE VALIDATION: User must have selected a meal builder
-      const hasBuilder = existingUser.selectedMealBuilder || existingUser.activeBoard;
-      if (!hasBuilder) {
-        return res.status(400).json({ 
-          error: "Cannot complete onboarding without selecting a meal builder",
-          code: "MISSING_BUILDER"
-        });
-      }
-      
-      // SERVER-SIDE VALIDATION: Macros must be set in the database (not just client claim)
-      const hasMacros = existingUser.dailyCalorieTarget && existingUser.dailyProteinTarget;
-      if (!hasMacros) {
-        return res.status(400).json({ 
-          error: "Cannot complete onboarding without setting macro targets",
-          code: "MISSING_MACROS"
-        });
-      }
-      
-      // Starch strategy is stored in localStorage and synced; we trust client here
-      // since starch strategy is a behavioral preference, not critical data
-      
-      // Validate onboardingMode if provided
-      const validModes = ['independent', 'procare'];
-      const resolvedMode = onboardingMode && validModes.includes(onboardingMode) 
-        ? (onboardingMode as 'independent' | 'procare')
-        : 'independent';
-      
-      const [user] = await db.update(users)
-        .set({
-          onboardingCompletedAt: new Date(),
-          macrosDefined: true,
-          starchPlanDefined: true,
-          onboardingMode: resolvedMode,
-        })
-        .where(eq(users.id, userId))
-        .returning();
-      
-      res.json({
-        success: true,
-        onboardingCompletedAt: user.onboardingCompletedAt?.toISOString(),
-        macrosDefined: user.macrosDefined,
-        starchPlanDefined: user.starchPlanDefined,
-        onboardingMode: user.onboardingMode,
-      });
-    } catch (error: any) {
-      console.error("Error completing onboarding:", error);
-      res.status(500).json({ error: "Failed to complete onboarding" });
     }
   });
 
@@ -4899,9 +4788,6 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // Mount glp1Shots routes
   app.use("/api", glp1ShotsRoutes); // Mounted glp1ShotsRoutes here
-  
-  // Mount GLP-1 profile routes
-  app.use("/api/glp1", glp1Routes);
 
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;

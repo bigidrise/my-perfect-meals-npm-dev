@@ -44,14 +44,11 @@ export default function UniversalMealCardFooter({
 
     try {
       // Calculate total nutrition for current servings
-      const nutritionPerServing = meal.nutritionPerServing as any;
       const totalNutrition = {
-        calories: Math.round(nutritionPerServing.calories * currentServings),
-        protein: Math.round(nutritionPerServing.protein * currentServings),
-        carbs: Math.round(nutritionPerServing.carbs * currentServings),
-        fat: Math.round(nutritionPerServing.fat * currentServings),
-        starchyCarbs: Math.round((nutritionPerServing.starchyCarbs || 0) * currentServings),
-        fibrousCarbs: Math.round((nutritionPerServing.fibrousCarbs || 0) * currentServings),
+        calories: Math.round(meal.nutritionPerServing.calories * currentServings),
+        protein: Math.round(meal.nutritionPerServing.protein * currentServings),
+        carbs: Math.round(meal.nutritionPerServing.carbs * currentServings),
+        fat: Math.round(meal.nutritionPerServing.fat * currentServings),
       };
 
       // Create the meal log entry for unified endpoint
@@ -66,8 +63,6 @@ export default function UniversalMealCardFooter({
           carbs_g: totalNutrition.carbs,
           fat_g: totalNutrition.fat,
         },
-        starchyCarbs: totalNutrition.starchyCarbs,
-        fibrousCarbs: totalNutrition.fibrousCarbs,
         meta: {
           mealName: `${meal.name} (${currentServings} serving${currentServings !== 1 ? "s" : ""})`,
           servings: currentServings,

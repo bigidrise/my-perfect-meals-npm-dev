@@ -1,0 +1,270 @@
+Absolutely, Coach — and **YES**, there are a few **critical things missing** from the architect summary you pasted.
+
+They approved the **logic**, the **workflow**, the **data flow**, the **behavior**, and the **engineering approach**…
+
+…but they did **NOT** address the **AESTHETICS**, the **visual layout**, or the **UI language** you and I just locked in.
+
+Those MUST be added.
+If we don’t include the UI requirements, the architect will build a **functional** system that looks **generic**, not like your **black-glass, Apple-tier, cinematic** brand.
+
+So let me show you EXACTLY what MUST be added to their document so the builder looks the way you expect.
+
+Below is the architect-approved system **PLUS** the missing aesthetic requirements you want.
+
+---
+
+# 🔥 **ADD THESE 7 AESTHETIC REQUIREMENTS (THIS IS WHAT WAS NOT INCLUDED)**
+
+These are required so the builders look and feel like “My Perfect Meals,” not a generic calorie app.
+
+---
+
+## **1. Black-Glass UI Shell (Required Across All Builders)**
+
+Every meal builder page MUST use your signature design:
+
+* Black glass background (`rgba(0,0,0,0.85)`), soft gradients
+* Slight ambient tint (2–4% deep blue/purple)
+* Subtle edge vignette
+* Frosted blur behind floating components
+
+✔ Makes the app feel premium
+✔ Matches your global brand
+✔ Consistent with your “Coach in Your Pocket” identity
+
+---
+
+## **2. Floating Meal Cards (Your Card Design Language)**
+
+Every meal card MUST follow:
+
+* Black-glass container (60% opacity)
+* 2px glossy border (`rgba(255,255,255,0.12)`)
+* Rounded corners (18–24px)
+* Light outer orange glow on tap (`rgba(255,140,0,0.35)`)
+* Upper-right macro bubble
+* Minimal white text (80–90% opacity)
+
+These cards are your **signature look**.
+The architect needs this documented.
+
+---
+
+## **3. Bottom Sticky Macro Countdown Bar — Apple-Grade Black-Glass Footer**
+
+The architect summary approved the logic, but NOT the **visual**:
+
+**Bar aesthetic requirements:**
+
+* Height: 70–80px
+* Black-glass background (65% opacity)
+* Frosted backdrop blur
+* Orange accent on progress thresholds
+* Divider line on top (`rgba(255,255,255,0.08)`)
+* Safe-area padding for iOS
+* Sticky; always visible
+
+This bar is the **hero** of the builder experience — must be done right.
+
+---
+
+## **4. Color Rules (Not just “green/yellow/pink”) MUST be applied visually**
+
+These are the exact colors:
+
+### Protein
+
+* Base: electric blue
+* 90%+: bright yellow
+* 100%+: neon pink
+
+### Carbs
+
+* Base: soft green
+* 90–99%: golden yellow
+* 100%+: hot pink
+
+### Fats
+
+* Base: golden yellow
+* 90–99%: amber
+* 100%+: neon pink
+
+These are not optional; this is your emotional feedback language.
+
+---
+
+## **5. Premium Orange Buttons (Brand Identity Requirement)**
+
+Buttons must follow:
+
+* Orange → amber gradient
+* Full pill shape
+* White text (90%)
+* Soft glow ring (`rgba(255,140,0,0.35)`)
+* 2% compression on tap
+
+These buttons are your brand.
+The architect summary did NOT include this.
+
+---
+
+## **6. Success Toasts — Black-Glass Micro Cards**
+
+The architect confirmed the **logic**, but NOT the **look**.
+
+Toast visual requirements:
+
+* Black-glass rectangle
+* 70% opacity
+* 2px orange border
+* White headline
+* Orange link on the right side
+* Slide-up animation (fast, clean)
+
+This toast reinforces your style and identity.
+
+---
+
+## **7. Headers, spacing, and typography must follow MPM standards**
+
+All builders must use:
+
+### Headers:
+
+* White (90%)
+* 1.2–1.3em
+* Semi-bold
+
+### Subtext:
+
+* White (60%)
+* Slight letter spacing
+
+### Icons:
+
+* Lucide Icons
+* White (60–80%)
+* Orange glow on tap
+
+### Layout:
+
+* Generous Apple-style spacing
+* Clean gutters
+* No clutter
+* No edge-to-edge cramming
+
+This is the “Apple of Nutrition Apps” standard.
+
+---
+
+# 🔥 **Here is the FINAL VERSION of what the architect needs**
+
+**(Your approved system + the missing aesthetics)**
+
+I’m merging the architect’s technical approval with the MPM aesthetic requirements so they build EXACTLY what you envision.
+
+---
+
+# 📄 **Architect Add-On: Aesthetic Requirements for Meal Builders (MANDATORY)**
+
+### 1. **Global Style: Black-Glass Aesthetic**
+
+* All builder screens use black-glass backgrounds (`rgba(0,0,0,0.85)`)
+* Frosted blur + soft vignette
+* Slight ambient tint (2–4% deep navy/purple)
+
+### 2. **Meal Cards**
+
+* Black-glass containers (60% opacity)
+* 18–24px rounded corners
+* 2px glossy border (`rgba(255,255,255,0.12)`)
+* Orange glow on interaction
+* Macro bubble top-right (black-glass pill)
+
+### 3. **Macro Countdown Bar (bottom sticky footer)**
+
+* Height 70–80px
+* Black-glass background (65% opacity)
+* Frosted blur
+* Divider line on top (`rgba(255,255,255,0.08)`)
+* Progress bars/rings with the approved color rules
+* Numerical readout right aligned
+
+### 4. **Color Logic**
+
+Green < 90%
+Yellow 90–99%
+Pink 100%+
+Red for clinical “danger” states (deferred)
+
+### 5. **Buttons (Primary CTAs)**
+
+* Full orange→amber gradient
+* White text (90%)
+* Dramatic pill shape
+* Glow ring (`rgba(255,140,0,0.35)`)
+* Press animation
+
+### 6. **Success Toasts**
+
+* Black-glass micro card
+* 70% opacity
+* Orange border
+* White body text
+* Orange link (“View in Biometrics →”)
+
+### 7. **Typography & Layout**
+
+* Title: white (90%), semi-bold, clean spacing
+* Subtext: white (60%)
+* Lucide icons, white 60–80%, glow on tap
+* Apple-level spacing and margin discipline
+
+### 8. **Meal-Level Macro Bubbles**
+
+* Black-glass pill
+* White text (80%)
+* Tiny color-coded dots for P / C / F
+
+### 9. **Modal / Add Food UI**
+
+* Full black-glass sheet
+* White text (80%)
+* Gray separators (8–10% opacity)
+* Orange highlight for active selections
+
+### 10. **Global Nav**
+
+* Black-glass tabs
+* White icons (80%)
+* Orange glow for active tab
+
+---
+
+# Coach… THIS is the complete design language.
+
+This turns the builder from a functional engine into a **cinematic, App-of-the-Year interface** that feels like YOU:
+
+* Clean
+* Tough
+* Minimal
+* Professional
+* Zero BS
+* No clutter
+* No distractions
+* All results
+
+---
+
+# If you want, I can now produce:
+
+### A) A full mockup (verbal + layout spacing + coordinates)
+
+### B) A complete Tailwind+React component map
+
+### C) A full aesthetic specification document (for architect + designers)
+
+### D) A Figma-layered description so a designer can build the screens visually
+
+Which one do you want?

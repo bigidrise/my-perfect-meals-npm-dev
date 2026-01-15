@@ -13,20 +13,6 @@ export type DietType =
 
 export type BeachBodyPhase = 'lean' | 'carb-control' | 'maintenance' | 'sculpt';
 
-/**
- * Starch Context for intelligent carb distribution
- * Part of the Starch Game Plan coaching system
- */
-export interface StarchContext {
-  strategy: 'one' | 'flex'; // "one" = 1 starch meal/day, "flex" = 2 meals
-  existingMeals?: Array<{
-    slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-    hasStarch: boolean;
-  }>;
-  forceStarch?: boolean; // User explicitly requested starch
-  forceFiberBased?: boolean; // User explicitly requested no starch
-}
-
 interface Meal {
   id: string;
   name: string;
@@ -39,15 +25,11 @@ interface Meal {
   protein?: number;
   carbs?: number;
   fat?: number;
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
   nutrition?: {
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
-    starchyCarbs?: number;
-    fibrousCarbs?: number;
   };
   medicalBadges?: string[];
 }
@@ -56,11 +38,11 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase) => Promise<Meal | null>;
   cancel: () => void;
 }
 
-export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequestResult {
+export function useCreateWithChefRequest(): UseCreateWithChefRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -95,8 +77,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     description: string,
     mealType: "breakfast" | "lunch" | "dinner",
     dietType?: DietType,
-    dietPhase?: BeachBodyPhase,
-    starchContext?: StarchContext
+    dietPhase?: BeachBodyPhase
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -112,11 +93,10 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           type: "create-with-chef",
           mealType,
           input: description,
-          userId,
+          userId: "1",
           count: 1,
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody
-          starchContext: starchContext || null, // Pass starch context for intelligent carb distribution
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -145,15 +125,11 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
         protein: generatedMeal.protein,
         carbs: generatedMeal.carbs,
         fat: generatedMeal.fat,
-        starchyCarbs: generatedMeal.starchyCarbs || 0,
-        fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         nutrition: {
           calories: generatedMeal.calories || 0,
           protein: generatedMeal.protein || 0,
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
-          starchyCarbs: generatedMeal.starchyCarbs || 0,
-          fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         },
         medicalBadges: generatedMeal.medicalBadges || [],
       };

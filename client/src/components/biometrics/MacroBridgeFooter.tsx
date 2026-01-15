@@ -50,7 +50,7 @@ export function MacroBridgeFooter({
 }: {
   items: MacroItem[];
   dateISO?: string;
-  mealSlot?: "breakfast" | "lunch" | "dinner" | "snacks" | null;
+  mealSlot?: "breakfast" | "lunch" | "dinner" | "snack" | null;
   variant?: "day" | "week";
   source?: MacroSourceSlug;
 }) {
@@ -62,8 +62,6 @@ export function MacroBridgeFooter({
     setQuickView({
       protein: total.protein,
       carbs: total.carbs,
-      starchyCarbs: total.starchyCarbs,
-      fibrousCarbs: total.fibrousCarbs,
       fat: total.fat,
       calories: total.calories,
       dateISO: dateISO ?? new Date().toISOString().slice(0, 10),
@@ -81,8 +79,8 @@ export function MacroBridgeFooter({
     <div className="sticky bottom-0 z-40 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur border-t border-white/20 px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white">
       <div className="text-xs sm:text-sm text-white/80">
         {variant === "week" ? "Week total" : "Day total"} · {count} meal
-        {count !== 1 ? "s" : ""} · P {total.protein}g · Starchy {total.starchyCarbs}g · Fibrous {total.fibrousCarbs}g · Fat{" "}
-        {total.fat}g
+        {count !== 1 ? "s" : ""} · P* {total.protein}g · C* {total.carbs}g{total.starchyCarbs || total.fibrousCarbs ? ` (S: ${total.starchyCarbs} / F: ${total.fibrousCarbs})` : ""} · F{" "}
+        {total.fat}g · {total.calories} kcal
       </div>
       <div className="flex gap-2">
         <button

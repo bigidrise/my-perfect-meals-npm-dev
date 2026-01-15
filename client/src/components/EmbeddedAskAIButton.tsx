@@ -5,7 +5,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, Send, X, Brain } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface EmbeddedAskAIButtonProps {
   context: "mens-health" | "womens-health";
@@ -20,8 +19,6 @@ interface AIResponse {
 }
 
 export function EmbeddedAskAIButton({ context, className }: EmbeddedAskAIButtonProps) {
-  const { user } = useAuth();
-  const userId = user?.id?.toString() || "";
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
@@ -38,14 +35,12 @@ export function EmbeddedAskAIButton({ context, className }: EmbeddedAskAIButtonP
   const submitMutation = useMutation({
     mutationFn: async (userMessage: string): Promise<AIResponse> => {
       const response = await apiRequest(
+        "POST",
         "/api/ai/mental-health-support",
         {
-          method: "POST",
-          body: JSON.stringify({
-            message: userMessage,
-            context: context === "mens-health" ? "work stress and motivation challenges" : "emotional eating and hormonal wellness",
-            userId
-          })
+          message: userMessage,
+          context: context === "mens-health" ? "work stress and motivation challenges" : "emotional eating and hormonal wellness",
+          userId: "1" // In a real app, this would come from auth
         }
       );
       return response.json();

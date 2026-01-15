@@ -1,0 +1,280 @@
+🔥 **PHASE C.2: ACTIVATION SEQUENCE — LET’S GET TO WORK**
+Coach, you’re stepping into the **fun** part now. Phase C.1 built the engine.
+**Phase C.2 finally turns the Weekly Meal Builder walkthrough ON.**
+
+Before we activate **any** walkthrough script, the UI must expose the correct **data-testid anchors** so the Spotlight can find what it needs.
+
+The architect will handle implementation **fast** and **accurately** — so I’m giving you the full, clean, fire-tested **C.2 ARCHITECT HANDOFF PACKAGE** below.
+
+This is everything the architect needs with ZERO ambiguity.
+
+No questions.
+No rework.
+No missing pieces.
+
+Let's go.
+
+---
+
+# ✅ **PHASE C.2 – ARCHITECT HANDOFF PACKAGE**
+
+### **Goal:**
+
+Activate the **Weekly Meal Builder** walkthrough script by wiring the required `data-testid` attributes into the UI + flipping `uiReady: true`.
+
+Only **Weekly Meal Builder** is being activated in C.2.
+The other 4 builders stay dormant until you say otherwise.
+
+---
+
+# 🧱 **PHASE C.2 – TASK SUMMARY FOR ARCHITECT**
+
+**Your tasks (architect):**
+
+### **1. Add ALL required `data-testid` anchors to the Weekly Meal Builder page UI**
+
+These MUST match EXACTLY — the Walkthrough system relies on them literally.
+
+#### **17 Required Data Test IDs**
+
+From `DATA_TESTID_REQUIREMENTS.md`:
+
+```
+mealbuilder-add-breakfast
+mealbuilder-add-lunch
+mealbuilder-add-dinner
+mealbuilder-add-snack
+mealbuilder-meal-group-breakfast
+mealbuilder-meal-group-lunch
+mealbuilder-meal-group-dinner
+mealbuilder-meal-group-snack
+mealbuilder-total-calories
+mealbuilder-total-protein
+mealbuilder-total-carbs
+mealbuilder-total-fat
+mealbuilder-day-menu-button
+mealbuilder-duplicate-button
+mealbuilder-duplicate-modal
+mealbuilder-duplicate-confirm
+mealbuilder-send-to-shopping
+```
+
+**Ensure:**
+
+* Each exists on the correct element
+* Each is stable (no conditional rendering issues)
+* They persist long enough for Spotlight to lock onto them
+* No CSS overrides remove the element before interaction
+
+---
+
+### **2. Add missing test IDs to any subcomponents**
+
+Examples:
+
+* Inside the duplicate modal
+* Inside the footer totals
+* Inside the meal group containers
+* Inside the Add Meal button row
+
+Architect should search WeeklyMealBuilder.tsx and subcomponents for missing anchors.
+
+---
+
+### **3. Flip script activation ON**
+
+Set `uiReady: true` in **WeeklyMealBuilderScript.ts** only.
+
+Location:
+
+```
+client/src/components/copilot/walkthrough/scripts/WeeklyMealBuilderScript.ts
+```
+
+Change:
+
+```ts
+uiReady: false,
+```
+
+TO
+
+```ts
+uiReady: true,
+```
+
+---
+
+### **4. Validate Spotlight selection**
+
+The following must work reliably:
+
+* Spotlight correctly highlights each target in all 11 steps
+* Navigation steps wait for events and advance correctly
+* Cancel + restart does NOT leave an overlay stuck
+* No lingering event listeners remain after cancellation
+* Spotlight dims everything except target element
+* Scrolling steps (if needed) do not break spotlight focus
+
+---
+
+### **5. Run full engine compatibility test**
+
+Verify:
+
+* beginScriptWalkthrough receives script metadata
+* responseCallback streams correct messages
+* WalkthroughScriptEngine fires event listeners correctly
+* getCurrentStep() returns proper step
+* Cleanup works on cancel, end, timeout, errors
+* SpotlightOverlay receives real-time step updates
+
+---
+
+### **6. DO NOT TOUCH THESE**
+
+Architect must not edit:
+
+* Phase B hub-first routing
+* CanonicalAliasRegistry alias logic
+* Global SpotlightOverlay logic
+* CopilotCommandRegistry explicit intent handlers
+* Other 4 scripts
+* Walkthrough engine core outside the required fixes
+
+---
+
+# 🧪 **PHASE C.2 – TEST FLOW CHECKLIST (Architect)**
+
+#### After implementation, confirm this EXACT flow works:
+
+1. User says:
+   **“Walk me through Weekly Meal Builder”**
+
+2. Copilot navigates to Weekly Meal Builder.
+
+3. Spotlight dims UI → highlights Intro card.
+
+4. Steps advance in order:
+
+   * Add Breakfast
+   * Add Lunch
+   * Add Dinner
+   * Add Snack
+   * Review macros
+   * Duplicate day
+   * Select duplicate days
+   * Confirm duplicate
+   * Send to shopping
+   * Final message
+
+5. User clicks each highlighted element → engine advances.
+
+6. Cancel at any step → system tears down cleanly.
+
+7. Restart walkthrough → starts fresh.
+
+---
+
+# 📦 **COMPLETE ARCHITECT PROMPT (COPY/PASTE THIS)**
+
+**— THIS IS WHAT YOU SEND TO THE ARCHITECT —**
+
+---
+
+**ARCHITECT PROMPT START**
+
+🚨 **PHASE C.2 ACTIVATION — Weekly Meal Builder Walkthrough**
+
+We have already built and architect-approved the full WalkthroughScriptEngine + 5 Meal Builder scripts in Phase C.1. All 5 scripts are currently dormant (`uiReady: false`).
+
+**Phase C.2 is ONLY about activating the Weekly Meal Builder walkthrough.**
+
+Please complete the following tasks exactly:
+
+---
+
+### **1. Add required `data-testid` anchors to Weekly Meal Builder**
+
+Using `DATA_TESTID_REQUIREMENTS.md`, implement ALL 17 required anchors:
+
+```
+mealbuilder-add-breakfast
+mealbuilder-add-lunch
+mealbuilder-add-dinner
+mealbuilder-add-snack
+mealbuilder-meal-group-breakfast
+mealbuilder-meal-group-lunch
+mealbuilder-meal-group-dinner
+mealbuilder-meal-group-snack
+mealbuilder-total-calories
+mealbuilder-total-protein
+mealbuilder-total-carbs
+mealbuilder-total-fat
+mealbuilder-day-menu-button
+mealbuilder-duplicate-button
+mealbuilder-duplicate-modal
+mealbuilder-duplicate-confirm
+mealbuilder-send-to-shopping
+```
+
+Add them to the correct UI elements in WeeklyMealBuilder and any related subcomponents.
+
+---
+
+### **2. Confirm Spotlight stability**
+
+Ensure SpotlightOverlay can correctly highlight each anchored element without errors.
+
+---
+
+### **3. Flip activation flag**
+
+In:
+
+`client/src/components/copilot/walkthrough/scripts/WeeklyMealBuilderScript.ts`
+
+Change:
+
+```ts
+uiReady: false
+```
+
+to:
+
+```ts
+uiReady: true
+```
+
+DO NOT change this for the other 4 scripts.
+
+---
+
+### **4. Validate the entire 11-step walkthrough**
+
+Make sure steps advance properly, events fire correctly, and cleanup works.
+
+---
+
+### **5. Do NOT modify:**
+
+* CanonicalAliasRegistry routing
+* CopilotCommandRegistry logic
+* Other meal builder scripts
+* Phase B routing
+* SpotlightOverlay core
+* Walkthrough engine core
+
+---
+
+Once complete, restart the workflow and confirm no LSP errors.
+
+**ARCHITECT PROMPT END**
+
+---
+
+# 💯 Coach — Phase C.2 is officially GO.
+
+When the architect finishes, Weekly Meal Builder will have a **fully functional, interactive, Spotlight-powered Copilot walkthrough**.
+
+Just say **"Start C.3"** whenever you're ready for the next system.

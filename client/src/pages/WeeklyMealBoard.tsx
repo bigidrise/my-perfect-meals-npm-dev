@@ -71,7 +71,6 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
-import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { WhyChip } from "@/components/WhyChip";
@@ -90,15 +89,10 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { getResolvedTargets } from "@/lib/macroResolver";
-import { classifyMeal } from "@/utils/starchMealClassifier";
-import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount, hasActiveMealDaySession, getActiveMealDaySessionRemaining } from "@/lib/guestMode";
-import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
-import { ProTipCard } from "@/components/ProTipCard";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -151,12 +145,6 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
       "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics.",
   },
   {
-    icon: "🥔",
-    title: "Watch Your Starch Slots",
-    description:
-      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
-  },
-  {
     icon: "*",
     title: "What the Asterisks Mean",
     description:
@@ -198,69 +186,6 @@ export default function WeeklyMealBoard() {
       initLockedDaysCache(user.id);
     }
   }, [user?.id]);
-
-  // Guest mode: Hard gate enforcement - redirect if 4 meal days used
-  // Checks on mount AND listens for guestProgressUpdate events during session
-  React.useEffect(() => {
-    const checkHardGate = () => {
-      if (isGuestMode() && shouldShowHardGate()) {
-        toast({
-          title: GUEST_SUITE_BRANDING.loopLimits.blockedAccessTitle,
-          description: GUEST_SUITE_BRANDING.loopLimits.blockedAccessDescription,
-        });
-        setLocation("/pricing");
-      }
-    };
-    
-    // Check on mount
-    checkHardGate();
-    
-    // Listen for progress updates (fires when loopCount changes)
-    const handleProgressUpdate = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.action === "mealDayUsed") {
-        checkHardGate();
-      }
-    };
-    
-    window.addEventListener("guestProgressUpdate", handleProgressUpdate);
-    return () => {
-      window.removeEventListener("guestProgressUpdate", handleProgressUpdate);
-    };
-  }, [setLocation, toast]);
-
-  // Guest mode: Track meal board visits for "meal day" counting (24-hour sessions)
-  React.useEffect(() => {
-    if (isGuestMode() && !shouldShowHardGate()) {
-      // Check if returning to an active session or starting a new one
-      const hadActiveSession = hasActiveMealDaySession();
-      const newMealDayConsumed = startMealBoardVisit();
-      const loopCount = getGuestLoopCount();
-      
-      if (newMealDayConsumed) {
-        // NEW meal day session started
-        toast({
-          title: `Meal Day ${loopCount} of 4 Started`,
-          description: GUEST_SUITE_BRANDING.coaching.welcomeToBoard,
-          duration: 6000,
-        });
-      } else if (hadActiveSession) {
-        // Returning to active session
-        const remaining = getActiveMealDaySessionRemaining();
-        if (remaining) {
-          toast({
-            title: "Welcome Back",
-            description: `You're still in Meal Day ${loopCount}. Session active for ${remaining.hours}h ${remaining.minutes}m more. Keep building!`,
-            duration: 4000,
-          });
-        }
-      }
-      
-      return () => {
-        endMealBoardVisit();
-      };
-    }
-  }, [toast]);
 
   // Sync hook board to local state only after loading completes
   React.useEffect(() => {
@@ -357,36 +282,6 @@ export default function WeeklyMealBoard() {
     if (planningMode !== "week") return false;
     return hasLockedDaysInWeek(weekStartISO, user?.id);
   }, [planningMode, weekStartISO, user?.id]);
-
-  // Build StarchContext for Create With Chef modal
-  // This enables intelligent carb distribution based on existing meals
-  const starchContext: StarchContext | undefined = useMemo(() => {
-    if (!board || !activeDayISO) return undefined;
-
-    // Get the starch strategy from resolved targets (default to 'one' if no user/targets)
-    const resolved = user?.id ? getResolvedTargets(user.id) : null;
-    const strategy = resolved?.starchStrategy || 'one';
-
-    // Get existing meals for the active day
-    const dayLists = getDayLists(board, activeDayISO);
-    const existingMeals: StarchContext['existingMeals'] = [];
-
-    // Classify each meal slot
-    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
-      const meals = dayLists[slot] || [];
-      for (const meal of meals) {
-        existingMeals.push({
-          slot,
-          hasStarch: classifyMeal(meal).isStarchMeal,
-        });
-      }
-    }
-
-    return {
-      strategy,
-      existingMeals,
-    };
-  }, [board, activeDayISO, user?.id]);
 
   // Guard function: checks if current day is locked before allowing edits
   // NOTE: Always recompute lock state fresh to avoid stale closure issues
@@ -1066,11 +961,7 @@ export default function WeeklyMealBoard() {
           protein: generatedMeal.protein || 0,
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
-          starchyCarbs: generatedMeal.starchyCarbs || 0,
-          fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         },
-        starchyCarbs: generatedMeal.starchyCarbs || 0,
-        fibrousCarbs: generatedMeal.fibrousCarbs || 0,
       };
 
       // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
@@ -1331,11 +1222,7 @@ export default function WeeklyMealBoard() {
           protein: p.protein ?? 0,
           carbs: p.carbs ?? 0,
           fat: p.fat ?? 0,
-          starchyCarbs: (p as any).starchyCarbs ?? 0,
-          fibrousCarbs: (p as any).fibrousCarbs ?? 0,
         },
-        starchyCarbs: (p as any).starchyCarbs ?? 0,
-        fibrousCarbs: (p as any).fibrousCarbs ?? 0,
         orderIndex: nextIndex,
         entryType: "quick" as const,
         brand: p.brand,
@@ -1498,12 +1385,6 @@ export default function WeeklyMealBoard() {
       } catch {
         /* no-op, safest on older browsers */
       }
-
-      // Guest mode: Track meal building for unlocks and meal day counting
-      // incrementMealsBuilt() now handles both mealsBuiltCount AND countMealDayUsed() internally
-      if (isGuestMode()) {
-        incrementMealsBuilt();
-      }
     } catch (error) {
       console.error("Failed to add meal:", error);
     }
@@ -1556,8 +1437,6 @@ export default function WeeklyMealBoard() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
-          starchyCarbs: meal.starchyCarbs ?? meal.nutrition?.starchyCarbs ?? 0,
-          fibrousCarbs: meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk",
         };
@@ -1725,26 +1604,6 @@ export default function WeeklyMealBoard() {
                 </div>
               )}
 
-            {/* ROW 3.5: Daily Starch Meal Indicator */}
-            {FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              activeDayISO &&
-              board && (
-                <div className="flex justify-center">
-                  <DailyStarchIndicator 
-                    meals={(() => {
-                      const dayLists = getDayLists(board, activeDayISO);
-                      return [
-                        ...dayLists.breakfast,
-                        ...dayLists.lunch,
-                        ...dayLists.dinner,
-                        ...dayLists.snacks,
-                      ];
-                    })()}
-                  />
-                </div>
-              )}
-
             {/* ROW 4: Bottom Actions (Delete All + Save) */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
               <Button
@@ -1884,8 +1743,8 @@ export default function WeeklyMealBoard() {
                         if (checkLockedDay(activeDayISO)) return;
                         openManualModal(key);
                       }}
-                      onLogSnack={() => {}}
-                      showLogSnack={false}
+                      onLogSnack={() => setLocation("/my-biometrics")}
+                      showLogSnack={key === "snacks"}
                     />
                   </div>
 
@@ -1897,7 +1756,6 @@ export default function WeeklyMealBoard() {
                           date={activeDayISO}
                           slot={key}
                           meal={meal}
-                          showStarchBadge={true}
                           data-wt="wmb-meal-card"
                           onUpdated={(m) => {
                             if (m === null) {
@@ -2026,7 +1884,17 @@ export default function WeeklyMealBoard() {
                         <Plus className="h-4 w-4" />
                       </Button>
 
-                      {/* Log Snack button hidden - using macro logger instead */}
+                      {/* Special Log Snack button for snacks section only - navigates to Biometrics photo log */}
+                      {key === "snacks" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-white/70 hover:bg-white/10 text-xs font-medium"
+                          onClick={() => setLocation("/my-biometrics")}
+                        >
+                          📸 Log Snack
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -2037,7 +1905,6 @@ export default function WeeklyMealBoard() {
                         date={"board"}
                         slot={key}
                         meal={meal}
-                        showStarchBadge={true}
                         onUpdated={(m) => {
                           if (m === null) {
                             // Guard: Check if day is locked before allowing delete
@@ -2103,9 +1970,6 @@ export default function WeeklyMealBoard() {
               ))}
             </>
           )}
-
-          {/* Pro Tip Card */}
-          <ProTipCard />
 
           {/* Quick Add - Daily Targets Reference Card */}
           <div className="col-span-full">
@@ -2303,8 +2167,6 @@ export default function WeeklyMealBoard() {
                               setQuickView({
                                 protein: consumed.protein,
                                 carbs: consumed.carbs,
-                                starchyCarbs: consumed.starchyCarbs,
-                                fibrousCarbs: consumed.fibrousCarbs,
                                 fat: consumed.fat,
                                 calories: consumed.calories,
                                 dateISO: activeDayISO,
@@ -2313,10 +2175,7 @@ export default function WeeklyMealBoard() {
                                 title: "Day Saved to Biometrics",
                                 description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" }, "America/Chicago")} has been locked.`,
                               });
-                              // Only navigate to biometrics for non-guests; guests stay on builder
-                              if (!isGuestMode()) {
-                                setLocation("/my-biometrics");
-                              }
+                              setLocation("/my-biometrics");
                             }
                           }
                         : undefined
@@ -2514,7 +2373,7 @@ export default function WeeklyMealBoard() {
                               100,
                             );
                           }}
-                          className="flex-1 min-h-[44px] border border-white/30 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
                           data-testid="send-week-to-shopping"
                         >
                           {/* Hidden event emitter for walkthrough system */}
@@ -2556,7 +2415,6 @@ export default function WeeklyMealBoard() {
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
           onMealGenerated={handleCreateWithChefSelect}
-          starchContext={starchContext}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) */}

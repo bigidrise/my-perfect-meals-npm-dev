@@ -28,22 +28,9 @@ import { OnboardingFooter } from "./components/OnboardingFooter";
 import { CopilotProvider } from "./components/copilot/CopilotContext";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
-import { setupNotificationListeners } from "@/services/mealReminderService";
-import DevBadge from "./components/DevBadge";
-import { Capacitor } from "@capacitor/core";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
-
-// iOS Native Safe Area Override
-// When running in iOS native shell, iOS already handles safe areas.
-// Set CSS variables to 0 to prevent double safe-area padding.
-if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
-  document.documentElement.style.setProperty("--safe-top", "0px");
-  document.documentElement.style.setProperty("--safe-bottom", "0px");
-  document.documentElement.style.setProperty("--safe-left", "0px");
-  document.documentElement.style.setProperty("--safe-right", "0px");
-}
 
 
 
@@ -61,15 +48,6 @@ export default function App() {
     setModalHandler((modalId) => {
       console.log("🪟 Copilot opening modal:", modalId);
     });
-  }, [setLocation]);
-
-  // Setup meal reminder notification tap handler
-  useEffect(() => {
-    const cleanup = setupNotificationListeners((route) => {
-      console.log("🔔 Notification tap, navigating to:", route);
-      setLocation(route);
-    });
-    return cleanup;
   }, [setLocation]);
 
   useEffect(() => {
@@ -125,7 +103,6 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <DevBadge />
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>

@@ -6,12 +6,10 @@ import { uploadImageToPermanentStorage } from './permanentImageStorage';
 import crypto from 'crypto';
 
 // First-party URL prefixes that are always permanent
-const S3_BUCKET = process.env.S3_BUCKET_NAME || 'my-perfect-meals-images';
 const FIRST_PARTY_PREFIXES = [
-  '/public-objects/',  // Replit Object Storage (legacy)
+  '/public-objects/',  // Replit Object Storage
   '/images/',          // Static catalog images
   '/assets/',          // Static asset images
-  `https://${S3_BUCKET}.s3.`,  // S3 permanent storage (dynamic bucket)
 ];
 
 // Known temporary URL patterns to block

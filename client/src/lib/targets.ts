@@ -67,7 +67,7 @@ export function computeTargetsFromOnboarding(profile: {
 }
 
 export function sumMealList(meals: any[]) {
-  return meals.reduce((acc, m) => add(acc, m?.nutrition), { calories:0, protein:0, carbs:0, fat:0, starchyCarbs:0, fibrousCarbs:0 });
+  return meals.reduce((acc, m) => add(acc, m?.nutrition), { calories:0, protein:0, carbs:0, fat:0 });
 }
 
 export function sumBoard(board: { lists: Record<string, any[]> }) {
@@ -85,8 +85,6 @@ function add(a:any={}, b:any={}){
     protein:  round((a.protein ||0)+(b.protein ||0)),
     carbs:    round((a.carbs   ||0)+(b.carbs   ||0)),
     fat:      round((a.fat     ||0)+(b.fat     ||0)),
-    starchyCarbs: round((a.starchyCarbs||0)+(b.starchyCarbs||0)),
-    fibrousCarbs: round((a.fibrousCarbs||0)+(b.fibrousCarbs||0)),
   };
 }
 function mul(a:any={}, k:number){
@@ -95,8 +93,6 @@ function mul(a:any={}, k:number){
     protein:  round((a.protein ||0)*k),
     carbs:    round((a.carbs   ||0)*k),
     fat:      round((a.fat     ||0)*k),
-    starchyCarbs: round((a.starchyCarbs||0)*k),
-    fibrousCarbs: round((a.fibrousCarbs||0)*k),
   };
 }
 function round(n:number){ return Math.round((n ?? 0) * 10) / 10; }

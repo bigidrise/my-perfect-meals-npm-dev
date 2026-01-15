@@ -8,8 +8,18 @@ import { useQueryClient } from "@tanstack/react-query";
 import { addMealsToShopping } from "@/lib/shoppingListApi";
 import { apiRequest } from "@/lib/queryClient";
 import type { Meal } from "@/components/MealCard";
-import { weekDates } from "@/lib/boardApi";
-import { formatDateDisplay } from "@/utils/midnight";
+
+// Week dates helper
+export function weekDates(weekStartISO: string): string[] {
+  const dates: string[] = [];
+  const start = new Date(weekStartISO + 'T00:00:00Z');
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setUTCDate(start.getUTCDate() + i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
 
 export interface DayMeals {
   breakfast: Meal[];
@@ -96,7 +106,7 @@ export function DayByDayMealBoard({
 
       toast({
         title: "✅ Logged to macros",
-        description: `${allDayMeals.length} meals logged for ${formatDateDisplay(activeDayISO, { weekday: 'long' })}`
+        description: `${allDayMeals.length} meals logged for ${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long' })}`
       });
     } catch (error) {
       console.error("Failed to log macros:", error);
@@ -128,7 +138,7 @@ export function DayByDayMealBoard({
 
       toast({
         title: "✅ Added to shopping list",
-        description: `${allDayMeals.length} meals added for ${formatDateDisplay(activeDayISO, { weekday: 'long' })}`
+        description: `${allDayMeals.length} meals added for ${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long' })}`
       });
     } catch (error) {
       console.error("Failed to add to shopping:", error);
@@ -156,7 +166,7 @@ export function DayByDayMealBoard({
       <Card className="col-span-full border-emerald-500/30 bg-gradient-to-r from-emerald-900/20 to-emerald-800/20">
         <CardHeader>
           <CardTitle className="text-center text-white">
-            Daily Totals - {formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })}
+            Daily Totals - {new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </CardTitle>
         </CardHeader>
         <CardContent>

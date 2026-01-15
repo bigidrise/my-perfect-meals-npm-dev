@@ -4,8 +4,6 @@
 export interface QuickView {
   protein: number;
   carbs: number;
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
   fat: number;
   calories: number;
   dateISO: string;
@@ -16,8 +14,6 @@ export interface QuickView {
 interface QuickViewInput {
   protein: number;
   carbs: number;
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
   fat: number;
   calories: number;
   dateISO: string;

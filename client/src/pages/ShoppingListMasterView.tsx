@@ -31,17 +31,10 @@ import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
-import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
-import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
-import { ArrowLeft } from "lucide-react";
-import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
-import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
-  useGuestNavigationGuard("shopping-list");
 
   // Extract "from" query parameter once on mount
   const [fromSlug, setFromSlug] = useState<string>(() => {
@@ -60,26 +53,12 @@ export default function ShoppingListMasterView() {
   const replaceItems = useShoppingListStore((s) => s.replaceItems);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  
-  const SHOPPING_OPTS_KEY = "shoppingList.opts.v2";
-  
-  const [opts, setOpts] = useState(() => {
-    const defaults = {
-      groupByAisle: true,
-      excludePantryStaples: false,
-      scopeByWeek: false,
-      rounding: "none" as "friendly" | "none",
-    };
-    try {
-      const saved = localStorage.getItem(SHOPPING_OPTS_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return { ...defaults, ...parsed };
-      }
-    } catch {}
-    return defaults;
+  const [opts, setOpts] = useState({
+    groupByAisle: false,
+    excludePantryStaples: false,
+    scopeByWeek: false,
+    rounding: "friendly" as "friendly" | "none",
   });
-  
   const [purchasedOpen, setPurchasedOpen] = useState(true);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
@@ -90,26 +69,8 @@ export default function ShoppingListMasterView() {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any | null>(null);
 
-  type ShoppingOpts = typeof opts;
-  
-  const toggleOpt = useCallback(<K extends keyof ShoppingOpts>(key: K) => {
-    setOpts((prev: ShoppingOpts) => {
-      const next = { ...prev, [key]: !prev[key] };
-      try {
-        localStorage.setItem(SHOPPING_OPTS_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, []);
-  
-  const setOptValue = useCallback(<K extends keyof ShoppingOpts>(key: K, value: ShoppingOpts[K]) => {
-    setOpts((prev: ShoppingOpts) => {
-      const next = { ...prev, [key]: value };
-      try {
-        localStorage.setItem(SHOPPING_OPTS_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+  const toggleOpt = useCallback(<K extends keyof typeof opts>(key: K) => {
+    setOpts((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   // Wrapper for toggleItem with walkthrough event
@@ -407,24 +368,7 @@ export default function ShoppingListMasterView() {
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3">
-          {/* Guest Mode: Continue to Biometrics button (only during first loop - guided tour) */}
-          {isGuestMode() && !hasCompletedFirstLoop() && (
-            <Button
-              onClick={() => {
-                markStepCompleted("shopping_viewed");
-                recordShoppingToBiometricsTransition();
-                // Set session marker so biometrics knows we came from shopping
-                sessionStorage.setItem("mpm_guest_from_shopping", "true");
-                setLocation("/my-biometrics");
-              }}
-              variant="ghost"
-              size="sm"
-              className="text-lime-400 hover:bg-lime-500/10 -ml-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Continue to Biometrics
-            </Button>
-          )}
+          {/* Back Button */}
 
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
@@ -451,7 +395,15 @@ export default function ShoppingListMasterView() {
             data-testid="shopping-add-buttons"
             className="mt-4 flex flex-wrap gap-2"
           >
-            {/* Barcode button hidden - feature not working */}
+            <Button
+              data-wt="msl-barcode-button"
+              onClick={() => setBarcodeModalOpen(true)}
+              className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
+              size="sm"
+              data-testid="button-barcode-manual"
+            >
+              Enter Barcode
+            </Button>
             <Button
               data-wt="msl-voice-add-button"
               onClick={() => setVoiceModalOpen(true)}
@@ -474,8 +426,20 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
-          {/* Options - Group by aisle is default ON, rounding hidden */}
+          {/* Options */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => toggleOpt("groupByAisle")}
+              aria-pressed={opts.groupByAisle}
+              className={`text-sm px-3 py-1.5 h-auto transition-all ${
+                opts.groupByAisle
+                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
+                  : "bg-black/60 border border-white/20 text-white hover:bg-black/70"
+              }`}
+              data-testid="option-group-by-aisle"
+            >
+              Group by aisle
+            </Button>
             <Button
               onClick={() => toggleOpt("excludePantryStaples")}
               aria-pressed={opts.excludePantryStaples}
@@ -488,6 +452,21 @@ export default function ShoppingListMasterView() {
             >
               Exclude pantry staples
             </Button>
+            <select
+              value={opts.rounding}
+              onChange={(e) =>
+                setOpts({
+                  ...opts,
+                  rounding: e.target.value as "none" | "friendly",
+                })
+              }
+              className="bg-white/10 border border-white/20 text-white/90 text-sm rounded-md px-2 py-1"
+              title="Rounding"
+              data-testid="select-rounding"
+            >
+              <option value="friendly">Rounding: Friendly</option>
+              <option value="none">Rounding: None</option>
+            </select>
           </div>
         </div>
         {/* Add Other Items Section */}

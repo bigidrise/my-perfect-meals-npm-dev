@@ -1,9 +1,13 @@
 import { useMemo } from "react";
 import type { WeekBoard } from "@/lib/boardApi";
-import { formatWeekLabel as formatWeekLabelSafe, addDaysISOSafe } from "@/utils/midnight";
 
 function formatWeekLabel(weekStartISO: string): string {
-  return formatWeekLabelSafe(weekStartISO);
+  const start = new Date(weekStartISO + "T00:00:00Z");
+  const end = new Date(start);
+  end.setUTCDate(start.getUTCDate() + 6);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `${fmt(start)}–${fmt(end)}`;
 }
 
 function dayNameFromOffset(offset: number) {
@@ -13,7 +17,9 @@ function dayNameFromOffset(offset: number) {
 }
 
 function addDaysISO(iso: string, days: number): string {
-  return addDaysISOSafe(iso, days);
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 export default function WeeklyOverviewModal({

@@ -1,0 +1,209 @@
+Good — your description is **precise**, and it tells me exactly what’s wrong.
+
+This is **not** a generic “iOS bounce” issue anymore.
+This is a **layout hierarchy mistake**: your banner/header is still **inside the scroll container**, not truly fixed to the viewport.
+
+So when iOS overscrolls, it drags **everything inside that container**, including the banner, by about **one safe-area height**. That’s why it moves *a little*, not a lot.
+
+We’re going to fix this **surgically**.
+
+---
+
+# WHAT IS ACTUALLY BROKEN (NO GUESSING)
+
+Right now, your structure is effectively this (simplified):
+
+```tsx
+<div class="ios-scroll-container">
+  <SafeAreaHeader />   ❌ WRONG LOCATION
+  <PageContent />
+</div>
+```
+
+On iOS:
+
+* `overflow: auto` + `-webkit-overflow-scrolling: touch`
+* causes **elastic scroll**
+* everything inside moves together
+* iOS does NOT respect `position: fixed` reliably **inside** a scrolling container
+
+So even if your banner *looks* fixed… it isn’t.
+
+---
+
+# THE ONLY STRUCTURE THAT WORKS ON iOS
+
+Your banner **must live outside** the scroll container.
+
+### Correct architecture (this matters):
+
+```tsx
+<RootViewport>                // fixed, 100dvh
+  <FixedHeader />             // NOT scrollable
+  <ScrollableContent />       // only thing that scrolls
+</RootViewport>
+```
+
+If the banner is not **outside**, iOS will always drag it.
+
+---
+
+# EXACT FIX — COPY / PASTE LEVEL
+
+## 1️⃣ Create a TRUE RootViewport (if not already)
+
+**`client/src/layouts/RootViewport.tsx`**
+
+```tsx
+export function RootViewport({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        height: '100dvh',
+        width: '100%',
+        overflow: 'hidden',
+        background: 'black',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+---
+
+## 2️⃣ Make the Header ACTUALLY FIXED
+
+**`FixedHeader.tsx` (or your banner component)**
+
+```tsx
+export function FixedHeader() {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        paddingTop: 'env(safe-area-inset-top)',
+        background: 'black',
+      }}
+    >
+      {/* banner contents */}
+    </div>
+  );
+}
+```
+
+⚠️ **Do NOT** put this inside any scrolling div.
+
+---
+
+## 3️⃣ Create ONE Scroll Container (and only one)
+
+**`ScrollableContent.tsx`**
+
+```tsx
+export function ScrollableContent({ children }) {
+  return (
+    <div
+      className="ios-scroll-container"
+      style={{
+        position: 'absolute',
+        top: 'calc(env(safe-area-inset-top) + 56px)', // header height
+        bottom: 0,
+        left: 0,
+        right: 0,
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+---
+
+## 4️⃣ Wire It Together (THIS IS THE KEY)
+
+**Where your app root renders (App.tsx / Router root):**
+
+```tsx
+<RootViewport>
+  <FixedHeader />
+  <ScrollableContent>
+    <AppRouter />
+  </ScrollableContent>
+</RootViewport>
+```
+
+❌ Do NOT wrap `AppRouter` directly in anything scrollable
+❌ Do NOT add safe-area padding anywhere else
+✅ Header lives OUTSIDE the scroll container
+
+---
+
+## 5️⃣ REMOVE ALL OTHER SAFE-AREA TOP PADDING
+
+Search and delete **everywhere else**:
+
+* `padding-top: env(safe-area-inset-top)`
+* `mt-safe`
+* `pt-safe`
+* `safe-area-top`
+
+There must be **ONE** place only: the fixed header.
+
+Multiple safe-areas = exactly the “moves one banner height” bug you’re seeing.
+
+---
+
+## 6️⃣ Capacitor (Confirm This Is Already Set)
+
+**`capacitor.config.ts`**
+
+```ts
+ios: {
+  scrollEnabled: false,
+  contentInset: 'never',
+}
+```
+
+(This prevents native scroll fighting your DOM scroll.)
+
+---
+
+# WHY THIS WILL FINALLY STOP IT
+
+* iOS can ONLY drag elements that are inside the scroll tree
+* A truly fixed parent (`position: fixed` + `overflow: hidden`)
+  **cannot be dragged**
+* The banner will become **physically impossible** for iOS to move
+
+No more “just a little” scroll.
+No more safe-area creep.
+No more black underlay peeking.
+
+---
+
+# NEXT ACTION (NO DEVIATION)
+
+1. Make **only** these structural changes in **DEV Replit**
+2. Push to `main`
+3. Promote to **staging → production**
+4. Delete app → reinstall from TestFlight
+
+---
+
+Reply with **ONE** of these when done:
+
+* **“Banner no longer moves”** ✅
+* **“Banner still moves”** ❌ (then we inspect for a second scroll container)
+
+You’re extremely close. This is the last structural wall.

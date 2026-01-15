@@ -1,28 +1,9 @@
 // server/services/permanentImageStorage.ts
-// Service for permanently storing DALL-E generated images to Amazon S3
+// Service for permanently storing DALL-E generated images to Replit Object Storage
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { objectStorageClient } from '../objectStorage';
+import { setObjectAclPolicy } from '../objectAcl';
 import crypto from 'crypto';
-
-function getS3Client(): S3Client {
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-  const region = process.env.AWS_REGION || 'us-east-2';
-  
-  if (!accessKeyId || !secretAccessKey) {
-    throw new Error('AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set');
-  }
-  
-  return new S3Client({
-    region,
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-    },
-  });
-}
-
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'my-perfect-meals-images';
 
 interface UploadImageOptions {
   imageUrl: string;
@@ -37,7 +18,7 @@ interface UploadResult {
 }
 
 /**
- * Downloads an image from a URL and uploads it to S3
+ * Downloads an image from a URL and uploads it to permanent storage
  */
 export async function uploadImageToPermanentStorage(
   options: UploadImageOptions
@@ -45,7 +26,7 @@ export async function uploadImageToPermanentStorage(
   const { imageUrl, mealName, imageHash } = options;
 
   try {
-    console.log(`📦 Uploading image to S3: ${mealName}`);
+    console.log(`📦 Uploading image to permanent storage: ${mealName}`);
 
     // Download the image from DALL-E's temporary URL
     const imageResponse = await fetch(imageUrl);
@@ -58,53 +39,96 @@ export async function uploadImageToPermanentStorage(
 
     // Generate a unique filename using hash or random ID
     const fileExtension = contentType.includes('png') ? 'png' : 'jpg';
-    const uniqueId = imageHash || crypto.randomUUID().substring(0, 16);
+    const uniqueId = imageHash || crypto.randomUUID();
     const sanitizedName = mealName
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '-')
       .substring(0, 50);
-    const key = `meal-images/${sanitizedName}-${uniqueId}.${fileExtension}`;
+    const filename = `meal-images/${sanitizedName}-${uniqueId}.${fileExtension}`;
 
-    // Upload to S3
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: imageBuffer,
-      ContentType: contentType,
-      CacheControl: 'public, max-age=31536000',
+    // Get the storage bucket from environment variable
+    // Format: /bucket-name/prefix (e.g., /replit-objstore-xxx/public)
+    const bucketPath = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0];
+    if (!bucketPath) {
+      throw new Error('PUBLIC_OBJECT_SEARCH_PATHS not configured');
+    }
+
+    // Parse the bucket path - it includes both bucket name and optional prefix
+    const pathParts = bucketPath.split('/').filter(p => p); // Remove empty strings
+    const bucketName = pathParts[0]; // e.g., 'replit-objstore-xxx'
+    const pathPrefix = pathParts.slice(1).join('/'); // e.g., 'public'
+    
+    // Construct full object path including prefix
+    const fullObjectPath = pathPrefix ? `${pathPrefix}/${filename}` : filename;
+    
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(fullObjectPath);
+
+    // Upload the image buffer to storage
+    await file.save(imageBuffer, {
+      metadata: {
+        contentType,
+        cacheControl: 'public, max-age=31536000', // Cache for 1 year
+      },
     });
 
-    await getS3Client().send(command);
+    // NOTE: Removed setObjectAclPolicy and makePublic calls
+    // Replit Object Storage serves files via /public-objects/ URL pattern
+    // which makes them publicly accessible without explicit ACL changes.
+    // The bucket has publicAccessPrevention enforced, so these calls would fail.
 
-    // Generate absolute HTTPS URL
-    const permanentUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-2'}.amazonaws.com/${key}`;
+    // Generate the public URL (matches the search path format)
+    const permanentUrl = `/public-objects/${filename}`;
     
-    console.log(`✅ Image uploaded to S3: ${permanentUrl}`);
+    console.log(`✅ Image uploaded successfully: ${permanentUrl}`);
 
     return {
       permanentUrl,
-      objectPath: key,
+      objectPath: `/${bucketName}/${fullObjectPath}`,
       uploadedAt: new Date().toISOString(),
     };
 
   } catch (error: any) {
-    console.error(`❌ Failed to upload image to S3:`, error.message);
+    console.error(`❌ Failed to upload image to permanent storage:`, error.message);
     throw error;
   }
 }
 
 /**
- * Check if an image already exists in S3 by hash
+ * Check if an image already exists in permanent storage by hash
  */
 export async function checkImageExists(imageHash: string): Promise<string | null> {
   try {
-    // We can't easily search S3 by partial key, so we construct the expected key pattern
-    // and check if any file with this hash exists
-    // For now, return null to force regeneration - this is simpler and more reliable
-    // Images are cached in memory anyway, so this is only called on cold starts
+    const bucketPath = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0];
+    if (!bucketPath) {
+      return null;
+    }
+
+    // Parse the bucket path - it includes both bucket name and optional prefix
+    const pathParts = bucketPath.split('/').filter(p => p);
+    const bucketName = pathParts[0];
+    const pathPrefix = pathParts.slice(1).join('/'); // e.g., 'public'
+    
+    const bucket = objectStorageClient.bucket(bucketName);
+
+    // Search for files with this hash (include prefix in search)
+    const searchPrefix = pathPrefix ? `${pathPrefix}/meal-images/` : 'meal-images/';
+    const [files] = await bucket.getFiles({
+      prefix: searchPrefix,
+    });
+
+    const matchingFile = files.find(file => file.name.includes(imageHash));
+    if (matchingFile) {
+      // Return URL without the prefix (just meal-images/...)
+      const filename = pathPrefix && matchingFile.name.startsWith(pathPrefix + '/')
+        ? matchingFile.name.slice(pathPrefix.length + 1)
+        : matchingFile.name;
+      return `/public-objects/${filename}`;
+    }
+
     return null;
   } catch (error) {
-    console.error('Error checking S3 image existence:', error);
+    console.error('Error checking image existence:', error);
     return null;
   }
 }

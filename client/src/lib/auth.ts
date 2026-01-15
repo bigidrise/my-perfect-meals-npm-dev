@@ -45,8 +45,6 @@ export function initNativeDemoMode(): boolean {
 
 const AUTH_TOKEN_KEY = "mpm_auth_token";
 
-export type UserRole = "admin" | "coach" | "client";
-
 export interface User {
   id: string;
   email: string;
@@ -59,10 +57,6 @@ export interface User {
   selectedMealBuilder?: MealBuilderType | null;
   isTester?: boolean;
   profilePhotoUrl?: string | null;
-  // Role-based access control
-  role?: UserRole;
-  isProCare?: boolean;
-  activeBoard?: MealBuilderType | null;
 }
 
 export function getAuthToken(): string | null {

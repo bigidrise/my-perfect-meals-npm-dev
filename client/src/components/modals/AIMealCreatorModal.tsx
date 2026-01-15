@@ -25,7 +25,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -65,9 +64,6 @@ export default function AIMealCreatorModal({
   dietType = "weekly",
   beachBodyMode = false,
 }: AIMealCreatorModalProps) {
-  const { user } = useAuth();
-  const userId = user?.id?.toString() || "";
-  
   const ACTIVE_SNACK_CATEGORIES =
     dietType === "diabetic" && mealSlot === "snacks"
       ? DIABETIC_SNACK_CATEGORIES
@@ -325,7 +321,7 @@ export default function AIMealCreatorModal({
           type: "fridge-rescue",
           mealType: mealSlot,
           input: ingredientsWithStyles,
-          userId,
+          userId: "1",
           ...(customMacroTargets && { macroTargets: customMacroTargets }),
           count: 1,
         }),

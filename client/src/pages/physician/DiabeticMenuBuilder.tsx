@@ -22,8 +22,6 @@ import {
   RemainingMacrosFooter,
   type ConsumedMacros,
 } from "@/components/biometrics/RemainingMacrosFooter";
-import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
-import { ProTipCard } from "@/components/ProTipCard";
 import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -44,7 +42,6 @@ import {
   nextWeekISO, 
   prevWeekISO, 
   formatWeekLabel,
-  formatDateDisplay,
   todayISOInTZ 
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
@@ -62,7 +59,6 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
-import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { WhyChip } from "@/components/WhyChip";
@@ -82,8 +78,6 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { getResolvedTargets } from "@/lib/macroResolver";
-import { classifyMeal } from "@/utils/starchMealClassifier";
-import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
 import {
   Dialog,
@@ -131,12 +125,6 @@ const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
     title: "Track Progress at Bottom",
     description:
       "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics.",
-  },
-  {
-    icon: "🥔",
-    title: "Watch Your Starch Slots",
-    description:
-      "The starch indicator helps you manage starchy carbs. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
   },
   {
     icon: "*",
@@ -266,22 +254,6 @@ export default function DiabeticMenuBuilder() {
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
     "breakfast" | "lunch" | "dinner"
   >("breakfast");
-
-  // Build StarchContext for Create With Chef modal
-  const starchContext: StarchContext | undefined = useMemo(() => {
-    if (!board || !activeDayISO) return undefined;
-    const resolved = user?.id ? getResolvedTargets(user.id) : null;
-    const strategy = resolved?.starchStrategy || 'one';
-    const dayLists = getDayLists(board, activeDayISO);
-    const existingMeals: StarchContext['existingMeals'] = [];
-    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
-      const meals = dayLists[slot] || [];
-      for (const meal of meals) {
-        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
-      }
-    }
-    return { strategy, existingMeals };
-  }, [board, activeDayISO, user?.id]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -767,7 +739,7 @@ export default function DiabeticMenuBuilder() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Meal Plan`
+          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Meal Plan`
           : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -1185,12 +1157,18 @@ export default function DiabeticMenuBuilder() {
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
-    gotoWeek(prevWeekISO(weekStartISO, "America/Chicago"));
+    const d = new Date(weekStartISO + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - 7);
+    const prevISO = d.toISOString().slice(0, 10);
+    gotoWeek(prevISO);
   }, [weekStartISO, gotoWeek]);
 
   const onNextWeek = useCallback(() => {
     if (!weekStartISO) return;
-    gotoWeek(nextWeekISO(weekStartISO, "America/Chicago"));
+    const d = new Date(weekStartISO + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 7);
+    const nextISO = d.toISOString().slice(0, 10);
+    gotoWeek(nextISO);
   }, [weekStartISO, gotoWeek]);
 
   function onItemUpdated(
@@ -1333,8 +1311,6 @@ export default function DiabeticMenuBuilder() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
-          starchyCarbs: (meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0,
-          fibrousCarbs: (meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk",
         };
@@ -1498,26 +1474,6 @@ export default function DiabeticMenuBuilder() {
                 </div>
               )}
 
-            {/* Daily Starch Indicator - Shows starch meal slots */}
-            {FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              activeDayISO &&
-              board && (
-                <div className="flex justify-center">
-                  <DailyStarchIndicator 
-                    meals={(() => {
-                      const dayLists = getDayLists(board, activeDayISO);
-                      return [
-                        ...dayLists.breakfast,
-                        ...dayLists.lunch,
-                        ...dayLists.dinner,
-                        ...dayLists.snacks,
-                      ];
-                    })()}
-                  />
-                </div>
-              )}
-
             {/* ROW 5: Bottom Actions (Delete All + Save) */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
               <Button
@@ -1634,8 +1590,8 @@ export default function DiabeticMenuBuilder() {
                         setSnackCreatorOpen(true);
                       }}
                       onManualAdd={() => openManualModal(key)}
-                      onLogSnack={() => {}}
-                      showLogSnack={false}
+                      onLogSnack={() => setLocation("/my-biometrics")}
+                      showLogSnack={key === "snacks"}
                     />
                   </div>
 
@@ -1825,27 +1781,56 @@ export default function DiabeticMenuBuilder() {
               </section>
             ))}
 
-        {/* Pro Tip Card */}
-          <ProTipCard />
+        {/* Quick Add Protein/Carbs - Above Daily Totals */}
+        <div className="col-span-full">
+          {(() => {
+            const resolved = getResolvedTargets(user?.id);
+            const proteinDeficit = Math.max(
+              0,
+              (resolved.protein_g || 0) - Math.round(totals.protein),
+            );
+            const carbsDeficit = Math.max(
+              0,
+              (resolved.carbs_g || 0) - Math.round(totals.carbs),
+            );
 
-        {/* Daily Targets Card with Quick Add */}
-          <div className="col-span-full">
-            <DailyTargetsCard
-              userId={user?.id}
-              onQuickAddClick={() => setAdditionalMacrosOpen(true)}
-              targetsOverride={(() => {
-                const targetMacros = getMacroTargets(user?.id);
-                if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
-                return {
-                  protein_g: targetMacros.protein_g || 0,
-                  carbs_g: targetMacros.carbs_g || 0,
-                  fat_g: targetMacros.fat_g || 0,
-                  starchyCarbs_g: targetMacros.starchyCarbs_g,
-                  fibrousCarbs_g: targetMacros.fibrousCarbs_g,
-                };
-              })()}
-            />
-          </div>
+            if (proteinDeficit === 0 && carbsDeficit === 0) return null;
+
+            return (
+              <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-sm text-white/80">
+                    {proteinDeficit > 0 && (
+                      <span>
+                        Need{" "}
+                        <strong className="text-orange-400">
+                          {proteinDeficit}g protein
+                        </strong>
+                      </span>
+                    )}
+                    {proteinDeficit > 0 && carbsDeficit > 0 && <span> · </span>}
+                    {carbsDeficit > 0 && (
+                      <span>
+                        Need{" "}
+                        <strong className="text-orange-400">
+                          {carbsDeficit}g carbs
+                        </strong>
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => setAdditionalMacrosOpen(true)}
+                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                    data-testid="button-quick-add-macros"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Quick Add
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
 
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
@@ -1946,7 +1931,7 @@ export default function DiabeticMenuBuilder() {
                       });
                       toast({
                         title: "Day Saved to Biometrics",
-                        description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
+                        description: `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                       });
                       setLocation("/my-biometrics");
                     }
@@ -2088,7 +2073,6 @@ export default function DiabeticMenuBuilder() {
         mealType={createWithChefSlot}
         onMealGenerated={handleAIMealGenerated}
         dietType="diabetic"
-        starchContext={starchContext}
       />
 
       {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with diabetic guardrails */}
@@ -2133,7 +2117,9 @@ export default function DiabeticMenuBuilder() {
             planningMode === "day" &&
             activeDayISO
           ) {
-            const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
+            const dayName = new Date(
+              activeDayISO + "T00:00:00Z",
+            ).toLocaleDateString(undefined, { weekday: "long" });
 
             return (
               <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">

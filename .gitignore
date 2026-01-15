@@ -29,24 +29,3 @@ android/build/
 android/captures/
 *.apk
 *.aab
-client/public/version.json
-
-# build / export artifacts
-*.zip
-dist
-build
-client-dist*
-
-# uploads / attachments
-attached_assets
-
-# tooling caches
-.vite
-.cache
-
-# dependencies
-node_modules
-
-# env
-.env
-.env.*

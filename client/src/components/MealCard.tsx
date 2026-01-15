@@ -8,8 +8,6 @@ import { queryClient } from "@/lib/queryClient";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
-import MealCardActions from "@/components/MealCardActions";
-import { StarchMealBadge } from "@/components/StarchMealBadge";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -47,13 +45,12 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 }
 
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false,
+  date, slot, meal, onUpdated,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
   meal: Meal;
   onUpdated: (m: Meal | null) => void; // null = delete
-  showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
 }) {
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -79,8 +76,6 @@ export function MealCard({
         protein,
         carbs,
         fat,
-        starchyCarbs: starchyCarbs || 0,
-        fibrousCarbs: fibrousCarbs || 0,
         servings: meal.servings || 1,
         source: "weekly-meal-board"
       };
@@ -137,22 +132,17 @@ export function MealCard({
         </div>
 
         <div className="pr-12">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="text-white font-semibold leading-snug text-lg flex-1">
-              {title.includes('(') ? (
-                <>
-                  {title.split('(')[0].trim()}
-                  <br />
-                  ({title.split('(')[1]}
-                </>
-              ) : (
-                title
-              )}
-            </h3>
-            {showStarchBadge && (
-              <StarchMealBadge meal={{ name: title, ingredients: meal.ingredients }} />
+          <h3 className="text-white font-semibold leading-snug text-lg">
+            {title.includes('(') ? (
+              <>
+                {title.split('(')[0].trim()}
+                <br />
+                ({title.split('(')[1]}
+              </>
+            ) : (
+              title
             )}
-          </div>
+          </h3>
           
           {/* Description (EXACT COPY FROM FRIDGE RESCUE) */}
           {(meal as any).description && (
@@ -172,22 +162,37 @@ export function MealCard({
             const badgeIds = medicalBadges.map(b => b.badge);
             
             return medicalBadges && medicalBadges.length > 0 && (
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2">
                 <HealthBadgesPopover badges={badgeIds} />
-                <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
               </div>
             );
           })()}
           
-          {/* Nutrition Grid - Showing Protein | Total Carbs | Fat */}
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          {/* Nutrition Grid (EXACT COPY FROM FRIDGE RESCUE) */}
+          <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
+              <div className="text-sm font-bold text-green-400">{Math.round(kcal)}</div>
+              <div className="text-xs text-white/70">Cal</div>
+            </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-blue-400">{Math.round(protein)}g</div>
               <div className="text-xs text-white/70">Protein</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-              <div className="text-sm font-bold text-amber-400">{Math.round(carbs)}g</div>
-              <div className="text-xs text-white/70">Carbs</div>
+              {hasStarchyFibrous ? (
+                <div className="flex flex-col leading-tight">
+                  <div className="text-sm font-bold text-orange-400">
+                    {(starchyCarbs || 0) + (fibrousCarbs || 0)}g
+                  </div>
+                  <div className="text-[10px] text-white/70">Starch: {starchyCarbs}g</div>
+                  <div className="text-[10px] text-white/70">Fibrous: {fibrousCarbs}g</div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-sm font-bold text-orange-400">{Math.round(carbs)}g</div>
+                  <div className="text-xs text-white/70">Carbs</div>
+                </>
+              )}
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-purple-400">{Math.round(fat)}g</div>
@@ -264,38 +269,23 @@ export function MealCard({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="mt-3 flex gap-2">
-          {date !== "board" && (
+        {/* Add to Macros Button - Only show when we have a valid date (day mode) */}
+        {date !== "board" && (
+          <div className="mt-3">
             <MacroBridgeButton
               meal={{
                 protein: protein || 0,
                 carbs: carbs || 0,
-                starchyCarbs: starchyCarbs || 0,
-                fibrousCarbs: fibrousCarbs || 0,
                 fat: fat || 0,
                 calories: kcal || 0,
                 dateISO: date,
-                mealSlot: slot,
+                mealSlot: slot === "snacks" ? "snack" : slot,
                 servings: meal.servings || 1,
               }}
               label="Add to Macros"
             />
-          )}
-          <MealCardActions
-            meal={{
-              name: title,
-              description: meal.description,
-              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
-                name: typeof ing === "string" ? ing : (ing.name || ing.item),
-                amount: typeof ing === "string" ? "" : (ing.quantity || ing.amount),
-                unit: typeof ing === "string" ? "" : ing.unit,
-              })),
-              instructions: meal.instructions || [],
-              nutrition: meal.nutrition,
-            }}
-          />
-        </div>
+          </div>
+        )}
         </div>
       </div>
     </div>

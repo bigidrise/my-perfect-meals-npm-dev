@@ -18,15 +18,10 @@ import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
-import { getResolvedTargets } from "@/lib/macroResolver";
-import { classifyMeal } from "@/utils/starchMealClassifier";
-import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
-import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
-import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -42,8 +37,7 @@ import {
   weekDatesInTZ, 
   nextWeekISO, 
   prevWeekISO, 
-  formatWeekLabel,
-  formatDateDisplay
+  formatWeekLabel 
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
@@ -74,7 +68,6 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
-import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { setMacroTargets } from "@/lib/dailyLimits";
@@ -124,12 +117,6 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
     icon: "6",
     title: "Track Progress & Save Day",
     description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
-  },
-  {
-    icon: "🥔",
-    title: "Watch Your Starch Slots",
-    description:
-      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
   },
   {
     icon: "*",
@@ -285,22 +272,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
     "breakfast" | "lunch" | "dinner"
   >("breakfast");
-
-  // Build StarchContext for Create With Chef modal
-  const starchContext: StarchContext | undefined = useMemo(() => {
-    if (!board || !activeDayISO) return undefined;
-    const resolved = user?.id ? getResolvedTargets(user.id) : null;
-    const strategy = resolved?.starchStrategy || 'one';
-    const dayLists = getDayLists(board, activeDayISO);
-    const existingMeals: StarchContext['existingMeals'] = [];
-    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
-      const meals = dayLists[slot] || [];
-      for (const meal of meals) {
-        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
-      }
-    }
-    return { strategy, existingMeals };
-  }, [board, activeDayISO, user?.id]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -638,7 +609,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Athlete Plan`
+          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Athlete Plan`
           : `Athlete Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -847,12 +818,18 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
-    gotoWeek(prevWeekISO(weekStartISO, "America/Chicago"));
+    const d = new Date(weekStartISO + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - 7);
+    const prevISO = d.toISOString().slice(0, 10);
+    gotoWeek(prevISO);
   }, [weekStartISO, gotoWeek]);
 
   const onNextWeek = useCallback(() => {
     if (!weekStartISO) return;
-    gotoWeek(nextWeekISO(weekStartISO, "America/Chicago"));
+    const d = new Date(weekStartISO + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 7);
+    const nextISO = d.toISOString().slice(0, 10);
+    gotoWeek(nextISO);
   }, [weekStartISO, gotoWeek]);
 
   async function quickAdd(
@@ -1100,7 +1077,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
+          <div className="flex items-center gap-2 flex-nowrap">
             {/* Back Button */}
             <button
               onClick={() =>
@@ -1115,20 +1092,18 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               <span className="text-sm font-medium">Back</span>
             </button>
 
-            {/* Title - shorter on mobile */}
-            <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
-              Performance Builder
+            {/* Title */}
+            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
+              Performance & Competition Meal Builder
             </h1>
 
-            {/* Guide button in Row 1 for athlete mode only */}
-            {mode === "athlete" && (
-              <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
-            )}
+            {/* Quick Tour Help Button */}
+            <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
           </div>
 
-          {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}
+          {/* Row 2: Client Dashboard Button (only in ProCare mode) */}
           {mode === "procare" && (
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center">
               <button
                 onClick={() => setLocation(`/pro/clients/${clientId}`)}
                 className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
@@ -1137,8 +1112,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 <ArrowLeft className="h-5 w-5" />
                 <span>Client Dashboard</span>
               </button>
-
-              <QuickTourButton onClick={quickTour.openTour} />
             </div>
           )}
         </div>
@@ -1224,26 +1197,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     weekDates={weekDatesList}
                     activeDayISO={activeDayISO}
                     onDayChange={setActiveDayISO}
-                  />
-                </div>
-              )}
-
-            {/* Daily Starch Indicator - Shows starch meal slots */}
-            {FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              activeDayISO &&
-              board && (
-                <div className="flex justify-center">
-                  <DailyStarchIndicator 
-                    meals={(() => {
-                      const dayLists = getDayLists(board, activeDayISO);
-                      return [
-                        ...dayLists.breakfast,
-                        ...dayLists.lunch,
-                        ...dayLists.dinner,
-                        ...dayLists.snacks,
-                      ];
-                    })()}
                   />
                 </div>
               )}
@@ -1865,28 +1818,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             </>
           )}
 
-          {/* Pro Tip Card */}
-          <ProTipCard />
-
-          {/* Daily Targets Card */}
-          <div className="col-span-full">
-            <DailyTargetsCard
-              userId={user?.id}
-              showQuickAddButton={false}
-              targetsOverride={(() => {
-                const coachTargets = proStore.getTargets(clientId);
-                const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
-                return {
-                  protein_g: coachTargets.protein,
-                  carbs_g: totalCarbs,
-                  fat_g: coachTargets.fat,
-                  starchyCarbs_g: coachTargets.starchyCarbs || 0,
-                  fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
-                };
-              })()}
-            />
-          </div>
-
           {/* Remaining Macros Footer - Inline Mode */}
           {board &&
             FEATURES.dayPlanning === "alpha" &&
@@ -1927,8 +1858,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 protein_g: coachTargets.protein,
                 carbs_g: totalCarbs,
                 fat_g: coachTargets.fat,
-                starchyCarbs_g: coachTargets.starchyCarbs || 0,
-                fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
               };
               
               return (
@@ -1968,7 +1897,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         });
                         toast({
                           title: "Day Saved to Coach Targets",
-                          description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                         });
                         setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
                       }
@@ -2075,7 +2004,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           mealType={createWithChefSlot}
           onMealGenerated={handleAIMealGenerated}
           dietType="performance"
-          starchContext={starchContext}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with STRICT performance guardrails */}
@@ -2121,7 +2049,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
+              const dayName = new Date(
+                activeDayISO + "T00:00:00Z",
+              ).toLocaleDateString(undefined, { weekday: "long" });
 
               return (
                 <div className="fixed bottom-0 left-0 right-0 pb-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl">

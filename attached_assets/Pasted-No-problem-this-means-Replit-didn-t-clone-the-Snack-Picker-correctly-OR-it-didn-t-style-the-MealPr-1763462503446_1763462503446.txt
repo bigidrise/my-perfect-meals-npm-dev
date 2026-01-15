@@ -1,0 +1,135 @@
+No problem — this means Replit didn’t clone the Snack Picker correctly OR it didn’t style the MealPremadePicker with the same component-level colors, spacing, and layout.
+
+To fix this cleanly (and without confusing the system), you can give Replit the following strict correction prompt.
+
+This will make:
+	•	The food choices display EXACTLY like snacks
+	•	Category tabs match snack picker style
+	•	Items inherit the same color palette, spacing, fonts, and card look
+	•	The modal look identical to the snack system
+	•	The Breakfast category function like the snack picker’s categories
+	•	Food items appear as selectable, tappable tiles/cards
+
+⸻
+
+✅ REPLIT FIX PROMPT — MAKE BREAKFAST MEAL PICKER MATCH SNACK PICKER STYLING
+
+Copy/paste this EXACTLY into Replit:
+
+⸻
+
+STYLE + UI FIX FOR MEAL PREMADE PICKER
+
+Do NOT change anything except what is listed.
+Do NOT add features.
+Do NOT modify Lunch or Dinner.
+This applies ONLY to the Weekly Meal Board → MealPremadePicker → Breakfast tab.
+
+⸻
+
+⭐ 1 — Clone Snack Picker UI EXACTLY
+
+Update the MealPremadePicker so that its UI matches the Snack Picker:
+	•	The same modal background
+	•	The same rounded container
+	•	The same card layout for options (the rectangular “snack tiles”)
+	•	The same hover and active behavior
+	•	The same highlight color for selected items
+	•	The same font sizes and weights
+	•	The same spacing rules and grid layout
+	•	The same tab styling, including:
+	•	tab shape
+	•	border
+	•	background color
+	•	active tab highlight
+	•	inactive tab style
+
+This should make MealPremadePicker look identical to SnackPicker except for the content.
+
+⸻
+
+⭐ 2 — Replace Breakfast Premade Items With Snack-Style Cards
+
+The breakfast choices must render as cards/tiles, just like snacks do.
+
+Example structure:
+
+[ Scrambled Eggs + Toast ]
+[ Protein Shake + Banana ]
+[ Egg Whites + Turkey Bacon ]
+
+Each card should:
+	•	Use the same background color as snack cards
+	•	Use the same border radius
+	•	Use the same font
+	•	Use the same padding
+	•	Use the same shadow
+	•	Use the same spacing between cards
+
+Do NOT use plain text.
+Use the snack tile component.
+
+⸻
+
+⭐ 3 — Category Tabs Must Match Snack Picker Tabs
+
+Make the Breakfast categories appear as tabs that match the snack picker:
+
+Tabs needed:
+	•	All Protein
+	•	Protein + Carb
+	•	Egg-Based Meals
+
+These tabs must:
+	•	Use the same sizing
+	•	Same active color
+	•	Same inactive color
+	•	Same tab animation
+	•	Same borders/shadows
+	•	Same layout
+
+The background color of the active tab must match the Snack Picker.
+
+⸻
+
+⭐ 4 — Keep All Existing Logic
+
+Do NOT change:
+	•	OnClick logic
+	•	Connection to Weekly Meal Board
+	•	DALL·E logic
+	•	JSON structure
+	•	Prep field system
+
+ONLY update styling + component types.
+
+⸻
+
+⭐ 5 — STOP after styling is corrected
+
+Once:
+	•	The Breakfast tab UI matches Snack Picker UI
+	•	The cards look like snack tiles
+	•	The colors and tabs are consistent
+	•	The layout is identical
+
+STOP.
+Do NOT add Lunch or Dinner.
+Do NOT change inputs or logic.
+
+⸻
+
+END OF PROMPT
+
+⸻
+
+✅ When this is done, we will:
+	•	Add nutrient display (optional)
+	•	Add serving-size visual cues
+	•	Add images to the picker (if you want)
+	•	Move to Lunch and Dinner styles
+	•	Add “Random Premade” button
+
+Just tell me:
+
+“Fixed — ready for the next step.”

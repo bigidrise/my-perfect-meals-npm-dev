@@ -1,0 +1,85 @@
+PROMPT FOR STAGING PROJECT:
+
+Task: Fix RemainingMacrosFooter to use Coach Targets in Pro Builders
+
+Problem:
+In GeneralNutritionBuilder and PerformanceCompetitionBuilder, when a coach changes client targets in the Client Dashboard, the "Coach Target" section updates correctly, but the "Remaining Today" section (RemainingMacrosFooter) does NOT update. It still shows the coach's own personal macro targets instead of the client's targets.
+
+Root Cause:
+RemainingMacrosFooter reads from getMacroTargets(user?.id) which returns the logged-in coach's personal goals, not the client's targets stored in proStore.
+
+Solution - 3 Files to Modify:
+
+FILE 1: client/src/components/biometrics/RemainingMacrosFooter.tsx
+
+Add a new interface after the existing ConsumedMacros interface:
+export interface TargetsOverride {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+}
+
+Add targetsOverride?: TargetsOverride; to the RemainingMacrosFooterProps interface
+
+Add targetsOverride to the destructured props in the component function
+
+Update the targets useMemo to check for targetsOverride first:
+
+const targets = useMemo(() => {
+  if (targetsOverride) {
+    return targetsOverride;
+  }
+  const stored = getMacroTargets(user?.id);
+  return stored || { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+}, [user?.id, targetsOverride]);
+
+FILE 2: client/src/pages/pro/GeneralNutritionBuilder.tsx
+
+Find where <RemainingMacrosFooter is rendered (around line 1500-1520). Update it to pass targetsOverride:
+
+<RemainingMacrosFooter
+  showSaveButton={false}
+  layoutMode="inline"
+  consumedOverride={dailyTotals}
+  targetsOverride={(() => {
+    const targets = proStore.getTargets(clientId);
+    if (!targets) return undefined;
+    const calories = (targets.protein * 4) + (targets.starchyCarbs * 4) + (targets.fibrousCarbs * 4) + (targets.fat * 9);
+    return {
+      calories,
+      protein_g: targets.protein,
+      carbs_g: targets.starchyCarbs + targets.fibrousCarbs,
+      fat_g: targets.fat,
+    };
+  })()}
+/>
+
+FILE 3: client/src/pages/pro/PerformanceCompetitionBuilder.tsx
+
+Find where <RemainingMacrosFooter is rendered (around line 1900-1920). Apply the same fix:
+
+<RemainingMacrosFooter
+  showSaveButton={false}
+  layoutMode="inline"
+  consumedOverride={dailyTotals}
+  targetsOverride={(() => {
+    const targets = proStore.getTargets(clientId);
+    if (!targets) return undefined;
+    const calories = (targets.protein * 4) + (targets.starchyCarbs * 4) + (targets.fibrousCarbs * 4) + (targets.fat * 9);
+    return {
+      calories,
+      protein_g: targets.protein,
+      carbs_g: targets.starchyCarbs + targets.fibrousCarbs,
+      fat_g: targets.fat,
+    };
+  })()}
+/>
+
+Verification:
+
+Open Client Dashboard
+Change coach targets and save
+Navigate to General Nutrition Builder or Performance Competition Builder
+Both "Coach Target" section AND "Remaining Today" footer should show the same updated values
+That's the complete prompt. Just paste it to your staging project agent and it should replicate the exact fix.

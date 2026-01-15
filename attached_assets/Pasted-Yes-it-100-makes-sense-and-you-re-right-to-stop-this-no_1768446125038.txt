@@ -1,0 +1,215 @@
+Yes — it **100% makes sense**, and you’re right to stop this now. We’re not going in circles anymore. This is the clean fix.
+
+You’ve correctly diagnosed the real problem:
+
+> The **Prepare with Chef** button that lives on other meal cards is **not using the same logic** as the **Prepare This Meal** button inside Chef’s Kitchen.
+>
+> That’s why it keeps routing through Phase 1 and swapping meals.
+
+So let’s do exactly what you said — **surgically**.
+
+---
+
+## The core issue (plain English)
+
+Right now you have **two different implementations** that *look* similar but behave differently:
+
+### ✅ Button A (CORRECT)
+
+* **“Prepare This Meal”** (inside Chef’s Kitchen)
+* Goes **directly to Phase 2**
+* Uses an internal handler that:
+
+  * Sets `mode = "cook"`
+  * Sets `cookMeal`
+  * Does **NOT** touch Phase 1 state
+
+### ❌ Button B (BROKEN)
+
+* **“Prepare with Chef”** (on other meal cards)
+* Goes through:
+
+  * routing
+  * shared state
+  * or a generic “open Chef’s Kitchen” helper
+* Which **reinitializes Phase 1**
+* And **replaces the meal**
+
+So yes — **they are not the same button**, even if they look the same.
+
+---
+
+## The fix (exactly what you asked for)
+
+> **We are NOT going to “fix” the existing Prepare with Chef button.**
+> **We are going to DELETE its logic and REUSE the working one.**
+
+No abstraction. No wrappers. No cleverness.
+
+---
+
+## Step-by-step: what to do (do this in order)
+
+### 1️⃣ Identify the ONE working function
+
+Inside `ChefsKitchenPage.tsx` you already have something like:
+
+```ts
+const startCookMode = (meal: Meal) => {
+  setMode("cook");
+  setCookMeal(meal);
+};
+```
+
+or it might be inline:
+
+```ts
+onClick={() => {
+  setMode("cook");
+  setCookMeal(generatedMeal);
+}}
+```
+
+👉 **This is the gold. This is the only logic we trust.**
+
+---
+
+### 2️⃣ Extract that logic into a reusable hook or helper
+
+Create ONE function, in ONE place. For example:
+
+```ts
+// src/hooks/usePrepareWithChef.ts
+export function usePrepareWithChef() {
+  const [, setLocation] = useLocation();
+
+  return (meal: Meal) => {
+    setLocation("/chefs-kitchen", {
+      state: {
+        mode: "cook",
+        meal,
+      },
+    });
+  };
+}
+```
+
+⚠️ **Important**
+This function:
+
+* DOES NOT mention Phase 1
+* DOES NOT generate
+* DOES NOT mutate anything
+* ONLY passes `{ mode: "cook", meal }`
+
+---
+
+### 3️⃣ Update Chef’s Kitchen to respect ONLY this entry
+
+At the top of `ChefsKitchenPage.tsx` (you likely already have this partially):
+
+```ts
+const location = useLocation();
+
+useEffect(() => {
+  if (location.state?.mode === "cook" && location.state.meal) {
+    setMode("cook");
+    setCookMeal(location.state.meal);
+    return;
+  }
+}, []);
+```
+
+⚠️ **And critically**:
+If `mode === "cook"` → **DO NOT initialize Phase 1 at all**
+
+No defaults. No resets.
+
+---
+
+### 4️⃣ DELETE the old Prepare with Chef logic everywhere
+
+Now the key part.
+
+Anywhere you currently have:
+
+```ts
+onClick={() => openChefsKitchen(meal)}
+```
+
+or
+
+```ts
+onClick={() => setActiveMeal(meal)}
+```
+
+or
+
+```ts
+navigate("/chefs-kitchen")
+```
+
+❌ **DELETE IT**
+
+---
+
+### 5️⃣ Replace it with the SAME logic as “Prepare This Meal”
+
+On **every meal card**, regardless of feature:
+
+```ts
+import { usePrepareWithChef } from "@/hooks/usePrepareWithChef";
+
+const prepareWithChef = usePrepareWithChef();
+
+<button
+  className="bg-lime-600 ..."
+  onClick={() => prepareWithChef(meal)}
+>
+  Prepare with Chef
+</button>
+```
+
+That’s it.
+
+Now:
+
+* Craving Creator ✅
+* Fridge Rescue ✅
+* Presets ✅
+* Kids / Toddler Meals ✅
+* Weekly Builder ✅
+* Chef’s Kitchen Phase 1 ✅
+
+All roads → **Phase 2 only**
+
+---
+
+## Why this works (and won’t regress)
+
+* There is **one** code path to Phase 2
+* Phase 1 is **opt-in only**
+* Meals are **passed**, not **stored**
+* No shared mutable state
+* No conditional branching based on “where you came from”
+
+You’ve turned Phase 2 into a **pure service**, exactly as intended.
+
+---
+
+## Final confirmation checklist
+
+After this change, the following must be true:
+
+* ✅ Clicking Prepare with Chef from **anywhere** goes straight to Phase 2
+* ✅ Phase 1 is never shown unless user explicitly enters Kitchen Studio
+* ✅ Existing Chef’s Kitchen meal is never replaced
+* ✅ Multiple meals can be cooked sequentially without collisions
+
+If you want, next I can:
+
+* Write the **exact diff** for one meal card
+* Or help you **search & destroy** the old handler
+* Or sanity-check the Chef’s Kitchen `useEffect` guards
+
+You’re not wrong. This was the right call.

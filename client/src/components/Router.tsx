@@ -34,9 +34,7 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 // Standalone 3-step onboarding for all onboarding routes
 import OnboardingStandalone from "@/pages/onboarding-standalone";
-import ExtendedOnboarding from "@/pages/onboarding/ExtendedOnboarding";
 import Welcome from "@/pages/Welcome";
-import GuestBuilder from "@/pages/GuestBuilder";
 import Auth from "@/pages/Auth";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -82,15 +80,10 @@ import ShoppingListMasterView from "@/pages/ShoppingListMasterView";
 
 // Pro Portal (core MVP feature)
 import CareTeam from "@/pages/CareTeam";
-import PhysicianCareTeam from "@/pages/care-team/PhysicianCareTeam";
-import TrainerCareTeam from "@/pages/care-team/TrainerCareTeam";
-import PhysicianPortal from "@/pages/pro/PhysicianPortal";
 import ProCareCover from "@/pages/ProCareCover";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
 import ProClientDashboard from "@/pages/pro/ProClientDashboard";
-import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
-import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
 
 // Physician Hub Pages
@@ -104,7 +97,6 @@ import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuB
 
 // Craving pages
 // DELETED: CravingHub (moved to _quarantine - replaced by CravingCreatorLanding)
-import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import CravingPresets from "@/pages/CravingPresets";
@@ -164,8 +156,6 @@ export default function Router() {
     "/",
     "/auth",
     "/welcome",
-    "/guest-builder",
-    "/guest-suite",
     "/forgot-password",
     "/reset-password",
     "/onboarding",
@@ -185,8 +175,6 @@ export default function Router() {
       <Switch>
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
-        <Route path="/guest-builder" component={GuestBuilder} />
-        <Route path="/guest-suite" component={GuestBuilder} />
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
         <Route path="/forgot-password" component={ForgotPassword} />
@@ -194,7 +182,6 @@ export default function Router() {
         <Route path="/pricing" component={PricingPage} />
         <Route path="/paywall" component={PricingPage} />
         <Route path="/select-builder" component={MealBuilderSelection} />
-        <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
@@ -230,7 +217,6 @@ export default function Router() {
         <Route path="/kids-meals" component={KidsMealsHub} />
         <Route path="/toddler-meals" component={ToddlersMealsHub} />
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/chefs-kitchen" component={ChefsKitchenPage} />
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
@@ -357,18 +343,9 @@ export default function Router() {
           path="/procare-cover"
           component={withPageErrorBoundary(ProCareCover, "ProCare Cover")}
         />
-        <Route path="/pro/physician" component={PhysicianPortal} />
         <Route
           path="/care-team"
           component={withPageErrorBoundary(CareTeam, "Care Team")}
-        />
-        <Route
-          path="/care-team/physician"
-          component={withPageErrorBoundary(PhysicianCareTeam, "Physician Care Team")}
-        />
-        <Route
-          path="/care-team/trainer"
-          component={withPageErrorBoundary(TrainerCareTeam, "Trainer Care Team")}
         />
         <Route
           path="/pro-portal"
@@ -378,26 +355,11 @@ export default function Router() {
           path="/pro/clients"
           component={withPageErrorBoundary(ProClients, "Pro Clients")}
         />
-        <Route path="/pro/clients/:id" component={ProClientDashboard} />
         <Route
           path="/pro/clients/:id"
           component={withPageErrorBoundary(
             ProClientDashboard,
             "Client Dashboard",
-          )}
-        />
-        <Route
-          path="/pro/clients/:id/trainer"
-          component={withPageErrorBoundary(
-            TrainerClientDashboard,
-            "Trainer Dashboard",
-          )}
-        />
-        <Route
-          path="/pro/clients/:id/clinician"
-          component={withPageErrorBoundary(
-            ClinicianClientDashboard,
-            "Clinician Dashboard",
           )}
         />
         <Route

@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
@@ -16,11 +17,9 @@ router.get("/profile", async (req, res) => {
 
     const userId = req.user.id;
 
-    const result = await db.execute(
+    const [profile] = await db.execute(
       sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${userId}`
     );
-
-    const profile = result.rows?.[0] as { guardrails?: unknown } | undefined;
 
     if (!profile) {
       return res.json({ guardrails: DEFAULT_GLP1_GUARDRAILS });
@@ -46,10 +45,9 @@ router.put("/profile", async (req, res) => {
     const validated = GLP1GuardrailsZ.parse(guardrails);
 
     // Fetch existing values for audit trail
-    const existingResult = await db.execute(
+    const [existing] = await db.execute(
       sql`SELECT guardrails FROM glp1_profile WHERE user_id = ${userId}`
     );
-    const existing = existingResult.rows?.[0] as { guardrails?: unknown } | undefined;
 
     await db.execute(
       sql`
@@ -64,7 +62,7 @@ router.put("/profile", async (req, res) => {
     await db.insert(glp1AuditLog).values({
       id: crypto.randomUUID(),
       userId,
-      clinicianId: null,
+      clinicianId: req.user.role === "doctor" || req.user.role === "coach" ? req.user.id : null,
       action: "update_guardrails",
       previousValues: existing?.guardrails ?? null,
       newValues: validated,

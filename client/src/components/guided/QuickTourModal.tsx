@@ -59,7 +59,7 @@ export function QuickTourModal({
           </VisuallyHidden>
         </DialogHeader>
 
-        <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-2">
+        <div className="space-y-4 py-4">
           {steps.map((step, index) => (
             <div key={index} className="flex items-start gap-3">
               <div className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-sm font-bold text-orange-400">

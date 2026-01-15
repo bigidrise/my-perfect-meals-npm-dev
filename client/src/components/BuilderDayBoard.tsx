@@ -95,8 +95,6 @@ async function logDayToMacros(day: PlanDay) {
       protein: Number(meal.nutrition?.protein ?? 0),
       carbs: Number(meal.nutrition?.carbs ?? 0),
       fat: Number(meal.nutrition?.fat ?? 0),
-      starchyCarbs: Number((meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0),
-      fibrousCarbs: Number((meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0),
       servings: Number(meal.servings ?? 1),
       source: "builder-day-board",
     };

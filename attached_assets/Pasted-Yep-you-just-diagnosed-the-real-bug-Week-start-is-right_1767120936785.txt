@@ -1,0 +1,166 @@
+Yep — **you just diagnosed the real bug**:
+
+✅ **Week start is right**
+❌ **Selected day is wrong** (it’s drifting back one day)
+
+And the root cause is exactly what you quoted:
+
+* You’re generating week dates using **UTC midnight (`...T00:00:00Z`)**
+* But computing “today” using **Chicago timezone**
+* Those two “calendars” don’t line up → **the highlight/selected day slides backward**
+
+You can’t mix **UTC date math** with **timezone calendar strings** and expect it to behave on iOS. iOS will happily “help” you into yesterday.
+
+---
+
+# The fix that actually works (and stays correct on iOS)
+
+## Rule
+
+**Do all calendar math in ONE system.**
+The cleanest system for apps like yours is:
+
+### ✅ “Noon UTC anchor” + “format into America/Chicago”
+
+Why noon UTC?
+
+* Avoids DST midnight edge cases
+* Avoids `Z`-midnight shifting
+* Keeps “add one day” stable
+
+---
+
+## 1) Replace the broken `Z` logic in `boardApi.ts`
+
+**Find anything like this (bad):**
+
+```ts
+new Date(weekStartISO + "T00:00:00Z")
+```
+
+**Replace with this (good, DST-safe):**
+
+```ts
+const MS_DAY = 86400000;
+
+function isoToUtcNoonDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0)); // noon UTC
+}
+
+function formatISOInTZ(date: Date, timeZone: string) {
+  // en-CA gives YYYY-MM-DD format reliably
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(date);
+}
+
+export function getTodayISOSafe(timeZone: string) {
+  return formatISOInTZ(new Date(), timeZone);
+}
+
+export function weekDatesInTZ(weekStartISO: string, timeZone: string) {
+  const base = isoToUtcNoonDate(weekStartISO);
+  return Array.from({ length: 7 }, (_, i) => formatISOInTZ(new Date(base.getTime() + i * MS_DAY), timeZone));
+}
+```
+
+That kills the “yesterday” bug because:
+
+* You’re no longer creating a Date in UTC midnight
+* You’re generating **all 7 days using the same timezone formatting**
+* iOS can’t “slide” it
+
+---
+
+## 2) Fix the WeeklyMealBoard selected day logic
+
+You want this logic **exactly**:
+
+* Generate week dates in Chicago
+* Compute today in Chicago
+* If today is in this week → select it
+* Otherwise → select weekStartISO
+
+Example:
+
+```ts
+const TZ = "America/Chicago";
+
+const [weekStartISO, setWeekStartISO] = useState(() => getCurrentWeekStartISOInTZ(getTodayISOSafe(TZ)));
+const weekDates = useMemo(() => weekDatesInTZ(weekStartISO, TZ), [weekStartISO]);
+
+const [activeDayISO, setActiveDayISO] = useState(() => {
+  const today = getTodayISOSafe(TZ);
+  // If you load a historical week, don't force "today"
+  return weekDatesInTZ(getCurrentWeekStartISOInTZ(today), TZ).includes(today) ? today : weekStartISO;
+});
+```
+
+**Important:** if `activeDayISO` is being set again in a `useEffect`, that can overwrite your default selection. If you have an effect that does something like “setActiveDayISO(weekDates[0])”, that will force Sunday/Monday every time. That’s the other common cause.
+
+So also search WeeklyMealBoard for:
+
+* `setActiveDayISO(` inside `useEffect`
+* `setSelectedDay(`
+* anything that “resets” when weekStart changes
+
+If it exists, it needs this guard:
+
+```ts
+useEffect(() => {
+  const today = getTodayISOSafe(TZ);
+  if (weekDates.includes(today)) setActiveDayISO(today);
+  else if (!weekDates.includes(activeDayISO)) setActiveDayISO(weekDates[0]);
+}, [weekStartISO]); // or [weekDates]
+```
+
+---
+
+# 3) Quick proof test (takes 10 seconds)
+
+In WeeklyMealBoard, temporarily log:
+
+```ts
+console.log("TZ today:", getTodayISOSafe("America/Chicago"));
+console.log("Week dates:", weekDates);
+console.log("Active day:", activeDayISO);
+```
+
+If today is Tuesday, you must see:
+
+* today = Tuesday’s YYYY-MM-DD
+* weekDates contains that same string
+* activeDayISO matches it
+
+If not, then something is still overwriting `activeDayISO` after init.
+
+---
+
+# 4) Then we duplicate to the other builders
+
+Once Weekly is correct, the replication rule is simple:
+
+Any builder that has:
+
+* week navigation OR day selection OR “opens to today”
+  must use the **same two helpers**:
+* `getTodayISOSafe(TZ)`
+* `weekDatesInTZ(weekStartISO, TZ)`
+
+No Luxon. No `'Z'`. No `toISOString().slice(0,10)`.
+
+---
+
+## One blunt truth (so we don’t waste time)
+
+If Replit “fixed it” but it’s still wrong, then one of these is happening:
+
+1. They **left a `Z` parse somewhere** (most likely), or
+2. There’s a `useEffect` that **resets the selected day** after render, or
+3. You’re computing “today” in one place and “week dates” in another with different rules.
+
+The “noon UTC anchor + TZ formatter” approach eliminates #1 and #3 completely, and exposes #2 instantly.
+
+---
+
+If you paste **WeeklyMealBoard’s day/selected-day code** (just the part that sets `weekStartISO`, builds `weekDates`, and sets `activeDayISO`), I’ll tell you **the exact line** that’s still forcing yesterday.

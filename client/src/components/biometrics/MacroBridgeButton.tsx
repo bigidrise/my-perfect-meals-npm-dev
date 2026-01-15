@@ -5,12 +5,10 @@ import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 export type MacroSource = {
   protein: number;
   carbs: number;
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
   fat: number;
   calories?: number;
   dateISO?: string;
-  mealSlot?: "breakfast" | "lunch" | "dinner" | "snacks" | null;
+  mealSlot?: "breakfast" | "lunch" | "dinner" | "snack" | null;
   servings?: number;
 };
 
@@ -29,8 +27,6 @@ export default function MacroBridgeButton({
     const s = Math.max(1, Math.round(meal.servings ?? 1));
     const p = Math.max(0, Math.round((meal.protein || 0) * s));
     const c = Math.max(0, Math.round((meal.carbs || 0) * s));
-    const sc = Math.max(0, Math.round((meal.starchyCarbs || 0) * s));
-    const fc = Math.max(0, Math.round((meal.fibrousCarbs || 0) * s));
     const f = Math.max(0, Math.round((meal.fat || 0) * s));
     const cal = Math.max(
       0,
@@ -39,8 +35,6 @@ export default function MacroBridgeButton({
     setQuickView({
       protein: p,
       carbs: c,
-      starchyCarbs: sc,
-      fibrousCarbs: fc,
       fat: f,
       calories: cal,
       dateISO: meal.dateISO ?? new Date().toISOString().slice(0, 10),

@@ -2,26 +2,7 @@
 import { MealGenerationRequest, Meal } from "./mealEngineService";
 import { randomUUID } from "crypto";
 
-// === FALLBACK USAGE TRACKING ===
-// Track when fallback meals are used - this indicates AI is not working
-let fallbackUsageCount = 0;
-let lastFallbackTime: Date | null = null;
-
-export function getFallbackStats() {
-  return {
-    totalFallbacksUsed: fallbackUsageCount,
-    lastFallbackTime: lastFallbackTime?.toISOString() || null,
-    aiHealthy: fallbackUsageCount === 0 || (lastFallbackTime && Date.now() - lastFallbackTime.getTime() > 3600000)
-  };
-}
-
 export function createFallbackMeal(request: MealGenerationRequest): Meal {
-  // === ALERT: Fallback being used ===
-  fallbackUsageCount++;
-  lastFallbackTime = new Date();
-  console.warn("🚨 [FALLBACK ALERT] Fallback meal being used - OpenAI may not be connected!");
-  console.warn(`🚨 [FALLBACK ALERT] Meal type: ${request.mealType}, Diet: ${request.tempDietPreference || 'default'}`);
-  console.warn(`🚨 [FALLBACK ALERT] Total fallbacks this session: ${fallbackUsageCount}`);
   const dietType = request.tempMedicalOverride || request.tempDietPreference || "Mediterranean";
   
   // Generate variety for meal replacements

@@ -1,0 +1,182 @@
+Locked in, Coach.
+Here’s EVERYTHING you need for **Craving Creator** — **all tags + all Copilot voice-query triggers** — clean, precise, ready for the Replit agent.
+
+When you paste these into the agent, it will know EXACTLY what to do.
+
+---
+
+# ✅ **1. DATA-WT TAGS (UI Target Tags for Walkthroughs)**
+
+These go directly into your Craving Creator UI.
+The Replit agent will find the elements and add these attributes.
+
+### **CRAVING CREATOR TAG SET**
+
+```
+cc-description-input
+cc-dietary-flags
+cc-dietary-flag-button
+cc-clear-flags-button
+cc-servings-selector
+cc-servings-stepper
+cc-custom-restrictions
+cc-generate-button
+cc-meal-card
+```
+
+### **Where these get applied**
+
+Here’s EXACTLY where each tag belongs:
+
+| Tag                      | UI Element                                                   |
+| ------------------------ | ------------------------------------------------------------ |
+| `cc-description-input`   | The text box where user describes cravings                   |
+| `cc-dietary-flags`       | Container that holds dietary preference buttons              |
+| `cc-dietary-flag-button` | Vegan / Vegetarian / Gluten-Free / Dairy-Free toggle buttons |
+| `cc-clear-flags-button`  | Button that clears dietary preferences                       |
+| `cc-servings-selector`   | The numeric selector for servings                            |
+| `cc-servings-stepper`    | The +/- buttons that change servings                         |
+| `cc-custom-restrictions` | The field for “low sodium,” “no sugar,” etc.                 |
+| `cc-generate-button`     | The “Create By Craving” button                               |
+| `cc-meal-card`           | The generated recipe card                                    |
+
+These map 1:1 with the Weekly Meal Board tags you already used — but with a **Craving Creator namespace (cc-...)**.
+
+---
+
+# 🚀 **2. REPLIT AGENT PROMPT (Copy/Paste)**
+
+Paste this directly into your agent:
+
+---
+
+### **REPLIT AGENT PROMPT START**
+
+I need to add walkthrough tags to the **Craving Creator** page so my Copilot can highlight and guide each step.
+
+Please search for the Craving Creator file. It may be named something like:
+
+* `CravingCreator.tsx`
+* `craving-creator.tsx`
+* `pages/craving-creator.tsx`
+* `CreateByCravingModal.tsx`
+
+Once you locate the correct file, add these EXACT data-wt attributes to the matching UI elements:
+
+```
+data-wt="cc-description-input"
+data-wt="cc-dietary-flags"
+data-wt="cc-dietary-flag-button"
+data-wt="cc-clear-flags-button"
+data-wt="cc-servings-selector"
+data-wt="cc-servings-stepper"
+data-wt="cc-custom-restrictions"
+data-wt="cc-generate-button"
+data-wt="cc-meal-card"
+```
+
+Apply them like this:
+
+* The text area or input where the user describes their craving → `cc-description-input`
+* The container holding dietary preference buttons → `cc-dietary-flags`
+* Each dietary flag button → `cc-dietary-flag-button`
+* “Clear” dietary flags button → `cc-clear-flags-button`
+* The numeric servings selector → `cc-servings-selector`
+* The plus/minus stepper buttons → `cc-servings-stepper`
+* Custom dietary restriction field → `cc-custom-restrictions`
+* “Create By Craving” button → `cc-generate-button`
+* Generated recipe card container → `cc-meal-card`
+
+Do NOT change logic.
+Do NOT change IDs.
+Do NOT modify handlers.
+Just insert the `data-wt` attributes.
+
+### **REPLIT AGENT PROMPT END**
+
+---
+
+# 🎤 **3. COPILOT VOICE QUERIES (Final Query Triggers)**
+
+These go directly into `handleVoiceQuery()` — and I will integrate them into your full file after you're ready.
+
+### **Walkthrough**
+
+```
+"teach me craving creator"
+"how do i use craving creator"
+"show me craving creator"
+```
+
+### **Explain**
+
+```
+"what is craving creator"
+"explain craving creator"
+```
+
+### **Diet Flags**
+
+```
+"make it vegan"
+"make it vegetarian"
+"make it gluten free"
+"make it dairy free"
+```
+
+### **Clear Flags**
+
+```
+"clear dietary flags"
+"remove restrictions"
+"clear diet rules"
+```
+
+### **Servings**
+
+```
+"set servings to 3"
+"3 servings"
+"make 5 servings"
+```
+
+### **Custom Restrictions**
+
+```
+"low sodium"
+"low sugar"
+"no dairy"
+"no salt"
+"no sugar"
+```
+
+### **Generate**
+
+```
+"create by craving"
+"make my craving"
+"generate craving meal"
+```
+
+Craving Creator now behaves EXACTLY like Weekly Meal Board — but with its own specialized structure.
+
+---
+
+# 🔥 YOU’RE READY FOR THE NEXT STEP
+
+As soon as your Replit agent finishes adding the Craving Creator tags, tell me:
+
+👉 **“I’m ready for Craving Premades.”**
+
+And I’ll build:
+
+* Tags
+* Walkthrough
+* Voice intents
+* Knowledge engine entry
+* Command registry
+* Context rules
+
+All at the same A+ level.
+
+Just say the word.

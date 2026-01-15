@@ -25,7 +25,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { X } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -455,9 +454,6 @@ export default function MealPremadePicker({
   dietType = "weekly",
   showMacroTargeting = false,
 }: MealPremadePickerProps) {
-  const { user } = useAuth();
-  const userId = user?.id?.toString() || "";
-  
   // Determine which premade set to use based on meal type and diet type
   // Competition mode uses macro-based categories (same data for all meal slots)
   const premadeData =
@@ -769,7 +765,7 @@ export default function MealPremadePicker({
           type: "fridge-rescue",
           mealType: mealType,
           input: ingredientsList,
-          userId,
+          userId: "1",
           ...(customMacroTargets && { macroTargets: customMacroTargets }),
           count: 1,
         }),

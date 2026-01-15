@@ -1,0 +1,240 @@
+This is **excellent**. We now have full, concrete alignment — and yes, this is exactly the kind of root-cause clarity that gets you out of the “why does this keep happening?” loop permanently.
+
+I’m going to do three things:
+
+1. **Validate your technical findings (they are correct)**
+2. **Confirm the fix path is Facebook-level and complete**
+3. **Lock final agreements + guardrails before code is touched**
+
+No code. Just rules and validation.
+
+---
+
+## 1️⃣ Validation: Your root cause analysis is 100% correct
+
+Let’s state this cleanly, because this is the “aha” moment:
+
+### ❗ The table existed in *code*, but not in *the schema Drizzle uses*
+
+That’s the critical distinction.
+
+You found the real issue:
+
+| Location                             | Status                          | Meaning                   |
+| ------------------------------------ | ------------------------------- | ------------------------- |
+| `server/db/schema/generatedMeals.ts` | ✅ defined                       | Table exists in isolation |
+| `server/db/schema.ts`                | ✅ exported                      | Still fine                |
+| **`shared/schema.ts`**               | ❌ NOT exported                  | **Drizzle never sees it** |
+| `drizzle.config.ts`                  | 👉 points to `shared/schema.ts` | Migration blind spot      |
+| Result                               | ❌ table never created           | All envs broken           |
+
+This is not:
+
+* an AI problem
+* an environment problem
+* an iOS problem
+* a TypeScript problem
+
+This is a **schema visibility contract violation**.
+
+And yes — this explains **why every environment is missing the table**, perfectly and consistently.
+
+That’s a *good* bug to find. It’s deterministic.
+
+---
+
+## 2️⃣ Migration & deploy reality check (important)
+
+You also correctly identified the second systemic issue:
+
+> **Migrations are not part of deploy**
+
+Current reality:
+
+* Dev: manual `db:push`
+* Staging/Prod: app starts, but migrations are never applied
+
+So even *after* fixing the schema export, nothing would change in staging/prod unless you explicitly run migrations.
+
+That’s another Facebook-level gap you’re now closing.
+
+---
+
+## 3️⃣ Route dependency mapping is correct
+
+You correctly traced the blast radius:
+
+| Feature         | Endpoint                     | Dependency                                                          |
+| --------------- | ---------------------------- | ------------------------------------------------------------------- |
+| Craving Creator | `/api/meals/craving-creator` | `unifiedMealPipeline → mealCachePersistent → generated_meals_cache` |
+| Create with AI  | `/api/meals/generate-meal`   | same                                                                |
+
+Everything else works because:
+
+* they bypass the unified cache layer
+* or use different generators
+
+This is textbook “shared infrastructure dependency” behavior.
+
+---
+
+## 4️⃣ The fix path — validated, with one small tightening
+
+Your proposed plan is **correct**. I’m going to validate each step and add **one small but critical tightening** so this *never* regresses.
+
+### ✅ Step 1: Export table into Drizzle-visible schema
+
+**Approved. Mandatory.**
+
+> Add `generatedMealsCache` export to `shared/schema.ts`
+
+This fixes the *root*.
+
+---
+
+### ✅ Step 2: Run `db:push` in dev
+
+**Approved.**
+
+Dev becomes the proving ground again.
+
+---
+
+### ✅ Step 3: Startup validation
+
+**Approved, with clarification.**
+
+Rule:
+
+* On server startup:
+
+  * Validate presence of **required tables**
+* On route execution:
+
+  * If missing → **503 + explicit error code**
+
+We do **not** silently downgrade behavior.
+
+This is the biggest philosophical shift — and it’s the right one.
+
+---
+
+### ✅ Step 4: `generationSource` tagging
+
+**Approved. Required.**
+
+This single field solves:
+
+* UI truthfulness
+* analytics
+* health metrics
+* debugging
+* “AI didn’t run” ambiguity
+
+This is a *massive* leverage point for very little surface area.
+
+---
+
+### ✅ Step 5: Health endpoint
+
+**Approved. Required.**
+
+Minimum acceptance:
+
+* primary success count
+* fallback count
+* error count
+* required table presence
+
+No “green checkmark” theater.
+
+---
+
+### ⚠️ Step 6: Sync to staging & production
+
+**Approved — with ONE tightening**
+
+This is the only place I’ll be firm:
+
+> **Staging and production MUST run migrations as part of promotion**
+
+Not “someone remembers to run db:push.”
+
+You need **one of these** (architect choice):
+
+* prestart hook
+* deploy script
+* manual promotion checklist with enforced step
+
+Otherwise, this bug *will* come back under a different table name later.
+
+---
+
+### ✅ Step 7: Release gate
+
+**Approved. Locked.**
+
+Hard blocks:
+
+* missing required tables
+* startup validation failures
+* 5xx in AI routes
+
+Soft block:
+
+* fallback rate > 5% over rolling window
+
+This is Facebook-level.
+
+---
+
+## 5️⃣ One final rule to lock in (this prevents repeats)
+
+I want one explicit agreement added to the ruleset:
+
+> **If a table is referenced by runtime code, it must live in the schema file used by the migration tool.**
+
+No exceptions.
+No “temporary” tables.
+No “we’ll add it later.”
+
+If it’s queried, it’s migrated.
+
+That single rule prevents this entire class of bug forever.
+
+---
+
+## 6️⃣ Final alignment check (answer these with “yes”)
+
+Before the architect touches code, confirm:
+
+1. Dev is the **only** workspace where fixes are made
+2. `shared/schema.ts` is the **single source of truth** for migrations
+3. Missing required tables cause **503**, not silent fallback
+4. Responses are tagged with `generationSource`
+5. Health endpoint exposes real behavior
+6. Staging & prod migrations are **explicitly run**, not assumed
+7. TestFlight is blocked by schema or fallback violations
+
+If all seven are “yes” — we’re done planning.
+
+---
+
+## Bottom line (and this matters)
+
+This wasn’t “AI being unreliable.”
+
+This was:
+
+* a schema visibility bug
+* compounded by silent degradation
+* hidden by polite 200 responses
+
+You didn’t need “less AI.”
+You needed **truthful infrastructure contracts**.
+
+You now have them.
+
+Once you confirm the 7 points above, tell the architect to proceed — and when they’re done, we’ll do a **release-readiness audit** before anything touches TestFlight again.
+
+This is how apps stop bleeding.

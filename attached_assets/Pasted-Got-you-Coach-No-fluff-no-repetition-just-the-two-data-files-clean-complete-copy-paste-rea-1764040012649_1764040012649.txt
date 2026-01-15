@@ -1,0 +1,282 @@
+Got you, Coach. No fluff, no repetition — **just the two data files, clean, complete, copy-paste-ready, and architect-safe.**
+
+These files follow EXACTLY your structure, EXACTLY the board rules, and **do not touch or reference any other system.**
+
+Let’s knock this out.
+
+---
+
+# ✅ **FILE #1 — `competitionIngredients.ts`**
+
+**Location:** `client/src/data/competitionIngredients.ts`
+**Purpose:** AI Meal Creator ingredients ONLY for Performance & Competition Builder.
+
+```typescript
+// ------------------------------------------------------------
+// COMPETITION / PERFORMANCE INGREDIENT SET
+// Used ONLY when dietType === "competition"
+// DO NOT IMPORT THIS FILE INTO ANY OTHER BUILDER.
+// ------------------------------------------------------------
+
+export const competitionIngredients = {
+  protein: [
+    // Lean complete proteins
+    "Chicken breast (grilled)",
+    "Turkey breast slices",
+    "Ground turkey 99% lean",
+    "Lean ground chicken",
+    "Top sirloin steak (lean)",
+    "Eye of round steak",
+    "Bison (lean)",
+    "White fish (tilapia, cod, halibut)",
+    "Salmon (4oz)",
+    "Shrimp",
+    "Egg whites",
+    "Whole eggs (1–2 max)",
+    // Breakfast proteins
+    "Chicken sausage (low-sodium, low-sugar)",
+    "Turkey sausage (low-sodium, low-sugar)",
+    "Plain Greek yogurt",
+    "Plain cottage cheese"
+  ],
+
+  starchyCarbs: [
+    // Hot cereals
+    "Oatmeal (plain)",
+    "Cream of wheat",
+    "Grits (plain)",
+    "Cream of rice",
+    // Starches
+    "White rice",
+    "Brown rice",
+    "Basmati rice",
+    "Jasmine rice",
+    "Sweet potato",
+    "Yam",
+    "White potato",
+    // Dry options
+    "Rice cakes (plain)",
+    "Quinoa",
+    "Low-carb tortilla"
+  ],
+
+  fibrousCarbs: [
+    "Asparagus",
+    "Broccoli",
+    "Green beans",
+    "Spinach",
+    "Kale",
+    "Mixed greens",
+    "Zucchini",
+    "Bell peppers",
+    "Brussels sprouts",
+    "Cauliflower",
+    "Cabbage",
+    "Arugula",
+    "Mushrooms"
+  ],
+
+  fats: [
+    "Avocado (measured)",
+    "Olive oil (measured)",
+    "Almond butter (measured)",
+    "Peanut butter (measured)",
+    "Walnuts (small portion)",
+    "Whole egg yolk",
+    "Chia seeds",
+    "Flax seeds",
+    "MCT oil",
+    "Tahini"
+  ],
+
+  fruits: [
+    // Low-glycemic + competition-friendly
+    "Strawberries",
+    "Blueberries",
+    "Blackberries",
+    "Raspberries",
+    "Green apple",
+    "Grapefruit",
+    "Kiwi",
+    "Orange slices (controlled portion)"
+  ]
+};
+
+export type CompetitionIngredientCategory =
+  keyof typeof competitionIngredients;
+
+export const COMPETITION_INGREDIENT_CATEGORIES =
+  Object.keys(competitionIngredients) as CompetitionIngredientCategory[];
+```
+
+---
+
+# ✅ **FILE #2 — `competitionPremadeMeals.ts`**
+
+**Location:** `client/src/data/competitionPremadeMeals.ts`
+**Purpose:** Premade meals ONLY for Performance & Competition Builder.
+**Portions:**
+
+* Protein: **4–5 oz**
+* Starch: **40g carbs**
+* Veggies: **150g (~2 cups)**
+
+```typescript
+// ------------------------------------------------------------
+// COMPETITION / PERFORMANCE PREMADE MEALS
+// Used ONLY when dietType === "competition"
+// DO NOT USE IN ANY OTHER BUILDER.
+// ------------------------------------------------------------
+
+export const competitionPremadeMeals = {
+  proteinOnly: [
+    {
+      name: "Grilled Chicken Breast (5 oz)",
+      ingredients: [
+        "Chicken breast (5 oz)",
+        "Mrs. Dash seasoning",
+        "Black pepper"
+      ],
+      instructions: "Grill chicken breast and season lightly."
+    },
+    {
+      name: "Lean Steak Medallions",
+      ingredients: [
+        "Top sirloin steak (5 oz)",
+        "Garlic powder",
+        "Black pepper"
+      ],
+      instructions: "Pan-sear steak and season lightly."
+    },
+    {
+      name: "White Fish Fillet (4 oz)",
+      ingredients: [
+        "Tilapia or cod (4 oz)",
+        "Lemon",
+        "Black pepper",
+        "Paprika"
+      ],
+      instructions: "Bake at 375°F for 12–15 min."
+    },
+    {
+      name: "Shrimp Protein Plate",
+      ingredients: [
+        "Shrimp (5 oz)",
+        "Lemon juice",
+        "Garlic powder"
+      ],
+      instructions: "Steam or sauté shrimp until pink."
+    }
+  ],
+
+  proteinVeggie: [
+    {
+      name: "Chicken + Greens",
+      ingredients: [
+        "Chicken breast (5 oz)",
+        "Spinach (2 cups)",
+        "Asparagus (150g)"
+      ],
+      instructions:
+        "Grill chicken, steam asparagus, sauté spinach with spray oil."
+    },
+    {
+      name: "White Fish + Broccoli",
+      ingredients: [
+        "Cod (4 oz)",
+        "Broccoli (2 cups)",
+        "Lemon"
+      ],
+      instructions: "Bake fish; steam broccoli."
+    },
+    {
+      name: "Lean Beef + Zucchini Medley",
+      ingredients: [
+        "Lean steak (5 oz)",
+        "Zucchini (150g)",
+        "Bell peppers (1 cup)"
+      ],
+      instructions: "Pan-sear steak; sauté veggies lightly."
+    }
+  ],
+
+  proteinStarchVeggie: [
+    {
+      name: "Chicken, Rice, and Broccoli",
+      ingredients: [
+        "Chicken breast (5 oz)",
+        "White rice (40g carb portion)",
+        "Broccoli (2 cups)"
+      ],
+      instructions:
+        "Grill chicken; steam broccoli; serve with measured rice."
+    },
+    {
+      name: "Turkey, Sweet Potato, and Greens",
+      ingredients: [
+        "Ground turkey 99% (5 oz)",
+        "Sweet potato (40g carb portion)",
+        "Spinach (2 cups)"
+      ],
+      instructions:
+        "Brown turkey; bake sweet potato; sauté spinach."
+    },
+    {
+      name: "White Fish, Quinoa, and Asparagus",
+      ingredients: [
+        "Cod (4 oz)",
+        "Quinoa (40g carb portion)",
+        "Asparagus (2 cups)"
+      ],
+      instructions: "Bake fish; boil quinoa; roast asparagus."
+    }
+  ],
+
+  proteinFruit: [
+    {
+      name: "Greek Yogurt Protein Bowl",
+      ingredients: [
+        "Plain Greek yogurt (1 cup)",
+        "Blueberries (½ cup)",
+        "Chia seeds (1 tsp)"
+      ],
+      instructions:
+        "Mix yogurt with fruit; sprinkle chia seeds."
+    },
+    {
+      name: "Egg White Scramble + Citrus",
+      ingredients: [
+        "Egg whites (1 cup)",
+        "Grapefruit segments (½ cup)"
+      ],
+      instructions: "Scramble egg whites; serve with grapefruit."
+    }
+  ]
+};
+
+export type CompetitionPremadeCategory =
+  keyof typeof competitionPremadeMeals;
+
+export const COMPETITION_PREMADE_CATEGORIES =
+  Object.keys(
+    competitionPremadeMeals
+  ) as CompetitionPremadeCategory[];
+```
+
+---
+
+# 💥 YOU’RE DONE.
+
+These two files are **correct**, **clean**, and **isolated** — the architect can wire them in without touching ANY other diet mode.
+
+If you want, I can now generate the **implementation patch instructions** for the architect:
+
+* where to add `dietType="competition"`
+* how to wire AIMealCreatorModal
+* how to wire AthleteMealPickerDrawer
+* safety checks
+* testing instructions
+
+Just say:
+
+### **“Generate the Implementation Patch.”**

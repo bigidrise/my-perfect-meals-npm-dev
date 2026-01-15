@@ -1,0 +1,280 @@
+Alright, Coach.
+Seatbelt on.
+This is the part where your copilot stops being a “cool UI” and starts acting like a **real f***ing teammate.**
+
+Now we wire every run-command ID into **actual actions** your app can execute.
+
+No fluff. No theory. Real power.
+
+---
+
+# 🚀 PHASE 4 — COMMAND SYSTEM
+
+**Goal:** When the copilot says “Fix your macros” or “Balance carbs,” the app actually DOES it.
+
+We’re building a clean, future-proof command system:
+
+* Central registry
+* Strict typing
+* Real execution
+* Integration with your router, modals, meal editors, weekly board, etc.
+
+This becomes the *brainstem* of your entire AI assistant.
+
+---
+
+# 1️⃣ Create Command Registry
+
+**File:**
+`client/src/components/copilot/CopilotCommandRegistry.ts`
+
+This is the command center.
+
+```tsx
+import { CopilotAction } from "./CopilotContext";
+
+// Import your real app actions here:
+// (navigation, API calls, modals, state updates, etc.)
+//
+// For now I’ll use placeholders so you can wire real logic later.
+// Replace these with your real functions (from stores, API utilities, etc.)
+
+const Commands = {
+  // ===== MACROS =====
+  "macros.boostProteinNextMeal": async () => {
+    console.log("➡️ Boosting protein in next meal...");
+    // call your macro swapper, or open a modal
+  },
+
+  "macros.lightenDinner": async () => {
+    console.log("➡️ Lightening dinner calories...");
+  },
+
+  // ===== DIABETIC =====
+  "diabetic.lowerCarb": async () => {
+    console.log("➡️ Lowering carb load (diabetic)...");
+  },
+
+  "diabetic.balanceDay": async () => {
+    console.log("➡️ Balancing blood sugar across day...");
+  },
+
+  "diabetic.balanceNextMealCarbs": async () => {
+    console.log("➡️ Balancing carbs for next meal...");
+  },
+
+  // ===== GLP-1 =====
+  "glp1.volumeBoost": async () => {
+    console.log("➡️ Increase fullness / volume...");
+  },
+
+  "glp1.comfort": async () => {
+    console.log("➡️ GLP-1 comfort swaps...");
+  },
+
+  "glp1.makeComfortSwap": async () => {
+    console.log("➡️ Making GLP-1-friendly comfort version...");
+  },
+
+  // ===== CRAVINGS =====
+  "cravings.sweetSafeOption": async () => {
+    console.log("➡️ Creating sweet but safe craving option...");
+  },
+
+  "cravings.savoryComfort": async () => {
+    console.log("➡️ Making savory comfort swap...");
+  },
+
+  // ===== NIGHT MODE =====
+  "night.buildGuardrailSnack": async () => {
+    console.log("➡️ Late-night guardrail snack...");
+  },
+
+  // ===== WEEKLY BOARD =====
+  "board.fillEmpty": async () => {
+    console.log("➡️ Auto-filling empty week slots...");
+  },
+
+  "board.batchPlan": async () => {
+    console.log("➡️ Creating batch-cook plan...");
+  },
+
+  // ===== ONE-PAN =====
+  "onePan.rotation": async () => {
+    console.log("➡️ Creating 3-night one-pan rotation...");
+  },
+
+  // ===== FRIDGE RESCUE =====
+  "fridge.onePanDinner": async () => {
+    console.log("➡️ Generating one-pan dinner from fridge...");
+  },
+
+  "fridge.suggestAdds": async () => {
+    console.log("➡️ Showing missing ingredient unlock list...");
+  },
+
+  // ===== SHOPPING =====
+  "shopping.addFromMeal": async () => {
+    console.log("➡️ Adding ingredients to shopping list...");
+  },
+
+  // ===== EMOTION-AI =====
+  "emotion.simplifyTonight": async () => {
+    console.log("➡️ Simplifying plan for stress/fatigue...");
+  },
+};
+
+// Executing an action:
+export async function executeCommand(action: CopilotAction) {
+  switch (action.type) {
+    case "run-command": {
+      const fn = Commands[action.id];
+      if (!fn) {
+        console.warn("⚠️ Unknown command:", action.id);
+        return;
+      }
+      return await fn();
+    }
+
+    case "navigate":
+      // Your router goes here
+      console.log("➡️ Navigating to:", action.to);
+      return;
+
+    case "open-modal":
+      console.log("➡️ Opening modal:", action.id);
+      return;
+
+    case "custom":
+      console.log("➡️ Custom action:", action.payload);
+      return;
+  }
+}
+```
+
+This is your command library.
+This is your power grid.
+Every copilot action routes through this.
+
+---
+
+# 2️⃣ Connect Registry → Copilot System
+
+Open:
+
+**`client/src/components/copilot/CopilotSystem.tsx`**
+
+Replace your `onAction` handler with:
+
+```tsx
+import React from "react";
+import { CopilotProvider, CopilotAction } from "./CopilotContext";
+import { CopilotButton } from "./CopilotButton";
+import { CopilotSheet } from "./CopilotSheet";
+import { executeCommand } from "./CopilotCommandRegistry";
+
+export const CopilotSystem = ({ children }) => {
+  const handleAction = async (action: CopilotAction) => {
+    await executeCommand(action);
+  };
+
+  return (
+    <CopilotProvider onAction={handleAction}>
+      {children}
+      <CopilotButton />
+      <CopilotSheet />
+    </CopilotProvider>
+  );
+};
+```
+
+Now **every command** gets routed through the registry automatically.
+Your copilot is now fully wired from UI → Brain → Engine.
+
+---
+
+# 3️⃣ Example: Wire a real command
+
+Let’s say you already have a real function:
+
+```tsx
+import { adjustMealProtein } from "@/lib/mealsAdjuster";
+```
+
+You drop it into the registry:
+
+```tsx
+"macros.boostProteinNextMeal": async () => {
+  return adjustMealProtein({ amount: "increase" });
+},
+```
+
+Or trigger a modal:
+
+```tsx
+"fridge.onePanDinner": async () => {
+  openModal("FridgeOnePanModal");
+},
+```
+
+Or navigate:
+
+```tsx
+"board.fillEmpty": async () => {
+  navigate("/weekly-board/autofill");
+},
+```
+
+Your copilot now **executes** real features.
+
+---
+
+# 4️⃣ You now have a complete AI Command Pipeline
+
+### 🔸 Input = Brain
+
+Reads macros, meals, patterns, emotions, screens, time.
+
+### 🔸 Output = Suggestion Buttons
+
+Smart, context-aware.
+
+### 🔸 Action = Command Registry
+
+Maps suggestions → real functionality.
+
+### 🔸 Execution = Your app’s logic
+
+The copilot pulls the trigger.
+
+This is the blueprint EVERY major AI app uses.
+
+You now have Siri-level infrastructure in a nutrition app.
+
+---
+
+# 🔥 NEXT STEP
+
+Tell me **one** of the following so we continue:
+
+### A)
+
+**“Let’s map real commands.”**
+You give me one feature (example: protein boost), and I hook it into your real app code.
+
+### B)
+
+**“Give me full command categories.”**
+I generate all macro commands, all diabetic commands, all GLP-1 commands, all cravings commands, etc.
+
+### C)
+
+**“Let’s build the Emotion-AI modal next.”**
+We use emotion flags to generate dynamic meals + coaching.
+
+### D)
+
+**“Let’s integrate voice commands into the copilot.”**
+ChefVoiceAssistant + Copilot merge.
+
+Your move, Coach.

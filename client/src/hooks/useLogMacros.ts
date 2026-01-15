@@ -21,9 +21,6 @@ export interface LogMacrosPayload {
   carbs?: number;
   fat?: number;
   kcal?: number;
-  // Starchy/Fibrous carb breakdown (Nutrition Schema v1.1)
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
   meta?: any;
   idempotencyKey?: string;
 }

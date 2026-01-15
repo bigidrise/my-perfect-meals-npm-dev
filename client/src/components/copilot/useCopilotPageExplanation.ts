@@ -1,10 +1,9 @@
 import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { useLocation } from 'wouter';
 import { useCopilot } from './CopilotContext';
-import { getGuestPageExplanation } from './CopilotPageExplanations';
+import { getPageExplanation } from './CopilotPageExplanations';
 import { CopilotExplanationStore } from './CopilotExplanationStore';
 import { shouldAllowAutoOpen } from './CopilotRespectGuard';
-import { isGuestMode } from '@/lib/guestMode';
 
 /**
  * Hook that triggers page explanations when navigating to new pages.
@@ -43,8 +42,8 @@ export function useCopilotPageExplanation() {
     // This prevents re-opening after skip/close while still on same page
     if (CopilotExplanationStore.hasSessionOpened(normalizedPath)) return;
 
-    // Get page explanation - use guest-specific marketing copy when in guest mode
-    const explanation = getGuestPageExplanation(normalizedPath, isGuestMode());
+    // Get page explanation
+    const explanation = getPageExplanation(normalizedPath);
     if (!explanation) return;
 
     // Clear any previous timer

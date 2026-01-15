@@ -28,9 +28,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft, MapPin, Loader2, Plus, Navigation, Copy, CalendarPlus } from "lucide-react";
+import { Home, Clock, Users, ArrowLeft, MapPin, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
-import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -44,24 +43,20 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
-import { setQuickView } from "@/lib/macrosQuickView";
-import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
-import { classifyMeal } from "@/utils/starchMealClassifier";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
     title: "Describe What You Want",
-    description:
-      "Enter what you’re craving or the type of food you want to eat.",
+    description: "Tell us what you're craving and the type of food you'd like.",
   },
   {
     title: "Enter Restaurant & ZIP",
-    description: "Add the restaurant name and a nearby zip code.",
+    description: "Enter the restaurant name and a nearby zip code.",
   },
   {
-    title: "Get Smart Options",
+    title: "Get Meal Options",
     description:
-      "View three goal-friendly meal options with simple tips on how to order them healthier.",
+      "See meal options that match your goals and work where you're eating.",
   },
 ];
 
@@ -687,36 +682,14 @@ export default function RestaurantGuidePage() {
                       </button>
                     </div>
                     {restaurantInfo?.address && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <button
-                          onClick={() => openInMaps(restaurantInfo.address)}
-                          className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                          aria-label="Open in Maps"
-                        >
-                          <Navigation className="h-3 w-3" />
-                          <span className="underline">{restaurantInfo.address}</span>
-                        </button>
-                        <button
-                          onClick={async () => {
-                            const success = await copyAddressToClipboard(restaurantInfo.address);
-                            toast({
-                              title: success ? "Address copied" : "Copy failed",
-                              description: success 
-                                ? "Paste into Maps or Waze." 
-                                : "Please copy manually.",
-                            });
-                          }}
-                          className="p-1 text-white/50 hover:text-white/80 transition-colors"
-                          aria-label="Copy address"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
+                      <p className="text-white/70 text-sm mt-1">
+                        📍 {restaurantInfo.address}
                         {restaurantInfo.rating && (
-                          <span className="text-sm text-white/70 ml-1">
+                          <span className="ml-2">
                             ⭐ {restaurantInfo.rating}
                           </span>
                         )}
-                      </div>
+                      </p>
                     )}
                   </div>
                   <div className="grid gap-4">
@@ -745,27 +718,9 @@ export default function RestaurantGuidePage() {
                           {/* Meal Details */}
                           <div className="md:col-span-2 p-4">
                             <div className="flex items-start justify-between mb-2">
-                              <div className="flex flex-col gap-1">
-                                <h3 className="text-lg font-semibold text-white">
-                                  {meal.name || meal.meal}
-                                </h3>
-                                {/* Starch Classification Badge */}
-                                {(() => {
-                                  const starchClass = classifyMeal({
-                                    name: meal.name || meal.meal,
-                                    ingredients: meal.ingredients || [],
-                                  });
-                                  return (
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
-                                      starchClass.isStarchMeal 
-                                        ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
-                                        : 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                    }`}>
-                                      {starchClass.emoji} {starchClass.label}
-                                    </span>
-                                  );
-                                })()}
-                              </div>
+                              <h3 className="text-lg font-semibold text-white">
+                                {meal.name || meal.meal}
+                              </h3>
                               <span className="text-sm text-white/90 bg-orange-600 px-2 py-1 rounded font-medium">
                                 {meal.calories} cal
                               </span>
@@ -775,7 +730,7 @@ export default function RestaurantGuidePage() {
                               {meal.description || meal.reason}
                             </p>
 
-                            {/* Medical Safety Badges */}
+                            {/* Medical Badges */}
                             {(() => {
                               // Generate medical badges client-side like weekly meal calendar
                               const userProfile = getUserMedicalProfile(1);
@@ -804,12 +759,10 @@ export default function RestaurantGuidePage() {
                                 badgeStrings &&
                                 badgeStrings.length > 0 && (
                                   <div className="mb-3">
-                                    <div className="flex items-center gap-3">
-                                      <HealthBadgesPopover
-                                        badges={badgeStrings}
-                                      />
-                                      <h3 className="font-semibold text-white">Medical Safety</h3>
-                                    </div>
+                                    <HealthBadgesPopover
+                                      badges={badgeStrings}
+                                      className="mt-2"
+                                    />
                                   </div>
                                 )
                               );
@@ -848,54 +801,13 @@ export default function RestaurantGuidePage() {
                             </div>
 
                             {/* Modifications */}
-                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
+                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm">
                               <h4 className="font-medium text-orange-300 text-sm mb-1">
                                 Ask For:
                               </h4>
                               <p className="text-orange-200 text-sm">
                                 {meal.modifications || meal.orderInstructions}
                               </p>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                onClick={() => {
-                                  setQuickView({
-                                    protein: Math.round(meal.protein || 0),
-                                    carbs: Math.round(meal.carbs || 0),
-                                    fat: Math.round(meal.fat || 0),
-                                    calories: Math.round(meal.calories || 0),
-                                    dateISO: new Date().toISOString().slice(0, 10),
-                                    mealSlot: "lunch",
-                                  });
-                                  setLocation("/biometrics?from=restaurant-guide&view=macros");
-                                }}
-                                className="w-full bg-black text-white font-medium"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Your Macros
-                              </Button>
-
-                              {/* Add to Meal Plan Button */}
-                              <AddToMealPlanButton
-                                meal={{
-                                  id: meal.id || `restaurant-${index}-${Date.now()}`,
-                                  title: meal.name || meal.meal,
-                                  name: meal.name || meal.meal,
-                                  description: meal.description || meal.reason,
-                                  imageUrl: meal.imageUrl,
-                                  ingredients: meal.ingredients?.map((ing: string) => ({
-                                    item: ing,
-                                    amount: "1 serving",
-                                  })) || [],
-                                  instructions: meal.modifications ? [meal.modifications] : [],
-                                  calories: meal.calories,
-                                  protein: meal.protein,
-                                  carbs: meal.carbs,
-                                  fat: meal.fat,
-                                }}
-                              />
                             </div>
                           </div>
                         </div>
@@ -951,7 +863,7 @@ export default function RestaurantGuidePage() {
                         setRestaurantInput(`${cuisine} restaurant`);
                         setMatchedCuisine(cuisine);
                       }}
-                      className="px-3 py-1 bg-black text-white rounded-full text-sm transition-colors font-medium"
+                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-full text-sm transition-colors font-medium"
                     >
                       {cuisine}
                     </button>

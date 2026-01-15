@@ -1,0 +1,249 @@
+Alright Coach — I’m going to tighten up the architect prompt so it **explicitly** includes:
+
+* Adding the new Clinical Anti-Inflammatory Hub button to the **Planner page**
+* Wiring the **route + navigation**
+* Keeping **all aesthetics absolutely uniform** — typography, spacing, card design, headers, and black-glass styling
+* Zero deviations from the look/feel of Diabetes + GLP-1 hubs
+* Explicit warnings so they do NOT break anything or create mystery pages again
+
+Here’s the updated, **finished, copy-paste-ready Architect Prompt.**
+Use this version — this one covers everything you just said.
+
+---
+
+# 📌 **FINAL ARCHITECT PROMPT — ADD ANTI-INFLAMMATORY CLINICAL HUB**
+
+**Context**
+We are adding a new **Clinical Lifestyle Diet Hub** called:
+
+> **Clinical Anti-Inflammatory Hub**
+> (supports Rheumatoid Arthritis, Raynaud’s phenomenon, and general autoimmune/anti-inflammatory recommendations)
+
+This hub must behave **exactly the same** as the existing **Diabetes** and **GLP-1** hubs:
+
+* Same architecture
+* Same layout
+* Same UX flow
+* Same styling
+* Same picker/meal generation pattern
+
+This is a **clinical** hub (doctor/dietitian-aligned), not a lifestyle preference hub.
+
+---
+
+# 1. **Primary Objective**
+
+Create a new Anti-Inflammatory clinical hub by **duplicating the Diabetes hub’s structure** and replacing only the content + guardrails.
+
+* No new patterns
+* No new layouts
+* No refactored shared logic unless absolutely necessary
+* No additional pages beyond the ONE hub page and the ONE picker page
+* Everything must remain isolated and clean
+
+---
+
+# 2. **Blueprint to Follow**
+
+Use the **Diabetes hub** as the direct template:
+
+* Page layout
+* Header hierarchy
+* Card structure
+* Guardrail summary block
+* Picker → meal builder flow
+* Weekly board integration logic (if applicable)
+
+The Anti-Inflammatory hub should feel like the Diabetes hub with different rules, nothing else.
+
+---
+
+# 3. **File Creation Requirements**
+
+Duplicate and rename Diabetes hub files (no editing in place):
+
+**Examples (modify to match actual codebase structure):**
+
+* `DiabeticHub.tsx` → `ClinicalAntiInflammatoryHub.tsx`
+* `DiabeticMealPicker.tsx` → `AntiInflammatoryMealPicker.tsx`
+* `diabeticGuardrailPreset` → `antiInflammatoryGuardrailPreset`
+
+**Critical Warning:**
+
+* Do **not** leave extra or half-functional pages behind
+* Do **not** create unlinked “builder” or “menu” pages like last time
+* Do **not** modify Diabetes or GLP-1 files except to import the new preset cleanly into the preset system
+
+---
+
+# 4. **Add This Hub to the Planner Page**
+
+On the Planner page:
+
+1. Add a **new button/tile/card** for:
+   **“Anti-Inflammatory (Clinical)”**
+
+2. This button must:
+
+   * Match the **exact** size, border radius, font, shadow, padding, and black-glass gradient used by the existing planner buttons
+   * No deviation in spacing or typography
+   * No vertical misalignment
+   * No inconsistent text sizes
+
+3. When clicked:
+
+   * It must route directly to the new `ClinicalAntiInflammatoryHub` page
+   * Routing must match the existing clinical hubs pattern
+
+---
+
+# 5. **Aesthetics and Uniformity Requirements (Non-Negotiable)**
+
+Everything must remain absolutely uniform:
+
+### Typography:
+
+* Same heading font size as Diabetes + GLP-1 hubs
+* Same subheading sizes
+* Same card-title sizes
+* Same paragraph / body text size
+
+### Layout spacing:
+
+* Same vertical spacing (mt-4, mb-2, etc.)
+* Same card margin/padding
+* Same spacing between section headers and cards
+
+### Styling:
+
+* Same black-glass UI
+* Same rounded-2xl borders
+* Same shadow intensity
+* Same card elevation
+* Same background gradient rules
+
+**The ONLY differences between these hubs should be the guardrails and the text content.
+NOTHING else.**
+
+---
+
+# 6. **Guardrail Configuration**
+
+Add a new preset to the clinical guardrails:
+
+**Name:** `anti_inflammatory`
+**Type:** `clinical`
+**Rules:**
+
+* **Priority Foods**
+
+  * Omega-3 rich items (salmon, sardines, walnuts, flax, chia)
+  * Fruits & vegetables (berries, greens, crucifers)
+  * Olive oil / avocado
+  * Lean proteins
+  * Warm-food emphasis (tag only, not hard requirement)
+
+* **Limit:**
+
+  * Processed meats
+  * High sugar meals
+  * High sodium foods
+  * Fried foods
+  * Excess caffeine
+
+* **Avoid:**
+
+  * Ultra-processed junk
+  * Trans fat items
+  * Smoking/alcohol categories (flag if present)
+
+Preset must follow the **exact same schema** as the Diabetes and GLP-1 guardrails.
+
+---
+
+# 7. **Routing Requirements**
+
+Add exactly **one** new route:
+
+```
+/clinical/anti-inflammatory
+```
+
+This route must:
+
+* Load the Anti-Inflammatory hub
+* Use the same routing style as Diabetes
+* Not conflict with existing routes
+* Not create duplicate or shadowed pages (last time issue)
+
+---
+
+# 8. **Implementation Sequence (To Prevent Breaking Things)**
+
+### Step 1 — Audit
+
+Identify Diabetes hub file architecture:
+
+* Page
+* Picker
+* Guardrails
+* Meal builder
+  Document structure before duplicating.
+
+### Step 2 — Duplicate & Rename
+
+Copy Diabetes files → create Anti-Inflammatory versions.
+DO NOT alter Diabetes files during this stage.
+
+### Step 3 — Insert New Guardrail Preset
+
+Add Anti-Inflammatory preset to guardrail config.
+Ensure type safety and union types are updated.
+
+### Step 4 — Wire Navigation
+
+Add Planner page button → route → hub.
+Match styling 100%.
+
+### Step 5 — Replace Content Only
+
+Swap Diabetes text for Anti-Inflammatory text.
+(No Diabetes terms, A1C, glucose language, etc.)
+
+### Step 6 — Test Thoroughly
+
+* Diabetes hub = unchanged and working
+* GLP-1 hub = unchanged and working
+* Anti-Inflammatory hub:
+
+  * Loads correctly
+  * Uses new guardrail
+  * Picker works
+  * Weekly board works
+  * UI is perfectly uniform
+
+### Step 7 — Deliverables
+
+Provide:
+
+* List of files touched
+* Summary of new preset object
+* Screenshots of all 3 hubs to confirm uniform appearance
+* Note verifying no legacy or broken pages remain
+
+---
+
+# DONE.
+
+This is the final architect prompt.
+It tells them EXACTLY what to do, EXACTLY how to avoid past mistakes, and EXACTLY how to keep the UI uniform.
+
+If you want, I can now generate:
+
+* The **guardrail preset code**
+* The **Anti-Inflammatory hub page text**
+* The **Planner page button text**
+* The **info modal copy**
+* The **Repl.it agent command prompt**
+
+Just tell me which one you want drafted next.

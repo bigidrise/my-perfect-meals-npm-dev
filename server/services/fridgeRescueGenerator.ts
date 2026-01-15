@@ -1,8 +1,6 @@
 import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
-import { convertStructuredIngredients } from '../utils/unitConverter';
-import { enforceCarbs } from '../utils/carbClassifier';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -245,33 +243,17 @@ ${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macr
 
 ${medicalConditionsText}
 
-CRITICAL INGREDIENT FORMAT REQUIREMENT:
-- ALL ingredients MUST have quantities in GRAMS (numeric value with unit "g")
-- For proteins (chicken, beef, fish, etc.): Use grams, e.g. {"name": "chicken breast", "amount": 170, "unit": "g"}
-- For starches (rice, potatoes, pasta): Use grams, e.g. {"name": "rice", "amount": 150, "unit": "g"}
-- For vegetables: Use grams, e.g. {"name": "broccoli", "amount": 100, "unit": "g"}
-- For liquids: Use ml, e.g. {"name": "olive oil", "amount": 15, "unit": "ml"}
-- For small amounts (spices): Use grams or "to taste"
-- NEVER use vague units like "piece", "fillet", or "breast" - always use exact gram weights
-
-CARB CLASSIFICATION RULES (CRITICAL):
-- starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
-- fibrousCarbs: Volume-dense carbs from vegetables, leafy greens, broccoli, cauliflower, peppers, tomatoes, cucumbers
-- Both are measured in grams
-- Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
-
 FORMAT: Return as JSON object:
 {
   "meals": [
     {
       "name": "Creative meal name (not just ingredient list)",
       "description": "Brief 1-2 sentence description",
-      "ingredients": [{"name": "ingredient name", "amount": number_in_grams, "unit": "g"}],
+      "ingredients": [{"name": "ingredient from fridge", "quantity": "${macroTargets ? 'PRECISE amount calculated to hit macro targets' : 'realistic amount'}", "unit": "tbsp/cup/etc"}],
       "instructions": "Step-by-step cooking instructions as single string",
       "calories": number (${macroTargets ? 'calculated from hitting macro targets' : '200-500 range'}),
       "protein": number (${macroTargets?.protein_g ? `${macroTargets.protein_g}±5 grams - MUST hit this target` : '10-40 grams'}),
-      "starchyCarbs": number (${macroTargets?.starchy_carbs_g ? `${macroTargets.starchy_carbs_g}±5 grams - energy carbs from grains/potatoes` : '10-30 grams from starches'}),
-      "fibrousCarbs": number (${macroTargets?.fibrous_carbs_g ? `${macroTargets.fibrous_carbs_g}±5 grams - volume carbs from vegetables` : '10-30 grams from vegetables'}),
+      "carbs": number (total carbs ${macroTargets?.fibrous_carbs_g || macroTargets?.starchy_carbs_g ? `- should equal ${(macroTargets.fibrous_carbs_g || 0) + (macroTargets.starchy_carbs_g || 0)}±5g from combining fibrous and starchy sources` : '15-50 grams'}), 
       "fat": number (${macroTargets?.fat_g ? `${macroTargets.fat_g}±5 grams - MUST hit this target` : '5-25 grams'}),
       "cookingTime": "X minutes",
       "difficulty": "Easy or Medium"
@@ -352,44 +334,9 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
         continue;
       }
       
-      // Normalize ingredients from AI response (may have amount or quantity field)
-      const rawIngredients = meal.ingredients || fridgeItems.map(item => ({ name: item, amount: 100, unit: "g" }));
-      
-      // Convert grams to user-friendly units (e.g., 170g chicken → 6 oz chicken breast)
-      const normalizedIngredients = rawIngredients.map((ing: any) => ({
-        name: ing.name,
-        amount: ing.amount || ing.quantity || 100,
-        unit: ing.unit || 'g',
-        notes: ''
-      }));
-      
-      // Apply conversion to user-friendly units (same as Craving Creator)
-      const convertedIngredients = convertStructuredIngredients(normalizedIngredients);
-      
-      // Map to expected format with quantity field for frontend compatibility
-      const mealIngredients = convertedIngredients.map((ing: any) => ({
-        name: ing.name,
-        quantity: ing.displayText || `${ing.amount} ${ing.unit}`,
-        unit: ing.unit,
-        displayText: ing.displayText || `${ing.amount} ${ing.unit} ${ing.name}`
-      }));
-      
-      // Prefer AI-provided starchyCarbs/fibrousCarbs, fallback to deriveCarbSplit
-      const aiStarchyCarbs = meal.starchyCarbs ?? null;
-      const aiFibrousCarbs = meal.fibrousCarbs ?? null;
-      const totalCarbs = meal.carbs ?? (((aiStarchyCarbs ?? 0) + (aiFibrousCarbs ?? 0)) || 25);
-      
-      // Use AI values if provided, otherwise derive from ingredients
-      let starchyCarbs: number;
-      let fibrousCarbs: number;
-      if (aiStarchyCarbs !== null && aiFibrousCarbs !== null) {
-        starchyCarbs = aiStarchyCarbs;
-        fibrousCarbs = aiFibrousCarbs;
-      } else {
-        const { starchyGrams, fibrousGrams } = deriveCarbSplit(mealIngredients, totalCarbs);
-        starchyCarbs = starchyGrams;
-        fibrousCarbs = fibrousGrams;
-      }
+      const mealIngredients = meal.ingredients || fridgeItems.map(item => ({ name: item, quantity: "as needed", unit: "" }));
+      const mealCarbs = meal.carbs || 25;
+      const { starchyGrams, fibrousGrams } = deriveCarbSplit(mealIngredients, mealCarbs);
       
       const processedMeal: FridgeRescueMeal = {
         id: `fridge-rescue-${index}-${Date.now()}`,
@@ -399,10 +346,10 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
         instructions: meal.instructions || "Combine ingredients and cook until done.",
         calories: meal.calories || 300,
         protein: meal.protein || 20,
-        carbs: totalCarbs,
+        carbs: mealCarbs,
         fat: meal.fat || 12,
-        starchyCarbs: starchyCarbs,
-        fibrousCarbs: fibrousCarbs,
+        starchyCarbs: starchyGrams,
+        fibrousCarbs: fibrousGrams,
         cookingTime: meal.cookingTime || "20 minutes",
         difficulty: meal.difficulty || "Easy",
         medicalBadges: getMedicalBadges(meal, userConditions)
@@ -433,8 +380,7 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
     }
 
     console.log("✅ Fridge rescue meals generated successfully with images");
-    // ENFORCE CARBS: Final safety net - ensure all meals have valid starchy/fibrous values
-    return processedMeals.map(meal => enforceCarbs(meal));
+    return processedMeals;
 
   } catch (error: any) {
     console.error('OpenAI API error for fridge rescue meals:', error);

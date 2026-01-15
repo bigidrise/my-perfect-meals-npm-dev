@@ -88,19 +88,11 @@ EXAMPLES OF CORRECT INGREDIENT FORMAT:
 - {"name": "Greek yogurt", "amount": "1", "unit": "cup"}
 - {"name": "olive oil", "amount": "2", "unit": "tbsp"}
 - {"name": "eggs", "amount": "2", "unit": "each", "preparationNote": "scrambled"}
-- {"name": "broccoli florets", "amount": "2", "unit": "cup", "preparationNote": "steamed"}
-- {"name": "mixed greens", "amount": "3", "unit": "cup"}
-- {"name": "bell pepper", "amount": "1", "unit": "cup", "preparationNote": "diced"}
-- {"name": "zucchini", "amount": "1.5", "unit": "cup", "preparationNote": "sliced"}
-- {"name": "asparagus", "amount": "8", "unit": "oz", "preparationNote": "trimmed"}
-- {"name": "spinach", "amount": "2", "unit": "cup", "preparationNote": "fresh"}
 
 EXAMPLES OF INCORRECT FORMAT (NEVER DO THIS):
 - {"name": "chicken", "amount": "1", "unit": "piece"} ❌ (use oz instead)
 - {"name": "yogurt", "amount": "340", "unit": "g"} ❌ (use cups instead)
 - {"name": "chicken", "amount": "150", "unit": "g", "protein": 30} ❌ (no grams, no macros)
-- {"name": "broccoli", "amount": "100", "unit": "g"} ❌ (use cups instead)
-- {"name": "spinach", "amount": "50", "unit": "grams"} ❌ (use cups instead)
 
 DO NOT:
 - Do not include banned ingredients or sweeteners.

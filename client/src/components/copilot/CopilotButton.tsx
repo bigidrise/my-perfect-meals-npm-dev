@@ -3,9 +3,8 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useCopilot } from "./CopilotContext";
 import { ChefCapIcon } from "./ChefCapIcon";
-import { getGuestPageExplanation } from "./CopilotPageExplanations";
+import { getPageExplanation } from "./CopilotPageExplanations";
 import { CopilotExplanationStore } from "./CopilotExplanationStore";
-import { isGuestMode } from "@/lib/guestMode";
 
 export const CopilotButton: React.FC = () => {
   const { open, close, isOpen, setLastResponse } = useCopilot();
@@ -22,7 +21,7 @@ export const CopilotButton: React.FC = () => {
     }
 
     const normalizedPath = normalizePath(pathname);
-    const explanation = getGuestPageExplanation(normalizedPath, isGuestMode());
+    const explanation = getPageExplanation(normalizedPath);
 
     CopilotExplanationStore.resetPath(normalizedPath);
 

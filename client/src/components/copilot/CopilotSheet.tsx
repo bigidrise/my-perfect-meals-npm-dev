@@ -5,13 +5,10 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
-import { useGuestProgress } from "@/hooks/useGuestProgress";
+
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
-  
-  const { isGuest, nextStepMessage } = useGuestProgress();
-  const guestNudgeMessage = isGuest ? nextStepMessage : null;
 
   // =========================================
   // AUDIO - Visual-First with Graceful Degradation
@@ -377,8 +374,8 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Autoplay Toggle - Static AUTO label, ON/OFF does the work */}
-                      <span className="text-[9px] text-emerald-400/80 drop-shadow-[0_0_3px_rgba(52,211,153,0.3)]">Auto</span>
+                      {/* Autoplay Toggle - Controls auto-open on page navigation only */}
+                      <span className="text-[9px] text-white/50">Auto</span>
                       <button
                         onClick={toggleGuidedMode}
                         aria-pressed={isGuidedModeEnabled}
@@ -390,7 +387,7 @@ export const CopilotSheet: React.FC = () => {
                           transition-all duration-150 ease-out whitespace-nowrap
                           ${isGuidedModeEnabled
                             ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-                            : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
+                            : "bg-white/8 text-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-white/12 border border-white/15"
                           }
                         `}
                       >
@@ -554,17 +551,6 @@ export const CopilotSheet: React.FC = () => {
                 ============================= */}
                 {!lastResponse && (
                   <div className="mt-3 max-h-60 space-y-1 overflow-y-auto px-2 pb-2">
-                    {/* Guest Mode Nudge Card - Shows next step for guest progression */}
-                    {guestNudgeMessage && (
-                      <div className="mb-2 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 to-orange-500/10 px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-amber-400 text-sm">✨</span>
-                          <span className="text-xs font-medium text-amber-200">
-                            {guestNudgeMessage}
-                          </span>
-                        </div>
-                      </div>
-                    )}
                     {suggestions.map((s) => (
                       <button
                         key={s.id}

@@ -41,8 +41,7 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { post } from "@/lib/api";
-import MealCardActions from "@/components/MealCardActions";
-import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import CopyRecipeButton from "@/components/CopyRecipeButton";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 
@@ -135,25 +134,24 @@ function getMealNutrition(meal: any) {
     protein_g: Number(n.protein ?? n.protein_g ?? meal.protein ?? 0),
     carbs_g: Number(n.carbs ?? n.carbs_g ?? meal.carbs ?? 0),
     fat_g: Number(n.fat ?? n.fat_g ?? meal.fat ?? 0),
-    starchyCarbs: Number(n.starchyCarbs ?? meal.starchyCarbs ?? 0),
-    fibrousCarbs: Number(n.fibrousCarbs ?? meal.fibrousCarbs ?? 0),
   };
 }
 
 const CRAVING_TOUR_STEPS: TourStep[] = [
   {
     title: "Describe Your Craving",
-    description: "Tell us what you’re craving by flavor, texture, or style.",
+    description:
+      "Tell us what you're in the mood for — sweet, crunchy, creamy, tangy, or any flavor you want.",
   },
   {
-    title: "Set Preferences",
+    title: "Select Servings",
     description:
-      "Add dietary preferences or restrictions like dairy-free or gluten-free.",
+      "Choose how many servings you need for your personalized meal.",
   },
   {
-    title: "Create Your Meal",
+    title: "Create & Enjoy",
     description:
-      "Choose your servings and press Create to generate a healthier version of your craving.",
+      "Press Create and get a recipe that fits your taste and lifestyle. You never have to ignore cravings again!",
   },
 ];
 
@@ -870,35 +868,10 @@ export default function CravingCreator() {
                         </div>
                       </div>
 
-                      {/* Action Buttons - Always show */}
-                      <div className="flex gap-2 mb-4">
-                        <AddToMealPlanButton meal={meal} />
-                        <MealCardActions
-                          meal={{
-                            name: meal.name,
-                            description: meal.description,
-                            ingredients: (meal.ingredients ?? []).map(
-                              (ing: any) => ({
-                                name: ing.item || ing.name,
-                                amount: ing.amount || ing.quantity,
-                                unit: ing.unit,
-                              }),
-                            ),
-                            instructions: Array.isArray(meal.instructions)
-                              ? meal.instructions
-                              : meal.instructions
-                                ? meal.instructions
-                                    .split("\n")
-                                    .filter((s: string) => s.trim())
-                                : [],
-                            nutrition: meal.nutrition,
-                          }}
-                        />
-                      </div>
-
-                      {/* Medical Badges */}
+                      {/* Medical Badges - ALWAYS SHOW */}
                       {(() => {
-                        const profile = getUserMedicalProfile(1);
+                        const profile = getUserMedicalProfile(1); // Use numeric ID for development
+                        // or your real user id
                         const mealForBadges = {
                           name: meal.name,
                           calories:
@@ -937,19 +910,35 @@ export default function CravingCreator() {
 
                         return medicalBadges && medicalBadges.length > 0 ? (
                           <div className="mb-4">
-                            <div className="flex items-center gap-3">
-                              <HealthBadgesPopover
-                                badges={medicalBadges.map((b: any) =>
-                                  typeof b === "string"
-                                    ? b
-                                    : (b.badge || b.id || b.condition || b.label)
-                                )}
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                              <h3 className="font-semibold text-white">
+                                Medical Safety
+                              </h3>
+                              <CopyRecipeButton
+                                recipe={{
+                                  name: meal.name,
+                                  ingredients: (meal.ingredients ?? []).map(
+                                    (ing: any) => ({
+                                      name: ing.item || ing.name,
+                                      amount: ing.amount || ing.quantity,
+                                      unit: ing.unit,
+                                    }),
+                                  ),
+                                  instructions: Array.isArray(meal.instructions)
+                                    ? meal.instructions
+                                    : meal.instructions
+                                      ? meal.instructions
+                                          .split("\n")
+                                          .filter((s: string) => s.trim())
+                                      : [],
+                                }}
                               />
-
-                              <h3 className="font-semibold text-white">Medical Safety</h3>
                             </div>
+                            <HealthBadgesPopover
+                              badges={medicalBadges.map((b: any) => b.badge)}
+                              className="mt-2"
+                            />
                           </div>
-
                         ) : null;
                       })()}
 
@@ -1018,8 +1007,6 @@ export default function CravingCreator() {
                             setQuickView({
                               protein: Math.round(macros.protein_g),
                               carbs: Math.round(macros.carbs_g),
-                              starchyCarbs: Math.round(macros.starchyCarbs),
-                              fibrousCarbs: Math.round(macros.fibrousCarbs),
                               fat: Math.round(macros.fat_g),
                               calories: Math.round(macros.calories),
                               dateISO: new Date().toISOString().slice(0, 10),

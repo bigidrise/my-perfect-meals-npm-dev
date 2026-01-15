@@ -18,18 +18,6 @@ import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType } from './guardrails';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
-import { 
-  resolveHubCoupling, 
-  validateMealForHub, 
-  hasHardViolations, 
-  getRegenerationHint,
-  isValidHubType,
-  ensureHubsRegistered,
-  detectHubTypeFromProfile,
-  HubType,
-  HubCouplingResult 
-} from './hubCoupling';
-import { enforceCarbs } from '../utils/carbClassifier';
 import OpenAI from 'openai';
 
 let _openai: OpenAI | null = null;
@@ -108,21 +96,6 @@ export interface UnifiedMeal {
   source?: 'ai' | 'catalog' | 'fallback';
 }
 
-/**
- * Starch Context - Used for intelligent carb distribution
- * The starch strategy controls how many meals per day can contain starchy carbs.
- * This is behavioral coaching, not macro tracking.
- */
-export interface StarchContext {
-  strategy: 'one' | 'flex'; // "one" = 1 starch meal/day, "flex" = 2 meals
-  existingMeals?: Array<{
-    slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-    hasStarch: boolean;
-  }>;
-  forceStarch?: boolean; // User explicitly requested starch (overrides default)
-  forceFiberBased?: boolean; // User explicitly requested no starch
-}
-
 export interface MealGenerationRequest {
   type: 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef' | 'snack-creator';
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -136,7 +109,6 @@ export interface MealGenerationRequest {
   };
   count?: number; // number of meals to generate (default 1)
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
-  starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
 }
 
 export interface MealGenerationResponse {
@@ -145,94 +117,6 @@ export interface MealGenerationResponse {
   meals?: UnifiedMeal[];
   source: 'ai' | 'catalog' | 'fallback';
   error?: string;
-}
-
-/**
- * Determine if this meal should be starch-based or fiber-based
- * Based on the Starch Game Plan coaching system
- */
-function determineStarchPlacement(
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
-  starchContext?: StarchContext
-): { shouldIncludeStarch: boolean; reason: string } {
-  // No context = allow starch (legacy behavior)
-  if (!starchContext) {
-    return { shouldIncludeStarch: true, reason: 'no_starch_context' };
-  }
-  
-  // User explicitly requested starch (e.g., "make me pasta")
-  if (starchContext.forceStarch) {
-    return { shouldIncludeStarch: true, reason: 'user_requested_starch' };
-  }
-  
-  // User explicitly requested fiber-based (e.g., "make it low carb")
-  if (starchContext.forceFiberBased) {
-    return { shouldIncludeStarch: false, reason: 'user_requested_fiber' };
-  }
-  
-  // Count existing starch meals
-  const existingStarchCount = (starchContext.existingMeals || [])
-    .filter(m => m.hasStarch).length;
-  
-  const maxStarchSlots = starchContext.strategy === 'flex' ? 2 : 1;
-  const slotsRemaining = maxStarchSlots - existingStarchCount;
-  
-  // If all slots are used, this meal should be fiber-based
-  if (slotsRemaining <= 0) {
-    return { shouldIncludeStarch: false, reason: 'starch_slots_used' };
-  }
-  
-  // Slots available - decide based on meal type priority
-  // Default priority: Lunch > Breakfast > Dinner (mirrors real coaching)
-  const existingSlots = (starchContext.existingMeals || []).map(m => m.slot);
-  const hasStarchAlready = existingStarchCount > 0;
-  
-  // If no starch meal yet and this is the preferred slot, make it the starch meal
-  if (!hasStarchAlready) {
-    // First meal of the day being generated - use priority order
-    if (mealType === 'lunch') {
-      return { shouldIncludeStarch: true, reason: 'lunch_is_default_starch_slot' };
-    }
-    if (mealType === 'breakfast' && !existingSlots.includes('lunch')) {
-      // Breakfast can be starch if lunch isn't already planned
-      return { shouldIncludeStarch: true, reason: 'breakfast_available_for_starch' };
-    }
-    if (mealType === 'dinner' && !existingSlots.includes('lunch') && !existingSlots.includes('breakfast')) {
-      // Dinner gets starch only if no other meals planned
-      return { shouldIncludeStarch: true, reason: 'dinner_fallback_for_starch' };
-    }
-  }
-  
-  // Flex mode: allow second starch meal
-  if (starchContext.strategy === 'flex' && slotsRemaining > 0) {
-    return { shouldIncludeStarch: true, reason: 'flex_mode_slot_available' };
-  }
-  
-  // Default: fiber-based to preserve starch slots
-  return { shouldIncludeStarch: false, reason: 'preserving_starch_slot' };
-}
-
-/**
- * Build starch guidance for the AI prompt
- */
-function buildStarchGuidance(
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
-  starchContext?: StarchContext
-): string {
-  const placement = determineStarchPlacement(mealType, starchContext);
-  
-  if (placement.shouldIncludeStarch) {
-    return `
-🍚 STARCH GUIDANCE: This meal MAY include starchy carbs (rice, pasta, bread, potatoes, beans, oats).
-Include starchy carbs as the primary carb source for this meal.`;
-  } else {
-    return `
-🥦 STARCH GUIDANCE: This meal should be FIBER-BASED (no starchy carbs).
-- DO NOT include: rice, pasta, bread, potatoes, beans, corn, oats, crackers, tortillas
-- DO include: vegetables (broccoli, spinach, peppers, zucchini, cauliflower), salads, leafy greens
-- Focus on: protein + vegetables + healthy fats
-- This creates a "protein + veggies" meal that keeps the user's starch slot available for another meal.`;
-  }
 }
 
 /**
@@ -423,8 +307,6 @@ export async function generateCravingMealUnified(
       calories: meal.calories,
       protein: meal.protein,
       carbs: meal.carbs,
-      starchyCarbs: 0,
-      fibrousCarbs: 0,
       fat: meal.fat,
       cookingTime: '20 minutes',
       difficulty: 'Easy',
@@ -462,12 +344,6 @@ CRITICAL INGREDIENT FORMAT RULES:
 - NEVER use grams (g), milliliters (ml), or metric units
 - Each ingredient must have: name, quantity (number), unit
 
-CARB CLASSIFICATION RULES (CRITICAL):
-- starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
-- fibrousCarbs: Volume-dense carbs from vegetables, leafy greens, broccoli, cauliflower, peppers, tomatoes, cucumbers
-- Both are measured in grams and should sum to approximate total carbs
-- Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
-
 Respond with ONLY valid JSON in this exact format:
 {
   "name": "Creative meal name matching the craving",
@@ -479,8 +355,7 @@ Respond with ONLY valid JSON in this exact format:
   "instructions": "Step-by-step cooking instructions as a single string",
   "calories": 400,
   "protein": 25,
-  "starchyCarbs": 20,
-  "fibrousCarbs": 15,
+  "carbs": 35,
   "fat": 15,
   "cookingTime": "20 minutes"
 }`;
@@ -507,13 +382,7 @@ Respond with ONLY valid JSON in this exact format:
       // Normalize ingredients to U.S. measurements
       const normalizedIngredients = normalizeIngredients(aiMeal.ingredients || []);
       
-      // Extract starchyCarbs and fibrousCarbs from AI response
-      const starchyCarbs = aiMeal.starchyCarbs ?? 0;
-      const fibrousCarbs = aiMeal.fibrousCarbs ?? 0;
-      // Total carbs = starchyCarbs + fibrousCarbs (for backward compatibility)
-      const totalCarbs = aiMeal.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
-      
-      const rawMeal: UnifiedMeal = {
+      const unifiedMeal: UnifiedMeal = {
         id: `craving-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: aiMeal.name || `${cravingInput} Delight`,
         description: aiMeal.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
@@ -521,9 +390,7 @@ Respond with ONLY valid JSON in this exact format:
         instructions: aiMeal.instructions || "Prepare ingredients and cook to your preference.",
         calories: aiMeal.calories || 400,
         protein: aiMeal.protein || 25,
-        carbs: totalCarbs,
-        starchyCarbs: starchyCarbs,
-        fibrousCarbs: fibrousCarbs,
+        carbs: aiMeal.carbs || 35,
         fat: aiMeal.fat || 15,
         cookingTime: aiMeal.cookingTime || '20 minutes',
         difficulty: 'Easy',
@@ -531,9 +398,6 @@ Respond with ONLY valid JSON in this exact format:
         medicalBadges: [],
         source: 'ai'
       };
-      
-      // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
-      const unifiedMeal = enforceCarbs(rawMeal);
       
       console.log(`✅ AI generated meal: ${unifiedMeal.name}`);
       
@@ -551,7 +415,7 @@ Respond with ONLY valid JSON in this exact format:
       console.error(`❌ AI generation failed, using catalog fallback:`, aiError.message);
       
       const fallback = getDeterministicFallback(validMealType, [cravingInput]);
-      const rawFallbackMeal: UnifiedMeal = {
+      const unifiedMeal: UnifiedMeal = {
         id: fallback.id,
         name: fallback.name,
         description: fallback.description,
@@ -560,8 +424,6 @@ Respond with ONLY valid JSON in this exact format:
         calories: fallback.calories,
         protein: fallback.protein,
         carbs: fallback.carbs,
-        starchyCarbs: 0,
-        fibrousCarbs: 0,
         fat: fallback.fat,
         cookingTime: '20 minutes',
         difficulty: 'Easy',
@@ -569,9 +431,6 @@ Respond with ONLY valid JSON in this exact format:
         medicalBadges: [],
         source: 'catalog'
       };
-      
-      // ENFORCE CARBS: Derive from ingredients for catalog fallback
-      const unifiedMeal = enforceCarbs(rawFallbackMeal);
       
       await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
       
@@ -650,8 +509,6 @@ export async function generateFridgeRescueUnified(
       calories: meal.calories,
       protein: meal.protein,
       carbs: meal.carbs,
-      starchyCarbs: meal.starchyCarbs || 0,
-      fibrousCarbs: meal.fibrousCarbs || 0,
       fat: meal.fat,
       cookingTime: meal.cookingTime,
       difficulty: meal.difficulty,
@@ -686,8 +543,6 @@ export async function generateFridgeRescueUnified(
       calories: fallback.calories,
       protein: fallback.protein,
       carbs: fallback.carbs,
-      starchyCarbs: 0,
-      fibrousCarbs: 0,
       fat: fallback.fat,
       cookingTime: '15 minutes',
       difficulty: 'Easy' as const,
@@ -709,51 +564,24 @@ export async function generateFridgeRescueUnified(
  * Generate a meal from a free-form description (Create With Chef)
  * Uses OpenAI to generate a complete recipe with ingredients, instructions, and image
  * Supports diet-specific guardrails for specialized builders
- * Supports Starch Game Plan for intelligent carb distribution
  */
 export async function generateFromDescriptionUnified(
   description: string,
   mealType: string,
   userId?: string,
-  dietType?: DietType,
-  starchContext?: StarchContext
+  dietType?: DietType
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
-  // Get starch placement decision
-  const starchPlacement = determineStarchPlacement(validMealType, starchContext);
-  const starchGuidance = buildStarchGuidance(validMealType, starchContext);
-  
-  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})`);
+  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''}`);
   
   try {
-    await ensureHubsRegistered();
-    
-    let hubCoupling: HubCouplingResult | null = null;
-    let effectiveHubType: HubType | null = null;
-    
-    if (userId) {
-      if (isValidHubType(dietType)) {
-        effectiveHubType = dietType;
-      } else {
-        effectiveHubType = await detectHubTypeFromProfile(userId);
-      }
-      
-      if (effectiveHubType) {
-        try {
-          hubCoupling = await resolveHubCoupling(effectiveHubType, userId, validMealType);
-          if (hubCoupling) {
-            console.log(`🔌 Hub coupling loaded for ${effectiveHubType}`);
-          }
-        } catch (err) {
-          console.warn(`⚠️ Failed to load hub coupling for ${effectiveHubType}, continuing without:`, err);
-        }
-      }
-    }
-    
+    // Import OpenAI directly for description-based generation
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
+    // Base prompt for meal generation
+    // Nutrition Schema v1.1: Request starchyCarbs and fibrousCarbs separately
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
 
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
@@ -764,28 +592,17 @@ REQUIREMENTS:
 - Provide detailed step-by-step cooking instructions
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
-${starchGuidance}
 
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
-${hubCoupling?.promptFragment?.userPromptAddition || ''}
-🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
-- Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
-- NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
-- Proteins (chicken, beef, fish, pork): use oz (e.g., "6 oz chicken breast")
-- Vegetables (broccoli, spinach, peppers, zucchini): use cup (e.g., "2 cup broccoli florets")
-- Leafy greens: use cup (e.g., "3 cup mixed greens")
-- Dense vegetables (asparagus, green beans): use oz (e.g., "8 oz asparagus")
 
 FORMAT: Return as JSON object:
 {
   "name": "Creative meal name based on the description",
   "description": "Brief 1-2 sentence appetizing description",
   "ingredients": [
-    {"name": "chicken breast", "quantity": "6", "unit": "oz"},
-    {"name": "broccoli florets", "quantity": "2", "unit": "cup"},
-    {"name": "olive oil", "quantity": "1", "unit": "tbsp"}
+    {"name": "ingredient name", "quantity": "precise amount", "unit": "tbsp/cup/oz/etc"}
   ],
   "instructions": "Detailed step-by-step cooking instructions as a single paragraph with numbered steps",
   "calories": number (realistic estimate 300-700),
@@ -807,115 +624,52 @@ Create the recipe for: "${description}"`;
       console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
     }
 
+    // Build messages with optional system prompt for diet
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
-    const hubSystemPrompt = hubCoupling?.promptFragment?.systemPrompt;
-    const fallbackSystemPrompt = getSystemPromptForDiet(dietType || null);
-    const systemPrompt = hubSystemPrompt || fallbackSystemPrompt;
+    const systemPrompt = getSystemPromptForDiet(dietType || null);
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
     }
     messages.push({ role: 'user', content: prompt });
 
-    const MAX_REGENERATION_ATTEMPTS = 2;
-    let finalMealData: any = null;
-    let attemptCount = 0;
-    let lastFixHint: string | null = null;
-
-    while (attemptCount < MAX_REGENERATION_ATTEMPTS) {
-      attemptCount++;
-      
-      const currentMessages = [...messages];
-      if (lastFixHint) {
-        currentMessages.push({ role: 'user', content: `IMPORTANT CORRECTION REQUIRED: ${lastFixHint}` });
-        console.log(`🔄 Regeneration attempt ${attemptCount} with fix hint`);
-      }
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: currentMessages,
-        response_format: { type: "json_object" },
-        max_tokens: 1500,
-      });
-      
-      const content = response.choices?.[0]?.message?.content;
-      if (!content) {
-        throw new Error("No content received from OpenAI");
-      }
-      
-      const mealData = JSON.parse(content);
-      const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
-      const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
-      const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
-      
-      const tempMeal: UnifiedMeal = {
-        id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: mealData.name,
-        description: mealData.description,
-        ingredients: (mealData.ingredients || []).map((ing: any) => ({
-          name: ing.name,
-          quantity: String(ing.quantity || ''),
-          unit: ing.unit || ''
-        })),
-        instructions: mealData.instructions,
-        calories: mealData.calories || 400,
-        protein: mealData.protein || 25,
-        carbs: totalCarbs,
-        starchyCarbs,
-        fibrousCarbs,
-        fat: mealData.fat || 15,
-        cookingTime: mealData.cookingTime || '25 minutes',
-        difficulty: mealData.difficulty || 'Easy',
-        imageUrl: '',
-        medicalBadges: [],
-        source: 'ai'
-      };
-
-      if (effectiveHubType && hubCoupling?.guardrails) {
-        const hubValidation = validateMealForHub(tempMeal, effectiveHubType, hubCoupling.guardrails);
-        if (hasHardViolations(hubValidation)) {
-          console.warn(`🚨 Attempt ${attemptCount}: Hub validation failed - ${hubValidation.violations.map(v => v.message).join(', ')}`);
-          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
-            lastFixHint = getRegenerationHint(effectiveHubType, hubValidation.violations);
-            continue;
-          } else {
-            console.error(`❌ Hub guardrails exhausted after ${attemptCount} attempts - falling back to safe template`);
-            throw new Error(`Hub validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
-          }
-        } else if (hubValidation.violations.length > 0) {
-          console.warn(`⚠️ Hub validation soft warnings: ${hubValidation.violations.map(v => v.message).join(', ')}`);
-        }
-      } else if (dietType) {
-        const validation = validateMealForDiet(tempMeal, dietType);
-        if (!validation.isValid) {
-          console.warn(`⚠️ Meal has legacy guardrail violations: ${validation.violations.join(', ')}`);
-        }
-      }
-
-      finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs };
-      break;
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages,
+      response_format: { type: "json_object" },
+      max_tokens: 1500,
+    });
+    
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("No content received from OpenAI");
     }
     
-    if (!finalMealData) {
-      throw new Error("Failed to generate valid meal after regeneration attempts");
-    }
-
+    const mealData = JSON.parse(content);
+    
+    // Nutrition Schema v1.1: Extract starchy/fibrous carbs from AI response BEFORE image generation
+    const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
+    const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
+    // Calculate total carbs from breakdown, or use legacy carbs field
+    const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
+    
+    // Generate DALL-E image for the meal
     let imageUrl = getFallbackImage(validMealType);
     try {
       const generatedImage = await generateImage({
-        name: finalMealData.name,
-        description: finalMealData.description,
+        name: mealData.name,
+        description: mealData.description,
         type: 'meal',
         style: 'homemade',
-        ingredients: finalMealData.ingredients?.map((ing: any) => ing.name) || [],
-        calories: finalMealData.calories,
-        protein: finalMealData.protein,
-        carbs: finalMealData.totalCarbs,
-        fat: finalMealData.fat,
+        ingredients: mealData.ingredients?.map((ing: any) => ing.name) || [],
+        calories: mealData.calories,
+        protein: mealData.protein,
+        carbs: totalCarbs, // Use computed total from Nutrition Schema v1.1
+        fat: mealData.fat,
       });
       
       if (generatedImage) {
         imageUrl = generatedImage;
-        console.log(`🖼️ Generated DALL-E image for Create With Chef: ${finalMealData.name}`);
+        console.log(`🖼️ Generated DALL-E image for Create With Chef: ${mealData.name}`);
       }
     } catch (imgError) {
       console.warn('⚠️ DALL-E image generation failed, using fallback:', imgError);
@@ -923,26 +677,35 @@ Create the recipe for: "${description}"`;
     
     const unifiedMeal: UnifiedMeal = {
       id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: finalMealData.name,
-      description: finalMealData.description,
-      ingredients: (finalMealData.ingredients || []).map((ing: any) => ({
+      name: mealData.name,
+      description: mealData.description,
+      ingredients: (mealData.ingredients || []).map((ing: any) => ({
         name: ing.name,
         quantity: String(ing.quantity || ''),
         unit: ing.unit || ''
       })),
-      instructions: finalMealData.instructions,
-      calories: finalMealData.calories || 400,
-      protein: finalMealData.protein || 25,
-      carbs: finalMealData.totalCarbs,
-      starchyCarbs: finalMealData.starchyCarbs,
-      fibrousCarbs: finalMealData.fibrousCarbs,
-      fat: finalMealData.fat || 15,
-      cookingTime: finalMealData.cookingTime || '25 minutes',
-      difficulty: finalMealData.difficulty || 'Easy',
+      instructions: mealData.instructions,
+      calories: mealData.calories || 400,
+      protein: mealData.protein || 25,
+      carbs: totalCarbs, // Total for backward compatibility
+      starchyCarbs, // Nutrition Schema v1.1
+      fibrousCarbs, // Nutrition Schema v1.1
+      fat: mealData.fat || 15,
+      cookingTime: mealData.cookingTime || '25 minutes',
+      difficulty: mealData.difficulty || 'Easy',
       imageUrl,
       medicalBadges: [],
       source: 'ai'
     };
+    
+    // Post-generation validation for diet compliance
+    if (dietType) {
+      const validation = validateMealForDiet(unifiedMeal, dietType);
+      if (!validation.isValid) {
+        console.warn(`⚠️ Meal has guardrail violations: ${validation.violations.join(', ')}`);
+        // Log warning but still return meal - guardrails are guidance, not hard blocks
+      }
+    }
     
     console.log(`✅ Create With Chef generated complete meal: ${unifiedMeal.name}`);
     
@@ -967,8 +730,6 @@ Create the recipe for: "${description}"`;
       calories: fallback.calories,
       protein: fallback.protein,
       carbs: fallback.carbs,
-      starchyCarbs: 0,
-      fibrousCarbs: 0,
       fat: fallback.fat,
       cookingTime: '20 minutes',
       difficulty: 'Easy',
@@ -1000,33 +761,10 @@ export async function generateSnackFromCravingUnified(
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
   try {
-    await ensureHubsRegistered();
-    
-    let snackHubCoupling: HubCouplingResult | null = null;
-    let snackEffectiveHubType: HubType | null = null;
-    
-    if (userId) {
-      if (isValidHubType(dietType)) {
-        snackEffectiveHubType = dietType;
-      } else {
-        snackEffectiveHubType = await detectHubTypeFromProfile(userId);
-      }
-      
-      if (snackEffectiveHubType) {
-        try {
-          snackHubCoupling = await resolveHubCoupling(snackEffectiveHubType, userId, 'snack');
-          if (snackHubCoupling) {
-            console.log(`🔌 Snack hub coupling loaded for ${snackEffectiveHubType}`);
-          }
-        } catch (err) {
-          console.warn(`⚠️ Failed to load hub coupling for snack, continuing without:`, err);
-        }
-      }
-    }
-    
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
+    // Nutrition Schema v1.1: Request starchyCarbs and fibrousCarbs separately
     let basePrompt = `You are a nutrition-focused chef specializing in healthy snack alternatives.
 
 TASK: Transform this craving into a HEALTHY snack: "${cravingDescription}"
@@ -1051,23 +789,13 @@ REQUIREMENTS:
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
 - fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
-${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
-🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
-- Use ONLY these units: oz, lb, cup, tbsp, tsp, each, fl oz
-- NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
-- Fruits: use cup or each (e.g., "1 cup berries", "1 each apple")
-- Vegetables: use cup (e.g., "1 cup carrot sticks", "1/2 cup celery")
-- Nuts/seeds: use oz or tbsp (e.g., "1 oz almonds", "2 tbsp sunflower seeds")
-- Yogurt/dairy: use cup or oz (e.g., "1 cup Greek yogurt", "4 oz cottage cheese")
 
 FORMAT: Return as JSON object:
 {
   "name": "Creative snack name that sounds appetizing",
   "description": "Brief 1-2 sentence appetizing description explaining how this satisfies the craving",
   "ingredients": [
-    {"name": "Greek yogurt", "quantity": "1", "unit": "cup"},
-    {"name": "mixed berries", "quantity": "1/2", "unit": "cup"},
-    {"name": "almonds", "quantity": "1", "unit": "oz"}
+    {"name": "ingredient name", "quantity": "precise amount", "unit": "tbsp/cup/oz/etc"}
   ],
   "instructions": "Clear step-by-step preparation instructions as a single paragraph with numbered steps. Even simple snacks need instructions.",
   "calories": number (realistic 100-300),
@@ -1089,115 +817,51 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       console.log(`🛡️ Applied snack guardrails: ${guardrailResult.appliedRules.join(', ')}`);
     }
 
+    // Build messages with optional system prompt for diet
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
-    const snackHubSystemPrompt = snackHubCoupling?.promptFragment?.systemPrompt;
-    const snackFallbackSystemPrompt = getSystemPromptForDiet(dietType || null);
-    const systemPrompt = snackHubSystemPrompt || snackFallbackSystemPrompt;
+    const systemPrompt = getSystemPromptForDiet(dietType || null);
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
     }
     messages.push({ role: 'user', content: prompt });
 
-    const SNACK_MAX_REGENERATION_ATTEMPTS = 2;
-    let finalSnackData: any = null;
-    let snackAttemptCount = 0;
-    let snackLastFixHint: string | null = null;
-
-    while (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
-      snackAttemptCount++;
-      
-      const currentMessages = [...messages];
-      if (snackLastFixHint) {
-        currentMessages.push({ role: 'user', content: `IMPORTANT CORRECTION REQUIRED: ${snackLastFixHint}` });
-        console.log(`🔄 Snack regeneration attempt ${snackAttemptCount} with fix hint`);
-      }
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: currentMessages,
-        response_format: { type: "json_object" },
-        max_tokens: 1500,
-      });
-      
-      const content = response.choices?.[0]?.message?.content;
-      if (!content) {
-        throw new Error("No content received from OpenAI");
-      }
-      
-      const snackData = JSON.parse(content);
-      const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
-      const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
-      const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
-      
-      const tempSnack: UnifiedMeal = {
-        id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: snackData.name,
-        description: snackData.description,
-        ingredients: (snackData.ingredients || []).map((ing: any) => ({
-          name: ing.name,
-          quantity: String(ing.quantity || ''),
-          unit: ing.unit || ''
-        })),
-        instructions: snackData.instructions,
-        calories: snackData.calories || 150,
-        protein: snackData.protein || 8,
-        carbs: snackTotalCarbs,
-        starchyCarbs: snackStarchyCarbs,
-        fibrousCarbs: snackFibrousCarbs,
-        fat: snackData.fat || 6,
-        cookingTime: snackData.cookingTime || '5 minutes',
-        difficulty: 'Easy',
-        imageUrl: '',
-        medicalBadges: [],
-        source: 'ai'
-      };
-
-      if (snackEffectiveHubType && snackHubCoupling?.guardrails) {
-        const snackHubValidation = validateMealForHub(tempSnack, snackEffectiveHubType, snackHubCoupling.guardrails);
-        if (hasHardViolations(snackHubValidation)) {
-          console.warn(`🚨 Snack attempt ${snackAttemptCount}: Hub validation failed - ${snackHubValidation.violations.map(v => v.message).join(', ')}`);
-          if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
-            snackLastFixHint = getRegenerationHint(snackEffectiveHubType, snackHubValidation.violations);
-            continue;
-          } else {
-            console.error(`❌ Snack hub guardrails exhausted after ${snackAttemptCount} attempts - falling back to safe template`);
-            throw new Error(`Snack hub validation failed after ${SNACK_MAX_REGENERATION_ATTEMPTS} attempts`);
-          }
-        } else if (snackHubValidation.violations.length > 0) {
-          console.warn(`⚠️ Snack hub validation soft warnings: ${snackHubValidation.violations.map(v => v.message).join(', ')}`);
-        }
-      } else if (dietType) {
-        const validation = validateMealForDiet(tempSnack, dietType);
-        if (!validation.isValid) {
-          console.warn(`⚠️ Snack has legacy guardrail violations: ${validation.violations.join(', ')}`);
-        }
-      }
-
-      finalSnackData = { ...snackData, snackStarchyCarbs, snackFibrousCarbs, snackTotalCarbs };
-      break;
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages,
+      response_format: { type: "json_object" },
+      max_tokens: 1500,
+    });
+    
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("No content received from OpenAI");
     }
     
-    if (!finalSnackData) {
-      throw new Error("Failed to generate valid snack after regeneration attempts");
-    }
-
+    const snackData = JSON.parse(content);
+    
+    // Nutrition Schema v1.1: Extract starchy/fibrous carbs from AI response BEFORE image generation
+    const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
+    const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
+    const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
+    
+    // Generate DALL-E image for the snack
     let imageUrl = getFallbackImage('snack');
     try {
       const generatedImage = await generateImage({
-        name: finalSnackData.name,
-        description: finalSnackData.description,
+        name: snackData.name,
+        description: snackData.description,
         type: 'meal',
         style: 'homemade',
-        ingredients: finalSnackData.ingredients?.map((ing: any) => ing.name) || [],
-        calories: finalSnackData.calories,
-        protein: finalSnackData.protein,
-        carbs: finalSnackData.snackTotalCarbs,
-        fat: finalSnackData.fat,
+        ingredients: snackData.ingredients?.map((ing: any) => ing.name) || [],
+        calories: snackData.calories,
+        protein: snackData.protein,
+        carbs: snackTotalCarbs, // Use computed total from Nutrition Schema v1.1
+        fat: snackData.fat,
       });
       
       if (generatedImage) {
         imageUrl = generatedImage;
-        console.log(`🖼️ Generated DALL-E image for Snack Creator: ${finalSnackData.name}`);
+        console.log(`🖼️ Generated DALL-E image for Snack Creator: ${snackData.name}`);
       }
     } catch (imgError) {
       console.warn('⚠️ DALL-E image generation failed for snack, using fallback:', imgError);
@@ -1205,26 +869,35 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     
     const unifiedSnack: UnifiedMeal = {
       id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: finalSnackData.name,
-      description: finalSnackData.description,
-      ingredients: (finalSnackData.ingredients || []).map((ing: any) => ({
+      name: snackData.name,
+      description: snackData.description,
+      ingredients: (snackData.ingredients || []).map((ing: any) => ({
         name: ing.name,
         quantity: String(ing.quantity || ''),
         unit: ing.unit || ''
       })),
-      instructions: finalSnackData.instructions,
-      calories: finalSnackData.calories || 150,
-      protein: finalSnackData.protein || 8,
-      carbs: finalSnackData.snackTotalCarbs,
-      starchyCarbs: finalSnackData.snackStarchyCarbs,
-      fibrousCarbs: finalSnackData.snackFibrousCarbs,
-      fat: finalSnackData.fat || 6,
-      cookingTime: finalSnackData.cookingTime || '5 minutes',
+      instructions: snackData.instructions,
+      calories: snackData.calories || 150,
+      protein: snackData.protein || 8,
+      carbs: snackTotalCarbs, // Total for backward compatibility
+      starchyCarbs: snackStarchyCarbs, // Nutrition Schema v1.1
+      fibrousCarbs: snackFibrousCarbs, // Nutrition Schema v1.1
+      fat: snackData.fat || 6,
+      cookingTime: snackData.cookingTime || '5 minutes',
       difficulty: 'Easy',
       imageUrl,
       medicalBadges: [],
       source: 'ai'
     };
+    
+    // Post-generation validation for diet compliance
+    if (dietType) {
+      const validation = validateMealForDiet(unifiedSnack, dietType);
+      if (!validation.isValid) {
+        console.warn(`⚠️ Snack has guardrail violations: ${validation.violations.join(', ')}`);
+        // Log warning but still return snack - guardrails are guidance, not hard blocks
+      }
+    }
     
     console.log(`✅ Snack Creator generated complete snack: ${unifiedSnack.name}`);
     
@@ -1249,8 +922,6 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       calories: fallback.calories,
       protein: fallback.protein,
       carbs: fallback.carbs,
-      starchyCarbs: 0,
-      fibrousCarbs: 0,
       fat: fallback.fat,
       cookingTime: '5 minutes',
       difficulty: 'Easy',
@@ -1286,11 +957,10 @@ export async function generateMealUnified(
     case 'create-with-chef':
       // Create With Chef uses description-based generation (AI + DALL-E image)
       // Supports diet-specific guardrails when dietType is provided
-      // Supports Starch Game Plan for intelligent carb distribution
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      return generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext);
+      return generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType);
 
     case 'snack-creator':
       // Snack Creator uses craving-to-healthy transformation (AI + DALL-E image)

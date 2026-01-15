@@ -1,0 +1,91 @@
+Below is a clean, strict, Replit-friendly prompt you can paste directly into the Replit AI (this will prevent it from going rogue, making assumptions, or changing things you didn’t ask for).
+It tells it exactly what to do, nothing more.
+
+⸻
+
+✅ REPLIT INSTRUCTION PROMPT (Copy & Paste)
+
+Do NOT change anything outside these instructions.
+Do NOT add features we did not specifically list.
+Follow the steps exactly as written and stop after completing Phase 1 and Phase 2 for BREAKFAST ONLY.
+
+⸻
+
+PROJECT GOAL (Read Carefully)
+
+We are adding a new feature called “AI Premades” to the Breakfast, Lunch, and Dinner meal cards.
+This feature will use a picker system similar to the existing Snack Picker, but with meal premade options instead of snacks.
+
+We are starting with BREAKFAST ONLY.
+Do NOT modify Lunch or Dinner yet.
+Do NOT modify Snacks.
+Do NOT modify unrelated components.
+
+⸻
+
+PHASE 1 — ADD THE BUTTON
+
+Inside ONLY the Breakfast, Lunch, and Dinner meal cards:
+	1.	Add a new button labeled “AI Premades”.
+	2.	Place it directly next to the Create AI button.
+	3.	Make it use the exact same styling as Create AI.
+	4.	Make it use the same green flashing animation as Create AI.
+	5.	The button should NOT do anything yet except:
+console.log("AI Premades Clicked")
+	6.	Do NOT add this button anywhere else.
+	7.	Do NOT alter any existing button functionality.
+
+Stop after this is done unless the next phase is explicitly requested.
+
+⸻
+
+PHASE 2 — CLONE THE SNACK PICKER INTO A “MEAL PREMADE PICKER”
+
+After Phase 1 is complete:
+	1.	Duplicate the Snack Picker component.
+	2.	Rename the duplicate to MealPremadePicker.
+	3.	Do NOT modify the original Snack Picker.
+	4.	For now, MealPremadePicker should contain:
+	•	A modal structure identical to Snack Picker
+	•	Placeholder tabs: Breakfast, Lunch, Dinner
+	•	Breakfast should be active; Lunch/Dinner can be empty.
+	5.	Remove all snack categories and snack items from the duplicate.
+	6.	Make the new AI Premades button open this MealPremadePicker modal.
+	7.	Do NOT add any real food options yet.
+	8.	Do NOT connect anything to DALL·E yet.
+	9.	Do NOT add preparation logic yet.
+
+Stop after the modal opens correctly for Breakfast.
+
+⸻
+
+PHASE 3 (DO NOT EXECUTE YET — READ ONLY)
+
+Later, we will add actual breakfast meal options, preparation details, and DALL·E image generation.
+Do NOT begin Phase 3 until explicitly instructed.
+
+⸻
+
+IMPORTANT RULES
+	•	Do NOT make assumptions.
+	•	Do NOT rename existing files unless instructed.
+	•	Do NOT restructure the project.
+	•	Do NOT change existing components besides adding the new features listed.
+	•	Do NOT create new designs or layouts.
+	•	Do ONLY what is written.
+	•	STOP after completing the listed phase.
+
+⸻
+
+END OF PROMPT
+
+Follow ONLY the above instructions.
+If something is unclear, ask before acting.
+
+⸻
+
+If you’d like, I can now generate:
+✅ The Phase 3 prompt
+✅ The full breakfast premade JSON
+✅ The prep-system-integrated DALL·E instructions
+Just tell me when Phase 1 & Phase 2 are completed.

@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const EMAIL_FROM = 'My Perfect Meals <noreply@mail.myperfectmeals.com>';
-
 let resend: Resend | null = null;
 
 if (process.env.RESEND_API_KEY) {
@@ -27,7 +25,7 @@ export async function sendPasswordResetEmail({
 
   try {
     const { data, error } = await resend.emails.send({
-      from: EMAIL_FROM,
+      from: 'My Perfect Meals <onboarding@resend.dev>',
       to: [to],
       subject: 'Reset your My Perfect Meals password',
       html: `
@@ -108,7 +106,7 @@ export async function sendCareTeamInvite({
 
   try {
     const { data, error } = await resend.emails.send({
-      from: EMAIL_FROM,
+      from: 'My Perfect Meals <onboarding@resend.dev>',
       to: [to],
       subject: `${patientName} invited you to join their Care Team`,
       html: `

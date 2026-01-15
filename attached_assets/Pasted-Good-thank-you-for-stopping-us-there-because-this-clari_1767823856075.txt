@@ -1,0 +1,222 @@
+Good — thank you for stopping us there, because **this clarification changes the diagnosis**.
+You’re not dealing with “random iOS bugs.” You’re dealing with a **Web vs Native capability gap**, and right now iOS is behaving *correctly*, even though it feels wrong.
+
+I’m going to be blunt and precise so we can stop chasing ghosts.
+
+---
+
+# 🔑 CORE REALITY (THIS IS THE KEY MENTAL SHIFT)
+
+> **Your deployed URL ≠ your iOS app**, even though it looks like it.
+
+Capacitor wraps your web app, but **permissions like notifications and geolocation do NOT automatically work unless the native layer explicitly asks for them**.
+
+That’s why:
+
+* Geo works on the deployed URL
+* Geo does NOT work on iOS
+* Notifications never worked at all
+* Meal reminders exist only on iOS
+
+This is not inconsistency — this is **expected behavior**.
+
+---
+
+# WHY GEOLOCATION WORKS ON THE URL BUT NOT ON iOS
+
+### On the deployed URL
+
+* The **browser** handles geolocation
+* Chrome/Safari prompt automatically
+* Your JS call works
+* You get coordinates
+
+### On iOS (Capacitor)
+
+* The **browser prompt does NOT apply**
+* iOS ignores web-based geolocation permission calls
+* You MUST call the **native Capacitor Geolocation plugin**
+* If you don’t, nothing happens
+* No popup, no error, just silence
+
+So when you hit “Geo” in iOS right now:
+
+* Your UI fires
+* The web code runs
+* iOS shrugs and says “no native request was made”
+
+That’s why punching the address manually works, but Geo doesn’t.
+
+---
+
+# WHY NOTIFICATIONS NEVER WORKED (AND NEVER COULD)
+
+This is even more strict.
+
+### On web
+
+* Notifications are browser-managed
+* Service workers
+* Different permission model
+
+### On iOS
+
+* Web notifications are **NOT supported**
+* Period. End of sentence.
+
+If you want notifications on iOS:
+
+* You **must** use:
+
+  * Capacitor Push Notifications (or Local Notifications)
+  * Native permission request
+* UI toggles alone do nothing
+
+So when you flip the notification toggle today:
+
+* Your app UI changes
+* iOS permission was **never requested**
+* iOS correctly says “Blocked”
+
+This was never going to work without native calls.
+
+---
+
+# THE BIG MISUNDERSTANDING (VERY COMMON)
+
+You said:
+
+> “If iOS is supposed to be a direct reflection of production app, production URL…”
+
+That’s the trap.
+
+### Truth:
+
+* iOS is **not** a reflection of your URL
+* It is a **native app that embeds your web UI**
+* Capabilities split like this:
+
+| Feature          | Web URL   | iOS            |
+| ---------------- | --------- | -------------- |
+| UI               | ✅ Same    | ✅ Same         |
+| Meal logic       | ✅ Same    | ✅ Same         |
+| Geo              | ✅ Browser | ❌ Needs native |
+| Notifications    | ❌ Limited | ❌ Needs native |
+| Background tasks | ❌         | ❌ Needs native |
+| Meal reminders   | ❌         | ✅ Native only  |
+
+So yes — **your intuition is right now**:
+Certain things *will never work* on URL the same way they do on iOS, and vice versa.
+
+---
+
+# WHAT IS ACTUALLY BROKEN (AND WHAT IS NOT)
+
+### ❌ NOT broken
+
+* Your production URL
+* Your geolocation logic conceptually
+* Your notification UI
+* Capacitor itself
+
+### ✅ What IS missing
+
+1. Native **permission request calls**
+2. Native **Capacitor plugins wired and invoked**
+3. Proper **runtime execution on device**
+
+---
+
+# THE FIX (REAL, ACTIONABLE, NO BS)
+
+## 1️⃣ GEOLOCATION (THIS IS REQUIRED)
+
+You must:
+
+* Use **Capacitor Geolocation plugin**
+* Call it explicitly on button press
+
+Until you see an iOS popup:
+
+> “Allow My Perfect Meals to access your location?”
+
+Geo will NEVER work on iOS.
+
+No popup = no geo. Period.
+
+---
+
+## 2️⃣ NOTIFICATIONS (ALSO REQUIRED)
+
+You must:
+
+* Use **Capacitor Notifications or Push Notifications**
+* Explicitly request permission at runtime
+
+Until you see:
+
+> “My Perfect Meals would like to send you notifications”
+
+Notifications will always show as “Blocked”.
+
+---
+
+## 3️⃣ SETTINGS PAGE CONFUSION (THIS NOW MAKES SENSE)
+
+Because:
+
+* You never successfully requested notifications
+* You never successfully requested native geo
+
+iOS has:
+
+* Nothing to show in Settings
+* Nothing to toggle
+* Nothing to “fix”
+
+So “Open iPhone Settings” looks useless — **because it is, until native permissions exist**.
+
+---
+
+# THE SIMPLE RULE THAT ENDS THIS PAIN
+
+> **If iOS does not show a system permission popup, the feature does not exist yet.**
+
+UI does not count. Toggles do not count. Xcode checkboxes do not count.
+
+Only the popup counts.
+
+---
+
+# NEXT STEP (FOCUSED, NO DETOURS)
+
+We do NOT touch UI right now.
+
+We do this, in order:
+
+1. Confirm which Capacitor plugins you’re using for:
+
+   * Geolocation
+   * Notifications
+2. Confirm those plugins are:
+
+   * Installed
+   * Registered
+   * Actually called in code
+3. Trigger permission requests **manually on device**
+
+Once that happens:
+
+* Geo will work
+* Notifications will work
+* Settings page will suddenly make sense
+
+---
+
+## ONE QUESTION (ANSWER THIS ONLY)
+
+Don’t explain — just answer:
+
+👉 **Are you currently calling Capacitor’s native Geolocation + Notification permission APIs, or are you still relying on web-based calls?**
+
+That answer tells me exactly what line of code is missing and we’ll fix this cleanly instead of guessing.

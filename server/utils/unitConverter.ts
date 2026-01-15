@@ -19,37 +19,18 @@ const unitConversions: Record<string, UnitConversion> = {
   "pasta": { grams: 100, to: "1 cup" },
   "couscous": { grams: 80, to: "1/2 cup" },
   
-  // Proteins (use oz for all meats - Americans weigh proteins in ounces)
-  "cooked chicken breast": { grams: 150, to: "5 oz" },
-  "chicken breast": { grams: 150, to: "5 oz" },
-  "chicken": { grams: 150, to: "5 oz" },
-  "grilled chicken breast": { grams: 150, to: "5 oz" },
-  "grilled chicken": { grams: 150, to: "5 oz" },
-  "ground beef": { grams: 150, to: "5 oz" },
-  "beef": { grams: 150, to: "5 oz" },
-  "ground turkey": { grams: 150, to: "5 oz" },
-  "turkey": { grams: 150, to: "5 oz" },
-  "ground chicken": { grams: 150, to: "5 oz" },
-  "steak": { grams: 170, to: "6 oz" },
-  "sirloin": { grams: 170, to: "6 oz" },
-  "ribeye": { grams: 200, to: "7 oz" },
-  "pork": { grams: 150, to: "5 oz" },
-  "pork chop": { grams: 150, to: "5 oz" },
-  "pork tenderloin": { grams: 150, to: "5 oz" },
-  "bacon": { grams: 30, to: "2 slices" },
-  "sausage": { grams: 100, to: "3.5 oz" },
-  "salmon": { grams: 150, to: "5 oz" },
-  "salmon fillet": { grams: 150, to: "5 oz" },
-  "fish": { grams: 150, to: "5 oz" },
-  "cod": { grams: 150, to: "5 oz" },
-  "tilapia": { grams: 150, to: "5 oz" },
-  "shrimp": { grams: 100, to: "3.5 oz" },
-  "tuna": { grams: 120, to: "4 oz" },
-  "canned tuna": { grams: 120, to: "4 oz" },
-  "canned tuna (drained)": { grams: 120, to: "4 oz" },
+  // Proteins
+  "cooked chicken breast": { grams: 150, to: "1/2 cup diced" },
+  "chicken breast": { grams: 150, to: "5 oz breast" },
+  "grilled chicken breast": { grams: 150, to: "5 oz breast" },
+  "ground turkey": { grams: 100, to: "1/3 cup" },
+  "salmon": { grams: 150, to: "5 oz fillet" },
+  "salmon fillet": { grams: 150, to: "5 oz fillet" },
+  "tuna": { grams: 120, to: "1/3 cup" },
+  "canned tuna": { grams: 120, to: "1/3 cup" },
+  "canned tuna (drained)": { grams: 120, to: "1/3 cup" },
   "eggs": { grams: 50, to: "1 large egg" },
-  "egg": { grams: 50, to: "1 large egg" },
-  "tofu": { grams: 100, to: "3.5 oz" },
+  "tofu": { grams: 100, to: "1/2 cup cubed" },
   "black beans": { grams: 100, to: "1/2 cup" },
   "chickpeas": { grams: 100, to: "1/2 cup" },
   
@@ -264,7 +245,7 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
             ...ingredient,
             amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
             unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-            displayText: `${conversion.to} ${ingredient.name}`
+            displayText: conversion.to
           };
         }
       } else if ((unit === 'ml' || unit === 'milliliters') && conversion.ml) {
@@ -274,7 +255,7 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
             ...ingredient,
             amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
             unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-            displayText: `${conversion.to} ${ingredient.name}`
+            displayText: conversion.to
           };
         }
       }
@@ -290,7 +271,7 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
               ...ingredient,
               amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
               unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-              displayText: `${conversion.to} ${ingredient.name}`
+              displayText: conversion.to
             };
           }
         } else if ((unit === 'ml' || unit === 'milliliters') && conversion.ml) {
@@ -300,74 +281,28 @@ export function convertStructuredIngredients(ingredients: any[]): any[] {
               ...ingredient,
               amount: conversion.to.split(' ')[0] === '1' ? 1 : parseFloat(conversion.to.split(' ')[0]) || 1,
               unit: conversion.to.replace(/^\d+(\.\d+)?\s*/, '') || conversion.to,
-              displayText: `${conversion.to} ${ingredient.name}`
+              displayText: conversion.to
             };
           }
         }
       }
     }
     
-    // Fallback: Convert grams to user-friendly American units
-    // Americans use ounces for proteins, cups for vegetables/grains
+    // Fallback: round metric measurements for readability
     if (unit === 'g' || unit === 'grams') {
-      // Check if it's likely a protein (contains common protein keywords)
-      const proteinKeywords = ['chicken', 'beef', 'turkey', 'pork', 'fish', 'salmon', 'tuna', 'shrimp', 
-        'steak', 'meat', 'sausage', 'bacon', 'ham', 'lamb', 'duck', 'tofu', 'tempeh', 'cod', 'tilapia'];
-      const isProtein = proteinKeywords.some(kw => normalizedName.includes(kw));
-      
-      // Check if it's likely a leafy vegetable (should use cups)
-      const leafyKeywords = ['spinach', 'lettuce', 'kale', 'arugula', 'greens', 'cabbage', 'chard'];
-      const isLeafy = leafyKeywords.some(kw => normalizedName.includes(kw));
-      
-      if (isProtein) {
-        // Convert grams to ounces for proteins (28.35g = 1 oz)
-        const ounces = Math.round(amount / 28.35);
-        return {
-          ...ingredient,
-          amount: ounces,
-          unit: 'oz',
-          displayText: `${ounces} oz ${ingredient.name}`
-        };
-      } else if (isLeafy) {
-        // Leafy greens: roughly 30-50g per cup loose
-        const cups = Math.round(amount / 40 * 2) / 2; // Round to nearest 0.5
-        const cupsDisplay = cups === 0.5 ? '1/2' : cups === 1.5 ? '1 1/2' : cups.toString();
-        return {
-          ...ingredient,
-          amount: cups,
-          unit: 'cup',
-          displayText: `${cupsDisplay} cup ${ingredient.name}`
-        };
-      } else {
-        // Default: convert to ounces for solids (better than grams for Americans)
-        const ounces = Math.round(amount / 28.35);
-        return {
-          ...ingredient,
-          amount: ounces,
-          unit: 'oz',
-          displayText: `${ounces} oz ${ingredient.name}`
-        };
-      }
+      const roundedAmount = Math.round(amount / 5) * 5; // Round to nearest 5g
+      return {
+        ...ingredient,
+        amount: roundedAmount,
+        unit: 'g'
+      };
     } else if (unit === 'ml' || unit === 'milliliters') {
-      // Convert ml to cups or tbsp
-      if (amount >= 60) {
-        const cups = Math.round(amount / 240 * 4) / 4; // Round to nearest 0.25
-        const cupsDisplay = cups === 0.25 ? '1/4' : cups === 0.5 ? '1/2' : cups === 0.75 ? '3/4' : cups.toString();
-        return {
-          ...ingredient,
-          amount: cups,
-          unit: 'cup',
-          displayText: `${cupsDisplay} cup ${ingredient.name}`
-        };
-      } else {
-        const tbsp = Math.round(amount / 15);
-        return {
-          ...ingredient,
-          amount: tbsp,
-          unit: 'tbsp',
-          displayText: `${tbsp} tbsp ${ingredient.name}`
-        };
-      }
+      const roundedAmount = Math.round(amount / 25) * 25; // Round to nearest 25ml
+      return {
+        ...ingredient,
+        amount: roundedAmount,
+        unit: 'ml'
+      };
     }
     
     return ingredient; // Return original if no conversion possible

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatWeekRange, getWeekStartISO } from "@/utils/week";
-import { isoToUtcNoonDate } from "@/utils/midnight";
 
 interface DuplicateWeekModalProps {
   isOpen: boolean;
@@ -24,7 +23,7 @@ export function DuplicateWeekModal({
   const isValidMonday = (dateISO: string): boolean => {
     if (!dateISO) return false;
     try {
-      const date = isoToUtcNoonDate(dateISO);
+      const date = new Date(dateISO + 'T00:00:00Z');
       return date.getUTCDay() === 1; // Monday = 1
     } catch {
       return false;
