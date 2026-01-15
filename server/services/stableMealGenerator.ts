@@ -12,6 +12,8 @@ import pLimit from "p-limit";
 import { convertToUserFriendlyUnits } from "../utils/unitConverter";
 import { generateMealFromPrompt } from "./universalMealGenerator";
 import { getGlycemicSettings } from "./glycemicSettingsService";
+import * as telemetry from "./aiTelemetry";
+import type { DebugMetadata } from "./aiTelemetry";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -77,7 +79,7 @@ function detectMealType(text: string): MealType | undefined {
   return undefined;
 }
 
-function validateMealTypeRobust(meal: MealLike): ValidationResult {
+function validateMealTypeRobust(meal: MealLike, sessionId?: string): ValidationResult {
   const name = (meal.name ?? '').toLowerCase();
   const ingredientsText = (meal.ingredients ?? []).map(i => i.name?.toLowerCase() ?? '').join(' ');
   const tagText = (meal.tags ?? []).join(' ').toLowerCase();
@@ -98,6 +100,11 @@ function validateMealTypeRobust(meal: MealLike): ValidationResult {
     if ((desired === 'dinner' && detected === 'breakfast') || (desired === 'breakfast' && detected === 'dinner')) {
       reasons.push(`Declared as ${desired} but content looks like ${detected}.`);
     }
+  }
+  
+  // Log validation failures with telemetry
+  if (reasons.length > 0 && sessionId) {
+    telemetry.tagFallback(sessionId, "validator_reject", `${meal.name}: ${reasons.join("; ")}`);
   }
 
   return { isValid: reasons.length === 0, detected, reasons: reasons.length ? reasons : undefined };
@@ -132,6 +139,7 @@ type FinalMeal = {
   servingSize?: string;
   imageUrl?: string | null;
   createdAt?: Date;
+  _debug?: DebugMetadata | null;
 };
 
 // ---- LOAD CATALOG ----
@@ -523,12 +531,12 @@ function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealTyp
       )
     );
     
-    let pick = candidates[Math.floor(Math.random() * Math.max(candidates.length, 1))];
+    let pick: Skeleton | undefined = candidates[Math.floor(Math.random() * Math.max(candidates.length, 1))];
     if (!pick) {
-      pick = pool.find(p => p.mealType === slot) || null;
+      pick = pool.find(p => p.mealType === slot);
     }
     if (!pick) {
-      pick = catalog.find(p => p.mealType === slot) || null;
+      pick = catalog.find(p => p.mealType === slot);
     }
     
     if (pick) {
@@ -673,6 +681,9 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   console.log(`🎯 Generating single ${targetMealType} meal for craving creator`);
   if (craving) console.log(`🎯 Craving: ${craving}`);
   
+  // Create telemetry session for tracking
+  const sessionId = telemetry.createSession("cravingCreator");
+  
   // Get glycemic settings for user if userId provided
   let glycemicSettings = null;
   if (userPrefs?.userId) {
@@ -692,7 +703,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       mealType: targetMealType,
       ingredients: s.ingredients.map(ing => ({ name: ing.name })),
       tags: s.tags 
-    });
+    }, sessionId);
     
     if (!validation.isValid) {
       console.log(`🚫 Filtered out ${s.name}: ${validation.reasons?.join(', ')}`);
@@ -707,6 +718,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   // Apply glycemic filtering if settings exist
   if (glycemicSettings && glycemicSettings.preferredCarbs && glycemicSettings.preferredCarbs.length > 0) {
     const preferredCarbs = glycemicSettings.preferredCarbs.map((c: string) => c.toLowerCase());
+    const originalCount = filtered.length;
     const glycemicFiltered = filtered.filter(s => 
       s.ingredients.some(ing => 
         preferredCarbs.some((carb: string) => 
@@ -717,6 +729,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     if (glycemicFiltered.length > 0) {
       filtered = glycemicFiltered;
       console.log(`🩸 Applied glycemic filtering: ${filtered.length} meals match preferred low-GI carbs`);
+    } else if (originalCount > 0) {
+      telemetry.tagFallback(sessionId, "glycemic_filter_fallback", `No meals matched glycemic preferences, keeping ${originalCount} meals`);
     }
   }
 
@@ -938,7 +952,10 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       console.log(`🎯 Found ${filtered.length} matches for craving "${cravingLower}": ${filtered.map(s => s.name)}`);
     } else {
       console.log(`⚠️ No matches found for craving "${cravingLower}" in catalog, falling back to GPT-4 generation`);
-      // Use Universal AI Meal Generator as fallback
+      // Tag the fallback to GPT-4 before delegating
+      telemetry.tagFallback(sessionId, "no_catalog_match", `Craving "${cravingLower}" not found in catalog`);
+      telemetry.closeSession(sessionId);
+      // Use Universal AI Meal Generator as fallback (it has its own telemetry session)
       return await generateMealFromPrompt(craving, targetMealType, userPrefs);
     }
   }
@@ -952,10 +969,12 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       );
       if (fallbackMeals.length > 0) {
         filtered = fallbackMeals;
+        telemetry.tagFallback(sessionId, "kid_meal_fallback", "Using kid-friendly fallback meals");
         console.log("🧒 Using kid-friendly fallback meals");
       }
     } else {
       // Fallback to any meal type if no matches found
+      telemetry.tagFallback(sessionId, "catalog_fallback", "No specific matches, using general catalog");
       filtered = catalog.filter(s => 
         (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies)) &&
         (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions))
@@ -963,6 +982,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
     
     if (filtered.length === 0) {
+      telemetry.closeSession(sessionId);
       throw new Error(`No suitable meals found in catalog for preferences`);
     }
   }
@@ -999,8 +1019,24 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     });
     console.log(`📸 Generated ${isKidMeal ? 'kid-friendly ' : ''}image for ${selected.name}`);
   } catch (error) {
+    telemetry.tagFallback(sessionId, "image_generation_failed", `Image failed for ${selected.name}`);
     console.log(`❌ Image generation failed for ${selected.name}:`, error);
   }
+  
+  // Track instruction fallback
+  const finalInstructions = instructionsMap[selected.name] || [
+    "Prepare all ingredients according to recipe",
+    "Cook using appropriate methods for each ingredient", 
+    "Season to taste and serve hot"
+  ];
+  
+  if (!instructionsMap[selected.name]) {
+    telemetry.tagFallback(sessionId, "instruction_fallback", `Default instructions used for ${selected.name}`);
+  }
+  
+  // Build debug metadata and close session
+  const debugMetadata = telemetry.buildDebugMetadata(sessionId);
+  telemetry.closeSession(sessionId);
   
   return {
     id: `craving-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1013,16 +1049,13 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       unit: 'g',
       notes: ''
     }))),
-    instructions: instructionsMap[selected.name] || [
-      "Prepare all ingredients according to recipe",
-      "Cook using appropriate methods for each ingredient", 
-      "Season to taste and serve hot"
-    ],
+    instructions: finalInstructions,
     nutrition,
     medicalBadges,
     flags: selected.tags,
     servingSize: "1 serving",
     imageUrl: imageUrl,
-    createdAt: new Date()
+    createdAt: new Date(),
+    _debug: debugMetadata
   };
 }

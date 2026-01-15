@@ -1,6 +1,8 @@
 // Fallback meal service for testing when OpenAI is unavailable
 import { MealGenerationRequest, Meal } from "./mealEngineService";
 import { randomUUID } from "crypto";
+import * as telemetry from "./aiTelemetry";
+import type { DebugMetadata } from "./aiTelemetry";
 
 // === FALLBACK USAGE TRACKING ===
 // Track when fallback meals are used - this indicates AI is not working
@@ -15,10 +17,15 @@ export function getFallbackStats() {
   };
 }
 
-export function createFallbackMeal(request: MealGenerationRequest): Meal {
+export function createFallbackMeal(request: MealGenerationRequest): Meal & { _debug?: DebugMetadata | null } {
   // === ALERT: Fallback being used ===
   fallbackUsageCount++;
   lastFallbackTime = new Date();
+  
+  // Create telemetry session to track this fallback
+  const sessionId = telemetry.createSession("fallbackMealService");
+  telemetry.tagFallback(sessionId, "catalog_fallback", `AI unavailable - using static fallback for ${request.mealType}`);
+  
   console.warn("🚨 [FALLBACK ALERT] Fallback meal being used - OpenAI may not be connected!");
   console.warn(`🚨 [FALLBACK ALERT] Meal type: ${request.mealType}, Diet: ${request.tempDietPreference || 'default'}`);
   console.warn(`🚨 [FALLBACK ALERT] Total fallbacks this session: ${fallbackUsageCount}`);
@@ -160,6 +167,10 @@ export function createFallbackMeal(request: MealGenerationRequest): Meal {
 
   console.log(`🍽️ Creating fallback meal: ${mealName} with ${formattedIngredients.length} ingredients, ${formattedInstructions.length} steps`);
 
+  // Build debug metadata and close session
+  const debugMetadata = telemetry.buildDebugMetadata(sessionId);
+  telemetry.closeSession(sessionId);
+
   return {
     id: randomUUID(),
     name: mealName,
@@ -181,6 +192,7 @@ export function createFallbackMeal(request: MealGenerationRequest): Meal {
       allergiesCleared: true,
       medicalCleared: true,
       unitsStandardized: true
-    }
+    },
+    _debug: debugMetadata
   };
 }

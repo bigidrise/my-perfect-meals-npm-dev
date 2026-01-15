@@ -3,6 +3,8 @@
 import OpenAI from "openai";
 import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
+import * as telemetry from "./aiTelemetry";
+import type { DebugMetadata } from "./aiTelemetry";
 
 let openai: OpenAI | null = null;
 
@@ -50,6 +52,7 @@ export type FinalMeal = {
   servingSize?: string;
   imageUrl?: string | null;
   createdAt?: Date;
+  _debug?: DebugMetadata | null;
 };
 
 // Generate DALL-E image
@@ -62,7 +65,7 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
       size: "1024x1024",
       quality: "standard",
     });
-    return response.data[0].url || null;
+    return response.data?.[0]?.url || null;
   } catch (error) {
     console.error("DALL-E image generation error:", error);
     return null;
@@ -72,24 +75,46 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
 // 🔁 Universal AI Meal Generator for any craving
 export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq>): Promise<FinalMeal> {
   console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
+  
+  const sessionId = telemetry.createSession("universalMealGenerator");
 
-  const gptResponse = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.4,
-    messages: [
-      {
-        role: "system",
-        content: "You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds). Format your response as:\n\nMeal Name: [name]\nDescription: [one sentence description]\n\nIngredients:\n- 6 oz tilapia fillet\n- 1/2 cup brown rice\n- 1 tbsp olive oil\n- 1 cup steamed broccoli\n\nInstructions:\n1. [step one]\n2. [step two]\n3. [step three]\n\nNutrition:\nCalories: 450\nProtein: 35g\nCarbs: 40g\nFat: 12g"
-      },
-      {
-        role: "user",
-        content: `Create a healthy ${mealType} that satisfies the craving for: ${prompt}`
-      }
-    ]
-  });
+  let gptResponse;
+  try {
+    gptResponse = await getOpenAI().chat.completions.create({
+      model: "gpt-4o",
+      temperature: 0.4,
+      messages: [
+        {
+          role: "system",
+          content: "You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds). Format your response as:\n\nMeal Name: [name]\nDescription: [one sentence description]\n\nIngredients:\n- 6 oz tilapia fillet\n- 1/2 cup brown rice\n- 1 tbsp olive oil\n- 1 cup steamed broccoli\n\nInstructions:\n1. [step one]\n2. [step two]\n3. [step three]\n\nNutrition:\nCalories: 450\nProtein: 35g\nCarbs: 40g\nFat: 12g"
+        },
+        {
+          role: "user",
+          content: `Create a healthy ${mealType} that satisfies the craving for: ${prompt}`
+        }
+      ]
+    });
+  } catch (error: any) {
+    if (error?.status === 429) {
+      telemetry.tagFallback(sessionId, "api_rate_limit", error.message);
+    } else if (error?.code === "ETIMEDOUT" || error?.code === "ECONNABORTED") {
+      telemetry.tagFallback(sessionId, "api_timeout", error.message);
+    } else {
+      telemetry.tagFallback(sessionId, "api_error", error.message);
+    }
+    telemetry.closeSession(sessionId);
+    throw error;
+  }
 
   const text = gptResponse.choices[0]?.message.content;
-  if (!text) throw new Error("GPT-4 did not return a valid response");
+  
+  telemetry.logRawOutput(sessionId, text, { model: "gpt-4o", prompt });
+  
+  if (!text) {
+    telemetry.tagFallback(sessionId, "empty_response", "GPT-4 returned null content");
+    telemetry.closeSession(sessionId);
+    throw new Error("GPT-4 did not return a valid response");
+  }
 
   // Parse GPT response sections
   const lines = text.split("\n").filter(line => line.trim());
@@ -111,7 +136,8 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
     instructionStartIndex > ingredientStartIndex ? instructionStartIndex : lines.length
   ).filter(l => l.trim().startsWith("-") || l.trim().startsWith("•"));
 
-  // Parse ingredients into structured format
+  // Parse ingredients into structured format with telemetry tracking
+  let parsedIngredientCount = 0;
   const ingredients = ingredientLines.map(line => {
     const cleaned = line.replace(/^[-•]\s*/, '').trim();
     
@@ -119,19 +145,24 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
     const match = cleaned.match(/^(\d+(?:\/\d+)?(?:\.\d+)?)\s*(oz|cup|cups|tbsp|tsp|pound|lb|pounds|lbs)\s+(.+)$/i);
     
     if (match) {
-      const [, amount, unit, name] = match;
+      const [, amount, unit, ingName] = match;
       // Convert fraction to decimal but round to avoid precision errors
-      const numAmount = amount.includes('/') ? 
-        Math.round((amount.split('/').reduce((a, b) => parseFloat(a) / parseFloat(b))) * 1000) / 1000 : 
-        parseFloat(amount);
+      let numAmount: number;
+      if (amount.includes('/')) {
+        const parts = amount.split('/');
+        numAmount = Math.round((parseFloat(parts[0]) / parseFloat(parts[1])) * 1000) / 1000;
+      } else {
+        numAmount = parseFloat(amount);
+      }
         
       const formattedAmount = formatFraction(numAmount);
+      parsedIngredientCount++;
       return {
-        name: name.trim(),
+        name: ingName.trim(),
         amount: numAmount,
         unit: unit.toLowerCase(),
         notes: "",
-        displayText: `${formattedAmount} ${unit} ${name.trim()}`
+        displayText: `${formattedAmount} ${unit} ${ingName.trim()}`
       };
     }
     
@@ -144,6 +175,9 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
       displayText: cleaned
     };
   });
+  
+  // Track ingredient parsing success rate
+  telemetry.recordIngredientParseRate(sessionId, parsedIngredientCount, ingredientLines.length);
 
   // Extract instructions
   const nutritionStartIndex = lines.findIndex(l => l.toLowerCase().includes("nutrition") || l.toLowerCase().includes("calories"));
@@ -154,18 +188,53 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
 
   const instructions = instructionLines.map(line => line.replace(/^\d+\.\s*/, '').trim());
 
-  // Extract nutrition
+  // Extract nutrition with fallback tracking
   const nutritionLines = lines.slice(nutritionStartIndex);
+  
+  const parsedCalories = nutritionLines.find(l => l.toLowerCase().includes("calories"))?.match(/\d+/)?.[0];
+  const parsedProtein = nutritionLines.find(l => l.toLowerCase().includes("protein"))?.match(/\d+/)?.[0];
+  const parsedCarbs = nutritionLines.find(l => l.toLowerCase().includes("carb"))?.match(/\d+/)?.[0];
+  const parsedFat = nutritionLines.find(l => l.toLowerCase().includes("fat"))?.match(/\d+/)?.[0];
+  
+  // Track if we're using defaults
+  if (!parsedCalories || !parsedProtein || !parsedCarbs || !parsedFat) {
+    const missing = [];
+    if (!parsedCalories) missing.push("calories");
+    if (!parsedProtein) missing.push("protein");
+    if (!parsedCarbs) missing.push("carbs");
+    if (!parsedFat) missing.push("fat");
+    telemetry.tagFallback(sessionId, "parse_default_nutrition", `Missing: ${missing.join(", ")}`);
+  }
+  
   const nutrition = {
-    calories: parseInt(nutritionLines.find(l => l.toLowerCase().includes("calories"))?.match(/\d+/)?.[0] || '400'),
-    protein: parseInt(nutritionLines.find(l => l.toLowerCase().includes("protein"))?.match(/\d+/)?.[0] || '25'),
-    carbs: parseInt(nutritionLines.find(l => l.toLowerCase().includes("carb"))?.match(/\d+/)?.[0] || '30'),
-    fat: parseInt(nutritionLines.find(l => l.toLowerCase().includes("fat"))?.match(/\d+/)?.[0] || '15')
+    calories: parseInt(parsedCalories || '400'),
+    protein: parseInt(parsedProtein || '25'),
+    carbs: parseInt(parsedCarbs || '30'),
+    fat: parseInt(parsedFat || '15')
   };
+  
+  // Track instruction fallback
+  const finalInstructions = instructions.length > 0 ? instructions : [
+    "Prepare all ingredients according to recipe",
+    "Cook using appropriate methods for each ingredient", 
+    "Season to taste and serve hot"
+  ];
+  
+  if (instructions.length === 0) {
+    telemetry.tagFallback(sessionId, "instruction_fallback", "No instructions parsed from AI response");
+  }
 
   // Generate DALL-E image
   const imagePrompt = `${name}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation`;
   const imageUrl = await generateImageFromDalle(imagePrompt);
+  
+  if (!imageUrl) {
+    telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
+  }
+  
+  // Build debug metadata and close session
+  const debugMetadata = telemetry.buildDebugMetadata(sessionId);
+  telemetry.closeSession(sessionId);
 
   return {
     id: `gpt-${Date.now()}-${randomUUID().slice(0, 8)}`,
@@ -173,16 +242,13 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
     description,
     mealType,
     ingredients,
-    instructions: instructions.length > 0 ? instructions : [
-      "Prepare all ingredients according to recipe",
-      "Cook using appropriate methods for each ingredient", 
-      "Season to taste and serve hot"
-    ],
+    instructions: finalInstructions,
     nutrition,
     medicalBadges: [],
     flags: ["ai_generated"],
     servingSize: "1 serving",
     imageUrl,
-    createdAt: new Date()
+    createdAt: new Date(),
+    _debug: debugMetadata
   };
 }
