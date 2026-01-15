@@ -9,23 +9,20 @@ import {
   getMacroProgressColor,
 } from "@/components/glass/mpmGlassStandard";
 import { Flame } from "lucide-react";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 export interface ConsumedMacros {
-  calories: number;
   protein: number;
   carbs: number;
   fat: number;
-  // Optional starchy/fibrous breakdown
   starchyCarbs?: number;
   fibrousCarbs?: number;
 }
 
 export interface MacroTargets {
-  calories: number;
   protein_g: number;
   carbs_g: number;
   fat_g: number;
-  // Optional starchy/fibrous breakdown targets
   starchyCarbs_g?: number;
   fibrousCarbs_g?: number;
 }
@@ -54,43 +51,34 @@ export function RemainingMacrosFooter({
     if (targetsOverride) {
       return targetsOverride;
     }
-    // Use resolved targets which includes pro-set starchy/fibrous breakdown
     const resolved = getResolvedTargets(user?.id);
     return {
-      calories: resolved.calories,
       protein_g: resolved.protein_g,
       carbs_g: resolved.carbs_g,
       fat_g: resolved.fat_g,
-      starchyCarbs_g: resolved.starchyCarbs_g,
-      fibrousCarbs_g: resolved.fibrousCarbs_g,
     };
   }, [user?.id, targetsOverride]);
 
-  const hasTargets = targets.calories > 0 || targets.protein_g > 0;
+  const hasTargets = targets.protein_g > 0 || targets.carbs_g > 0 || targets.fat_g > 0;
 
   const consumed = useMemo(() => {
     if (consumedOverride) {
       return consumedOverride;
     }
     return {
-      calories: todayMacros.kcal,
       protein: todayMacros.protein,
-      carbs: todayMacros.carbs,
+      carbs: todayMacros.starchyCarbs + todayMacros.fibrousCarbs,
       fat: todayMacros.fat,
-      starchyCarbs: todayMacros.starchyCarbs,
-      fibrousCarbs: todayMacros.fibrousCarbs,
     };
   }, [consumedOverride, todayMacros]);
 
   const remaining = useMemo(() => ({
-    calories: Math.max(0, targets.calories - consumed.calories),
     protein: Math.max(0, targets.protein_g - consumed.protein),
     carbs: Math.max(0, targets.carbs_g - consumed.carbs),
     fat: Math.max(0, targets.fat_g - consumed.fat),
   }), [targets, consumed]);
 
   const colorState = useMemo(() => ({
-    calories: getMacroProgressColor(consumed.calories, targets.calories),
     protein: getMacroProgressColor(consumed.protein, targets.protein_g),
     carbs: getMacroProgressColor(consumed.carbs, targets.carbs_g),
     fat: getMacroProgressColor(consumed.fat, targets.fat_g),
@@ -127,27 +115,21 @@ export function RemainingMacrosFooter({
           {showSaveButton && onSaveDay && (
             <button
               onClick={onSaveDay}
-              className="w-full mb-3 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-900 hover:from-zinc-900 hover:to-zinc-900 text-white text-sm font-semibold rounded-xl transition-all active:scale-[0.98] shadow-lg border-2 border-zinc-700/90 especially effective for00/60"
+              className="w-full mb-3 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-900 hover:from-zinc-900 hover:to-zinc-900 text-white text-sm font-semibold rounded-xl transition-all active:scale-[0.98] shadow-lg border-2 border-zinc-700/90"
             >
               Save Day to Biometrics
             </button>
           )}
 
-          <div className="flex items-center justify-center mb-2">
+          <div className="flex items-center justify-center mb-2 gap-1.5">
             <span className="text-white/70 text-xs font-medium uppercase tracking-wide">
               Remaining Today
             </span>
+            <MedicalSourcesInfo asIconButton />
           </div>
 
-          {/* Simple 4-column layout: Calories, Protein, Carbs (total), Fat */}
-          <div className="grid gap-2 grid-cols-4">
-            <MacroCell
-              label="Cal"
-              remaining={remaining.calories}
-              target={targets.calories}
-              consumed={consumed.calories}
-              colorState={colorState.calories}
-            />
+          {/* 3-column layout: Protein, Carbs, Fat - matches MealCard format, NO CALORIES per product doctrine */}
+          <div className="grid gap-2 grid-cols-3">
             <MacroCell
               label="Protein"
               remaining={remaining.protein}

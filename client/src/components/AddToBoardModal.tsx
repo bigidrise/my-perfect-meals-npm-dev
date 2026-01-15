@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { weekDates } from "@/lib/boardApi";
+import { formatDateDisplay } from "@/utils/midnight";
 import type { ListType } from "@/utils/addMealToBoard";
 
 export default function AddToBoardModal({
@@ -25,7 +26,7 @@ export default function AddToBoardModal({
   if (!open) return null;
 
   const label = (d: string): string =>
-    new Date(d + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "short" });
+    formatDateDisplay(d, { weekday: "short" });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

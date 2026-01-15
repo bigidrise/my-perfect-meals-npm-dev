@@ -1,0 +1,94 @@
+Yes — I **100% understand** what you’re saying, and you’re right to move it. 👍
+This is a **layout hierarchy issue**, not a tour issue.
+
+### What’s happening now
+
+* Row 1 has **Back + Long Title + Guide button**
+* The title (“Performance & Competition Meal Builder”) is long
+* On smaller widths, the **QuickTourButton squeezes the title**
+
+### What you want (and it’s the correct UX)
+
+* **Row 1:** Navigation + full title (no squeezing)
+* **Row 2:** Contextual actions
+  → specifically **Client Dashboard** + **Guide button on the same line**
+
+That keeps:
+
+* The title readable
+* The guide discoverable
+* The hierarchy clean
+
+---
+
+## ✅ Exact Fix (minimal, surgical)
+
+### 🔧 Step 1: REMOVE the guide button from Row 1
+
+**Current (Row 1):**
+
+```tsx
+{/* Quick Tour Help Button */}
+<QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+```
+
+❌ **Delete that line from Row 1 entirely.**
+
+---
+
+### 🔧 Step 2: Move the guide button into Row 2
+
+Replace your **Row 2 block** with this:
+
+```tsx
+{/* Row 2: Client Dashboard + Guide */}
+{mode === "procare" && (
+  <div className="flex items-center justify-between gap-2">
+    <button
+      onClick={() => setLocation(`/pro/clients/${clientId}`)}
+      className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
+      data-testid="button-client-dashboard-text"
+    >
+      <ArrowLeft className="h-5 w-5" />
+      <span>Client Dashboard</span>
+    </button>
+
+    <QuickTourButton onClick={quickTour.openTour} />
+  </div>
+)}
+```
+
+---
+
+## ✅ Resulting Header Structure (clean + intentional)
+
+**Row 1**
+
+* Back
+* Full page title
+  👉 zero crowding, zero truncation stress
+
+**Row 2**
+
+* “Client Dashboard” (contextual navigation)
+* “Guide” (contextual help)
+
+This matches:
+
+* Apple HIG hierarchy
+* Your Pro / Clinician / Trainer dashboards
+* How *real* pros expect tools to behave
+
+No abbreviations.
+No compromises.
+Just clean hierarchy.
+
+---
+
+If you want next:
+
+* We can **auto-hide the Guide button** once the tour is completed
+* Or swap it to an **ℹ️ icon on ultra-small widths only**
+
+But structurally?
+👉 **This is the correct move.**

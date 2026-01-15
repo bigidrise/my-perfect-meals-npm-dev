@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { proStore, Targets, ClinicalContext } from "@/lib/proData";
+import { proStore, Targets, ClinicalContext, ClinicalAdvisory, WorkspaceType } from "@/lib/proData";
+import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
+import WorkspaceSelectionModal from "@/components/pro/WorkspaceSelectionModal";
 import {
   Settings,
   ClipboardList,
@@ -90,31 +92,49 @@ export default function ProClientDashboard() {
   const [ctx, setCtx] = useState<ClinicalContext>(() =>
     proStore.getContext(clientId),
   );
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
   useEffect(() => {
     setT(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
-  }, [clientId]);
+    
+    // Check if workspace is set - if so, redirect immediately
+    const currentClient = proStore.getClient(clientId);
+    if (currentClient?.workspace) {
+      setLocation(`/pro/clients/${clientId}/${currentClient.workspace}`);
+    } else {
+      // Auto-assign workspace based on role if no workspace is set
+      const clientRole = currentClient?.role;
+      const clinicalRoles = ["doctor", "np", "rn", "pa", "dietitian", "nutritionist"];
+      
+      if (clientRole) {
+        // Auto-route based on role - trainer goes to trainer workspace, clinical roles go to clinician
+        const autoWorkspace: WorkspaceType = clientRole === "trainer" ? "trainer" : 
+          clinicalRoles.includes(clientRole) ? "clinician" : "trainer";
+        
+        // Save the workspace so it persists
+        if (currentClient) {
+          proStore.upsertClient({ ...currentClient, workspace: autoWorkspace });
+        }
+        
+        setLocation(`/pro/clients/${clientId}/${autoWorkspace}`);
+      } else {
+        // Only show modal if no role is set (edge case)
+        setShowWorkspaceModal(true);
+      }
+    }
+  }, [clientId, setLocation]);
+
+  const handleWorkspaceSelect = (workspace: WorkspaceType) => {
+    setShowWorkspaceModal(false);
+    setLocation(`/pro/clients/${clientId}/${workspace}`);
+  };
 
   // Read role from CLIENT first (set when client was added), then ctx, then default to trainer
   const role = (client?.role ?? ctx.role ?? "trainer") as ProRole;
   const isTrainer = role === "trainer";
-  const isClinician = [
-    "doctor",
-    "nurse",
-    "pa",
-    "nutritionist",
-    "dietitian",
-  ].includes(role);
+  const isClinician = ["doctor", "np", "rn", "pa", "nutritionist", "dietitian"].includes(role);
   const roleLabel = getRoleLabel(role);
-
-  console.log("🔍 Client Dashboard Debug:", {
-    clientId,
-    clientRole: client?.role,
-    ctxRole: ctx.role,
-    finalRole: role,
-    roleLabel,
-  });
 
   const saveTargets = () => {
     proStore.setTargets(clientId, t);
@@ -125,7 +145,7 @@ export default function ProClientDashboard() {
     }
 
     toast({
-      title: "✅ Targets saved",
+      title: "Targets saved",
       description: "Macro targets updated successfully.",
     });
   };
@@ -133,7 +153,7 @@ export default function ProClientDashboard() {
   const saveContext = () => {
     proStore.setContext(clientId, ctx);
     toast({
-      title: "✅ Context saved",
+      title: "Context saved",
       description: isTrainer
         ? "Coaching notes saved."
         : `${roleLabel} notes and clinical context saved.`,
@@ -143,7 +163,7 @@ export default function ProClientDashboard() {
   const scheduleFollowUp = () => {
     if (!ctx.followupWeeks) {
       toast({
-        title: "⚠️ Select weeks",
+        title: "Select weeks",
         description: "Choose 4, 8, or 12 weeks for follow-up.",
       });
       return;
@@ -154,7 +174,7 @@ export default function ProClientDashboard() {
       ctx.patientNote || "Follow-up scheduled",
     );
     toast({
-      title: "✅ Follow-up scheduled",
+      title: "Follow-up scheduled",
       description: `${ctx.followupWeeks}-week follow-up added.`,
     });
     // Clear dropdown and trigger re-render to show new follow-up
@@ -177,6 +197,20 @@ export default function ProClientDashboard() {
       : [...current, tag];
     setCtx({ ...ctx, clinicalTags: next });
   };
+
+  // If showing workspace modal, render it over a loading state
+  if (showWorkspaceModal) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
+        <WorkspaceSelectionModal
+          clientId={clientId}
+          clientName={client?.name || "Client"}
+          isOpen={showWorkspaceModal}
+          onSelect={handleWorkspaceSelect}
+        />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -338,8 +372,11 @@ export default function ProClientDashboard() {
                       checked={!!t.flags?.lowSodium}
                       onChange={(e) =>
                         setT({
-                          ...t.flags,
-                          lowSodium: e.target.checked,
+                          ...t,
+                          flags: {
+                            ...t.flags,
+                            lowSodium: e.target.checked,
+                          },
                         })
                       }
                     />
@@ -418,6 +455,7 @@ export default function ProClientDashboard() {
                     />
                     High-Protein Focus
                   </label>
+
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
                       type="checkbox"
@@ -431,37 +469,55 @@ export default function ProClientDashboard() {
                     />
                     Carb Cycling Protocol
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-white/80">
-                    <input
-                      type="checkbox"
-                      checked={!!t.flags?.antiInflammatory}
-                      onChange={(e) =>
-                        setT({
-                          ...t,
-                          flags: {
-                            ...t.flags,
-                            antiInflammatory: e.target.checked,
-                          },
-                        })
-                      }
-                    />
-                    Anti-Inflammatory
-                  </label>
+
                 </div>
               )}
             </div>
 
+            {isClinician && (
+              <div className="col-span-full mt-4">
+                <ClinicalAdvisoryDrawer
+                  advisory={ctx.advisory}
+                  targets={t}
+                  onAdvisoryChange={(advisory: ClinicalAdvisory) => {
+                    setCtx({ ...ctx, advisory });
+                    proStore.setContext(clientId, { ...ctx, advisory });
+                  }}
+                  onApplySuggestions={(deltas) => {
+                    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                    const newTotalCarbs = Math.max(0, totalCarbs + deltas.carbs);
+                    const starchyRatio = totalCarbs > 0 ? (t.starchyCarbs || 0) / totalCarbs : 0.5;
+                    
+                    setT({
+                      ...t,
+                      protein: Math.max(0, (t.protein || 0) + deltas.protein),
+                      starchyCarbs: Math.round(newTotalCarbs * starchyRatio),
+                      fibrousCarbs: Math.round(newTotalCarbs * (1 - starchyRatio)),
+                      fat: Math.max(0, (t.fat || 0) + deltas.fat),
+                    });
+                    toast({
+                      title: "✅ Advisory Applied",
+                      description: "Macro targets adjusted. Review and save when ready.",
+                    });
+                  }}
+                />
+              </div>
+            )}
+
             <div className="col-span-full flex gap-2">
               <Button
                 onClick={saveTargets}
-                className="bg-lime-600 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
+                className="bg-lime-600 border border-white/20 text-white active:bg-white/30"
                 data-testid="button-save-macros"
               >
                 Save Targets
               </Button>
               <Button
                 onClick={async () => {
-                  if (t.kcal < 100) {
+                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                  const calcKcal = (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+                  
+                  if (calcKcal < 100) {
                     toast({
                       title: "Cannot Set Empty Macros",
                       description: "Please set macro targets first",
@@ -477,9 +533,9 @@ export default function ProClientDashboard() {
                     );
                     await setMacroTargets(
                       {
-                        calories: t.kcal,
+                        calories: calcKcal,
                         protein_g: t.protein,
-                        carbs_g: t.carbs,
+                        carbs_g: totalCarbs,
                         fat_g: t.fat,
                       },
                       clientId,
@@ -493,10 +549,10 @@ export default function ProClientDashboard() {
 
                     toast({
                       title: "✅ Macros Set to Biometrics!",
-                      description: `${t.kcal} kcal coach-set targets saved for ${client?.name}`,
+                      description: `${calcKcal} kcal coach-set targets saved for ${client?.name}`,
                     });
 
-                    setLocation("/my-biometrics");
+                    
                   } catch (error) {
                     console.error("Failed to set macros:", error);
                     toast({
@@ -506,7 +562,7 @@ export default function ProClientDashboard() {
                     });
                   }
                 }}
-                className="bg-black hover:bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl hover:shadow-red-500/50 transition-all duration-200 flash-border"
+                className="bg-black hover:bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 flash-border"
                 data-testid="button-send-macros-to-biometrics"
               >
                 <Target className="h-5 w-5 mr-2" />
@@ -515,93 +571,6 @@ export default function ProClientDashboard() {
             </div>
           </CardContent>
         </Card>
-
-        {/* TRAINER-ONLY: CARB DIRECTIVE */}
-        {isTrainer && (
-          <Card className="bg-white/5 border border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Activity className="h-5 w-5" /> Carb Directive
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="text-sm text-white/70 mb-1 block">
-                  Starchy Cap (g/day)
-                </label>
-                <Input
-                  inputMode="numeric"
-                  className="bg-black/30 border-white/30 text-white"
-                  value={t.carbDirective?.starchyCapG ?? ""}
-                  onChange={(e) =>
-                    setT({
-                      ...t,
-                      carbDirective: {
-                        ...t.carbDirective,
-                        starchyCapG: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      },
-                    })
-                  }
-                  placeholder="e.g., 25"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-white/70 mb-1 block">
-                  Fibrous Floor (g/day)
-                </label>
-                <Input
-                  inputMode="numeric"
-                  className="bg-black/30 border-white/30 text-white"
-                  value={t.carbDirective?.fibrousFloorG ?? ""}
-                  onChange={(e) =>
-                    setT({
-                      ...t,
-                      carbDirective: {
-                        ...t.carbDirective,
-                        fibrousFloorG: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      },
-                    })
-                  }
-                  placeholder="e.g., 300"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-white/70 mb-1 block">
-                  Added Sugar Cap (g/day)
-                </label>
-                <Input
-                  inputMode="numeric"
-                  className="bg-black/30 border-white/30 text-white"
-                  value={t.carbDirective?.addedSugarCapG ?? ""}
-                  onChange={(e) =>
-                    setT({
-                      ...t,
-                      carbDirective: {
-                        ...t.carbDirective,
-                        addedSugarCapG: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      },
-                    })
-                  }
-                  placeholder="e.g., 25"
-                />
-              </div>
-              <div className="col-span-full">
-                <Button
-                  onClick={saveTargets}
-                  className="bg-lime-600 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
-                >
-                  Save Carb Directive
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* TRAINER-ONLY: COACHING NOTE */}
         {isTrainer && (
@@ -620,7 +589,7 @@ export default function ProClientDashboard() {
               />
               <Button
                 onClick={saveContext}
-                className="bg-lime-600 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
+                className="bg-lime-600 border border-white/20 text-white active:bg-white/30"
               >
                 Save {roleLabel} Notes
               </Button>
@@ -698,7 +667,7 @@ export default function ProClientDashboard() {
 
               <Button
                 onClick={saveContext}
-                className="bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30"
+                className="bg-white/10 border border-white/20 text-white active:bg-white/30"
               >
                 Save {roleLabel} Notes & Context
               </Button>
@@ -865,7 +834,7 @@ export default function ProClientDashboard() {
                 localStorage.setItem("pro-client-id", clientId);
                 setLocation("/glp1-hub");
               }}
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-glp1-hub"
             >
               💉 GLP-1 Hub
@@ -877,7 +846,7 @@ export default function ProClientDashboard() {
                   `/pro/clients/${clientId}/anti-inflammatory-builder`,
                 );
               }}
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-anti-inflammatory-hub"
             >
               🌿 Anti-Inflammatory Menu Builder
@@ -895,7 +864,7 @@ export default function ProClientDashboard() {
                   `/pro/clients/${clientId}/performance-competition-builder`,
                 )
               }
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-performance-competition-builder"
             >
               <Trophy className="h-4 w-4 mr-2" /> Performance & Competition
@@ -910,7 +879,7 @@ export default function ProClientDashboard() {
                   `/pro/clients/${clientId}/general-nutrition-builder`,
                 );
               }}
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-general-nutrition-builder"
             >
               🌿 General Nutrition Builder

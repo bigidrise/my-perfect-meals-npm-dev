@@ -11,9 +11,19 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "my-biometrics",
     title: "My Biometrics",
     description:
-      "Use My Biometrics to keep your daily macros, log macros using our barcode photo logger, top off shortfalls with Additional Macros, keep track of your calories up to 30 days, keep track of your weight up to a year, and track your water with our water log tracker.",
+      "Your daily control panel. Scan food labels with MacroScan, log meals instantly, add extra macros when needed, and track calories, weight, and water over time.",
     spokenText:
-      "My Biometrics, log and keep your daily macros using our barcode photo scan logger, send over macros from your generated meal cards. If you're short on protein or carbs, use Additional Macros to top off — pick your food source like whey for a protein shake, and the right macro tails get applied automatically. Keep track of your calories from daily up to 30 days. Keep track of your weight daily up to a year. Track your daily water intake with our water log tracker",
+      "My Biometrics is your tracking and review center. Your daily macro targets live at the top of this page and stay persistent until you recalculate them in the Macro Calculator. You can log packaged foods using MacroScan by taking a photo of a nutrition label, review the AI-read values, and add them to your day. This page also shows your daily, weekly, and monthly macro totals, your weight trends over time, and your daily water intake. Use Biometrics to monitor progress, not to fix gaps — adjustments happen inside the meal builders.",
+    autoClose: true,
+  },
+
+  "/dashboard": {
+    pageId: "dashboard",
+    title: "Dashboard",
+    description:
+      "Your home base. Jump into meal planning, cravings, tracking, and lifestyle tools from one place.",
+    spokenText:
+      "Welcome to our dashboard — this is your home base. From here you can plan your meals, track your macros, or create food based on what you’re actually in the mood for. You don’t need to be precise — just tell the app what you want, and it’ll build it. Anytime you want a quick explanation on a page, tap Copilot and hit Listen.",
     autoClose: true,
   },
 
@@ -21,9 +31,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-creator",
     title: "Craving Creator",
     description:
-      "Create healthy versions of whatever your craving. Describe the flavor, texture, or style you want, choose your servings and preferences, and let the app generate a personalized meal that matches your craving in a clean, goal-friendly way.",
+      "Create healthier versions of the foods you crave — so you never have to ignore cravings again.",
     spokenText:
-      "Craving Creator. Describe what you're craving. For example, say I want something sweet, crunchy, lowfat, low sugar, no gluten or I want a creamy shake, or something tangy and refreshing. Select your servings, press Create, and enjoy your personalized meal. You NEVER have to ignore your cravings again!",
+      "Craving something but can’t come up with a healthy option? That’s exactly what Craving Creator is for. Just tell me what you’re in the mood for — sweet, crunchy, creamy, whatever sounds good. Add any dietary preferences or restrictions you have, like dairy-free or gluten-free. Pick how many servings you want, then press Create. I’ll handle the rest and build you a healthier version that fits your goals without going overboard. You eat what you want, stay on track, and move on with your day. Simple as that.",
     autoClose: true,
   },
 
@@ -31,9 +41,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-desserts",
     title: "Dessert Creator",
     description:
-      "Describe your dessert, pick what type like pie or cake, choose flavor and texture, select servings and dietary requirements, then create your dessert.",
+      "Create healthier versions of the desserts you love — without ignoring cravings or overdoing portions.",
     spokenText:
-      "Dessert Creator. Describe your dessert. Pick which type of dessert you want to make, from  pie, cake, cookies to smoothies, frozen desserts, and our fun choice, surprise me, which makes up a dessert for you. Pick your flavor or texture and how many servings. Choose dietary requirements if you have any, then create your dessert.",
+      "Looking for a healthier dessert but don’t have any good options? Dessert Creator handles that. First, pick the type of dessert you want — cake, pie, cookies, brownies, frozen treats, or just hit surprise me. If you already know what you’re craving, tell me in your own words — key lime, chocolate peanut butter, bakery-style, whatever sounds good. If you don’t, leave it blank — I’ve got you. Next, choose how many servings you want so portions stay realistic and on point. If you have any dietary needs — low sugar, gluten-free, high protein — add those too. Then tap create, and I’ll build a healthier dessert that actually satisfies you. No guilt. No guessing. You’re good to go.",
     autoClose: true,
   },
 
@@ -43,7 +53,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Choose from three options: Creator for custom AI-generated cravings, Premades for ready-made craving recipes, or Dessert Creator for healthy desserts like pies, cakes, cookies, and more.",
     spokenText:
-      "Craving Creator Hub. You have three options here. Say Creator to build a custom craving with AI. Say Premades to browse ready-made craving recipes. Or say Dessert Creator to make healthy desserts like pies, cakes, cookies, brownies, and more.",
+      "Craving something but can’t come up with a healthy option? That’s what Craving Creator is for. Tell it what you’re craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals.",
     autoClose: true,
   },
 
@@ -51,9 +61,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-presets",
     title: "Craving Premades",
     description:
-      "Browse our collection of ready-made craving meals. Tap any picture to see ingredients and nutrition info.",
+      "Browse ready-made AI-created craving meals you can use instantly, without starting from scratch.",
     spokenText:
-      "Craving Premades. Pick how many servings your preparing, choose your increment of measure, then browse our ready-made AI created dessert options. Tap any picture to see the ingredients, nutrition info, and cooking instructions. Send ingredients to the master shopping list, log your macros or both.",
+      "Craving Premades. This is where you grab ready-made craving meals without having to build anything from scratch. Start by choosing how many servings you’re making and your rounding preference so portions stay realistic. Then scroll through the premade options and tap any meal that looks good. Inside, you’ll see ingredients, nutrition info, and cooking instructions. From there, you can send everything straight to your master shopping list, log the macros, or do both in one tap. Simple, fast, and you’re back to living your life.",
     autoClose: true,
   },
 
@@ -61,9 +71,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "fridge-rescue",
     title: "Fridge Rescue",
     description:
-      "Turn whatever’s in your fridge into real meals. Type or speak your ingredients, and let the app create three personalized meal ideas using what you’ve already got.",
+      "Turn the ingredients you already have into real meals, without extra shopping.",
     spokenText:
-      "Fridge Rescue. Type or speak the ingredients you have at home, and I’ll create three personalized meal ideas using what you’ve already got. Add your items, press generate, and I’ll take it from there.",
+      "Fridge Rescue. You ever come home tired, open the fridge, and stare at food with no clue what to make? That’s not a willpower problem — that’s an idea problem, and everybody hits it. You already have food, you’re just stuck in the same rotations. This fixes that. Type or speak the ingredients you have at home, tap generate, and I’ll give you three real meals using what’s already there. No grocery run. No guessing. Problem solved.",
     autoClose: true,
   },
 
@@ -83,7 +93,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Choose between Kids Meals for ages 5–12 or Toddler Meals for little ones. Both include easy ingredient lists you can send to your shopping list.",
     spokenText:
-      "Kids Meals. These meals are designed for ages four to twelve. Pick your servings, choose your rounding — tenth, half, or whole — and tap any meal to open the picture. From there you can view the ingredients, see the cooking instructions, and send everything you need straight to the shopping list.",
+      "Trying to make healthier meals for your kids without overthinking it? That’s exactly what Kids Meals is for. These meals are designed for ages five to twelve. Pick your servings, choose your rounding — tenth, half, or whole — and tap any meal to open the picture. From there you can view the ingredients, see the cooking instructions, and send everything you need straight to the shopping list.",
     autoClose: true,
   },
 
@@ -93,7 +103,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Simple, soft, and finger-friendly meals for toddlers. Tap a picture to view ingredients and instructions, and send ingredients to your shopping list instantly.",
     spokenText:
-      "Toddler Meals. These options are built for little ones that graze, with softer textures and finger-friendly foods. Pick your servings, choose your rounding, and tap any meal to open the picture. You’ll see the ingredients, the simple cooking instructions, and you can send everything you need directly to the shopping list.",
+      "Trying to figure out what to feed a toddler who grazes all day? Toddler Meals are built for little ones with softer textures and finger-friendly foods. Pick your servings, choose your rounding, and tap any meal to open the picture. You’ll see the ingredients, the simple cooking instructions, and you can send everything you need directly to the shopping list.",
     autoClose: true,
   },
 
@@ -113,7 +123,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Find healthy meals at any restaurant. Enter the restaurant name and what you want to eat, and the app will return three smart, goal-friendly options.",
     spokenText:
-      "Restaurant Guide. Just type what you want to eat and the name of the restaurant, and I’ll show you three healthy options that fit your goals. ",
+      "Love eating out but never know how to order off the menu without blowing your nutrition? That’s exactly what Restaurant Guide is for. Just type what you’re in the mood for, enter the restaurant name and a nearby zip code, and I’ll give you three healthier options that fit your goals. You’ll also get simple tips on how to order it smarter when you’re there. No guessing, no stress — just order and enjoy.",
     autoClose: true,
   },
 
@@ -121,9 +131,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "social-hub/find",
     title: "Find Meals Near Me",
     description:
-      "Discover healthy meals near you. Enter what your craving and your zip code, and the app will return three nearby restaurants with two meal options for you to choose from.",
+      "Find healthy places to eat near you. Enter what you’re craving and your zip code, and the app returns nearby restaurants with smart meal options that fit your goals.",
     spokenText:
-      "Find Meals Near Me. Tell me what your craving and your zip code, and I’ll show you three restaurants in that area with healthy meal options from each one.",
+      "Eating out while staying on track can be a guessing game when you don’t know what’s around you. Find Meals Near Me fixes that. Just tell me what you’re craving and enter your zip code, and I’ll show you three nearby restaurants with healthier meal options from each one. You pick what sounds good, order smarter, and keep moving forward.",
     autoClose: true,
   },
 

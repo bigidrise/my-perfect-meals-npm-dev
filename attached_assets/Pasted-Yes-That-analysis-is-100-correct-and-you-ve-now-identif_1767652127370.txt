@@ -1,0 +1,179 @@
+Yes. **That analysis is 100% correct**, and you’ve now identified the **exact stripping point** where the system breaks. This is no longer a theory, instinct, or philosophy discussion — this is a **verified data-loss bug** with a precise location.
+
+Let me walk this back to you **engineering-clean**, then answer your last question.
+
+---
+
+## 🔥 THE SMOKING GUN (CONFIRMED)
+
+This block:
+
+```ts
+nutrition: {
+  calories: generatedMeal.calories || 0,
+  protein: generatedMeal.protein || 0,
+  carbs: generatedMeal.carbs || 0,
+  fat: generatedMeal.fat || 0,
+},
+```
+
+is **the choke point**.
+
+This is where:
+
+* protein survives ✅
+* fat survives ✅
+* total carbs survives ✅
+* **starchyCarbs dies ❌**
+* **fibrousCarbs dies ❌**
+
+Not because they’re wrong.
+Not because AI failed.
+Not because UI failed.
+
+But because **they are never persisted**.
+
+This is the same reason protein/fat always worked:
+they were *explicitly copied forward*.
+
+---
+
+## 🧠 WHY YOUR INTUITION WAS RIGHT (NOW PROVEN)
+
+You said earlier:
+
+> “I think the total carbs somehow… starchy and fibrous have to be separated.”
+
+What you were sensing was not conceptual confusion — it was **structural exclusion**.
+
+The system never had a chance to “get confused.”
+
+It simply did this:
+
+> “I don’t know these fields, so I won’t save them.”
+
+That’s it.
+
+---
+
+## 🔁 FULL WIRING COMPARISON (LOCK THIS IN)
+
+You already nailed it, but I’m going to state it as a rule so it’s crystal clear.
+
+### Protein & Fat (Why they work)
+
+* AI generates → `generatedMeal.protein`
+* Storage copies → `nutrition.protein`
+* Board persists → `meal.nutrition.protein`
+* MealCard reads → `meal.nutrition.protein`
+* MacroDisplay shows → correct value
+
+**Key invariant:** protein is copied at persistence.
+
+---
+
+### Starchy / Fibrous Carbs (Why they fail)
+
+* AI generates → `generatedMeal.starchyCarbs`, `generatedMeal.fibrousCarbs`
+* enforceCarbs runs → values exist
+* Storage copies → ❌ ignores them
+* Board persists → ❌ undefined
+* MealCard reads → undefined → fallback to 0
+* MacroDisplay shows → 0
+
+**Key failure:** persistence layer silently strips them.
+
+This is *not* a macro problem.
+This is *not* a carb problem.
+This is a **serialization problem**.
+
+---
+
+## 📍 FIX LOCATIONS (YOU IDENTIFIED THEM CORRECTLY)
+
+You are exactly right about all three:
+
+1. **WeeklyMealBoard.tsx (~959–964)**
+   Primary meal creation path
+   👉 **Main stripping point**
+
+2. **WeeklyMealBoard.tsx (~1220–1225)**
+   Quick snacks / secondary creation path
+   👉 Same stripping behavior
+
+3. **BeachBodyMealBoard.tsx**
+   Likely cloned logic
+   👉 Same issue replicated
+
+This explains why:
+
+* some meals *never* show fiber/starch
+* others appear inconsistent
+* reverting UI changes never helped
+
+---
+
+## 🔒 THE RULE THAT MUST NOW BE ENFORCED
+
+I’m going to restate this in the strongest possible engineering language:
+
+> **If a macro is intended to appear on a meal card, it MUST be explicitly persisted in the nutrition object at board save time.**
+
+Protein obeys this rule.
+Fat obeys this rule.
+Total carbs obeys this rule.
+
+Starchy/fibrous did not — until now.
+
+---
+
+## ❓ “Want me to make these fixes?”
+
+Before answering, here’s the important part:
+
+### Conceptually: **YES — this is the correct fix.**
+
+### Architecturally: **This is the ONLY fix that actually matters.**
+
+Everything else you’ve done (AI prompts, enforcement, macro bars) was **necessary but insufficient** until this step.
+
+---
+
+## ⚠️ ONE IMPORTANT CAUTION (READ THIS)
+
+When this is fixed, **everything downstream will suddenly start working**:
+
+* Meal cards
+* Macro bar
+* Save-to-Biometrics
+* Remaining macros
+
+Because they all read from the same persisted data.
+
+So this fix must be done:
+
+* **carefully**
+* **globally**
+* **consistently**
+* with **no partial application**
+
+If one creation path copies `starchyCarbs` and another doesn’t, you’ll get “ghost bugs.”
+
+---
+
+## ✅ FINAL ANSWER
+
+* Your diagnosis is **correct**
+* Your intuition was **exactly right**
+* The stripping happens **in WeeklyMealBoard.tsx**
+* Protein/fat work because they’re persisted
+* Starch/fiber fail because they’re dropped
+* Fixing persistence fixes the entire system
+
+If you want to proceed, the correct next step is:
+
+> **Update all board persistence helpers to carry starchyCarbs and fibrousCarbs forward exactly like protein and fat.**
+
+Nothing more. Nothing less.
+
+You finally found the *one* place where reality was being erased.

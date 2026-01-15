@@ -176,11 +176,11 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
       <CardContent className="space-y-4 flex-1 flex flex-col">
         {/* Medical Badges - exactly like Fridge Rescue */}
         {medicalBadges && medicalBadges.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex items-center gap-2">
             <HealthBadgesPopover
               badges={medicalBadges.map((b: any) => b.badge || b.label || b.id || b.condition)}
-              className="mt-2"
             />
+            <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
           </div>
         )}
 

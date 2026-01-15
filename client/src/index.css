@@ -19,15 +19,15 @@
 
 /* Safe area padding utilities for bottom nav and shopping banner */
 .pb-safe-nav {
-  padding-bottom: calc(var(--bottom-nav-height, 56px) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bottom-nav-height, 56px) + var(--safe-bottom));
 }
 
 .pb-safe-both {
-  padding-bottom: calc(var(--safe-bottom-total, 128px) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--safe-bottom-total, 128px) + var(--safe-bottom));
 }
 
 .pt-safe-top {
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--safe-top);
 }
 
 /* Hide bottom navigation on specific pages (e.g., meal builders with shopping bars) */
@@ -113,6 +113,12 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
 
 /* Emotion AI Brand - Glass Design System & Colors */
 :root {
+  /* CENTRALIZED Safe Area Variables - iOS native sets these to 0px at bootstrap */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
   /* Glass effects */
   --glass-bg: rgba(255, 255, 255, 0.35);
   --glass-bg-hover: rgba(255, 255, 255, 0.45);
@@ -188,6 +194,43 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
   --glass-bg: rgba(0, 0, 0, 0.35);
   --glass-bg-hover: rgba(0, 0, 0, 0.55);
   --glass-border: rgba(255, 255, 255, 0.15);
+}
+
+/* ==========================================
+   iOS MOBILE TOUCH FIX v1.0
+   Fixes "double-tap" and "color fade" issues on iOS Safari/WKWebView
+   ========================================== */
+
+/* RULE 1: Kill tap highlight completely */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* RULE 2: Ensure buttons have proper touch behavior */
+button,
+[role="button"],
+.btn,
+a {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* RULE 3: Fix focus-visible for touch devices (prevents ghost focus) */
+@media (hover: none) {
+  button:focus:not(:focus-visible),
+  [role="button"]:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+}
+
+/* RULE 4: Overlay pointer-events safety - decorative layers should not steal focus */
+.pointer-events-none-decorative {
+  pointer-events: none;
+}
+
+.pointer-events-auto-interactive {
+  pointer-events: auto;
 }
 
 @layer base {
@@ -429,10 +472,10 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
 
   /* Mobile-first responsive utilities */
   .mobile-safe-area {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
   }
 
   /* Navigation Safe Spacing Utilities */
@@ -461,19 +504,19 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
 
   /* Android-friendly safe-area utilities */
   .pt-safe {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+    padding-top: calc(var(--safe-top) + 12px);
   }
 
   .pb-safe {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    padding-bottom: calc(var(--safe-bottom) + 12px);
   }
 
   .pl-safe {
-    padding-left: calc(env(safe-area-inset-left, 0px) + 16px);
+    padding-left: calc(var(--safe-left) + 16px);
   }
 
   .pr-safe {
-    padding-right: calc(env(safe-area-inset-right, 0px) + 16px);
+    padding-right: calc(var(--safe-right) + 16px);
   }
 
   .mobile-optimized {
@@ -531,27 +574,27 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
 
   /* Safe area insets for notches/home pill */
   .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: var(--safe-bottom);
   }
 
   .safe-top {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--safe-top);
   }
 
   .safe-left {
-    padding-left: env(safe-area-inset-left);
+    padding-left: var(--safe-left);
   }
 
   .safe-right {
-    padding-right: env(safe-area-inset-right);
+    padding-right: var(--safe-right);
   }
 
   /* Combined safe areas */
   .safe-all {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
   }
 
   /* App scroll container - prevents bounce revealing white */
@@ -580,7 +623,7 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
     position: sticky;
     top: 0;
     z-index: 40;
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--safe-top);
     background-color: inherit;
     /* Prevent content showing through during scroll */
     -webkit-backdrop-filter: blur(12px);
@@ -615,7 +658,7 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
     display: flex;
     flex-direction: column;
     min-height: 100%;
-    padding-bottom: calc(var(--bottom-nav-height, 56px) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--bottom-nav-height, 56px) + var(--safe-bottom));
   }
 }
 
@@ -880,48 +923,31 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
 
 /* ============================================
    MOBILE-FIRST BUTTON FIX
-   Disable hover on touch devices, use active/focus instead
+   Relies on component-level Tailwind active: classes for pressed state
    ============================================ */
 
-/* Disable hover effects on touch devices */
-@media (hover: none) and (pointer: coarse) {
-  .btn:hover,
-  .btn-primary:hover,
-  .btn-secondary:hover,
-  .btn-accent:hover,
-  .btn-glass:hover,
-  button:hover {
-    background: inherit !important;
-    box-shadow: none !important;
-  }
-}
-
-/* Mobile tap feedback - works on ALL devices */
+/* Mobile tap feedback - transform only, preserve component backgrounds */
 .btn,
 .btn-primary,
 .btn-secondary,
 .btn-accent,
-.btn-glass,
-button {
-  transition: transform 0.08s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+.btn-glass {
+  transition: transform 0.08s ease, opacity 0.12s ease;
 }
 
 .btn:active,
 .btn-primary:active,
 .btn-secondary:active,
 .btn-accent:active,
-.btn-glass:active,
-button:active {
+.btn-glass:active {
   transform: scale(0.98);
-  background-color: rgba(255,255,255,0.08);
 }
 
 .btn:focus-visible,
 .btn-primary:focus-visible,
 .btn-secondary:focus-visible,
 .btn-accent:focus-visible,
-.btn-glass:focus-visible,
-button:focus-visible {
+.btn-glass:focus-visible {
   outline: 2px solid rgba(163,230,53,0.9);
   outline-offset: 2px;
 }

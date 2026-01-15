@@ -14,16 +14,23 @@ import {
   useCreateWithChefRequest,
   DietType,
   BeachBodyPhase,
+  StarchContext,
 } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 
 interface CreateWithChefModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mealType: "breakfast" | "lunch" | "dinner";
-  onMealGenerated: (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => void;
+  onMealGenerated: (
+    meal: any,
+    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+  ) => void;
   dietType?: DietType; // Optional diet type for guardrails
   dietPhase?: BeachBodyPhase; // Optional phase for BeachBody
+  starchContext?: StarchContext; // Optional starch context for intelligent carb distribution
 }
 
 export function CreateWithChefModal({
@@ -33,10 +40,18 @@ export function CreateWithChefModal({
   onMealGenerated,
   dietType,
   dietPhase,
+  starchContext,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
+  const { user } = useAuth();
+  
+  // Support both authenticated users and guests
+  const isGuest = isGuestMode();
+  const guestSession = isGuest ? getGuestSession() : null;
+  const userId = user?.id?.toString() || guestSession?.sessionId || "";
+  
   const { generating, progress, error, generateMeal, cancel } =
-    useCreateWithChefRequest();
+    useCreateWithChefRequest(userId);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,6 +62,25 @@ export function CreateWithChefModal({
   }, [open, cancel]);
 
   const handleGenerate = async () => {
+    if (!userId) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to create meals",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check guest generation limits
+    if (isGuest && !canGuestGenerate()) {
+      toast({
+        title: "Guest limit reached",
+        description: "Create a free account to continue generating meals",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!description.trim()) {
       toast({
         title: "Please describe your meal",
@@ -61,9 +95,15 @@ export function CreateWithChefModal({
       mealType,
       dietType,
       dietPhase,
+      starchContext,
     );
 
     if (meal) {
+      // Record guest generation for limit tracking (does not affect unlock progression)
+      if (isGuest) {
+        trackGuestGenerationUsage();
+      }
+      
       toast({
         title: "Meal Created!",
         description: `${meal.name} is ready for you`,
@@ -96,7 +136,7 @@ export function CreateWithChefModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
         <DialogHeader>
-            <DialogTitle className="text-white text-xl font-semibold">  
+          <DialogTitle className="text-white text-xl font-semibold">
             Create with AI Chef
           </DialogTitle>
           <DialogDescription className="text-white/60">
@@ -138,7 +178,7 @@ export function CreateWithChefModal({
 
           <div className="flex gap-3 pt-2">
             <Button
-              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white"
+              className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
               onClick={handleGenerate}
               disabled={generating || !description.trim()}
             >
@@ -148,10 +188,7 @@ export function CreateWithChefModal({
                   Generating...
                 </>
               ) : (
-                <>
-                
-                  Generate AI Meal
-                </>
+                <>Generate AI Meal</>
               )}
             </Button>
             <Button

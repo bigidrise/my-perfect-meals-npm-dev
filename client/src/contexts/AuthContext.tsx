@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { User, getCurrentUser, getAuthHeaders, getAuthToken } from "@/lib/auth";
 import { apiUrl } from '@/lib/resolveApiBase';
+import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 
 interface AuthContextType {
   user: User | null;
@@ -45,6 +46,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           selectedMealBuilder: userData.selectedMealBuilder,
           isTester: userData.isTester || false,
           profilePhotoUrl: userData.profilePhotoUrl || null,
+          // Role-based access control
+          role: userData.role || "client",
+          isProCare: userData.isProCare || false,
+          activeBoard: userData.activeBoard || null,
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
@@ -59,15 +64,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const currentUser = getCurrentUser();
     const token = getAuthToken();
     
+    // Check for Apple Review Full Access mode (allows full app access without auth)
+    const appleReviewFullAccess = localStorage.getItem("appleReviewFullAccess") === "true";
+    
     if (token && currentUser && !currentUser.id.startsWith("guest-")) {
       // User has valid auth token - set authenticated state
       setUser(currentUser);
       setLoading(false);
       // Refresh user data from server
       refreshUser();
+    } else if (appleReviewFullAccess) {
+      // Apple Review Full Access mode - create a demo user for full app exploration
+      const demoUser: User = {
+        id: "00000000-0000-0000-0000-000000000001",
+        email: "reviewer@apple.com",
+        name: "Apple Reviewer",
+        entitlements: ["FULL_ACCESS"],
+        planLookupKey: "premium",
+        trialStartedAt: null,
+        trialEndsAt: null,
+        selectedMealBuilder: "weekly",
+        isTester: true,
+        profilePhotoUrl: null,
+        role: "client",
+        isProCare: false,
+        activeBoard: "weekly",
+      };
+      setUser(demoUser);
+      localStorage.setItem("mpm_current_user", JSON.stringify(demoUser));
+      setLoading(false);
+    } else if (isGuestMode()) {
+      // Guest mode (Build a Day) - create a guest user for limited meal creation
+      const guestSession = getGuestSession();
+      const guestUser: User = {
+        id: guestSession?.sessionId || `guest-${Date.now()}`,
+        email: "guest@myperfectmeals.com",
+        name: "Guest",
+        entitlements: ["GUEST_ACCESS"],
+        planLookupKey: null,
+        trialStartedAt: null,
+        trialEndsAt: null,
+        selectedMealBuilder: "weekly",
+        isTester: false,
+        profilePhotoUrl: null,
+        role: "client",
+        isProCare: false,
+        activeBoard: "weekly",
+      };
+      setUser(guestUser);
+      setLoading(false);
     } else {
       // No valid token - user is not authenticated
-      // Clear any stale auth data
+      // Clear any stale auth data (but preserve guest mode flags)
       localStorage.removeItem("mpm_current_user");
       localStorage.removeItem("userId");
       localStorage.removeItem("isAuthenticated");

@@ -1,0 +1,256 @@
+Got it. This is **handoff-ready**. Below is a **clean, authoritative architect prompt** you can copy-paste directly into Replit / Architect mode.
+
+This prompt does **three things**:
+
+* Locks **what must NOT be touched**
+* Defines **exactly what must change**
+* Forces a **global, system-wide implementation**, not piecemeal hacks
+
+No ambiguity. No loopholes. No “we’ll fix this screen later”.
+
+---
+
+## 📌 ARCHITECT PROMPT — GLOBAL FIBROUS / STARCHY CARB IMPLEMENTATION
+
+### Context
+
+My Perfect Meals is a **macro-driven nutrition system**, not a calorie-driven app. The product philosophy is already locked and partially implemented.
+
+**Important:**
+This task is NOT a redesign.
+This is a **global data + display alignment** task.
+
+---
+
+## 🔒 DO NOT TOUCH (Non-Negotiable)
+
+1. **Macro Calculator**
+
+   * DO NOT modify logic
+   * DO NOT change UI
+   * DO NOT change outputs
+   * It already calculates correctly and feeds calories into Biometrics
+
+2. **Biometrics Page**
+
+   * DO NOT add fibrous vs starchy carb separation
+   * DO NOT change existing graphs or calorie displays
+   * Biometrics remains:
+
+     * Calories
+     * Protein
+     * Total Carbs (single number)
+     * Fats
+
+These two areas are **locked**.
+
+---
+
+## 🎯 GOAL OF THIS TASK
+
+Implement **true fibrous vs starchy carb tracking and display** everywhere food is **created, logged, or viewed**, EXCEPT the locked areas above.
+
+This must be done:
+
+* **Globally**
+* **Consistently**
+* **Once**
+* Using shared logic and shared components
+
+No one-off fixes.
+
+---
+
+## 🧠 CORE MODEL (Already Approved)
+
+Carbs are split as:
+
+* **Starchy Carbs** → energy-dense, target-limited
+* **Fibrous Carbs** → volume-dense, metabolically supportive
+
+Rules:
+
+* `totalCarbs = starchyCarbs + fibrousCarbs`
+* Fiber is NOT ignored
+* Vegetables ARE carbs (fibrous)
+
+Database already contains:
+
+* `starchyCarbs`
+* `fibrousCarbs`
+
+The schema is ready. The plumbing is not.
+
+---
+
+## 🛠 REQUIRED IMPLEMENTATION (END-TO-END)
+
+### 1. AI / Meal Generation Layer
+
+Update Create with Chef (and any generators) so ALL meal outputs explicitly return:
+
+* `protein`
+* `fat`
+* `starchyCarbs`
+* `fibrousCarbs`
+
+Even when meals are vegetable-heavy.
+
+No single “carbs” value in generation output.
+
+---
+
+### 2. Macro Parsing & Math (Critical)
+
+For each ingredient:
+
+```
+fibrousCarbs += fiber
+starchyCarbs += (totalCarbs - fiber)
+```
+
+Do NOT:
+
+* ignore fiber
+* lump carbs together
+* rely on net carbs only
+
+This logic must be centralized and reused.
+
+---
+
+### 3. Macro Logging APIs
+
+Ensure:
+
+* `starchyCarbs` and `fibrousCarbs` are passed
+* stored
+* aggregated
+* returned correctly
+
+This includes:
+
+* Daily totals
+* Meal totals
+* Remaining macros
+
+---
+
+## 🎨 UI RULES (STRICT)
+
+### A. Macro Bar (Bottom, Real-Time)
+
+Must show:
+
+* Protein
+* **Starchy Carbs**
+* **Fibrous Carbs**
+* Fats
+
+Must NOT show:
+
+* Calories
+* Total Carbs
+
+---
+
+### B. Meal Cards (ALL of them)
+
+Every meal card across the entire app must show:
+
+* Protein
+* **Starchy Carbs**
+* **Fibrous Carbs**
+* Fats
+
+Calories:
+
+* ❌ Do NOT show on meal cards
+
+This applies to **ALL meal cards**, including but not limited to:
+
+* Meal Boards
+* Craving Creator
+* Fridge Rescue
+* Dessert Creator
+* Pre-Made Meals
+* Kids Meals
+* Youth Meals
+* Alcohol Meals
+* Any future meal surface
+
+👉 This must be handled via **shared components / shared logic**, not individual page fixes.
+
+---
+
+### C. Daily Totals / Daily Targets
+
+May show:
+
+* Protein
+* Total Carbs
+* Starchy Carbs
+* Fibrous Carbs
+* (Calories optional here, unchanged)
+
+No redesign needed — just ensure fibrous carbs actually populate.
+
+---
+
+## 🧩 GLOBALIZATION REQUIREMENT (Very Important)
+
+This change must be:
+
+* Implemented **once**
+* Consumed **everywhere**
+
+If a meal card exists anywhere in the app:
+➡️ it must automatically reflect this new carb model
+➡️ without custom overrides per feature
+
+If this requires refactoring meal card components or macro helpers, do it.
+
+---
+
+## ✅ DEFINITION OF DONE
+
+This task is complete only when:
+
+1. Fibrous carbs are **numerically tracked**
+2. Fibrous carbs are **visually shown** where required
+3. Starchy carbs and fibrous carbs:
+
+   * populate correctly
+   * sum correctly
+   * behave consistently
+4. No calories appear in:
+
+   * Macro bar
+   * Meal cards
+5. Macro Calculator and Biometrics are **untouched**
+6. All meal cards across the app display the **same macro structure**
+
+---
+
+## ⚠️ FINAL NOTE
+
+This is not a “nice to have”.
+This is a **core educational pillar** of My Perfect Meals.
+
+The implementation must respect:
+
+* coaching logic
+* food literacy
+* long-term scalability
+
+No shortcuts. No partials.
+
+---
+
+If you want, next I can:
+
+* review the architect’s proposed plan before implementation
+* sanity-check the shared component strategy
+* help you QA this so nothing slips into Biometrics or the calculator by accident
+
+This is the right call — now it just needs to be executed cleanly.

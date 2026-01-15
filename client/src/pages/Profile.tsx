@@ -32,11 +32,14 @@ import {
   LifeBuoy,
   Camera,
   Loader2,
+  BookOpen,
+  Utensils,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import EmotionAIFooter from "@/components/EmotionAIFooter";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
@@ -184,6 +187,9 @@ export default function Profile() {
   const userEmail = user?.email || "";
   const profilePhotoUrl = user?.profilePhotoUrl;
 
+  // Check if user is a Pro Care client (restricted from changing builder)
+  const isProCareClient = user?.isProCare && user?.role !== "admin";
+
   const profileSections = [
     {
       title: "My Biometrics",
@@ -192,6 +198,14 @@ export default function Profile() {
       route: "/my-biometrics",
       testId: "profile-biometrics",
     },
+    // Only show "Change Meal Builder" if NOT a Pro Care client
+    ...(!isProCareClient ? [{
+      title: "Change Meal Builder",
+      description: "Switch to a different dietary focus",
+      icon: Utensils,
+      route: "/select-builder",
+      testId: "profile-change-builder",
+    }] : []),
     {
       title: "ProCare Support",
       description: "Connect with nutrition experts",
@@ -349,6 +363,13 @@ export default function Profile() {
             })}
           </div>
         </div>
+
+        {/* Medical Information & Sources */}
+        <Card className="mt-6 bg-black/30 backdrop-blur-lg border border-white/10">
+          <CardContent className="p-4">
+            <MedicalSourcesInfo />
+          </CardContent>
+        </Card>
 
         {/* Contact Support */}
         <Card className="mt-6 bg-black/30 backdrop-blur-lg border border-white/10">

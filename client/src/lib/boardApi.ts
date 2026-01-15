@@ -1,5 +1,6 @@
 import type { Meal } from "@/components/MealCard";
 import { get, put, post } from "@/lib/api";
+import { weekDatesInTZ } from "@/utils/midnight";
 
 // ---------- Types (extend existing) ----------
 export type Ingredient = { item: string; amount: string };
@@ -105,21 +106,11 @@ export function getShoppingList(weekStartISO: string, dateISO?: string): Promise
 
 // ---------- 7-Day Planning Helpers ----------
 
-/** Generate 7 consecutive date strings (Mon-Sun) for a week starting on weekStartISO */
+/** Generate 7 consecutive date strings (Mon-Sun) for a week starting on weekStartISO
+ *  Uses noon UTC anchor pattern for timezone safety (Chicago Calendar Fix v1.0)
+ */
 export function weekDates(weekStartISO: string): string[] {
-  const dates: string[] = [];
-  const startDate = new Date(weekStartISO + 'T00:00:00Z');
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(startDate);
-    date.setUTCDate(startDate.getUTCDate() + i);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    dates.push(`${year}-${month}-${day}`);
-  }
-  
-  return dates;
+  return weekDatesInTZ(weekStartISO);
 }
 
 /** Get lists for a specific day, ensuring the day exists in the board */

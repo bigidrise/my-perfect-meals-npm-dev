@@ -9,16 +9,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Loader2 } from "lucide-react";
+import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus, Navigation, Copy, CalendarPlus } from "lucide-react";
 import { useLocation } from "wouter";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import {
+  generateMedicalBadges,
+  getUserMedicalProfile,
+} from "@/utils/medicalPersonalization";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
+import { setQuickView } from "@/lib/macrosQuickView";
+import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
+import { classifyMeal } from "@/utils/starchMealClassifier";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -462,8 +470,33 @@ export default function MealFinder() {
                                 {result.restaurantName}
                               </h3>
                               <p className="text-sm text-white/60">
-                                {result.cuisine} • {result.address}
+                                {result.cuisine}
                               </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <button
+                                  onClick={() => openInMaps(result.address)}
+                                  className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                  aria-label="Open in Maps"
+                                >
+                                  <Navigation className="h-3 w-3" />
+                                  <span className="underline">{result.address}</span>
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    const success = await copyAddressToClipboard(result.address);
+                                    toast({
+                                      title: success ? "Address copied" : "Copy failed",
+                                      description: success 
+                                        ? "Paste into Maps or Waze." 
+                                        : "Please copy manually.",
+                                    });
+                                  }}
+                                  className="p-1 text-white/50 hover:text-white/80 transition-colors"
+                                  aria-label="Copy address"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
                             {result.rating && (
                               <div className="flex items-center gap-1 bg-orange-600 px-2 py-1 rounded">
@@ -480,21 +513,64 @@ export default function MealFinder() {
                           <h4 className="text-xl font-bold text-white mb-1">
                             {result.meal.name}
                           </h4>
+                          {/* Starch Classification Badge */}
+                          {(() => {
+                            const starchClass = classifyMeal({
+                              name: result.meal.name,
+                              ingredients: result.meal.ingredients || [],
+                            });
+                            return (
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit mb-2 ${
+                                starchClass.isStarchMeal 
+                                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
+                                  : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                              }`}>
+                                {starchClass.emoji} {starchClass.label}
+                              </span>
+                            );
+                          })()}
                           <p className="text-sm text-white/70">
                             {result.meal.description}
                           </p>
                         </div>
 
-                        {result.medicalBadges &&
-                          result.medicalBadges.length > 0 && (
-                            <div className="mb-3">
-                              <HealthBadgesPopover
-                                badges={result.medicalBadges.map(
-                                  (b) => b.condition,
-                                )}
-                              />
-                            </div>
-                          )}
+                        {/* Medical Safety Badges - Generated Client-Side */}
+                        {(() => {
+                          const userProfile = getUserMedicalProfile(1);
+                          const mealForBadges = {
+                            name: result.meal.name,
+                            calories: result.meal.calories,
+                            protein: result.meal.protein,
+                            carbs: result.meal.carbs,
+                            fat: result.meal.fat,
+                            ingredients:
+                              result.meal.ingredients?.map((ing: string) => ({
+                                name: ing,
+                                amount: 1,
+                                unit: "serving",
+                              })) || [],
+                          };
+                          const medicalBadges = generateMedicalBadges(
+                            mealForBadges as any,
+                            userProfile,
+                          );
+                          const badgeStrings = medicalBadges.map(
+                            (b: any) => b.badge || b.label || b.id,
+                          );
+                          return (
+                            badgeStrings &&
+                            badgeStrings.length > 0 && (
+                              <div className="mb-3">
+                                <div className="flex items-center gap-3">
+                                  <HealthBadgesPopover
+                                    badges={badgeStrings}
+                                  />
+                                  <h3 className="font-semibold text-white">Medical Safety</h3>
+                                </div>
+                              </div>
+                            )
+                          );
+                        })()}
 
                         <div className="grid grid-cols-4 gap-2 mb-3">
                           <div className="text-center bg-white/10 rounded p-2">
@@ -532,13 +608,54 @@ export default function MealFinder() {
                           </p>
                         </div>
 
-                        <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 backdrop-blur-sm">
+                        <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
                           <h5 className="font-medium text-orange-300 text-sm mb-1">
                             Ask For:
                           </h5>
                           <p className="text-orange-200 text-sm">
                             {result.meal.modifications}
                           </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            onClick={() => {
+                              setQuickView({
+                                protein: Math.round(result.meal.protein || 0),
+                                carbs: Math.round(result.meal.carbs || 0),
+                                fat: Math.round(result.meal.fat || 0),
+                                calories: Math.round(result.meal.calories || 0),
+                                dateISO: new Date().toISOString().slice(0, 10),
+                                mealSlot: "lunch",
+                              });
+                              setLocation("/biometrics?from=find-meals&view=macros");
+                            }}
+                            className="w-full bg-black text-white font-medium"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Your Macros
+                          </Button>
+
+                          {/* Add to Meal Plan Button */}
+                          <AddToMealPlanButton
+                            meal={{
+                              id: `find-meals-${result.restaurantName}-${Date.now()}`,
+                              title: result.meal.name,
+                              name: result.meal.name,
+                              description: result.meal.description,
+                              imageUrl: result.meal.imageUrl,
+                              ingredients: result.meal.ingredients?.map((ing: string) => ({
+                                item: ing,
+                                amount: "1 serving",
+                              })) || [],
+                              instructions: result.meal.modifications ? [result.meal.modifications] : [],
+                              calories: result.meal.calories,
+                              protein: result.meal.protein,
+                              carbs: result.meal.carbs,
+                              fat: result.meal.fat,
+                            }}
+                          />
                         </div>
                       </div>
                     </div>

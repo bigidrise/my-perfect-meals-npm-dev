@@ -27,6 +27,8 @@ export function NewLogToMacrosButton({
           protein_g: meal.nutrition?.protein_g || meal.protein || 0,
           carbs_g: meal.nutrition?.carbs_g || meal.carbs || 0,
           fat_g: meal.nutrition?.fat_g || meal.fat || 0,
+          starchy_carbs_g: meal.nutrition?.starchyCarbs || meal.starchyCarbs || 0,
+          fibrous_carbs_g: meal.nutrition?.fibrousCarbs || meal.fibrousCarbs || 0,
           source: source,
           title: meal.name || meal.title || "Meal",
           meal_id: meal.id

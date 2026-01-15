@@ -25,13 +25,21 @@ import {
   ChefHat,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { setMacroTargets } from "@/lib/dailyLimits";
+import {
+  setMacroTargets,
+  getMacroTargets,
+  type StarchStrategy,
+} from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
+import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
+import { MacroDeltas } from "@/lib/clinicalAdvisory";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -267,27 +275,60 @@ export default function MacroCounter() {
   const [sugarCapMode, setSugarCapMode] = useState<"AHA" | "DGA">(
     savedSettings?.sugarCapMode ?? "AHA",
   );
+  const [advisoryDeltas, setAdvisoryDeltas] = useState<MacroDeltas>({
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  });
+
+  // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = split across 2 meals
+  const existingTargets = getMacroTargets(user?.id);
+  const [starchStrategy, setStarchStrategy] = useState<StarchStrategy>(
+    existingTargets?.starchStrategy ?? "one",
+  );
 
   const macroCalculatorTourSteps: TourStep[] = [
     {
       title: "Choose Your Goal",
       description:
-        "Cut = lose weight (15% deficit), Maintain = stay the same, Gain = build muscle (10% surplus)",
+        "Cut = lose weight (15% deficit), Maintain = stay the same, Gain = build muscle (10% surplus).",
     },
     {
       title: "Select Body Type",
       description:
-        "Ectomorph = thin, fast metabolism, more carbs. Mesomorph = balanced. Endomorph = holds weight, fewer carbs.",
+        "Ectomorph = thin, fast metabolism, higher carb tolerance. Mesomorph = balanced. Endomorph = stores weight more easily, lower carb tolerance.",
     },
     {
       title: "Enter Your Stats",
       description:
-        "Age, height, weight, and activity level calculate your daily calorie needs using the Mifflin formula.",
+        "Age, height, weight, and activity level are used to calculate your baseline calorie needs using the Mifflin formula.",
+    },
+    {
+      icon: "🥔",
+      title: "Starch Meal Strategy",
+      description:
+        "Choose how to manage starchy carbs. One Starch Meal (default) puts all starch in one meal for appetite control. Flex Split divides starch across two meals. Fibrous carbs are unlimited!",
+    },
+    {
+      title: "Optional: Metabolic & Hormone Factors",
+      description:
+        "If applicable, you can preview how factors like menopause, insulin resistance, or high stress may influence your macro targets. These adjustments are advisory only — you stay in control.",
+    },
+    {
+      title: "Preview & Apply Changes",
+      description:
+        "Preview shows how these factors would adjust protein, carbs, or fats. Nothing is changed unless you tap Apply.",
     },
     {
       title: "Save Your Macros",
       description:
-        "Tap 'Set Macro Targets' to lock them in. They stay persistent on Biometrics until you recalculate.",
+        "Tap 'Set Macro Targets' to lock them in. Your targets stay persistent on Biometrics until you recalculate or update them.",
+    },
+    {
+      icon: "💡",
+      title: "Pro Tip: Time Your Carbs",
+      description:
+        "Try to eat your starchy carbs earlier in the day. It's harder to get quality REM sleep when your body is busy metabolizing sugars. Front-load your carbs and sleep better.",
     },
   ];
 
@@ -425,6 +466,7 @@ export default function MacroCounter() {
 
             <div className="flex-grow" />
 
+            <MedicalSourcesInfo asIconButton />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
@@ -434,6 +476,41 @@ export default function MacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
+          <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
+            <p className="text-sm text-white/90 leading-relaxed">
+              <span className="font-semibold text-blue-300">Scientific Sources:</span>{" "}
+              Calculations based on{" "}
+              <a
+                href="https://pubmed.ncbi.nlm.nih.gov/2305711/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline font-medium"
+              >
+                Mifflin-St Jeor (NCBI/NIH)
+              </a>
+              {" "}and{" "}
+              <a
+                href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline font-medium"
+              >
+                NIH Dietary Reference Intakes
+              </a>
+              . Nutrient data from{" "}
+              <a
+                href="https://fdc.nal.usda.gov/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline font-medium"
+              >
+                USDA FoodData Central
+              </a>
+              .
+            </p>
+          </div>
+
           {/* ⚠️ RENDER GUARD: Goal & Body Type cards MUST ALWAYS render */}
           <div className="grid md:grid-cols-2 gap-4">
             <Card
@@ -841,6 +918,29 @@ export default function MacroCounter() {
             </CardContent>
           </Card>
 
+          {/* Metabolic & Hormonal Considerations - V1 Clinical Advisory */}
+          {results && (
+            <MetabolicConsiderations
+              currentTargets={{
+                protein: results.macros.protein.g + advisoryDeltas.protein,
+                carbs: results.macros.carbs.g + advisoryDeltas.carbs,
+                fat: results.macros.fat.g + advisoryDeltas.fat,
+              }}
+              onApplyAdjustments={(deltas) => {
+                setAdvisoryDeltas({
+                  protein: advisoryDeltas.protein + deltas.protein,
+                  carbs: advisoryDeltas.carbs + deltas.carbs,
+                  fat: advisoryDeltas.fat + deltas.fat,
+                });
+                toast({
+                  title: "Adjustments Applied",
+                  description:
+                    "Your macro targets have been fine-tuned based on your metabolic considerations.",
+                });
+              }}
+            />
+          )}
+
           {/* Results - Only show when activity is selected */}
           {results && (
             <>
@@ -849,10 +949,32 @@ export default function MacroCounter() {
                 className="bg-zinc-900/80 border border-white/30 text-white"
               >
                 <CardContent className="p-5">
-                  <h3 className="text-lg font-semibold flex items-center mb-4">
+                  <h3 className="text-lg font-semibold flex items-center mb-2">
                     <Target className="h-5 w-5 mr-2 text-emerald-300" /> Your
                     Daily Macro Targets
                   </h3>
+                  {/* Apple 1.4.1 Compliance: Inline citation BEFORE results for maximum visibility */}
+                  <p className="text-xs text-white/70 mb-4 leading-relaxed">
+                    Calculated using the{" "}
+                    <a
+                      href="https://pubmed.ncbi.nlm.nih.gov/2305711/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-lime-400 underline"
+                    >
+                      Mifflin–St Jeor equation
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-lime-400 underline"
+                    >
+                      NIH Dietary Reference Intakes
+                    </a>
+                    .
+                  </p>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 p-4 mb-2">
                       <div className="text-base font-bold text-white">
@@ -864,20 +986,131 @@ export default function MacroCounter() {
                     </div>
                     <MacroRow
                       label="Protein"
-                      grams={results.macros.protein.g}
+                      grams={Math.max(
+                        0,
+                        results.macros.protein.g + advisoryDeltas.protein,
+                      )}
                     />
                     <MacroRow
                       label="Carbs - Starchy"
-                      grams={getStarchyCarbs(sex, goal)}
+                      grams={Math.max(
+                        0,
+                        getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
+                      )}
                     />
                     <MacroRow
                       label="Carbs - Fibrous"
-                      grams={
-                        results.macros.carbs.g - getStarchyCarbs(sex, goal)
+                      grams={Math.max(
+                        0,
+                        results.macros.carbs.g -
+                          getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
+                      )}
+                    />
+                    <MacroRow
+                      label="Fats"
+                      grams={Math.max(
+                        0,
+                        results.macros.fat.g + advisoryDeltas.fat,
+                      )}
+                    />
+                  </div>
+
+                  {/* Secondary methodology link - Primary citation is ABOVE results */}
+                  <div className="mt-4 pt-3 border-t border-white/10">
+                    <p className="text-xs text-white/50 leading-relaxed mb-2">
+                      Detailed methodology and clinical references available below.
+                    </p>
+                    <MedicalSourcesInfo
+                      trigger={
+                        <button className="text-xs text-lime-400/80 hover:text-lime-400 underline flex items-center gap-1">
+                          <Info className="w-3 h-3" /> View all sources & methodology
+                        </button>
                       }
                     />
-                    <MacroRow label="Fats" grams={results.macros.fat.g} />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Starch Meal Strategy - Your Starch Game Plan */}
+              <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
+                <CardContent className="p-5">
+                  <h3 className="text-lg font-semibold flex items-center mb-3">
+                    <span className="text-amber-400 mr-2">🌾</span> Your Starch
+                    Game Plan
+                  </h3>
+                  <p className="text-sm text-white/70 mb-4">
+                    Starchy carbs (rice, pasta, potatoes, bread) need to be
+                    managed. Choose how you'll use your daily starch budget:
+                  </p>
+
+                  <RadioGroup
+                    value={starchStrategy}
+                    onValueChange={(v) =>
+                      setStarchStrategy(v as StarchStrategy)
+                    }
+                    className="space-y-3"
+                  >
+                    <div
+                      className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                        starchStrategy === "one"
+                          ? "border-amber-500 bg-amber-500/10"
+                          : "border-white/20 hover:border-white/40"
+                      }`}
+                      onClick={() => setStarchStrategy("one")}
+                    >
+                      <RadioGroupItem
+                        value="one"
+                        id="starch-one"
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="starch-one"
+                          className="text-base font-semibold text-white cursor-pointer"
+                        >
+                          One Starch Meal
+                          <span className="ml-2 text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
+                            Recommended
+                          </span>
+                        </Label>
+                        <p className="text-sm text-white/60 mt-1">
+                          Use your full starch allowance (
+                          {getStarchyCarbs(sex, goal)}g) in one meal. Best for
+                          appetite control and fat loss.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                        starchStrategy === "flex"
+                          ? "border-amber-500 bg-amber-500/10"
+                          : "border-white/20 hover:border-white/40"
+                      }`}
+                      onClick={() => setStarchStrategy("flex")}
+                    >
+                      <RadioGroupItem
+                        value="flex"
+                        id="starch-flex"
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="starch-flex"
+                          className="text-base font-semibold text-white cursor-pointer"
+                        >
+                          Flex Split
+                        </Label>
+                        <p className="text-sm text-white/60 mt-1">
+                          Divide starch across two meals (~
+                          {Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
+                          Useful for training days or larger schedules.
+                        </p>
+                      </div>
+                    </div>
+                  </RadioGroup>
                 </CardContent>
               </Card>
 
@@ -892,14 +1125,37 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
+                      const adjustedProtein = Math.max(
+                        0,
+                        results.macros.protein.g + advisoryDeltas.protein,
+                      );
+                      const adjustedCarbs = Math.max(
+                        0,
+                        results.macros.carbs.g + advisoryDeltas.carbs,
+                      );
+                      const adjustedFat = Math.max(
+                        0,
+                        results.macros.fat.g + advisoryDeltas.fat,
+                      );
+                      const adjustedStarchy = Math.max(
+                        0,
+                        getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
+                      );
+                      const adjustedFibrous = Math.max(
+                        0,
+                        adjustedCarbs - adjustedStarchy,
+                      );
+
                       await setMacroTargets(
                         {
                           calories: results.target,
-                          protein_g: results.macros.protein.g,
-                          carbs_g: results.macros.carbs.g,
-                          fat_g: results.macros.fat.g,
-                          starchyCarbs_g: getStarchyCarbs(sex, goal),
-                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
+                          protein_g: adjustedProtein,
+                          carbs_g: adjustedCarbs,
+                          fat_g: adjustedFat,
+                          starchyCarbs_g: adjustedStarchy,
+                          fibrousCarbs_g: adjustedFibrous,
+                          starchStrategy,
                         },
                         user?.id,
                       );
@@ -908,6 +1164,11 @@ export default function MacroCounter() {
                       window.dispatchEvent(
                         new CustomEvent("mpm:targetsUpdated"),
                       );
+
+                      // Guest mode: Mark macros completed to unlock Weekly Meal Builder
+                      if (isGuestMode()) {
+                        markMacrosCompleted();
+                      }
 
                       toast({
                         title: "Macro Targets Saved",
@@ -929,12 +1190,10 @@ export default function MacroCounter() {
                     }
                   }}
                   id="save-biometrics-button"
-                  className="w-full bg-lime-700 border-2 border-lime-300 text-white hover:bg-lime-800 hover:border-lime-300 font-semibold mt-4"
+                  className="w-full bg-lime-600 border-2 border-lime-400 text-white hover:bg-lime-800 hover:border-lime-300 text-lg font-semibold mt-4"
                 >
                   <Target className="h-4 w-4 mr-2" />
-                  {isSaving
-                    ? "Saving..."
-                    : "1st Step → Save Macros to Biometrics"}
+                  {isSaving ? "Saving..." : "1st Step → Save to Biometrics"}
                 </Button>
 
                 {/* Primary CTA: Use These Macros → Build Meals */}
@@ -957,14 +1216,37 @@ export default function MacroCounter() {
                     setIsSaving(true);
 
                     try {
+                      const adjustedProtein = Math.max(
+                        0,
+                        results.macros.protein.g + advisoryDeltas.protein,
+                      );
+                      const adjustedCarbs = Math.max(
+                        0,
+                        results.macros.carbs.g + advisoryDeltas.carbs,
+                      );
+                      const adjustedFat = Math.max(
+                        0,
+                        results.macros.fat.g + advisoryDeltas.fat,
+                      );
+                      const adjustedStarchy = Math.max(
+                        0,
+                        getStarchyCarbs(sex, goal) +
+                          Math.round(advisoryDeltas.carbs * 0.5),
+                      );
+                      const adjustedFibrous = Math.max(
+                        0,
+                        adjustedCarbs - adjustedStarchy,
+                      );
+
                       await setMacroTargets(
                         {
                           calories: results.target,
-                          protein_g: results.macros.protein.g,
-                          carbs_g: results.macros.carbs.g,
-                          fat_g: results.macros.fat.g,
-                          starchyCarbs_g: getStarchyCarbs(sex, goal),
-                          fibrousCarbs_g: results.macros.carbs.g - getStarchyCarbs(sex, goal),
+                          protein_g: adjustedProtein,
+                          carbs_g: adjustedCarbs,
+                          fat_g: adjustedFat,
+                          starchyCarbs_g: adjustedStarchy,
+                          fibrousCarbs_g: adjustedFibrous,
+                          starchStrategy,
                         },
                         user?.id,
                       );
@@ -973,6 +1255,11 @@ export default function MacroCounter() {
                       window.dispatchEvent(
                         new CustomEvent("mpm:targetsUpdated"),
                       );
+
+                      // Guest mode: Mark macros completed to unlock Weekly Meal Builder
+                      if (isGuestMode()) {
+                        markMacrosCompleted();
+                      }
 
                       const assignedBuilder = getAssignedBuilderFromStorage();
                       toast({
@@ -993,10 +1280,10 @@ export default function MacroCounter() {
                     }
                   }}
                   id="build-meals-button"
-                  className="w-full bg-cyan-700 border-2 border-cyan-300 text-white hover:bg-cyan-800 hover:border-cyan-300 text-white font-semi-bold px-8 text-lg py-4 rounded-xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-black/90 border-2 border-white/90 text-white hover:bg-black/60 hover:border-black/20 text-white font-semi-bold px-8 text-lg py-4 rounded-2xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChefHat className="h-5 w-5 mr-2" />
-                  {isSaving ? "Saving..." : "2nd Step → Go To Meal Builder"}
+                  {isSaving ? "Saving..." : "2nd Step → Your Meal Builder"}
                 </Button>
               </div>
             </>

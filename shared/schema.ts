@@ -289,6 +289,15 @@ export const users = pgTable("users", {
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication
   authTokenCreatedAt: timestamp("auth_token_created_at", { withTimezone: true }),
   profilePhotoUrl: text("profile_photo_url"), // URL to user's profile photo in object storage
+  // Role-based access control for Pro Care
+  role: text("role").$type<"admin"|"coach"|"client">().notNull().default("client"), // admin = full access, coach = Pro Care tools, client = assigned board only
+  isProCare: boolean("is_pro_care").default(false), // true if user is managed by a coach
+  activeBoard: text("active_board"), // assigned meal builder for Pro Care clients (null = locked state)
+  // Extended Onboarding System
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }), // null = onboarding not complete
+  macrosDefined: boolean("macros_defined").default(false), // true when user has set macro targets
+  starchPlanDefined: boolean("starch_plan_defined").default(false), // true when starch strategy is set
+  onboardingMode: text("onboarding_mode").$type<"independent"|"procare">().default("independent"), // how user was onboarded
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
@@ -1210,38 +1219,6 @@ export const mblDayLog = pgTable("mbl_day_log", {
 
 // SMS reminder tables
 export * from "../server/db/schema/sms";
-
-// Diabetes Support Tables
-export const diabetesProfile = pgTable("diabetes_profile", {
-  userId: varchar("user_id", { length: 64 }).primaryKey(),
-  type: diabetesTypeEnum("type").notNull().default("NONE"),
-  medications: jsonb("medications").$type<{ name: string; dose?: string }[] | null>().default(null),
-  hypoHistory: boolean("hypo_history").notNull().default(false),
-  a1cPercent: numeric("a1c_percent", { precision: 4, scale: 1 }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
-
-export const glucoseLogs = pgTable("glucose_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: varchar("user_id", { length: 64 }).notNull(),
-  valueMgdl: integer("value_mgdl").notNull(),
-  context: glucoseContextEnum("context").notNull(),
-  relatedMealId: uuid("related_meal_id"),
-  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
-  insulinUnits: numeric("insulin_units", { precision: 5, scale: 1 }),
-  notes: text("notes"),
-});
-
-export const labs = pgTable("labs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: varchar("user_id", { length: 64 }).notNull(),
-  type: text("type").notNull(), // e.g., A1C, FASTING_GLUCOSE, LDL, eGFR, TSH
-  value: numeric("value", { precision: 8, scale: 2 }).notNull(),
-  unit: text("unit").notNull(),
-  collectedAt: timestamp("collected_at", { withTimezone: true }).notNull(),
-  notes: text("notes"),
-});
 
 // AI Voice & Journaling tables
 export const journalEntries = pgTable("journal_entries", {

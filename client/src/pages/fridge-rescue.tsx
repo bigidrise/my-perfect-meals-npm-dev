@@ -35,6 +35,8 @@ import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
+import MealCardActions from "@/components/MealCardActions";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -44,17 +46,16 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
     title: "Enter Your Ingredients",
-    description:
-      "Type or say what's in your fridge — whatever you have on hand.",
+    description: "Type or speak the ingredients you already have at home.",
   },
   {
     title: "Generate Meals",
     description:
-      "Tap generate and get three personalized meals built from your ingredients.",
+      "Tap generate to get three meals built entirely from your ingredients.",
   },
   {
     title: "Cook Without Shopping",
-    description: "It's an easy way to cook without extra shopping trips.",
+    description: "Use what you have and skip unnecessary grocery trips.",
   },
 ];
 
@@ -65,90 +66,6 @@ interface StructuredIngredient {
   quantity?: string | number;
   unit?: string;
   category?: string;
-}
-
-// Convert grams to ounces for American shopping measurements
-function convertToAmericanUnits(
-  quantity: number | string,
-  unit: string,
-  ingredientName: string,
-): { quantity: string; unit: string } {
-  const numQuantity =
-    typeof quantity === "string" ? parseFloat(quantity) : quantity;
-  if (isNaN(numQuantity)) return { quantity: String(quantity), unit };
-
-  const name = ingredientName.toLowerCase();
-
-  // Convert grams to ounces for meat, cheese, and other ingredients Americans buy by weight
-  if (unit?.toLowerCase() === "g" || unit?.toLowerCase() === "grams") {
-    // Meat and protein conversion
-    if (
-      name.includes("chicken") ||
-      name.includes("beef") ||
-      name.includes("pork") ||
-      name.includes("turkey") ||
-      name.includes("fish") ||
-      name.includes("salmon") ||
-      name.includes("shrimp") ||
-      name.includes("meat") ||
-      name.includes("steak") ||
-      name.includes("bacon") ||
-      name.includes("ham") ||
-      name.includes("sausage") ||
-      name.includes("cheese") ||
-      name.includes("butter")
-    ) {
-      const ounces = numQuantity / 28.35; // 1 oz = 28.35g
-
-      // If more than 16 oz, convert to pounds
-      if (ounces >= 16) {
-        const pounds = ounces / 16;
-        return {
-          quantity: pounds >= 1 ? pounds.toFixed(1) : pounds.toFixed(2),
-          unit: "lb",
-        };
-      }
-
-      return {
-        quantity: ounces >= 1 ? ounces.toFixed(1) : ounces.toFixed(2),
-        unit: "oz",
-      };
-    }
-  }
-
-  // Convert ml to fl oz for liquids
-  if (unit?.toLowerCase() === "ml" || unit?.toLowerCase() === "milliliters") {
-    if (
-      name.includes("milk") ||
-      name.includes("cream") ||
-      name.includes("oil") ||
-      name.includes("broth") ||
-      name.includes("stock") ||
-      name.includes("juice") ||
-      name.includes("water") ||
-      name.includes("sauce") ||
-      name.includes("vinegar")
-    ) {
-      const flOz = numQuantity / 29.57; // 1 fl oz = 29.57ml
-
-      // If more than 32 fl oz, show in cups
-      if (flOz >= 32) {
-        const cups = flOz / 8;
-        return {
-          quantity: cups.toFixed(1),
-          unit: "cups",
-        };
-      }
-
-      return {
-        quantity: flOz >= 1 ? flOz.toFixed(1) : flOz.toFixed(2),
-        unit: "fl oz",
-      };
-    }
-  }
-
-  // Keep original for everything else (cups, tablespoons, etc.)
-  return { quantity: String(quantity), unit };
 }
 
 interface MealData {
@@ -239,6 +156,9 @@ const FridgeRescuePage = () => {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
+    [],
+  );
+  const [expandedIngredients, setExpandedIngredients] = useState<string[]>(
     [],
   );
   const [isReplacing, setIsReplacing] = useState<{ [key: string]: boolean }>(
@@ -375,7 +295,7 @@ const FridgeRescuePage = () => {
             .split(",")
             .map((i) => i.trim())
             .filter((i) => i),
-          userId: 1,
+          userId: DEV_USER_ID,
         }),
       });
 
@@ -468,7 +388,7 @@ const FridgeRescuePage = () => {
       protein: meal.protein || 0,
       carbs: meal.carbs || 0,
       fat: meal.fat || 0,
-      badges: meal.medicalBadges?.map((b: any) => b.badge) || [],
+      badges: meal.medicalBadges?.map((b: any) => typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)) || [],
       ingredients: meal.ingredients || [],
       instructions:
         typeof meal.instructions === "string"
@@ -502,6 +422,7 @@ const FridgeRescuePage = () => {
           .map((i) => i.trim())
           .filter((i) => i),
         goal: selectedGoal,
+        userId: DEV_USER_ID,
       }),
     });
     const data = await resp.json();
@@ -533,6 +454,7 @@ const FridgeRescuePage = () => {
         body: JSON.stringify({
           ingredients: ingredients.trim(),
           goal: undefined, // You can add selectedGoal if needed
+          userId: DEV_USER_ID,
         }),
       });
 
@@ -738,18 +660,18 @@ const FridgeRescuePage = () => {
                     </CardHeader>
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
-                      {/* Medical Badges */}
-                      {meal.medicalBadges && meal.medicalBadges.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          <HealthBadgesPopover
-                            badges={meal.medicalBadges.map(
+                      {/* Medical Badges - Always show icon for consistency */}
+                      <div className="flex items-center gap-2">
+                        <HealthBadgesPopover
+                          badges={
+                            meal.medicalBadges?.map(
                               (b: any) =>
-                                b.badge || b.label || b.id || b.condition,
-                            )}
-                            className="mt-2"
-                          />
-                        </div>
-                      )}
+                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label),
+                            ) || []
+                          }
+                        />
+                        <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                      </div>
 
                       {/* Nutrition Grid */}
                       <div className="grid grid-cols-4 gap-2 text-center">
@@ -802,7 +724,7 @@ const FridgeRescuePage = () => {
                           Ingredients:
                         </h4>
                         <ul className="text-xs text-white/80 space-y-1">
-                          {meal.ingredients.slice(0, 4).map((ingredient, i) => {
+                          {meal.ingredients.slice(0, 4).map((ingredient: any, i: number) => {
                             if (typeof ingredient === "string") {
                               return (
                                 <li key={i} className="flex items-start">
@@ -812,25 +734,87 @@ const FridgeRescuePage = () => {
                               );
                             }
 
-                            // Convert measurements to American units
-                            const converted = convertToAmericanUnits(
-                              ingredient.quantity || "",
-                              ingredient.unit || "",
-                              ingredient.name,
-                            );
+                            const name = ingredient.item || ingredient.name;
+                            const amount = ingredient.amount || ingredient.quantity;
+                            const unit = ingredient.unit;
 
+                            // Priority 1: Use pre-formatted displayText from backend
+                            if (ingredient.displayText) {
+                              return (
+                                <li key={i} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{ingredient.displayText}</span>
+                                </li>
+                              );
+                            }
+
+                            // Priority 2: Show amount + unit + name
+                            if (amount && unit) {
+                              return (
+                                <li key={i} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{amount} {unit} {name}</span>
+                                </li>
+                              );
+                            }
+
+                            // Priority 3: Just show name
                             return (
                               <li key={i} className="flex items-start">
                                 <span className="text-green-400 mr-1">•</span>
-                                <span>
-                                  {`${converted.quantity} ${converted.unit} ${ingredient.name}`.trim()}
-                                </span>
+                                <span>{name}</span>
                               </li>
                             );
                           })}
-                          {meal.ingredients.length > 4 && (
-                            <li className="text-xs text-white/60">
-                              + {meal.ingredients.length - 4} more...
+                          {meal.ingredients.length > 4 && !expandedIngredients.includes(meal.id) && (
+                            <li 
+                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                              onClick={() => setExpandedIngredients(prev => [...prev, meal.id])}
+                            >
+                              + {meal.ingredients.length - 4} more ingredients
+                            </li>
+                          )}
+                          {expandedIngredients.includes(meal.id) && meal.ingredients.slice(4).map((ingredient: any, i: number) => {
+                            if (typeof ingredient === "string") {
+                              return (
+                                <li key={i + 4} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{ingredient}</span>
+                                </li>
+                              );
+                            }
+                            const name = ingredient.item || ingredient.name;
+                            const amount = ingredient.amount || ingredient.quantity;
+                            const unit = ingredient.unit;
+                            if (ingredient.displayText) {
+                              return (
+                                <li key={i + 4} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{ingredient.displayText}</span>
+                                </li>
+                              );
+                            }
+                            if (amount && unit) {
+                              return (
+                                <li key={i + 4} className="flex items-start">
+                                  <span className="text-green-400 mr-1">•</span>
+                                  <span>{amount} {unit} {name}</span>
+                                </li>
+                              );
+                            }
+                            return (
+                              <li key={i + 4} className="flex items-start">
+                                <span className="text-green-400 mr-1">•</span>
+                                <span>{name}</span>
+                              </li>
+                            );
+                          })}
+                          {expandedIngredients.includes(meal.id) && meal.ingredients.length > 4 && (
+                            <li 
+                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                              onClick={() => setExpandedIngredients(prev => prev.filter(id => id !== meal.id))}
+                            >
+                              Show less
                             </li>
                           )}
                         </ul>
@@ -890,16 +874,36 @@ const FridgeRescuePage = () => {
 
                       {/* Action Buttons */}
                       <div className="mt-auto pt-4 space-y-2">
-                        <MacroBridgeButton
-                          data-testid="fridge-add-to-shopping"
-                          meal={{
-                            protein: meal.protein || 0,
-                            carbs: meal.carbs || 0,
-                            fat: meal.fat || 0,
-                            calories: meal.calories || 0,
-                          }}
-                          source="fridge-rescue"
-                        />
+                        <div className="flex gap-2">
+                          <AddToMealPlanButton meal={meal} />
+                          <MealCardActions
+                            meal={{
+                              name: meal.name,
+                              description: meal.description,
+                              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
+                                name: typeof ing === "string" ? ing : ing.name,
+                                amount: typeof ing === "string" ? "" : ing.quantity,
+                                unit: typeof ing === "string" ? "" : ing.unit,
+                              })),
+                              instructions: typeof meal.instructions === "string"
+                                ? meal.instructions.split(/\.\s+/).filter(Boolean)
+                                : meal.instructions,
+                              nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
+                            }}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <MacroBridgeButton
+                            data-testid="fridge-add-to-shopping"
+                            meal={{
+                              protein: meal.protein || 0,
+                              carbs: meal.carbs || 0,
+                              fat: meal.fat || 0,
+                              calories: meal.calories || 0,
+                            }}
+                            source="fridge-rescue"
+                          />
+                        </div>
                         <div className="flex justify-end">
                           <TrashButton
                             onClick={() => {
@@ -922,7 +926,6 @@ const FridgeRescuePage = () => {
                   </Card>
                 ))}
               </div>
-
             </div>
           )}
         </div>

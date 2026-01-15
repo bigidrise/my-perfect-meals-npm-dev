@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
@@ -32,12 +32,12 @@ import {
   Video,
   FileText,
   Trash2,
-  Camera,
-  Loader2,
+  Utensils,
 } from "lucide-react";
 import { logout } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import MealReminders from "@/components/MealReminders";
 
 interface ProfileSheetProps {
   children: React.ReactNode;
@@ -45,110 +45,12 @@ interface ProfileSheetProps {
 
 export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
-  const { user, setUser, refreshUser } = useAuth();
+  const { user, setUser } = useAuth();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userName = user?.name || user?.username || "User";
   const userEmail = user?.email || "";
-  const profilePhotoUrl = user?.profilePhotoUrl;
-
-  const userInitials = userName
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an image file.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 5MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploadingPhoto(true);
-    try {
-      // Use credentials: "include" for session cookie auth (works on mobile)
-      const presignedRes = await fetch(apiUrl("/api/uploads/request-url"), {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: file.name,
-          size: file.size,
-          contentType: file.type,
-        }),
-      });
-
-      if (!presignedRes.ok) {
-        throw new Error("Failed to get upload URL");
-      }
-
-      const { uploadURL, objectPath } = await presignedRes.json();
-
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload image");
-      }
-
-      const updateRes = await fetch(apiUrl("/api/users/profile-photo"), {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ profilePhotoUrl: objectPath }),
-      });
-
-      if (!updateRes.ok) {
-        throw new Error("Failed to update profile photo");
-      }
-
-      await refreshUser();
-
-      toast({
-        title: "Photo updated",
-        description: "Your profile photo has been updated.",
-      });
-    } catch (error: any) {
-      console.error("Photo upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload photo.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingPhoto(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -161,15 +63,16 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       title: "Restoring Purchases...",
       description: "Looking for active subscriptions...",
     });
-    
+
     try {
       // TODO: Integrate with StoreKit restore when Capacitor plugin is ready
       // For now, show feedback that the feature is ready for iOS integration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       toast({
         title: "Restore Complete",
-        description: "No active subscription found. If you believe this is an error, please contact support.",
+        description:
+          "No active subscription found. If you believe this is an error, please contact support.",
       });
     } catch (error) {
       toast({
@@ -180,7 +83,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     }
   };
 
-  const handleMenuItemClick = (item: typeof menuItems[0]) => {
+  const handleMenuItemClick = (item: (typeof menuItems)[0]) => {
     if (item.action === "restorePurchases") {
       handleRestorePurchases();
     } else if (item.route) {
@@ -213,7 +116,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       console.error("Delete account error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete account. Please try again.",
+        description:
+          error.message || "Failed to delete account. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -221,7 +125,22 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     }
   };
 
+  // Check if user is a Pro Care client (restricted from changing builder)
+  const isProCareClient = user?.isProCare && user?.role !== "admin";
+
   const menuItems = [
+    // Only show "Change Meal Builder" if NOT a Pro Care client
+    ...(!isProCareClient
+      ? [
+          {
+            title: "Meal Builder Exchange",
+            description: "Switch to a different dietary focus",
+            icon: Utensils,
+            route: "/select-builder",
+            testId: "menu-change-builder",
+          },
+        ]
+      : []),
     {
       title: "Privacy & Security",
       description: "Manage your privacy settings",
@@ -245,7 +164,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     },
     {
       title: "App Library",
-      description: "Learn the systems, the nutrition basics, and how to get the most out of the app.",
+      description:
+        "Learn the systems, the nutrition basics, and how to get the most out of the app.",
       icon: Video,
       route: "/learn",
       testId: "menu-tutorials",
@@ -269,7 +189,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent className="bg-gradient-to-br from-black/95 via-orange-900/40 to-black/95 border-l border-white/10 backdrop-blur-xl">
+      <SheetContent className="bg-gradient-to-br from-black/75 via-orange-900/80 to-black/75 border-l border-white/10 backdrop-blur-xl overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
           <SheetTitle className="text-white">My Hub</SheetTitle>
           <SheetDescription className="text-white/70">
@@ -280,41 +200,12 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         {/* User Info Section */}
         <div className="mt-6 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                id="profile-photo-input-sheet"
+            <div className="h-12 w-12 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg flex items-center justify-center">
+              <img
+                src="/assets/MPMFlameChefLogo.png"
+                alt="My Perfect Meals"
+                className="w-10 h-10 object-contain"
               />
-              <label
-                htmlFor="profile-photo-input-sheet"
-                className="cursor-pointer block"
-              >
-                <div className="relative h-12 w-12 rounded-full bg-orange-600/80 border-2 border-orange-400/30 overflow-hidden shadow-lg">
-                  {profilePhotoUrl ? (
-                    <img
-                      src={profilePhotoUrl}
-                      alt={userName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white font-semibold text-lg">
-                      {userInitials || "?"}
-                    </div>
-                  )}
-                  {isUploadingPhoto && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 text-white animate-spin" />
-                    </div>
-                  )}
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-purple-600 border border-black/40">
-                  <Camera className="h-2.5 w-2.5 text-white" />
-                </div>
-              </label>
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold truncate">{userName}</h3>
@@ -323,6 +214,11 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Meal Reminders */}
+        <div className="mt-4">
+          <MealReminders />
         </div>
 
         {/* Menu Items */}
@@ -375,9 +271,13 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
             </AlertDialogTrigger>
             <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-white">Delete Account Permanently?</AlertDialogTitle>
+                <AlertDialogTitle className="text-white">
+                  Delete Account Permanently?
+                </AlertDialogTitle>
                 <AlertDialogDescription className="text-white/70 space-y-2">
-                  <p>This action cannot be undone. This will permanently delete:</p>
+                  <p>
+                    This action cannot be undone. This will permanently delete:
+                  </p>
                   <ul className="list-disc list-inside text-sm space-y-1 mt-2">
                     <li>Your account and profile information</li>
                     <li>All meal plans and saved recipes</li>

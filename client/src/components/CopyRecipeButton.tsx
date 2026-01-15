@@ -18,9 +18,11 @@ export default function CopyRecipeButton({ recipe }: CopyRecipeButtonProps) {
     )
     .join("\n") || "";
 
-  const instructionsText = recipe.instructions
-    ?.map((step: string, index: number) => `${index + 1}. ${step}`)
-    .join("\n") || "";
+  const instructionsText = Array.isArray(recipe.instructions)
+    ? recipe.instructions.map((step: string, index: number) => `${index + 1}. ${step}`).join("\n")
+    : typeof recipe.instructions === "string"
+      ? recipe.instructions
+      : "";
 
   const fullText = `${title}\n\nIngredients:\n${ingredientsText}\n\nInstructions:\n${instructionsText}`;
 

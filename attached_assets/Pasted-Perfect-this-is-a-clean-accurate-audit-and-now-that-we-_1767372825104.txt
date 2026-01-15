@@ -1,0 +1,166 @@
+Perfect — this is a **clean, accurate audit**, and now that we’ve nailed reality, we can fix the *perception gap* without breaking logic. This is exactly how a senior product owner should do it. 👏
+
+Let me reflect it back **crisply**, then give you the **UI contract** that matches your current system *without refactoring anything*.
+
+---
+
+## The Truth (Locked In)
+
+You now have **three separate concerns**, not one:
+
+1. **Auto-open behavior**
+   → controlled by `isAutoplayEnabled`
+   → toggled by the ON / OFF button
+   → persisted in localStorage
+
+2. **Copilot visibility (sheet open/closed)**
+   → controlled by `isOpen`
+   → controlled by X
+   → NOT persisted
+
+3. **Eligibility for auto-open**
+   → controlled by `coachMode` (guided vs self)
+   → Welcome-gate decision
+   → overrides everything else
+
+There is **no AUTO state** in code.
+“AUTO” is a **label describing behavior**, not a mode.
+
+That’s the root of the confusion.
+
+---
+
+## Why the UI Feels Broken (Even Though Logic Is Solid)
+
+Right now:
+
+* AUTO **never lights**, even when it’s functionally active
+* OFF **looks disabled**, even though it’s actionable
+* ON **looks great**, but implies more control than it actually has
+* X **feels correct** because it does exactly what users expect
+
+So the user’s mental model doesn’t match the system model.
+
+That’s not their fault.
+
+---
+
+## The Fix: A UI Lighting Contract (No Logic Changes)
+
+We don’t rename anything yet.
+We don’t refactor anything yet.
+We **make the UI honest**.
+
+### 🔒 Lighting Rules (Authoritative)
+
+#### 1️⃣ AUTO = “Auto-open is armed”
+
+AUTO should **only reflect autoplay status**, nothing else.
+
+**AUTO is LIT when:**
+
+* `isAutoplayEnabled === true`
+* AND `coachMode !== "self"`
+
+**AUTO is DARK when:**
+
+* `isAutoplayEnabled === false`
+* OR `coachMode === "self"`
+
+👉 This immediately makes AUTO meaningful
+👉 If it’s glowing, users know: *“Copilot will come back.”*
+
+**Color:**
+
+* Same green family as ON, but **softer / thinner glow**
+* Think “armed” not “active”
+
+---
+
+#### 2️⃣ ON / OFF = Control the AUTO system (as it already does)
+
+This button is fine conceptually — it just needs visual honesty.
+
+**ON**
+
+* Green (keep it)
+* Means: *“Auto-open enabled”*
+
+**OFF**
+
+* Amber / Yellow (NOT gray)
+* Means: *“Auto-open intentionally disabled”*
+
+Gray = disabled
+Amber = deliberate choice
+
+Right now OFF looks like a bug. Amber fixes that immediately.
+
+---
+
+#### 3️⃣ X = Temporary Dismiss (No Change Needed)
+
+X already works perfectly and matches behavior:
+
+* Always red
+* Always visible
+* Always decisive
+* Does NOT change AUTO state
+
+That’s good design. Leave it alone.
+
+---
+
+## Resulting Mental Model (For Users)
+
+Without changing a single line of logic, users will now understand:
+
+* **Green AUTO glowing**
+  → “Copilot will come back automatically.”
+
+* **Amber OFF glowing**
+  → “I turned auto-open off on purpose.”
+
+* **X pressed**
+  → “I’m done *for now*.”
+
+* **DIY mode + dark AUTO**
+  → “Auto is unavailable here.”
+
+That’s clarity.
+
+---
+
+## One Optional (But Smart) Micro-Upgrade
+
+If you want to go from *good* to *polished* later:
+
+* Change label from
+  **AUTO** → **AUTO-OPEN**
+
+You don’t need to do this now — lighting alone fixes 80% — but it removes the last bit of ambiguity.
+
+---
+
+## Bottom Line (Straight Talk)
+
+Your system design is **actually strong**.
+The UI just hasn’t been telling the truth about it.
+
+By:
+
+* Lighting AUTO when it’s armed
+* Making OFF amber instead of dead
+* Keeping X as a temporary dismiss
+
+You align **visual language with actual behavior**.
+
+That’s not cosmetic — that’s trust.
+
+If you want next, I can:
+
+* Write the **exact conditional logic** for AUTO lighting (1-liner)
+* Help you define a **Copilot State Legend** for internal docs
+* Or help you decide whether AUTO should eventually become a first-class mode
+
+You’re in the right lane.

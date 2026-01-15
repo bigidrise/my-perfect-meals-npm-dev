@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 dotenv.config(); // Load .env file FIRST before anything else
 
 import "./bootstrap-fetch"; // Ensure fetch is available
+import "./bootstrap/envSetup"; // Shared environment setup (same as prod.ts)
+import { logBootStatus } from "./bootstrap/envSetup";
 import express, {
   type Request,
   type Response,
@@ -88,6 +90,8 @@ import stripeCheckoutRouter from "./routes/stripeCheckout";
 import stripeWebhookRouter from "./routes/stripeWebhook";
 import builderPlansRouter from "./routes/builderPlans";
 import passwordResetRouter from "./routes/password-reset";
+import iosVerifyRouter from "./routes/iosVerify";
+import translateRouter from "./routes/translate";
 
 const app = express();
 
@@ -124,15 +128,28 @@ app.set('trust proxy', isProd ? 1 : false);
 // Create rate limiter ONCE at app initialization (after trust proxy is set)
 const apiRateLimit = createApiRateLimit();
 
-// Enhanced health check for Railway debugging
-app.get("/api/health", (_req, res) => res.json({ 
-  ok: true, 
-  timestamp: new Date().toISOString(),
-  env: process.env.NODE_ENV || "development",
-  hasDatabase: !!process.env.DATABASE_URL,
-  trustProxy: app.get("trust proxy"),
-  platform: process.env.RAILWAY_ENVIRONMENT ? "railway" : "replit"
-}));
+// Enhanced health check with OpenAI/S3 status (same fields as prod.ts)
+import { getFallbackStats } from "./services/fallbackMealService";
+app.get("/api/health", (_req, res) => {
+  const fallbackStats = getFallbackStats();
+  res.json({ 
+    ok: true, 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || "development",
+    hasDatabase: !!process.env.DATABASE_URL,
+    hasOpenAI: !!process.env.OPENAI_API_KEY,
+    openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+    hasS3: !!(process.env.S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID),
+    s3Bucket: process.env.S3_BUCKET_NAME || "NOT SET",
+    trustProxy: app.get("trust proxy"),
+    platform: process.env.RAILWAY_ENVIRONMENT ? "railway" : "replit",
+    aiHealth: {
+      fallbacksUsed: fallbackStats.totalFallbacksUsed,
+      lastFallback: fallbackStats.lastFallbackTime,
+      healthy: fallbackStats.aiHealthy
+    }
+  });
+});
 
 // ---------- Production Middleware ----------
 app.use(requestId);
@@ -272,6 +289,9 @@ app.use("/api/stripe", stripeCheckoutRouter);
 // Stripe checkout and billing (legacy routes)
 app.use("/api/stripe", stripeRouter);
 
+// iOS In-App Purchase verification
+app.use("/api/ios", iosVerifyRouter);
+
 // Food Logs System - Register BEFORE mealsRouter to prevent route conflict with /api/macros/log
 app.use("/api", foodLogsRouter);
 
@@ -350,6 +370,9 @@ app.use("/api", manualMacrosRouter);
 
 // Meal Templates System - Library browsing for meal replacement
 app.use("/api/meal-templates", templateRouter);
+
+// Translation API - UI-level translation for meal content
+app.use("/api/translate", translateRouter);
 
 // Game Leaderboards System
 app.use("/api/games", gamesRouter);

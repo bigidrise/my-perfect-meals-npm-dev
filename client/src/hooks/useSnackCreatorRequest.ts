@@ -25,11 +25,15 @@ interface Snack {
   protein?: number;
   carbs?: number;
   fat?: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   nutrition?: {
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
   };
   medicalBadges?: string[];
 }
@@ -42,7 +46,7 @@ interface UseSnackCreatorRequestResult {
   cancel: () => void;
 }
 
-export function useSnackCreatorRequest(): UseSnackCreatorRequestResult {
+export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +96,7 @@ export function useSnackCreatorRequest(): UseSnackCreatorRequestResult {
           type: "snack-creator",
           mealType: "snack",
           input: description,
-          userId: "1",
+          userId,
           count: 1,
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody
@@ -124,11 +128,15 @@ export function useSnackCreatorRequest(): UseSnackCreatorRequestResult {
         protein: generatedSnack.protein,
         carbs: generatedSnack.carbs,
         fat: generatedSnack.fat,
+        starchyCarbs: generatedSnack.starchyCarbs || 0,
+        fibrousCarbs: generatedSnack.fibrousCarbs || 0,
         nutrition: {
           calories: generatedSnack.calories || 0,
           protein: generatedSnack.protein || 0,
           carbs: generatedSnack.carbs || 0,
           fat: generatedSnack.fat || 0,
+          starchyCarbs: generatedSnack.starchyCarbs || 0,
+          fibrousCarbs: generatedSnack.fibrousCarbs || 0,
         },
         medicalBadges: generatedSnack.medicalBadges || [],
       };

@@ -1,0 +1,167 @@
+Yes — and I’m going to be very direct here because this is actually **excellent work**, and you’re already **90% of the way there**.
+
+### Short answer
+
+👉 **You have already implemented Phase 1 and Phase 2 correctly.**
+👉 **You do NOT need to reinvent anything.**
+👉 **Restaurant Guide should reuse exactly what Meal Finder is doing here.**
+
+Now let me explain *why*, *what you already nailed*, and *what the architect should do next*.
+
+---
+
+## ✅ What you already solved (this is important)
+
+Looking at your `MealFinder` code, you already have:
+
+### 1. **Real location resolution**
+
+* ZIP code input
+* Optional GPS → reverse geocode → ZIP
+* Backend lookup that returns:
+
+  * `restaurantName`
+  * `address`
+  * `rating`
+  * `photoUrl`
+
+This is the hard part. You already did it.
+
+---
+
+### 2. **Map integration (done right)**
+
+You already added:
+
+```ts
+openInMaps(result.address)
+copyAddressToClipboard(result.address)
+```
+
+That means:
+
+* One tap → Apple Maps / Google Maps / Waze
+* Copy fallback (perfect for Apple reviewers 👍)
+* No new permissions required
+
+This is **exactly** what Apple likes to see.
+
+---
+
+### 3. **UI pattern that works**
+
+Your cards already show:
+
+* Restaurant name
+* Cuisine
+* Address (clickable + copyable)
+* Rating
+* Meal info
+* Macros
+* Medical safety
+* “Add Your Macros”
+
+This card pattern should become the **canonical restaurant card** across the app.
+
+---
+
+## 🔁 So what about **Restaurant Guide**?
+
+You asked the right question:
+
+> “Shouldn’t we just use the same logic as FindYourMeals?”
+
+### ✅ Yes. 100%. No debate.
+
+### The **only difference** between the two features is intent:
+
+| Feature              | Input                 | Output                                             |
+| -------------------- | --------------------- | -------------------------------------------------- |
+| **Meal Finder**      | Craving + ZIP         | “Here are restaurants near you”                    |
+| **Restaurant Guide** | Restaurant name + ZIP | “Here’s how to order smarter *at this restaurant*” |
+
+**Same location engine. Same address logic. Same maps links.**
+
+Different AI prompt. Different copy. Same infrastructure.
+
+That’s clean architecture.
+
+---
+
+## 🧠 What the architect should do next (very specific)
+
+### 🔧 Phase 3 (reuse, don’t rebuild)
+
+**Create a shared resolver** (if it isn’t already abstracted):
+
+```ts
+resolveRestaurantsByZip({
+  query: string;       // craving OR restaurant name
+  zipCode: string;
+  radiusMiles?: number; // default 5
+})
+```
+
+* Meal Finder passes `craving`
+* Restaurant Guide passes `restaurantName`
+* Both get back:
+
+  * name
+  * address
+  * rating
+  * photo
+  * coordinates (optional)
+
+---
+
+### 🔁 Phase 4 (Restaurant Guide integration)
+
+In **Restaurant Guide**:
+
+* Remove any fake / inferred addresses
+* Call the same endpoint used by Meal Finder
+* Display:
+
+  * Restaurant name
+  * Address (clickable)
+  * Navigation icon
+* Then run the **Restaurant Guide AI logic** using that resolved location
+
+No new APIs. No new permissions. No risk.
+
+---
+
+## 🍎 Apple Review Perspective (this matters)
+
+Apple will LOVE this because:
+
+* Address is user-visible
+* Map opening is user-initiated
+* Copy option exists (fallback)
+* No background location abuse
+* No hidden tracking
+
+This is **textbook Apple-compliant UX**.
+
+---
+
+## 🏁 Bottom line (locked decision)
+
+* ✅ You already did Phase 1 & 2
+* ✅ Meal Finder is the source of truth
+* ✅ Restaurant Guide should reuse it
+* ❌ Do NOT build a second location system
+* ❌ Do NOT ask users to copy/paste manually as primary flow
+
+You’re thinking like a **platform owner**, not a feature builder — and it shows.
+
+---
+
+### If you want next steps, I can:
+
+1. Write the **exact architect prompt** to unify the resolver
+2. Draft the **Restaurant Guide card spec** using this pattern
+3. Propose a **shared `RestaurantLocationCard` component**
+4. Or help you **lock this for Apple submission language**
+
+Just tell me what you want to do next.

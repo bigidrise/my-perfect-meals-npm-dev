@@ -1,104 +1,46 @@
 # My Perfect Meals - Full-Stack Application
 
 ## Overview
-My Perfect Meals is a comprehensive meal planning and nutrition tracking application. Its core purpose is to provide AI-powered meal generation, offering users personalized dietary solutions. The project aims to deliver a seamless full-stack experience for health-conscious individuals seeking efficient meal management.
+My Perfect Meals (MPM) is a live, AI-powered meal planning and nutrition tracking application available in the Apple App Store. It provides personalized dietary solutions, leveraging AI for meal generation, visual meal alignment, and real-time clinical data integration. The project aims to offer efficient meal management and advanced nutritional insights, supporting a comprehensive health-conscious lifestyle. It is a real business with active subscriptions and payments.
 
 ## User Preferences
 I prefer iterative development and expect the agent to ask before making major architectural changes. Do not modify the "Meal Visual Alignment System v1" without explicit approval. Specifically, do not change AI Prompts, Image Prompts, `ensureImage` Logic, Fallback Images, Cache Key Generation, or S3 Upload Logic within this system.
 
+**Product Doctrine**: See `/docs/STARCH_STRATEGY_AND_MEAL_BOARD_DOCTRINE.md` for authoritative decisions about starch strategy, meal board behavior, and intentionally hidden features. Do not violate without discussion.
+
 ## System Architecture
-The application is built as a monorepo using React + Vite (TypeScript) for the frontend and Express.js (TypeScript) for the backend, with PostgreSQL and Drizzle ORM for data persistence. OpenAI GPT-4 powers AI meal generation.
+The application is a monorepo utilizing React + Vite (TypeScript) for the frontend and Express.js (TypeScript) for the backend. PostgreSQL with Drizzle ORM manages data persistence. OpenAI GPT-4 is central to AI meal generation, including DALL-E 3 for image creation.
+
+**UI/UX Decisions:**
+- **iOS Viewport Architecture**: Fixed shell with `100dvh` and single scroll container to prevent iOS WKWebView issues; pages manage their own safe-area insets.
+- **Guided Tour System**: Page-specific tips via `QuickTourModal`.
+- **Scientific Transparency**: `MedicalSourcesInfo` component provides citations for nutritional calculations.
+- **iOS App Store Compliance**: Adherence to guidelines 3.1.1 (no external payments on iOS) and 1.4.1 (medical citations).
 
 **Technical Implementations:**
-- **Monorepo Structure**: Frontend and backend are co-located.
-- **Server Configuration**: The Express server runs on port 5000, serving both API endpoints and the client. Vite middleware handles client serving in development, while static files from `client/dist` are served in production.
-- **Database**: PostgreSQL with Drizzle ORM, schema defined in `/shared/schema.ts`. Automatic migrations are handled via `db:push` during prestart/predev hooks.
-- **AI Stability Architecture**: Implements route-aware health monitoring, categorizing routes as AI-required or deterministic. It tracks generation sources (AI, cache, template, catalog/fallback, error) and reports health status via `/api/health/ai`, including release gates for schema, errors, and fallback rates (max 5%).
-- **Meal Visual Alignment System v1**: A critical, production-locked system ensuring AI-generated meals have accurately matched images. It integrates DALL-E 3 for image generation using full meal context (name, description, ingredients, type, style), uploads images to permanent S3 storage, and includes a robust `ensureImage()` logic with static fallbacks on DALL-E failure. This system guarantees images align with meal content through sequential generation, context-aware prompting, and specific fallback strategies.
-- **iOS Viewport Architecture**: Designed to prevent iOS WKWebView scrolling bugs. It uses a fixed shell with `100dvh` and a single scroll container, where pages handle their own safe-area insets. Key settings include `ios.contentInset: 'never'` and `ios.scrollEnabled: false` in Capacitor, and `overflow: hidden` on `html/body`.
-- **Guided Tour System**: Provides page-specific tips via `QuickTourModal`, managed by `useQuickTour.ts`. It tracks "seen" status per page in `localStorage`, offers a global disable option, and allows manual re-opening.
-- **Copilot Re-Engagement Architecture**: Separates autoplay from manual invocation. An autoplay toggle controls auto-opening on page navigation, while a dedicated Chef button always opens Copilot with the current page context, regardless of the toggle. Session tracking prevents re-opening on the same page within a session.
+- **Monorepo Structure**: Frontend and backend are co-located for streamlined development.
+- **Database**: PostgreSQL with Drizzle ORM for schema management and migrations.
+- **AI Stability Architecture**: Route-aware health monitoring for AI-required functionalities.
+- **Meal Visual Alignment System v1**: Ensures AI-generated meals have accurately matched DALL-E 3 images, uploaded to S3.
+- **Nutrition Schema v1.1**: Updated `UnifiedMeal` interface for precise carb tracking (`starchyCarbs`, `fibrousCarbs`).
+- **Carb Enforcement System v1.0**: Ingredient-based carb derivation `server/utils/carbClassifier.ts` ensures data integrity before saving.
+- **Hub Coupling Framework v1.0**: Modular architecture in `server/services/hubCoupling/` allows integration of different health "hubs" to inject context and validation into AI meal generation.
+- **ProCare Clinical Advisory System v1.0**: Advisory layer for clinicians, offering macro adjustment suggestions based on conditions.
+- **Role-Based Access Control v1.0**: Three-tier system (`admin`, `coach`, `client`) with server-side enforcement.
+- **Starch Meal Strategy v1.0**: Behavioral coaching for managing starchy vs. fibrous carbs.
+- **Extended Onboarding System v1.0**: Multi-step wizard for builder selection during signup.
+- **Meal Card Share + Translate System v1.0**: Native sharing and GPT-4o-mini powered translation for meal cards.
+- **Local Meal Reminders v1.0**: Device-local notification system for meal reminders.
+- **Guest Suite Guided Unlock Flow v1.2**: Progressive feature unlocking for unauthenticated users with a 14-day trial and 4 "meal day" limit, emphasizing a "coach in your pocket" philosophy.
+- **Pro Tip Audio Card v1.0**: Global instructional audio feature on Meal Builder pages teaching macro accuracy.
+- **Prepare with Chef System v1.0**: Guided cooking mode accessible from any meal card, reusing existing Chef's Kitchen UI.
+- **Deployment Safety System v1.0**: Automated safeguards including boot-time health logging, fallback usage tracking, and a comprehensive health endpoint (`/api/health`) to prevent production issues.
+- **Profile Photo Upload**: Fully functional feature for users to upload profile photos to object storage.
 
 ## External Dependencies
-- **OpenAI API**: For AI-powered meal generation (requires `OPENAI_API_KEY`).
-- **Stripe**: Optional for payment features (requires `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`).
-- **Twilio**: Optional for SMS notifications (requires `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`).
-- **SendGrid**: Optional for email services (requires `SENDGRID_API_KEY`).
-- **DALL-E 3**: Integrated via OpenAI for generating meal images.
+- **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
 - **Amazon S3**: For permanent storage of generated meal images.
-
-## Meal Visual Alignment System v1 — Feature-Specific Behavior (LOCKED)
-
-| Feature | Image System | Notes |
-|---------|--------------|-------|
-| **Create With Chef** | ✅ Meal Visual Alignment v1 | Full `ensureImage()` → `generateImage()` flow |
-| **Snack Creator** | ✅ Meal Visual Alignment v1 | Full `ensureImage()` → `generateImage()` flow |
-| **Fridge Rescue** | ✅ Meal Visual Alignment v1 | Full `ensureImage()` → `generateImage()` flow |
-| **AI Premades** | ✅ When `useFallbackOnly=false` | Static placeholder when `useFallbackOnly=true` |
-| **Craving Creator** | ⚠️ Static fallbacks | AI branch does NOT call `ensureImage()` — intentional |
-| **Restaurant Guide** | ✅ Internal AI generation | Uses `generateImage()`, NOT external providers |
-| **Find Your Meals** | ✅ Internal AI generation | Uses `generateImage()`, NOT external providers |
-
-**Craving Creator Note**: Intentionally returns static fallback images for AI-generated meals. This prevents cache explosion and maintains visual consistency. May be revisited in a future visual upgrade phase.
-
-**Restaurant Guide / Find Meals Note**: Rely on internal AI-based image generation via the shared Meal Visual Alignment System. No Google/Yelp/external image ingestion exists.
-
-## Nutrition Schema v1.1 (Dec 2024) — Carb Subtype Identity
-
-**Purpose**: Enable accurate starchy vs fibrous carbohydrate tracking across all AI-generated meals.
-
-**Changes Made**:
-1. **UnifiedMeal interface** updated to include `starchyCarbs` and `fibrousCarbs` fields (optional, for backward compat)
-2. **AI prompts** (Create With Chef, Snack Creator) now request separate starchy/fibrous breakdown
-3. **Response parsing** extracts these fields and populates them in meal objects
-4. **Total carbs** calculated as `starchyCarbs + fibrousCarbs` for backward compatibility
-
-**Carb Classification Guide**:
-- **Starchy Carbs**: Rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers, granola
-- **Fibrous Carbs**: Vegetables, leafy greens, broccoli, peppers, onions, mushrooms, fruits, berries
-
-**Data Flow**:
-```
-AI generates meal → starchyCarbs/fibrousCarbs in response → parsed into UnifiedMeal → 
-passed to board → summed by WeeklyMealBoard → displayed in RemainingMacrosFooter
-```
-
-**Files Modified** (strictly limited scope):
-- `server/services/unifiedMealPipeline.ts` - AI prompts and response parsing only
-- No changes to: image generation, ensureImage, caching, or UI components
-
-**Not Modified** (LOCKED):
-- Meal Visual Alignment System v1
-- Image generation logic
-- Footer display logic (already supports breakdown)
-
-## Chicago Calendar Fix v1.0 (Dec 2024) — Noon UTC Anchor Pattern
-
-**Purpose**: Eliminate "one day off" bugs caused by UTC midnight boundary crossings during date conversions.
-
-**Problem**: When converting dates like `Date → ISO → Date`, midnight UTC anchors (T00:00:00Z) cross timezone boundaries in Chicago (UTC-5/6), causing the calendar day to shift by exactly one day.
-
-**Solution**: All date math is anchored at UTC noon (12:00:00Z), safely away from any timezone's midnight. Arithmetic is performed on the noon-anchored Date object, then formatted to the target timezone using Intl.DateTimeFormat.
-
-**Core Helpers** (`client/src/utils/midnight.ts`):
-- `isoToUtcNoonDate(iso)` - Converts ISO string to Date anchored at noon UTC
-- `formatISOInTZ(date, timeZone)` - Formats Date to YYYY-MM-DD in target timezone
-- `getTodayISOSafe(timeZone)` - Gets today's date safely in timezone
-- `addDaysISOSafe(iso, days, timeZone)` - Adds days using noon anchor
-- `getWeekStartISOInTZ(timeZone)` - Gets Monday of current week
-- `weekDatesInTZ(weekStartISO, timeZone)` - Generates 7 consecutive day strings
-- `nextWeekISO()` / `prevWeekISO()` - Week navigation helpers
-- `formatWeekLabel()` / `formatDateDisplay()` - Display formatting
-
-**Canonical Timezone**: `America/Chicago` for all date calculations.
-
-**Migration Status**:
-- [x] WeeklyMealBoard - Fully migrated
-- [x] PerformanceCompetitionBuilder - Fully migrated (Dec 2024)
-- [x] GeneralNutritionBuilder - Fully migrated (Dec 2024)
-- [x] AntiInflammatoryMenuBuilder - Migrated (Dec 2024, known display issue: shows Monday)
-- [x] DiabeticMenuBuilder - Fully migrated (Dec 2024)
-- [x] GLP1MealBuilder - Fully migrated (Dec 2024)
-- [x] BeachBodyMealBoard - Fully migrated (Dec 2024)
-
-**CRITICAL RULE**: Never use "T00:00:00Z" midnight patterns. Always use the noon UTC helpers from midnight.ts.
+- **Stripe**: For web payment processing.
+- **Apple StoreKit 2**: For iOS in-app purchases via `@squareetlabs/capacitor-subscriptions`.
+- **Twilio**: For SMS notifications.
+- **SendGrid**: For email services.

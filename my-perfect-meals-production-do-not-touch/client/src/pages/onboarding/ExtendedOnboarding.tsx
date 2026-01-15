@@ -1,0 +1,430 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthToken } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Calendar, 
+  Heart, 
+  Pill, 
+  Flame, 
+  Trophy,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
+
+type OnboardingStep = "goals" | "builder";
+
+interface BuilderOption {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  bestFor: string[];
+  goalCategories: string[];
+}
+
+const BUILDER_OPTIONS: BuilderOption[] = [
+  {
+    id: "weekly",
+    title: "Weekly Meal Builder",
+    description: "For everyday healthy eating. Build balanced weekly meal plans with variety.",
+    icon: <Calendar className="w-6 h-6" />,
+    bestFor: ["General wellness", "Family meals", "Variety seekers"],
+    goalCategories: ["general", "weight_loss"],
+  },
+  {
+    id: "diabetic",
+    title: "Diabetic Meal Builder",
+    description: "Blood sugar-friendly meals. Low glycemic options with carb guidance.",
+    icon: <Heart className="w-6 h-6" />,
+    bestFor: ["Type 1 or Type 2 diabetes", "Blood sugar management", "Pre-diabetes"],
+    goalCategories: ["diabetes"],
+  },
+  {
+    id: "glp1",
+    title: "GLP-1 Meal Builder",
+    description: "Optimized for Ozempic, Wegovy, Mounjaro users. Protein-focused, smaller portions.",
+    icon: <Pill className="w-6 h-6" />,
+    bestFor: ["GLP-1 medication users", "Appetite management", "High protein needs"],
+    goalCategories: ["glp1"],
+  },
+  {
+    id: "anti_inflammatory",
+    title: "Anti-Inflammatory Builder",
+    description: "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
+    icon: <Flame className="w-6 h-6" />,
+    bestFor: ["Autoimmune conditions", "Joint pain", "Chronic inflammation"],
+    goalCategories: ["anti_inflammatory"],
+  },
+  {
+    id: "beach_body",
+    title: "Beach Body Meal Builder",
+    description: "Contest prep and leaning out. Designed for rapid, visible change.",
+    icon: <Trophy className="w-6 h-6" />,
+    bestFor: ["Competition prep", "Rapid fat loss", "Physique goals"],
+    goalCategories: ["performance"],
+  },
+];
+
+const GOAL_OPTIONS = [
+  { id: "general", label: "General Lifestyle", description: "Eat healthier without specific restrictions" },
+  { id: "diabetes", label: "Diabetes / Blood Sugar", description: "Manage blood sugar with carb-conscious meals" },
+  { id: "glp1", label: "GLP-1 / Appetite Support", description: "Optimize meals for medication users" },
+  { id: "anti_inflammatory", label: "Anti-Inflammatory", description: "Reduce inflammation through food choices" },
+  { id: "performance", label: "Performance / Athlete", description: "Fuel training and competition" },
+  { id: "weight_loss", label: "Weight Loss", description: "Simple, effective fat loss approach" },
+];
+
+export default function ExtendedOnboarding() {
+  const [, setLocation] = useLocation();
+  const { user, refreshUser } = useAuth();
+  const { toast } = useToast();
+  
+  // ProCare mode: coach assigns builder, user only sets macros/starch
+  const isProCareUser = user?.isProCare === true;
+  const hasCoachAssignedBuilder = isProCareUser && user?.activeBoard;
+  const isAwaitingCoachAssignment = isProCareUser && !user?.activeBoard;
+  
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("goals");
+  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+  const [selectedBuilder, setSelectedBuilder] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    document.title = "Choose Your Builder | My Perfect Meals";
+    
+    if (user?.selectedMealBuilder || user?.activeBoard) {
+      setSelectedBuilder(user.activeBoard || user.selectedMealBuilder || null);
+    }
+    
+    // ProCare with assignment: redirect to macro calculator directly
+    if (hasCoachAssignedBuilder) {
+      setLocation("/macro-counter");
+    }
+  }, [user, hasCoachAssignedBuilder, setLocation]);
+
+  // Simple 2-step flow: Goals → Builder
+  const steps: OnboardingStep[] = ["goals", "builder"];
+  const currentStepIndex = steps.indexOf(currentStep);
+
+  const getRecommendedBuilders = () => {
+    if (!selectedGoal) return BUILDER_OPTIONS;
+    return BUILDER_OPTIONS.filter(b => b.goalCategories.includes(selectedGoal));
+  };
+
+  const handleNext = () => {
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex < steps.length) {
+      setCurrentStep(steps[nextIndex]);
+    }
+  };
+
+  const handleBack = () => {
+    const prevIndex = currentStepIndex - 1;
+    if (prevIndex >= 0) {
+      setCurrentStep(steps[prevIndex]);
+    }
+  };
+
+  const handleBuilderContinue = async () => {
+    if (!selectedBuilder) return;
+
+    setSaving(true);
+
+    try {
+      const authToken = getAuthToken();
+      
+      // Guest mode: skip server save, just navigate
+      if (!authToken) {
+        // Store builder selection in localStorage for guest users
+        localStorage.setItem("guestSelectedBuilder", selectedBuilder);
+        setLocation("/macro-counter");
+        return;
+      }
+
+      // Save builder selection (independent users only)
+      if (!hasCoachAssignedBuilder) {
+        const response = await fetch(apiUrl("/api/user/select-meal-builder"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-auth-token": authToken,
+          },
+          body: JSON.stringify({
+            selectedMealBuilder: selectedBuilder,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to save builder selection");
+        }
+      }
+
+      await refreshUser();
+
+      // Go straight to Macro Calculator
+      setLocation("/macro-counter");
+
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Could not continue. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderStepIndicator = () => (
+    <div className="flex items-center justify-center gap-2 mb-6">
+      {steps.map((step, index) => (
+        <div
+          key={step}
+          className={`w-2 h-2 rounded-full transition-all ${
+            index === currentStepIndex
+              ? "w-6 bg-orange-500"
+              : index < currentStepIndex
+              ? "bg-orange-500"
+              : "bg-white/20"
+          }`}
+        />
+      ))}
+    </div>
+  );
+
+  const renderGoalsStep = () => (
+    <div className="space-y-4">
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-bold text-white mb-2">What are you focused on right now?</h2>
+        <p className="text-white/70 text-sm">This sets your primary meal builder. You can change it later.</p>
+      </div>
+
+      <div className="space-y-3">
+        {GOAL_OPTIONS.map((goal) => (
+          <Card
+            key={goal.id}
+            className={`cursor-pointer transition-all ${
+              selectedGoal === goal.id
+                ? "border-orange-500 bg-orange-500/10"
+                : "border-white/10 bg-black/30 hover:border-white/30"
+            }`}
+            onClick={() => setSelectedGoal(goal.id)}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                selectedGoal === goal.id ? "border-orange-500 bg-orange-500" : "border-white/30"
+              }`}>
+                {selectedGoal === goal.id && <Check className="w-3 h-3 text-white" />}
+              </div>
+              <div>
+                <h3 className="text-white font-medium">{goal.label}</h3>
+                <p className="text-white/60 text-xs">{goal.description}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Button
+        onClick={() => {
+          if (!selectedGoal) {
+            toast({
+              title: "Please select a goal",
+              description: "Choose what you're focused on to continue.",
+              variant: "destructive",
+            });
+            return;
+          }
+          handleNext();
+        }}
+        disabled={!selectedGoal}
+        className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50"
+      >
+        Continue <ArrowRight className="w-4 h-4 ml-2" />
+      </Button>
+    </div>
+  );
+
+  const renderBuilderStep = () => {
+    // ProCare users without assignment: show waiting state
+    if (isAwaitingCoachAssignment) {
+      return (
+        <div className="space-y-4">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <Heart className="w-8 h-8 text-blue-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Awaiting Your Coach</h2>
+            <p className="text-white/70 text-sm">
+              Your coach will assign your meal builder. You'll be notified when it's ready.
+            </p>
+          </div>
+
+          <Card className="border-blue-500/30 bg-blue-500/10">
+            <CardContent className="p-4 text-center">
+              <p className="text-blue-200 text-sm">
+                You're enrolled in Pro Care. Your coach will select the best meal builder for your goals and assign it to your account.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Button
+            onClick={() => setLocation("/dashboard")}
+            variant="outline"
+            className="w-full mt-6 border-white/20 text-white hover:bg-white/10"
+          >
+            Return to Dashboard
+          </Button>
+        </div>
+      );
+    }
+
+    const recommended = getRecommendedBuilders();
+    const others = BUILDER_OPTIONS.filter(b => !recommended.includes(b));
+
+    return (
+      <div className="space-y-4">
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-bold text-white mb-2">Choose your Primary Builder</h2>
+          <p className="text-white/70 text-sm">This is the only builder you'll be able to open in Planner.</p>
+        </div>
+
+        {recommended.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-orange-400 text-xs font-medium uppercase tracking-wide">Recommended for you</p>
+            {recommended.map((builder) => (
+              <Card
+                key={builder.id}
+                className={`cursor-pointer transition-all ${
+                  selectedBuilder === builder.id
+                    ? "border-orange-500 bg-orange-500/10"
+                    : "border-white/10 bg-black/30 hover:border-white/30"
+                }`}
+                onClick={() => setSelectedBuilder(builder.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${selectedBuilder === builder.id ? "bg-orange-500/20 text-orange-400" : "bg-white/5 text-white/60"}`}>
+                      {builder.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium">{builder.title}</h3>
+                      <p className="text-white/60 text-xs mt-1">{builder.description}</p>
+                    </div>
+                    {selectedBuilder === builder.id && (
+                      <Check className="w-5 h-5 text-orange-500" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {others.length > 0 && (
+          <div className="space-y-3 mt-4">
+            <p className="text-white/40 text-xs font-medium uppercase tracking-wide">Other options</p>
+            {others.map((builder) => (
+              <Card
+                key={builder.id}
+                className={`cursor-pointer transition-all ${
+                  selectedBuilder === builder.id
+                    ? "border-orange-500 bg-orange-500/10"
+                    : "border-white/10 bg-black/30 hover:border-white/30"
+                }`}
+                onClick={() => setSelectedBuilder(builder.id)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white/5 text-white/60">
+                      {builder.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white/80 font-medium text-sm">{builder.title}</h3>
+                    </div>
+                    {selectedBuilder === builder.id && (
+                      <Check className="w-5 h-5 text-orange-500" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-6">
+          <Button onClick={handleBack} variant="outline" className="flex-1 border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+          </Button>
+          <Button
+            disabled={!selectedBuilder || saving}
+            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+            onClick={handleBuilderContinue}
+          >
+            {saving ? "Saving..." : "Continue to Macro Calculator"} <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case "goals":
+        return renderGoalsStep();
+      case "builder":
+        return renderBuilderStep();
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white"
+    >
+      <div
+        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ top: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="px-4 py-3">
+          <h1 className="text-lg font-bold text-white text-center">
+            Select Your Meal Builder
+          </h1>
+        </div>
+      </div>
+
+      <div
+        className="px-4 py-6 max-w-md mx-auto"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 120px)",
+        }}
+      >
+        {renderStepIndicator()}
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderCurrentStep()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}

@@ -19,6 +19,8 @@ import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
 import { RemainingMacrosFooter, type ConsumedMacros } from "@/components/biometrics/RemainingMacrosFooter";
+import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
+import { ProTipCard } from "@/components/ProTipCard";
 import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -40,6 +42,7 @@ import {
   nextWeekISO, 
   prevWeekISO, 
   formatWeekLabel,
+  formatDateDisplay,
   todayISOInTZ 
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
@@ -57,6 +60,7 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
+import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { WhyChip } from "@/components/WhyChip";
@@ -76,6 +80,8 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { getResolvedTargets } from "@/lib/macroResolver";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
 import {
   Dialog,
@@ -94,6 +100,7 @@ const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
   { icon: "4", title: "Track Macros", description: "Send meals to the Macro Calculator to ensure adequate protein." },
   { icon: "5", title: "Shopping List", description: "Export ingredients for easy meal prep shopping." },
   { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
+  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
   { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
 
@@ -213,6 +220,22 @@ export default function GLP1MealBuilder() {
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
+
+  // Build StarchContext for Create With Chef modal
+  const starchContext: StarchContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const strategy = resolved?.starchStrategy || 'one';
+    const dayLists = getDayLists(board, activeDayISO);
+    const existingMeals: StarchContext['existingMeals'] = [];
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+      }
+    }
+    return { strategy, existingMeals };
+  }, [board, activeDayISO, user?.id]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -652,7 +675,7 @@ export default function GLP1MealBuilder() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Meal Plan`
+          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Meal Plan`
           : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -1070,18 +1093,12 @@ export default function GLP1MealBuilder() {
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() - 7);
-    const prevISO = d.toISOString().slice(0, 10);
-    gotoWeek(prevISO);
+    gotoWeek(prevWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   const onNextWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 7);
-    const nextISO = d.toISOString().slice(0, 10);
-    gotoWeek(nextISO);
+    gotoWeek(nextWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   function onItemUpdated(
@@ -1224,6 +1241,8 @@ export default function GLP1MealBuilder() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
+          starchyCarbs: (meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0,
+          fibrousCarbs: (meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk",
         };
@@ -1382,6 +1401,26 @@ export default function GLP1MealBuilder() {
               </div>
             )}
 
+          {/* Daily Starch Indicator - Shows starch meal slots */}
+          {FEATURES.dayPlanning === "alpha" &&
+            planningMode === "day" &&
+            activeDayISO &&
+            board && (
+              <div className="flex justify-center">
+                <DailyStarchIndicator 
+                  meals={(() => {
+                    const dayLists = getDayLists(board, activeDayISO);
+                    return [
+                      ...dayLists.breakfast,
+                      ...dayLists.lunch,
+                      ...dayLists.dinner,
+                      ...dayLists.snacks,
+                    ];
+                  })()}
+                />
+              </div>
+            )}
+
           {/* ROW 5: Bottom Actions (Delete All + Save) */}
           <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
             <Button
@@ -1493,8 +1532,8 @@ export default function GLP1MealBuilder() {
                         setSnackCreatorOpen(true);
                       }}
                       onManualAdd={() => openManualModal(key)}
-                      onLogSnack={() => setLocation("/my-biometrics")}
-                      showLogSnack={key === "snacks"}
+                      onLogSnack={() => {}}
+                      showLogSnack={false}
                     />
                   </div>
 
@@ -1684,36 +1723,27 @@ export default function GLP1MealBuilder() {
               </section>
             ))}
 
-        {/* Quick Add Protein/Carbs - Above Daily Totals */}
-        <div className="col-span-full">
-          {(() => {
-            const resolved = getResolvedTargets(user?.id);
-            const proteinDeficit = Math.max(0, (resolved.protein_g || 0) - Math.round(totals.protein));
-            const carbsDeficit = Math.max(0, (resolved.carbs_g || 0) - Math.round(totals.carbs));
-            
-            if (proteinDeficit === 0 && carbsDeficit === 0) return null;
-            
-            return (
-              <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="text-sm text-white/80">
-                    {proteinDeficit > 0 && <span>Need <strong className="text-orange-400">{proteinDeficit}g protein</strong></span>}
-                    {proteinDeficit > 0 && carbsDeficit > 0 && <span> · </span>}
-                    {carbsDeficit > 0 && <span>Need <strong className="text-orange-400">{carbsDeficit}g carbs</strong></span>}
-                  </div>
-                  <Button
-                    onClick={() => setAdditionalMacrosOpen(true)}
-                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
-                    data-testid="button-quick-add-macros"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Quick Add
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+          {/* Pro Tip Card */}
+          <ProTipCard />
+
+          {/* Daily Targets Card with Quick Add */}
+          <div className="col-span-full">
+            <DailyTargetsCard
+              userId={user?.id}
+              onQuickAddClick={() => setAdditionalMacrosOpen(true)}
+              targetsOverride={(() => {
+                const targetMacros = getMacroTargets(user?.id);
+                if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
+                return {
+                  protein_g: targetMacros.protein_g || 0,
+                  carbs_g: targetMacros.carbs_g || 0,
+                  fat_g: targetMacros.fat_g || 0,
+                  starchyCarbs_g: targetMacros.starchyCarbs_g,
+                  fibrousCarbs_g: targetMacros.fibrousCarbs_g,
+                };
+              })()}
+            />
+          </div>
 
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
@@ -1780,7 +1810,7 @@ export default function GLP1MealBuilder() {
                       });
                       toast({
                         title: "Day Saved to Biometrics",
-                        description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                        description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                       });
                       setLocation('/my-biometrics');
                     }
@@ -1921,6 +1951,7 @@ export default function GLP1MealBuilder() {
         mealType={createWithChefSlot}
         onMealGenerated={handleAIMealGenerated}
         dietType="glp1"
+        starchContext={starchContext}
       />
 
       {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with GLP-1 guardrails */}
@@ -1965,9 +1996,7 @@ export default function GLP1MealBuilder() {
             planningMode === "day" &&
             activeDayISO
           ) {
-            const dayName = new Date(
-              activeDayISO + "T00:00:00Z",
-            ).toLocaleDateString(undefined, { weekday: "long" });
+            const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
             return (
               <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">

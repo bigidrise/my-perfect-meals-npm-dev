@@ -1,0 +1,261 @@
+Perfect. Below is a **single, clean, copy-pasteable prompt** you can hand directly to **Replit + the architect**.
+It is written to **eliminate ambiguity**, **force wiring**, and **fit exactly with what already exists**.
+
+I’ve structured it so they can execute without guessing, and so you don’t end up with another “it exists but isn’t wired” situation.
+
+---
+
+# 🧠 ARCHITECT + IMPLEMENTATION PROMPT
+
+**Scope: Macro Calculator + ProCare Client Dashboard (Clinical Advisory V1)**
+**Project: My Perfect Meals**
+
+---
+
+## OBJECTIVE (READ FIRST)
+
+We are surfacing **existing Clinical Advisory logic** in **two places only**:
+
+1. **Macro Calculator (User-facing)**
+2. **ProCare Client Dashboard (Doctor / Trainer-facing)**
+
+This is a **visibility + wiring task**, not a new system.
+
+⚠️ **No silent changes. No auto-application. No meal builder changes.**
+Macros remain the canonical output.
+
+---
+
+## BACKGROUND (IMPORTANT CONTEXT)
+
+The following logic already exists:
+
+* Clinical Advisory bias system (Menopause, Insulin Resistance, Stress)
+* Targets + ClinicalContext models
+* ProCare advisory drawer logic
+* Macro bias deltas are already defined and architect-approved
+
+**What’s missing:**
+Users and clinicians cannot *see* or *control* these factors where they expect to.
+
+This task fixes that.
+
+---
+
+## V1 CONDITIONS (LOCKED — DO NOT ADD MORE)
+
+Expose **only these three** conditions:
+
+1. **Menopause / Hormone Therapy**
+2. **Suspected Insulin Resistance**
+3. **High Stress / Poor Sleep**
+
+❌ Do NOT add:
+
+* Post-hysterectomy
+* Dyslipidemia
+  (these remain deferred and documented)
+
+---
+
+## PAGE 1: MACRO CALCULATOR (USER-FACING)
+
+### Placement
+
+Add a new section under **“Your Details”** called:
+
+### **“Metabolic & Hormonal Considerations”**
+
+---
+
+### UI ELEMENTS
+
+Each condition is a toggle with an info icon:
+
+* ☐ Menopause / Hormone Therapy
+* ☐ Suspected Insulin Resistance
+* ☐ High Stress / Poor Sleep
+
+Below the toggles:
+
+> **“These factors can influence how your body responds to calories and macros.
+> They do not override your goals — they help fine-tune recommendations.”**
+
+---
+
+### EXPANDABLE ADVISORY PREVIEW (READ-ONLY)
+
+When a toggle is enabled, show a collapsible preview card:
+
+**Example (Menopause):**
+
+> **Menopause / Hormone Therapy**
+>
+> • Protein: **+10%**
+> • Carbohydrates: **−5%**
+> • Fat: **+5%**
+>
+> *Why this matters:*
+> Hormonal changes can affect muscle retention, insulin sensitivity, and fat metabolism.
+
+⚠️ **Do NOT auto-apply without confirmation**
+If macros are affected, show:
+
+> “Apply these adjustments to your macro targets?”
+> [Preview Changes] [Apply] [Cancel]
+
+---
+
+### COPILOT (MACRO CALCULATOR)
+
+Add one Copilot explanation node:
+
+> **“Why do these factors matter?”**
+>
+> “Things like menopause, insulin resistance, and chronic stress can change how your body uses calories.
+> My Perfect Meals doesn’t guess — it shows you how these factors *may* influence macros and lets you decide.”
+
+---
+
+## PAGE 2: PROCARE CLIENT DASHBOARD (CLINICIAN-FACING)
+
+### Placement
+
+Add a collapsible card below **Macro Targets** titled:
+
+### **“Clinical Advisory Factors”**
+
+---
+
+### UI ELEMENTS
+
+Each condition is shown with:
+
+* Toggle
+* Explanation
+* Bias preview
+* Contraindication note
+
+**Example:**
+
+**Menopause / Hormone Therapy**
+✔ Enabled by clinician
+
+> Suggested macro bias:
+> • Protein +10%
+> • Carbs −5%
+> • Fat +5%
+
+> *Note:* Advisory only. Requires explicit application to targets.
+
+---
+
+### APPLY FLOW (CRITICAL)
+
+* Toggling a condition **does NOT change targets**
+* Provide a **“Stage Adjustments”** button
+* Staged changes appear as a preview
+* Final button: **“Apply to Targets”**
+* Log:
+
+  * Who applied
+  * When
+  * What changed
+
+---
+
+### COPILOT (PROCARE DASHBOARD)
+
+Add a Copilot explanation:
+
+> **“Clinical Advisory vs Applied Targets”**
+>
+> “These factors provide guidance based on clinical patterns.
+> Targets only change when you explicitly apply them.”
+
+This prevents clinician confusion.
+
+---
+
+## DATA & WIRING REQUIREMENTS (NON-NEGOTIABLE)
+
+* Advisory toggles must read/write to **ClinicalContext**
+* Macro targets remain the single source of truth
+* No meal builder logic is touched
+* No AI logic is touched
+* No silent application allowed
+
+If a condition exists but is **not wired**, it must be marked **NOT WIRED** in documentation.
+
+---
+
+## DOCUMENTATION (MUST BE CREATED)
+
+Create the following files in Replit:
+
+### 1️⃣ `/docs/ProductEvolutionLedger.md`
+
+* Track deferred upgrades
+* Explicitly list:
+
+  * Post-hysterectomy (deferred)
+  * Dyslipidemia (deferred)
+
+### 2️⃣ `/docs/FeatureWiringChecklist.md`
+
+For each feature, answer:
+
+* Exists?
+* Wired?
+* Where does it execute?
+* Who triggers it?
+
+These files are required to prevent future gaps.
+
+---
+
+## ACCEPTANCE CRITERIA (HOW WE KNOW THIS IS DONE)
+
+* User can toggle advisory factors in Macro Calculator
+* User sees **clear explanation + preview**
+* Clinician sees same factors in ProCare
+* No macros change without confirmation
+* Copilot explains both pages
+* All wiring is documented
+* No regressions in meal builders
+
+---
+
+## FINAL NOTE
+
+This is not an experiment.
+These factors are **expected** by users and clinicians.
+
+Build clean. Wire explicitly. Document everything.
+
+---
+
+### END PROMPT
+
+---
+
+### Coach-level clarity (off the record, but important)
+
+You’re doing this exactly right now:
+
+* You stopped feature sprawl
+* You demanded wiring
+* You demanded visibility
+* You demanded documentation
+
+Hand this to Replit.
+Let them execute.
+Then test it on your phone and walk away for the night.
+
+When you’re ready later, we’ll:
+
+* Verify wiring
+* Lock it
+* Move on
+
+This was the right stopping point.

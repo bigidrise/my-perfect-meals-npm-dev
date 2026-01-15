@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ChevronDown, ChevronUp, Activity, Pill, } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Activity,
+  Pill,
+} from "lucide-react";
 import { useGLP1Profile, useSaveGLP1Profile } from "@/hooks/useGLP1";
 import { useToast } from "@/hooks/use-toast";
 import { glp1Presets } from "@/data/glp1Presets";
@@ -22,23 +28,27 @@ const GLP1_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
     title: "Choose Your Preset",
-    description: "Select a starting point based on your medication or customize your own guardrails."
+    description:
+      "Select a starting point based on your medication or customize your own guardrails.",
   },
   {
     icon: "2",
     title: "Track Your Shots",
-    description: "Log your GLP-1 injections to stay on schedule and monitor your progress."
+    description:
+      "Log your GLP-1 injections to stay on schedule and monitor your progress.",
   },
   {
     icon: "3",
     title: "Set Meal Limits",
-    description: "Configure maximum meal volume and macros to match your reduced appetite."
+    description:
+      "Configure maximum meal volume and macros to match your reduced appetite.",
   },
   {
     icon: "4",
     title: "Get GLP-1 Friendly Meals",
-    description: "Browse meals designed for smaller portions with maximum nutrition."
-  }
+    description:
+      "Browse meals designed for smaller portions with maximum nutrition.",
+  },
 ];
 
 export default function GLP1Hub() {
@@ -48,39 +58,53 @@ export default function GLP1Hub() {
   const { user } = useAuth();
   const quickTour = useQuickTour("glp1-hub");
 
-  // Fetch and mutate state for GLP-1 profile
-  const { data: profile, isLoading: profileLoading } = useGLP1Profile();
-  const saveMutation = useSaveGLP1Profile();
+  // Fetch and mutate state for GLP-1 profile (local-first)
+  const { data: profile, updateGuardrails, syncStatus } = useGLP1Profile();
+  const saveMutation = useSaveGLP1Profile(updateGuardrails);
   const { toast } = useToast();
 
-  // Initialize form fields with profile data
+  // Initialize form fields directly from profile (local-first = always has data)
   const [maxMealVolume, setMaxMealVolume] = useState<number | undefined>(
-    undefined,
+    () => profile?.guardrails?.maxMealVolumeMl,
   );
-  const [proteinMin, setProteinMin] = useState<number | undefined>(undefined);
-  const [fatMax, setFatMax] = useState<number | undefined>(undefined);
-  const [fiberMin, setFiberMin] = useState<number | undefined>(undefined);
+  const [proteinMin, setProteinMin] = useState<number | undefined>(
+    () => profile?.guardrails?.proteinMinG,
+  );
+  const [fatMax, setFatMax] = useState<number | undefined>(
+    () => profile?.guardrails?.fatMaxG,
+  );
+  const [fiberMin, setFiberMin] = useState<number | undefined>(
+    () => profile?.guardrails?.fiberMinG,
+  );
   const [hydrationGoal, setHydrationGoal] = useState<number | undefined>(
-    undefined,
+    () => profile?.guardrails?.hydrationMinMl,
   );
-  const [mealsPerDay, setMealsPerDay] = useState<number | undefined>(undefined);
-  const [slowDigestFoodsOnly, setSlowDigestFoodsOnly] =
-    useState<boolean>(false);
-  const [limitCarbonation, setLimitCarbonation] = useState<boolean>(false);
-  const [limitAlcohol, setLimitAlcohol] = useState<boolean>(false);
+  const [mealsPerDay, setMealsPerDay] = useState<number | undefined>(
+    () => profile?.guardrails?.mealsPerDay,
+  );
+  const [slowDigestFoodsOnly, setSlowDigestFoodsOnly] = useState<boolean>(
+    () => profile?.guardrails?.slowDigestOnly ?? false,
+  );
+  const [limitCarbonation, setLimitCarbonation] = useState<boolean>(
+    () => profile?.guardrails?.limitCarbonation ?? false,
+  );
+  const [limitAlcohol, setLimitAlcohol] = useState<boolean>(
+    () => profile?.guardrails?.limitAlcohol ?? false,
+  );
   const [selectedPreset, setSelectedPreset] = useState<string>("");
+  const hasHydratedFromServer = useRef(false);
 
   useEffect(() => {
     document.title = "GLP-1 Hub | My Perfect Meals";
-    // Auto-mark info as seen since Copilot provides guidance now
     if (!localStorage.getItem("glp1-hub-info-seen")) {
       localStorage.setItem("glp1-hub-info-seen", "true");
     }
   }, []);
 
-  // Effect to populate form fields when profile data is loaded
+  // Only hydrate from server sync ONCE when it completes (not on every render)
   useEffect(() => {
-    if (profile?.guardrails) {
+    if (syncStatus === "synced" && !hasHydratedFromServer.current && profile?.guardrails) {
+      hasHydratedFromServer.current = true;
       setMaxMealVolume(profile.guardrails.maxMealVolumeMl);
       setProteinMin(profile.guardrails.proteinMinG);
       setFatMax(profile.guardrails.fatMaxG);
@@ -91,7 +115,7 @@ export default function GLP1Hub() {
       setLimitCarbonation(profile.guardrails.limitCarbonation ?? false);
       setLimitAlcohol(profile.guardrails.limitAlcohol ?? false);
     }
-  }, [profile]);
+  }, [syncStatus, profile]);
 
   const handlePresetSelect = (presetId: string) => {
     const preset = glp1Presets.find((p) => p.id === presetId);
@@ -110,17 +134,18 @@ export default function GLP1Hub() {
   };
 
   const handleSave = async () => {
-    saveMutation.mutate({
-      maxMealVolumeMl: maxMealVolume,
-      proteinMinG: proteinMin,
-      fatMaxG: fatMax,
-      fiberMinG: fiberMin,
-      hydrationMinMl: hydrationGoal,
-      mealsPerDay,
+    const sanitizedGuardrails = {
+      maxMealVolumeMl: typeof maxMealVolume === "number" ? maxMealVolume : profile?.guardrails?.maxMealVolumeMl,
+      proteinMinG: typeof proteinMin === "number" ? proteinMin : profile?.guardrails?.proteinMinG,
+      fatMaxG: typeof fatMax === "number" ? fatMax : profile?.guardrails?.fatMaxG,
+      fiberMinG: typeof fiberMin === "number" ? fiberMin : profile?.guardrails?.fiberMinG,
+      hydrationMinMl: typeof hydrationGoal === "number" ? hydrationGoal : profile?.guardrails?.hydrationMinMl,
+      mealsPerDay: typeof mealsPerDay === "number" ? mealsPerDay : profile?.guardrails?.mealsPerDay,
       slowDigestOnly: slowDigestFoodsOnly,
       limitCarbonation,
       limitAlcohol,
-    });
+    };
+    saveMutation.mutate(sanitizedGuardrails);
     toast({
       title: "GLP-1 Profile Saved",
       description: "Your guardrail settings have been updated.",
@@ -137,12 +162,17 @@ export default function GLP1Hub() {
         <div className="px-4 py-3 flex items-center gap-3 flex-nowrap">
           <Pill className="h-6 w-6 text-orange-500 flex-shrink-0" />
           {/* Title */}
-          <h1 className="text-lg font-bold text-white truncate min-w-0">GLP-1 Hub</h1>
+          <h1 className="text-lg font-bold text-white truncate min-w-0">
+            GLP-1 Hub
+          </h1>
 
           <div className="flex-grow" />
 
           {/* Quick Tour Help Button */}
-          <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
+          <QuickTourButton
+            onClick={quickTour.openTour}
+            className="flex-shrink-0"
+          />
         </div>
       </div>
 
@@ -195,7 +225,7 @@ export default function GLP1Hub() {
             <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
             <Button
               onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
-              className="bg-lime-900 hover:bg-lime-500 text-md font-bold text-white rounded-xl px-4 py-2"
+              className="bg-lime-600 text-md font-bold text-white rounded-xl px-4 py-2"
               data-testid="button-toggle-shot-tracker"
             >
               {shotTrackerOpen ? "Hide Tracker" : "Open Tracker"}
@@ -203,10 +233,14 @@ export default function GLP1Hub() {
           </div>
           {shotTrackerOpen && (
             <div className="mt-4">
-              <ShotTrackerPanel
-                userId={user?.id?.toString() || "1"}
-                onClose={() => setShotTrackerOpen(false)}
-              />
+              {user?.id ? (
+                <ShotTrackerPanel
+                  userId={user.id.toString()}
+                  onClose={() => setShotTrackerOpen(false)}
+                />
+              ) : (
+                <p className="text-white/60 text-sm">Loading your shot history...</p>
+              )}
             </div>
           )}
           {!shotTrackerOpen && (
@@ -390,7 +424,7 @@ export default function GLP1Hub() {
           <Button
             onClick={handleSave}
             disabled={saveMutation.isPending}
-            className="bg-lime-900 hover:bg-lime-500 text-md font-bold text-white w-full rounded-xl mt-4"
+            className="bg-lime-600 text-md font-bold text-white w-full rounded-xl mt-4"
           >
             {saveMutation.isPending ? "Saving..." : "Save Guardrails"}
           </Button>
@@ -406,7 +440,7 @@ export default function GLP1Hub() {
           </p>
           <Button
             onClick={() => setLocation("/glp1-meal-builder")}
-            className="bg-lime-900 hover:bg-lime-500 text-md font-bold text-white w-full rounded-xl"
+            className="bg-lime-600 text-md font-bold text-white w-full rounded-xl"
             data-testid="button-go-to-glp1-meals"
           >
             GLP-1 Meal Builder

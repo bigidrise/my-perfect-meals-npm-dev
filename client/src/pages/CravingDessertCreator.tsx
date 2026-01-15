@@ -20,7 +20,9 @@ import { useToast } from "@/hooks/use-toast";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
+import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -66,6 +68,13 @@ const SERVING_SIZES = [
   { value: "batch", label: "Batch" },
 ];
 
+const WEDDING_SERVING_SIZES = [
+  { value: "small-wedding", label: "Small Wedding (30–50 guests)" },
+  { value: "medium-wedding", label: "Medium Wedding (75–100 guests)" },
+  { value: "large-wedding", label: "Large Wedding (120–150 guests)" },
+  { value: "extra-large-wedding", label: "Large Event (200+ guests)" },
+];
+
 const DIETARY_OPTIONS = [
   { value: "low-sugar", label: "Low sugar" },
   { value: "gluten-free", label: "Gluten-free" },
@@ -75,26 +84,47 @@ const DIETARY_OPTIONS = [
   { value: "low-calorie", label: "Low calorie" },
 ];
 
+const CAKE_STYLES = [
+  { value: "classic", label: "Classic Frosted" },
+  { value: "semi-naked", label: "Semi-Naked (Light Frosting)" },
+  { value: "naked", label: "Naked Cake (Minimal Frosting)" },
+];
+
+const CAKE_SPECIALTIES = [
+  { value: "wedding-cake", label: "Wedding Cake" },
+  { value: "birthday-cake", label: "Birthday Cake" },
+  { value: "celebration-cake", label: "Celebration Cake" },
+];
 const DESSERT_TOUR_STEPS: TourStep[] = [
   {
     title: "Choose Dessert Type",
     description:
-      "Pick what kind of dessert you want — cake, pie, cookies, smoothies, frozen treats, or let us surprise you.",
+      "Pick what you’re in the mood for — cakes (including celebration and wedding-style cakes), pies, cookies, brownies, frozen desserts, or Surprise Me.",
   },
   {
-    title: "Select Flavor & Servings",
+    title: "Choose a Flavor Direction",
     description:
-      "Choose your favorite flavors or textures, and set how many servings you need.",
+      "Select a flavor family like chocolate, vanilla, fruit, or spice. You can add extra details later if you want something specific.",
   },
   {
-    title: "Add Dietary Needs",
+    title: "Customize the Style (Optional)",
     description:
-      "Add any dietary requirements like low sugar, gluten-free, or high protein if you have them.",
+      "Want something special? Add notes like layered cake, naked cake, wedding-style, rustic, bakery-style, or simple and clean.",
   },
   {
-    title: "Create & Enjoy",
+    title: "Select Serving Size",
     description:
-      "Tap create and enjoy a dessert that fits exactly what you were craving.",
+      "Choose how many people you’re serving — from single portions to family-style, batches, or larger celebration desserts.",
+  },
+  {
+    title: "Add Dietary Preferences",
+    description:
+      "Optional. Choose things like lower sugar, gluten-free, dairy-free, high-protein, or vegan.",
+  },
+  {
+    title: "Create Your Dessert",
+    description:
+      "Tap Create and I’ll design a dessert that satisfies the craving, fits the occasion, and still respects your nutrition goals.",
   },
 ];
 
@@ -109,6 +139,9 @@ export default function DessertCreator() {
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
+  const [cakeStyle, setCakeStyle] = useState("classic");
+  const [cakeType, setCakeType] = useState("");
+  const [showPerSlice, setShowPerSlice] = useState(true);
   const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_dessert_creator_result");
@@ -139,6 +172,14 @@ export default function DessertCreator() {
       } catch {}
     }
   }, [generatedDessert]);
+
+  useEffect(() => {
+    if (cakeType === "wedding-cake") {
+      setServingSize("medium-wedding");
+    } else if (servingSize.includes("wedding")) {
+      setServingSize("single");
+    }
+  }, [cakeType]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -183,8 +224,15 @@ export default function DessertCreator() {
 
     setIsGenerating(true);
     startProgressTicker();
+    console.log("🍨 [DESSERT] Starting generation...", {
+      dessertCategory,
+      flavorFamily,
+      specificDessert,
+      servingSize,
+    });
 
     try {
+      console.log("🍨 [DESSERT] Calling API...");
       const res = await fetch(apiUrl("/api/meals/dessert-creator"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -193,6 +241,11 @@ export default function DessertCreator() {
           flavorFamily,
           specificDessert,
           servingSize,
+          cakeStyle: dessertCategory === "cake" ? cakeStyle : undefined,
+          cakeType:
+            dessertCategory === "cake" && cakeType && cakeType !== "standard"
+              ? cakeType
+              : undefined,
           dietaryPreferences: [
             ...(dietaryPreference && dietaryPreference !== "none"
               ? [dietaryPreference]
@@ -203,6 +256,8 @@ export default function DessertCreator() {
         }),
       });
 
+      console.log("🍨 [DESSERT] API response received:", res.status);
+
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         console.error("🍨 Dessert Creator API Error:", res.status, errorBody);
@@ -210,6 +265,7 @@ export default function DessertCreator() {
       }
 
       const data = await res.json();
+      console.log("🍨 [DESSERT] Parsed response data:", data);
       const meal = data.meal || data;
 
       stopProgressTicker();
@@ -219,7 +275,8 @@ export default function DessertCreator() {
         title: "✨ Dessert Created!",
         description: `${meal.name} is ready for you.`,
       });
-    } catch {
+    } catch (err) {
+      console.error("🍨 [DESSERT] Generation error:", err);
       stopProgressTicker();
       toast({
         title: "Generation Failed",
@@ -308,18 +365,59 @@ export default function DessertCreator() {
                 </Select>
               </div>
 
+              {dessertCategory === "cake" && (
+                <>
+                  <div>
+                    <label className="block text-md font-medium text-white mb-1">
+                      Cake Type (optional)
+                    </label>
+                    <Select value={cakeType} onValueChange={setCakeType}>
+                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                        <SelectValue placeholder="Standard cake" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        {CAKE_SPECIALTIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-md font-medium text-white mb-1">
+                      Cake Style
+                    </label>
+                    <Select value={cakeStyle} onValueChange={setCakeStyle}>
+                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                        <SelectValue placeholder="Select cake style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CAKE_STYLES.map((style) => (
+                          <SelectItem key={style.value} value={style.value}>
+                            {style.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="block text-md font-medium text-white mb-1">
                   Flavor Family <span className="text-orange-400">*</span>
                 </label>
                 <Select value={flavorFamily} onValueChange={setFlavorFamily}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
-                    <SelectValue placeholder="Select main flavor" />
+                    <SelectValue placeholder="Select flavor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {FLAVOR_FAMILIES.map((flav) => (
-                      <SelectItem key={flav.value} value={flav.value}>
-                        {flav.label}
+                    {FLAVOR_FAMILIES.map((flavor) => (
+                      <SelectItem key={flavor.value} value={flavor.value}>
+                        {flavor.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -328,17 +426,17 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Anything else you want to add? (optional)
+                  Additional Flavor Notes (optional)
                 </label>
                 <input
                   value={specificDessert}
                   onChange={(e) => setSpecificDessert(e.target.value)}
-                  placeholder="e.g., key lime pie, apple crumble, red velvet cake..."
+                  placeholder="e.g., with cream cheese frosting, extra cinnamon..."
                   className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
                   maxLength={150}
                 />
                 <p className="text-xs text-white/60 mt-1">
-                  Leave empty for AI to create something perfect
+                  Add specific details or leave empty
                 </p>
               </div>
 
@@ -351,7 +449,10 @@ export default function DessertCreator() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SERVING_SIZES.map((size) => (
+                    {(cakeType === "wedding-cake"
+                      ? WEDDING_SERVING_SIZES
+                      : SERVING_SIZES
+                    ).map((size) => (
                       <SelectItem key={size.value} value={size.value}>
                         {size.label}
                       </SelectItem>
@@ -380,20 +481,6 @@ export default function DessertCreator() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <label className="block text-md font-medium text-white mb-1">
-                  Custom Dietary Requirement (optional)
-                </label>
-                <input
-                  value={customDietary}
-                  onChange={(e) => setCustomDietary(e.target.value)}
-                  placeholder="Enter any other dietary needs..."
-                  className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
-                  autoComplete="off"
-                  maxLength={100}
-                />
               </div>
 
               {isGenerating ? (
@@ -463,36 +550,90 @@ export default function DessertCreator() {
                       <Users className="h-4 w-4 text-white" />
                       <span className="font-medium">Serving Size:</span>{" "}
                       {generatedDessert.servingSize}
+                      {generatedDessert.totalSlices && (
+                        <span className="text-white/70">
+                          ({generatedDessert.totalSlices} slices)
+                        </span>
+                      )}
                     </div>
                   </div>
 
+                  {generatedDessert.perSliceNutrition && (
+                    <div className="mb-4 flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setShowPerSlice(true)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          showPerSlice
+                            ? "bg-orange-600 text-white"
+                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        }`}
+                      >
+                        Per Slice
+                      </button>
+                      <button
+                        onClick={() => setShowPerSlice(false)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          !showPerSlice
+                            ? "bg-orange-600 text-white"
+                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        }`}
+                      >
+                        Whole Cake
+                      </button>
+                    </div>
+                  )}
+
+                  {generatedDessert.perSliceNutrition && showPerSlice && (
+                    <p className="text-xs text-center text-white/60 mb-2">
+                      Per slice (
+                      {generatedDessert.perSliceNutrition.sliceSize || "1 oz"})
+                    </p>
+                  )}
+
                   <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                     {(["calories", "protein", "carbs", "fat"] as const).map(
-                      (key) => (
-                        <div
-                          key={key}
-                          className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md"
-                        >
-                          <div className="text-lg font-bold text-white">
-                            {getNutrition(generatedDessert)[key]}
-                            {key !== "calories" && "g"}
+                      (key) => {
+                        const nutritionSource =
+                          generatedDessert.perSliceNutrition && showPerSlice
+                            ? generatedDessert.perSliceNutrition
+                            : getNutrition(generatedDessert);
+                        const value = Number(nutritionSource[key] ?? 0);
+                        return (
+                          <div
+                            key={key}
+                            className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md"
+                          >
+                            <div className="text-lg font-bold text-white">
+                              {value}
+                              {key !== "calories" && "g"}
+                            </div>
+                            <div className="text-xs text-white capitalize">
+                              {key}
+                            </div>
                           </div>
-                          <div className="text-xs text-white capitalize">
-                            {key}
-                          </div>
-                        </div>
-                      ),
+                        );
+                      },
                     )}
                   </div>
 
                   <div className="mb-4">
                     <div className="flex items-center justify-between gap-3 mb-2">
-                      <h3 className="font-semibold text-white">
-                        Medical Safety
-                      </h3>
-                      <CopyRecipeButton
-                        recipe={{
+                      <div className="flex items-center gap-2">
+                        <HealthBadgesPopover
+                          badges={generatedDessert.medicalBadges || []}
+                          align="start"
+                        />
+                        <h3 className="font-semibold text-white">
+                          Medical Safety
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mb-4">
+                      <AddToMealPlanButton meal={generatedDessert} />
+                      <MealCardActions
+                        meal={{
                           name: generatedDessert.name,
+                          description: generatedDessert.description,
                           ingredients: (generatedDessert.ingredients ?? []).map(
                             (ing: any) => ({
                               name: ing.name || ing.item,
@@ -509,6 +650,7 @@ export default function DessertCreator() {
                                   .split("\n")
                                   .filter((s: string) => s.trim())
                               : [],
+                          nutrition: generatedDessert.nutrition,
                         }}
                       />
                     </div>

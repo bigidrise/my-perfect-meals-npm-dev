@@ -21,6 +21,8 @@ export const MealSchema = z.object({
     protein: z.number(),
     carbs: z.number(),
     fat: z.number(),
+    starchyCarbs: z.number().optional(),
+    fibrousCarbs: z.number().optional(),
   }).optional(),
   badges: z.array(z.string()).optional(),
   technique: z.string().optional(),
@@ -42,6 +44,8 @@ export const MealSchema = z.object({
   protein: z.number().optional(),
   carbs: z.number().optional(),
   fat: z.number().optional(),
+  starchyCarbs: z.number().optional(),
+  fibrousCarbs: z.number().optional(),
 }).passthrough();
 
 export type Meal = z.infer<typeof MealSchema>;
