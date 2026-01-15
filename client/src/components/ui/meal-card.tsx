@@ -47,11 +47,19 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
       medicalBadges: (recipe as any).medicalBadges || [],
     };
     
-    // Store meal in Chef's Kitchen format + flag to enter prepare mode
-    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-    localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+    // Check if already on Chef's Kitchen page
+    const isOnChefsKitchen = window.location.pathname.includes("/lifestyle/chefs-kitchen");
     
-    setLocation("/lifestyle/chefs-kitchen");
+    if (isOnChefsKitchen) {
+      // Already on page - dispatch event to switch to prepare mode directly
+      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+      window.dispatchEvent(new CustomEvent("chefs-kitchen-prepare", { detail: mealData }));
+    } else {
+      // Not on page - store and navigate
+      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+      localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+      setLocation("/lifestyle/chefs-kitchen");
+    }
   };
   
   if (!recipe) {
