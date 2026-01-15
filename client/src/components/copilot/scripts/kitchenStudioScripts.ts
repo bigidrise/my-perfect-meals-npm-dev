@@ -20,11 +20,11 @@ export const KITCHEN_STUDIO_INGREDIENTS_PACE =
 
 // Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
-  "Got it. Let me walk you through the cookware you'll need.";
+  "Got it. How many servings.";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "Before we start cooking, take a quick look to make sure you have all the tools we need to prepare our dish. Check this list and get these lined up and tell me if anything’s missing.";
+  "Now very important to double check to make sure before we start cooking, to make sure you have all the tools and ingredients we need to prepare our dish. There is nothing worse than getting halfway through preparing a dish and realizing you're missing ingredients. So before we start, let’s get everything lined up — check the ingredient list, grab your pots and pans, and make sure your kitchen is ready so we can cook without interruptions.";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
