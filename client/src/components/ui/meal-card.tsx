@@ -52,13 +52,16 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
     
     if (isOnChefsKitchen) {
       // Already on page - dispatch event to switch to prepare mode directly
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
       window.dispatchEvent(new CustomEvent("chefs-kitchen-prepare", { detail: mealData }));
     } else {
-      // Not on page - store and navigate
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-      localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
-      setLocation("/lifestyle/chefs-kitchen");
+      // Navigate with route state - IDENTICAL logic to "Prepare This Meal"
+      // Goes directly to Phase 2, no Phase 1 initialization
+      setLocation("/lifestyle/chefs-kitchen", { 
+        state: { 
+          mode: "prepare", 
+          meal: mealData 
+        } 
+      });
     }
   };
   

@@ -36,8 +36,18 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 type KitchenMode = "entry" | "studio" | "prepare";
 
 // Check for external prepare mode synchronously on load
+// Priority: 1) Route state (from navigation) 2) localStorage (legacy fallback)
 function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
   try {
+    // PRIORITY 1: Check route state - this is the unified "Prepare with Chef" entry
+    const routeState = window.history.state;
+    if (routeState?.mode === "prepare" && routeState?.meal) {
+      // Clear state to prevent re-entry on refresh
+      window.history.replaceState({}, "", window.location.pathname);
+      return { mode: "prepare", meal: routeState.meal as GeneratedMeal };
+    }
+    
+    // PRIORITY 2: Legacy localStorage fallback (for same-page events or old behavior)
     const externalPrepare = localStorage.getItem("mpm_chefs_kitchen_external_prepare");
     const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
     
