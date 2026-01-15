@@ -79,14 +79,13 @@ export default function MealCardActions({
       // Already on page - dispatch event to switch to prepare mode directly
       window.dispatchEvent(new CustomEvent("chefs-kitchen-prepare", { detail: mealData }));
     } else {
-      // Navigate with route state - this is the IDENTICAL logic to "Prepare This Meal"
-      // Route state passes meal and mode directly, Chef's Kitchen reads it and goes to Phase 2
-      setLocation("/lifestyle/chefs-kitchen", { 
-        state: { 
-          mode: "prepare", 
-          meal: mealData 
-        } 
-      });
+      // Store meal FIRST, then set flag, then navigate
+      // This ensures Chef's Kitchen reads the data reliably on mount
+      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+      localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+      // Clear any stale prep state
+      localStorage.removeItem("mpm_chefs_kitchen_prep");
+      setLocation("/lifestyle/chefs-kitchen");
     }
   };
 
