@@ -127,7 +127,6 @@ import WinePairing from "@/pages/wine-pairing";
 import SocializingHub from "@/pages/SocializingHub";
 import SocialFindMeals from "@/pages/SocialFindMeals";
 import SocialRestaurantGuide from "@/pages/SocialRestaurantGuide";
-import PrepareMealPage from "@/pages/PrepareMealPage";
 
 // Founders page
 import FoundersPage from "@/pages/Founders";
@@ -502,11 +501,6 @@ export default function Router() {
         {/* DELETED: /meal-finder route (old MealFinder moved to _quarantine - use /social-hub/find instead) */}
         {/* Founders Route */}
         <Route path="/founders" component={FoundersPage} />
-        {/* Prepare with Chef (guided cooking mode) */}
-        <Route
-          path="/prepare-meal"
-          component={withPageErrorBoundary(PrepareMealPage, "Prepare with Chef")}
-        />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}
         <Route path="/supplement-hub" component={SupplementHub} />

@@ -251,10 +251,11 @@ export default function ChefsKitchenPage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(CHEF_MEAL_KEY);
+      const externalPrepare = localStorage.getItem("mpm_chefs_kitchen_external_prepare");
+      
       if (saved) {
         const parsed = JSON.parse(saved) as GeneratedMeal;
         setGeneratedMeal(parsed);
-        setMode("studio");
         setStudioStep(6);
         // Lock all steps since we have a generated meal
         setStep1Locked(true);
@@ -266,6 +267,16 @@ export default function ChefsKitchenPage() {
         // Hydrate servings from persisted meal
         if (parsed.servings) {
           setServings(parsed.servings);
+        }
+        
+        // Check for external prepare flag (from meal cards)
+        if (externalPrepare === "true") {
+          localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+          localStorage.removeItem("mpm_chefs_kitchen_prep"); // Clear stale prep state
+          setPrepStep(0);
+          setMode("prepare");
+        } else {
+          setMode("studio");
         }
       }
     } catch {
