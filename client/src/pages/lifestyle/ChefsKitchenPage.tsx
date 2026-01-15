@@ -47,6 +47,13 @@ import {
   KITCHEN_STUDIO_OPEN_PROGRESS2,
   KITCHEN_STUDIO_OPEN_COMPLETE,
   EQUIPMENT_BY_METHOD,
+  // Phase 2 - Cooking narration
+  KITCHEN_COOK_SETUP,
+  KITCHEN_COOK_READY,
+  KITCHEN_TIMER_START,
+  KITCHEN_TIMER_DONE,
+  KITCHEN_PLATING,
+  KITCHEN_FINISHED,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
@@ -261,6 +268,8 @@ export default function ChefsKitchenPage() {
         setTimerSeconds((prev) => {
           if (prev <= 1) {
             setIsTimerRunning(false);
+            // Timer finished - speak alert
+            speak(KITCHEN_TIMER_DONE);
             return 0;
           }
           return prev - 1;
@@ -382,6 +391,13 @@ export default function ChefsKitchenPage() {
     document.title = "Chef's Kitchen 👨🏿‍🍳 | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  // Phase 2: Calm transition when entering first cooking step
+  useEffect(() => {
+    if (mode === "prepare" && prepStep === 1) {
+      speak(KITCHEN_COOK_READY);
+    }
+  }, [prepStep, mode]);
 
   // Reset displayMeal when generatedMeal changes
   useEffect(() => {
@@ -1196,11 +1212,7 @@ export default function ChefsKitchenPage() {
                     {/* Listen to Chef */}
                     <button
                       className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
-                      onClick={() =>
-                        speak(
-                          "Before we start cooking, let's get everything ready. Make sure you have all your ingredients measured out and your equipment within reach.",
-                        )
-                      }
+                      onClick={() => speak(KITCHEN_COOK_SETUP)}
                     >
                       <Volume2 className="h-4 w-4" />
                       Listen to Chef
@@ -1256,11 +1268,7 @@ export default function ChefsKitchenPage() {
                           {/* Listen to Chef */}
                           <button
                             className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
-                            onClick={() =>
-                              speak(
-                                `Nice work! Time to plate up. Divide this evenly into ${servings} ${servings === 1 ? "portion" : "portions"}. Serve it warm, and if you want to add a finishing touch, try some fresh herbs, a squeeze of lemon, or some greens on the side.`,
-                              )
-                            }
+                            onClick={() => speak(KITCHEN_PLATING)}
                           >
                             <Volume2 className="h-4 w-4" />
                             Listen to Chef
@@ -1345,6 +1353,7 @@ export default function ChefsKitchenPage() {
                                     stopChef();
                                     setTimerSeconds(detectedTimer);
                                     setIsTimerRunning(true);
+                                    speak(KITCHEN_TIMER_START);
                                   }}
                                 >
                                   <Play className="h-4 w-4" />
