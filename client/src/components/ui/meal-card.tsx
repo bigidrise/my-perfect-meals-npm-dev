@@ -2,11 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Zap } from "lucide-react";
+import { Clock, Users, Zap, ChefHat } from "lucide-react";
 import type { Recipe } from "@shared/schema";
 import MedicalInfoBubble from "@/components/MedicalInfoBubble";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 
 interface MealCardProps {
   recipe?: Recipe;
@@ -21,6 +22,9 @@ interface MealCardProps {
 export default function MealCard({ recipe, compact = false, onSelect, onViewRecipe, onSendToShoppingList, onCreateMeal, onReplace }: MealCardProps) {
   const { user } = useAuth();
   const userId = user?.id?.toString() || "";
+  const [, setLocation] = useLocation();
+  
+  const hasInstructions = recipe?.instructions && recipe.instructions.length > 0;
   
   if (!recipe) {
     return (
@@ -229,6 +233,37 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
                 Mark as Eaten
               </Button>
             </div>
+            {hasInstructions && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const mealForKitchen = {
+                    id: recipe.id?.toString() || crypto.randomUUID(),
+                    name: recipe.name,
+                    description: recipe.description,
+                    mealType: recipe.mealType,
+                    ingredients: recipe.ingredients || [],
+                    instructions: recipe.instructions,
+                    imageUrl: recipe.imageUrl,
+                    calories: recipe.calories,
+                    protein: recipe.protein,
+                    carbs: recipe.carbs,
+                    fat: recipe.fat,
+                    servings: recipe.servings,
+                    servingSize: (recipe as any).servingSize,
+                    medicalBadges: (recipe as any).medicalBadges || [],
+                  };
+                  localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealForKitchen));
+                  localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                  localStorage.removeItem("mpm_chefs_kitchen_prep");
+                  setLocation("/lifestyle/chefs-kitchen");
+                }}
+                className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition flex items-center justify-center gap-2"
+              >
+                <ChefHat className="h-4 w-4" />
+                Prepare This Meal
+              </button>
+            )}
           </div>
         )}
         
