@@ -122,24 +122,20 @@ Automated safeguards to prevent production issues and catch regressions early.
 - If meal generation is INSTANT (< 2 seconds), AI is not working
 - Real AI generation takes 15-30 seconds
 
-## Deferred Features (Post-App Store Approval)
+## Re-Enabled Features
 
-### Profile Photo Upload (v1.0.1 or v1.1)
-**Status**: Intentionally deferred — not broken, not technical debt.
+### Profile Photo Upload (Jan 2026)
+**Status**: ACTIVE — fully functional on web and iOS.
 
-**Context**: Profile photo upload previously existed and worked on web, but was removed from iOS during early builds due to missing camera permission stability. At that time, MacroScan and other camera features were not functioning reliably on iOS.
+**Context**: Profile photo upload was previously deferred during iOS builds due to camera permission instability. Now that MacroScan camera and Capacitor permissions are stable, the feature is re-enabled.
 
-**Current State (Jan 2026)**:
-- MacroScan camera is now fully functional on iOS
-- Location and permission handling are stable
-- Capacitor camera plugin is confirmed working
-- Profile photo UI is currently hidden/disabled in the profile sheet
+**How it works**:
+- Users tap their profile avatar on the Profile page to select a photo
+- Uses standard file input (photo library by default, camera as option)
+- Uploads to object storage via `/api/uploads/request-url`
+- Saves URL to user profile via `/api/users/profile-photo`
+- Database column `profile_photo_url` stores the URL
 
-**Implementation Plan**:
-- Re-enable profile photo upload in the user profile sheet
-- Default to **photo library selection**, with optional camera capture
-- Ensure camera usage is isolated to profile personalization only
-- Reuse existing web logic where possible
-- Add clear permission messaging ("Used only to personalize your profile")
-
-**Why Deferred**: Camera permission stack wasn't ready during initial iOS builds. Prioritized App Store approval over cosmetic personalization features. Dependencies are now resolved — this is a fast follow, not a rebuild.
+**Key files**:
+- `client/src/pages/Profile.tsx` - Upload UI with camera icon overlay
+- `server/routes.ts` - `/api/users/profile-photo` endpoint
