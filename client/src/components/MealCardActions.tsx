@@ -1,25 +1,40 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
+import { ChefHat } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 
 interface MealData {
+  id?: string;
   name: string;
   description?: string;
+  mealType?: string;
   instructions?: string[] | string;
   notes?: string;
-  ingredients?: Array<{ name: string; amount?: string; unit?: string } | string>;
+  ingredients?: Array<{ name: string; amount?: string | number; unit?: string } | string>;
   nutrition?: {
     calories?: number;
     protein?: number;
     carbs?: number;
     fat?: number;
   };
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  imageUrl?: string | null;
+  servings?: number;
+  servingSize?: string;
+  medicalBadges?: string[];
 }
 
 interface MealCardActionsProps {
   meal: MealData;
   onContentUpdate?: (updated: Partial<MealData>) => void;
   showTranslate?: boolean;
+  showPrepareButton?: boolean;
+  source?: string;
   className?: string;
 }
 
@@ -27,9 +42,47 @@ export default function MealCardActions({
   meal, 
   onContentUpdate,
   showTranslate = true,
+  showPrepareButton = true,
+  source = "unknown",
   className 
 }: MealCardActionsProps) {
+  const [, setLocation] = useLocation();
   const [displayContent, setDisplayContent] = useState<Partial<MealData>>({});
+  
+  const hasInstructions = meal.instructions && 
+    (Array.isArray(meal.instructions) ? meal.instructions.length > 0 : meal.instructions.length > 0);
+  
+  const handlePrepareWithChef = () => {
+    if (!hasInstructions) return;
+    
+    const mealData = {
+      id: meal.id,
+      name: meal.name,
+      description: meal.description,
+      mealType: meal.mealType,
+      ingredients: meal.ingredients || [],
+      instructions: meal.instructions,
+      imageUrl: meal.imageUrl,
+      calories: meal.nutrition?.calories || meal.calories,
+      protein: meal.nutrition?.protein || meal.protein,
+      carbs: meal.nutrition?.carbs || meal.carbs,
+      fat: meal.nutrition?.fat || meal.fat,
+      servings: meal.servings,
+      servingSize: meal.servingSize,
+      medicalBadges: meal.medicalBadges || [],
+    };
+    
+    // Store meal data in localStorage before navigation (avoids history state issues)
+    localStorage.setItem("mpm_prepare_meal", JSON.stringify({
+      meal: mealData,
+      source,
+      currentStep: 0,
+      completedSteps: [],
+      timestamp: Date.now(),
+    }));
+    
+    setLocation("/prepare-meal");
+  };
 
   const currentName = displayContent.name || meal.name;
   const currentDescription = displayContent.description || meal.description;
@@ -47,32 +100,44 @@ export default function MealCardActions({
     }
     return { 
       name: ing.name || "", 
-      amount: ing.amount, 
+      amount: ing.amount !== undefined ? String(ing.amount) : undefined, 
       unit: ing.unit 
     };
   });
 
   return (
-    <div className={`flex gap-2 ${className || ""}`}>
-      <ShareRecipeButton
-        recipe={{
-          name: currentName,
-          description: currentDescription,
-          nutrition: meal.nutrition,
-          ingredients: normalizedIngredients,
-        }}
-        className="flex-1"
-      />
-      {showTranslate && (
-        <TranslateToggle
-          content={{
-            name: meal.name,
-            description: meal.description,
-            instructions: meal.instructions,
-            notes: meal.notes,
+    <div className={`flex flex-col gap-2 ${className || ""}`}>
+      <div className="flex gap-2">
+        <ShareRecipeButton
+          recipe={{
+            name: currentName,
+            description: currentDescription,
+            nutrition: meal.nutrition,
+            ingredients: normalizedIngredients,
           }}
-          onTranslate={handleTranslate}
+          className="flex-1"
         />
+        {showTranslate && (
+          <TranslateToggle
+            content={{
+              name: meal.name,
+              description: meal.description,
+              instructions: meal.instructions,
+              notes: meal.notes,
+            }}
+            onTranslate={handleTranslate}
+          />
+        )}
+      </div>
+      {showPrepareButton && hasInstructions && (
+        <Button
+          size="sm"
+          className="w-full bg-lime-600 hover:bg-lime-500 text-black font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
+          onClick={handlePrepareWithChef}
+        >
+          <ChefHat className="h-4 w-4" />
+          Prepare with Chef
+        </Button>
       )}
     </div>
   );

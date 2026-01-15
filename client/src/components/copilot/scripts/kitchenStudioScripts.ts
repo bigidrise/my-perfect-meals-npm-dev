@@ -22,6 +22,14 @@ export const KITCHEN_STUDIO_INGREDIENTS_PACE =
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
   "Got it. How many people are you cooking for?";
 
+// Kitchen Studio - Servings question
+export const KITCHEN_STUDIO_SERVINGS =
+  "How many people are you cooking for?";
+
+// Kitchen Studio - After servings confirmed
+export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
+  "Got it. Now let's make sure you have everything you need.";
+
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
   "Now very important to double check to make sure before we start cooking, to make sure you have all the tools and ingredients we need to prepare our dish. There is nothing worse than getting halfway through preparing a dish and realizing you're missing ingredients. So before we start, let’s get everything lined up — check the ingredient list, grab your pots and pans, and make sure your kitchen is ready so we can cook without interruptions.";
