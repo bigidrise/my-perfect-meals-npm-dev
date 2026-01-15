@@ -1,5 +1,47 @@
 # My Perfect Meals - Full-Stack Application
 
+## 🚨 AGENT ONBOARDING — READ THIS FIRST (Jan 2026)
+
+**What This Project Is:**
+My Perfect Meals (MPM) is a **LIVE production app in the Apple App Store**. It's a comprehensive AI-powered meal planning and nutrition tracking application. Users pay for subscriptions, this is a real business.
+
+**Current Status:**
+- ✅ **App Store LIVE** — iOS app approved and available for download
+- ✅ **Production deployed** — Replit Autoscale deployment
+- ✅ **Stripe payments active** — Web billing works
+- ✅ **StoreKit 2 active** — iOS in-app purchases work
+- ✅ **AI meal generation working** — OpenAI GPT-4 + DALL-E 3
+
+**How Development Works:**
+1. **This is the DEVELOPMENT environment** — Make changes here, test, then deploy to production
+2. **Production is separate** — There's a production Replit space that gets deployed
+3. **iOS builds** — Changes that affect iOS require Xcode builds and TestFlight/App Store submission
+4. **Database** — PostgreSQL via Replit's built-in database. Dev and prod have separate databases.
+
+**Critical Rules:**
+1. **ASK before major changes** — User prefers iterative development with approval
+2. **DO NOT modify Meal Visual Alignment System v1** without explicit approval (AI prompts, image prompts, ensureImage logic, S3 upload logic)
+3. **Read `/docs/STARCH_STRATEGY_AND_MEAL_BOARD_DOCTRINE.md`** for product decisions about starch strategy and intentionally hidden features
+4. **iOS compliance is critical** — App Store Guidelines 3.1.1 (no external payment references on iOS) and 1.4.1 (medical citations required)
+
+**Key External Services:**
+- OpenAI API — AI meal generation + DALL-E 3 images
+- Amazon S3 — Meal image storage
+- Stripe — Web payment processing
+- Apple StoreKit 2 — iOS in-app purchases
+- Twilio — SMS (optional)
+- SendGrid/Resend — Email
+
+**When Starting Fresh (New Replit Space):**
+If you're in a new/remixed environment and see database errors about missing columns, you may need to sync the database schema. Common missing columns include: `profile_photo_url`, `role`, `is_pro_care`, `active_board`, `onboarding_completed_at`, `macros_defined`, `starch_plan_defined`, `onboarding_mode`. Add them with `ALTER TABLE users ADD COLUMN IF NOT EXISTS...`.
+
+**Quick Health Check:**
+- Run `npm run dev` to start the server
+- Check `/api/health` endpoint for AI and S3 status
+- If meal generation is instant (<2 seconds), AI is NOT working (should take 15-30 seconds)
+
+---
+
 ## Overview
 My Perfect Meals is a comprehensive meal planning and nutrition tracking application that provides AI-powered, personalized dietary solutions. It offers a seamless full-stack experience for health-conscious individuals, leveraging AI for meal generation, visual meal alignment, and real-time clinical data integration for specific health conditions like diabetes. The project aims to empower users with efficient meal management and advanced nutritional insights.
 
