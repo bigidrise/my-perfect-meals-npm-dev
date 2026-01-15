@@ -2,39 +2,54 @@
 // Uses the same 11L voice system as ProTip and Copilot button
 
 export const KITCHEN_STUDIO_INTRO =
-  "Alright - What do we feel like making today?";
+  "Alright — what do we feel like making today?";
 
-export const KITCHEN_STUDIO_STEP2 = "Nice. What are using to cook? ";
+export const KITCHEN_STUDIO_STEP2 =
+  "Perfect. How are we cooking it today?";
 
 // Kitchen Studio - Cooking method question
-export const KITCHEN_STUDIO_COOK_METHOD = "";
+export const KITCHEN_STUDIO_COOK_METHOD =
+  "Stovetop, oven, air fryer, or grill?";
 
 // Kitchen Studio - After cooking method selected
 export const KITCHEN_STUDIO_COOK_CONFIRMED =
-  "Perfect. Now let me explain how this works.";
+  "Perfect. Quick setup question before we start.";
 
-// Kitchen Studio - Preferences question (more specific)
+// Kitchen Studio - Preferences / guardrails (micro-lines)
+export const KITCHEN_STUDIO_PREFS_LINE1 =
+  "Any dietary needs — vegan, plant-based, allergies, or sensitivities?";
+export const KITCHEN_STUDIO_PREFS_LINE2 =
+  "Or do you just want to keep it lower in sugar, gluten, fat, or sodium?";
+export const KITCHEN_STUDIO_PREFS_LINE3 =
+  "What cuisine are we feeling today?";
+export const KITCHEN_STUDIO_PREFS_LINE4 =
+  "And how much time do you have — quick and easy, or more involved?";
+export const KITCHEN_STUDIO_PREFS_LINE5 =
+  "You can speak in any language. Use Translate on the meal card anytime.";
+
+// If you need a single combined string for the UI, keep this too:
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
-  "First we're going to discuss what type of foods you want to prepare. Let me know if you’re vegan or plant-based, if you have any food allergies, sensitivities, or special dietary needs — or if you’re that food lover who simply wants to keep things lower in sugar, gluten, fat, or sodium. You can also create meals from any cuisine. Pressed for time? Tell me how much time you have to prepare the dish. We can create something that's quick and simple or something that's a little more involved and might take a little more time. You can speak to me in any language and I can create your meal. Use the Translate button on the meal card to instantly convert the text to your phone’s default language.";
+  "Any dietary needs — vegan, plant-based, allergies, or sensitivities? Or do you just want to keep it lower in sugar, gluten, fat, or sodium? Choose any cuisine, and tell me how much time you have — quick and easy or more involved. You can speak in any language, and use Translate on the meal card anytime.";
 
 // Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
-  "Got it. How many people are you cooking for?";
+  "Got it. How many people are we cooking for?";
 
 // Kitchen Studio - Servings question
-export const KITCHEN_STUDIO_SERVINGS = "";
+export const KITCHEN_STUDIO_SERVINGS =
+  "How many servings do you want?";
 
 // Kitchen Studio - After servings confirmed
 export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
-  "Got it. Now let's make sure you have everything you need.";
+  "Perfect. Let’s make sure you’ve got what you need.";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "Now very important to double check to make sure before we start cooking, to make sure you have all the tools and ingredients we need to prepare our dish. There is nothing worse than getting halfway through preparing a dish and realizing you're missing ingredients. So before we start, let’s get everything lined up — check the ingredient list, grab your pots and pans, and make sure your kitchen is ready so we can cook without interruptions.";
+  "Quick check: make sure you’ve got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something. Grab what you need, and let’s get cooking.";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "If everything is set, press the Generate button and let’s see what we’ve created.";
+  "If you’re set, hit Generate — let’s see what we’ve got.";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
@@ -58,3 +73,28 @@ export const KITCHEN_STUDIO_OPEN_PROGRESS1 = "";
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 
 export const KITCHEN_STUDIO_OPEN_COMPLETE = "";
+
+// Phase 2 - Cooking narration scripts
+// Kitchen Cook Setup - spoken during equipment setup
+export const KITCHEN_COOK_SETUP =
+  "Let's make sure you have everything you need before we start.";
+
+// Kitchen Cook Ready - spoken when meal is ready to prepare
+export const KITCHEN_COOK_READY =
+  "Your meal is ready. Let's start cooking!";
+
+// Kitchen Timer Start - spoken when a timer begins
+export const KITCHEN_TIMER_START =
+  "Timer started. I'll let you know when it's done.";
+
+// Kitchen Timer Done - spoken when a timer completes
+export const KITCHEN_TIMER_DONE =
+  "Time's up! Let's move to the next step.";
+
+// Kitchen Plating - spoken during plating step
+export const KITCHEN_PLATING =
+  "Time to plate up. Make it look as good as it tastes.";
+
+// Kitchen Finished - spoken when meal is complete
+export const KITCHEN_FINISHED =
+  "And we're done! Enjoy your meal.";
