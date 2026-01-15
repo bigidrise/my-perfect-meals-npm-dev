@@ -36,27 +36,22 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 type KitchenMode = "entry" | "studio" | "prepare";
 
 // Check for external prepare mode synchronously on load
-// Reads localStorage flags set by "Prepare with Chef" buttons
-function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
+// Reads localStorage flags set by "Prepare This Meal" buttons
+// NOTE: We read but DON'T clear here - React strict mode calls this twice
+function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null; shouldClearFlag: boolean } {
   try {
     const externalPrepare = localStorage.getItem("mpm_chefs_kitchen_external_prepare");
     const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
     
-    console.log("[Chef's Kitchen] getInitialMode check:", { externalPrepare, hasSaved: !!saved });
-    
     if (externalPrepare === "true" && saved) {
-      // Clear flags immediately to prevent re-entry
-      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
-      localStorage.removeItem("mpm_chefs_kitchen_prep");
       const parsed = JSON.parse(saved) as GeneratedMeal;
       console.log("[Chef's Kitchen] External prepare mode detected, meal:", parsed.name);
-      return { mode: "prepare", meal: parsed };
+      return { mode: "prepare", meal: parsed, shouldClearFlag: true };
     }
   } catch (e) {
     console.error("[Chef's Kitchen] getInitialMode error:", e);
   }
-  console.log("[Chef's Kitchen] Normal entry mode");
-  return { mode: "entry", meal: null };
+  return { mode: "entry", meal: null, shouldClearFlag: false };
 }
 
 interface GeneratedMeal {
@@ -89,11 +84,21 @@ export default function ChefsKitchenPage() {
   const quickTour = useQuickTour("chefs-kitchen");
   
   // Check for external prepare mode SYNCHRONOUSLY on first render
-  const initialState = getInitialMode();
+  const [initialState] = useState(() => getInitialMode());
   const [mode, setMode] = useState<KitchenMode>(initialState.mode);
   const [externalMeal] = useState<GeneratedMeal | null>(initialState.meal);
   // Track if we started in prepare mode to prevent later effects from overriding
   const [startedInPrepareMode] = useState(initialState.mode === "prepare");
+  
+  // Clear the external prepare flag AFTER mount (not during render)
+  // This prevents React strict mode double-render from clearing it before we use it
+  useEffect(() => {
+    if (initialState.shouldClearFlag) {
+      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+      localStorage.removeItem("mpm_chefs_kitchen_prep");
+      console.log("[Chef's Kitchen] Cleared external prepare flag after mount");
+    }
+  }, []);
 
   // Kitchen Studio state (6 steps: Dish, Method, Preferences, Servings, Equipment, Generate)
   const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
