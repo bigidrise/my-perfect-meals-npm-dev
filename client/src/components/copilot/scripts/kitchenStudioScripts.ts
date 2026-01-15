@@ -20,7 +20,7 @@ export const KITCHEN_STUDIO_INGREDIENTS_PACE =
 
 // Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
-  "Got it. How many servings.";
+  "Got it. How many people are you cooking for, basically how many servings?";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
@@ -54,11 +54,3 @@ export const KITCHEN_STUDIO_OPEN_PROGRESS2 =
   "";
 
 export const KITCHEN_STUDIO_OPEN_COMPLETE = "";
-
-// Kitchen Studio - Servings question
-export const KITCHEN_STUDIO_SERVINGS =
-  "How many servings would you like to make?";
-
-// Kitchen Studio - After servings confirmed
-export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
-  "Perfect. I'll prepare that for you.";
