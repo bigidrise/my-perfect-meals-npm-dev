@@ -35,6 +35,25 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 type KitchenMode = "entry" | "studio" | "prepare";
 
+// Check for external prepare mode synchronously on load
+function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
+  try {
+    const externalPrepare = localStorage.getItem("mpm_chefs_kitchen_external_prepare");
+    const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
+    
+    if (externalPrepare === "true" && saved) {
+      // Clear flags immediately
+      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+      localStorage.removeItem("mpm_chefs_kitchen_prep");
+      const parsed = JSON.parse(saved) as GeneratedMeal;
+      return { mode: "prepare", meal: parsed };
+    }
+  } catch {
+    // Ignore errors
+  }
+  return { mode: "entry", meal: null };
+}
+
 interface GeneratedMeal {
   id: string;
   name: string;
@@ -63,7 +82,11 @@ interface GeneratedMeal {
 export default function ChefsKitchenPage() {
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("chefs-kitchen");
-  const [mode, setMode] = useState<KitchenMode>("entry");
+  
+  // Check for external prepare mode SYNCHRONOUSLY on first render
+  const initialState = getInitialMode();
+  const [mode, setMode] = useState<KitchenMode>(initialState.mode);
+  const [externalMeal] = useState<GeneratedMeal | null>(initialState.meal);
 
   // Kitchen Studio state (6 steps: Dish, Method, Preferences, Servings, Equipment, Generate)
   const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
@@ -232,8 +255,9 @@ export default function ChefsKitchenPage() {
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  // Initialize with external meal if coming from prepare mode
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(
-    null
+    externalMeal
   );
   const [generationError, setGenerationError] = useState<string | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -247,11 +271,13 @@ export default function ChefsKitchenPage() {
   // Persistence key for Chef's Kitchen meal
   const CHEF_MEAL_KEY = "mpm_chefs_kitchen_meal";
 
-  // Load persisted meal on mount
+  // Load persisted meal on mount (only for studio/entry mode - external prepare is handled synchronously)
   useEffect(() => {
+    // Skip if we already have an external meal loaded for prepare mode
+    if (externalMeal) return;
+    
     try {
       const saved = localStorage.getItem(CHEF_MEAL_KEY);
-      const externalPrepare = localStorage.getItem("mpm_chefs_kitchen_external_prepare");
       
       if (saved) {
         const parsed = JSON.parse(saved) as GeneratedMeal;
@@ -268,21 +294,12 @@ export default function ChefsKitchenPage() {
         if (parsed.servings) {
           setServings(parsed.servings);
         }
-        
-        // Check for external prepare flag (from meal cards)
-        if (externalPrepare === "true") {
-          localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
-          localStorage.removeItem("mpm_chefs_kitchen_prep"); // Clear stale prep state
-          setPrepStep(0);
-          setMode("prepare");
-        } else {
-          setMode("studio");
-        }
+        setMode("studio");
       }
     } catch {
       // Ignore parse errors
     }
-  }, []);
+  }, [externalMeal]);
   
   // Persist meal when generated
   useEffect(() => {
