@@ -1,0 +1,86 @@
+on-do-not-touch/capacitor.config.ts
+/Users/iosbuild/my-perfect-meals-clean-ai/capacitor.config.ts
+^C
+iosbuild@Idrises-iMac ~ % ~/workspace$ npx cap sync ios
+✔ Copying web assets from dist to ios/App/App/public in 35.22ms
+✔ Creating capacitor.config.json in ios/App/App in 1.41ms
+✔ copy ios in 158.26ms
+✔ Updating iOS plugins in 29.12ms
+[warn] Skipping pod install because CocoaPods is not installed
+[warn] Unable to find "xcodebuild". Skipping xcodebuild clean step...
+✔ Updating iOS native dependencies with pod install in 17.00ms
+[info] Found 7 Capacitor plugins for ios:
+       @capacitor/geolocation@8.0.0
+       @capacitor/local-notifications@8.0.0
+       @capacitor/preferences@8.0.0
+       @capacitor/share@8.0.0
+       @capacitor/splash-screen@8.0.0
+       @squareetlabs/capacitor-subscriptions@1.0.25
+       capacitor-native-settings@7.0.2
+✔ update ios in 135.62ms
+[info] Sync finished in 0.441s
+~/workspace$ git pull
+Already up to date.
+~/workspace$
+
+iosbuild@Idrises-iMac ~ % git pull
+fatal: not a git repository (or any of the parent directories): .git
+iosbuild@Idrises-iMac ~ % cd ~/path/to/your/project
+cd: no such file or directory: /Users/iosbuild/path/to/your/project
+iosbuild@Idrises-iMac ~ % cd /Users/iosbuild/my-perfect-meals-clean-ai
+iosbuild@Idrises-iMac my-perfect-meals-clean-ai % git pull
+remote: Enumerating objects: 164, done.
+remote: Counting objects: 100% (164/164), done.
+remote: Compressing objects: 100% (21/21), done.
+remote: Total 131 (delta 112), reused 129 (delta 110), pack-reused 0 (from 0)
+Receiving objects: 100% (131/131), 68.99 KiB | 1.21 MiB/s, done.
+Resolving deltas: 100% (112/112), completed with 30 local objects.
+From https://github.com/bigidrise/my-perfect-meals-clean-ai
+   80c4a5e1..9cbcc169  main       -> origin/main
+Updating 80c4a5e1..9cbcc169
+Fast-forward
+ ...blunt-now-because-at-this-poi_1767745502831.txt |  161 ++++
+ ...right-call-focusing-on-low-ha_1767755822433.txt |  136 +++
+ ...e-calm-practical-plan-Apple-r_1767747324609.txt |  128 +++
+ ...-bubble-that-nags-but-a-guide_1767738798855.txt |  128 +++
+ ...The-Replit-agent-is-technical_1767736800373.txt |  173 ++++
+ ...ACTLY-what-s-happening-and-I-_1767736563175.txt | 1013 ++++++++++++++++++++
+ client/src/components/AppRouter.tsx                |   11 +-
+ client/src/components/MealCard.tsx                 |    8 +-
+ client/src/components/MealCardActions.tsx          |   79 ++
+ client/src/components/ShareRecipeButton.tsx        |  106 ++
+ client/src/components/TranslateToggle.tsx          |  155 +++
+ client/src/components/copilot/ChefCapIcon.tsx      |    2 +-
+ .../components/copilot/CopilotPageExplanations.ts  |   23 +-
+ client/src/contexts/AuthContext.tsx                |   46 +-
+ client/src/lib/guestMode.ts                        |    2 +-
+ client/src/pages/AlcoholLeanAndSocial.tsx          |   23 +-
+ client/src/pages/CravingDessertCreator.tsx         |    8 +-
+ client/src/pages/CravingPresets.tsx                |    8 +-
+ client/src/pages/GuestBuilder.tsx                  |  323 ++++---
+ client/src/pages/Welcome.tsx                       |  104 +-
+ client/src/pages/craving-creator.tsx               |    8 +-
+ client/src/pages/fridge-rescue.tsx                 |    8 +-
+ client/src/pages/kids-meals-hub.tsx                |   23 +-
+ client/src/pages/mocktails-low-cal-mixers.tsx      |   24 +-
+ client/src/pages/onboarding/ExtendedOnboarding.tsx |   48 +-
+ client/src/pages/toddlers-meals-hub.tsx            |   23 +-
+ docs/FUTURE_MEAL_CARD_ENHANCEMENTS.md              |   99 ++
+ package-lock.json                                  |   10 +
+ package.json                                       |    1 +
+ replit.md                                          |   18 +-
+ server/index.ts                                    |    4 +
+ server/routes/translate.ts                         |   89 ++
+ 32 files changed, 2719 insertions(+), 273 deletions(-)
+ create mode 100644 attached_assets/Pasted-Good-I-m-going-to-be-very-blunt-now-because-at-this-poi_1767745502831.txt
+ create mode 100644 attached_assets/Pasted-Perfect-you-re-making-the-right-call-focusing-on-low-ha_1767755822433.txt
+ create mode 100644 attached_assets/Pasted-Short-answer-first-then-the-calm-practical-plan-Apple-r_1767747324609.txt
+ create mode 100644 attached_assets/Pasted-Yes-100-yes-And-not-a-chat-bubble-that-nags-but-a-guide_1767738798855.txt
+ create mode 100644 attached_assets/Pasted-Yes-and-pause-right-there-The-Replit-agent-is-technical_1767736800373.txt
+ create mode 100644 attached_assets/Pasted-sets-Pasted-Coach-I-see-EXACTLY-what-s-happening-and-I-_1767736563175.txt
+ create mode 100644 client/src/components/MealCardActions.tsx
+ create mode 100644 client/src/components/ShareRecipeButton.tsx
+ create mode 100644 client/src/components/TranslateToggle.tsx
+ create mode 100644 docs/FUTURE_MEAL_CARD_ENHANCEMENTS.md
+ create mode 100644 server/routes/translate.ts
+iosbuild@Idrises-iMac my-perfect-meals-clean-ai % 
