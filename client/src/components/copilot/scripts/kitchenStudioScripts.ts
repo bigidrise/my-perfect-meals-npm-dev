@@ -49,7 +49,7 @@ export const KITCHEN_STUDIO_EQUIPMENT =
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "Ready to see what we created? Hit Generate?";
+  "Drum roll, please... ";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
