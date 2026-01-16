@@ -7,8 +7,10 @@ import {
   useUpdateShot,
   useDeleteShot,
   type InjectionLocation,
+  type ShotEntry,
 } from "@/hooks/useGlp1Shots";
 import { Capacitor } from "@capacitor/core";
+import { logEnvironmentFingerprint, ApiError } from "@/lib/api";
 
 const LABEL: Record<InjectionLocation, string> = {
   abdomen: "Abdomen",
@@ -23,22 +25,34 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
   const updateM = useUpdateShot(userId);
   const deleteM = useDeleteShot(userId);
 
-  const shots = (shotsQ.data as any[]) ?? [];
+  const shots = (shotsQ.data as ShotEntry[]) ?? [];
   const isNative = Capacitor.isNativePlatform();
   
-  // Debug logging for iOS issues
+  // Environment fingerprint on mount (iOS only)
   useEffect(() => {
     if (isNative) {
-      console.log("[ShotTracker] iOS platform detected, userId:", userId);
+      logEnvironmentFingerprint('ShotTracker:mount', userId);
+    }
+  }, [isNative, userId]);
+  
+  // Debug logging for iOS query state changes
+  useEffect(() => {
+    if (isNative && (shotsQ.isError || shotsQ.isFetched)) {
+      const error = shotsQ.error as ApiError | Error | null;
       console.log("[ShotTracker] Query state:", {
         isLoading: shotsQ.isLoading,
         isError: shotsQ.isError,
-        error: shotsQ.error?.message || shotsQ.error,
+        status: error instanceof ApiError ? error.status : null,
+        errorMessage: error?.message,
+        isAuthError: error instanceof ApiError ? error.isAuthError : false,
         dataLength: shotsQ.data?.length,
         isFetched: shotsQ.isFetched,
       });
     }
-  }, [isNative, userId, shotsQ.isLoading, shotsQ.isError, shotsQ.error, shotsQ.data, shotsQ.isFetched]);
+  }, [isNative, shotsQ.isLoading, shotsQ.isError, shotsQ.error, shotsQ.data, shotsQ.isFetched]);
+  
+  // Explicit auth check
+  const hasValidAuth = !!userId && userId !== 'undefined' && userId !== 'null';
 
   // quick add state
   const [doseMg, setDoseMg] = useState<number>(2.5);
@@ -57,11 +71,18 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
   const [editDateLocal, setEditDateLocal] = useState("");
 
   const addShot = async () => {
+    // Explicit auth check BEFORE API call
+    if (!hasValidAuth) {
+      alert("Session not available — please sign in again.");
+      return;
+    }
+    
     if (!doseMg || doseMg <= 0) return alert("Enter a valid dose (mg).");
     const asUTC = new Date(dateLocal).toISOString();
     
     try {
       if (isNative) {
+        logEnvironmentFingerprint('ShotTracker:saveShot', userId);
         console.log("[ShotTracker] Saving shot on iOS:", { dateUtc: asUTC, doseMg, site });
       }
       await createM.mutateAsync({
@@ -78,8 +99,25 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       setDateLocal(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
     } catch (err: any) {
       console.error("[ShotTracker] Error saving shot:", err);
+      
+      // Provide specific error messages based on error type
+      let errorMsg = "Connection error";
+      if (err instanceof ApiError) {
+        if (err.isAuthError) {
+          errorMsg = "Session expired — please sign in again";
+        } else if (err.isNetworkError) {
+          errorMsg = "No network connection";
+        } else if (err.isServerError) {
+          errorMsg = "Server error — please try again later";
+        } else {
+          errorMsg = `Error ${err.status}: ${err.body || err.statusText}`;
+        }
+      } else if (err?.message) {
+        errorMsg = err.message;
+      }
+      
       if (isNative) {
-        alert(`Failed to save shot: ${err?.message || "Connection error"}`);
+        alert(`Failed to save shot: ${errorMsg}`);
       }
     }
   };
@@ -179,23 +217,39 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       {/* History - Resilient to loading/error states */}
       <div className="bg-black/40 border border-white/15 rounded-xl p-3 mt-4">
         <h4 className="text-white font-semibold mb-2">History</h4>
-        {shotsQ.isLoading ? (
+        {!hasValidAuth ? (
+          <div className="text-amber-400/80 text-sm">
+            Please sign in to view shot history.
+          </div>
+        ) : shotsQ.isLoading ? (
           <div className="text-white/50 text-sm">Loading history...</div>
         ) : shotsQ.isError ? (
-          <div className="text-red-400/80 text-sm space-y-1">
-            <div>History unavailable</div>
-            {isNative && (
-              <div className="text-xs text-red-300/60">
-                Error: {(shotsQ.error as Error)?.message || "Connection failed"}
+          (() => {
+            const error = shotsQ.error as ApiError | Error | null;
+            const isApiError = error instanceof ApiError;
+            const statusCode = isApiError ? error.status : null;
+            const isAuthError = isApiError && error.isAuthError;
+            
+            return (
+              <div className="text-red-400/80 text-sm space-y-1">
+                <div>
+                  {isAuthError ? "Session expired — please sign in again" : "History unavailable"}
+                </div>
+                {isNative && (
+                  <div className="text-xs text-red-300/60">
+                    {statusCode !== null ? `Status ${statusCode}: ` : ''}
+                    {error?.message || "Connection failed"}
+                  </div>
+                )}
+                <Button 
+                  onClick={() => shotsQ.refetch()} 
+                  className="mt-2 bg-white/10 hover:bg-white/20 text-white h-7 px-3 text-xs"
+                >
+                  Retry
+                </Button>
               </div>
-            )}
-            <Button 
-              onClick={() => shotsQ.refetch()} 
-              className="mt-2 bg-white/10 hover:bg-white/20 text-white h-7 px-3 text-xs"
-            >
-              Retry
-            </Button>
-          </div>
+            );
+          })()
         ) : shots.length === 0 ? (
           <div className="text-white/70 text-sm">No shots logged yet.</div>
         ) : (
