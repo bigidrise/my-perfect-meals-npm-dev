@@ -8,13 +8,13 @@ export const MACRO_CALC_GOAL =
   "First up — what's your goal? Are you looking to lose weight, maintain, or put on some muscle?";
 
 export const MACRO_CALC_BODY_TYPE = 
-  "Got it. Now, what's your body type? This helps me fine-tune your metabolism. Are you naturally lean, medium build, or do you tend to hold onto weight easier?";
+  "Got it. Now, what's your body type? This helps me fine-tune your metabolism. Are you naturally lean, ectomorph, medium build, mesomorph or do you tend to hold onto weight easier, mesmorph?";
 
 export const MACRO_CALC_UNITS = 
-  "Quick one — do you prefer imperial or metric? Pounds and inches, or kilos and centimeters?";
+  "Quick one — do you prefer imperial or metric?";
 
 export const MACRO_CALC_SEX = 
-  "Next — and this is for metabolic calculations — are you male or female?";
+  "Next — and this is for metabolic calculations — is your biological sex male or female?";
 
 export const MACRO_CALC_AGE = 
   "What's your age? This affects how many calories you burn at rest.";
