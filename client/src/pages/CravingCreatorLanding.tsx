@@ -32,7 +32,7 @@ export default function CravingCreatorLanding() {
 
   const cravingFeatures: CravingFeature[] = [
     {
-      title: "Create Your Own",
+      title: "Craving Creator",
       description: "Use the original AI Craving Creator you already know",
       icon: Brain,
       route: "/craving-creator",
@@ -121,27 +121,51 @@ export default function CravingCreatorLanding() {
           <div className="flex flex-col gap-3">
             {cravingFeatures.map((feature) => {
               const Icon = feature.icon;
+              const isCravingCreator = feature.route === "/craving-creator";
+              
               return (
-                <Card
-                  key={feature.testId}
-                  className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl shadow-md"
-                  onClick={() => handleCardClick(feature.route)}
-                  data-testid={feature.testId}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                        <h3 className="text-sm font-semibold text-white">
-                          {feature.title}
-                        </h3>
+                <div key={feature.testId} className="relative">
+                  {isCravingCreator && (
+                    <div
+                      className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
+                      style={{
+                        background:
+                          "radial-gradient(120% 120% at 50% 0%, rgba(236,72,153,0.75), rgba(168,85,247,0.35), rgba(0,0,0,0))",
+                      }}
+                    />
+                  )}
+                  <Card
+                    className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
+                      isCravingCreator 
+                        ? "border-pink-400/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:border-pink-500/50" 
+                        : "border-white/10 hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:border-orange-500/50"
+                    }`}
+                    onClick={() => handleCardClick(feature.route)}
+                    data-testid={feature.testId}
+                  >
+                    {isCravingCreator && (
+                      <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>
+                        <span className="text-white font-semibold text-[9px]">
+                          Powered by Emotion AI™
+                        </span>
                       </div>
-                      <p className="text-xs text-white/80 ml-6">
-                        {feature.description}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                    )}
+                    <CardContent className="p-3">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`h-4 w-4 flex-shrink-0 ${isCravingCreator ? "text-pink-500" : "text-orange-500"}`} />
+                          <h3 className="text-sm font-semibold text-white">
+                            {feature.title}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-white/80 ml-6">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               );
             })}
           </div>
