@@ -1,6 +1,5 @@
-import "./bootstrap-fetch";
-import "./bootstrap/envSetup"; // Shared environment setup - MUST be first import after bootstrap-fetch
-import { logBootStatus, validateCriticalEnv } from "./bootstrap/envSetup";
+// CRITICAL: Start server FIRST, import everything else AFTER
+// This ensures health checks pass even if other imports crash
 import express from "express";
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -8,206 +7,169 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log("🚀 [BOOT] Starting production server...");
+console.log("🚀 [BOOT] Production server starting...");
 console.log(`🕐 [BOOT] Start time: ${new Date().toISOString()}`);
 console.log(`📍 [BOOT] PORT env: ${process.env.PORT || '5000 (default)'}`);
-
-// Log boot status using shared module
-const bootStatus = logBootStatus('production');
-
-// Validate critical environment variables
-const envValidation = validateCriticalEnv();
-if (!envValidation.valid) {
-  console.error("🚨 [BOOT] CRITICAL: Missing environment variables:", envValidation.missing.join(', '));
-}
+console.log(`📍 [BOOT] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 
 // Crash prevention: log errors instead of dying silently
 process.on('unhandledRejection', (reason, promise) => {
   console.error('🚨 UNHANDLED REJECTION:', reason);
-  console.error('Promise:', promise);
 });
 
 process.on('uncaughtException', (error) => {
   console.error('🚨 UNCAUGHT EXCEPTION:', error);
+  // Don't exit - let health checks continue working
 });
-
-// Import your main server setup
-import { registerRoutes } from "./routes";
-import { requestId } from "./middleware/requestId";
-import { logger } from "./middleware/logger";
-import { createApiRateLimit } from "./middleware/rateLimit";
-import { errorHandler } from "./middleware/errorHandler";
-import dessertCreatorRouter from "./routes/dessert-creator";
-import restaurantRoutes from "./routes/restaurants";
-import { resolveCuisineMiddleware } from "./middleware/resolveCuisineMiddleware";
-import { getFallbackStats } from "./services/fallbackMealService";
 
 const app = express();
 
-// Trust proxy for correct IP handling in Railway/Replit
+// Trust proxy for correct IP handling
 app.set('trust proxy', 1);
 
 // Track initialization state
 let isInitialized = false;
+let initError: Error | null = null;
 
-// CRITICAL: Health checks MUST be first and respond immediately
-// These are registered before any middleware to ensure fastest response
+// CRITICAL: Health checks MUST respond IMMEDIATELY - no middleware, no delays
 app.get("/healthz", (_req, res) => {
   res.status(200).send("ok");
 });
 
 app.get("/", (_req, res, next) => {
-  // If not initialized yet, respond with health check for Cloud Run
+  // During initialization, respond with health check for Cloud Run
   if (!isInitialized) {
-    return res.status(200).send("ok - initializing");
+    return res.status(200).send("ok - server starting");
   }
   next();
 });
 
 app.get("/api/health", (_req, res) => {
-  const fallbackStats = getFallbackStats();
   res.json({ 
     ok: true, 
     initialized: isInitialized,
+    initError: initError?.message || null,
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || "production",
     hasDatabase: !!process.env.DATABASE_URL,
     hasOpenAI: !!process.env.OPENAI_API_KEY,
-    openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
-    hasS3: !!(process.env.S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID),
-    s3Bucket: process.env.S3_BUCKET_NAME || "NOT SET",
     isDeployment: process.env.REPLIT_DEPLOYMENT === "1",
-    aiHealth: {
-      fallbacksUsed: fallbackStats.totalFallbacksUsed,
-      lastFallback: fallbackStats.lastFallbackTime,
-      healthy: fallbackStats.aiHealthy
-    }
   });
 });
 
-// Version endpoint
-app.get("/__version", (_req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.json({ 
-    v: process.env.REPL_COMMIT_SHA || Date.now().toString(),
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || "production"
-  });
-});
-
-// Create rate limiter
-const apiRateLimit = createApiRateLimit();
-
-// Production middleware
-app.use(requestId);
-app.use(logger);
-
-// CORS headers - Allow all Replit domains (production and dev)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Check if origin is a valid Replit domain (production or dev)
-  const isReplitOrigin = origin && (
-    origin.endsWith('.replit.app') || 
-    origin.endsWith('.replit.dev') ||
-    origin.endsWith('.repl.co')
-  );
-  
-  // Build explicit allowed origins as fallback
-  const replitDomains = process.env.REPLIT_DOMAINS 
-    ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`)
-    : [];
-  
-  const allowedOrigins = [
-    process.env.APP_ORIGIN,
-    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
-    ...replitDomains,
-    // Capacitor iOS/Android native app origins
-    "capacitor://localhost",
-    "ionic://localhost",
-    "http://localhost",
-  ].filter(Boolean);
-
-  // Check if origin is a Capacitor native app
-  const isCapacitorOrigin = origin && (
-    origin === 'capacitor://localhost' ||
-    origin === 'ionic://localhost' ||
-    origin === 'http://localhost'
-  );
-
-  // Allow if: no origin, matches Replit pattern, Capacitor app, or in explicit allowlist
-  if (!origin || isReplitOrigin || isCapacitorOrigin || allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id');
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: false }));
-
-// Disable caching on macros endpoints
-app.use((req, res, next) => {
-  if (req.path.includes("/macros")) {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-  }
-  next();
-});
-
-app.use("/api", apiRateLimit);
-
-// Mount routers that aren't in routes.ts
-app.use("/api/meals/dessert-creator", dessertCreatorRouter);
-app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
-console.log("✅ Restaurant routes mounted at /api/restaurants (prod)");
-
-// START SERVER IMMEDIATELY to respond to health checks
+// START SERVER IMMEDIATELY
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
-  console.log(`🚀 [BOOT] Server listening on port ${port}`);
-  console.log(`📍 [BOOT] Environment: ${process.env.NODE_ENV || "production"}`);
-  console.log(`🔗 [BOOT] Database: ${process.env.DATABASE_URL ? "Configured" : "Not configured"}`);
-  console.log(`⏱️ [BOOT] Server started at: ${new Date().toISOString()}`);
+  console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
+  console.log(`⏱️ [BOOT] Ready for health checks at: ${new Date().toISOString()}`);
   
-  // Now initialize routes in background
-  initializeRoutes();
+  // Now initialize everything else in background
+  initializeApp().catch(err => {
+    console.error("❌ [INIT] Background initialization failed:", err);
+    initError = err;
+  });
 });
 
-// Initialization timeout (3 minutes max)
-const INIT_TIMEOUT_MS = 180000;
-let initTimeoutId: NodeJS.Timeout | null = null;
+server.on('error', (err) => {
+  console.error('🚨 [BOOT] Server error:', err);
+});
 
-// Register routes and static files AFTER server is listening
-async function initializeRoutes() {
-  console.log("📋 [INIT] Starting route registration...");
+// Initialize application in background AFTER server is listening
+async function initializeApp() {
   const startTime = Date.now();
-  
-  // Set timeout for initialization
-  initTimeoutId = setTimeout(() => {
-    console.error(`🚨 [INIT] TIMEOUT: Initialization took longer than ${INIT_TIMEOUT_MS / 1000}s`);
-    console.error("🚨 [INIT] Server will continue but may have incomplete routes");
-  }, INIT_TIMEOUT_MS);
+  console.log("📋 [INIT] Starting background initialization...");
   
   try {
-    await registerRoutes(app);
-    console.log(`✅ [INIT] Routes registered in ${Date.now() - startTime}ms`);
+    // Import bootstrap modules
+    console.log("📋 [INIT] Loading bootstrap modules...");
+    await import("./bootstrap-fetch");
+    await import("./bootstrap/envSetup");
+    
+    const { logBootStatus, validateCriticalEnv } = await import("./bootstrap/envSetup");
+    logBootStatus('production');
+    
+    const envValidation = validateCriticalEnv();
+    if (!envValidation.valid) {
+      console.warn("⚠️ [INIT] Missing env vars:", envValidation.missing.join(', '));
+    }
+    
+    // Import middleware
+    console.log("📋 [INIT] Loading middleware...");
+    const { requestId } = await import("./middleware/requestId");
+    const { logger } = await import("./middleware/logger");
+    const { createApiRateLimit } = await import("./middleware/rateLimit");
+    const { errorHandler } = await import("./middleware/errorHandler");
+    const { resolveCuisineMiddleware } = await import("./middleware/resolveCuisineMiddleware");
+    
+    // Apply middleware
+    app.use(requestId);
+    app.use(logger);
+    
+    // CORS headers
+    app.use((req, res, next) => {
+      const origin = req.headers.origin;
+      const isReplitOrigin = origin && (
+        origin.endsWith('.replit.app') || 
+        origin.endsWith('.replit.dev') ||
+        origin.endsWith('.repl.co')
+      );
+      const isCapacitorOrigin = origin && (
+        origin === 'capacitor://localhost' ||
+        origin === 'ionic://localhost' ||
+        origin === 'http://localhost'
+      );
 
-    // API guard: any /api/* that slipped past routers -> JSON 404
-    app.use("/api", (req, res) => {
-      console.log(`🚫 API 404: ${req.method} ${req.originalUrl}`);
-      res.status(404).type("application/json").send(JSON.stringify({ error: "API endpoint not found" }));
+      if (!origin || isReplitOrigin || isCapacitorOrigin) {
+        res.header('Access-Control-Allow-Origin', origin || '*');
+        res.header('Access-Control-Allow-Credentials', 'true');
+      }
+      
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id');
+      
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+      }
+      next();
     });
 
-    // Serve static files from client build
+    app.use(express.json({ limit: "10mb" }));
+    app.use(express.urlencoded({ extended: false }));
+
+    // Cache control for macros
+    app.use((req, res, next) => {
+      if (req.path.includes("/macros")) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+      }
+      next();
+    });
+
+    const apiRateLimit = createApiRateLimit();
+    app.use("/api", apiRateLimit);
+    
+    // Import and mount routers
+    console.log("📋 [INIT] Loading routes...");
+    const dessertCreatorRouter = (await import("./routes/dessert-creator")).default;
+    const restaurantRoutes = (await import("./routes/restaurants")).default;
+    
+    app.use("/api/meals/dessert-creator", dessertCreatorRouter);
+    app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
+    console.log("✅ [INIT] Additional routes mounted");
+    
+    // Register main routes
+    console.log("📋 [INIT] Registering main routes...");
+    const { registerRoutes } = await import("./routes");
+    await registerRoutes(app);
+    console.log(`✅ [INIT] Main routes registered in ${Date.now() - startTime}ms`);
+
+    // API 404 handler
+    app.use("/api", (req, res) => {
+      res.status(404).json({ error: "API endpoint not found" });
+    });
+
+    // Serve static files
     const clientDist = path.resolve(__dirname, "../client/dist");
     console.log("📁 [INIT] Serving static files from:", clientDist);
     
@@ -224,29 +186,20 @@ async function initializeRoutes() {
     // SPA fallback
     app.get("*", (_req, res) => {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
       res.sendFile(path.join(clientDist, "index.html"));
     });
 
     // Error handler LAST
     app.use(errorHandler);
     
-    // Mark as initialized
+    // Mark as fully initialized
     isInitialized = true;
-    
-    // Clear timeout
-    if (initTimeoutId) {
-      clearTimeout(initTimeoutId);
-      initTimeoutId = null;
-    }
-    
-    console.log(`✅ [INIT] Full initialization complete in ${Date.now() - startTime}ms`);
-    console.log(`🎉 [INIT] Server fully ready at: ${new Date().toISOString()}`);
+    console.log(`🎉 [INIT] Full initialization complete in ${Date.now() - startTime}ms`);
+    console.log(`✅ [INIT] Server fully ready at: ${new Date().toISOString()}`);
 
   } catch (error) {
-    console.error("❌ [INIT] Route initialization failed:", error);
-    // Don't exit - server is still responding to health checks
-    // This allows debugging via health endpoint
+    console.error("❌ [INIT] Initialization failed:", error);
+    initError = error instanceof Error ? error : new Error(String(error));
+    // Don't crash - server is still responding to health checks
   }
 }
