@@ -59,6 +59,30 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 type KitchenMode = "entry" | "studio" | "prepare";
 
+// Normalize instructions to always be an array for Phase 2 step-by-step navigation
+function normalizeInstructions(raw: string | string[] | undefined): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  
+  // Split paragraph into steps - try numbered steps first, then sentences
+  const numberedPattern = /(?:^|\n)\s*(?:\d+[\.\)]\s*)/;
+  if (numberedPattern.test(raw)) {
+    // Has numbered steps like "1. Do this" or "1) Do that"
+    return raw
+      .split(/\n\s*\d+[\.\)]\s*/)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(s => s.endsWith('.') ? s : s + '.');
+  }
+  
+  // Fall back to sentence splitting
+  return raw
+    .split(/\.\s+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(s => s.endsWith('.') ? s : s + '.');
+}
+
 // Check for external prepare mode synchronously on load
 function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
   try {
@@ -72,6 +96,8 @@ function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
       localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
       localStorage.removeItem("mpm_chefs_kitchen_prep");
       const parsed = JSON.parse(saved) as GeneratedMeal;
+      // Normalize instructions for Phase 2 step-by-step
+      parsed.instructions = normalizeInstructions(parsed.instructions);
       return { mode: "prepare", meal: parsed };
     }
   } catch {
@@ -520,7 +546,7 @@ export default function ChefsKitchenPage() {
               };
             })
           : [],
-        instructions: meal.cookingInstructions || meal.instructions || [],
+        instructions: normalizeInstructions(meal.cookingInstructions || meal.instructions),
         imageUrl: meal.imageUrl,
         // Flat nutrition fields for components that expect them
         calories: nutritionCalories,
