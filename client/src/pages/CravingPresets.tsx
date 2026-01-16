@@ -305,48 +305,56 @@ export default function CravingPresetsPage() {
 
                 <p className="text-white/90 mb-4">{selected.summary}</p>
 
-                {/* Action Buttons - Add to Plan & Copy */}
-                <div className="flex gap-2 mb-4">
-                  <AddToMealPlanButton
-                    meal={{
-                      id: selected.id,
-                      name: selected.name,
-                      description: selected.summary,
-                      imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
-                      ingredients: scaledIngs.map((ing) => ({
-                        name: ing.name,
-                        amount: formatQty(ing.quantity),
-                        unit: pluralize(ing.unit, ing.quantity) || "",
-                      })),
-                      instructions: selected.instructions,
-                      calories: selected.macros
-                        ? Math.round((selected.macros.calories * selectedServings) / selected.baseServings)
-                        : 0,
-                      protein: selected.macros
-                        ? Math.round((selected.macros.protein * selectedServings) / selected.baseServings)
-                        : 0,
-                      carbs: selected.macros
-                        ? Math.round((selected.macros.carbs * selectedServings) / selected.baseServings)
-                        : 0,
-                      fat: selected.macros
-                        ? Math.round((selected.macros.fat * selectedServings) / selected.baseServings)
-                        : 0,
-                      medicalBadges: selected.badges || [],
-                    }}
-                  />
-                  <MealCardActions
-                    meal={{
-                      name: selected.name,
-                      description: selected.summary,
-                      ingredients: scaledIngs.map((ing) => ({
-                        name: ing.name,
-                        amount: formatQty(ing.quantity),
-                        unit: pluralize(ing.unit, ing.quantity),
-                      })),
-                      instructions: selected.instructions,
-                      nutrition: selected.macros,
-                    }}
-                  />
+                {/* Action Buttons - Add to Plan, Share, Add to Macros */}
+                <div className="flex flex-col gap-2 mb-4">
+                  <div className="flex gap-2">
+                    <AddToMealPlanButton
+                      meal={{
+                        id: selected.id,
+                        name: selected.name,
+                        description: selected.summary,
+                        imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
+                        ingredients: scaledIngs.map((ing) => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity) || "",
+                        })),
+                        instructions: selected.instructions,
+                        calories: selected.macros
+                          ? Math.round((selected.macros.calories * selectedServings) / selected.baseServings)
+                          : 0,
+                        protein: selected.macros
+                          ? Math.round((selected.macros.protein * selectedServings) / selected.baseServings)
+                          : 0,
+                        carbs: selected.macros
+                          ? Math.round((selected.macros.carbs * selectedServings) / selected.baseServings)
+                          : 0,
+                        fat: selected.macros
+                          ? Math.round((selected.macros.fat * selectedServings) / selected.baseServings)
+                          : 0,
+                        medicalBadges: selected.badges || [],
+                      }}
+                    />
+                    <MealCardActions
+                      meal={{
+                        name: selected.name,
+                        description: selected.summary,
+                        ingredients: scaledIngs.map((ing) => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity),
+                        })),
+                        instructions: selected.instructions,
+                        nutrition: selected.macros,
+                      }}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => setLocation("/biometrics?from=craving-presets&view=macros")}
+                    className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                  >
+                    Add to Macros
+                  </Button>
                 </div>
 
                 {/* Health Badges */}
@@ -459,7 +467,7 @@ export default function CravingPresetsPage() {
               }))}
               source={`${selected.name} (${selectedServings} servings)`}
               sourceSlug="craving-presets"
-              hideCopyButton={true}
+              hideShareButton={true}
               onAddComplete={() => {
                 // Dispatch "done" event after adding to shopping list (500ms debounce)
                 setTimeout(() => {

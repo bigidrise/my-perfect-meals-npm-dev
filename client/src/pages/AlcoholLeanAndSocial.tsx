@@ -475,7 +475,7 @@ export default function AlcoholLeanAndSocial() {
             }))}
             source={selected.name}
             sourceSlug="lean-and-social"
-            hideCopyButton={true}
+            hideShareButton={true}
           />
         )}
 
