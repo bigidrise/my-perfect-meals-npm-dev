@@ -660,19 +660,6 @@ const FridgeRescuePage = () => {
                     </CardHeader>
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
-                      {/* Medical Badges - Always show icon for consistency */}
-                      <div className="flex items-center gap-2">
-                        <HealthBadgesPopover
-                          badges={
-                            meal.medicalBadges?.map(
-                              (b: any) =>
-                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label),
-                            ) || []
-                          }
-                        />
-                        <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
-                      </div>
-
                       {/* Nutrition Grid */}
                       <div className="grid grid-cols-4 gap-2 text-center">
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
@@ -716,6 +703,39 @@ const FridgeRescuePage = () => {
                           </div>
                           <div className="text-xs text-white/70">Fat</div>
                         </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <AddToMealPlanButton meal={meal} />
+                        <MealCardActions
+                          meal={{
+                            name: meal.name,
+                            description: meal.description,
+                            ingredients: (meal.ingredients ?? []).map((ing: any) => ({
+                              name: typeof ing === "string" ? ing : ing.name,
+                              amount: typeof ing === "string" ? "" : ing.quantity,
+                              unit: typeof ing === "string" ? "" : ing.unit,
+                            })),
+                            instructions: typeof meal.instructions === "string"
+                              ? meal.instructions.split(/\.\s+/).filter(Boolean)
+                              : meal.instructions,
+                            nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
+                          }}
+                        />
+                      </div>
+
+                      {/* Medical Badges */}
+                      <div className="flex items-center gap-2">
+                        <HealthBadgesPopover
+                          badges={
+                            meal.medicalBadges?.map(
+                              (b: any) =>
+                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label),
+                            ) || []
+                          }
+                        />
+                        <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
                       </div>
 
                       {/* Ingredients */}
@@ -822,25 +842,9 @@ const FridgeRescuePage = () => {
 
                       {/* Cooking Instructions */}
                       <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-sm font-semibold text-white">
-                            Instructions:
-                          </h4>
-                          <div className="flex gap-2">
-                            {replaceCtx && (
-                              <Button
-                                data-wt="fridge-save-meal-button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addMealToPlan(meal)}
-                                className="border-white/20 text-white bg-white/10 hover:bg-white/20"
-                                data-testid={`button-add-to-meal-plan-${meal.name?.toLowerCase().replace(/\s+/g, "-") || "meal"}`}
-                              >
-                                Add to Meal Plan
-                              </Button>
-                            )}
-                          </div>
-                        </div>
+                        <h4 className="text-sm font-semibold text-white">
+                          Instructions:
+                        </h4>
                         <div className="text-xs text-white/80">
                           {meal.instructions.length > 120 ? (
                             <div>
@@ -872,26 +876,8 @@ const FridgeRescuePage = () => {
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
+                      {/* Bottom Actions */}
                       <div className="mt-auto pt-4 space-y-2">
-                        <div className="flex gap-2">
-                          <AddToMealPlanButton meal={meal} />
-                          <MealCardActions
-                            meal={{
-                              name: meal.name,
-                              description: meal.description,
-                              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
-                                name: typeof ing === "string" ? ing : ing.name,
-                                amount: typeof ing === "string" ? "" : ing.quantity,
-                                unit: typeof ing === "string" ? "" : ing.unit,
-                              })),
-                              instructions: typeof meal.instructions === "string"
-                                ? meal.instructions.split(/\.\s+/).filter(Boolean)
-                                : meal.instructions,
-                              nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
-                            }}
-                          />
-                        </div>
                         <div className="flex gap-2">
                           <MacroBridgeButton
                             data-testid="fridge-add-to-shopping"
