@@ -62,25 +62,43 @@ type KitchenMode = "entry" | "studio" | "prepare";
 // Normalize instructions to always be an array for Phase 2 step-by-step navigation
 function normalizeInstructions(raw: string | string[] | undefined): string[] {
   if (!raw) return [];
-  if (Array.isArray(raw)) return raw.filter(Boolean);
   
-  // Split paragraph into steps - try numbered steps first, then sentences
-  const numberedPattern = /(?:^|\n)\s*(?:\d+[\.\)]\s*)/;
-  if (numberedPattern.test(raw)) {
-    // Has numbered steps like "1. Do this" or "1) Do that"
-    return raw
-      .split(/\n\s*\d+[\.\)]\s*/)
-      .map(s => s.trim())
-      .filter(Boolean)
-      .map(s => s.endsWith('.') ? s : s + '.');
+  // If array, always try to split single-element arrays that might be paragraphs
+  if (Array.isArray(raw)) {
+    const filtered = raw.filter(Boolean);
+    // If we have multiple items already, return them
+    if (filtered.length > 1) return filtered;
+    // If single item, always try to parse it as a string (could be paragraph)
+    if (filtered.length === 1) {
+      const parsed = normalizeInstructions(filtered[0]);
+      // Only use parsed result if it produced multiple steps
+      return parsed.length > 1 ? parsed : filtered;
+    }
+    return filtered;
   }
   
-  // Fall back to sentence splitting
-  return raw
-    .split(/\.\s+/)
+  // Split paragraph into steps - try numbered steps first (inline or newline separated)
+  // Pattern matches: "1. ", "1) ", "Step 1:", etc.
+  const numberedInlinePattern = /\b(\d+[\.\):])\s+/g;
+  const hasNumberedSteps = numberedInlinePattern.test(raw);
+  
+  if (hasNumberedSteps) {
+    // Split on numbered patterns like "1. " or "2) "
+    return raw
+      .split(/\b\d+[\.\):]\s+/)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(s => s.replace(/\.$/, '').trim() + '.');
+  }
+  
+  // Fall back to sentence splitting (split on ". " followed by capital letter or end)
+  const sentences = raw
+    .split(/\.\s+(?=[A-Z])/)
     .map(s => s.trim())
     .filter(Boolean)
     .map(s => s.endsWith('.') ? s : s + '.');
+  
+  return sentences.length > 0 ? sentences : [raw];
 }
 
 // Check for external prepare mode synchronously on load
@@ -490,7 +508,11 @@ export default function ChefsKitchenPage() {
       const cravingPrompt = chefPromptParts.join(". ");
 
       // Call Craving Creator endpoint (intent-first generation)
-      const response = await fetch(apiUrl("/api/craving-creator/generate"), {
+      const fullUrl = apiUrl("/api/craving-creator/generate");
+      console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
+      console.log("🔥 CHEF KITCHEN API CALL - Payload:", { craving: cravingPrompt, mealType: "dinner", source: "chefs-kitchen", servings });
+      
+      const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -502,12 +524,16 @@ export default function ChefsKitchenPage() {
         }),
       });
 
+      console.log("🔥 CHEF KITCHEN API RESPONSE - Status:", response.status, response.statusText);
+
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
 
       if (!response.ok) {
-        throw new Error("Failed to generate meal");
+        const errorText = await response.text();
+        console.error("🔥 CHEF KITCHEN API ERROR - Body:", errorText);
+        throw new Error(`Failed to generate meal: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
