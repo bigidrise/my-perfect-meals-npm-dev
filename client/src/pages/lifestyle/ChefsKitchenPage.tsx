@@ -84,6 +84,7 @@ function normalizeInstructions(raw: string | string[] | undefined): string[] {
 }
 
 // Check for external prepare mode synchronously on load
+// NOTE: We do NOT clear flags here due to React StrictMode double-render in dev
 function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
   try {
     const externalPrepare = localStorage.getItem(
@@ -92,9 +93,6 @@ function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
     const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
 
     if (externalPrepare === "true" && saved) {
-      // Clear flags immediately
-      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
-      localStorage.removeItem("mpm_chefs_kitchen_prep");
       const parsed = JSON.parse(saved) as GeneratedMeal;
       // Normalize instructions for Phase 2 step-by-step
       parsed.instructions = normalizeInstructions(parsed.instructions);
@@ -145,6 +143,12 @@ export default function ChefsKitchenPage() {
   const initialState = getInitialMode();
   const [mode, setMode] = useState<KitchenMode>(initialState.mode);
   const [externalMeal] = useState<GeneratedMeal | null>(initialState.meal);
+
+  // Clear localStorage flags AFTER mount to avoid React StrictMode double-render issues
+  useEffect(() => {
+    localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+    localStorage.removeItem("mpm_chefs_kitchen_prep");
+  }, []);
 
   // Kitchen Studio state (6 steps: Dish, Method, Preferences, Servings, Equipment, Generate)
   const [studioStep, setStudioStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
