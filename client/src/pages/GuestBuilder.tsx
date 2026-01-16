@@ -17,6 +17,7 @@ import {
   Home,
   BarChart3,
   ShoppingCart,
+  ChefHat,
 } from "lucide-react";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
@@ -116,6 +117,17 @@ const PHASE_2_BUTTONS: ActionButton[] = [
     iconColor: "text-orange-400",
     route: "/craving-creator",
     feature: "craving-creator",
+    isPreview: true,
+  },
+  {
+    id: "chefs-kitchen",
+    label: GUEST_SUITE_BRANDING.features.chefsKitchen.label,
+    description: GUEST_SUITE_BRANDING.features.chefsKitchen.description,
+    lockedDescription: GUEST_SUITE_BRANDING.features.chefsKitchen.lockedDescription,
+    icon: <ChefHat className="h-6 w-6" />,
+    iconColor: "text-amber-400",
+    route: "/lifestyle/chefs-kitchen",
+    feature: "chefs-kitchen",
     isPreview: true,
   },
 ];
