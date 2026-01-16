@@ -830,8 +830,8 @@ export default function MacroCounter() {
                         }}
                         className={`py-4 flex flex-col items-center ${units === "imperial" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
                       >
-                        <span className="font-semibold">US / Imperial</span>
-                        <span className="text-xs opacity-80">lbs, ft/in</span>
+                        <span className="font-semibold">Imperial</span>
+                        <span className="text-xs opacity-80"></span>
                       </Button>
                       <Button
                         onClick={() => {
@@ -841,7 +841,7 @@ export default function MacroCounter() {
                         className={`py-4 flex flex-col items-center ${units === "metric" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
                       >
                         <span className="font-semibold">Metric</span>
-                        <span className="text-xs opacity-80">kg, cm</span>
+                        <span className="text-xs opacity-80"></span>
                       </Button>
                     </div>
                   </CardContent>
@@ -1115,13 +1115,7 @@ export default function MacroCounter() {
                       <Scale className="h-4 w-4 mr-2" />
                       Save Weight to Biometrics
                     </Button>
-                    <Button
-                      onClick={() => advanceGuided("metabolic")}
-                      variant="outline"
-                      className="w-full py-3 border-white/30 text-white hover:bg-white/10"
-                    >
-                      Skip for now
-                    </Button>
+                    
                   </CardContent>
                 </Card>
               </motion.div>
