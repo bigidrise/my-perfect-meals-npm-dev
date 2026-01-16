@@ -365,6 +365,7 @@ export default function MacroCounter() {
 
   // Helper to advance to next step with voice
   const advanceGuided = useCallback((nextStep: GuidedStep) => {
+    stop(); // Stop any currently playing voice first
     setGuidedStep(nextStep);
     // Speak the script for this step (skip entry since it's handled by mount effect)
     if (nextStep !== "entry") {
@@ -377,7 +378,7 @@ export default function MacroCounter() {
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }, 100);
-  }, [speak, stepScripts]);
+  }, [speak, stop, stepScripts]);
   
   // Speak entry script when component mounts in guided mode
   useEffect(() => {
@@ -397,6 +398,20 @@ export default function MacroCounter() {
       stop();
     };
   }, [stop]);
+  
+  // Global click handler: stop voice on any click when playing
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (isPlaying) {
+        stop();
+      }
+    };
+    // Use capture phase to catch clicks before they bubble
+    document.addEventListener("click", handleGlobalClick, true);
+    return () => {
+      document.removeEventListener("click", handleGlobalClick, true);
+    };
+  }, [isPlaying, stop]);
   
   // Reset guided flow to start over
   const resetGuidedFlow = useCallback(() => {
@@ -610,6 +625,23 @@ export default function MacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* Scientific Sources - Apple App Store Compliance (must be visible immediately) */}
+          {(guidedStep === "entry" || guidedStep === "goal") && (
+            <div className="mb-4">
+              <MedicalSourcesInfo 
+                trigger={
+                  <div className="rounded-xl border border-lime-500/30 bg-black/40 p-3 flex items-center gap-3 cursor-pointer hover:bg-black/50 transition-colors">
+                    <Info className="h-5 w-5 text-lime-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-white">Scientific Sources & Methodology</p>
+                      <p className="text-xs text-white/60">Evidence-based calculations with peer-reviewed citations</p>
+                    </div>
+                  </div>
+                }
+              />
+            </div>
+          )}
+
           {/* GUIDED MODE - Entry Point */}
           <AnimatePresence mode="wait">
             {guidedStep === "entry" && (
