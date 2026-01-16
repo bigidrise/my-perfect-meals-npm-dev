@@ -9,22 +9,24 @@ import { Users, ChefHat, ArrowLeft } from "lucide-react";
 import { kidsMeals, type KidsMeal } from "@/data/kidsMealsData";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+
+const KIDS_MEALS_TOUR_STEPS: TourStep[] = [
+  { title: "Browse Meals", description: "Scroll through 21 kid-approved healthy meal options." },
+  { title: "Adjust Servings", description: "Set your serving size to scale ingredient quantities." },
+  { title: "View Details", description: "Tap any meal to see ingredients, nutrition, and cooking instructions." },
+  { title: "Add to Shopping", description: "Use the shopping bar to add ingredients to your list." },
+];
 
 const SERVING_OPTIONS = [1, 2, 4, 6, 8] as const;
 
-type RoundingMode = "tenth" | "half" | "whole";
-
-function roundQty(value: number, mode: RoundingMode = "tenth"): number {
+function roundQty(value: number): number {
   if (!isFinite(value)) return 0;
-  switch (mode) {
-    case "half":
-      return Math.round(value * 2) / 2;
-    case "whole":
-      return Math.round(value);
-    default:
-      return Math.round(value * 10) / 10;
-  }
+  return Math.round(value * 10) / 10;
 }
 
 function scaleQty(qty: number, fromServings: number, toServings: number): number {
@@ -46,35 +48,34 @@ function pluralize(unit: string | undefined, qty: number): string | undefined {
 }
 
 type Ingredient = {
-  item: string;
+  name: string;
   quantity: number;
   unit: string;
+  notes?: string;
 };
 
 function scaledIngredient(
   ing: Ingredient,
   baseServings: number,
-  toServings: number,
-  rounding: RoundingMode
+  toServings: number
 ): Ingredient {
   const scaled = scaleQty(ing.quantity, baseServings, toServings);
-  const rounded = roundQty(scaled, rounding);
+  const rounded = roundQty(scaled);
   return { ...ing, quantity: rounded };
 }
 
 function scaleIngredients(
   ings: Ingredient[],
   baseServings: number,
-  toServings: number,
-  rounding: RoundingMode
+  toServings: number
 ): Ingredient[] {
-  return ings.map((ing) => scaledIngredient(ing, baseServings, toServings, rounding));
+  return ings.map((ing) => scaledIngredient(ing, baseServings, toServings));
 }
 
 export default function KidsMealsHub() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("kids-meals");
   const [selectedServings, setSelectedServings] = useState<number>(2);
-  const [rounding, setRounding] = useState<RoundingMode>("tenth");
   const [filterText, setFilterText] = useState("");
   const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
 
@@ -124,7 +125,7 @@ export default function KidsMealsHub() {
   }, [filterText]);
 
   const selected = meals.find(m => m.id === selectedMeal);
-  const scaledIngs = selected ? scaleIngredients(selected.ingredients, selected.baseServings, selectedServings, rounding) : [];
+  const scaledIngs = selected ? scaleIngredients(selected.ingredients, selected.baseServings, selectedServings) : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
@@ -146,7 +147,8 @@ export default function KidsMealsHub() {
           {/* Title */}
           <h1 data-testid="kids-meals-hero" className="text-lg font-bold text-white">Kids Meals Hub</h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
 
@@ -158,7 +160,7 @@ export default function KidsMealsHub() {
         {/* Controls */}
         <Card data-testid="kids-meals-controls" className="mb-6 bg-black/50 backdrop-blur-sm border border-orange-400/70">
           <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-lg text-white">Search meals</Label>
                 <Input
@@ -190,25 +192,6 @@ export default function KidsMealsHub() {
                 </div>
               </div>
 
-              <div>
-                <Label className="text-md text-white">Rounding</Label>
-                <div data-wt="cp-rounding-selector" className="flex gap-2 flex-wrap">
-                  {(["tenth", "half", "whole"] as RoundingMode[]).map((m) => (
-                    <Button
-                      key={m}
-                      size="sm"
-                      onClick={() => setRounding(m)}
-                      className={
-                        rounding === m
-                          ? "bg-orange-600 text-white"
-                          : "bg-black/60 border border-white/30 text-white hover:bg-black/80"
-                      }
-                    >
-                      {m}
-                    </Button>
-                  ))}
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -287,21 +270,42 @@ export default function KidsMealsHub() {
 
                 <p className="text-white/90 mb-4">{selected.description}</p>
 
-                {/* Health Badges */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <h3 className="font-bold text-lg text-white">Health Benefits</h3>
-                    <CopyRecipeButton recipe={{
+                {/* Action Buttons */}
+                <div className="flex gap-2 mb-4">
+                  <AddToMealPlanButton
+                    meal={{
+                      id: selected.id,
                       name: selected.name,
+                      description: selected.description,
+                      imageUrl: selected.image ?? `/images/kids-meals/${selected.id}.jpg`,
                       ingredients: scaledIngs.map(ing => ({
-                        name: ing.item,
+                        name: ing.name,
+                        amount: formatQty(ing.quantity),
+                        unit: pluralize(ing.unit, ing.quantity) || "",
+                      })),
+                      instructions: selected.instructions,
+                    }}
+                  />
+                  <MealCardActions
+                    meal={{
+                      name: selected.name,
+                      description: selected.description,
+                      ingredients: scaledIngs.map(ing => ({
+                        name: ing.name,
                         amount: formatQty(ing.quantity),
                         unit: pluralize(ing.unit, ing.quantity)
                       })),
-                      instructions: selected.instructions
-                    }} />
+                      instructions: selected.instructions,
+                    }}
+                  />
+                </div>
+
+                {/* Health Badges */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <HealthBadgesPopover badges={selected.healthBadges} />
+                    <h3 className="font-bold text-lg text-white">Health Benefits</h3>
                   </div>
-                  <HealthBadgesPopover badges={selected.healthBadges} className="mt-2" />
                 </div>
 
                 {/* Ingredients */}
@@ -314,7 +318,7 @@ export default function KidsMealsHub() {
                       const unit = pluralize(ing.unit, ing.quantity);
                       return (
                         <li key={idx} className="text-white/90">
-                          {formatQty(ing.quantity)} {unit} {ing.item}
+                          {formatQty(ing.quantity)} {unit} {ing.name}
                         </li>
                       );
                     })}
@@ -340,6 +344,14 @@ export default function KidsMealsHub() {
                     <p className="text-white/90 text-sm">{selected.funFact}</p>
                   </div>
                 )}
+
+                {/* Add to Macros */}
+                <Button
+                  onClick={() => setLocation("/biometrics?from=kids-meals&view=macros")}
+                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                >
+                  Add to Macros
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -350,13 +362,13 @@ export default function KidsMealsHub() {
           <div data-testid="kids-meals-shopping-bar">
             <ShoppingAggregateBar
               ingredients={scaledIngs.map(ing => ({
-                name: ing.item,
+                name: ing.name,
                 qty: ing.quantity,
                 unit: ing.unit
               }))}
               source={`${selected.name} (${selectedServings} servings)`}
               sourceSlug="kids-meals"
-              hideCopyButton={true}
+              hideShareButton={true}
               onAddComplete={() => {
                 // Dispatch "done" event after adding to shopping list (500ms debounce)
                 setTimeout(() => {
@@ -369,6 +381,14 @@ export default function KidsMealsHub() {
             />
           </div>
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Kids Meals"
+          steps={KIDS_MEALS_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+        />
       </div>
     </div>
   );

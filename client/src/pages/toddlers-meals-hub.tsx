@@ -10,6 +10,7 @@ import { toddlersMeals, type ToddlersMeal } from "@/data/toddlersMealsData";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import MealCardActions from "@/components/MealCardActions";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -280,29 +281,42 @@ export default function ToddlersMealsHub() {
 
                 <p className="text-white/90 mb-4">{selected.description}</p>
 
+                {/* Action Buttons */}
+                <div className="flex gap-2 mb-4">
+                  <AddToMealPlanButton
+                    meal={{
+                      id: selected.id,
+                      name: selected.name,
+                      description: selected.description,
+                      imageUrl: selected.image ?? `/images/toddlers/${selected.id}.jpg`,
+                      ingredients: scaledIngs.map(ing => ({
+                        name: ing.name,
+                        amount: formatQty(ing.quantity),
+                        unit: pluralize(ing.unit, ing.quantity) || "",
+                      })),
+                      instructions: selected.instructions,
+                    }}
+                  />
+                  <MealCardActions
+                    meal={{
+                      name: selected.name,
+                      description: selected.description,
+                      ingredients: scaledIngs.map(ing => ({
+                        name: ing.name,
+                        amount: formatQty(ing.quantity),
+                        unit: pluralize(ing.unit, ing.quantity)
+                      })),
+                      instructions: selected.instructions,
+                    }}
+                  />
+                </div>
+
                 {/* Health Badges */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <h3 className="font-bold text-lg text-white">
-                      Health Benefits
-                    </h3>
-                    <MealCardActions
-                      meal={{
-                        name: selected.name,
-                        description: selected.description,
-                        ingredients: scaledIngs.map(ing => ({
-                          name: ing.name,
-                          amount: formatQty(ing.quantity),
-                          unit: pluralize(ing.unit, ing.quantity)
-                        })),
-                        instructions: selected.instructions,
-                      }}
-                    />
+                  <div className="flex items-center gap-3 mb-2">
+                    <HealthBadgesPopover badges={selected.healthBadges} />
+                    <h3 className="font-bold text-lg text-white">Health Benefits</h3>
                   </div>
-                  <HealthBadgesPopover
-                    badges={selected.healthBadges}
-                    className="mt-2"
-                  />
                 </div>
 
                 {/* Ingredients */}
@@ -346,6 +360,14 @@ export default function ToddlersMealsHub() {
                     <p className="text-white/90 text-sm">{selected.funFact}</p>
                   </div>
                 )}
+
+                {/* Add to Macros */}
+                <Button
+                  onClick={() => setLocation("/biometrics?from=toddler-meals&view=macros")}
+                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                >
+                  Add to Macros
+                </Button>
               </CardContent>
             </Card>
           </div>
