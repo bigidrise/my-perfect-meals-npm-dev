@@ -48,6 +48,8 @@ interface ActionButton {
   phase1Only?: boolean;
   phase2Only?: boolean;
   isPreview?: boolean;
+  isSignature?: boolean;
+  signatureBadge?: string;
 }
 
 const PHASE_1_BUTTONS: ActionButton[] = [
@@ -128,7 +130,8 @@ const PHASE_2_BUTTONS: ActionButton[] = [
     iconColor: "text-amber-400",
     route: "/lifestyle/chefs-kitchen",
     feature: "chefs-kitchen",
-    isPreview: true,
+    isSignature: true,
+    signatureBadge: "Powered by Emotion AI™",
   },
 ];
 
@@ -366,23 +369,37 @@ export default function GuestBuilder() {
           {PHASE_2_BUTTONS.map((action) => {
             const unlocked = isFeatureUnlocked(action.feature);
             const isRevealed = action.id === "biometrics" && biometricsRevealed;
+            const isSignatureCard = action.isSignature;
             
             return (
               <Card
                 key={action.id}
-                className={`border transition-all cursor-pointer ${
-                  unlocked 
-                    ? isRevealed
-                      ? "bg-lime-900/20 border-lime-500/30 hover:border-lime-400/50 hover:bg-lime-800/30 ring-1 ring-lime-500/20"
-                      : "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
-                    : "bg-zinc-900/20 border-white/5 opacity-60"
+                className={`border transition-all cursor-pointer relative overflow-hidden ${
+                  isSignatureCard && unlocked
+                    ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-zinc-900/40 border-amber-500/40 hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-500/10 ring-1 ring-amber-500/20"
+                    : unlocked 
+                      ? isRevealed
+                        ? "bg-lime-900/20 border-lime-500/30 hover:border-lime-400/50 hover:bg-lime-800/30 ring-1 ring-lime-500/20"
+                        : "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
+                      : isSignatureCard
+                        ? "bg-zinc-900/30 border-amber-500/20 opacity-70"
+                        : "bg-zinc-900/20 border-white/5 opacity-60"
                 }`}
                 onClick={() => handleActionClick(action)}
               >
+                {isSignatureCard && (
+                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-600/90 to-amber-700/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+                    {action.signatureBadge}
+                  </div>
+                )}
                 <CardContent className="p-4 flex items-center gap-4">
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                      isRevealed ? "bg-lime-500/20" : "bg-white/10"
+                      isSignatureCard && unlocked 
+                        ? "bg-amber-500/20 shadow-inner shadow-amber-500/10" 
+                        : isRevealed 
+                          ? "bg-lime-500/20" 
+                          : "bg-white/10"
                     } ${unlocked ? action.iconColor : "text-white/40"}`}
                   >
                     {unlocked ? action.icon : <Lock className="h-6 w-6" />}
@@ -390,7 +407,7 @@ export default function GuestBuilder() {
                   <div className="flex-1">
                     <div className={`font-semibold ${unlocked ? "text-white" : "text-white/50"}`}>
                       {action.label}
-                      {action.isPreview && unlocked && (
+                      {action.isPreview && unlocked && !isSignatureCard && (
                         <span className="text-xs text-amber-400/80 ml-2">Preview</span>
                       )}
                       {!unlocked && (
