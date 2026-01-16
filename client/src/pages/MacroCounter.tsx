@@ -716,9 +716,9 @@ export default function MacroCounter() {
                     </p>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { v: "loss", label: "Cut", desc: "Lose Weight" },
-                        { v: "maint", label: "Maintain", desc: "Stay Same" },
-                        { v: "gain", label: "Gain", desc: "Build Muscle" },
+                        { v: "loss", label: "Cut", desc: "" },
+                        { v: "maint", label: "Maintain", desc: "" },
+                        { v: "gain", label: "Gain", desc: "" },
                       ].map((g) => (
                         <Button
                           key={g.v}
