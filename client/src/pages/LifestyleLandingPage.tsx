@@ -132,6 +132,8 @@ export default function LifestyleLandingPage() {
               const Icon = feature.icon;
               const isChefsKitchen =
                 feature.route === "/lifestyle/chefs-kitchen";
+              const isCravingCreator =
+                feature.route === "/craving-creator-landing";
 
               return (
                 <div key={feature.testId} className="relative">
@@ -145,10 +147,19 @@ export default function LifestyleLandingPage() {
                       }}
                     />
                   )}
+                  {isCravingCreator && (
+                    <div
+                      className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
+                      style={{
+                        background:
+                          "radial-gradient(120% 120% at 50% 0%, rgba(236,72,153,0.75), rgba(168,85,247,0.35), rgba(0,0,0,0))",
+                      }}
+                    />
+                  )}
 
                   <Card
                     className={`relative cursor-pointer transition-transform duration-200 active:scale-95 bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
-                      isChefsKitchen ? "border-orange-400/30" : "border-white/10"
+                      isChefsKitchen ? "border-orange-400/30" : isCravingCreator ? "border-pink-400/30" : "border-white/10"
                     }`}
                     onClick={() => handleCardClick(feature.route)}
                     data-testid={feature.testId}
@@ -161,10 +172,18 @@ export default function LifestyleLandingPage() {
                         </span>
                       </div>
                     )}
+                    {isCravingCreator && (
+                      <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>
+                        <span className="text-white font-semibold text-[9px]">
+                          Powered by Emotion AI™
+                        </span>
+                      </div>
+                    )}
                     <CardContent className="p-3">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                          <Icon className={`h-4 w-4 flex-shrink-0 ${isCravingCreator ? "text-pink-500" : "text-orange-500"}`} />
                           <h3 className="text-sm font-semibold text-white">
                             {feature.title}
                           </h3>
