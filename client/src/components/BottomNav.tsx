@@ -148,7 +148,7 @@ export default function BottomNav() {
                   "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
               }}
             >
-              <span className="text-3xl leading-none">👨🏿‍🍳</span>
+              <span className="text-5xl leading-none">👨🏿‍🍳</span>
             </motion.button>
           </div>
 
