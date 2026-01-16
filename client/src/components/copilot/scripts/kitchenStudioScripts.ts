@@ -4,8 +4,7 @@
 export const KITCHEN_STUDIO_INTRO =
   "Alright — what do we feel like making today?";
 
-export const KITCHEN_STUDIO_STEP2 =
-  "Perfect, and how are we cooking it?";
+export const KITCHEN_STUDIO_STEP2 = "Perfect, and how are we cooking it?";
 
 // Kitchen Studio - Cooking method question
 export const KITCHEN_STUDIO_COOK_METHOD =
@@ -13,43 +12,39 @@ export const KITCHEN_STUDIO_COOK_METHOD =
 
 // Kitchen Studio - After cooking method selected
 export const KITCHEN_STUDIO_COOK_CONFIRMED =
-  "Perfect. Quick setup question.";
+  "Perfect. Next, we'll dial in your preferences.";
 
 // Kitchen Studio - Preferences / guardrails (micro-lines)
 export const KITCHEN_STUDIO_PREFS_LINE1 =
-  "Any dietary needs — vegan, plant-based, allergies, or sensitivities?";
+  "Tell me if you're — vegan, plant-based, keto, or you have food allergies or sensitivities?";
 export const KITCHEN_STUDIO_PREFS_LINE2 =
-  "Or do you just want to keep it lower in sugar, gluten, fat, or sodium?";
-export const KITCHEN_STUDIO_PREFS_LINE3 =
-  "What cuisine are we feeling today?";
+  "Do you want to keep it lower in sugar, gluten, fat, or sodium?";
+export const KITCHEN_STUDIO_PREFS_LINE3 = "What cuisine are we feeling today?";
 export const KITCHEN_STUDIO_PREFS_LINE4 =
-  "And how much time do you have — quick and easy, or more involved?";
+  "And how much time do you have? Do you want something quick and easy, or more involved?";
 export const KITCHEN_STUDIO_PREFS_LINE5 =
-  "You can speak in any language. Use Translate on the meal card anytime.";
+  "You can also speak to me in any language. Use Translate on the meal card to match your phones languaage.";
 
 // If you need a single combined string for the UI, keep this too:
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
   "Any dietary needs — vegan, plant-based, allergies, or sensitivities? Or do you just want to keep it lower in sugar, gluten, fat, or sodium? Choose any cuisine, and tell me how much time you have — quick and easy or more involved. You can speak in any language, and use Translate on the meal card anytime.";
 
 // Kitchen Studio - After preferences confirmed
-export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
-  "Got it. How many people are we cooking for?";
+export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "Next, servings.";
 
 // Kitchen Studio - Servings question
-export const KITCHEN_STUDIO_SERVINGS =
-  "How many servings?";
+export const KITCHEN_STUDIO_SERVINGS = "How many people are we cooking for?";
 
 // Kitchen Studio - After servings confirmed
 export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
-  "Perfect. Let’s make sure you’ve got what you need.";
+  "Perfect. Let's check our set up!";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "Quick check: make sure you’ve got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something.";
+  "Let's make sure we've got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something.";
 
 // Kitchen Studio - After equipment confirmed
-export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "Drum roll, please... ";
+export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED = "Alright, let's see what we got!";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
@@ -80,21 +75,18 @@ export const KITCHEN_COOK_SETUP =
   "Let's make sure you have everything you need before we start.";
 
 // Kitchen Cook Ready - spoken when meal is ready to prepare
-export const KITCHEN_COOK_READY =
-  "Your meal is ready. Let's start cooking!";
+export const KITCHEN_COOK_READY = "Your meal is ready. Let's start cooking!";
 
 // Kitchen Timer Start - spoken when a timer begins
 export const KITCHEN_TIMER_START =
   "Timer started. I'll let you know when it's done.";
 
 // Kitchen Timer Done - spoken when a timer completes
-export const KITCHEN_TIMER_DONE =
-  "Time's up! Let's move to the next step.";
+export const KITCHEN_TIMER_DONE = "Time's up! Let's move to the next step.";
 
 // Kitchen Plating - spoken during plating step
 export const KITCHEN_PLATING =
   "Time to plate up. Make it look as good as it tastes.";
 
 // Kitchen Finished - spoken when meal is complete
-export const KITCHEN_FINISHED =
-  "And we're done! Enjoy your meal.";
+export const KITCHEN_FINISHED = "And we're done! Enjoy your meal.";

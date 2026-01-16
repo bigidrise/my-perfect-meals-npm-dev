@@ -913,7 +913,7 @@ export default function ChefsKitchenPage() {
                         onClick={startOpenKitchen}
                         data-testid="button-generate-meal"
                       >
-                        Generate My Meal
+                        Create the plan
                       </button>
                     </div>
                   )}
@@ -1193,10 +1193,10 @@ export default function ChefsKitchenPage() {
                           setPrepStep(0);
                           setMode("prepare");
                         }}
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
                         data-testid="button-prepare-meal"
                       >
-                        Prepare This Meal
+                        Enter Chef's Kitchen
                       </button>
                     </div>
                   )}
