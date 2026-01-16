@@ -2,7 +2,6 @@ import { useLocation } from "wouter";
 import { useCallback } from "react";
 import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
 import { useCopilot } from "@/components/copilot/CopilotContext";
-import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { motion } from "framer-motion";
@@ -149,7 +148,7 @@ export default function BottomNav() {
                   "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
               }}
             >
-              <ChefCapIcon size={54} />
+              <span className="text-3xl leading-none">👨🏿‍🍳</span>
             </motion.button>
           </div>
 
