@@ -31,7 +31,7 @@ function formatQty(qty?: number | string): string {
   return rounded.toString().replace(/\.?0+$/, '');
 }
 
-export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, bottomPadding = "pb-20", hideShareButton = false, onAddComplete }: Props) {
+export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, bottomPadding = "pb-20", hideShareButton = true, onAddComplete }: Props) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [sharing, setSharing] = useState(false);
