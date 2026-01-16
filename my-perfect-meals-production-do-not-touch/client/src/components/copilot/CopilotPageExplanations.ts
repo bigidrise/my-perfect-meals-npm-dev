@@ -237,15 +237,17 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/lifestyle": {
-    pageId: "lifestyle-landing",
-    title: "Lifestyle",
-    description:
-      "Your all-in-one lifestyle toolbox. Explore cravings, use what’s already in your fridge, find healthy options when you’re out, get kid-friendly meals, and make smarter drink choices — all from one place.",
-    spokenText:
-      "Lifestyle Hub. Everything you need to navigate real life is right here. You can create healthy versions of your cravings, turn whatever you have in your fridge into meals, find smart options when you’re eating out, pick meals for kids or toddlers, and explore smarter drink choices in the Spirits and Lifestyle Hub. Choose what you need and I’ll walk you through it.",
-    autoClose: true,
-  },
+    "/lifestyle": {
+      pageId: "lifestyle-landing",
+      title: "Lifestyle",
+      description:
+        "This is where real life begins. Start with your cravings, cook alongside the Chef, or handle everyday food decisions — all in one place.",
+      spokenText:
+        "Welcome to the Lifestyle Hub — this is where real life begins. You can start with our signature experience, cooking alongside the Chef, where your plan turns into real meals, or visit our legacy Craving Creator, where it all started and you can build meals around exactly what you feel like eating. From here, you can also handle desserts, restaurants, what’s already in your fridge, meals for kids or toddlers, and everyday lifestyle choices. Pick what you need, and I’ll guide you through it.",
+      autoClose: true,
+    }
+
+
 
   "/procare-cover": {
     pageId: "procare-cover",
