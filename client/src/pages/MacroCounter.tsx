@@ -627,18 +627,38 @@ export default function MacroCounter() {
         >
           {/* Scientific Sources - Apple App Store Compliance (must be visible immediately) */}
           {(guidedStep === "entry" || guidedStep === "goal") && (
-            <div className="mb-4">
-              <MedicalSourcesInfo 
-                trigger={
-                  <div className="rounded-xl border border-lime-500/30 bg-black/40 p-3 flex items-center gap-3 cursor-pointer hover:bg-black/50 transition-colors">
-                    <Info className="h-5 w-5 text-lime-400 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-white">Scientific Sources & Methodology</p>
-                      <p className="text-xs text-white/60">Evidence-based calculations with peer-reviewed citations</p>
-                    </div>
-                  </div>
-                }
-              />
+            <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
+              <p className="text-sm text-white/90 leading-relaxed">
+                <span className="font-semibold text-blue-300">Scientific Sources:</span>{" "}
+                Calculations based on{" "}
+                <a
+                  href="https://pubmed.ncbi.nlm.nih.gov/2305711/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline font-medium"
+                >
+                  Mifflin-St Jeor (NCBI/NIH)
+                </a>
+                {" "}and{" "}
+                <a
+                  href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline font-medium"
+                >
+                  NIH Dietary Reference Intakes
+                </a>
+                . Nutrient data from{" "}
+                <a
+                  href="https://fdc.nal.usda.gov/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline font-medium"
+                >
+                  USDA FoodData Central
+                </a>
+                .
+              </p>
             </div>
           )}
 
