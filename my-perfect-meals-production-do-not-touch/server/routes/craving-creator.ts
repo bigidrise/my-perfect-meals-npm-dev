@@ -76,6 +76,12 @@ router.post('/generate', requireAuth, async (req, res) => {
       }
     );
 
+    // Validate that we got a meal back
+    if (!generatedMeal || !generatedMeal.name) {
+      console.error('❌ Craving Creator: generateCravingMeal returned empty/invalid:', generatedMeal);
+      return res.status(500).json({ error: "AI meal generation failed - no meal returned" });
+    }
+
     // Add servings info to the meal response
     const mealWithServings = {
       ...generatedMeal,
