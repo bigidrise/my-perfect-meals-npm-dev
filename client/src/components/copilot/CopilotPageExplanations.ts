@@ -62,9 +62,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "craving-creator-landing",
     title: "Craving Creator Hub",
     description:
-      "Choose from three options: Creator for custom AI-generated cravings, Premades for ready-made craving recipes, or Dessert Creator for healthy desserts like pies, cakes, cookies, and more.",
+      "The original craving-based experience. Create custom cravings, explore ready-made favorites, or build healthier desserts — all from one place.",
     spokenText:
-      "Craving something but can't come up with a healthy option? That's what Craving Creator is for. Tell it what you're craving, set your servings, add any dietary requirements, and tap create. It builds a healthier version that fits your goals. ",
+      "Welcome to the Craving Creator Hub — this is where it all began. This is the original experience built around what you actually feel like eating. You can use the Craving Creator to turn any craving into a healthier meal that fits your goals, browse Premades for ready-to-go favorites, or head into the Dessert Creator for healthier takes on things like cookies, cakes, and pies. Pick where you want to start, and I’ll guide you from there.",
     autoClose: true,
   },
 

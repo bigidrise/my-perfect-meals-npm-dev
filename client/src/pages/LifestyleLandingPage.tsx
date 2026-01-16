@@ -41,7 +41,7 @@ export default function LifestyleLandingPage() {
     {
       title: "Craving Creator Hub",
       description:
-        "AI-powered personalized meal suggestions based on your cravings",
+        "Your craving-focused hub — home of the original Craving Creator that started it all.",
       icon: Sparkles,
       route: "/craving-creator-landing",
       gradient: "from-purple-500/20 to-pink-500/20",
