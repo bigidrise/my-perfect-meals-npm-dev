@@ -4,7 +4,8 @@ import { Capacitor } from '@capacitor/core';
 
 type Json = Record<string, any>;
 
-const NATIVE_API_BASE = 'https://2e4f029e-9abb-4b2b-a953-3126cde586ef-00-36heuk32mpfh5.worf.replit.dev';
+// Production API base for iOS/native apps - must match capacitor.config.ts server.url
+const NATIVE_API_BASE = 'https://my-perfect-meals-production-do-not-touch--bigidrise.replit.app';
 
 const isDev = import.meta.env.DEV;
 const ENV_BASE = (import.meta as any).env?.VITE_API_BASE?.trim() || (import.meta as any).env?.VITE_API_BASE_URL?.trim();
