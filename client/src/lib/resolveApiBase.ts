@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+
 // ⭐ Production backend URL (your live deployed app backend)
 const PROD_SERVER_URL =
   "https://my-perfect-meals-production-do-not-touch--bigidrise.replit.app";
@@ -9,8 +11,7 @@ const STAGING_SERVER_URL =
 // Detect Capacitor native iOS/Android wrapper
 function isCapacitorNative(): boolean {
   try {
-    const Capacitor = (window as any).Capacitor;
-    return Capacitor?.isNativePlatform?.() === true;
+    return Capacitor.isNativePlatform();
   } catch {
     return false;
   }
