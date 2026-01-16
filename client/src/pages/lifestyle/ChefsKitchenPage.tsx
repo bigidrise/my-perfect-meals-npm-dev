@@ -92,15 +92,20 @@ function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
     );
     const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
 
+    // 🔥 PRODUCTION DIAGNOSTIC - Remove after verification
+    console.log("🔥 CHEF KITCHEN INIT - externalPrepare:", externalPrepare, "hasMeal:", !!saved);
+
     if (externalPrepare === "true" && saved) {
       const parsed = JSON.parse(saved) as GeneratedMeal;
       // Normalize instructions for Phase 2 step-by-step
       parsed.instructions = normalizeInstructions(parsed.instructions);
+      console.log("🔥 CHEF KITCHEN → ENTERING PHASE 2 (prepare mode)");
       return { mode: "prepare", meal: parsed };
     }
-  } catch {
-    // Ignore errors
+  } catch (err) {
+    console.log("🔥 CHEF KITCHEN INIT ERROR:", err);
   }
+  console.log("🔥 CHEF KITCHEN → ENTERING PHASE 1 (entry mode)");
   return { mode: "entry", meal: null };
 }
 
