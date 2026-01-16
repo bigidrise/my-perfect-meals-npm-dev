@@ -449,7 +449,7 @@ export default function CravingPresetsPage() {
                 {/* Add to Macros - Bottom of card */}
                 <Button
                   onClick={() => setLocation("/biometrics?from=craving-presets&view=macros")}
-                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center border border-white/30"
                 >
                   Add to Macros
                 </Button>

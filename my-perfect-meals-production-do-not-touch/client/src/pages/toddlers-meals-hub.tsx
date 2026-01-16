@@ -364,7 +364,7 @@ export default function ToddlersMealsHub() {
                 {/* Add to Macros */}
                 <Button
                   onClick={() => setLocation("/biometrics?from=toddler-meals&view=macros")}
-                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center border border-white/30"
                 >
                   Add to Macros
                 </Button>
