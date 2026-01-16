@@ -130,7 +130,7 @@ export default function HealthyKidsMeals() {
                   <CardContent className="p-3">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-white flex-shrink-0" />
+                        <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
                         <h3 className="text-sm font-semibold text-white">
                           {feature.title}
                         </h3>
