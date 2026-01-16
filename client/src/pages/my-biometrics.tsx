@@ -1270,8 +1270,8 @@ export default function MyBiometrics() {
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3">
-          {/* Guest Mode: Back to Guest Suite button - only show for actual guests, not logged-in users */}
-          {isGuestMode() && !user && (
+          {/* Guest Mode: Back to Guest Suite button */}
+          {isGuestMode() && (
             <Button
               onClick={() => {
                 markStepCompleted("biometrics_viewed");

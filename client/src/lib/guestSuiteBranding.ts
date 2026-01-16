@@ -109,11 +109,6 @@ export const GUEST_SUITE_BRANDING = {
       description: "Healthier versions of what you're craving — still satisfying, actually good for you",
       lockedDescription: "Build your first meal to unlock",
     },
-    chefsKitchen: {
-      label: "Chef's Kitchen",
-      description: "Step-by-step guided cooking with voice instructions — your personal sous chef",
-      lockedDescription: "Complete the flow to unlock",
-    },
   },
   
   // Tone: Coach - cheerleader + drill sergeant with earned authority

@@ -33,7 +33,6 @@ The application is a monorepo utilizing React + Vite (TypeScript) for the fronte
 - **Pro Tip Audio Card v1.0**: Global instructional audio feature on all Meal Builder pages teaching macro accuracy.
 - **Prepare with Chef System v1.0**: Global guided cooking mode accessible from any meal card, reusing the Chef's Kitchen Phase Two UI for step-by-step navigation and audio guidance.
 - **Profile Photo Upload**: Fully functional feature for users to upload profile photos to object storage.
-- **Guided Macro Calculator v1.0**: Step-by-step walkthrough experience for the Macro Calculator page with "Talk to Chef" entry point. Features 13 guided steps (Goal, Body Type, Units, Sex, Age, Height, Weight, Activity, Sync Weight, Metabolic Considerations, Results Reveal, Starch Strategy, Final Save) using dropdowns for selections and input fields for numeric values. Users with existing saved settings bypass the guided flow. Includes Chef voice narration via TTS at each step using scripts from `macroCalculatorScripts.ts`.
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
