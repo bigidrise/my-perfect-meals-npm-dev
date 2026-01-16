@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import TrashButton from "@/components/ui/TrashButton";
 import {
@@ -8,6 +8,7 @@ import {
   useDeleteShot,
   type InjectionLocation,
 } from "@/hooks/useGlp1Shots";
+import { Capacitor } from "@capacitor/core";
 
 const LABEL: Record<InjectionLocation, string> = {
   abdomen: "Abdomen",
@@ -23,6 +24,21 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
   const deleteM = useDeleteShot(userId);
 
   const shots = (shotsQ.data as any[]) ?? [];
+  const isNative = Capacitor.isNativePlatform();
+  
+  // Debug logging for iOS issues
+  useEffect(() => {
+    if (isNative) {
+      console.log("[ShotTracker] iOS platform detected, userId:", userId);
+      console.log("[ShotTracker] Query state:", {
+        isLoading: shotsQ.isLoading,
+        isError: shotsQ.isError,
+        error: shotsQ.error?.message || shotsQ.error,
+        dataLength: shotsQ.data?.length,
+        isFetched: shotsQ.isFetched,
+      });
+    }
+  }, [isNative, userId, shotsQ.isLoading, shotsQ.isError, shotsQ.error, shotsQ.data, shotsQ.isFetched]);
 
   // quick add state
   const [doseMg, setDoseMg] = useState<number>(2.5);
@@ -43,15 +59,29 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
   const addShot = async () => {
     if (!doseMg || doseMg <= 0) return alert("Enter a valid dose (mg).");
     const asUTC = new Date(dateLocal).toISOString();
-    await createM.mutateAsync({
-      dateUtc: asUTC,
-      doseMg: Number(doseMg),
-      location: site || undefined,
-      notes: notes?.trim() || undefined,
-    });
-    setNotes(""); setSite("");
-    const d = new Date(); d.setSeconds(0, 0);
-    setDateLocal(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+    
+    try {
+      if (isNative) {
+        console.log("[ShotTracker] Saving shot on iOS:", { dateUtc: asUTC, doseMg, site });
+      }
+      await createM.mutateAsync({
+        dateUtc: asUTC,
+        doseMg: Number(doseMg),
+        location: site || undefined,
+        notes: notes?.trim() || undefined,
+      });
+      if (isNative) {
+        console.log("[ShotTracker] Shot saved successfully on iOS");
+      }
+      setNotes(""); setSite("");
+      const d = new Date(); d.setSeconds(0, 0);
+      setDateLocal(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+    } catch (err: any) {
+      console.error("[ShotTracker] Error saving shot:", err);
+      if (isNative) {
+        alert(`Failed to save shot: ${err?.message || "Connection error"}`);
+      }
+    }
   };
 
   const startEdit = (s: any) => {
@@ -151,8 +181,21 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         <h4 className="text-white font-semibold mb-2">History</h4>
         {shotsQ.isLoading ? (
           <div className="text-white/50 text-sm">Loading history...</div>
-        ) : shotsQ.error ? (
-          <div className="text-white/50 text-sm">History unavailable</div>
+        ) : shotsQ.isError ? (
+          <div className="text-red-400/80 text-sm space-y-1">
+            <div>History unavailable</div>
+            {isNative && (
+              <div className="text-xs text-red-300/60">
+                Error: {(shotsQ.error as Error)?.message || "Connection failed"}
+              </div>
+            )}
+            <Button 
+              onClick={() => shotsQ.refetch()} 
+              className="mt-2 bg-white/10 hover:bg-white/20 text-white h-7 px-3 text-xs"
+            >
+              Retry
+            </Button>
+          </div>
         ) : shots.length === 0 ? (
           <div className="text-white/70 text-sm">No shots logged yet.</div>
         ) : (
