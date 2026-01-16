@@ -197,13 +197,101 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
 }
 
 /* ==========================================
-   iOS MOBILE TOUCH FIX v1.0
-   Fixes "double-tap" and "color fade" issues on iOS Safari/WKWebView
+   MPM MOBILE TOUCH FIX v2.0
+   - Kills hover flashing on touch devices
+   - Removes vertical scrollbars
+   - Fixes bottom nav scroll issue
    ========================================== */
 
 /* RULE 1: Kill tap highlight completely */
 * {
   -webkit-tap-highlight-color: transparent !important;
+}
+
+/* RULE 2: Hide scrollbars visually but keep scrolling */
+html, body {
+  scrollbar-width: none; /* Firefox */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/iOS */
+}
+
+/* RULE 3: Kill hover effects on touch devices (phones/tablets) */
+@media (hover: none), (pointer: coarse) {
+  /* Neutralize common Tailwind hover utilities that cause flashing */
+  .hover\:bg-black\/40:hover,
+  .hover\:bg-black\/50:hover,
+  .hover\:bg-black\/60:hover,
+  .hover\:bg-white\/10:hover,
+  .hover\:bg-white\/20:hover,
+  .hover\:bg-white\/30:hover,
+  .hover\:opacity-80:hover,
+  .hover\:opacity-90:hover,
+  .hover\:opacity-100:hover,
+  .hover\:shadow-lg:hover,
+  .hover\:shadow-xl:hover,
+  .hover\:scale-105:hover,
+  .hover\:scale-\[1\.02\]:hover,
+  .hover\:border-white\/30:hover,
+  .hover\:border-white\/40:hover {
+    transform: none !important;
+    filter: none !important;
+    opacity: inherit !important;
+    box-shadow: inherit !important;
+    background-color: inherit !important;
+    border-color: inherit !important;
+  }
+
+  /* Big hammer: prevent all hover-triggered paint changes */
+  *:hover {
+    filter: none !important;
+  }
+
+  /* Glass cards should not animate on touch */
+  .glass-card:hover {
+    background: var(--glass-bg) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    transform: none !important;
+  }
+
+  /* Buttons should not transform/scale on hover for touch */
+  button:hover,
+  [role="button"]:hover,
+  .btn:hover {
+    transform: none !important;
+  }
+
+  /* Prevent text color changes on hover for touch devices */
+  .hover\:text-white:hover {
+    color: inherit !important;
+  }
+}
+
+/* RULE 4: Lock bottom navigation - never scrolls, always visible */
+nav[class*="fixed"][class*="bottom-0"] {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  overflow: hidden !important;
+  transform: translateZ(0); /* GPU layer */
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+  /* Prevent any scroll behavior on the nav itself */
+  overscroll-behavior: none !important;
+  touch-action: none; /* Prevent touch scrolling on the nav */
+}
+
+/* Hide scrollbars on all scroll containers */
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+* {
+  scrollbar-width: none !important;
 }
 
 /* RULE 2: Ensure buttons have proper touch behavior */
