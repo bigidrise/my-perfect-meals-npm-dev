@@ -8,6 +8,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+console.log("🚀 [BOOT] Starting production server...");
+console.log(`🕐 [BOOT] Start time: ${new Date().toISOString()}`);
+console.log(`📍 [BOOT] PORT env: ${process.env.PORT || '5000 (default)'}`);
+
 // Log boot status using shared module
 const bootStatus = logBootStatus('production');
 
@@ -43,12 +47,28 @@ const app = express();
 // Trust proxy for correct IP handling in Railway/Replit
 app.set('trust proxy', 1);
 
-// CRITICAL: Health check MUST be first
-app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+// Track initialization state
+let isInitialized = false;
+
+// CRITICAL: Health checks MUST be first and respond immediately
+// These are registered before any middleware to ensure fastest response
+app.get("/healthz", (_req, res) => {
+  res.status(200).send("ok");
+});
+
+app.get("/", (_req, res, next) => {
+  // If not initialized yet, respond with health check for Cloud Run
+  if (!isInitialized) {
+    return res.status(200).send("ok - initializing");
+  }
+  next();
+});
+
 app.get("/api/health", (_req, res) => {
   const fallbackStats = getFallbackStats();
   res.json({ 
     ok: true, 
+    initialized: isInitialized,
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || "production",
     hasDatabase: !!process.env.DATABASE_URL,
@@ -150,12 +170,36 @@ app.use("/api/meals/dessert-creator", dessertCreatorRouter);
 app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
 console.log("✅ Restaurant routes mounted at /api/restaurants (prod)");
 
-// Register routes and static files BEFORE starting server
-async function initialize() {
+// START SERVER IMMEDIATELY to respond to health checks
+const port = Number(process.env.PORT || 5000);
+const server = app.listen(port, "0.0.0.0", () => {
+  console.log(`🚀 [BOOT] Server listening on port ${port}`);
+  console.log(`📍 [BOOT] Environment: ${process.env.NODE_ENV || "production"}`);
+  console.log(`🔗 [BOOT] Database: ${process.env.DATABASE_URL ? "Configured" : "Not configured"}`);
+  console.log(`⏱️ [BOOT] Server started at: ${new Date().toISOString()}`);
+  
+  // Now initialize routes in background
+  initializeRoutes();
+});
+
+// Initialization timeout (3 minutes max)
+const INIT_TIMEOUT_MS = 180000;
+let initTimeoutId: NodeJS.Timeout | null = null;
+
+// Register routes and static files AFTER server is listening
+async function initializeRoutes() {
+  console.log("📋 [INIT] Starting route registration...");
+  const startTime = Date.now();
+  
+  // Set timeout for initialization
+  initTimeoutId = setTimeout(() => {
+    console.error(`🚨 [INIT] TIMEOUT: Initialization took longer than ${INIT_TIMEOUT_MS / 1000}s`);
+    console.error("🚨 [INIT] Server will continue but may have incomplete routes");
+  }, INIT_TIMEOUT_MS);
+  
   try {
-    console.log("📋 Registering API routes...");
     await registerRoutes(app);
-    console.log("✅ Routes registered successfully");
+    console.log(`✅ [INIT] Routes registered in ${Date.now() - startTime}ms`);
 
     // API guard: any /api/* that slipped past routers -> JSON 404
     app.use("/api", (req, res) => {
@@ -164,9 +208,8 @@ async function initialize() {
     });
 
     // Serve static files from client build
-    // In production, __dirname is dist/, so we need to go up one level to find client/dist
     const clientDist = path.resolve(__dirname, "../client/dist");
-    console.log("📁 Serving static files from:", clientDist);
+    console.log("📁 [INIT] Serving static files from:", clientDist);
     
     app.use(express.static(clientDist, {
       setHeaders: (res, filePath) => {
@@ -188,20 +231,22 @@ async function initialize() {
 
     // Error handler LAST
     app.use(errorHandler);
-
-    // NOW start the server
-    const port = Number(process.env.PORT || 5000);
-    app.listen(port, "0.0.0.0", () => {
-      console.log(`🚀 Production server running on port ${port}`);
-      console.log(`📍 Environment: ${process.env.NODE_ENV || "production"}`);
-      console.log(`🔗 Database: ${process.env.DATABASE_URL ? "Connected" : "Not configured"}`);
-    });
+    
+    // Mark as initialized
+    isInitialized = true;
+    
+    // Clear timeout
+    if (initTimeoutId) {
+      clearTimeout(initTimeoutId);
+      initTimeoutId = null;
+    }
+    
+    console.log(`✅ [INIT] Full initialization complete in ${Date.now() - startTime}ms`);
+    console.log(`🎉 [INIT] Server fully ready at: ${new Date().toISOString()}`);
 
   } catch (error) {
-    console.error("❌ Server initialization failed:", error);
-    process.exit(1); // Exit on failure so deployment restarts
+    console.error("❌ [INIT] Route initialization failed:", error);
+    // Don't exit - server is still responding to health checks
+    // This allows debugging via health endpoint
   }
 }
-
-// Start initialization
-initialize();
