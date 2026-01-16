@@ -4,7 +4,8 @@ import { Capacitor } from '@capacitor/core';
 
 type Json = Record<string, any>;
 
-const NATIVE_API_BASE = 'https://2e4f029e-9abb-4b2b-a953-3126cde586ef-00-36heuk32mpfh5.worf.replit.dev';
+// Production API base for iOS/native apps - must match capacitor.config.ts server.url
+const NATIVE_API_BASE = 'https://my-perfect-meals-production-do-not-touch--bigidrise.replit.app';
 
 const isDev = import.meta.env.DEV;
 const ENV_BASE = (import.meta as any).env?.VITE_API_BASE?.trim() || (import.meta as any).env?.VITE_API_BASE_URL?.trim();
@@ -21,6 +22,52 @@ function getApiBase(): string {
 }
 
 export const API_BASE = getApiBase();
+
+// Environment fingerprint for iOS debugging
+export function logEnvironmentFingerprint(context: string, userId?: string | null) {
+  if (!Capacitor.isNativePlatform()) return;
+  
+  const fingerprint = {
+    platform: Capacitor.getPlatform(),
+    apiBase: API_BASE,
+    authMode: 'cookie', // We use credentials: "include"
+    userIdPresent: !!userId,
+    deviceId: getDeviceId()?.slice(0, 8) + '...',
+  };
+  console.log(`[API Fingerprint] ${context}:`, fingerprint);
+}
+
+// Custom error class with HTTP status code
+export class ApiError extends Error {
+  status: number;
+  statusText: string;
+  body: string;
+  
+  constructor(status: number, statusText: string, body: string) {
+    super(`API ${status} ${statusText} → ${body || "(no body)"}`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.statusText = statusText;
+    this.body = body;
+  }
+  
+  // Helper to diagnose auth issues
+  get isAuthError(): boolean {
+    return this.status === 401 || this.status === 403;
+  }
+  
+  get isNotFound(): boolean {
+    return this.status === 404;
+  }
+  
+  get isServerError(): boolean {
+    return this.status >= 500;
+  }
+  
+  get isNetworkError(): boolean {
+    return this.status === 0;
+  }
+}
 
 // Build a full URL safely
 function url(path: string) {
@@ -41,22 +88,46 @@ export async function apiJSON<T = any>(
   const { json, headers, ...rest } = init;
   const body = json ? JSON.stringify(json) : init.body;
   const deviceId = getDeviceId();
+  const isNative = Capacitor.isNativePlatform();
+  const fullUrl = url(path);
 
-  const res = await fetch(url(path), {
-    credentials: "include", // allow cookies/sessions if you use them
-    headers: {
-      "Content-Type": json ? "application/json" : (headers as any)?.["Content-Type"] ?? "application/json",
-      "X-Device-Id": deviceId,
-      ...(headers || {}),
-    },
-    ...rest,
-    body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(fullUrl, {
+      credentials: "include", // allow cookies/sessions if you use them
+      headers: {
+        "Content-Type": json ? "application/json" : (headers as any)?.["Content-Type"] ?? "application/json",
+        "X-Device-Id": deviceId,
+        ...(headers || {}),
+      },
+      ...rest,
+      body,
+    });
+  } catch (networkErr: any) {
+    // Network-level failure (no response at all)
+    if (isNative) {
+      console.error(`[API] Network error on ${init.method || 'GET'} ${path}:`, networkErr.message);
+    }
+    const apiErr = new ApiError(0, 'Network Error', networkErr.message || 'Connection failed');
+    throw apiErr;
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status} ${res.statusText} → ${text || "(no body)"}`);
+    
+    // Log status codes on iOS for debugging
+    if (isNative) {
+      console.error(`[API] ${init.method || 'GET'} ${path} failed:`, {
+        status: res.status,
+        statusText: res.statusText,
+        body: text?.slice(0, 200),
+        isAuth: res.status === 401 || res.status === 403,
+      });
+    }
+    
+    throw new ApiError(res.status, res.statusText, text);
   }
+  
   // Try JSON; fall back to text
   const ct = res.headers.get("content-type") || "";
   return ct.includes("application/json") ? ((await res.json()) as T) : ((await res.text()) as unknown as T);
