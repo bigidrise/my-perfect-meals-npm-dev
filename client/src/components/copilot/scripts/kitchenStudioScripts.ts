@@ -5,7 +5,7 @@ export const KITCHEN_STUDIO_INTRO =
   "Alright — what do we feel like making today?";
 
 export const KITCHEN_STUDIO_STEP2 =
-  "Perfect. How are we cooking it today?";
+  "Perfect, and how are we cooking it?";
 
 // Kitchen Studio - Cooking method question
 export const KITCHEN_STUDIO_COOK_METHOD =
@@ -13,7 +13,7 @@ export const KITCHEN_STUDIO_COOK_METHOD =
 
 // Kitchen Studio - After cooking method selected
 export const KITCHEN_STUDIO_COOK_CONFIRMED =
-  "Perfect. Quick setup question before we start.";
+  "Perfect. Quick setup question.";
 
 // Kitchen Studio - Preferences / guardrails (micro-lines)
 export const KITCHEN_STUDIO_PREFS_LINE1 =
@@ -37,7 +37,7 @@ export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED =
 
 // Kitchen Studio - Servings question
 export const KITCHEN_STUDIO_SERVINGS =
-  "How many servings do you want?";
+  "How many servings?";
 
 // Kitchen Studio - After servings confirmed
 export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
@@ -45,11 +45,11 @@ export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "Quick check: make sure you’ve got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something. Grab what you need, and let’s get cooking.";
+  "Quick check: make sure you’ve got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something.";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "If you’re set, hit Generate — let’s see what we’ve got.";
+  "Ready to see what we created? Hit Generate?";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
