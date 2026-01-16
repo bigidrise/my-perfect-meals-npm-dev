@@ -877,36 +877,17 @@ const FridgeRescuePage = () => {
                       </div>
 
                       {/* Bottom Actions */}
-                      <div className="mt-auto pt-4 space-y-2">
-                        <div className="flex gap-2">
-                          <MacroBridgeButton
-                            data-testid="fridge-add-to-shopping"
-                            meal={{
-                              protein: meal.protein || 0,
-                              carbs: meal.carbs || 0,
-                              fat: meal.fat || 0,
-                              calories: meal.calories || 0,
-                            }}
-                            source="fridge-rescue"
-                          />
-                        </div>
-                        <div className="flex justify-end">
-                          <TrashButton
-                            onClick={() => {
-                              setMeals((prev) =>
-                                prev.filter((m) => m.id !== meal.id),
-                              );
-                              toast({
-                                title: "🗑️ Meal Deleted",
-                                description: `"${meal.name}" has been removed.`,
-                              });
-                            }}
-                            size="sm"
-                            ariaLabel={`Delete ${meal.name}`}
-                            title={`Delete ${meal.name}`}
-                            data-testid={`button-delete-${meal.name.toLowerCase().replace(/\s+/g, "-")}`}
-                          />
-                        </div>
+                      <div className="mt-auto pt-4">
+                        <MacroBridgeButton
+                          data-testid="fridge-add-to-shopping"
+                          meal={{
+                            protein: meal.protein || 0,
+                            carbs: meal.carbs || 0,
+                            fat: meal.fat || 0,
+                            calories: meal.calories || 0,
+                          }}
+                          source="fridge-rescue"
+                        />
                       </div>
                     </CardContent>
                   </Card>
