@@ -147,10 +147,20 @@ export default function LifestyleLandingPage() {
                   )}
 
                   <Card
-                    className="relative cursor-pointer transition-transform duration-200 active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl shadow-md"
+                    className={`relative cursor-pointer transition-transform duration-200 active:scale-95 bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
+                      isChefsKitchen ? "border-orange-400/30" : "border-white/10"
+                    }`}
                     onClick={() => handleCardClick(feature.route)}
                     data-testid={feature.testId}
                   >
+                    {isChefsKitchen && (
+                      <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+                        <span className="text-white font-semibold text-[9px]">
+                          Powered by Emotion AI™
+                        </span>
+                      </div>
+                    )}
                     <CardContent className="p-3">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">

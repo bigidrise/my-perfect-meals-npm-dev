@@ -388,8 +388,11 @@ export default function GuestBuilder() {
                 onClick={() => handleActionClick(action)}
               >
                 {isSignatureCard && (
-                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-600/90 to-amber-700/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
-                    {action.signatureBadge}
+                  <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg">
+                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+                    <span className="text-white font-semibold text-[9px]">
+                      {action.signatureBadge}
+                    </span>
                   </div>
                 )}
                 <CardContent className="p-4 flex items-center gap-4">
