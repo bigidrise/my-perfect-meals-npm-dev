@@ -349,12 +349,6 @@ export default function CravingPresetsPage() {
                       }}
                     />
                   </div>
-                  <Button
-                    onClick={() => setLocation("/biometrics?from=craving-presets&view=macros")}
-                    className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
-                  >
-                    Add to Macros
-                  </Button>
                 </div>
 
                 {/* Health Badges */}
@@ -451,6 +445,14 @@ export default function CravingPresetsPage() {
                     </ol>
                   </div>
                 )}
+
+                {/* Add to Macros - Bottom of card */}
+                <Button
+                  onClick={() => setLocation("/biometrics?from=craving-presets&view=macros")}
+                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                >
+                  Add to Macros
+                </Button>
               </CardContent>
             </Card>
           </div>
