@@ -685,7 +685,7 @@ export default function MacroCounter() {
                     </p>
                     <Button
                       onClick={() => advanceGuided("goal")}
-                      className="w-full py-4 bg-lime-600 hover:bg-lime-500 text-black font-semibold text-lg rounded-xl"
+                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
                       data-testid="guided-talk-to-chef"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
@@ -917,7 +917,7 @@ export default function MacroCounter() {
                     <Button
                       onClick={() => advanceGuided("height")}
                       disabled={!age || age <= 0}
-                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl disabled:opacity-50"
+                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
                     >
                       Continue
                     </Button>
@@ -979,7 +979,7 @@ export default function MacroCounter() {
                     <Button
                       onClick={() => advanceGuided("weight")}
                       disabled={units === "imperial" ? (!heightFt && !heightIn) : !heightCm}
-                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl disabled:opacity-50"
+                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
                     >
                       Continue
                     </Button>
@@ -1023,7 +1023,7 @@ export default function MacroCounter() {
                     <Button
                       onClick={() => advanceGuided("activity")}
                       disabled={units === "imperial" ? !weightLbs : !weightKg}
-                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl disabled:opacity-50"
+                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
                     >
                       Continue
                     </Button>
@@ -1164,7 +1164,7 @@ export default function MacroCounter() {
                         setShowResults(true);
                         advanceGuided("results");
                       }}
-                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl"
+                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
                     >
                       Let's See What We Got!
                     </Button>
@@ -1202,7 +1202,7 @@ export default function MacroCounter() {
                 </Card>
                 <Button
                   onClick={() => advanceGuided("starch")}
-                  className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl"
+                  className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
                 >
                   Continue
                 </Button>
