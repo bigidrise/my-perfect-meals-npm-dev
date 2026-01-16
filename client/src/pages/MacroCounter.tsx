@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Calculator } from "lucide-react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Activity,
   User2,
   Info,
@@ -23,7 +30,27 @@ import {
   X,
   Home,
   ChefHat,
+  Check,
+  Sparkles,
 } from "lucide-react";
+
+// Guided flow step type
+type GuidedStep =
+  | "entry"
+  | "goal"
+  | "bodyType"
+  | "units"
+  | "sex"
+  | "age"
+  | "height"
+  | "weight"
+  | "activity"
+  | "syncWeight"
+  | "metabolic"
+  | "results"
+  | "starch"
+  | "save"
+  | "done";
 import { useToast } from "@/hooks/use-toast";
 import {
   setMacroTargets,
@@ -287,6 +314,33 @@ export default function MacroCounter() {
     existingTargets?.starchStrategy ?? "one",
   );
 
+  // Guided Mode State
+  const hasExistingSettings = savedSettings !== null;
+  const [guidedStep, setGuidedStep] = useState<GuidedStep>(
+    hasExistingSettings ? "done" : "entry"
+  );
+  const [showResults, setShowResults] = useState(hasExistingSettings);
+
+  // Helper to advance to next step
+  const advanceGuided = (nextStep: GuidedStep) => {
+    setGuidedStep(nextStep);
+    // Smooth scroll to top when advancing
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 100);
+  };
+
+  // Check if we're past a certain step (for showing completed items)
+  const isPastStep = (step: GuidedStep): boolean => {
+    const stepOrder: GuidedStep[] = [
+      "entry", "goal", "bodyType", "units", "sex", "age", "height", "weight",
+      "activity", "syncWeight", "metabolic", "results", "starch", "save", "done"
+    ];
+    const currentIndex = stepOrder.indexOf(guidedStep);
+    const checkIndex = stepOrder.indexOf(step);
+    return currentIndex > checkIndex;
+  };
+
   const macroCalculatorTourSteps: TourStep[] = [
     {
       title: "Choose Your Goal",
@@ -476,6 +530,684 @@ export default function MacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* GUIDED MODE - Entry Point */}
+          <AnimatePresence mode="wait">
+            {guidedStep === "entry" && (
+              <motion.div
+                key="guided-entry"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-6 w-6 text-orange-500" />
+                      <h2 className="text-xl font-bold text-white">
+                        Welcome to Macro Calculator
+                      </h2>
+                    </div>
+                    <p className="text-white/80 text-sm leading-relaxed">
+                      Let's set up your personalized nutrition targets together. I'll walk you through each step to make sure we get it right.
+                    </p>
+                    <Button
+                      onClick={() => advanceGuided("goal")}
+                      className="w-full py-4 bg-lime-600 hover:bg-lime-500 text-black font-semibold text-lg rounded-xl"
+                      data-testid="guided-talk-to-chef"
+                    >
+                      <ChefHat className="h-5 w-5 mr-2" />
+                      Talk to Chef
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 1: Goal */}
+            {guidedStep === "goal" && (
+              <motion.div
+                key="guided-goal"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 1</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What are we trying to do with our nutrition? What's your ultimate goal?
+                    </p>
+                    <Select
+                      value={goal}
+                      onValueChange={(v: Goal) => {
+                        setGoal(v);
+                        advanceGuided("bodyType");
+                      }}
+                    >
+                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
+                        <SelectValue placeholder="Choose your goal..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/20">
+                        <SelectItem value="loss" className="text-white hover:bg-white/10">Cut (Lose Weight)</SelectItem>
+                        <SelectItem value="maint" className="text-white hover:bg-white/10">Maintain (Stay the Same)</SelectItem>
+                        <SelectItem value="gain" className="text-white hover:bg-white/10">Gain (Build Muscle)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 2: Body Type */}
+            {guidedStep === "bodyType" && (
+              <motion.div
+                key="guided-bodytype"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                {/* Completed: Goal */}
+                <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                  <p className="text-sm text-white/90 font-medium flex items-center gap-2">
+                    <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
+                    Goal: {goal === "loss" ? "Cut" : goal === "maint" ? "Maintain" : "Gain"}
+                  </p>
+                </div>
+
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 2</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What's your body type?
+                    </p>
+                    <BodyTypeGuide />
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { v: "ecto", label: "Ectomorph" },
+                        { v: "meso", label: "Mesomorph" },
+                        { v: "endo", label: "Endomorph" },
+                      ].map((b) => (
+                        <Button
+                          key={b.v}
+                          onClick={() => {
+                            setBodyType(b.v as BodyType);
+                            advanceGuided("units");
+                          }}
+                          className={`py-3 ${bodyType === b.v ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        >
+                          {b.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 3: Units */}
+            {guidedStep === "units" && (
+              <motion.div
+                key="guided-units"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                {/* Completed steps */}
+                <div className="space-y-2">
+                  <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                    <p className="text-sm text-white/90 font-medium flex items-center gap-2">
+                      <Check className="h-4 w-4 text-lime-500" />
+                      Goal: {goal === "loss" ? "Cut" : goal === "maint" ? "Maintain" : "Gain"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                    <p className="text-sm text-white/90 font-medium flex items-center gap-2">
+                      <Check className="h-4 w-4 text-lime-500" />
+                      Body Type: {bodyType === "ecto" ? "Ectomorph" : bodyType === "meso" ? "Mesomorph" : "Endomorph"}
+                    </p>
+                  </div>
+                </div>
+
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 3</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What units are you measuring in?
+                    </p>
+                    <Select
+                      value={units}
+                      onValueChange={(v: Units) => {
+                        setUnits(v);
+                        advanceGuided("sex");
+                      }}
+                    >
+                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
+                        <SelectValue placeholder="Choose units..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/20">
+                        <SelectItem value="imperial" className="text-white hover:bg-white/10">US / Imperial (lbs, ft/in)</SelectItem>
+                        <SelectItem value="metric" className="text-white hover:bg-white/10">Metric (kg, cm)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 4: Sex */}
+            {guidedStep === "sex" && (
+              <motion.div
+                key="guided-sex"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 4</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What is your biological sex?
+                    </p>
+                    <Select
+                      value={sex}
+                      onValueChange={(v: Sex) => {
+                        setSex(v);
+                        advanceGuided("age");
+                      }}
+                    >
+                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
+                        <SelectValue placeholder="Choose..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/20">
+                        <SelectItem value="female" className="text-white hover:bg-white/10">Female</SelectItem>
+                        <SelectItem value="male" className="text-white hover:bg-white/10">Male</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 5: Age */}
+            {guidedStep === "age" && (
+              <motion.div
+                key="guided-age"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 5</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      How old are you?
+                    </p>
+                    <Input
+                      type="number"
+                      placeholder="Enter your age..."
+                      className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
+                      value={age || ""}
+                      onChange={(e) => setAge(e.target.value === "" ? 0 : toNum(e.target.value))}
+                    />
+                    <Button
+                      onClick={() => advanceGuided("height")}
+                      disabled={!age || age <= 0}
+                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl disabled:opacity-50"
+                    >
+                      Continue
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 6: Height */}
+            {guidedStep === "height" && (
+              <motion.div
+                key="guided-height"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 6</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What's your height?
+                    </p>
+                    {units === "imperial" ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm text-white/70 mb-1 block">Feet</label>
+                          <Input
+                            type="number"
+                            placeholder="ft"
+                            className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
+                            value={heightFt || ""}
+                            onChange={(e) => setHeightFt(e.target.value === "" ? 0 : toNum(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-white/70 mb-1 block">Inches</label>
+                          <Input
+                            type="number"
+                            placeholder="in"
+                            className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
+                            value={heightIn || ""}
+                            onChange={(e) => setHeightIn(e.target.value === "" ? 0 : toNum(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        placeholder="Enter height in cm..."
+                        className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
+                        value={heightCm || ""}
+                        onChange={(e) => setHeightCm(e.target.value === "" ? 0 : toNum(e.target.value))}
+                      />
+                    )}
+                    <Button
+                      onClick={() => advanceGuided("weight")}
+                      disabled={units === "imperial" ? (!heightFt && !heightIn) : !heightCm}
+                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl disabled:opacity-50"
+                    >
+                      Continue
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 7: Weight */}
+            {guidedStep === "weight" && (
+              <motion.div
+                key="guided-weight"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 7</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What's your current weight?
+                    </p>
+                    <Input
+                      type="number"
+                      placeholder={units === "imperial" ? "Enter weight in lbs..." : "Enter weight in kg..."}
+                      className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
+                      value={units === "imperial" ? (weightLbs || "") : (weightKg || "")}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? 0 : toNum(e.target.value);
+                        if (units === "imperial") {
+                          setWeightLbs(val);
+                        } else {
+                          setWeightKg(val);
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={() => advanceGuided("activity")}
+                      disabled={units === "imperial" ? !weightLbs : !weightKg}
+                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl disabled:opacity-50"
+                    >
+                      Continue
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 8: Activity Level */}
+            {guidedStep === "activity" && (
+              <motion.div
+                key="guided-activity"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 8</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What is your activity level?
+                    </p>
+                    <Select
+                      value={activity}
+                      onValueChange={(v: keyof typeof ACTIVITY_FACTORS) => {
+                        setActivity(v);
+                        advanceGuided("syncWeight");
+                      }}
+                    >
+                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
+                        <SelectValue placeholder="Choose activity level..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/20">
+                        <SelectItem value="sedentary" className="text-white hover:bg-white/10">Sedentary (little or no exercise)</SelectItem>
+                        <SelectItem value="light" className="text-white hover:bg-white/10">Light (1-3 days/week)</SelectItem>
+                        <SelectItem value="moderate" className="text-white hover:bg-white/10">Moderate (3-5 days/week)</SelectItem>
+                        <SelectItem value="very" className="text-white hover:bg-white/10">Very Active (6-7 days/week)</SelectItem>
+                        <SelectItem value="extra" className="text-white hover:bg-white/10">Extra Active (2x/day)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 9: Sync Weight */}
+            {guidedStep === "syncWeight" && (
+              <motion.div
+                key="guided-sync"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 9</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      Would you like to save your weight to biometrics?
+                    </p>
+                    <Button
+                      onClick={() => {
+                        const weight = units === "imperial" ? weightLbs : weightKg;
+                        localStorage.setItem(
+                          "pending-weight-sync",
+                          JSON.stringify({ weight, units, timestamp: Date.now() })
+                        );
+                        toast({
+                          title: "Weight ready to sync",
+                          description: "Go to My Biometrics to save it to your history.",
+                        });
+                        advanceGuided("metabolic");
+                      }}
+                      className="w-full py-3 bg-lime-700 hover:bg-lime-600 text-white font-semibold rounded-xl"
+                    >
+                      <Scale className="h-4 w-4 mr-2" />
+                      Save Weight to Biometrics
+                    </Button>
+                    <Button
+                      onClick={() => advanceGuided("metabolic")}
+                      variant="outline"
+                      className="w-full py-3 border-white/30 text-white hover:bg-white/10"
+                    >
+                      Skip for now
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 10: Metabolic Considerations */}
+            {guidedStep === "metabolic" && (
+              <motion.div
+                key="guided-metabolic"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">Step 10</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      Any metabolic or hormonal considerations? These help fine-tune your targets.
+                    </p>
+                    <p className="text-sm text-white/60">
+                      You can adjust these now or skip and do it later.
+                    </p>
+                    {results && (
+                      <MetabolicConsiderations
+                        currentTargets={{
+                          protein: results.macros.protein.g + advisoryDeltas.protein,
+                          carbs: results.macros.carbs.g + advisoryDeltas.carbs,
+                          fat: results.macros.fat.g + advisoryDeltas.fat,
+                        }}
+                        onApplyAdjustments={(deltas) => {
+                          setAdvisoryDeltas({
+                            protein: advisoryDeltas.protein + deltas.protein,
+                            carbs: advisoryDeltas.carbs + deltas.carbs,
+                            fat: advisoryDeltas.fat + deltas.fat,
+                          });
+                          toast({
+                            title: "Adjustments Applied",
+                            description: "Your macro targets have been fine-tuned.",
+                          });
+                        }}
+                      />
+                    )}
+                    <Button
+                      onClick={() => {
+                        setShowResults(true);
+                        advanceGuided("results");
+                      }}
+                      className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl"
+                    >
+                      Let's See What We Got!
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 11: Results Reveal */}
+            {guidedStep === "results" && results && (
+              <motion.div
+                key="guided-results"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-5">
+                    <h3 className="text-lg font-semibold flex items-center mb-4">
+                      <Target className="h-5 w-5 mr-2 text-emerald-300" />
+                      Your Daily Macro Targets
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 p-4 mb-2">
+                        <div className="text-base font-bold text-white">Total Calories</div>
+                        <div className="text-2xl font-bold text-emerald-300">{results.target} kcal</div>
+                      </div>
+                      <MacroRow label="Protein" grams={Math.max(0, results.macros.protein.g + advisoryDeltas.protein)} />
+                      <MacroRow label="Carbs - Starchy" grams={Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5))} />
+                      <MacroRow label="Carbs - Fibrous" grams={Math.max(0, results.macros.carbs.g - getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5))} />
+                      <MacroRow label="Fats" grams={Math.max(0, results.macros.fat.g + advisoryDeltas.fat)} />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Button
+                  onClick={() => advanceGuided("starch")}
+                  className="w-full py-3 bg-lime-600 hover:bg-lime-500 text-black font-semibold rounded-xl"
+                >
+                  Continue
+                </Button>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 12: Starch Strategy */}
+            {guidedStep === "starch" && (
+              <motion.div
+                key="guided-starch"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-400 text-xl">🌾</span>
+                      <h3 className="text-lg font-semibold text-white">Your Starch Game Plan</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      How are you going to eat your starches? One meal or split across two?
+                    </p>
+                    <Select
+                      value={starchStrategy}
+                      onValueChange={(v: StarchStrategy) => {
+                        setStarchStrategy(v);
+                        advanceGuided("save");
+                      }}
+                    >
+                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
+                        <SelectValue placeholder="Choose starch strategy..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/20">
+                        <SelectItem value="one" className="text-white hover:bg-white/10">One Starch Meal (Recommended)</SelectItem>
+                        <SelectItem value="flex" className="text-white hover:bg-white/10">Flex Split (Two Meals)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 13: Final Save */}
+            {guidedStep === "save" && results && (
+              <motion.div
+                key="guided-save"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-black/30 backdrop-blur-lg border border-lime-500/30 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Check className="h-5 w-5 text-lime-500" />
+                      <h3 className="text-lg font-semibold text-white">All Set!</h3>
+                    </div>
+                    <p className="text-white text-base">
+                      Your personalized macro targets are ready. Save them and head to your meal builder!
+                    </p>
+                    
+                    {/* Summary */}
+                    <div className="bg-black/40 rounded-xl p-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Calories:</span>
+                        <span className="text-white font-semibold">{results.target} kcal</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Protein:</span>
+                        <span className="text-white font-semibold">{Math.max(0, results.macros.protein.g + advisoryDeltas.protein)}g</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Carbs:</span>
+                        <span className="text-white font-semibold">{Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs)}g</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Fats:</span>
+                        <span className="text-white font-semibold">{Math.max(0, results.macros.fat.g + advisoryDeltas.fat)}g</span>
+                      </div>
+                    </div>
+
+                    <Button
+                      disabled={isSaving}
+                      onClick={async () => {
+                        setIsSaving(true);
+                        try {
+                          const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
+                          const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
+                          const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
+                          const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
+                          const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
+
+                          await setMacroTargets(
+                            {
+                              calories: results.target,
+                              protein_g: adjustedProtein,
+                              carbs_g: adjustedCarbs,
+                              fat_g: adjustedFat,
+                              starchyCarbs_g: adjustedStarchy,
+                              fibrousCarbs_g: adjustedFibrous,
+                              starchStrategy,
+                            },
+                            user?.id,
+                          );
+
+                          window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+
+                          if (isGuestMode()) {
+                            markMacrosCompleted();
+                          }
+
+                          const assignedBuilder = getAssignedBuilderFromStorage();
+                          toast({
+                            title: "Macro Targets Set!",
+                            description: `Heading to ${assignedBuilder.name} to build your meals.`,
+                          });
+                          
+                          advanceGuided("done");
+                          setLocation(assignedBuilder.path);
+                        } catch (error) {
+                          console.error("Failed to save macro targets:", error);
+                          toast({
+                            title: "Save Failed",
+                            description: "Failed to save your macro targets. Please try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                      className="w-full py-4 bg-lime-600 hover:bg-lime-500 text-black font-semibold text-lg rounded-xl"
+                    >
+                      <ChefHat className="h-5 w-5 mr-2" />
+                      {isSaving ? "Saving..." : "Save & Go to Meal Builder"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* FULL CALCULATOR VIEW - Only shown after guided flow is complete OR if user has existing settings */}
+          {guidedStep === "done" && (
+            <>
           {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
           <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
             <p className="text-sm text-white/90 leading-relaxed">
@@ -1287,6 +2019,8 @@ export default function MacroCounter() {
                 </Button>
               </div>
             </>
+          )}
+          </>
           )}
         </div>
       </motion.div>
