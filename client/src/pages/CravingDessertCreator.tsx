@@ -703,9 +703,9 @@ export default function DessertCreator() {
                         "/biometrics?from=dessert-creator&view=macros",
                       );
                     }}
-                    className="w-full bg-black hover:bg-black/80 text-white"
+                    className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center text-center"
                   >
-                    Add Your Macros
+                    Add to Macros
                   </GlassButton>
                 </CardContent>
               </Card>
@@ -717,7 +717,7 @@ export default function DessertCreator() {
                   unit: ing.unit,
                 }))}
                 source="Dessert Creator"
-                hideCopyButton={true}
+                hideShareButton={true}
               />
             </div>
           )}

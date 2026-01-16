@@ -219,7 +219,7 @@ export default function MocktailsLowCalMixersPage() {
             }))}
             source={selected.name}
             sourceSlug="mocktails"
-            hideCopyButton={true}
+            hideShareButton={true}
           />
         )}
       </div>

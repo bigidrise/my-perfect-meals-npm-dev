@@ -362,7 +362,7 @@ export default function ToddlersMealsHub() {
               }))}
               source={`${selected.name} (${selectedServings} servings)`}
               sourceSlug="toddler-meals"
-              hideCopyButton={true}
+              hideShareButton={true}
               onAddComplete={() => {
                 // Dispatch "done" event after adding to shopping list (500ms debounce)
                 setTimeout(() => {

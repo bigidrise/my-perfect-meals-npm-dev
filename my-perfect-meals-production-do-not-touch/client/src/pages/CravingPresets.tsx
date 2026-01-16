@@ -6,28 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Users, ChefHat, ArrowLeft } from "lucide-react";
-import { CRAVING_PRESETS, type CravingPreset, type Ingredient } from "@/data/cravingsPresetsData";
+import {
+  CRAVING_PRESETS,
+  type CravingPreset,
+  type Ingredient,
+} from "@/data/cravingsPresetsData";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import CopyRecipeButton from "@/components/CopyRecipeButton";
+import MealCardActions from "@/components/MealCardActions";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 const SERVING_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
-type RoundingMode = "tenth" | "half" | "whole";
-
-function roundQty(value: number, mode: RoundingMode = "tenth"): number {
+function roundQty(value: number): number {
   if (!isFinite(value)) return 0;
-  switch (mode) {
-    case "half":
-      return Math.round(value * 2) / 2;
-    case "whole":
-      return Math.round(value);
-    default:
-      return Math.round(value * 10) / 10;
-  }
+  return Math.round(value * 10) / 10;
 }
 
-function scaleQty(qty: number, fromServings: number, toServings: number): number {
+function scaleQty(
+  qty: number,
+  fromServings: number,
+  toServings: number,
+): number {
   if (!fromServings || fromServings <= 0) return qty;
   return qty * (toServings / fromServings);
 }
@@ -49,10 +52,9 @@ function scaledIngredient(
   ing: Ingredient,
   baseServings: number,
   toServings: number,
-  rounding: RoundingMode
 ): Ingredient {
   const scaled = scaleQty(ing.quantity, baseServings, toServings);
-  const rounded = roundQty(scaled, rounding);
+  const rounded = roundQty(scaled);
   return { ...ing, quantity: rounded };
 }
 
@@ -60,15 +62,32 @@ function scaleIngredients(
   ings: Ingredient[],
   baseServings: number,
   toServings: number,
-  rounding: RoundingMode
 ): Ingredient[] {
-  return ings.map((ing) => scaledIngredient(ing, baseServings, toServings, rounding));
+  return ings.map((ing) => scaledIngredient(ing, baseServings, toServings));
 }
+
+const PRESETS_TOUR_STEPS: TourStep[] = [
+  {
+    title: "Set Your Servings",
+    description:
+      "Choose how many servings you’re making and your rounding preference so portions stay realistic.",
+  },
+  {
+    title: "Browse Premade Meals",
+    description:
+      "Scroll through ready-made craving meals and tap any image to view ingredients, nutrition, and cooking instructions.",
+  },
+  {
+    title: "Take Action",
+    description:
+      "Send ingredients to your shopping list, log your macros, or do both with a single tap.",
+  },
+];
 
 export default function CravingPresetsPage() {
   const [, setLocation] = useLocation();
+  const quickTour = useQuickTour("craving-presets");
   const [selectedServings, setSelectedServings] = useState<number>(2);
-  const [rounding, setRounding] = useState<RoundingMode>("tenth");
   const [filterText, setFilterText] = useState("");
   const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
 
@@ -77,7 +96,7 @@ export default function CravingPresetsPage() {
     if (!localStorage.getItem("hasSeenPresetsInfo")) {
       localStorage.setItem("hasSeenPresetsInfo", "true");
     }
-    
+
     // Dispatch "ready" event after page loads (500ms debounce)
     setTimeout(() => {
       const event = new CustomEvent("walkthrough:event", {
@@ -86,7 +105,6 @@ export default function CravingPresetsPage() {
       window.dispatchEvent(event);
     }, 500);
   }, []);
-
 
   const meals = useMemo(() => {
     const q = filterText.trim().toLowerCase();
@@ -103,12 +121,18 @@ export default function CravingPresetsPage() {
         m.name.toLowerCase().includes(q) ||
         (m.badges?.some((t) => t.toLowerCase().includes(q)) ?? false) ||
         (m.tags?.some((t) => t.toLowerCase().includes(q)) ?? false) ||
-        (m.summary?.toLowerCase().includes(q) ?? false)
+        (m.summary?.toLowerCase().includes(q) ?? false),
     );
   }, [filterText]);
 
-  const selected = meals.find(m => m.id === selectedMeal);
-  const scaledIngs = selected ? scaleIngredients(selected.ingredients, selected.baseServings, selectedServings, rounding) : [];
+  const selected = meals.find((m) => m.id === selectedMeal);
+  const scaledIngs = selected
+    ? scaleIngredients(
+        selected.ingredients,
+        selected.baseServings,
+        selectedServings,
+      )
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
@@ -117,21 +141,30 @@ export default function CravingPresetsPage() {
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-8 py-3 flex items-center gap-3">
+        <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
           {/* Back Button */}
           <Button
             onClick={() => setLocation("/craving-creator-landing")}
             variant="ghost"
-            className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2"
+            className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </Button>
 
           {/* Title */}
-          <h1 data-testid="craving-premades-hero" className="text-lg font-bold text-white">Premade Cravings</h1>
+          <h1
+            data-testid="craving-premades-hero"
+            className="text-lg font-bold text-white truncate min-w-0"
+          >
+            Premade Cravings
+          </h1>
 
-          
+          <div className="flex-grow" />
+          <QuickTourButton
+            onClick={quickTour.openTour}
+            className="flex-shrink-0"
+          />
         </div>
       </div>
 
@@ -140,11 +173,13 @@ export default function CravingPresetsPage() {
         className="max-w-6xl mx-auto px-4 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-
         {/* Controls */}
-        <Card data-testid="craving-premades-controls" className="mb-6 bg-black/50 backdrop-blur-sm border border-orange-400/70">
+        <Card
+          data-testid="craving-premades-controls"
+          className="mb-6 bg-black/50 backdrop-blur-sm border border-orange-400/70"
+        >
           <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-lg text-white">Search meals</Label>
                 <Input
@@ -174,32 +209,15 @@ export default function CravingPresetsPage() {
                   ))}
                 </div>
               </div>
-
-              <div>
-                <Label className="text-md text-white">Rounding</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {(["tenth", "half", "whole"] as RoundingMode[]).map((m) => (
-                    <Button
-                      key={m}
-                      size="sm"
-                      onClick={() => setRounding(m)}
-                      className={
-                        rounding === m
-                          ? "bg-orange-600 text-white"
-                          : "bg-black/60 border border-white/30 text-white hover:bg-black/80"
-                      }
-                    >
-                      {m}
-                    </Button>
-                  ))}
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Meals Grid */}
-        <div data-testid="cravingpremades-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+        <div
+          data-testid="cravingpremades-grid"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8"
+        >
           {meals.map((meal, idx) => (
             <Card
               key={meal.id}
@@ -207,11 +225,14 @@ export default function CravingPresetsPage() {
               className="cursor-pointer transform hover:scale-105 transition-all duration-200 bg-black/50 backdrop-blur-sm border border-orange-400/70 shadow-xl hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
               onClick={() => {
                 setSelectedMeal(meal.id);
-                
+
                 // Dispatch "done" event after selecting a meal (500ms debounce)
                 setTimeout(() => {
                   const event = new CustomEvent("walkthrough:event", {
-                    detail: { testId: "craving-premade-selected", event: "done" },
+                    detail: {
+                      testId: "craving-premade-selected",
+                      event: "done",
+                    },
                   });
                   window.dispatchEvent(event);
                 }, 500);
@@ -223,14 +244,24 @@ export default function CravingPresetsPage() {
                   alt={meal.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/meal-placeholder.jpg';
+                    (e.target as HTMLImageElement).src =
+                      "/images/meal-placeholder.jpg";
                   }}
                 />
               </div>
               <CardContent className="p-4">
-                <h3 className="font-bold text-lg mb-2 text-white">{meal.name}</h3>
-                <p className="text-sm text-white/80 mb-3 line-clamp-2">{meal.summary}</p>
-                {meal.badges && <HealthBadgesPopover badges={meal.badges} className="mt-2" />}
+                <h3 className="font-bold text-lg mb-2 text-white">
+                  {meal.name}
+                </h3>
+                <p className="text-sm text-white/80 mb-3 line-clamp-2">
+                  {meal.summary}
+                </p>
+                {meal.badges && (
+                  <div className="flex items-center gap-2">
+                    <HealthBadgesPopover badges={meal.badges} />
+                    <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -249,7 +280,9 @@ export default function CravingPresetsPage() {
             >
               <CardContent className="p-6 pb-32">
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-3xl font-bold text-white">{selected.name}</h2>
+                  <h2 className="text-3xl font-bold text-white">
+                    {selected.name}
+                  </h2>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -265,50 +298,122 @@ export default function CravingPresetsPage() {
                   alt={selected.name}
                   className="w-full h-64 object-cover rounded-lg mb-4 border border-orange-500/30"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/meal-placeholder.jpg';
+                    (e.target as HTMLImageElement).src =
+                      "/images/meal-placeholder.jpg";
                   }}
                 />
 
                 <p className="text-white/90 mb-4">{selected.summary}</p>
 
+                {/* Action Buttons - Add to Plan, Share, Add to Macros */}
+                <div className="flex flex-col gap-2 mb-4">
+                  <div className="flex gap-2">
+                    <AddToMealPlanButton
+                      meal={{
+                        id: selected.id,
+                        name: selected.name,
+                        description: selected.summary,
+                        imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
+                        ingredients: scaledIngs.map((ing) => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity) || "",
+                        })),
+                        instructions: selected.instructions,
+                        calories: selected.macros
+                          ? Math.round((selected.macros.calories * selectedServings) / selected.baseServings)
+                          : 0,
+                        protein: selected.macros
+                          ? Math.round((selected.macros.protein * selectedServings) / selected.baseServings)
+                          : 0,
+                        carbs: selected.macros
+                          ? Math.round((selected.macros.carbs * selectedServings) / selected.baseServings)
+                          : 0,
+                        fat: selected.macros
+                          ? Math.round((selected.macros.fat * selectedServings) / selected.baseServings)
+                          : 0,
+                        medicalBadges: selected.badges || [],
+                      }}
+                    />
+                    <MealCardActions
+                      meal={{
+                        name: selected.name,
+                        description: selected.summary,
+                        ingredients: scaledIngs.map((ing) => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity),
+                        })),
+                        instructions: selected.instructions,
+                        nutrition: selected.macros,
+                      }}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => setLocation("/biometrics?from=craving-presets&view=macros")}
+                    className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                  >
+                    Add to Macros
+                  </Button>
+                </div>
+
                 {/* Health Badges */}
                 {selected.badges && selected.badges.length > 0 && (
                   <div className="mb-4">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <h3 className="font-bold text-lg text-white">Health Benefits</h3>
-                      <CopyRecipeButton recipe={{
-                        name: selected.name,
-                        ingredients: scaledIngs.map(ing => ({
-                          name: ing.name,
-                          amount: formatQty(ing.quantity),
-                          unit: pluralize(ing.unit, ing.quantity)
-                        })),
-                        instructions: selected.instructions
-                      }} />
+                    <h3 className="font-bold text-lg text-white mb-2">
+                      Health Benefits
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <HealthBadgesPopover badges={selected.badges} />
+                      <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
                     </div>
-                    <HealthBadgesPopover badges={selected.badges} className="mt-2" />
                   </div>
                 )}
 
                 {/* Macros */}
                 {selected.macros && (
                   <div className="mb-4 p-4 bg-orange-600/20 border border-orange-400/40 rounded-lg">
-                    <h3 className="font-bold text-lg mb-2 text-white">Nutrition (per serving)</h3>
+                    <h3 className="font-bold text-lg mb-2 text-white">
+                      Nutrition (per serving)
+                    </h3>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <div className="text-2xl font-bold text-white">{Math.round(selected.macros.calories * selectedServings / selected.baseServings)}</div>
+                        <div className="text-2xl font-bold text-white">
+                          {Math.round(
+                            (selected.macros.calories * selectedServings) /
+                              selected.baseServings,
+                          )}
+                        </div>
                         <div className="text-xs text-white/70">Calories</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-white">{Math.round(selected.macros.protein * selectedServings / selected.baseServings)}g</div>
+                        <div className="text-2xl font-bold text-white">
+                          {Math.round(
+                            (selected.macros.protein * selectedServings) /
+                              selected.baseServings,
+                          )}
+                          g
+                        </div>
                         <div className="text-xs text-white/70">Protein</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-white">{Math.round(selected.macros.carbs * selectedServings / selected.baseServings)}g</div>
+                        <div className="text-2xl font-bold text-white">
+                          {Math.round(
+                            (selected.macros.carbs * selectedServings) /
+                              selected.baseServings,
+                          )}
+                          g
+                        </div>
                         <div className="text-xs text-white/70">Carbs</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-white">{Math.round(selected.macros.fat * selectedServings / selected.baseServings)}g</div>
+                        <div className="text-2xl font-bold text-white">
+                          {Math.round(
+                            (selected.macros.fat * selectedServings) /
+                              selected.baseServings,
+                          )}
+                          g
+                        </div>
                         <div className="text-xs text-white/70">Fat</div>
                       </div>
                     </div>
@@ -318,7 +423,8 @@ export default function CravingPresetsPage() {
                 {/* Ingredients */}
                 <div className="mb-4">
                   <h3 className="font-bold text-lg mb-2 text-white">
-                    Ingredients (for {selectedServings} {selectedServings === 1 ? "serving" : "servings"})
+                    Ingredients (for {selectedServings}{" "}
+                    {selectedServings === 1 ? "serving" : "servings"})
                   </h3>
                   <ul className="list-disc list-inside space-y-1">
                     {scaledIngs.map((ing, idx) => {
@@ -338,7 +444,9 @@ export default function CravingPresetsPage() {
                     <h3 className="font-bold text-white mb-2">Instructions</h3>
                     <ol className="list-decimal list-inside space-y-1 text-sm">
                       {selected.instructions.map((instruction, idx) => (
-                        <li key={idx} className="text-white/90">{instruction}</li>
+                        <li key={idx} className="text-white/90">
+                          {instruction}
+                        </li>
                       ))}
                     </ol>
                   </div>
@@ -352,14 +460,14 @@ export default function CravingPresetsPage() {
         {selected && (
           <div data-testid="craving-premades-shopping-bar">
             <ShoppingAggregateBar
-              ingredients={scaledIngs.map(ing => ({
+              ingredients={scaledIngs.map((ing) => ({
                 name: ing.name,
                 qty: ing.quantity,
-                unit: ing.unit || ''
+                unit: ing.unit || "",
               }))}
               source={`${selected.name} (${selectedServings} servings)`}
               sourceSlug="craving-presets"
-              hideCopyButton={true}
+              hideShareButton={true}
               onAddComplete={() => {
                 // Dispatch "done" event after adding to shopping list (500ms debounce)
                 setTimeout(() => {
@@ -372,6 +480,14 @@ export default function CravingPresetsPage() {
             />
           </div>
         )}
+
+        <QuickTourModal
+          isOpen={quickTour.shouldShow}
+          onClose={quickTour.closeTour}
+          title="How to Use Craving Premades"
+          steps={PRESETS_TOUR_STEPS}
+          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+        />
       </div>
     </div>
   );

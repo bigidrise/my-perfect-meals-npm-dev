@@ -1538,7 +1538,7 @@ export default function ChefsKitchenPage() {
           }))}
           source="Chef's Kitchen"
           sourceSlug="chefs-kitchen"
-          hideCopyButton={false}
+          hideShareButton={false}
         />
       )}
     </motion.div>
