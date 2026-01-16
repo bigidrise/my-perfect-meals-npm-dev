@@ -672,8 +672,8 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
-                  <CardContent className="p-6 space-y-4">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-5 space-y-4">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-6 w-6 text-orange-500" />
                       <h2 className="text-xl font-bold text-white">
@@ -705,8 +705,8 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
-                  <CardContent className="p-6 space-y-4">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-5 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">Step 1</h3>
@@ -716,21 +716,20 @@ export default function MacroCounter() {
                     </p>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { v: "loss", label: "Cut", desc: "" },
-                        { v: "maint", label: "Maintain", desc: "" },
-                        { v: "gain", label: "Gain", desc: "" },
+                        { v: "loss", label: "Cut" },
+                        { v: "maint", label: "Maintain" },
+                        { v: "gain", label: "Gain" },
                       ].map((g) => (
-                        <Button
+                        <div
                           key={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
                             advanceGuided("bodyType");
                           }}
-                          className={`py-4 flex flex-col items-center ${goal === g.v ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                          className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${goal === g.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
-                          <span className="font-semibold">{g.label}</span>
-                          <span className="text-xs opacity-80">{g.desc}</span>
-                        </Button>
+                          {g.label}
+                        </div>
                       ))}
                     </div>
                   </CardContent>
@@ -755,7 +754,7 @@ export default function MacroCounter() {
                   </p>
                 </div>
 
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -767,20 +766,20 @@ export default function MacroCounter() {
                     <BodyTypeGuide />
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { v: "ecto", label: "Ectomorph" },
-                        { v: "meso", label: "Mesomorph" },
-                        { v: "endo", label: "Endomorph" },
+                        { v: "ecto", label: "Ecto" },
+                        { v: "meso", label: "Meso" },
+                        { v: "endo", label: "Endo" },
                       ].map((b) => (
-                        <Button
+                        <div
                           key={b.v}
                           onClick={() => {
                             setBodyType(b.v as BodyType);
                             advanceGuided("units");
                           }}
-                          className={`py-3 ${bodyType === b.v ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                          className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
                           {b.label}
-                        </Button>
+                        </div>
                       ))}
                     </div>
                   </CardContent>
@@ -813,7 +812,7 @@ export default function MacroCounter() {
                   </div>
                 </div>
 
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -823,26 +822,24 @@ export default function MacroCounter() {
                       What units are you measuring in?
                     </p>
                     <div className="grid grid-cols-2 gap-3">
-                      <Button
+                      <div
                         onClick={() => {
                           setUnits("imperial");
                           advanceGuided("sex");
                         }}
-                        className={`py-4 flex flex-col items-center ${units === "imperial" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${units === "imperial" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                       >
-                        <span className="font-semibold">Imperial</span>
-                        <span className="text-xs opacity-80"></span>
-                      </Button>
-                      <Button
+                        US / Imperial
+                      </div>
+                      <div
                         onClick={() => {
                           setUnits("metric");
                           advanceGuided("sex");
                         }}
-                        className={`py-4 flex flex-col items-center ${units === "metric" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${units === "metric" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                       >
-                        <span className="font-semibold">Metric</span>
-                        <span className="text-xs opacity-80"></span>
-                      </Button>
+                        Metric
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -858,7 +855,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -868,24 +865,24 @@ export default function MacroCounter() {
                       What is your biological sex? (for metabolic calculations)
                     </p>
                     <div className="grid grid-cols-2 gap-3">
-                      <Button
+                      <div
                         onClick={() => {
                           setSex("female");
                           advanceGuided("age");
                         }}
-                        className={`py-4 ${sex === "female" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${sex === "female" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                       >
                         Female
-                      </Button>
-                      <Button
+                      </div>
+                      <div
                         onClick={() => {
                           setSex("male");
                           advanceGuided("age");
                         }}
-                        className={`py-4 ${sex === "male" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${sex === "male" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                       >
                         Male
-                      </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -901,7 +898,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -938,7 +935,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -1000,7 +997,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -1044,7 +1041,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -1061,17 +1058,17 @@ export default function MacroCounter() {
                         { v: "very", label: "Very Active", desc: "6-7 days/week" },
                         { v: "extra", label: "Extra Active", desc: "2x/day" },
                       ].map((a) => (
-                        <Button
+                        <div
                           key={a.v}
                           onClick={() => {
                             setActivity(a.v as keyof typeof ACTIVITY_FACTORS);
                             advanceGuided("syncWeight");
                           }}
-                          className={`w-full py-3 flex justify-between items-center ${activity === a.v ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                          className={`w-full px-3 py-2 border rounded-lg cursor-pointer flex justify-between items-center ${activity === a.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
-                          <span className="font-semibold">{a.label}</span>
+                          <span>{a.label}</span>
                           <span className="text-sm opacity-80">{a.desc}</span>
-                        </Button>
+                        </div>
                       ))}
                     </div>
                   </CardContent>
@@ -1088,7 +1085,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -1130,7 +1127,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
@@ -1221,7 +1218,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <span className="text-amber-400 text-xl">🌾</span>
@@ -1231,26 +1228,26 @@ export default function MacroCounter() {
                       How are you going to eat your starches? One meal or split across two?
                     </p>
                     <div className="space-y-2">
-                      <Button
+                      <div
                         onClick={() => {
                           setStarchStrategy("one");
                           advanceGuided("save");
                         }}
-                        className={`w-full py-4 flex flex-col items-start ${starchStrategy === "one" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        className={`w-full px-3 py-2 border rounded-lg cursor-pointer ${starchStrategy === "one" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                       >
-                        <span className="font-semibold">One Starch Meal</span>
-                        <span className="text-sm opacity-80">Recommended - all starches in one meal</span>
-                      </Button>
-                      <Button
+                        <div className="font-medium">One Starch Meal</div>
+                        <div className="text-sm opacity-80">Recommended - all starches in one meal</div>
+                      </div>
+                      <div
                         onClick={() => {
                           setStarchStrategy("flex");
                           advanceGuided("save");
                         }}
-                        className={`w-full py-4 flex flex-col items-start ${starchStrategy === "flex" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        className={`w-full px-3 py-2 border rounded-lg cursor-pointer ${starchStrategy === "flex" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                       >
-                        <span className="font-semibold">Flex Split</span>
-                        <span className="text-sm opacity-80">Split starches across two meals</span>
-                      </Button>
+                        <div className="font-medium">Flex Split</div>
+                        <div className="text-sm opacity-80">Split starches across two meals</div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1266,8 +1263,8 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-black/30 backdrop-blur-lg border border-lime-500/30 shadow-lg">
-                  <CardContent className="p-6 space-y-4">
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-5 space-y-4">
                     <div className="flex items-center gap-2">
                       <Check className="h-5 w-5 text-lime-500" />
                       <h3 className="text-lg font-semibold text-white">All Set!</h3>
