@@ -1,8 +1,26 @@
 // client/src/pages/MacroCounter.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Calculator } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
+import {
+  MACRO_CALC_ENTRY,
+  MACRO_CALC_GOAL,
+  MACRO_CALC_BODY_TYPE,
+  MACRO_CALC_UNITS,
+  MACRO_CALC_SEX,
+  MACRO_CALC_AGE,
+  MACRO_CALC_HEIGHT,
+  MACRO_CALC_WEIGHT,
+  MACRO_CALC_ACTIVITY,
+  MACRO_CALC_SYNC_WEIGHT,
+  MACRO_CALC_METABOLIC,
+  MACRO_CALC_RESULTS,
+  MACRO_CALC_STARCH,
+  MACRO_CALC_SAVE,
+  MACRO_CALC_DONE,
+} from "@/components/copilot/scripts/macroCalculatorScripts";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -320,15 +338,65 @@ export default function MacroCounter() {
     hasExistingSettings ? "done" : "entry"
   );
   const [showResults, setShowResults] = useState(hasExistingSettings);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasSpokenEntry, setHasSpokenEntry] = useState(false);
+  
+  // Chef Voice for guided walkthrough
+  const { speak, stop } = useChefVoice(setIsPlaying);
+  
+  // Map of step to voice script - memoized to avoid recreation
+  const stepScripts = useMemo<Record<GuidedStep, string>>(() => ({
+    entry: MACRO_CALC_ENTRY,
+    goal: MACRO_CALC_GOAL,
+    bodyType: MACRO_CALC_BODY_TYPE,
+    units: MACRO_CALC_UNITS,
+    sex: MACRO_CALC_SEX,
+    age: MACRO_CALC_AGE,
+    height: MACRO_CALC_HEIGHT,
+    weight: MACRO_CALC_WEIGHT,
+    activity: MACRO_CALC_ACTIVITY,
+    syncWeight: MACRO_CALC_SYNC_WEIGHT,
+    metabolic: MACRO_CALC_METABOLIC,
+    results: MACRO_CALC_RESULTS,
+    starch: MACRO_CALC_STARCH,
+    save: MACRO_CALC_SAVE,
+    done: MACRO_CALC_DONE,
+  }), []);
 
-  // Helper to advance to next step
-  const advanceGuided = (nextStep: GuidedStep) => {
+  // Helper to advance to next step with voice
+  const advanceGuided = useCallback((nextStep: GuidedStep) => {
     setGuidedStep(nextStep);
+    // Speak the script for this step (skip entry since it's handled by mount effect)
+    if (nextStep !== "entry") {
+      const script = stepScripts[nextStep];
+      if (script) {
+        speak(script);
+      }
+    }
     // Smooth scroll to top when advancing
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }, 100);
-  };
+  }, [speak, stepScripts]);
+  
+  // Speak entry script when component mounts in guided mode
+  useEffect(() => {
+    if (guidedStep === "entry" && !hasExistingSettings && !hasSpokenEntry) {
+      // Slight delay to ensure component is mounted
+      const timer = setTimeout(() => {
+        speak(MACRO_CALC_ENTRY);
+        setHasSpokenEntry(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [guidedStep, hasExistingSettings, hasSpokenEntry, speak]);
+  
+  // Cleanup: stop voice when navigating away
+  useEffect(() => {
+    return () => {
+      stop();
+    };
+  }, [stop]);
 
   // Check if we're past a certain step (for showing completed items)
   const isPastStep = (step: GuidedStep): boolean => {
