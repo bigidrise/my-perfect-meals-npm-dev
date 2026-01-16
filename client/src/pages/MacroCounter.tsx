@@ -662,22 +662,25 @@ export default function MacroCounter() {
                     <p className="text-white text-base">
                       What are we trying to do with our nutrition? What's your ultimate goal?
                     </p>
-                    <Select
-                      value={goal}
-                      onValueChange={(v: Goal) => {
-                        setGoal(v);
-                        advanceGuided("bodyType");
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
-                        <SelectValue placeholder="Choose your goal..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/20">
-                        <SelectItem value="loss" className="text-white hover:bg-white/10">Cut (Lose Weight)</SelectItem>
-                        <SelectItem value="maint" className="text-white hover:bg-white/10">Maintain (Stay the Same)</SelectItem>
-                        <SelectItem value="gain" className="text-white hover:bg-white/10">Gain (Build Muscle)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { v: "loss", label: "Cut", desc: "Lose Weight" },
+                        { v: "maint", label: "Maintain", desc: "Stay Same" },
+                        { v: "gain", label: "Gain", desc: "Build Muscle" },
+                      ].map((g) => (
+                        <Button
+                          key={g.v}
+                          onClick={() => {
+                            setGoal(g.v as Goal);
+                            advanceGuided("bodyType");
+                          }}
+                          className={`py-4 flex flex-col items-center ${goal === g.v ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        >
+                          <span className="font-semibold">{g.label}</span>
+                          <span className="text-xs opacity-80">{g.desc}</span>
+                        </Button>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -767,21 +770,28 @@ export default function MacroCounter() {
                     <p className="text-white text-base">
                       What units are you measuring in?
                     </p>
-                    <Select
-                      value={units}
-                      onValueChange={(v: Units) => {
-                        setUnits(v);
-                        advanceGuided("sex");
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
-                        <SelectValue placeholder="Choose units..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/20">
-                        <SelectItem value="imperial" className="text-white hover:bg-white/10">US / Imperial (lbs, ft/in)</SelectItem>
-                        <SelectItem value="metric" className="text-white hover:bg-white/10">Metric (kg, cm)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={() => {
+                          setUnits("imperial");
+                          advanceGuided("sex");
+                        }}
+                        className={`py-4 flex flex-col items-center ${units === "imperial" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                      >
+                        <span className="font-semibold">US / Imperial</span>
+                        <span className="text-xs opacity-80">lbs, ft/in</span>
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setUnits("metric");
+                          advanceGuided("sex");
+                        }}
+                        className={`py-4 flex flex-col items-center ${units === "metric" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                      >
+                        <span className="font-semibold">Metric</span>
+                        <span className="text-xs opacity-80">kg, cm</span>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -803,23 +813,28 @@ export default function MacroCounter() {
                       <h3 className="text-lg font-semibold text-white">Step 4</h3>
                     </div>
                     <p className="text-white text-base">
-                      What is your biological sex?
+                      What is your biological sex? (for metabolic calculations)
                     </p>
-                    <Select
-                      value={sex}
-                      onValueChange={(v: Sex) => {
-                        setSex(v);
-                        advanceGuided("age");
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
-                        <SelectValue placeholder="Choose..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/20">
-                        <SelectItem value="female" className="text-white hover:bg-white/10">Female</SelectItem>
-                        <SelectItem value="male" className="text-white hover:bg-white/10">Male</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={() => {
+                          setSex("female");
+                          advanceGuided("age");
+                        }}
+                        className={`py-4 ${sex === "female" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                      >
+                        Female
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setSex("male");
+                          advanceGuided("age");
+                        }}
+                        className={`py-4 ${sex === "male" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                      >
+                        Male
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -986,24 +1001,27 @@ export default function MacroCounter() {
                     <p className="text-white text-base">
                       What is your activity level?
                     </p>
-                    <Select
-                      value={activity}
-                      onValueChange={(v: keyof typeof ACTIVITY_FACTORS) => {
-                        setActivity(v);
-                        advanceGuided("syncWeight");
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
-                        <SelectValue placeholder="Choose activity level..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/20">
-                        <SelectItem value="sedentary" className="text-white hover:bg-white/10">Sedentary (little or no exercise)</SelectItem>
-                        <SelectItem value="light" className="text-white hover:bg-white/10">Light (1-3 days/week)</SelectItem>
-                        <SelectItem value="moderate" className="text-white hover:bg-white/10">Moderate (3-5 days/week)</SelectItem>
-                        <SelectItem value="very" className="text-white hover:bg-white/10">Very Active (6-7 days/week)</SelectItem>
-                        <SelectItem value="extra" className="text-white hover:bg-white/10">Extra Active (2x/day)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      {[
+                        { v: "sedentary", label: "Sedentary", desc: "Little or no exercise" },
+                        { v: "light", label: "Light", desc: "1-3 days/week" },
+                        { v: "moderate", label: "Moderate", desc: "3-5 days/week" },
+                        { v: "very", label: "Very Active", desc: "6-7 days/week" },
+                        { v: "extra", label: "Extra Active", desc: "2x/day" },
+                      ].map((a) => (
+                        <Button
+                          key={a.v}
+                          onClick={() => {
+                            setActivity(a.v as keyof typeof ACTIVITY_FACTORS);
+                            advanceGuided("syncWeight");
+                          }}
+                          className={`w-full py-3 flex justify-between items-center ${activity === a.v ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                        >
+                          <span className="font-semibold">{a.label}</span>
+                          <span className="text-sm opacity-80">{a.desc}</span>
+                        </Button>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1166,21 +1184,28 @@ export default function MacroCounter() {
                     <p className="text-white text-base">
                       How are you going to eat your starches? One meal or split across two?
                     </p>
-                    <Select
-                      value={starchStrategy}
-                      onValueChange={(v: StarchStrategy) => {
-                        setStarchStrategy(v);
-                        advanceGuided("save");
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-black/60 border-white/30 text-white h-12">
-                        <SelectValue placeholder="Choose starch strategy..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/20">
-                        <SelectItem value="one" className="text-white hover:bg-white/10">One Starch Meal (Recommended)</SelectItem>
-                        <SelectItem value="flex" className="text-white hover:bg-white/10">Flex Split (Two Meals)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => {
+                          setStarchStrategy("one");
+                          advanceGuided("save");
+                        }}
+                        className={`w-full py-4 flex flex-col items-start ${starchStrategy === "one" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                      >
+                        <span className="font-semibold">One Starch Meal</span>
+                        <span className="text-sm opacity-80">Recommended - all starches in one meal</span>
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setStarchStrategy("flex");
+                          advanceGuided("save");
+                        }}
+                        className={`w-full py-4 flex flex-col items-start ${starchStrategy === "flex" ? "bg-lime-600 text-black" : "bg-black/40 text-white border border-white/20 hover:bg-black/50"}`}
+                      >
+                        <span className="font-semibold">Flex Split</span>
+                        <span className="text-sm opacity-80">Split starches across two meals</span>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
