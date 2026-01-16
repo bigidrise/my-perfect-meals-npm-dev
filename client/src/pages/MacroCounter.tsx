@@ -397,6 +397,18 @@ export default function MacroCounter() {
       stop();
     };
   }, [stop]);
+  
+  // Reset guided flow to start over
+  const resetGuidedFlow = useCallback(() => {
+    setHasSpokenEntry(false);
+    setGuidedStep("entry");
+    setShowResults(false);
+    // Speak entry after a brief delay
+    setTimeout(() => {
+      speak(MACRO_CALC_ENTRY);
+      setHasSpokenEntry(true);
+    }, 500);
+  }, [speak]);
 
   // Check if we're past a certain step (for showing completed items)
   const isPastStep = (step: GuidedStep): boolean => {
@@ -1276,6 +1288,28 @@ export default function MacroCounter() {
           {/* FULL CALCULATOR VIEW - Only shown after guided flow is complete OR if user has existing settings */}
           {guidedStep === "done" && (
             <>
+          {/* Recalculate with Chef Button */}
+          <Card className="bg-black/30 backdrop-blur-lg border border-lime-500/30 shadow-lg">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ChefHat className="h-6 w-6 text-lime-500" />
+                <div>
+                  <p className="text-white font-medium">Need to recalculate?</p>
+                  <p className="text-white/60 text-sm">Walk through the setup again with Chef</p>
+                </div>
+              </div>
+              <Button
+                onClick={resetGuidedFlow}
+                variant="outline"
+                className="border-lime-500/50 text-lime-400 hover:bg-lime-500/20"
+                data-testid="recalculate-with-chef"
+              >
+                <ChefHat className="h-4 w-4 mr-2" />
+                Recalculate
+              </Button>
+            </CardContent>
+          </Card>
+          
           {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
           <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
             <p className="text-sm text-white/90 leading-relaxed">
