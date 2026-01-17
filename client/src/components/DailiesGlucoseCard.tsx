@@ -8,6 +8,7 @@ import { ArrowRight, Activity } from "lucide-react";
 import { useLocation } from "wouter";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import FeatureLabel from "@/components/FeatureLabel";
+import { isIosNativeShell } from "@/lib/platform";
 
 // Glass card helper classes for consistency
 const cardCx =
@@ -40,7 +41,7 @@ export function DailiesGlucoseCard() {
         
         {/* Upgrade Badge */}
         <div className="text-xs text-white font-semibold text-center px-3 py-1 bg-red-600 rounded-lg border border-red-500 shadow-md">
-          🔒 Unlock with Ultimate Plan – $29.99/month
+          {isIosNativeShell() ? "🔒 Unlock with Ultimate" : "🔒 Unlock with Ultimate Plan – $29.99/month"}
         </div>
       </div>
     </div>

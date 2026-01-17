@@ -1,6 +1,7 @@
 // client/src/pages/MedicalDietsHub.tsx
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
+import { isIosNativeShell } from "@/lib/platform";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -588,7 +589,7 @@ export default function MedicalDietHub() {
       <div className="max-w-6xl mx-auto mb-4 mt-14">
         <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/40 rounded-2xl p-4 text-center backdrop-blur-sm">
           <span className="text-amber-200 font-semibold">🔒 Premium Feature</span>
-          <span className="text-white/90 ml-2">Unlock Clinical Recovery & Protocols Hub with Premium Plan – $19.99/month</span>
+          <span className="text-white/90 ml-2">{isIosNativeShell() ? "Unlock Clinical Recovery & Protocols Hub with Premium" : "Unlock Clinical Recovery & Protocols Hub with Premium Plan – $19.99/month"}</span>
         </div>
       </div>
 

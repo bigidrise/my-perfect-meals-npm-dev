@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Activity } from "lucide-react";
+import { isIosNativeShell } from "@/lib/platform";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
@@ -53,7 +54,7 @@ export default function DiabeticSupportHub_DEPRECATED() {
         <div className="bg-purple-600/90 backdrop-blur-lg border border-purple-400/50 rounded-xl px-4 py-2 text-white shadow-2xl">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
-            <span className="font-semibold text-sm">Premium • $19.99/mo</span>
+            <span className="font-semibold text-sm">{isIosNativeShell() ? "Premium" : "Premium • $19.99/mo"}</span>
           </div>
         </div>
       </div>

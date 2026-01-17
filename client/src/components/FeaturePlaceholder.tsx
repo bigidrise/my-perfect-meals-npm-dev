@@ -1,5 +1,6 @@
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isIosNativeShell } from "@/lib/platform";
 
 export function FeaturePlaceholder({
   title, 
@@ -16,6 +17,8 @@ export function FeaturePlaceholder({
   ctaText: string; 
   ctaHref: string;
 }) {
+  const isIos = isIosNativeShell();
+  
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-gradient-to-b from-zinc-900 to-black border border-white/10 rounded-2xl p-8 text-white shadow-2xl">
@@ -24,7 +27,7 @@ export function FeaturePlaceholder({
             <Lock className="w-5 h-5" />
           </div>
           <span className="text-sm bg-white/10 px-3 py-1 rounded-full">
-            🔒 Unlock with {planLabel} – {price}
+            {isIos ? `🔒 Unlock with ${planLabel}` : `🔒 Unlock with ${planLabel} – ${price}`}
           </span>
         </div>
         <h1 className="text-2xl font-bold mb-2">{title}</h1>

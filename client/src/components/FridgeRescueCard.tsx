@@ -1,3 +1,5 @@
+import { isIosNativeShell } from "@/lib/platform";
+
 interface FridgeRescueCardProps {
   className?: string;
 }
@@ -10,7 +12,7 @@ export default function FridgeRescueCard({ className = "" }: FridgeRescueCardPro
         Don't know what to cook? Tell us what's in your fridge, and we'll help you make a meal fast.
       </p>
       <div className="text-xs bg-amber-100 text-gray-800 px-2 py-1 rounded">
-        🔒 Unlock with Upgrade Plan – $19.99/month
+        {isIosNativeShell() ? "🔒 Unlock with Premium" : "🔒 Unlock with Upgrade Plan – $19.99/month"}
       </div>
     </div>
   );

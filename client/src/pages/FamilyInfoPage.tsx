@@ -6,9 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Users, User, Crown } from "lucide-react";
+import { isIosNativeShell } from "@/lib/platform";
 
 export default function FamilyInfoPage() {
   const [, setLocation] = useLocation();
+  
+  // iOS App Store Compliance: Redirect iOS users to the main pricing page
+  // This preview page shows hard-coded prices which violate Apple guidelines
+  if (isIosNativeShell()) {
+    setLocation("/pricing");
+    return null;
+  }
+  
   const [wholehousePremium, setWholehousePremium] = useState(false);
   const [wholehouseUltimate, setWholehouseUltimate] = useState(false);
   const [memberUpgrades, setMemberUpgrades] = useState<Record<string, string>>({

@@ -1,3 +1,5 @@
+import { isIosNativeShell } from "@/lib/platform";
+
 interface RestaurantGuideCardProps {
   className?: string;
 }
@@ -10,7 +12,7 @@ export default function RestaurantGuideCard({ className = "" }: RestaurantGuideC
         Find healthy meal options from local restaurants, tailored to your dietary needs and goals.
       </p>
       <div className="text-xs bg-amber-100 text-gray-800 px-2 py-1 rounded">
-        🔒 Unlock with Premium Plan – $19.99/month
+        {isIosNativeShell() ? "🔒 Unlock with Premium" : "🔒 Unlock with Premium Plan – $19.99/month"}
       </div>
     </div>
   );
