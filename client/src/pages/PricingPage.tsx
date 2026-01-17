@@ -255,6 +255,25 @@ export default function PricingPage() {
             <p className="text-white/40 text-xs">
               Need help? <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a>
             </p>
+            <p className="text-white/40 text-xs">
+              <a 
+                href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white/50 underline hover:text-white/70"
+              >
+                Terms of Use (EULA)
+              </a>
+              {" · "}
+              <a 
+                href="https://myperfectmeals.com/privacy" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white/50 underline hover:text-white/70"
+              >
+                Privacy Policy
+              </a>
+            </p>
           </div>
         </div>
       </motion.div>
@@ -653,6 +672,25 @@ export default function PricingPage() {
                       className="text-lime-400 underline hover:text-lime-300"
                     >
                       support@myperfectmeals.com
+                    </a>
+                  </p>
+                  <p className="text-white/40 text-xs text-center mt-2">
+                    <a 
+                      href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-white/50 underline hover:text-white/70"
+                    >
+                      Terms of Use (EULA)
+                    </a>
+                    {" · "}
+                    <a 
+                      href="https://myperfectmeals.com/privacy" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-white/50 underline hover:text-white/70"
+                    >
+                      Privacy Policy
                     </a>
                   </p>
                 </div>
