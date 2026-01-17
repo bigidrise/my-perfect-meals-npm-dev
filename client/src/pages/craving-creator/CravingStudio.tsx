@@ -408,11 +408,11 @@ export default function CravingStudio() {
               speak(CRAVING_STUDIO_INTRO, () => setS1Listened(true));
             }}
             onSubmit={() => {
+              stopChef();
               setS1Locked(true);
               setStudioStep(2);
-              speak(CRAVING_STUDIO_STEP2);
             }}
-            onEdit={editStep1}
+            onEdit={() => { stopChef(); editStep1(); }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
@@ -436,11 +436,11 @@ export default function CravingStudio() {
               speak(CRAVING_STUDIO_STEP2, () => setS2Listened(true));
             }}
             onSubmit={() => {
+              stopChef();
               setS2Locked(true);
               setStudioStep(3);
-              speak(CRAVING_STUDIO_STEP3);
             }}
-            onEdit={editStep2}
+            onEdit={() => { stopChef(); editStep2(); }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
@@ -464,11 +464,11 @@ export default function CravingStudio() {
               speak(CRAVING_STUDIO_STEP3, () => setS3Listened(true));
             }}
             onSubmit={() => {
+              stopChef();
               setS3Locked(true);
               setStudioStep(4);
-              speak(CRAVING_STUDIO_STEP4);
             }}
-            onEdit={editStep3}
+            onEdit={() => { stopChef(); editStep3(); }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
@@ -492,11 +492,11 @@ export default function CravingStudio() {
               speak(CRAVING_STUDIO_STEP4, () => setS4Listened(true));
             }}
             onSubmit={() => {
+              stopChef();
               setS4Locked(true);
               setStudioStep(5);
-              speak(CRAVING_STUDIO_READY);
             }}
-            onEdit={editStep4}
+            onEdit={() => { stopChef(); editStep4(); }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
