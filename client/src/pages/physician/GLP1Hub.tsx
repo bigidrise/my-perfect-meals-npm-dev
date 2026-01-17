@@ -169,13 +169,16 @@ export default function GLP1Hub() {
 
           <div className="flex-grow" />
 
-          {/* Medical Sources Button */}
-          <MedicalSourcesInfo asIconButton />
-          {/* Quick Tour Help Button */}
-          <QuickTourButton
-            onClick={quickTour.openTour}
-            className="flex-shrink-0"
-          />
+          {/* Pill Buttons */}
+          <div className="flex items-center gap-2">
+            <MedicalSourcesInfo asPillButton />
+            <button
+              onClick={quickTour.openTour}
+              className="inline-flex items-center justify-center px-3 py-[2px] min-w-[44px] rounded-full text-[9px] font-semibold uppercase tracking-wide transition-all duration-150 ease-out whitespace-nowrap bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-400/40"
+            >
+              Guide
+            </button>
+          </div>
         </div>
       </div>
 

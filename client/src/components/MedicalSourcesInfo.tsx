@@ -12,24 +12,38 @@ import { Button } from "@/components/ui/button";
 interface MedicalSourcesInfoProps {
   trigger?: React.ReactNode;
   asIconButton?: boolean;
+  asPillButton?: boolean;
 }
 
-export function MedicalSourcesInfo({ trigger, asIconButton = false }: MedicalSourcesInfoProps) {
+export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton = false }: MedicalSourcesInfoProps) {
   const [open, setOpen] = useState(false);
 
-  const defaultTrigger = asIconButton ? (
+  const pillTrigger = (
+    <button
+      className="inline-flex items-center justify-center px-3 py-[2px] min-w-[44px] rounded-full text-[9px] font-semibold uppercase tracking-wide transition-all duration-150 ease-out whitespace-nowrap bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 border border-purple-400/40"
+      aria-label="View sources and methodology"
+    >
+      Info
+    </button>
+  );
+
+  const iconTrigger = (
     <button
       className="p-1.5 rounded-2xl bg-white/10 hover:bg-white/20 transition-colors touch-manipulation select-none active:bg-white/30"
       aria-label="View sources and methodology"
     >
       <Info className="w-4 h-4 text-white/70" />
     </button>
-  ) : (
+  );
+
+  const fullTrigger = (
     <Button variant="ghost" className="w-full justify-start text-white hover:text-white hover:bg-purple-900/20">
       <BookOpen className="mr-2 h-5 w-5" />
       Medical Information & Sources
     </Button>
   );
+
+  const defaultTrigger = asPillButton ? pillTrigger : asIconButton ? iconTrigger : fullTrigger;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
