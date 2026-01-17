@@ -59,6 +59,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
   backRoute: "/fridge-rescue",
   source: "fridge-rescue-studio",
   defaultMealType: "dinner",
+  servingsStepIndex: 2,
   buildPrompt: (values, servings) => {
     const [ingredients, style, , notes] = values;
     const parts: string[] = [];

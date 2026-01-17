@@ -94,6 +94,7 @@ export interface StudioConfig {
   backRoute: string;
   source: string;
   defaultMealType: string;
+  servingsStepIndex: number;
   buildPrompt: (values: string[], servings: number) => Record<string, any>;
 }
 
@@ -148,8 +149,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
     steps.map(() => false)
   );
 
-  const servingsStepIndex = steps.findIndex((s) => s.inputType === "buttons");
-  const servings = servingsStepIndex >= 0 ? Number(stepValues[servingsStepIndex]) || 2 : 2;
+  const servings = config.servingsStepIndex >= 0 ? Number(stepValues[config.servingsStepIndex]) || 2 : 2;
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);

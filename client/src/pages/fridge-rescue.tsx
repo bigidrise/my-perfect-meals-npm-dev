@@ -519,6 +519,42 @@ const FridgeRescuePage = () => {
           className="max-w-4xl mx-auto px-6"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* Create with Chef Entry Point */}
+          <div className="relative mb-4 max-w-2xl mx-auto">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.75), rgba(20,184,166,0.35), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border border-cyan-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:border-cyan-500/50"
+              onClick={() => setLocation("/fridge-rescue-studio")}
+              data-testid="fridge-rescue-studio-entry"
+            >
+              <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-cyan-600 to-black rounded-full border border-cyan-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></div>
+                <span className="text-white font-semibold text-[9px]">
+                  Powered by Emotion AI
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Refrigerator className="h-4 w-4 flex-shrink-0 text-cyan-400" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Create with Chef
+                    </h3>
+                  </div>
+                  <p className="text-xs text-white/80 ml-6">
+                    Step-by-step guided meal creation from your ingredients with Chef voice assistance
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
               <div className="text-center">

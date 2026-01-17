@@ -56,9 +56,10 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
     complete: "Done. Your dessert is ready. Enter Chef's Kitchen when you're ready to bake.",
   },
   apiEndpoint: "/api/craving-creator/generate",
-  backRoute: "/lifestyle",
+  backRoute: "/craving-desserts",
   source: "dessert-studio",
   defaultMealType: "dessert",
+  servingsStepIndex: 2,
   buildPrompt: (values, servings) => {
     const [craving, flavor, , dietary] = values;
     const parts: string[] = [];
