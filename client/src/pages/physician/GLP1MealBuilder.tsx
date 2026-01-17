@@ -92,6 +92,7 @@ import {
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Small Portions", description: "All meals are designed for reduced appetite with maximum nutrition density." },
@@ -1303,6 +1304,7 @@ export default function GLP1MealBuilder() {
               <span className="text-sm font-medium">Back</span>
             </Button>
             <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">GLP-1 Builder</h1>
+            <MedicalSourcesInfo asIconButton />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
           {/* Row 2: Client Dashboard Button (only when accessed from ProCare) */}

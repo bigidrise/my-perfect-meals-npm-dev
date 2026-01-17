@@ -91,6 +91,7 @@ import {
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -1358,6 +1359,7 @@ export default function AntiInflammatoryMenuBuilder() {
               <span className="text-sm font-medium">Back</span>
             </Button>
             <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Anti-Inflammatory Meal Builder</h1>
+            <MedicalSourcesInfo asIconButton />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
           {/* Row 2: Client Dashboard Button (only when accessed from ProCare) */}
