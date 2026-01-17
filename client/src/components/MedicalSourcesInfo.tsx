@@ -20,7 +20,7 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
 
   const pillTrigger = (
     <button
-      className="inline-flex items-center justify-center px-3 py-[2px] min-w-[44px] rounded-full text-[9px] font-semibold uppercase tracking-wide transition-all duration-150 ease-out whitespace-nowrap bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 border border-purple-400/40"
+      className="!min-h-0 !min-w-0 inline-flex items-center justify-center px-4 py-[2px] min-w-[44px] rounded-full text-[9px] font-semibold uppercase tracking-wide transition-all duration-150 ease-out whitespace-nowrap bg-black/40 text-white/80 hover:bg-black/50 border border-white/20"
       aria-label="View sources and methodology"
     >
       Info

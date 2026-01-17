@@ -174,7 +174,7 @@ export default function GLP1Hub() {
             <MedicalSourcesInfo asPillButton />
             <button
               onClick={quickTour.openTour}
-              className="inline-flex items-center justify-center px-3 py-[2px] min-w-[44px] rounded-full text-[9px] font-semibold uppercase tracking-wide transition-all duration-150 ease-out whitespace-nowrap bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-400/40"
+              className="!min-h-0 !min-w-0 inline-flex items-center justify-center px-4 py-[2px] min-w-[44px] rounded-full text-[9px] font-semibold uppercase tracking-wide transition-all duration-150 ease-out whitespace-nowrap bg-black/40 text-white/80 hover:bg-black/50 border border-white/20"
             >
               Guide
             </button>
