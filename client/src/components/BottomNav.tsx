@@ -6,31 +6,37 @@ import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplana
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { motion } from "framer-motion";
 import { isGuestMode } from "@/lib/guestMode";
-import { getGuestNavigationOverride, getGuestSuitePage } from "@/lib/guestSuiteNavigator";
+import {
+  getGuestNavigationOverride,
+  getGuestSuitePage,
+} from "@/lib/guestSuiteNavigator";
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
   const { open, close, isOpen, setLastResponse } = useCopilot();
-  
-  const handleNavClick = useCallback((targetPath: string) => {
-    if (isGuestMode()) {
-      // Normalize path to remove query params before checking
-      const cleanPath = location.replace(/\/+$/, '').split('?')[0];
-      const currentPage = getGuestSuitePage(cleanPath);
-      if (currentPage === "shopping-list" || currentPage === "biometrics") {
-        const override = getGuestNavigationOverride(currentPage);
-        if (override) {
-          console.log(`🔒 Guest nav override: ${currentPage} → ${override}`);
-          setLocation(override);
-          return;
+
+  const handleNavClick = useCallback(
+    (targetPath: string) => {
+      if (isGuestMode()) {
+        // Normalize path to remove query params before checking
+        const cleanPath = location.replace(/\/+$/, "").split("?")[0];
+        const currentPage = getGuestSuitePage(cleanPath);
+        if (currentPage === "shopping-list" || currentPage === "biometrics") {
+          const override = getGuestNavigationOverride(currentPage);
+          if (override) {
+            console.log(`🔒 Guest nav override: ${currentPage} → ${override}`);
+            setLocation(override);
+            return;
+          }
         }
       }
-    }
-    setLocation(targetPath);
-  }, [location, setLocation]);
-  
+      setLocation(targetPath);
+    },
+    [location, setLocation],
+  );
+
   const normalizePath = useCallback((path: string) => {
-    return path.replace(/\/+$/, '').split('?')[0];
+    return path.replace(/\/+$/, "").split("?")[0];
   }, []);
 
   const handleChefClick = useCallback(() => {
@@ -99,9 +105,9 @@ export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[var(--safe-bottom)]">
       <div className="max-w-screen-xl mx-auto px-4">
-        <div className="relative h-12 flex items-center justify-between">
+        <div className="relative h-12 grid grid-cols-[1fr_auto_1fr] items-center">
           {/* LEFT ITEMS */}
-          <div className="flex items-center justify-start flex-1">
+          <div className="flex items-center justify-start">
             {leftItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
@@ -137,7 +143,8 @@ export default function BottomNav() {
           </div>
 
           {/* CENTER COPILOT BUTTON */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-2 z-10">
+          {/* CENTER COPILOT BUTTON */}
+          <div className="flex justify-center">
             <motion.button
               onClick={handleChefClick}
               className="flex items-center justify-center w-14 h-14 rounded-full bg-black/70 border-2 border-white/15 backdrop-blur-xl shadow-lg shadow-orange-500/60 hover:shadow-orange-500/100 hover:border-orange-400/100 transition-all duration-300"
@@ -153,7 +160,7 @@ export default function BottomNav() {
           </div>
 
           {/* RIGHT ITEMS */}
-          <div className="flex items-center justify-end flex-1">
+          <div className="flex items-center justify-end">
             {rightItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
