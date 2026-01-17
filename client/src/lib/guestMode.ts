@@ -392,7 +392,8 @@ export type GuestFeature =
   | "fridge-rescue"
   | "craving-creator"
   | "biometrics"
-  | "shopping-list";
+  | "shopping-list"
+  | "chefs-kitchen";
 
 /**
  * Check if a guest feature is unlocked
@@ -416,6 +417,7 @@ export function isGuestFeatureUnlocked(feature: GuestFeature): boolean {
     case "craving-creator":
     case "biometrics":
     case "shopping-list":
+    case "chefs-kitchen":
       // ALL features unlock together after completing macros
       return progress.macrosCompleted;
       
@@ -435,6 +437,7 @@ export function getFeatureUnlockMessage(feature: GuestFeature): string {
     case "craving-creator":
     case "biometrics":
     case "shopping-list":
+    case "chefs-kitchen":
       return "Complete the Macro Calculator to unlock all features.";
       
     default:
