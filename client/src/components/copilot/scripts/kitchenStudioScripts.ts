@@ -27,7 +27,7 @@ export const KITCHEN_STUDIO_PREFS_LINE5 =
 
 // If you need a single combined string for the UI, keep this too:
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
-  "Any dietary needs — vegan, plant-based, allergies, or sensitivities? Or do you just want to keep it lower in sugar, gluten, fat, or sodium? Choose any cuisine, and tell me how much time you have — quick and easy or more involved. You can speak in any language, and use Translate on the meal card anytime.";
+"Any dietary needs or preferences? Choose a cuisine, tell me your time frame, and speak in any language — Translate is always available.";
 
 // Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "Next, servings.";
@@ -44,7 +44,11 @@ export const KITCHEN_STUDIO_EQUIPMENT =
   "Let's make sure we've got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something.";
 
 // Kitchen Studio - After equipment confirmed
-export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED = "Alright, let's see what we got!";
+export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
+  "Perfect. Hit Create the Plan, and I’ll build your meal.";
+
+export const KITCHEN_STUDIO_HANDOFF_TO_PREP =
+  "This looks great. Now let’s enter Chefs Kitchen so we can prep it step by step.";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
@@ -61,9 +65,11 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 };
 
 // Open Kitchen narration beats
-export const KITCHEN_STUDIO_OPEN_START = "";
+export const KITCHEN_STUDIO_OPEN_START =
+  "Sit back and relax while I build your meal.";
 
-export const KITCHEN_STUDIO_OPEN_PROGRESS1 = "";
+export const KITCHEN_STUDIO_OPEN_PROGRESS1 =
+  "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 
