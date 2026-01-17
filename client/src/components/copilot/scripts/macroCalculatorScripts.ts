@@ -40,8 +40,8 @@ export const MACRO_CALC_RESULTS =
 export const MACRO_CALC_STARCH = 
   "Starchy carbs are the biggest lever for controlling body weight, so instead of spreading them across every meal, we usually place them intentionally. Your plan will include one or two meals where starchy carbs make the most sense. Do you want to concentrate them into one meal, split them between two meals, include smaller amounts with most meals, or keep them minimal overall?";
 
-export const MACRO_CALC_SAVE = 
-  "Perfect! Hit save and you're all set. Your macros are locked in.";
+export const MACRO_CALC_SAVE =
+  "Perfect! Hit save and you're all set. Your macros are locked in. Let's head over to our meal bulder";
 
-export const MACRO_CALC_DONE = 
-  "Nice work — your personalized macro targets are ready to go. When you hit save, they’re locked into your biometrics and we’ll take you straight into the Weekly Meal Builder so you can start putting them to work. Let’s build some meals.";
+export const MACRO_CALC_DONE = "";
+

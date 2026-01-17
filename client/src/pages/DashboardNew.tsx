@@ -1,4 +1,4 @@
-import { useLocation } from "wouter";
+ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -20,6 +20,7 @@ import {
   Camera,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +47,9 @@ export default function DashboardNew() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showScanner, setShowScanner] = useState(false);
-  const [isGuidedMode, setIsGuidedMode] = useState(false);
+  const [isGuidedMode,
+setIsGuidedMode] = useState(false);
+  const [showMedicalSources, setShowMedicalSources] = useState(false);
   const { open: openCopilot } = useCopilot();
 
   const handlePhotoLog = () => {
@@ -216,6 +219,36 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
+        {/* Medical Safety & Sources Card - Apple App Store Compliance */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.5 }}
+          className="mb-4"
+        >
+          <Card
+            className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-blue-400/50 rounded-xl group"
+            onClick={() => setShowMedicalSources(true)}
+            data-testid="card-medical-safety"
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30">
+                  <Activity className="h-6 w-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-white text-lg">
+                    Medical Safety & Sources
+                  </CardTitle>
+                  <CardDescription className="text-white/70 text-sm mt-1">
+                    NIH · USDA · Scientific methodology
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </motion.div>
+
         {/* Shopping List Quick Access Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -348,6 +381,48 @@ export default function DashboardNew() {
       {/* Barcode Scanner Modal - This will be removed or modified based on the new requirements */}
       {/* Removed the BarcodeScanner card and its onClick handler from the dashboard.
           The BarcodeScanner component itself might still be used in the shopping list feature. */}
+
+      {/* Medical Safety & Sources Modal - Apple App Store Compliance (Guideline 1.4.1) */}
+      <Sheet open={showMedicalSources} onOpenChange={setShowMedicalSources}>
+        <SheetContent side="bottom" className="bg-zinc-900 border-t border-white/10 rounded-t-2xl max-h-[85vh] overflow-y-auto">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-xl font-bold text-white">
+              Medical Safety & Scientific Sources
+            </SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4">
+            <p className="text-white/80 text-sm">
+              My Perfect Meals provides nutrition guidance based on established,
+              peer-reviewed scientific sources. We do not diagnose, treat, or provide
+              medical advice.
+            </p>
+
+            <ul className="text-white/70 text-sm list-disc pl-5 space-y-2">
+              <li>
+                <strong className="text-white">Calorie & Macro Calculations:</strong> Mifflin-St Jeor Equation
+                (NIH / NCBI)
+              </li>
+              <li>
+                <strong className="text-white">Dietary Targets:</strong> NIH Dietary Reference Intakes (DRI)
+              </li>
+              <li>
+                <strong className="text-white">Food Data:</strong> USDA FoodData Central
+              </li>
+              <li>
+                <strong className="text-white">AI Usage:</strong> AI assists with meal suggestions within
+                user-selected guardrails
+              </li>
+            </ul>
+
+            <div className="pt-2 border-t border-white/10">
+              <p className="text-white/60 text-xs">
+                Always consult a qualified healthcare professional before making medical
+                or dietary changes.
+              </p>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </motion.div>
   );
 }
