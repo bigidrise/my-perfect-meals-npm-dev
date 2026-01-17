@@ -1,22 +1,31 @@
-import { HelpCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 
 interface QuickTourButtonProps {
   onClick: () => void;
   className?: string;
+  asPillButton?: boolean;
 }
 
-export function QuickTourButton({ onClick, className = "" }: QuickTourButtonProps) {
+export function QuickTourButton({ onClick, className = "", asPillButton = false }: QuickTourButtonProps) {
+  if (asPillButton) {
+    return (
+      <PillButton
+        onClick={onClick}
+        className={className}
+        aria-label="How to use this page"
+      >
+        Guide
+      </PillButton>
+    );
+  }
+
   return (
-    <Button
+    <PillButton
       onClick={onClick}
-      variant="ghost"
-      size="sm"
-      className={`h-8 px-3 gap-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 ${className}`}
+      className={className}
       aria-label="How to use this page"
     >
-      <HelpCircle className="h-4 w-4 text-white/80" />
-      <span className="text-xs text-white/80 font-medium">Guide</span>
-    </Button>
+      Guide
+    </PillButton>
   );
 }

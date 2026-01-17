@@ -1064,11 +1064,12 @@ export default function WeeklyMealBoard() {
               General Nutrition Builder
             </h1>
 
-            <MedicalSourcesInfo asIconButton />
-            {/* Quick Tour Help Button - only show here if NOT in ProCare mode */}
-            {!isProCareMode && (
-              <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
-            )}
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              {!isProCareMode && (
+                <QuickTourButton onClick={quickTour.openTour} />
+              )}
+            </div>
           </div>
 
           {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}

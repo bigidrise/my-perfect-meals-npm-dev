@@ -287,7 +287,7 @@ export default function GuestBuilder() {
               {GUEST_SUITE_BRANDING.headerTitle}
             </h1>
           </div>
-          <MedicalSourcesInfo asIconButton />
+          <MedicalSourcesInfo asPillButton />
         </div>
       </div>
 

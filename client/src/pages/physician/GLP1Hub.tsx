@@ -172,12 +172,7 @@ export default function GLP1Hub() {
           {/* Pill Buttons */}
           <div className="flex items-center gap-2">
             <MedicalSourcesInfo asPillButton />
-            <button
-              onClick={quickTour.openTour}
-              className="!min-h-0 !min-w-0 inline-flex items-center justify-center px-4 py-[2px] min-w-[44px] rounded-full text-[9px] font-semibold uppercase tracking-wide transition-all duration-150 ease-out whitespace-nowrap bg-black/40 text-white/80 hover:bg-black/50 border border-white/20"
-            >
-              Guide
-            </button>
+            <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
       </div>

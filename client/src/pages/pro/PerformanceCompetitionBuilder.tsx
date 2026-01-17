@@ -1121,11 +1121,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               Performance Builder
             </h1>
 
-            <MedicalSourcesInfo asIconButton />
-            {/* Guide button in Row 1 for athlete mode only */}
-            {mode === "athlete" && (
-              <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
-            )}
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              {mode === "athlete" && (
+                <QuickTourButton onClick={quickTour.openTour} />
+              )}
+            </div>
           </div>
 
           {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}

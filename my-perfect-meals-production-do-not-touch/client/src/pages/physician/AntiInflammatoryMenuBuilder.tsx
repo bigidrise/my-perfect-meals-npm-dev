@@ -1359,8 +1359,10 @@ export default function AntiInflammatoryMenuBuilder() {
               <span className="text-sm font-medium">Back</span>
             </Button>
             <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Anti-Inflammatory Meal Builder</h1>
-            <MedicalSourcesInfo asIconButton />
-            <QuickTourButton onClick={quickTour.openTour} />
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              <QuickTourButton onClick={quickTour.openTour} />
+            </div>
           </div>
           {/* Row 2: Client Dashboard Button (only when accessed from ProCare) */}
           {proClientId && (

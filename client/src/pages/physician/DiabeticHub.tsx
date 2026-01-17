@@ -201,10 +201,11 @@ export default function DiabeticHub() {
 
             <div className="flex-grow" />
 
-            {/* Medical Sources Button */}
-            <MedicalSourcesInfo asIconButton />
-            {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} />
+            {/* Pill Buttons */}
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              <QuickTourButton onClick={quickTour.openTour} />
+            </div>
           </div>
         </div>
 
