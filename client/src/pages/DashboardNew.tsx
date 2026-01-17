@@ -228,7 +228,10 @@ setIsGuidedMode] = useState(false);
         >
           <Card
             className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-blue-400/50 rounded-xl group"
-            onClick={() => setShowMedicalSources(true)}
+            onClick={() => {
+              console.log("Medical Safety card clicked!");
+              setShowMedicalSources(true);
+            }}
             data-testid="card-medical-safety"
           >
             <CardHeader className="pb-3">
