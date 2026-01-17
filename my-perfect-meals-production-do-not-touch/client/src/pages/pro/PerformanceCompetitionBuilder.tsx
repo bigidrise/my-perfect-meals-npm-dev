@@ -5,7 +5,6 @@ import { useLocation, useRoute } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   type WeekBoard,
-  weekDates,
   getDayLists,
   setDayLists,
   cloneDayLists,
@@ -19,10 +18,15 @@ import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
+import { getResolvedTargets } from "@/lib/macroResolver";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
+import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
+import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -32,9 +36,18 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  getWeekStartISOInTZ, 
+  getTodayISOSafe, 
+  weekDatesInTZ, 
+  nextWeekISO, 
+  prevWeekISO, 
+  formatWeekLabel,
+  formatDateDisplay
+} from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
+// CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
   Plus,
@@ -61,6 +74,7 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
+import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { setMacroTargets } from "@/lib/dailyLimits";
@@ -77,6 +91,7 @@ import {
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -106,31 +121,27 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
     title: "Shopping List",
     description: "Export ingredients for meal prep shopping runs.",
   },
+  {
+    icon: "6",
+    title: "Track Progress & Save Day",
+    description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
+  },
+  {
+    icon: "🥔",
+    title: "Watch Your Starch Slots",
+    description:
+      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
+  },
+  {
+    icon: "*",
+    title: "What the Asterisks Mean",
+    description:
+      "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first.",
+  },
 ];
 
-// Week navigation utilities
-function addDaysISO(iso: string, days: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function nextWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, 7);
-}
-
-function prevWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, -7);
-}
-
-function formatWeekLabel(weekStartISO: string): string {
-  const start = new Date(weekStartISO + "T00:00:00Z");
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 6);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return `${fmt(start)}–${fmt(end)}`;
-}
+// CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
+// Using noon UTC anchor pattern to prevent day-shift bugs
 
 // Pro Care Meal Slots - 3 meals for competition prep (fixed)
 const lists: Array<["breakfast" | "lunch" | "dinner", string]> = [
@@ -200,8 +211,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }
 
   // 🎯 BULLETPROOF BOARD LOADING
+  // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(getMondayISO());
+    React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -274,6 +286,22 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
     "breakfast" | "lunch" | "dinner"
   >("breakfast");
+
+  // Build StarchContext for Create With Chef modal
+  const starchContext: StarchContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const strategy = resolved?.starchStrategy || 'one';
+    const dayLists = getDayLists(board, activeDayISO);
+    const existingMeals: StarchContext['existingMeals'] = [];
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+      }
+    }
+    return { strategy, existingMeals };
+  }, [board, activeDayISO, user?.id]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -368,14 +396,18 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }
 
   // Generate week dates
+  // CHICAGO CALENDAR FIX v1.0: Using safe weekDatesInTZ with noon UTC anchor
   const weekDatesList = useMemo(() => {
-    return weekStartISO ? weekDates(weekStartISO) : [];
+    return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
   // Set initial active day when week loads
+  // CHICAGO CALENDAR FIX v1.0: Default to today if in current week, otherwise Monday
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      setActiveDayISO(weekDatesList[0]); // Default to Monday
+      const todayISO = getTodayISOSafe("America/Chicago");
+      const todayInWeek = weekDatesList.find((d) => d === todayISO);
+      setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
 
@@ -515,6 +547,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     async (targetWeekStartISO: string) => {
       if (!board) return;
 
+      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
       const clonedBoard = {
         ...board,
         id: `week-${targetWeekStartISO}`,
@@ -522,8 +555,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           ? Object.fromEntries(
               Object.entries(board.days).map(([oldDateISO, lists]) => {
                 const dayIndex = weekDatesList.indexOf(oldDateISO);
-                const targetWeekDates = weekDates(targetWeekStartISO);
-                const newDateISO = targetWeekDates[dayIndex] || oldDateISO;
+                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+                const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
                 return [newDateISO, cloneDayLists(lists)];
               }),
             )
@@ -606,7 +639,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Athlete Plan`
+          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Athlete Plan`
           : `Athlete Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -674,15 +707,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Weekly Meal Board pattern)
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
       console.log(
         "🤖 AI Meal Generated - Replacing old meals with new one:",
         generatedMeal,
         "for slot:",
-        aiMealSlot,
+        slot,
       );
 
       // Transform API response to match Meal type structure
@@ -710,23 +744,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       const newMeals = [transformedMeal];
 
       // Save to localStorage with slot info (persists until next generation)
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       // Immediately add to board (optimistic update)
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
-        const existingSlotMeals = dayLists[aiMealSlot].filter(
+        const existingSlotMeals = dayLists[slot].filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         const updatedSlotMeals = [...existingSlotMeals, ...newMeals];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         try {
           await saveBoard(updatedBoard);
           toast({
             title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === aiMealSlot)?.[1]}`,
+            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
           });
         } catch (error) {
           console.error("Failed to save AI meal:", error);
@@ -738,7 +772,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
       }
     },
-    [activeDayISO, aiMealSlot, board, saveBoard, toast],
+    [activeDayISO, board, saveBoard, toast],
   );
 
 
@@ -814,18 +848,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() - 7);
-    const prevISO = d.toISOString().slice(0, 10);
-    gotoWeek(prevISO);
+    gotoWeek(prevWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   const onNextWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 7);
-    const nextISO = d.toISOString().slice(0, 10);
-    gotoWeek(nextISO);
+    gotoWeek(nextWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   async function quickAdd(
@@ -1073,7 +1101,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() =>
@@ -1088,18 +1116,22 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               <span className="text-sm font-medium">Back</span>
             </button>
 
-            {/* Title */}
-            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-              Performance & Competition Meal Builder
+            {/* Title - shorter on mobile */}
+            <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
+              Performance Builder
             </h1>
 
-            {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} />
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              {mode === "athlete" && (
+                <QuickTourButton onClick={quickTour.openTour} />
+              )}
+            </div>
           </div>
 
-          {/* Row 2: Client Dashboard Button (only in ProCare mode) */}
+          {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}
           {mode === "procare" && (
-            <div className="flex items-center">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setLocation(`/pro/clients/${clientId}`)}
                 className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
@@ -1108,6 +1140,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 <ArrowLeft className="h-5 w-5" />
                 <span>Client Dashboard</span>
               </button>
+
+              <QuickTourButton onClick={quickTour.openTour} />
             </div>
           )}
         </div>
@@ -1193,6 +1227,26 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     weekDates={weekDatesList}
                     activeDayISO={activeDayISO}
                     onDayChange={setActiveDayISO}
+                  />
+                </div>
+              )}
+
+            {/* Daily Starch Indicator - Shows starch meal slots */}
+            {FEATURES.dayPlanning === "alpha" &&
+              planningMode === "day" &&
+              activeDayISO &&
+              board && (
+                <div className="flex justify-center">
+                  <DailyStarchIndicator 
+                    meals={(() => {
+                      const dayLists = getDayLists(board, activeDayISO);
+                      return [
+                        ...dayLists.breakfast,
+                        ...dayLists.lunch,
+                        ...dayLists.dinner,
+                        ...dayLists.snacks,
+                      ];
+                    })()}
                   />
                 </div>
               )}
@@ -1416,19 +1470,21 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             Meal {mealNumber}
                           </h2>
                           <div className="flex gap-2">
-                            {/* Create with AI button - Competition diet type */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                              onClick={() => {
-                                setAiMealSlot("snacks");
-                                setAiMealModalOpen(true);
-                              }}
-                            >
-                              <Sparkles className="h-3 w-3" />
-                              Create with AI
-                            </Button>
+                            {/* Create with AI button - hidden by feature flag for launch */}
+                            {FEATURES.showCreateWithAI && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
+                                onClick={() => {
+                                  setAiMealSlot("snacks");
+                                  setAiMealModalOpen(true);
+                                }}
+                              >
+                                <Sparkles className="h-3 w-3" />
+                                Create with AI
+                              </Button>
+                            )}
 
                             {/* Create with Chef button - Competition meals */}
                             <Button
@@ -1699,21 +1755,23 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       {label}
                     </h2>
                     <div className="flex gap-2">
-                      {/* AI Meal Creator button - Competition diet type for all meals */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                        onClick={() => {
-                          setAiMealSlot(
-                            key as "breakfast" | "lunch" | "dinner" | "snacks",
-                          );
-                          setAiMealModalOpen(true);
-                        }}
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Create with AI
-                      </Button>
+                      {/* AI Meal Creator button - hidden by feature flag for launch */}
+                      {FEATURES.showCreateWithAI && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
+                          onClick={() => {
+                            setAiMealSlot(
+                              key as "breakfast" | "lunch" | "dinner" | "snacks",
+                            );
+                            setAiMealModalOpen(true);
+                          }}
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Create with AI
+                        </Button>
+                      )}
 
                       {/* Create with Chef button - Competition meals */}
                       <Button
@@ -1810,6 +1868,28 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             </>
           )}
 
+          {/* Pro Tip Card */}
+          <ProTipCard />
+
+          {/* Daily Targets Card */}
+          <div className="col-span-full">
+            <DailyTargetsCard
+              userId={user?.id}
+              showQuickAddButton={false}
+              targetsOverride={(() => {
+                const coachTargets = proStore.getTargets(clientId);
+                const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
+                return {
+                  protein_g: coachTargets.protein,
+                  carbs_g: totalCarbs,
+                  fat_g: coachTargets.fat,
+                  starchyCarbs_g: coachTargets.starchyCarbs || 0,
+                  fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
+                };
+              })()}
+            />
+          </div>
+
           {/* Remaining Macros Footer - Inline Mode */}
           {board &&
             FEATURES.dayPlanning === "alpha" &&
@@ -1822,6 +1902,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
                 carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
                 fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
               });
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1834,6 +1916,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
                 carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
                 fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
               
@@ -1846,6 +1930,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 protein_g: coachTargets.protein,
                 carbs_g: totalCarbs,
                 fat_g: coachTargets.fat,
+                starchyCarbs_g: coachTargets.starchyCarbs || 0,
+                fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
               };
               
               return (
@@ -1885,7 +1971,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         });
                         toast({
                           title: "Day Saved to Coach Targets",
-                          description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                         });
                         setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
                       }
@@ -1992,6 +2078,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           mealType={createWithChefSlot}
           onMealGenerated={handleAIMealGenerated}
           dietType="performance"
+          starchContext={starchContext}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with STRICT performance guardrails */}
@@ -2037,12 +2124,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = new Date(
-                activeDayISO + "T00:00:00Z",
-              ).toLocaleDateString(undefined, { weekday: "long" });
+              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
               return (
-                <div className="fixed bottom-0 left-0 right-0 pb-0 z-40 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl">
+                <div className="fixed bottom-0 left-0 right-0 pb-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl">
                   <div className="container mx-auto px-4 py-3">
                     <div className="flex flex-col gap-2">
                       <div className="text-white text-sm font-semibold">
@@ -2189,6 +2274,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         onClose={quickTour.closeTour}
         title="Performance & Competition Builder Guide"
         steps={PERFORMANCE_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </motion.div>
   );

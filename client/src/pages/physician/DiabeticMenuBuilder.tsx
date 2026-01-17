@@ -94,6 +94,7 @@ import {
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
   {
@@ -1401,7 +1402,10 @@ export default function DiabeticMenuBuilder() {
             <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
               Diabetic Meal Builder
             </h1>
-            <QuickTourButton onClick={quickTour.openTour} />
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              <QuickTourButton onClick={quickTour.openTour} />
+            </div>
           </div>
           {/* Row 2: Client Dashboard Button (only when accessed from ProCare) */}
           {proClientId && (

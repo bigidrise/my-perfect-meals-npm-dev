@@ -11,7 +11,6 @@ import {
   getWeekBoardByDate,
   putWeekBoard,
   type WeekBoard,
-  weekDates,
   getDayLists,
   setDayLists,
   cloneDayLists,
@@ -20,6 +19,8 @@ import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
 import { RemainingMacrosFooter, type ConsumedMacros } from "@/components/biometrics/RemainingMacrosFooter";
+import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
+import { ProTipCard } from "@/components/ProTipCard";
 import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -33,7 +34,16 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ } from "@/utils/midnight";
+import { 
+  getWeekStartISOInTZ, 
+  getTodayISOSafe, 
+  weekDatesInTZ, 
+  nextWeekISO, 
+  prevWeekISO, 
+  formatWeekLabel,
+  formatDateDisplay,
+  todayISOInTZ 
+} from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -49,6 +59,7 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
+import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { WhyChip } from "@/components/WhyChip";
@@ -57,7 +68,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
+// CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -68,6 +79,8 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { getResolvedTargets } from "@/lib/macroResolver";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
 import {
   Dialog,
@@ -78,6 +91,7 @@ import {
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -85,7 +99,9 @@ const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "3", title: "Duplicate Days", description: "Copy your anti-inflammatory meal plan to other days." },
   { icon: "4", title: "Track Macros", description: "Send meals to the Macro Calculator for balanced nutrition." },
   { icon: "5", title: "Shopping List", description: "Export ingredients for healing-focused grocery shopping." },
-  { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." }
+  { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
+  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
+  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
 
 // Helper function to create new snacks
@@ -100,30 +116,8 @@ function makeNewSnack(nextIndex: number): Meal {
   };
 }
 
-// Week navigation utilities
-function addDaysISO(iso: string, days: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function nextWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, 7);
-}
-
-function prevWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, -7);
-}
-
-function formatWeekLabel(weekStartISO: string): string {
-  // Lightweight formatter: "Sep 8–14"
-  const start = new Date(weekStartISO + "T00:00:00Z");
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 6);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return `${fmt(start)}–${fmt(end)}`;
-}
+// CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
+// Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function AntiInflammatoryMenuBuilder() {
   const quickTour = useQuickTour("anti-inflammatory-menu-builder");
@@ -138,8 +132,9 @@ export default function AntiInflammatoryMenuBuilder() {
   const { user } = useAuth();
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
+  // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(getMondayISO());
+    React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -228,6 +223,22 @@ export default function AntiInflammatoryMenuBuilder() {
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
 
+  // Build StarchContext for Create With Chef modal
+  const starchContext: StarchContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const strategy = resolved?.starchStrategy || 'one';
+    const dayLists = getDayLists(board, activeDayISO);
+    const existingMeals: StarchContext['existingMeals'] = [];
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+      }
+    }
+    return { strategy, existingMeals };
+  }, [board, activeDayISO, user?.id]);
+
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
 
@@ -252,7 +263,7 @@ export default function AntiInflammatoryMenuBuilder() {
   
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ();
+    const today = todayISOInTZ("America/Chicago");
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO('');
@@ -451,14 +462,18 @@ export default function AntiInflammatoryMenuBuilder() {
   }
 
   // Generate week dates for day planning
+  // CHICAGO CALENDAR FIX v1.0: Using safe weekDatesInTZ with noon UTC anchor
   const weekDatesList = useMemo(() => {
-    return weekStartISO ? weekDates(weekStartISO) : [];
+    return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
   // Set initial active day when week loads
+  // CHICAGO CALENDAR FIX v1.0: Default to today if in current week, otherwise Monday
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      setActiveDayISO(weekDatesList[0]); // Default to Monday
+      const todayISO = getTodayISOSafe("America/Chicago");
+      const todayInWeek = weekDatesList.find((d) => d === todayISO);
+      setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
 
@@ -609,7 +624,8 @@ export default function AntiInflammatoryMenuBuilder() {
       if (!board) return;
       
       // Guard: Check if any day in TARGET week is locked
-      const targetWeekDates = weekDates(targetWeekStartISO);
+      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ
+      const targetWeekDates = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
       const lockedTarget = targetWeekDates.find(d => isDayLocked(d, user?.id));
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
@@ -618,17 +634,16 @@ export default function AntiInflammatoryMenuBuilder() {
       }
 
       // Deep clone the entire week
+      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
       const clonedBoard = {
         ...board,
         id: `week-${targetWeekStartISO}`,
         days: board.days
           ? Object.fromEntries(
               Object.entries(board.days).map(([oldDateISO, lists]) => {
-                // Calculate offset between weeks
-                const sourceDate = new Date(weekDatesList[0] + "T00:00:00Z");
-                const targetWeekDates = weekDates(targetWeekStartISO);
+                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
                 const dayIndex = weekDatesList.indexOf(oldDateISO);
-                const newDateISO = targetWeekDates[dayIndex] || oldDateISO;
+                const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
 
                 return [newDateISO, cloneDayLists(lists)];
               }),
@@ -716,7 +731,7 @@ export default function AntiInflammatoryMenuBuilder() {
       unit: i.unit || "",
       notes:
         planningMode === "day" && activeDayISO
-          ? `${new Date(activeDayISO + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long" })} Meal Plan`
+          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Meal Plan`
           : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`,
     }));
 
@@ -788,8 +803,9 @@ export default function AntiInflammatoryMenuBuilder() {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
+  // NOTE: slot is passed from the modal to avoid stale state issues
   const handleAIMealGenerated = useCallback(
-    async (generatedMeal: any) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
       
       // Guard: Check if day is locked before allowing edits
@@ -799,7 +815,7 @@ export default function AntiInflammatoryMenuBuilder() {
         "🤖 AI Meal Generated - Replacing old meals with new one:",
         generatedMeal,
         "for slot:",
-        aiMealSlot,
+        slot,
       );
 
       // Transform API response to match Meal type structure (copy Fridge Rescue format)
@@ -827,33 +843,33 @@ export default function AntiInflammatoryMenuBuilder() {
       const newMeals = [transformedMeal];
 
       // Save to localStorage with slot info (persists until next generation)
-      saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+      saveAIMealsCache(newMeals, activeDayISO, slot);
 
       // Also update board optimistically - REMOVE old AI meals first from the correct slot
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
         // Filter out all old AI meals from the target slot
-        const currentSlotMeals = dayLists[aiMealSlot];
+        const currentSlotMeals = dayLists[slot];
         const nonAIMeals = currentSlotMeals.filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
         // Add only the new AI meal
         const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-        const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+        const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
       }
 
       // Format slot name for display (capitalize first letter)
       const slotLabel =
-        aiMealSlot.charAt(0).toUpperCase() + aiMealSlot.slice(1);
+        slot.charAt(0).toUpperCase() + slot.slice(1);
 
       toast({
         title: "AI Meal Created!",
         description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
       });
     },
-    [board, activeDayISO, aiMealSlot, toast],
+    [board, activeDayISO, toast],
   );
 
   const profile = useOnboardingProfile();
@@ -1133,18 +1149,12 @@ export default function AntiInflammatoryMenuBuilder() {
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() - 7);
-    const prevISO = d.toISOString().slice(0, 10);
-    gotoWeek(prevISO);
+    gotoWeek(prevWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   const onNextWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 7);
-    const nextISO = d.toISOString().slice(0, 10);
-    gotoWeek(nextISO);
+    gotoWeek(nextWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   function onItemUpdated(
@@ -1287,6 +1297,8 @@ export default function AntiInflammatoryMenuBuilder() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
+          starchyCarbs: (meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0,
+          fibrousCarbs: (meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk",
         };
@@ -1347,7 +1359,10 @@ export default function AntiInflammatoryMenuBuilder() {
               <span className="text-sm font-medium">Back</span>
             </Button>
             <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Anti-Inflammatory Meal Builder</h1>
-            <QuickTourButton onClick={quickTour.openTour} />
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              <QuickTourButton onClick={quickTour.openTour} />
+            </div>
           </div>
           {/* Row 2: Client Dashboard Button (only when accessed from ProCare) */}
           {proClientId && (
@@ -1440,6 +1455,26 @@ export default function AntiInflammatoryMenuBuilder() {
                     weekDates={weekDatesList}
                     activeDayISO={activeDayISO}
                     onDayChange={setActiveDayISO}
+                  />
+                </div>
+              )}
+
+            {/* Daily Starch Indicator - Shows starch meal slots */}
+            {FEATURES.dayPlanning === "alpha" &&
+              planningMode === "day" &&
+              activeDayISO &&
+              board && (
+                <div className="flex justify-center">
+                  <DailyStarchIndicator 
+                    meals={(() => {
+                      const dayLists = getDayLists(board, activeDayISO);
+                      return [
+                        ...dayLists.breakfast,
+                        ...dayLists.lunch,
+                        ...dayLists.dinner,
+                        ...dayLists.snacks,
+                      ];
+                    })()}
                   />
                 </div>
               )}
@@ -1556,8 +1591,8 @@ export default function AntiInflammatoryMenuBuilder() {
                           setSnackCreatorOpen(true);
                         }}
                         onManualAdd={() => openManualModal(key)}
-                        onLogSnack={() => setLocation("/my-biometrics")}
-                        showLogSnack={key === "snacks"}
+                        onLogSnack={() => {}}
+                        showLogSnack={false}
                       />
                     </div>
 
@@ -1641,7 +1676,7 @@ export default function AntiInflammatoryMenuBuilder() {
                             No {label.toLowerCase()} meals yet
                           </p>
                           <p className="text-xs text-white/40">
-                            Use "Create with AI" or "+" to add meals
+                            Use "Create with Chef" or "+" to add meals
                           </p>
                         </div>
                       )}
@@ -1744,7 +1779,7 @@ export default function AntiInflammatoryMenuBuilder() {
                           No {label.toLowerCase()} meals yet
                         </p>
                         <p className="text-xs text-white/40">
-                          Use "Create with AI" or "+" to add meals
+                          Use "Create with Chef" or "+" to add meals
                         </p>
                       </div>
                     )}
@@ -1752,37 +1787,27 @@ export default function AntiInflammatoryMenuBuilder() {
                 </section>
               ))}
 
-          {/* Quick Add Protein/Carbs - Above Daily Totals */}
+          {/* Pro Tip Card */}
+          <ProTipCard />
+
+          {/* Daily Targets Card with Quick Add */}
           <div className="col-span-full">
-            {(() => {
-              const resolved = getResolvedTargets(user?.id);
-              const proteinDeficit = Math.max(0, (resolved.protein_g || 0) - Math.round(totals.protein));
-              const carbsDeficit = Math.max(0, (resolved.carbs_g || 0) - Math.round(totals.carbs));
-              
-              if (proteinDeficit === 0 && carbsDeficit === 0) return null;
-              
-              return (
-                <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-sm text-white/80">
-                      {proteinDeficit > 0 && <span>Need <strong className="text-orange-400">{proteinDeficit}g protein</strong></span>}
-                      {proteinDeficit > 0 && carbsDeficit > 0 && <span> · </span>}
-                      {carbsDeficit > 0 && <span>Need <strong className="text-orange-400">{carbsDeficit}g carbs</strong></span>}
-                    </div>
-                    <Button
-                      onClick={() => setAdditionalMacrosOpen(true)}
-                      className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
-                      data-testid="button-quick-add-macros"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Quick Add
-                    </Button>
-                  </div>
-                </div>
-              );
-            })()}
+            <DailyTargetsCard
+              userId={user?.id}
+              onQuickAddClick={() => setAdditionalMacrosOpen(true)}
+              targetsOverride={(() => {
+                const targetMacros = getMacroTargets(user?.id);
+                if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
+                return {
+                  protein_g: targetMacros.protein_g || 0,
+                  carbs_g: targetMacros.carbs_g || 0,
+                  fat_g: targetMacros.fat_g || 0,
+                  starchyCarbs_g: targetMacros.starchyCarbs_g,
+                  fibrousCarbs_g: targetMacros.fibrousCarbs_g,
+                };
+              })()}
+            />
           </div>
-        </div>
 
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
@@ -1796,6 +1821,8 @@ export default function AntiInflammatoryMenuBuilder() {
                 protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
                 carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
                 fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
               });
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1808,6 +1835,8 @@ export default function AntiInflammatoryMenuBuilder() {
                 protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
                 carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
                 fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
               
@@ -1845,7 +1874,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         });
                         toast({
                           title: "Day Saved to Biometrics",
-                          description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                         });
                         setLocation('/my-biometrics');
                       }
@@ -1854,6 +1883,8 @@ export default function AntiInflammatoryMenuBuilder() {
             </div>
           );
         })()}
+
+        </div>
 
         {/* Bottom spacing to clear fixed shopping bar */}
         <div className="h-18" />
@@ -1988,6 +2019,7 @@ export default function AntiInflammatoryMenuBuilder() {
           mealType={createWithChefSlot}
           onMealGenerated={handleAIMealGenerated}
           dietType="anti-inflammatory"
+          starchContext={starchContext}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with anti-inflammatory guardrails */}
@@ -2032,12 +2064,10 @@ export default function AntiInflammatoryMenuBuilder() {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = new Date(
-                activeDayISO + "T00:00:00Z",
-              ).toLocaleDateString(undefined, { weekday: "long" });
+              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
               return (
-                <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
+                <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
                   <div className="container mx-auto px-4 py-3">
                     <div className="flex flex-col gap-2">
                       <div className="text-white text-sm font-semibold">
@@ -2101,6 +2131,7 @@ export default function AntiInflammatoryMenuBuilder() {
         onClose={quickTour.closeTour}
         title="Anti-Inflammatory Builder Guide"
         steps={ANTI_INFLAMMATORY_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
       {/* Locked Day Dialog */}

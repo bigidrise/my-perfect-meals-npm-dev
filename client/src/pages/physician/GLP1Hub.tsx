@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const GLP1_TOUR_STEPS: TourStep[] = [
   {
@@ -168,11 +169,11 @@ export default function GLP1Hub() {
 
           <div className="flex-grow" />
 
-          {/* Quick Tour Help Button */}
-          <QuickTourButton
-            onClick={quickTour.openTour}
-            className="flex-shrink-0"
-          />
+          {/* Pill Buttons */}
+          <div className="flex items-center gap-2">
+            <MedicalSourcesInfo asPillButton />
+            <QuickTourButton onClick={quickTour.openTour} />
+          </div>
         </div>
       </div>
 

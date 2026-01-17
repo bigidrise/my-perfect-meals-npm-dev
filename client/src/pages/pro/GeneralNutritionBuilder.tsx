@@ -63,6 +63,7 @@ import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Build Client Meals", description: "Tap the + button on any meal card to add personalized recipes for your client." },
@@ -1063,10 +1064,12 @@ export default function WeeklyMealBoard() {
               General Nutrition Builder
             </h1>
 
-            {/* Quick Tour Help Button - only show here if NOT in ProCare mode */}
-            {!isProCareMode && (
-              <QuickTourButton onClick={quickTour.openTour} className="flex-shrink-0" />
-            )}
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              {!isProCareMode && (
+                <QuickTourButton onClick={quickTour.openTour} />
+              )}
+            </div>
           </div>
 
           {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}

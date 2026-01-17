@@ -265,14 +265,12 @@ export default function PricingPage() {
                 Terms of Use (EULA)
               </a>
               {" · "}
-              <a 
-                href="https://myperfectmeals.com/privacy" 
-                target="_blank" 
-                rel="noopener noreferrer"
+              <button 
+                onClick={() => setLocation("/privacy-policy")}
                 className="text-white/50 underline hover:text-white/70"
               >
                 Privacy Policy
-              </a>
+              </button>
             </p>
           </div>
         </div>
@@ -684,14 +682,12 @@ export default function PricingPage() {
                       Terms of Use (EULA)
                     </a>
                     {" · "}
-                    <a 
-                      href="https://myperfectmeals.com/privacy" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <button 
+                      onClick={() => setLocation("/privacy-policy")}
                       className="text-white/50 underline hover:text-white/70"
                     >
                       Privacy Policy
-                    </a>
+                    </button>
                   </p>
                 </div>
       </div>

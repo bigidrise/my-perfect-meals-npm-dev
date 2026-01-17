@@ -31,6 +31,7 @@ import type { GlucoseContext } from "@/hooks/useDiabetes";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const DIABETIC_TOUR_STEPS: TourStep[] = [
   {
@@ -200,8 +201,11 @@ export default function DiabeticHub() {
 
             <div className="flex-grow" />
 
-            {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} />
+            {/* Pill Buttons */}
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              <QuickTourButton onClick={quickTour.openTour} />
+            </div>
           </div>
         </div>
 

@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { useLocation, useRoute } from "wouter";
 import { proStore } from "@/lib/proData";
 import { MealCard, Meal } from "@/components/MealCard";
-import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, weekDates, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
+import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
+import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
+import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -23,12 +25,22 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { todayISOInTZ } from "@/utils/midnight";
+import { 
+  getWeekStartISOInTZ, 
+  getTodayISOSafe, 
+  weekDatesInTZ, 
+  nextWeekISO, 
+  prevWeekISO, 
+  formatWeekLabel,
+  formatDateDisplay,
+  todayISOInTZ 
+} from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Home, ArrowLeft, Info, Calendar } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
+import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { WhyChip } from "@/components/WhyChip";
@@ -37,10 +49,13 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
-import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
+// CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
+import { getResolvedTargets } from "@/lib/macroResolver";
+import { classifyMeal } from "@/utils/starchMealClassifier";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
@@ -48,13 +63,17 @@ import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 
 const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Build Client Meals", description: "Tap the + button on any meal card to add personalized recipes for your client." },
   { icon: "2", title: "Set Coach Targets", description: "Macro targets are set from the Client Dashboard - view progress here." },
   { icon: "3", title: "Day-by-Day Planning", description: "Use day chips to plan specific meals for each day of the week." },
   { icon: "4", title: "Duplicate Days", description: "Copy a day's meals to other days for consistent eating patterns." },
-  { icon: "5", title: "Shopping List", description: "Export all ingredients for the week to create a shopping list." }
+  { icon: "5", title: "Shopping List", description: "Export all ingredients for the week to create a shopping list." },
+  { icon: "6", title: "Track Progress & Save Day", description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics." },
+  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
+  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
 
 // Helper function to create new snacks
@@ -69,29 +88,8 @@ function makeNewSnack(nextIndex: number): Meal {
   };
 }
 
-// Week navigation utilities
-function addDaysISO(iso: string, days: number): string {
-  const d = new Date(iso + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function nextWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, 7);
-}
-
-function prevWeekISO(weekStartISO: string) {
-  return addDaysISO(weekStartISO, -7);
-}
-
-function formatWeekLabel(weekStartISO: string): string {
-  // Lightweight formatter: "Sep 8–14"
-  const start = new Date(weekStartISO + 'T00:00:00Z');
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 6);
-  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  return `${fmt(start)}–${fmt(end)}`;
-}
+// CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
+// Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function WeeklyMealBoard() {
   const [, setLocation] = useLocation();
@@ -124,7 +122,8 @@ export default function WeeklyMealBoard() {
   }, [clientId]);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
-  const [weekStartISO, setWeekStartISO] = React.useState<string>(getMondayISO());
+  // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
   const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard("1", weekStartISO);
 
   // Local mutable board state for optimistic updates
@@ -192,18 +191,35 @@ export default function WeeklyMealBoard() {
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
 
+  // Build StarchContext for Create With Chef modal
+  const starchContext: StarchContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const strategy = resolved?.starchStrategy || 'one';
+    const dayLists = getDayLists(board, activeDayISO);
+    const existingMeals: StarchContext['existingMeals'] = [];
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+      }
+    }
+    return { strategy, existingMeals };
+  }, [board, activeDayISO, user?.id]);
+
   // Handler for Create With Chef meal selection
-  const handleCreateWithChefSelect = useCallback(async (meal: any) => {
+  // NOTE: slot is passed from the modal to avoid stale state issues
+  const handleCreateWithChefSelect = useCallback(async (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
     if (!board) return;
 
     try {
-      // Add to the appropriate slot based on createWithChefSlot
+      // Add to the appropriate slot based on slot parameter from modal
       if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
         // Add to specific day
         const dayLists = getDayLists(board, activeDayISO);
         const updatedDayLists = {
           ...dayLists,
-          [createWithChefSlot]: [...dayLists[createWithChefSlot as keyof typeof dayLists], meal]
+          [slot]: [...dayLists[slot as keyof typeof dayLists], meal]
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
@@ -214,7 +230,7 @@ export default function WeeklyMealBoard() {
           ...board,
           lists: {
             ...board.lists,
-            [createWithChefSlot]: [...board.lists[createWithChefSlot], meal]
+            [slot]: [...board.lists[slot], meal]
           },
           version: board.version + 1,
           meta: {
@@ -242,7 +258,7 @@ export default function WeeklyMealBoard() {
         variant: "destructive"
       });
     }
-  }, [board, createWithChefSlot, planningMode, activeDayISO, weekStartISO, saveBoard, toast]);
+  }, [board, planningMode, activeDayISO, weekStartISO, saveBoard, toast]);
 
   // Handler for snack selection from SnackPickerDrawer
   const handleSnackSelect = useCallback(async (snack: any) => {
@@ -374,14 +390,18 @@ export default function WeeklyMealBoard() {
   }
 
   // Generate week dates for day planning
+  // CHICAGO CALENDAR FIX v1.0: Using safe weekDatesInTZ with noon UTC anchor
   const weekDatesList = useMemo(() => {
-    return weekStartISO ? weekDates(weekStartISO) : [];
+    return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
   // Set initial active day when week loads
+  // CHICAGO CALENDAR FIX v1.0: Default to today if in current week, otherwise Monday
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      setActiveDayISO(weekDatesList[0]); // Default to Monday
+      const todayISO = getTodayISOSafe("America/Chicago");
+      const todayInWeek = weekDatesList.find((d) => d === todayISO);
+      setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
 
@@ -431,16 +451,15 @@ export default function WeeklyMealBoard() {
     if (!board) return;
 
     // Deep clone the entire week
+    // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
     const clonedBoard = {
       ...board,
       id: `week-${targetWeekStartISO}`,
       days: board.days ? Object.fromEntries(
         Object.entries(board.days).map(([oldDateISO, lists]) => {
-          // Calculate offset between weeks
-          const sourceDate = new Date(weekDatesList[0] + 'T00:00:00Z');
-          const targetWeekDates = weekDates(targetWeekStartISO);
+          const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
           const dayIndex = weekDatesList.indexOf(oldDateISO);
-          const newDateISO = targetWeekDates[dayIndex] || oldDateISO;
+          const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
 
           return [newDateISO, cloneDayLists(lists)];
         })
@@ -498,7 +517,7 @@ export default function WeeklyMealBoard() {
       quantity: typeof i.qty === 'number' ? i.qty : (i.qty ? parseFloat(String(i.qty)) : 1),
       unit: i.unit || '',
       notes: planningMode === 'day' && activeDayISO
-        ? `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long' })} Meal Plan`
+        ? `${formatDateDisplay(activeDayISO, { weekday: 'long' })} Meal Plan`
         : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`
     }));
 
@@ -565,10 +584,11 @@ export default function WeeklyMealBoard() {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
-  const handleAIMealGenerated = useCallback(async (generatedMeal: any) => {
+  // NOTE: slot is passed from the modal to avoid stale state issues
+  const handleAIMealGenerated = useCallback(async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
     if (!activeDayISO) return;
 
-    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", aiMealSlot);
+    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", slot);
 
     // Transform API response to match Meal type structure (copy Fridge Rescue format)
     const transformedMeal: Meal = {
@@ -595,23 +615,23 @@ export default function WeeklyMealBoard() {
     const newMeals = [transformedMeal];
 
     // Save to localStorage with slot info (persists until next generation)
-    saveAIMealsCache(newMeals, activeDayISO, aiMealSlot);
+    saveAIMealsCache(newMeals, activeDayISO, slot);
 
     // Also update board optimistically - REMOVE old AI meals first from the correct slot
     if (board) {
       const dayLists = getDayLists(board, activeDayISO);
       // Filter out all old AI meals from the target slot
-      const currentSlotMeals = dayLists[aiMealSlot];
+      const currentSlotMeals = dayLists[slot];
       const nonAIMeals = currentSlotMeals.filter(m => !m.id.startsWith('ai-meal-'));
       // Add only the new AI meal
       const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-      const updatedDayLists = { ...dayLists, [aiMealSlot]: updatedSlotMeals };
+      const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
       const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
       setBoard(updatedBoard);
     }
 
     // Format slot name for display (capitalize first letter)
-    const slotLabel = aiMealSlot.charAt(0).toUpperCase() + aiMealSlot.slice(1);
+    const slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1);
 
     // Dispatch meal:saved event for coach progression
     const mealIdMap: Record<string, string> = {
@@ -621,7 +641,7 @@ export default function WeeklyMealBoard() {
       snacks: "snack1"
     };
     window.dispatchEvent(
-      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[aiMealSlot] || "snack1" } })
+      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[slot] || "snack1" } })
     );
 
     toast({
@@ -631,7 +651,7 @@ export default function WeeklyMealBoard() {
 
     // Advance guided tour to next step
     advanceTourStep();
-  }, [board, activeDayISO, aiMealSlot, toast, advanceTourStep]);
+  }, [board, activeDayISO, toast, advanceTourStep]);
 
   const profile = useOnboardingProfile();
   const targets = computeTargetsFromOnboarding(profile);
@@ -853,18 +873,12 @@ export default function WeeklyMealBoard() {
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() - 7);
-    const prevISO = d.toISOString().slice(0, 10);
-    gotoWeek(prevISO);
+    gotoWeek(prevWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   const onNextWeek = useCallback(() => {
     if (!weekStartISO) return;
-    const d = new Date(weekStartISO + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 7);
-    const nextISO = d.toISOString().slice(0, 10);
-    gotoWeek(nextISO);
+    gotoWeek(nextWeekISO(weekStartISO, "America/Chicago"));
   }, [weekStartISO, gotoWeek]);
 
   function onItemUpdated(list: "breakfast"|"lunch"|"dinner"|"snacks", idx: number, m: Meal|null) {
@@ -984,6 +998,8 @@ export default function WeeklyMealBoard() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
+          starchyCarbs: (meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0,
+          fibrousCarbs: (meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk"
         };
@@ -1032,7 +1048,7 @@ export default function WeeklyMealBoard() {
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() => setLocation(isProCareMode ? `/pro/clients/${clientId}` : "/dashboard")}
@@ -1044,17 +1060,21 @@ export default function WeeklyMealBoard() {
             </button>
 
             {/* Title */}
-            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
+            <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
               General Nutrition Builder
             </h1>
 
-            {/* Quick Tour Help Button */}
-            <QuickTourButton onClick={quickTour.openTour} />
+            <div className="flex items-center gap-2">
+              <MedicalSourcesInfo asPillButton />
+              {!isProCareMode && (
+                <QuickTourButton onClick={quickTour.openTour} />
+              )}
+            </div>
           </div>
 
-          {/* Row 2: Client Dashboard Button (only in ProCare mode) */}
+          {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}
           {isProCareMode && (
-            <div className="flex items-center">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setLocation(`/pro/clients/${clientId}`)}
                 className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
@@ -1063,6 +1083,8 @@ export default function WeeklyMealBoard() {
                 <ArrowLeft className="h-5 w-5" />
                 <span>Client Dashboard</span>
               </button>
+
+              <QuickTourButton onClick={quickTour.openTour} />
             </div>
           )}
         </div>
@@ -1146,6 +1168,26 @@ export default function WeeklyMealBoard() {
             </div>
           )}
 
+          {/* Daily Starch Indicator - Shows starch meal slots */}
+          {FEATURES.dayPlanning === 'alpha' &&
+            planningMode === 'day' &&
+            activeDayISO &&
+            board && (
+              <div className="flex justify-center">
+                <DailyStarchIndicator 
+                  meals={(() => {
+                    const dayLists = getDayLists(board, activeDayISO);
+                    return [
+                      ...dayLists.breakfast,
+                      ...dayLists.lunch,
+                      ...dayLists.dinner,
+                      ...dayLists.snacks,
+                    ];
+                  })()}
+                />
+              </div>
+            )}
+
           {/* ROW 5: Bottom Actions (Delete All + Save) */}
           <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
             <Button
@@ -1218,8 +1260,8 @@ export default function WeeklyMealBoard() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                   <div className="flex gap-2">
-                    {/* AI Meal Creator button for breakfast/lunch/dinner ONLY (not snacks) */}
-                    {key !== "snacks" && (
+                    {/* AI Meal Creator button - hidden by feature flag for launch */}
+                    {FEATURES.showCreateWithAI && key !== "snacks" && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1240,7 +1282,7 @@ export default function WeeklyMealBoard() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
+                        className="text-white/80 hover:bg-black/50 border border-orange-400/40 text-xs font-medium flex items-center gap-1 flash-border"
                         onClick={() => {
                           setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
                           setCreateWithChefOpen(true);
@@ -1270,17 +1312,7 @@ export default function WeeklyMealBoard() {
                       <Plus className="h-4 w-4" />
                     </Button>
 
-                    {/* Special Log Snack button for snacks section only - navigates to Biometrics photo log */}
-                    {key === "snacks" && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/70 hover:bg-white/10 text-xs font-medium"
-                        onClick={() => setLocation("/my-biometrics")}
-                      >
-                        📸 Log Snack
-                      </Button>
-                    )}
+                    {/* Log Snack button hidden - using macro logger instead */}
                   </div>
                 </div>
 
@@ -1333,7 +1365,7 @@ export default function WeeklyMealBoard() {
                   {dayLists[key as keyof typeof dayLists].length === 0 && (
                     <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                       <p className="mb-2">No {label.toLowerCase()} meals yet</p>
-                      <p className="text-xs text-white/40">Use "Create with AI" or "+" to add meals</p>
+                      <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
                     </div>
                   )}
                 </div>
@@ -1364,17 +1396,7 @@ export default function WeeklyMealBoard() {
                   <Plus className="h-4 w-4" />
                 </Button>
 
-                {/* Special Log Snack button for snacks section only - navigates to Biometrics photo log */}
-                {key === "snacks" && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-white/70 hover:bg-white/10 text-xs font-medium"
-                    onClick={() => setLocation("/my-biometrics")}
-                  >
-                    📸 Log Snack
-                  </Button>
-                )}
+                {/* Log Snack button hidden - using macro logger instead */}
               </div>
             </div>
 
@@ -1418,7 +1440,7 @@ export default function WeeklyMealBoard() {
               {board.lists[key].length === 0 && (
                 <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                   <p className="mb-2">No {label.toLowerCase()} meals yet</p>
-                  <p className="text-xs text-white/40">Use "Create with AI" or "+" to add meals</p>
+                  <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
                 </div>
               )}
             </div>
@@ -1474,6 +1496,28 @@ export default function WeeklyMealBoard() {
           </p>
         </div>
 
+        {/* Pro Tip Card */}
+        <ProTipCard />
+
+        {/* Daily Targets Card */}
+        <div className="col-span-full">
+          <DailyTargetsCard
+            userId={user?.id}
+            showQuickAddButton={false}
+            targetsOverride={(() => {
+              const coachTargets = proStore.getTargets(clientId);
+              const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
+              return {
+                protein_g: coachTargets.protein,
+                carbs_g: totalCarbs,
+                fat_g: coachTargets.fat,
+                starchyCarbs_g: coachTargets.starchyCarbs || 0,
+                fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
+              };
+            })()}
+          />
+        </div>
+
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
           FEATURES.dayPlanning === "alpha" &&
@@ -1486,6 +1530,8 @@ export default function WeeklyMealBoard() {
               protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
               carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
               fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+              starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+              fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
             });
             const slots = {
               breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1498,6 +1544,8 @@ export default function WeeklyMealBoard() {
               protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
               carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
               fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+              starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+              fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
             };
             const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
             
@@ -1510,6 +1558,8 @@ export default function WeeklyMealBoard() {
               protein_g: coachTargets.protein,
               carbs_g: totalCarbs,
               fat_g: coachTargets.fat,
+              starchyCarbs_g: coachTargets.starchyCarbs || 0,
+              fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
             };
             
             return (
@@ -1549,7 +1599,7 @@ export default function WeeklyMealBoard() {
                       });
                       toast({
                         title: "Day Saved to Coach Targets",
-                        description: `${new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                        description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                       });
                       setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
                     }
@@ -1700,10 +1750,10 @@ export default function WeeklyMealBoard() {
 
         // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
         if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
-          const dayName = new Date(activeDayISO + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'long' });
+          const dayName = formatDateDisplay(activeDayISO, { weekday: 'long' });
 
           return (
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl safe-area-inset-bottom">
+            <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl safe-area-inset-bottom">
               <div className="container mx-auto px-4 py-3">
                 <div className="flex flex-col gap-2">
                   <div className="text-white text-sm font-semibold">
@@ -1827,6 +1877,7 @@ export default function WeeklyMealBoard() {
         onOpenChange={setCreateWithChefOpen}
         mealType={createWithChefSlot}
         onMealGenerated={handleCreateWithChefSelect}
+        starchContext={starchContext}
       />
 
       {/* Quick Tour Modal */}
@@ -1835,6 +1886,7 @@ export default function WeeklyMealBoard() {
         onClose={quickTour.closeTour}
         title="General Nutrition Builder"
         steps={GENERAL_NUTRITION_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
       </div>
     </motion.div>
