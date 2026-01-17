@@ -30,13 +30,6 @@ export default function CravingCreatorLanding() {
 
   const cravingFeatures: CravingFeature[] = [
     {
-      title: "Create with Chef",
-      description: "Step-by-step guided craving creation with Chef assistance",
-      icon: Brain,
-      route: "/craving-studio",
-      testId: "cravinghub-chef-studio",
-    },
-    {
       title: "Craving Creator",
       description: "Use the original AI Craving Creator you already know",
       icon: Brain,
@@ -123,9 +116,7 @@ export default function CravingCreatorLanding() {
           <div className="flex flex-col gap-3">
             {cravingFeatures.map((feature) => {
               const Icon = feature.icon;
-        const isEmotionAI =
-          feature.route === "/craving-creator" ||
-          feature.route === "/craving-studio";
+        const isEmotionAI = feature.route === "/craving-creator";
               
               return (
                 <div key={feature.testId} className="relative">
