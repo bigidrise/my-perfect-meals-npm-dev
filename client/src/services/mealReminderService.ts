@@ -1,4 +1,3 @@
-import { LocalNotifications, ScheduleOptions } from "@capacitor/local-notifications";
 import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
 
@@ -22,6 +21,19 @@ const DEFAULT_SCHEDULE: MealReminderSchedule = {
   lunch: "13:00",
   dinner: "18:00",
 };
+
+let LocalNotificationsModule: any = null;
+
+async function getLocalNotifications() {
+  if (!Capacitor.isNativePlatform()) return null;
+  
+  if (!LocalNotificationsModule) {
+    const mod = await import("@capacitor/local-notifications");
+    LocalNotificationsModule = mod.LocalNotifications;
+  }
+  
+  return LocalNotificationsModule;
+}
 
 export async function loadReminderSchedule(): Promise<MealReminderSchedule> {
   try {
@@ -47,17 +59,16 @@ export async function saveReminderSchedule(schedule: MealReminderSchedule): Prom
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) {
-    return false;
-  }
+  const LN = await getLocalNotifications();
+  if (!LN) return false;
 
   try {
-    const permission = await LocalNotifications.checkPermissions();
+    const permission = await LN.checkPermissions();
     if (permission.display === "granted") {
       return true;
     }
 
-    const request = await LocalNotifications.requestPermissions();
+    const request = await LN.requestPermissions();
     return request.display === "granted";
   } catch (e) {
     console.error("Failed to request notification permission:", e);
@@ -66,12 +77,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export async function checkNotificationPermission(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) {
-    return false;
-  }
+  const LN = await getLocalNotifications();
+  if (!LN) return false;
 
   try {
-    const permission = await LocalNotifications.checkPermissions();
+    const permission = await LN.checkPermissions();
     return permission.display === "granted";
   } catch (e) {
     return false;
@@ -84,7 +94,8 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
 }
 
 export async function scheduleReminders(schedule: MealReminderSchedule): Promise<void> {
-  if (!Capacitor.isNativePlatform()) {
+  const LN = await getLocalNotifications();
+  if (!LN) {
     console.log("Reminders only work on native platforms");
     return;
   }
@@ -101,7 +112,14 @@ export async function scheduleReminders(schedule: MealReminderSchedule): Promise
     return;
   }
 
-  const notifications: ScheduleOptions["notifications"] = [];
+  const notifications: Array<{
+    id: number;
+    title: string;
+    body: string;
+    schedule: { on: { hour: number; minute: number }; repeats: boolean; allowWhileIdle: boolean };
+    sound: string;
+    extra: { route: string };
+  }> = [];
 
   const meals: Array<{ key: keyof typeof NOTIFICATION_IDS; time: string; title: string }> = [
     { key: "breakfast", time: schedule.breakfast, title: "Time for breakfast!" },
@@ -132,7 +150,7 @@ export async function scheduleReminders(schedule: MealReminderSchedule): Promise
   }
 
   try {
-    await LocalNotifications.schedule({ notifications });
+    await LN.schedule({ notifications });
     console.log("Scheduled meal reminders:", notifications.length);
   } catch (e) {
     console.error("Failed to schedule reminders:", e);
@@ -140,15 +158,14 @@ export async function scheduleReminders(schedule: MealReminderSchedule): Promise
 }
 
 export async function cancelAllReminders(): Promise<void> {
-  if (!Capacitor.isNativePlatform()) {
-    return;
-  }
+  const LN = await getLocalNotifications();
+  if (!LN) return;
 
   try {
-    const pending = await LocalNotifications.getPending();
+    const pending = await LN.getPending();
     if (pending.notifications.length > 0) {
-      await LocalNotifications.cancel({
-        notifications: pending.notifications.map((n) => ({ id: n.id })),
+      await LN.cancel({
+        notifications: pending.notifications.map((n: { id: number }) => ({ id: n.id })),
       });
       console.log("Cancelled all meal reminders");
     }
@@ -162,17 +179,27 @@ export function setupNotificationListeners(navigate: (path: string) => void): ()
     return () => {};
   }
 
-  const listener = LocalNotifications.addListener(
-    "localNotificationActionPerformed",
-    (notification) => {
-      const route = notification.notification.extra?.route;
-      if (route) {
-        navigate(route);
+  let cleanup: (() => void) | null = null;
+
+  getLocalNotifications().then((LN) => {
+    if (!LN) return;
+
+    const listener = LN.addListener(
+      "localNotificationActionPerformed",
+      (notification: { notification: { extra?: { route?: string } } }) => {
+        const route = notification.notification.extra?.route;
+        if (route) {
+          navigate(route);
+        }
       }
-    }
-  );
+    );
+
+    listener.then((l: { remove: () => void }) => {
+      cleanup = () => l.remove();
+    });
+  });
 
   return () => {
-    listener.then((l) => l.remove());
+    if (cleanup) cleanup();
   };
 }
