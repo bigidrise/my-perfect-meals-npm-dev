@@ -100,11 +100,11 @@ const CRAVING_STUDIO_STEP4 =
 const CRAVING_STUDIO_READY =
   "Locked in. I’ll create the meal — then we’ll head to Chef’s Kitchen to cook.";
 
-const CRAVING_STUDIO_OPEN_START = "Okay — building your meal now.";
-const CRAVING_STUDIO_OPEN_PROGRESS1 = "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.";
+const CRAVING_STUDIO_OPEN_START = "";
+const CRAVING_STUDIO_OPEN_PROGRESS1 =
+  "When it’s ready, tap the button Enter Chef’s Kitchen, and we’ll start cooking.";
 const CRAVING_STUDIO_OPEN_PROGRESS2 = "";
-const CRAVING_STUDIO_OPEN_COMPLETE =
-  "";
+const CRAVING_STUDIO_OPEN_COMPLETE = "";
 
 export default function CravingStudio() {
   const [, setLocation] = useLocation();
@@ -138,11 +138,13 @@ export default function CravingStudio() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Voice studio ref for stopping voice when editing steps
   const voiceStopRef = useRef<(() => void) | null>(null);
 
-  const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(null);
+  const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(
+    null,
+  );
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -225,7 +227,8 @@ export default function CravingStudio() {
 
   useEffect(() => {
     return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (progressIntervalRef.current)
+        clearInterval(progressIntervalRef.current);
     };
   }, []);
 
@@ -275,7 +278,9 @@ export default function CravingStudio() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to generate meal: ${response.status} ${errorText}`);
+        throw new Error(
+          `Failed to generate meal: ${response.status} ${errorText}`,
+        );
       }
 
       const data = await response.json();
@@ -306,7 +311,9 @@ export default function CravingStudio() {
               };
             })
           : [],
-        instructions: normalizeInstructions(meal.cookingInstructions || meal.instructions),
+        instructions: normalizeInstructions(
+          meal.cookingInstructions || meal.instructions,
+        ),
         imageUrl: meal.imageUrl,
         calories: nutritionCalories,
         protein: nutritionProtein,
@@ -318,9 +325,13 @@ export default function CravingStudio() {
           carbs: nutritionCarbs,
           fat: nutritionFat,
         },
-        medicalBadges: Array.isArray(meal.medicalBadges) ? meal.medicalBadges : [],
+        medicalBadges: Array.isArray(meal.medicalBadges)
+          ? meal.medicalBadges
+          : [],
         flags: Array.isArray(meal.flags) ? meal.flags : [],
-        servingSize: meal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
+        servingSize:
+          meal.servingSize ||
+          `${servings} ${servings === 1 ? "serving" : "servings"}`,
         servings: meal.servings || servings,
         reasoning: meal.reasoning,
       };
@@ -368,8 +379,16 @@ export default function CravingStudio() {
         setListened: setS3Listened,
         parseValue: (transcript) => {
           const words: Record<string, number> = {
-            one: 1, two: 2, three: 3, four: 4, five: 5,
-            six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+            one: 1,
+            two: 2,
+            three: 3,
+            four: 4,
+            five: 5,
+            six: 6,
+            seven: 7,
+            eight: 8,
+            nine: 9,
+            ten: 10,
           };
           const lower = transcript.toLowerCase();
           for (const [word, num] of Object.entries(words)) {
@@ -399,7 +418,10 @@ export default function CravingStudio() {
     if (!generatedMeal) return;
     try {
       localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(generatedMeal));
+      localStorage.setItem(
+        "mpm_chefs_kitchen_meal",
+        JSON.stringify(generatedMeal),
+      );
       localStorage.removeItem("mpm_chefs_kitchen_prep");
     } catch {
       // ignore
@@ -430,8 +452,7 @@ export default function CravingStudio() {
           </button>
 
           <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Craving Studio{" "}
-            <span className="text-xl leading-none">✨</span>
+            Craving Studio <span className="text-xl leading-none">✨</span>
           </h1>
 
           <div className="flex-grow" />
@@ -450,7 +471,8 @@ export default function CravingStudio() {
               <h2 className="text-lg font-bold text-white">Create with Chef</h2>
             </div>
             <p className="text-sm text-white/80">
-              Same system as Chef&apos;s Kitchen — answer a few quick steps, then we generate a full meal card.
+              Same system as Chef&apos;s Kitchen — answer a few quick steps,
+              then we generate a full meal card.
             </p>
           </CardContent>
         </Card>
@@ -478,7 +500,10 @@ export default function CravingStudio() {
               setS1Locked(true);
               setStudioStep(2);
             }}
-            onEdit={() => { stopChef(); editStep1(); }}
+            onEdit={() => {
+              stopChef();
+              editStep1();
+            }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
@@ -488,7 +513,9 @@ export default function CravingStudio() {
           <KitchenStepCard
             stepTitle="Step 2 · Dietary Preferences"
             question="Any dietary preference, allergy, or avoid list?"
-            summaryText={dietaryPrefs ? `Dietary: ${dietaryPrefs}` : "No dietary notes"}
+            summaryText={
+              dietaryPrefs ? `Dietary: ${dietaryPrefs}` : "No dietary notes"
+            }
             value={dietaryPrefs}
             setValue={setDietaryPrefs}
             hasListened={s2Listened}
@@ -506,7 +533,10 @@ export default function CravingStudio() {
               setS2Locked(true);
               setStudioStep(3);
             }}
-            onEdit={() => { stopChef(); editStep2(); }}
+            onEdit={() => {
+              stopChef();
+              editStep2();
+            }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
@@ -534,7 +564,10 @@ export default function CravingStudio() {
               setS3Locked(true);
               setStudioStep(4);
             }}
-            onEdit={() => { stopChef(); editStep3(); }}
+            onEdit={() => {
+              stopChef();
+              editStep3();
+            }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
@@ -544,7 +577,9 @@ export default function CravingStudio() {
           <KitchenStepCard
             stepTitle="Step 4 · Custom Notes"
             question="Any custom restriction or tweak?"
-            summaryText={customNotes ? `Notes: ${customNotes}` : "No custom notes"}
+            summaryText={
+              customNotes ? `Notes: ${customNotes}` : "No custom notes"
+            }
             value={customNotes}
             setValue={setCustomNotes}
             hasListened={s4Listened}
@@ -562,7 +597,10 @@ export default function CravingStudio() {
               setS4Locked(true);
               setStudioStep(5);
             }}
-            onEdit={() => { stopChef(); editStep4(); }}
+            onEdit={() => {
+              stopChef();
+              editStep4();
+            }}
             canEdit={!generatedMeal && !isGenerating}
           />
         )}
@@ -584,7 +622,8 @@ export default function CravingStudio() {
                     Ready to Create Your Meal
                   </h3>
                   <p className="text-sm text-white/70 mb-4">
-                    We’ll generate a full meal card with ingredients, macros, and cooking steps.
+                    We’ll generate a full meal card with ingredients, macros,
+                    and cooking steps.
                   </p>
 
                   <div className="rounded-xl border border-white/20 bg-black/40 p-4 text-left space-y-2 mb-4">
@@ -744,8 +783,10 @@ export default function CravingStudio() {
                         setDisplayMeal({
                           ...generatedMeal,
                           name: updated.name || generatedMeal.name,
-                          description: updated.description || generatedMeal.description,
-                          instructions: updated.instructions || generatedMeal.instructions,
+                          description:
+                            updated.description || generatedMeal.description,
+                          instructions:
+                            updated.instructions || generatedMeal.instructions,
                         });
                       }}
                     />
@@ -779,7 +820,9 @@ export default function CravingStudio() {
                               : b.badge || b.id || b.condition || b.label,
                           )}
                         />
-                        <h3 className="font-semibold text-white">Medical Safety</h3>
+                        <h3 className="font-semibold text-white">
+                          Medical Safety
+                        </h3>
                       </div>
                     ) : null;
                   })()}
@@ -787,7 +830,9 @@ export default function CravingStudio() {
                   {/* Ingredients */}
                   {generatedMeal.ingredients?.length > 0 && (
                     <div>
-                      <h4 className="font-semibold mb-2 text-white">Ingredients:</h4>
+                      <h4 className="font-semibold mb-2 text-white">
+                        Ingredients:
+                      </h4>
                       <ul className="text-sm text-white/80 space-y-1">
                         {generatedMeal.ingredients.map((ing, i) => (
                           <li key={i}>
@@ -801,7 +846,9 @@ export default function CravingStudio() {
                   {/* Instructions */}
                   {mealToShow.instructions && (
                     <div>
-                      <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                      <h4 className="font-semibold mb-2 text-white">
+                        Instructions:
+                      </h4>
                       <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
                         {Array.isArray(mealToShow.instructions)
                           ? mealToShow.instructions.join("\n")
@@ -817,7 +864,9 @@ export default function CravingStudio() {
                         <Brain className="h-4 w-4" />
                         Why This Works For You:
                       </h4>
-                      <p className="text-sm text-white/80">{mealToShow.reasoning}</p>
+                      <p className="text-sm text-white/80">
+                        {mealToShow.reasoning}
+                      </p>
                     </div>
                   )}
 
@@ -836,7 +885,9 @@ export default function CravingStudio() {
         )}
 
         {/* Extra padding for shopping bar */}
-        {generatedMeal && generatedMeal.ingredients?.length > 0 && <div className="h-28" />}
+        {generatedMeal && generatedMeal.ingredients?.length > 0 && (
+          <div className="h-28" />
+        )}
       </div>
 
       {/* Shopping Aggregate Bar */}
