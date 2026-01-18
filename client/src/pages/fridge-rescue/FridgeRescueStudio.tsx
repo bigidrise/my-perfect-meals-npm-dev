@@ -33,13 +33,13 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
       summaryPrefix: "Ingredients",
     },
     {
-      title: "Hunger Level",
-      question: "How hungry are you?",
-      voiceScript: "How hungry are you — light, medium, or hearty?",
+      title: "Meal Size",
+      question: "What kind of meal do you want right now?",
+      voiceScript: "What kind of meal are you in the mood for — something light, regular, or filling?",
       inputType: "buttons",
-      buttonOptions: ["Light", "Medium", "Hearty"],
-      summaryPrefix: "Hunger Level",
-      defaultValue: "Medium",
+      buttonOptions: ["Light", "Regular", "Filling"],
+      summaryPrefix: "Meal Size",
+      defaultValue: "Regular",
     },
     {
       title: "Servings",
@@ -65,7 +65,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
    * Fired before moving to Hunger Level
    */
   afterStepScripts: {
-    0: "Okay — now that we know what’s in your refrigerator, you can continue manually, or switch to hands-free.",
+    0: "Okay — now that we know what’s in your refrigerator, you can continue here manually, or switch to hands-free.",
   },
 
   scripts: {
