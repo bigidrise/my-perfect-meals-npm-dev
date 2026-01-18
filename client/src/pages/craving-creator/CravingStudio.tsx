@@ -102,7 +102,7 @@ const CRAVING_STUDIO_READY =
 
 const CRAVING_STUDIO_OPEN_START = "";
 const CRAVING_STUDIO_OPEN_PROGRESS1 =
-  "When it’s ready, tap the button Enter Chef’s Kitchen, and we’ll start cooking.";
+  "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.";
 const CRAVING_STUDIO_OPEN_PROGRESS2 = "";
 const CRAVING_STUDIO_OPEN_COMPLETE = "";
 

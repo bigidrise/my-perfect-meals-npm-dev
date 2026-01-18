@@ -69,6 +69,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
       question: "Style or occasion?",
       voiceScript:
       "What are we making this for — just a regular treat, a birthday, a wedding… and do you want it light, classic, bakery-style, or indulgent?",
+
       inputType: "buttons",
       buttonOptions: [
         "Classic",
@@ -119,11 +120,11 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
   ],
 
   scripts: {
-    ready: "If everything looks good, press Enter Chef's Kitchen and we'll start cooking.",
-    generatingStart: "Putting it together.",
-    generatingProgress1: "Balancing flavor and texture.",
-    generatingProgress2: "Finalizing ingredients and steps.",
-    complete: "Done. Let's head to Chef's Kitchen.",
+    ready: "If everything looks good, press generate meal.",
+    generatingStart: "",
+    generatingProgress1: "",
+    generatingProgress2: "",
+    complete: "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.",
   },
 
   apiEndpoint: "/api/craving-creator/generate",

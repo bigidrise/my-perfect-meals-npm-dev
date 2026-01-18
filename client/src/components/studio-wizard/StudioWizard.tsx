@@ -176,7 +176,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
       if (saved) {
         const parsed = JSON.parse(saved) as GeneratedMeal;
         setGeneratedMeal(parsed);
-        setStudioStep(5);
+        // Show generate section (after all steps)
+        setStudioStep((steps.length + 1) as StudioStep);
         // Lock all steps since we have a generated meal
         for (let i = 0; i < steps.length; i++) {
           setLocked(i, true);
@@ -532,20 +533,19 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                 setLocked(index, true);
                 
                 const afterScript = config.afterStepScripts?.[index];
-                if (afterScript) {
-                  speak(afterScript, () => {
-                    if (index < steps.length - 1) {
-                      setStudioStep((stepNum + 1) as StudioStep);
-                    } else {
-                      setStudioStep(5);
-                    }
-                  });
-                } else {
+                const advanceStep = () => {
                   if (index < steps.length - 1) {
                     setStudioStep((stepNum + 1) as StudioStep);
                   } else {
-                    setStudioStep(5);
+                    // Only show generate section after ALL steps are complete
+                    setStudioStep((steps.length + 1) as StudioStep);
                   }
+                };
+                
+                if (afterScript) {
+                  speak(afterScript, advanceStep);
+                } else {
+                  advanceStep();
                 }
               }}
               onEdit={() => editStep(index)}
@@ -554,7 +554,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
           );
         })}
 
-        {studioStep >= 5 && (
+        {studioStep > steps.length && (
           <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center gap-2">
