@@ -18,6 +18,9 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
+import TalkToChefButton from "@/components/voice/TalkToChefButton";
+import VoiceModeOverlay from "@/components/voice/VoiceModeOverlay";
+import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { apiUrl } from "@/lib/resolveApiBase";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import MealCardActions from "@/components/MealCardActions";
@@ -208,14 +211,23 @@ export default function ChefsKitchenPage() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Voice studio ref for stopping voice when editing steps
+  const voiceStopRef = useRef<(() => void) | null>(null);
+  
+  // Stop voice if active (used when manually editing)
+  const stopVoiceIfActive = () => {
+    voiceStopRef.current?.();
+  };
 
   // Get equipment list based on cooking method
   const suggestedEquipment = cookMethod
     ? EQUIPMENT_BY_METHOD[cookMethod] || []
     : [];
 
-  // Edit handlers - unlock step and reset downstream
+  // Edit handlers - unlock step and reset downstream (also stop voice if active)
   const editStep1 = () => {
+    stopVoiceIfActive();
     setStep1Locked(false);
     setStep2Locked(false);
     setStep3Locked(false);
@@ -229,6 +241,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep2 = () => {
+    stopVoiceIfActive();
     setStep2Locked(false);
     setStep3Locked(false);
     setStep4Locked(false);
@@ -242,6 +255,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep3 = () => {
+    stopVoiceIfActive();
     setStep3Locked(false);
     setStep4Locked(false);
     setStep5Locked(false);
@@ -251,6 +265,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep4 = () => {
+    stopVoiceIfActive();
     setStep4Locked(false);
     setStep5Locked(false);
     setStep5Listened(false);
@@ -258,6 +273,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep5 = () => {
+    stopVoiceIfActive();
     setStep5Locked(false);
     setStudioStep(5);
   };
@@ -444,6 +460,85 @@ export default function ChefsKitchenPage() {
     document.title = "Chef's Kitchen 👨🏿‍🍳 | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  // Voice Studio configuration for hands-free mode (5 steps before generate)
+  const KITCHEN_VOICE_STEP1 = "Alright — what are we making today?";
+  const KITCHEN_VOICE_STEP2 = "Got it. How do you want to cook it? Stovetop, oven, air fryer, or something else?";
+  const KITCHEN_VOICE_STEP3 = "Any specific ingredients you want, or anything you want to avoid?";
+  const KITCHEN_VOICE_STEP4 = "How many servings should I make?";
+  const KITCHEN_VOICE_STEP5 = "Any equipment preferences? I can suggest based on your cooking method.";
+
+  const voiceStudio = useVoiceStudio({
+    steps: [
+      {
+        voiceScript: KITCHEN_VOICE_STEP1,
+        setValue: setDishIdea,
+        setLocked: setStep1Locked,
+        setListened: setStep1Listened,
+      },
+      {
+        voiceScript: KITCHEN_VOICE_STEP2,
+        setValue: setCookMethod,
+        setLocked: setStep2Locked,
+        setListened: setStep2Listened,
+        parseValue: (transcript) => {
+          const lower = transcript.toLowerCase();
+          if (lower.includes("stove") || lower.includes("pan") || lower.includes("skillet")) return "stovetop";
+          if (lower.includes("oven") || lower.includes("bake") || lower.includes("roast")) return "oven";
+          if (lower.includes("air") || lower.includes("fryer")) return "air fryer";
+          if (lower.includes("grill")) return "grill";
+          if (lower.includes("instant") || lower.includes("pressure")) return "instant pot";
+          if (lower.includes("slow") || lower.includes("crock")) return "slow cooker";
+          if (lower.includes("no cook") || lower.includes("raw") || lower.includes("fresh")) return "no-cook";
+          return transcript;
+        },
+      },
+      {
+        voiceScript: KITCHEN_VOICE_STEP3,
+        setValue: setIngredientNotes,
+        setLocked: setStep3Locked,
+        setListened: setStep3Listened,
+      },
+      {
+        voiceScript: KITCHEN_VOICE_STEP4,
+        setValue: (val) => {
+          const num = parseInt(val.replace(/\D/g, ""), 10);
+          setServings(num > 0 && num <= 12 ? num : 2);
+        },
+        setLocked: setStep4Locked,
+        setListened: setStep4Listened,
+        parseValue: (transcript) => {
+          const words: Record<string, number> = {
+            one: 1, two: 2, three: 3, four: 4, five: 5,
+            six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+            eleven: 11, twelve: 12,
+          };
+          const lower = transcript.toLowerCase();
+          for (const [word, num] of Object.entries(words)) {
+            if (lower.includes(word)) return String(num);
+          }
+          const match = transcript.match(/\d+/);
+          return match ? match[0] : "2";
+        },
+      },
+      {
+        voiceScript: KITCHEN_VOICE_STEP5,
+        setValue: setEquipment,
+        setLocked: setStep5Locked,
+        setListened: setStep5Listened,
+      },
+    ],
+    onAllStepsComplete: () => {
+      setStudioStep(6);
+      startOpenKitchen();
+    },
+    setStudioStep: (step) => setStudioStep(step as 1 | 2 | 3 | 4 | 5 | 6),
+  });
+
+  // Wire voiceStopRef to the voice studio
+  useEffect(() => {
+    voiceStopRef.current = voiceStudio.stopVoiceMode;
+  }, [voiceStudio.stopVoiceMode]);
 
   // Phase 2: Calm transition when entering first cooking step
   useEffect(() => {
@@ -1527,6 +1622,24 @@ export default function ChefsKitchenPage() {
           <div className="h-28" />
         )}
       </div>
+
+      {/* Hands-free Voice Mode Overlay */}
+      <VoiceModeOverlay
+        isActive={voiceStudio.isVoiceActive}
+        isListening={voiceStudio.isListening}
+        transcript={voiceStudio.transcript}
+        currentStepQuestion={voiceStudio.currentStepQuestion}
+        onStop={voiceStudio.stopVoiceMode}
+      />
+
+      {/* Talk to Chef floating button - show during studio steps (before generate) */}
+      {mode === "studio" && studioStep < 6 && !isGeneratingMeal && (
+        <TalkToChefButton
+          onActivate={voiceStudio.startVoiceMode}
+          isActive={voiceStudio.isVoiceActive}
+          hintKey="chefs-kitchen"
+        />
+      )}
 
       {/* Shopping Aggregate Bar - appears after meal is generated */}
       {generatedMeal && generatedMeal.ingredients?.length > 0 && (
