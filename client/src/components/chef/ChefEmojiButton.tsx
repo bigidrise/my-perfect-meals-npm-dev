@@ -17,8 +17,8 @@ export default function ChefEmojiButton({ onClick }: Props) {
       <img
         src="/icons/chef.png"
         alt="Chef"
-        className="w-8 h-8 pointer-events-none"
-        style={{ width: "32px", height: "32px" }}
+        className="pointer-events-none"
+        style={{ width: "44px", height: "44px" }}
       />
     </button>
   );

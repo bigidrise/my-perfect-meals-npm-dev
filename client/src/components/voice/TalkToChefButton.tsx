@@ -87,7 +87,7 @@ export default function TalkToChefButton({
             src="/icons/chef.png"
             alt="Chef"
             className="pointer-events-none"
-            style={{ width: "40px", height: "40px" }}
+            style={{ width: "48px", height: "48px" }}
           />
           <Mic className="w-6 h-6 text-orange-400" />
         </div>
