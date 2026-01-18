@@ -63,6 +63,8 @@ export interface StudioStepConfig {
   summaryPrefix: string;
   defaultValue?: string;
   required?: boolean;
+  otherEnabled?: boolean;
+  otherPlaceholder?: string;
 }
 
 export interface StudioScripts {
