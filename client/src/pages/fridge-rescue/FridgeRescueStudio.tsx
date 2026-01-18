@@ -1,5 +1,7 @@
 import { Refrigerator } from "lucide-react";
-import StudioWizard, { StudioConfig } from "@/components/studio-wizard/StudioWizard";
+import StudioWizard, {
+  StudioConfig,
+} from "@/components/studio-wizard/StudioWizard";
 
 const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
   branding: {
@@ -68,7 +70,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
 
   scripts: {
     ready: "Alright. I’ll make something from what you have.",
-    generatingStart: "Working on it.",
+    generatingStart: "",
     generatingProgress1: "",
     generatingProgress2: "",
     complete: "Done. Let’s cook.",
