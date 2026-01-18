@@ -35,6 +35,7 @@ export function useVoiceStudio({
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isActiveRef = useRef(false);
   const currentVoiceStepRef = useRef(0);
+  const gotResultRef = useRef(false);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -83,6 +84,7 @@ export function useVoiceStudio({
 
     console.log("🎤 Starting speech recognition...");
     setVoiceState("listening");
+    gotResultRef.current = false;
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -107,6 +109,7 @@ export function useVoiceStudio({
 
     recognition.onresult = (event: any) => {
       console.log("🎤 Got result:", event.results[0][0].transcript);
+      gotResultRef.current = true;
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
       clearSilenceTimeout();
@@ -161,17 +164,17 @@ export function useVoiceStudio({
     };
 
     recognition.onend = () => {
-      console.log("🎤 Speech recognition ended");
+      console.log("🎤 Speech recognition ended, gotResult:", gotResultRef.current);
       clearSilenceTimeout();
       
       // If still active but no result was captured, auto-restart listening
-      if (isActiveRef.current && voiceState === "listening") {
+      if (isActiveRef.current && !gotResultRef.current) {
         console.log("🎤 No result captured, restarting listening...");
         setTimeout(() => {
           if (isActiveRef.current) {
             startListening();
           }
-        }, 200);
+        }, 300);
       }
     };
 
