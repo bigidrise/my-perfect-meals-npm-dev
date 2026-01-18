@@ -14,6 +14,7 @@ interface UseVoiceStudioOptions {
   steps: VoiceStudioStep[];
   onAllStepsComplete: () => void;
   setStudioStep: (step: number) => void;
+  disabledSteps?: number[];
 }
 
 type VoiceState = "idle" | "speaking" | "listening" | "processing";
@@ -22,6 +23,7 @@ export function useVoiceStudio({
   steps,
   onAllStepsComplete,
   setStudioStep,
+  disabledSteps = [],
 }: UseVoiceStudioOptions) {
   const [isActive, setIsActive] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
@@ -277,7 +279,7 @@ export function useVoiceStudio({
     [steps, speak, startListening]
   );
 
-  const startVoiceMode = useCallback(async () => {
+  const startVoiceMode = useCallback(async (fromStepIndex?: number) => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
@@ -285,19 +287,35 @@ export function useVoiceStudio({
       return false;
     }
 
+    // Find first non-disabled step (starting from fromStepIndex if provided)
+    const searchStart = fromStepIndex ?? 0;
+    let firstEnabledStep = searchStart;
+    for (let i = searchStart; i < steps.length; i++) {
+      if (!disabledSteps.includes(i)) {
+        firstEnabledStep = i;
+        break;
+      }
+    }
+
+    // If all remaining steps are disabled, don't start voice mode
+    if (disabledSteps.includes(firstEnabledStep)) {
+      console.log("🎤 All steps are disabled for voice, not starting");
+      return false;
+    }
+
     setIsActive(true);
-    setCurrentVoiceStep(0);
+    setCurrentVoiceStep(firstEnabledStep);
     setLastTranscript("");
     setSilenceCount(0);
     restartCountRef.current = 0;
     
-    // Set studio to step 1 (1-indexed)
-    setStudioStep(1);
+    // Set studio to the enabled step (1-indexed)
+    setStudioStep(firstEnabledStep + 1);
     
-    // Speak first step
-    speakStepWithCallback(0);
+    // Speak first enabled step
+    speakStepWithCallback(firstEnabledStep);
     return true;
-  }, [setStudioStep, speakStepWithCallback]);
+  }, [setStudioStep, speakStepWithCallback, steps.length, disabledSteps]);
 
   const stopVoiceMode = useCallback(() => {
     endSession();

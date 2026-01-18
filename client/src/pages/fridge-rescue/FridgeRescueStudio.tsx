@@ -1,7 +1,5 @@
 import { Refrigerator } from "lucide-react";
-import StudioWizard, {
-  StudioConfig,
-} from "@/components/studio-wizard/StudioWizard";
+import StudioWizard, { StudioConfig } from "@/components/studio-wizard/StudioWizard";
 
 const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
   branding: {
@@ -16,13 +14,12 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     icon: Refrigerator,
   },
 
-  // ⛔ Step 0 (Ingredients) is MANUAL ONLY
+  /**
+   * 🔒 IMPORTANT
+   * Disable hands-free / voice input on step 0 (Ingredients)
+   * Hands-free becomes available AFTER ingredients are set
+   */
   disableVoiceSteps: [0],
-
-  // 🎤 One-time transition message after ingredients
-  afterStepScripts: {
-    0: "Okay — now that we know what’s in your refrigerator, you can keep going like this, or switch to hands-free.",
-  },
 
   steps: [
     {
@@ -61,6 +58,14 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     },
   ],
 
+  /**
+   * 🧠 Transition line AFTER ingredients are submitted
+   * Fired before moving to Hunger Level
+   */
+  afterStepScripts: {
+    0: "Okay — now that we know what’s in your refrigerator, you can continue manually, or switch to hands-free.",
+  },
+
   scripts: {
     ready: "Alright. I’ll make something from what you have.",
     generatingStart: "Working on it.",
@@ -75,13 +80,12 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
   defaultMealType: "dinner",
   servingsStepIndex: 2,
 
-  // 🧠 PROMPT FIXED — no imaginary "style"
   buildPrompt: (values, servings) => {
-    const [ingredients, hungerLevel, , notes] = values;
-    const parts: string[] = [];
+    const [ingredients, hunger, , notes] = values;
 
+    const parts: string[] = [];
     parts.push(`Ingredients available: ${ingredients}`);
-    parts.push(`Hunger level: ${hungerLevel}`);
+    parts.push(`Hunger level: ${hunger}`);
     if (notes?.trim()) parts.push(`Notes: ${notes.trim()}`);
     parts.push("Use only the ingredients listed — no shopping needed.");
 

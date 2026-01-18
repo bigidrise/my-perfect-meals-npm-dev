@@ -96,6 +96,7 @@ export interface StudioConfig {
   servingsStepIndex: number;
   buildPrompt: (values: string[], servings: number) => Record<string, any>;
   afterStepScripts?: Record<number, string>;
+  disableVoiceSteps?: number[];
 }
 
 function normalizeInstructions(raw: string | string[] | undefined): string[] {
@@ -258,7 +259,12 @@ export default function StudioWizard({ config }: StudioWizardProps) {
       generateMeal();
     },
     setStudioStep: (step) => setStudioStep(step as StudioStep),
+    disabledSteps: config.disableVoiceSteps,
   });
+
+  // Current step index (0-based) for voice disable check
+  const currentStepIndex = studioStep - 1;
+  const isVoiceDisabledForCurrentStep = config.disableVoiceSteps?.includes(currentStepIndex) ?? false;
 
   // Wire voiceStopRef to the voice studio
   useEffect(() => {
@@ -597,15 +603,15 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
       </div>
 
-      {/* Talk to Chef floating button - show during studio steps (before generate) */}
-      {studioStep <= steps.length && !isGenerating && (
+      {/* Talk to Chef floating button - show during studio steps (before generate), hidden on disabled voice steps */}
+      {studioStep <= steps.length && !isGenerating && !isVoiceDisabledForCurrentStep && (
         <TalkToChefButton
           voiceState={voiceStudio.voiceState}
           currentStep={voiceStudio.currentVoiceStep}
           totalSteps={steps.length}
           lastTranscript={voiceStudio.lastTranscript}
           isPlaying={voiceStudio.isPlaying}
-          onStart={voiceStudio.startVoiceMode}
+          onStart={() => voiceStudio.startVoiceMode(currentStepIndex)}
           onStop={voiceStudio.stopVoiceMode}
         />
       )}
