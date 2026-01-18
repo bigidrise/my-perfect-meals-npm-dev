@@ -24,7 +24,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
     {
       title: "Dessert Type",
       question: "What kind of dessert?",
-      voiceScript: "What kind of dessert are we making?",
+      voiceScript: "What type of dessert are we making?",
       inputType: "buttons",
       buttonOptions: [
         "Surprise Me",
@@ -46,7 +46,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
     {
       title: "Flavor",
       question: "Pick a flavor direction",
-      voiceScript: "What flavor are you thinking?",
+      voiceScript: "and what's the flavor going to be?",
       inputType: "buttons",
       buttonOptions: [
         "Chocolate",
@@ -66,8 +66,9 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
     // 2 — STYLE / OCCASION
     {
       title: "Style or Occasion",
-      question: "Any style or occasion?",
-      voiceScript: "Is this a classic dessert, a celebration, or something special?",
+      question: "Style or occasion?",
+      voiceScript:
+      "What are we making this for — just a regular treat, a birthday, a wedding… and do you want it light, classic, bakery-style, or indulgent?",
       inputType: "buttons",
       buttonOptions: [
         "Classic",
@@ -84,8 +85,8 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
     // 3 — SERVINGS (people-based)
     {
       title: "Servings",
-      question: "Who is this for?",
-      voiceScript: "Who is this dessert for — just you, a couple people, or a group?",
+      question: "How many servings?",
+      voiceScript: "How many servings?",
       inputType: "buttons",
       buttonOptions: [
         "Just me",
@@ -118,7 +119,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
   ],
 
   scripts: {
-    ready: "Alright. I'll create your dessert.",
+    ready: "If everything looks good, press Enter Chef's Kitchen and we'll start cooking.",
     generatingStart: "Putting it together.",
     generatingProgress1: "Balancing flavor and texture.",
     generatingProgress2: "Finalizing ingredients and steps.",
