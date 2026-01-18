@@ -12,7 +12,7 @@ export default function ChefEmojiButton({ onClick }: Props) {
         height: "56px",
         boxShadow: "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
         backgroundImage: "url(/icons/chef.png)",
-        backgroundSize: "140%",
+        backgroundSize: "120%",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "rgba(0,0,0,0.7)",
