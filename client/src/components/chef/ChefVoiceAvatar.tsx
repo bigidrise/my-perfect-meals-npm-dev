@@ -1,43 +1,29 @@
 import clsx from "clsx";
 import { motion } from "framer-motion";
 import type { VoiceState } from "@/voice/VoiceSessionController";
+import ChefEmojiButton from "./ChefEmojiButton";
 
 interface ChefVoiceAvatarProps {
   voiceState: VoiceState;
-  size?: number;
+  onClick?: () => void;
 }
 
-export default function ChefVoiceAvatar({ voiceState, size = 64 }: ChefVoiceAvatarProps) {
+export default function ChefVoiceAvatar({ voiceState, onClick }: ChefVoiceAvatarProps) {
   return (
-    <div className="relative inline-flex items-center justify-center">
-      {/* Glow ring for speaking state */}
+    <div className="relative flex items-center justify-center">
+      {/* Glow ring when speaking */}
       {voiceState === "speaking" && (
         <motion.div
-          className="absolute rounded-full bg-orange-500/30"
-          style={{
-            width: size + 24,
-            height: size + 24,
-          }}
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.5, 0.8, 0.5],
-          }}
-          transition={{
-            duration: 0.6,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          className="absolute inset-0 rounded-full bg-orange-500/30 blur-xl"
+          animate={{ opacity: [0.4, 0.9, 0.4] }}
+          transition={{ repeat: Infinity, duration: 0.6 }}
         />
       )}
 
       {/* Listening pulse ring */}
       {voiceState === "listening" && (
         <motion.div
-          className="absolute rounded-full border-2 border-lime-400/60"
-          style={{
-            width: size + 16,
-            height: size + 16,
-          }}
+          className="absolute -inset-2 rounded-full border-2 border-lime-400/60"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.8, 0.3, 0.8],
@@ -53,52 +39,26 @@ export default function ChefVoiceAvatar({ voiceState, size = 64 }: ChefVoiceAvat
       {/* Thinking subtle glow */}
       {voiceState === "thinking" && (
         <motion.div
-          className="absolute rounded-full bg-amber-400/20"
-          style={{
-            width: size + 12,
-            height: size + 12,
-          }}
-          animate={{
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          className="absolute -inset-1 rounded-full bg-amber-400/20"
+          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         />
       )}
 
-      {/* Chef emoji icon */}
       <motion.div
-        className={clsx(
-          "relative z-10 flex items-center justify-center rounded-full",
-          {
-            "opacity-60": voiceState === "idle",
-          }
-        )}
-        style={{ width: size, height: size }}
+        className={clsx({
+          "opacity-70": voiceState === "idle",
+        })}
         animate={
           voiceState === "speaking"
             ? { scale: [1, 1.05, 1] }
-            : voiceState === "listening"
+            : voiceState === "thinking"
               ? { scale: [1, 1.02, 1] }
               : {}
         }
-        transition={{
-          duration: voiceState === "speaking" ? 0.4 : 1.2,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        transition={{ repeat: Infinity, duration: 0.8 }}
       >
-        <span
-          style={{
-            fontSize: size * 0.85,
-            lineHeight: 1,
-          }}
-        >
-          👨🏿‍🍳
-        </span>
+        <ChefEmojiButton onClick={onClick} animate={false} />
       </motion.div>
     </div>
   );
