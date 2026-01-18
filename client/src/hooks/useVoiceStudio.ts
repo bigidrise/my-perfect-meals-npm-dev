@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
+import { iosAudioSession } from "@/lib/iosAudioSession";
 
 interface VoiceStudioStep {
   voiceScript: string;
@@ -76,7 +77,7 @@ export function useVoiceStudio({
     setSilenceCount(0);
   }, [stopListening, stopChef]);
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     if (!isActiveRef.current) return;
 
     const SpeechRecognition =
@@ -86,6 +87,9 @@ export function useVoiceStudio({
       console.error("🎤 Speech recognition not supported in this browser");
       return;
     }
+
+    // iOS: Reset audio session to switch from output to input mode
+    await iosAudioSession.resetForInput();
 
     console.log("🎤 Starting speech recognition...");
     setVoiceState("listening");

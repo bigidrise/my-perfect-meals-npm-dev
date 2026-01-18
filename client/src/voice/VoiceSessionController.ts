@@ -1,4 +1,5 @@
 // client/src/voice/VoiceSessionController.ts
+import { iosAudioSession } from "@/lib/iosAudioSession";
 
 export type VoiceState =
   | "idle"
@@ -98,13 +99,16 @@ export class VoiceSessionController {
 
   // ---- SPEECH RECOGNITION ----
 
-  private startListening() {
+  private async startListening() {
     this.clearSilenceTimer();
 
     if (!("webkitSpeechRecognition" in window)) {
       console.warn("Speech recognition not supported");
       return;
     }
+
+    // iOS: Reset audio session to switch from output to input mode
+    await iosAudioSession.resetForInput();
 
     // @ts-ignore
     recognition = new webkitSpeechRecognition();

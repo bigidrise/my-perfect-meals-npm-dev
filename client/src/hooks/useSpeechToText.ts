@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { iosAudioSession } from '@/lib/iosAudioSession';
 type SpeechState = 'idle'|'listening'|'error'|'unsupported';
 export function useSpeechToText(){
   const [state,setState]=useState<SpeechState>('idle');
@@ -20,10 +21,12 @@ export function useSpeechToText(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
-  const start=useCallback(()=>{ 
+  const start=useCallback(async ()=>{ 
     const rec=recRef.current; 
     if(!rec){ setState('unsupported'); return; } 
     try{ 
+      // iOS: Reset audio session to switch from output to input mode
+      await iosAudioSession.resetForInput();
       rec.start(); 
       setState('listening'); 
     }catch(error){ 
