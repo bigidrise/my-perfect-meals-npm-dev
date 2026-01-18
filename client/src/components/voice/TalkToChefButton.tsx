@@ -40,16 +40,17 @@ export default function TalkToChefButton({
 
   return (
     <>
-      {/* Chef emoji button - inline, not floating */}
+      {/* Chef emoji floating button at bottom */}
       <motion.button
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleOpen}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 hover:border-orange-400 transition-all"
+        className="fixed bottom-24 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 hover:border-orange-400 backdrop-blur-sm transition-all"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
-        <span className="text-xl">👨‍🍳</span>
+        <span className="text-2xl">👨‍🍳</span>
         <span className="text-orange-300 text-sm font-medium">Hands-Free</span>
       </motion.button>
 
