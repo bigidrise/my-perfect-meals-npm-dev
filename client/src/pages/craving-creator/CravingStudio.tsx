@@ -24,6 +24,8 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
+import TalkToChefButton from "@/components/voice/TalkToChefButton";
+import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -136,6 +138,9 @@ export default function CravingStudio() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Voice studio ref for stopping voice when editing steps
+  const voiceStopRef = useRef<(() => void) | null>(null);
 
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(null);
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
@@ -144,7 +149,13 @@ export default function CravingStudio() {
   const mealToShow = displayMeal || generatedMeal;
 
   // Edits
+  // Edit step handlers (also stop voice if active)
+  const stopVoiceIfActive = () => {
+    voiceStopRef.current?.();
+  };
+
   const editStep1 = () => {
+    stopVoiceIfActive();
     setS1Locked(false);
     setS2Locked(false);
     setS3Locked(false);
@@ -156,6 +167,7 @@ export default function CravingStudio() {
   };
 
   const editStep2 = () => {
+    stopVoiceIfActive();
     setS2Locked(false);
     setS3Locked(false);
     setS4Locked(false);
@@ -165,6 +177,7 @@ export default function CravingStudio() {
   };
 
   const editStep3 = () => {
+    stopVoiceIfActive();
     setS3Locked(false);
     setS4Locked(false);
     setS4Listened(false);
@@ -172,6 +185,7 @@ export default function CravingStudio() {
   };
 
   const editStep4 = () => {
+    stopVoiceIfActive();
     setS4Locked(false);
     setStudioStep(4);
   };
@@ -328,6 +342,58 @@ export default function CravingStudio() {
       console.error("🚨 Craving Studio error:", e);
     }
   };
+
+  // Voice studio integration - hands-free mode
+  const voiceStudio = useVoiceStudio({
+    steps: [
+      {
+        voiceScript: CRAVING_STUDIO_INTRO,
+        setValue: setCraving,
+        setLocked: setS1Locked,
+        setListened: setS1Listened,
+      },
+      {
+        voiceScript: CRAVING_STUDIO_STEP2,
+        setValue: setDietaryPrefs,
+        setLocked: setS2Locked,
+        setListened: setS2Listened,
+      },
+      {
+        voiceScript: CRAVING_STUDIO_STEP3,
+        setValue: (val) => {
+          const num = parseInt(val.replace(/\D/g, ""), 10);
+          setServings(num > 0 && num <= 10 ? num : 2);
+        },
+        setLocked: setS3Locked,
+        setListened: setS3Listened,
+        parseValue: (transcript) => {
+          const words: Record<string, number> = {
+            one: 1, two: 2, three: 3, four: 4, five: 5,
+            six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+          };
+          const lower = transcript.toLowerCase();
+          for (const [word, num] of Object.entries(words)) {
+            if (lower.includes(word)) return String(num);
+          }
+          const match = transcript.match(/\d+/);
+          return match ? match[0] : "2";
+        },
+      },
+      {
+        voiceScript: CRAVING_STUDIO_STEP4,
+        setValue: setCustomNotes,
+        setLocked: setS4Locked,
+        setListened: setS4Listened,
+      },
+    ],
+    onAllStepsComplete: generateMeal,
+    setStudioStep: (step) => setStudioStep(step as StudioStep),
+  });
+
+  // Assign stop function to ref for edit handlers (in effect to avoid render-time side effects)
+  useEffect(() => {
+    voiceStopRef.current = voiceStudio.stopVoiceMode;
+  }, [voiceStudio.stopVoiceMode]);
 
   const goToChefsKitchenPrepare = () => {
     if (!generatedMeal) return;
@@ -783,6 +849,19 @@ export default function CravingStudio() {
           }))}
           source="Craving Studio"
           sourceSlug="craving-studio"
+        />
+      )}
+
+      {/* Floating Hands-Free Voice Button */}
+      {!isGenerating && !generatedMeal && (
+        <TalkToChefButton
+          voiceState={voiceStudio.voiceState}
+          currentStep={voiceStudio.currentVoiceStep}
+          totalSteps={4}
+          lastTranscript={voiceStudio.lastTranscript}
+          isPlaying={voiceStudio.isPlaying}
+          onStart={voiceStudio.startVoiceMode}
+          onStop={voiceStudio.stopVoiceMode}
         />
       )}
     </motion.div>

@@ -45,7 +45,6 @@ import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
-import TalkToChefButton from "@/components/voice/TalkToChefButton";
 
 // Development user ID - consistent across all components (UUID format)
 const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -1115,13 +1114,6 @@ export default function CravingCreator() {
           title="How to Use Craving Creator"
           steps={CRAVING_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
-        />
-
-        {/* Floating Talk to Chef button */}
-        <TalkToChefButton
-          onTranscript={(text) => {
-            setCravingInput(text);
-          }}
         />
       </motion.div>
     </PhaseGate>
