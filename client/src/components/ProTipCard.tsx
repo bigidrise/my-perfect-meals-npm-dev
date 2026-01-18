@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
-import { Lightbulb } from "lucide-react";
 import { ttsService } from "@/lib/tts";
 import { PRO_TIP_SCRIPT } from "@/components/copilot/scripts/proTipScript";
+import { PillButton } from "@/components/ui/pill-button";
 
 export const ProTipCard: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -59,25 +58,12 @@ export const ProTipCard: React.FC = () => {
             </p>
           </div>
 
-          <motion.button
+          <PillButton
             onClick={handleToggle}
-            className={`flex items-center justify-center w-4 h-4 rounded-2xl border-2 backdrop-blur-xl transition-all duration-300 ${
-              isPlaying
-                ? "bg-green-900/70 border-green-500/60 shadow-lg shadow-green-500/50"
-                : "bg-amber-900/70 border-amber-500/60 shadow-lg shadow-amber-500/50"
-            }`}
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ y: -2, scale: 1.08 }}
-            style={{
-              boxShadow: isPlaying
-                ? "0 0 25px rgba(34,197,94,0.6), 0 0 45px rgba(34,197,94,0.4)"
-                : "0 0 25px rgba(245,158,11,0.6), 0 0 45px rgba(245,158,11,0.4)",
-            }}
+            className={isPlaying ? "!bg-green-900/60 !border-green-500/40" : ""}
           >
-            <Lightbulb
-              className={`h-7 w-7 ${isPlaying ? "text-green-400" : "text-amber-400"}`}
-            />
-          </motion.button>
+            {isPlaying ? "Stop" : "Listen"}
+          </PillButton>
         </div>
       </div>
     </div>
