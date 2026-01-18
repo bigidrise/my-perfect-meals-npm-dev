@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { UtensilsCrossed, Pencil, Check } from "lucide-react";
+import { UtensilsCrossed, Pencil, Check, X } from "lucide-react";
 
 interface KitchenStepCardProps {
   stepTitle: string;
@@ -19,6 +20,8 @@ interface KitchenStepCardProps {
   buttonOptions?: string[];
   equipmentList?: string[];
   onInputFocus?: () => void;
+  otherEnabled?: boolean;
+  otherPlaceholder?: string;
 }
 
 export function KitchenStepCard({
@@ -39,7 +42,32 @@ export function KitchenStepCard({
   buttonOptions = [],
   equipmentList,
   onInputFocus,
+  otherEnabled = false,
+  otherPlaceholder = "Type your answer...",
 }: KitchenStepCardProps) {
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherValue, setOtherValue] = useState("");
+
+  const handleOtherClick = () => {
+    onInputFocus?.();
+    setShowOtherInput(true);
+    setValue("");
+  };
+
+  const handleOtherCancel = () => {
+    setShowOtherInput(false);
+    setOtherValue("");
+  };
+
+  const handleOtherConfirm = () => {
+    if (otherValue.trim()) {
+      setValue(otherValue.trim());
+      setShowOtherInput(false);
+    }
+  };
+
+  const isOtherValue = otherEnabled && value && !buttonOptions.includes(value);
+
   return (
     <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
       <CardContent className="p-4 space-y-4">
@@ -110,24 +138,67 @@ export function KitchenStepCard({
                     className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                     maxLength={300}
                   />
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {buttonOptions.map((option) => (
+                ) : showOtherInput ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={otherValue}
+                      onChange={(e) => setOtherValue(e.target.value)}
+                      onFocus={onInputFocus}
+                      placeholder={otherPlaceholder}
+                      className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-orange-500/50 rounded-lg h-20 resize-none text-sm focus:ring-1 focus:ring-orange-500"
+                      maxLength={200}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
                       <button
-                        key={option}
-                        onClick={() => {
-                          onInputFocus?.();
-                          setValue(option);
-                        }}
-                        className={`py-2 rounded-lg border text-sm transition ${
-                          value === option
-                            ? "bg-lime-600 text-black border-lime-600"
-                            : "bg-black/40 text-white border-white/20 hover:bg-black/50"
+                        onClick={handleOtherCancel}
+                        className="flex-1 py-2 rounded-lg border border-white/20 text-white/70 text-sm hover:bg-white/10 transition flex items-center justify-center gap-1"
+                      >
+                        <X className="h-3 w-3" />
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleOtherConfirm}
+                        disabled={!otherValue.trim()}
+                        className="flex-1 py-2 rounded-lg bg-orange-600 text-white text-sm hover:bg-orange-500 transition disabled:opacity-50 flex items-center justify-center gap-1"
+                      >
+                        <Check className="h-3 w-3" />
+                        Use This
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {buttonOptions.map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => {
+                            onInputFocus?.();
+                            setValue(option);
+                          }}
+                          className={`py-2 rounded-lg border text-sm transition ${
+                            value === option
+                              ? "bg-lime-600 text-black border-lime-600"
+                              : "bg-black/40 text-white border-white/20 hover:bg-black/50"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                    {otherEnabled && (
+                      <button
+                        onClick={handleOtherClick}
+                        className={`w-full py-2 rounded-lg border text-sm transition ${
+                          isOtherValue
+                            ? "bg-orange-600 text-white border-orange-600"
+                            : "bg-black/40 text-orange-400 border-orange-500/30 hover:bg-orange-950/30"
                         }`}
                       >
-                        {option}
+                        {isOtherValue ? `Custom: "${value}"` : "Other..."}
                       </button>
-                    ))}
+                    )}
                   </div>
                 )}
 

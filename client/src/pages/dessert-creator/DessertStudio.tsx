@@ -38,6 +38,8 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
         "Muffins / Cupcakes",
       ],
       summaryPrefix: "Category",
+      otherEnabled: true,
+      otherPlaceholder: "e.g., Trifle, Tiramisu, Cr\u00e8me br\u00fbl\u00e9e...",
     },
 
     // 1 — FLAVOR FAMILY
@@ -57,6 +59,8 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
         "Peanut Butter",
       ],
       summaryPrefix: "Flavor",
+      otherEnabled: true,
+      otherPlaceholder: "e.g., Matcha, Lavender, Maple...",
     },
 
     // 2 — STYLE / OCCASION

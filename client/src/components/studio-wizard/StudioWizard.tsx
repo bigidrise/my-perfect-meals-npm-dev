@@ -503,9 +503,6 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
           const getSummary = () => {
             if (!value) return step.summaryPrefix ? `No ${step.summaryPrefix.toLowerCase()}` : "Not set";
-            if (step.inputType === "buttons") {
-              return `${step.summaryPrefix}: ${value} ${Number(value) === 1 ? "person" : "people"}`;
-            }
             return `${step.summaryPrefix}: ${value}`;
           };
 
@@ -523,6 +520,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
               placeholder={step.placeholder}
               inputType={step.inputType}
               buttonOptions={step.buttonOptions}
+              otherEnabled={step.otherEnabled}
+              otherPlaceholder={step.otherPlaceholder}
               onInputFocus={stopChef}
               onListen={() => {
                 if (hasListened || isPlaying) return;
