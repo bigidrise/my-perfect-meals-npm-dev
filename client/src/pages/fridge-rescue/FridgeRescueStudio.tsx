@@ -69,7 +69,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
   },
 
   scripts: {
-    ready: "Alright. I’ll make something from what you have.",
+    ready: "If everything looks good, press generate.",
     generatingStart: "",
     generatingProgress1: "",
     generatingProgress2: "",

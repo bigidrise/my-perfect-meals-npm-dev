@@ -97,12 +97,10 @@ const CRAVING_STUDIO_STEP2 =
 const CRAVING_STUDIO_STEP3 = "How many servings should I make?";
 const CRAVING_STUDIO_STEP4 =
   "Anything custom? Lower sugar, low sodium, gluten-free, or a time goal?";
-const CRAVING_STUDIO_READY =
-  "Locked in. I’ll create the meal — then we’ll head to Chef’s Kitchen to cook.";
 
 const CRAVING_STUDIO_OPEN_START = "";
 const CRAVING_STUDIO_OPEN_PROGRESS1 =
-  "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.";
+  "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking";
 const CRAVING_STUDIO_OPEN_PROGRESS2 = "";
 const CRAVING_STUDIO_OPEN_COMPLETE = "";
 
@@ -596,7 +594,13 @@ export default function CravingStudio() {
               stopChef();
               setS4Locked(true);
               setStudioStep(5);
+
+              // 🔊 Transition guidance (THIS is the missing piece)
+              speak(
+                "If everything looks good, press Generate."
+              );
             }}
+
             onEdit={() => {
               stopChef();
               editStep4();
