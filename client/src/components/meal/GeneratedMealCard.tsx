@@ -2,6 +2,7 @@ import { Sparkles, Users, Brain } from "lucide-react";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import MealCardActions from "@/components/MealCardActions";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
 
 export interface GeneratedMealData {
   id: string;
@@ -51,8 +52,23 @@ export default function GeneratedMealCard({
   onContentUpdate,
   source = "unknown",
 }: GeneratedMealCardProps) {
-  const medicalBadges = mealToShow.medicalBadges || generatedMeal.medicalBadges || [];
-  
+  const profile = getUserMedicalProfile(1);
+  const mealForBadges = {
+    name: generatedMeal.name,
+    calories: generatedMeal.calories || 0,
+    protein: generatedMeal.protein || 0,
+    carbs: generatedMeal.carbs || 0,
+    fat: generatedMeal.fat || 0,
+    ingredients: generatedMeal.ingredients.map((ing) => ({
+      name: ing.name,
+      amount: ing.amount ?? 1,
+      unit: (ing.unit ?? "serving").toLowerCase(),
+    })),
+  };
+  const medicalBadges = generatedMeal.medicalBadges?.length
+    ? generatedMeal.medicalBadges
+    : generateMedicalBadges(mealForBadges as any, profile);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -147,7 +163,7 @@ export default function GeneratedMealCard({
         />
       </div>
 
-      {medicalBadges.length > 0 && (
+      {medicalBadges && medicalBadges.length > 0 && (
         <div className="flex items-center gap-3">
           <HealthBadgesPopover
             badges={medicalBadges.map((b: any) =>
