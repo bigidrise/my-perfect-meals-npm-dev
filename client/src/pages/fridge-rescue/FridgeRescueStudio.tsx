@@ -7,10 +7,10 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     emoji: "🧊",
     introTitle: "Create with Chef",
     introDescription: "Tell me what's in your fridge and I'll create a full meal — no shopping required.",
-    accentColor: "text-cyan-400",
+    accentColor: "text-orange-400",
     gradientFrom: "from-black/60",
-    gradientVia: "via-cyan-600",
-    gradientTo: "to-teal-800",
+    gradientVia: "via-orange-600",
+    gradientTo: "to-orange-800",
     icon: Refrigerator,
   },
   steps: [
