@@ -426,7 +426,7 @@ export default function CravingStudio() {
     } catch {
       // ignore
     }
-    setLocation("/lifestyle/chefs-kitchen");
+    setLocation("/chefs-kitchen");
   };
 
   return (
