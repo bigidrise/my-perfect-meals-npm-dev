@@ -76,23 +76,26 @@ export default function TalkToChefButton({
         )}
       </AnimatePresence>
 
-      {/* Chef emoji floating button at bottom */}
-      <motion.button
+      {/* Chef logo floating button at bottom */}
+      <button
         onClick={handleOpen}
-        className="fixed right-4 z-50 flex flex-col items-center"
+        className="fixed right-4 z-50 flex flex-col items-center select-none touch-manipulation"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
       >
         <div className="flex items-center gap-1">
-          <span className="text-5xl leading-none">👨🏿‍🍳</span>
+          <img
+            src="/icons/chef.png"
+            alt="Chef"
+            className="pointer-events-none"
+            style={{ width: "40px", height: "40px" }}
+          />
           <Mic className="w-6 h-6 text-orange-400" />
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           <AudioWaveform className="w-4 h-4 text-orange-400" />
           <span className="text-[10px] text-orange-400 font-medium">Hands-Free</span>
         </div>
-      </motion.button>
+      </button>
 
       {/* Voice overlay */}
       <VoiceModeOverlay
