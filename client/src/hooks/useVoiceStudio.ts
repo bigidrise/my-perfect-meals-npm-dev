@@ -77,10 +77,11 @@ export function useVoiceStudio({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      console.error("Speech recognition not supported");
+      console.error("🎤 Speech recognition not supported in this browser");
       return;
     }
 
+    console.log("🎤 Starting speech recognition...");
     setVoiceState("listening");
 
     const recognition = new SpeechRecognition();
@@ -88,7 +89,24 @@ export function useVoiceStudio({
     recognition.interimResults = false;
     recognition.lang = "en-US";
 
+    recognition.onstart = () => {
+      console.log("🎤 Speech recognition started - listening now");
+    };
+
+    recognition.onaudiostart = () => {
+      console.log("🎤 Audio capture started");
+    };
+
+    recognition.onsoundstart = () => {
+      console.log("🎤 Sound detected");
+    };
+
+    recognition.onspeechstart = () => {
+      console.log("🎤 Speech detected");
+    };
+
     recognition.onresult = (event: any) => {
+      console.log("🎤 Got result:", event.results[0][0].transcript);
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
       clearSilenceTimeout();
