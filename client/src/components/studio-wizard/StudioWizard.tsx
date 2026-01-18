@@ -388,7 +388,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
     } catch {
       // ignore
     }
-    setLocation("/chefs-kitchen");
+    setLocation("/lifestyle/chefs-kitchen");
   };
 
   const IconComponent = branding.icon;
