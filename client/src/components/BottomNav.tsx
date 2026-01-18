@@ -104,12 +104,17 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* CHEF BUTTON - Fixed to viewport center, independent of nav grid */}
+      {/* CHEF BUTTON - Full-width fixed wrapper with margin auto centering (immune to iOS viewport shifts) */}
       <div 
-        className="fixed z-[60] left-1/2 -translate-x-1/2"
-        style={{ bottom: `calc(var(--safe-bottom) + 6px)` }}
+        className="fixed z-[60] left-0 right-0 flex justify-center pointer-events-none"
+        style={{ 
+          bottom: `calc(var(--safe-bottom) + 6px)`,
+          width: '100vw',
+        }}
       >
-        <ChefEmojiButton onClick={handleChefClick} />
+        <div className="pointer-events-auto">
+          <ChefEmojiButton onClick={handleChefClick} />
+        </div>
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[var(--safe-bottom)]">
