@@ -539,6 +539,10 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                   } else {
                     // Only show generate section after ALL steps are complete
                     setStudioStep((steps.length + 1) as StudioStep);
+                    // Speak the ready script when generate card appears
+                    if (config.scripts?.ready) {
+                      speak(config.scripts.ready);
+                    }
                   }
                 };
                 
