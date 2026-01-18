@@ -15,6 +15,8 @@ import {
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import { apiUrl } from "@/lib/resolveApiBase";
+import TalkToChefButton from "@/components/voice/TalkToChefButton";
+import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import MealCardActions from "@/components/MealCardActions";
@@ -185,7 +187,15 @@ export default function StudioWizard({ config }: StudioWizardProps) {
     });
   };
 
+  // Voice studio ref for stopping voice when editing
+  const voiceStopRef = useRef<(() => void) | null>(null);
+  
+  const stopVoiceIfActive = () => {
+    voiceStopRef.current?.();
+  };
+
   const editStep = (index: number) => {
+    stopVoiceIfActive();
     stopChef();
     for (let i = index; i < steps.length; i++) {
       setLocked(i, false);
@@ -195,6 +205,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   };
 
   const restartStudio = () => {
+    stopVoiceIfActive();
     setStudioStep(1);
     setStepValues(steps.map((s) => s.defaultValue || ""));
     setStepListened(steps.map(() => false));
@@ -211,6 +222,46 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
     stopChef();
   };
+
+  // Voice Studio configuration for hands-free mode
+  const voiceStudio = useVoiceStudio({
+    steps: steps.map((step, idx) => ({
+      voiceScript: step.voiceScript,
+      setValue: (val: string) => updateStepValue(idx, val),
+      setLocked: (val: boolean) => setLocked(idx, val),
+      setListened: (val: boolean) => setListened(idx, val),
+      parseValue: step.inputType === "buttons" 
+        ? (transcript: string) => {
+            // For button steps (servings), extract numbers
+            const words: Record<string, string> = {
+              one: "1", two: "2", three: "3", four: "4", five: "5",
+              six: "6", seven: "7", eight: "8", nine: "9", ten: "10",
+              eleven: "11", twelve: "12",
+            };
+            const lower = transcript.toLowerCase();
+            for (const [word, num] of Object.entries(words)) {
+              if (lower.includes(word)) return num;
+            }
+            const match = transcript.match(/\d+/);
+            if (match && step.buttonOptions?.includes(match[0])) {
+              return match[0];
+            }
+            return step.defaultValue || transcript;
+          }
+        : undefined,
+    })),
+    onAllStepsComplete: () => {
+      // Move to generate step
+      setStudioStep((steps.length + 1) as StudioStep);
+      generateMeal();
+    },
+    setStudioStep: (step) => setStudioStep(step as StudioStep),
+  });
+
+  // Wire voiceStopRef to the voice studio
+  useEffect(() => {
+    voiceStopRef.current = voiceStudio.stopVoiceMode;
+  }, [voiceStudio.stopVoiceMode]);
 
   useEffect(() => {
     document.title = `${branding.title} ${branding.emoji} | My Perfect Meals`;
@@ -565,6 +616,19 @@ export default function StudioWizard({ config }: StudioWizardProps) {
         )}
 
       </div>
+
+      {/* Talk to Chef floating button - show during studio steps (before generate) */}
+      {studioStep <= steps.length && !isGenerating && (
+        <TalkToChefButton
+          voiceState={voiceStudio.voiceState}
+          currentStep={voiceStudio.currentVoiceStep}
+          totalSteps={steps.length}
+          lastTranscript={voiceStudio.lastTranscript}
+          isPlaying={voiceStudio.isPlaying}
+          onStart={voiceStudio.startVoiceMode}
+          onStop={voiceStudio.stopVoiceMode}
+        />
+      )}
     </motion.div>
   );
 }
