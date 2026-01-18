@@ -18,10 +18,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 
-import AddToMealPlanButton from "@/components/AddToMealPlanButton";
-import MealCardActions from "@/components/MealCardActions";
-import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
-import { generateMedicalBadges } from "@/utils/medicalPersonalization";
+import GeneratedMealCard from "@/components/meal/GeneratedMealCard";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -144,6 +141,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const [stepValues, setStepValues] = useState<string[]>(
     steps.map((s) => s.defaultValue || "")
   );
+  const stepValuesRef = useRef<string[]>(steps.map((s) => s.defaultValue || ""));
+  
   const [stepListened, setStepListened] = useState<boolean[]>(
     steps.map(() => false)
   );
@@ -164,6 +163,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const mealToShow = displayMeal || generatedMeal;
 
   const updateStepValue = (index: number, value: string) => {
+    stepValuesRef.current[index] = value;
     setStepValues((prev) => {
       const copy = [...prev];
       copy[index] = value;
@@ -207,6 +207,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const restartStudio = () => {
     stopVoiceIfActive();
     setStudioStep(1);
+    stepValuesRef.current = steps.map((s) => s.defaultValue || "");
     setStepValues(steps.map((s) => s.defaultValue || ""));
     setStepListened(steps.map(() => false));
     setStepLocked(steps.map(() => false));
@@ -290,7 +291,9 @@ export default function StudioWizard({ config }: StudioWizardProps) {
     setTimeout(() => speak(scripts.generatingProgress2), 3400);
 
     try {
-      const payload = buildPrompt(stepValues, servings);
+      const currentValues = stepValuesRef.current;
+      const currentServings = config.servingsStepIndex >= 0 ? Number(currentValues[config.servingsStepIndex]) || 2 : 2;
+      const payload = buildPrompt(currentValues, currentServings);
       const fullUrl = apiUrl(apiEndpoint);
 
       const response = await fetch(fullUrl, {
@@ -301,7 +304,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
           ...payload,
           mealType: defaultMealType,
           source,
-          servings,
+          servings: currentServings,
         }),
       });
 
@@ -357,8 +360,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
         },
         medicalBadges: Array.isArray(meal.medicalBadges) ? meal.medicalBadges : [],
         flags: Array.isArray(meal.flags) ? meal.flags : [],
-        servingSize: meal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
-        servings: meal.servings || servings,
+        servingSize: meal.servingSize || `${currentServings} ${currentServings === 1 ? "serving" : "servings"}`,
+        servings: meal.servings || currentServings,
         reasoning: meal.reasoning,
       };
 
@@ -552,62 +555,26 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
               {generatedMeal && mealToShow && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-white/20 bg-black/40 overflow-hidden">
-                    {mealToShow.imageUrl && (
-                      <img
-                        src={mealToShow.imageUrl}
-                        alt={mealToShow.name}
-                        className="w-full h-48 object-cover"
-                      />
-                    )}
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-lg font-bold text-white">{mealToShow.name}</h4>
-                        <HealthBadgesPopover
-                          badges={mealToShow.medicalBadges || []}
-                        />
-                      </div>
-
-                      {mealToShow.description && (
-                        <p className="text-sm text-white/70">{mealToShow.description}</p>
-                      )}
-
-                      <div className="flex gap-4 text-xs text-white/80">
-                        <span>{mealToShow.calories || 0} cal</span>
-                        <span>{mealToShow.protein || 0}g protein</span>
-                        <span>{mealToShow.carbs || 0}g carbs</span>
-                        <span>{mealToShow.fat || 0}g fat</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs text-white/60">
-                        <Users className="h-3 w-3" />
-                        <span>{mealToShow.servings || servings} servings</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <button
-                      className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm transition flex items-center justify-center gap-2"
-                      onClick={goToChefsKitchenPrepare}
-                    >
-                      <ChefHat className="h-4 w-4" />
-                      Enter Chef&apos;s Kitchen
-                    </button>
-
-                    <AddToMealPlanButton meal={mealToShow as any} />
-
-                    <MealCardActions
-                      meal={mealToShow as any}
-                      source={source}
-                    />
-                  </div>
+                  <GeneratedMealCard
+                    generatedMeal={generatedMeal}
+                    mealToShow={mealToShow}
+                    servings={servings}
+                    onRestart={restartStudio}
+                    onContentUpdate={(updated) => {
+                      setDisplayMeal({
+                        ...generatedMeal,
+                        ...updated,
+                      });
+                    }}
+                    source={source}
+                  />
 
                   <button
-                    className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition"
-                    onClick={restartStudio}
+                    className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm transition flex items-center justify-center gap-2"
+                    onClick={goToChefsKitchenPrepare}
                   >
-                    Start Over
+                    <ChefHat className="h-4 w-4" />
+                    Enter Chef&apos;s Kitchen
                   </button>
                 </div>
               )}
