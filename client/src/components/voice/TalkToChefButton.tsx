@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Mic } from "lucide-react";
 import VoiceModeOverlay from "./VoiceModeOverlay";
 
 type VoiceState = "idle" | "speaking" | "listening" | "processing";
@@ -51,7 +52,7 @@ export default function TalkToChefButton({
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
         <span className="text-2xl">👨🏿‍🍳</span>
-        <span className="text-orange-300 text-sm font-medium">Hands-Free</span>
+        <Mic className="w-4 h-4 text-orange-400" />
       </motion.button>
 
       {/* Voice overlay */}
