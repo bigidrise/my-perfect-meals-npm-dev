@@ -161,7 +161,18 @@ export function useVoiceStudio({
     };
 
     recognition.onend = () => {
+      console.log("🎤 Speech recognition ended");
       clearSilenceTimeout();
+      
+      // If still active but no result was captured, auto-restart listening
+      if (isActiveRef.current && voiceState === "listening") {
+        console.log("🎤 No result captured, restarting listening...");
+        setTimeout(() => {
+          if (isActiveRef.current) {
+            startListening();
+          }
+        }, 200);
+      }
     };
 
     recognitionRef.current = recognition;
