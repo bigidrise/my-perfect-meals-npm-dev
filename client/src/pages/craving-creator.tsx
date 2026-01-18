@@ -598,8 +598,8 @@ export default function CravingCreator() {
             <div>
               <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg text-white">
-                    Describe Your Craving
+                  <CardTitle className="flex items-center gap-2 text-xl text-white">
+                    Quick Create
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">

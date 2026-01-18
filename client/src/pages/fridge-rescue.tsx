@@ -557,10 +557,9 @@ const FridgeRescuePage = () => {
 
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-white mb-4"></h2>
-                <p className="text-sm text-white/80 mb-6"></p>
-              </div>
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-white">Quick Create</h2>
+              </div> 
 
               <div className="space-y-4">
                 <div className="space-y-3">
