@@ -58,12 +58,15 @@ export const ProTipCard: React.FC = () => {
             </p>
           </div>
 
-          <PillButton
-            onClick={handleToggle}
-            className={isPlaying ? "!bg-green-900/60 !border-green-500/40" : ""}
-          >
-            {isPlaying ? "Stop" : "Listen"}
-          </PillButton>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xl">👨🏿‍🍳</span>
+            <PillButton
+              onClick={handleToggle}
+              className={isPlaying ? "!bg-green-900/60 !border-green-500/40" : ""}
+            >
+              {isPlaying ? "Stop" : "Listen"}
+            </PillButton>
+          </div>
         </div>
       </div>
     </div>
