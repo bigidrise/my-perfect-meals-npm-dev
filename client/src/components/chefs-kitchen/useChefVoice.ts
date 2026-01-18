@@ -7,7 +7,7 @@ export function useChefVoice(
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const speak = useCallback(
-    async (text: string, onListened?: () => void) => {
+    async (text: string, onListened?: () => void): Promise<void> => {
       setIsPlaying(true);
 
       try {
@@ -25,15 +25,21 @@ export function useChefVoice(
         if (result.audioUrl) {
           const audio = new Audio(result.audioUrl);
           audioRef.current = audio;
-          audio.onended = () => {
-            setIsPlaying(false);
-            URL.revokeObjectURL(result.audioUrl!);
-          };
-          audio.onerror = () => {
-            setIsPlaying(false);
-            URL.revokeObjectURL(result.audioUrl!);
-          };
-          await audio.play();
+          
+          // Return a promise that resolves when audio ends
+          await new Promise<void>((resolve, reject) => {
+            audio.onended = () => {
+              setIsPlaying(false);
+              URL.revokeObjectURL(result.audioUrl!);
+              resolve();
+            };
+            audio.onerror = () => {
+              setIsPlaying(false);
+              URL.revokeObjectURL(result.audioUrl!);
+              reject(new Error("Audio playback failed"));
+            };
+            audio.play().catch(reject);
+          });
         }
       } catch {
         setIsPlaying(false);

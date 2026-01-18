@@ -4,12 +4,12 @@ import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
-import { motion } from "framer-motion";
 import { isGuestMode } from "@/lib/guestMode";
 import {
   getGuestNavigationOverride,
   getGuestSuitePage,
 } from "@/lib/guestSuiteNavigator";
+import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
@@ -143,20 +143,8 @@ export default function BottomNav() {
           </div>
 
           {/* CENTER COPILOT BUTTON */}
-          {/* CENTER COPILOT BUTTON */}
           <div className="flex justify-center">
-            <motion.button
-              onClick={handleChefClick}
-              className="flex items-center justify-center w-14 h-14 rounded-full bg-black/70 border-2 border-white/15 backdrop-blur-xl shadow-lg shadow-orange-500/60 hover:shadow-orange-500/100 hover:border-orange-400/100 transition-all duration-300"
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ y: -2, scale: 1.08 }}
-              style={{
-                boxShadow:
-                  "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
-              }}
-            >
-              <span className="text-5xl leading-none">👨🏿‍🍳</span>
-            </motion.button>
+            <ChefEmojiButton onClick={handleChefClick} />
           </div>
 
           {/* RIGHT ITEMS */}
