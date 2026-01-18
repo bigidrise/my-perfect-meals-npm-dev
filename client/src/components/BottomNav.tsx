@@ -104,15 +104,19 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* CHEF BUTTON - Full-width fixed wrapper with margin auto centering (immune to iOS viewport shifts) */}
-      <div 
-        className="fixed z-[60] left-0 right-0 flex justify-center pointer-events-none"
-        style={{ 
-          bottom: `calc(var(--safe-bottom) + 6px)`,
-          width: '100vw',
-        }}
+      {/* CHEF BUTTON - Dead-stable shell to prevent iOS viewport drift */}
+      <div
+        className="fixed left-1/2 z-[60] pointer-events-none"
+        style={{ bottom: `calc(var(--safe-bottom) + 6px)` }}
       >
-        <div className="pointer-events-auto">
+        <div
+          className="pointer-events-auto"
+          style={{
+            transform: "translateX(-50%)",
+            width: "max-content",
+            backfaceVisibility: "hidden",
+          }}
+        >
           <ChefEmojiButton onClick={handleChefClick} />
         </div>
       </div>
@@ -131,24 +135,22 @@ export default function BottomNav() {
                     key={item.id}
                     onClick={() => handleNavClick(item.path)}
                     style={{ flexDirection: "column" }}
-                    className={`flex items-center justify-center px-4 h-full transition-all duration-300 ${
+                    className={`flex items-center justify-center px-4 h-full touch-manipulation transition-opacity duration-300 ${
                       active
-                        ? "text-orange-500"
-                        : "text-gray-400 hover:text-white"
+                        ? "text-orange-500 opacity-100"
+                        : "text-gray-400 opacity-60 hover:opacity-100"
                     }`}
                     data-testid={`nav-${item.id}`}
                   >
-                    <div className={`relative ${active ? "animate-pulse" : ""}`}>
+                    <div className="relative">
                       {active && (
                         <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
                       )}
                       <Icon
-                        className={`relative h-4 w-4 transition-all duration-300 ${active ? "scale-95 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
+                        className={`relative h-4 w-4 ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
                       />
                     </div>
-                    <span
-                      className={`text-[11px] mt-0.5 font-medium transition-all duration-300 ${active ? "font-bold text-orange-500" : ""}`}
-                    >
+                    <span className="text-[11px] mt-0.5 font-medium">
                       {item.label}
                     </span>
                   </button>
@@ -170,24 +172,22 @@ export default function BottomNav() {
                     key={item.id}
                     onClick={() => handleNavClick(item.path)}
                     style={{ flexDirection: "column" }}
-                    className={`flex items-center justify-center px-4 h-full transition-all duration-300 ${
+                    className={`flex items-center justify-center px-4 h-full touch-manipulation transition-opacity duration-300 ${
                       active
-                        ? "text-orange-500"
-                        : "text-gray-400 hover:text-white"
+                        ? "text-orange-500 opacity-100"
+                        : "text-gray-400 opacity-60 hover:opacity-100"
                     }`}
                     data-testid={`nav-${item.id}`}
                   >
-                    <div className={`relative ${active ? "animate-pulse" : ""}`}>
+                    <div className="relative">
                       {active && (
                         <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
                       )}
                       <Icon
-                        className={`relative h-4 w-4 transition-all duration-300 ${active ? "scale-95 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
+                        className={`relative h-4 w-4 ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
                       />
                     </div>
-                    <span
-                      className={`text-[11px] mt-0.5 font-medium transition-all duration-300 ${active ? "font-bold text-orange-500" : ""}`}
-                    >
+                    <span className="text-[11px] mt-0.5 font-medium">
                       {item.label}
                     </span>
                   </button>

@@ -2,8 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* iOS Viewport Wobble Fix */
-
+/* iOS Viewport Wobble Fix - Prevents horizontal shift on navigation */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
 
 /* React root fills viewport */
 #root {
