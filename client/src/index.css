@@ -1117,3 +1117,13 @@ body {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: auto;
 }
+
+/* Chef Avatar Voice Animations */
+@keyframes chef-talk {
+  from { box-shadow: 0 0 6px rgba(255, 120, 0, 0.6); }
+  to { box-shadow: 0 0 18px rgba(255, 120, 0, 1); }
+}
+
+.animate-talk {
+  animation: chef-talk 0.6s infinite alternate;
+}

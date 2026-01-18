@@ -11,6 +11,8 @@ type VoiceCallbacks = {
   onTranscript?: (text: string) => void;
 };
 
+let recognition: any = null;
+
 export class VoiceSessionController {
   private state: VoiceState = "idle";
   private callbacks: VoiceCallbacks;
@@ -62,16 +64,46 @@ export class VoiceSessionController {
   // ---- PLACEHOLDERS (we wire these next) ----
 
   private startListening() {
-    // Speech-to-text starts here
+    if (!("webkitSpeechRecognition" in window)) {
+      console.warn("Speech recognition not supported");
+      return;
+    }
+
+    // @ts-ignore
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      recognition?.stop();
+      this.handleUserFinishedTalking(transcript);
+    };
+
+    recognition.onerror = () => {
+      recognition?.stop();
+      this.setState("listening");
+    };
+
+    recognition.start();
   }
 
   private stopListening() {
-    // Stop mic
+    recognition?.stop();
+    recognition = null;
   }
 
   private speak(text: string, onEnd?: () => void) {
-    // ElevenLabs playback goes here
-    // Call onEnd() when audio finishes
+    // ElevenLabs playback goes here - for now use browser TTS
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => onEnd?.();
+      window.speechSynthesis.speak(utterance);
+    } else {
+      console.log("[Chef]:", text);
+      onEnd?.();
+    }
   }
 
   private stopSpeaking() {
