@@ -95,6 +95,7 @@ export interface StudioConfig {
   defaultMealType: string;
   servingsStepIndex: number;
   buildPrompt: (values: string[], servings: number) => Record<string, any>;
+  afterStepScripts?: Record<number, string>;
 }
 
 function normalizeInstructions(raw: string | string[] | undefined): string[] {
@@ -478,10 +479,22 @@ export default function StudioWizard({ config }: StudioWizardProps) {
               onSubmit={() => {
                 stopChef();
                 setLocked(index, true);
-                if (index < steps.length - 1) {
-                  setStudioStep((stepNum + 1) as StudioStep);
+                
+                const afterScript = config.afterStepScripts?.[index];
+                if (afterScript) {
+                  speak(afterScript, () => {
+                    if (index < steps.length - 1) {
+                      setStudioStep((stepNum + 1) as StudioStep);
+                    } else {
+                      setStudioStep(5);
+                    }
+                  });
                 } else {
-                  setStudioStep(5);
+                  if (index < steps.length - 1) {
+                    setStudioStep((stepNum + 1) as StudioStep);
+                  } else {
+                    setStudioStep(5);
+                  }
                 }
               }}
               onEdit={() => editStep(index)}
