@@ -59,6 +59,7 @@ import {
   Trash2,
   ArrowLeft,
   ChevronLeft,
+  Calendar,
   ChevronRight,
   Copy,
   Target,
@@ -287,6 +288,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     "breakfast" | "lunch" | "dinner"
   >("breakfast");
 
+  // Day/Week planning state (moved up for starchContext dependency)
+  const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
+  const [activeDayISO, setActiveDayISO] = React.useState<string>("");
+
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
@@ -318,10 +323,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Daily Totals Info state (appears after first meal is created)
   const [showDailyTotalsInfo, setShowDailyTotalsInfo] = useState(false);
   const [hasSeenDailyTotalsInfo, setHasSeenDailyTotalsInfo] = useState(false);
-
-  // Day/Week planning state
-  const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
-  const [activeDayISO, setActiveDayISO] = React.useState<string>("");
 
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
     React.useState(false);
@@ -1193,15 +1194,27 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 />
 
                 {planningMode === "day" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDuplicateDayModal(true)}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs px-3 py-1 rounded-xl"
-                    data-testid="button-duplicate-day"
-                  >
-                    Duplicate...
-                  </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateDayModal(true)}
+                  data-testid="duplicate-button"
+                  className="
+                    flex-shrink-0 inline-flex flex-col items-center justify-center
+                    rounded-full
+                    px-4 py-2
+                    text-sm font-semibold
+                    text-white/90
+                    bg-black/20
+                    border border-white/15
+                    backdrop-blur-lg
+                    hover:bg-white/10 hover:border-white/25
+                    transition-all
+                  "
+                  style={{ minHeight: 48 }}
+                >
+                  <span className="leading-none">Duplicate</span>
+                  <span className="mt-1 text-base leading-none opacity-80">📅</span>
+                </button>
                 )}
 
                 {planningMode === "week" && (
