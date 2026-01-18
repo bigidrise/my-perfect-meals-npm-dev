@@ -36,6 +36,11 @@ export function useVoiceStudio({
   const isActiveRef = useRef(false);
   const currentVoiceStepRef = useRef(0);
   const gotResultRef = useRef(false);
+  const restartCountRef = useRef(0);
+  const listenStartedAtRef = useRef(0);
+  
+  const MAX_RESTARTS = 3;
+  const MIN_LISTEN_MS = 1200;
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -85,6 +90,7 @@ export function useVoiceStudio({
     console.log("🎤 Starting speech recognition...");
     setVoiceState("listening");
     gotResultRef.current = false;
+    listenStartedAtRef.current = Date.now();
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -110,6 +116,7 @@ export function useVoiceStudio({
     recognition.onresult = (event: any) => {
       console.log("🎤 Got result:", event.results[0][0].transcript);
       gotResultRef.current = true;
+      restartCountRef.current = 0; // Reset on success
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
       clearSilenceTimeout();
@@ -164,17 +171,34 @@ export function useVoiceStudio({
     };
 
     recognition.onend = () => {
-      console.log("🎤 Speech recognition ended, gotResult:", gotResultRef.current);
+      const duration = Date.now() - listenStartedAtRef.current;
+      console.log("🎤 Speech recognition ended, gotResult:", gotResultRef.current, "duration:", duration + "ms");
       clearSilenceTimeout();
       
-      // If still active but no result was captured, auto-restart listening
+      // If still active but no result was captured, consider auto-restart
       if (isActiveRef.current && !gotResultRef.current) {
-        console.log("🎤 No result captured, restarting listening...");
+        restartCountRef.current++;
+        
+        // Max restart guard - prevent infinite loops
+        if (restartCountRef.current > MAX_RESTARTS) {
+          console.warn("🎤 Voice failed repeatedly, falling back to manual mode");
+          speak("Having trouble hearing you. Please continue manually.").then(() => {
+            endSession();
+          }).catch(() => {
+            endSession();
+          });
+          return;
+        }
+        
+        // Minimum listen window - restart faster if ended too quickly
+        const delay = duration < MIN_LISTEN_MS ? 200 : 300;
+        console.log(`🎤 No result captured (attempt ${restartCountRef.current}/${MAX_RESTARTS}), restarting in ${delay}ms...`);
+        
         setTimeout(() => {
           if (isActiveRef.current) {
             startListening();
           }
-        }, 300);
+        }, delay);
       }
     };
 
@@ -261,6 +285,7 @@ export function useVoiceStudio({
     setCurrentVoiceStep(0);
     setLastTranscript("");
     setSilenceCount(0);
+    restartCountRef.current = 0;
     
     // Set studio to step 1 (1-indexed)
     setStudioStep(1);
