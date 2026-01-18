@@ -44,12 +44,11 @@ export const KITCHEN_STUDIO_EQUIPMENT =
   "Let's make sure we've got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something.";
 
 // Kitchen Studio - After equipment confirmed
-export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED = "Perfect. Hit Create the Plan, and I’ll build your meal.";
+export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
+  "Perfect. Hit Create the Plan, and I’ll build your meal.";
 
 export const KITCHEN_STUDIO_HANDOFF_TO_PREP =
-"This looks great. Now let’s enter Chef’s Kitchen so we can prep it step by step.";
-
-
+  "This looks great. Now let’s enter Chefs Kitchen so we can prep it step by step.";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
@@ -66,9 +65,11 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 };
 
 // Open Kitchen narration beats
-export const KITCHEN_STUDIO_OPEN_START = "Sit back and relax while I build your meal.";
+export const KITCHEN_STUDIO_OPEN_START =
+  "Sit back and relax while I build your meal.";
 
-export const KITCHEN_STUDIO_OPEN_PROGRESS1 = "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.";
+export const KITCHEN_STUDIO_OPEN_PROGRESS1 =
+  "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 

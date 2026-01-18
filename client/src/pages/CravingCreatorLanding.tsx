@@ -2,15 +2,13 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Brain, Sparkles } from "lucide-react";
+import { Brain, Sparkles } from "lucide-react";
 
 interface CravingFeature {
   title: string;
   description: string;
   icon: any;
   route: string;
-  gradient: string;
   testId: string;
 }
 
@@ -36,8 +34,7 @@ export default function CravingCreatorLanding() {
       description: "Use the original AI Craving Creator you already know",
       icon: Brain,
       route: "/craving-creator",
-      gradient: "from-orange-500/20 to-orange-600/20",
-      testId: "cravinghub-creator", // Phase C.7 hub anchor
+      testId: "cravinghub-creator",
     },
     {
       title: "Premade Cravings",
@@ -45,16 +42,14 @@ export default function CravingCreatorLanding() {
         "Browse our collection of ready-made craving meals. Tap any picture to see ingredients and nutrition info.",
       icon: Sparkles,
       route: "/craving-presets",
-      gradient: "from-orange-500/20 to-orange-600/20",
-      testId: "cravinghub-premades", // Phase C.7 hub anchor
+      testId: "cravinghub-premades",
     },
     {
       title: "Dessert Creator",
       description: "AI-powered dessert recipes: pies, cakes, cookies, brownies & more",
-      icon: Sparkles, // using same icon family for cohesion
+      icon: Sparkles,
       route: "/craving-desserts",
-      gradient: "from-orange-500/20 to-orange-600/20",
-      testId: "cravinghub-desserts", // Phase C.7 hub anchor
+      testId: "cravinghub-desserts",
     },
   ];
 
@@ -121,11 +116,11 @@ export default function CravingCreatorLanding() {
           <div className="flex flex-col gap-3">
             {cravingFeatures.map((feature) => {
               const Icon = feature.icon;
-              const isCravingCreator = feature.route === "/craving-creator";
+        const isEmotionAI = feature.route === "/craving-creator";
               
               return (
                 <div key={feature.testId} className="relative">
-                  {isCravingCreator && (
+                 {isEmotionAI&& (
                     <div
                       className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
                       style={{
@@ -136,14 +131,16 @@ export default function CravingCreatorLanding() {
                   )}
                   <Card
                     className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
-                      isCravingCreator 
+                       isEmotionAI
+
                         ? "border-pink-400/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:border-pink-500/50" 
                         : "border-white/10 hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:border-orange-500/50"
                     }`}
                     onClick={() => handleCardClick(feature.route)}
                     data-testid={feature.testId}
                   >
-                    {isCravingCreator && (
+                {isEmotionAI && (
+
                       <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
                         <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>
                         <span className="text-white font-semibold text-[9px]">
@@ -154,7 +151,7 @@ export default function CravingCreatorLanding() {
                     <CardContent className="p-3">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <Icon className={`h-4 w-4 flex-shrink-0 ${isCravingCreator ? "text-pink-500" : "text-orange-500"}`} />
+                          <Icon className={`h-4 w-4 flex-shrink-0 ${isEmotionAI ? "text-pink-500" : "text-orange-500"}`} />
                           <h3 className="text-sm font-semibold text-white">
                             {feature.title}
                           </h3>

@@ -108,6 +108,9 @@ import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import CravingPresets from "@/pages/CravingPresets";
+import CravingStudio from "@/pages/craving-creator/CravingStudio";
+import DessertStudio from "@/pages/dessert-creator/DessertStudio";
+import FridgeRescueStudio from "@/pages/fridge-rescue/FridgeRescueStudio";
 
 // Alcohol Hub pages
 import AlcoholHubLanding from "@/pages/AlcoholHubLanding";
@@ -477,6 +480,9 @@ export default function Router() {
         />
         {/* DELETED: /craving-hub route (old CravingHub moved to _quarantine - use /craving-creator-landing instead) */}
         <Route path="/craving-desserts" component={CravingDessertCreator} />
+        <Route path="/craving-studio" component={CravingStudio} />
+        <Route path="/dessert-studio" component={DessertStudio} />
+        <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
         <Route path="/craving-presets" component={CravingPresets} />
         {/* Alcohol Hub Routes */}
         <Route path="/alcohol-hub" component={AlcoholHubLanding} />
