@@ -19,9 +19,9 @@ export default function ChefEmojiButton({ onClick }: Props) {
         alt="Chef"
         className="pointer-events-none"
         style={{ 
-          width: "90px", 
-          height: "90px",
-          objectFit: "cover",
+          width: "68px", 
+          height: "68px",
+          objectFit: "contain",
           objectPosition: "center",
         }}
       />
