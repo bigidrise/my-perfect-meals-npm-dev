@@ -41,7 +41,6 @@ const todayMacros = {
   carbs: 150,
   fat: 70,
 };
-
 export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -150,15 +149,11 @@ export default function DashboardNew() {
         className="fixed left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-3">
-          <img
-            src="/assets/MPMFlameChefLogo.png"
-            alt="My Perfect Meals Logo"
-            className="h-16 w-16 object-contain"
-          />
-          <h1 className="text-lg font-bold text-white">My Perfect Meals</h1>
+        <div className="px-4 py-3 h-16 flex items-center justify-center">
+          <h1 className="text-md font-bold text-white">MPM</h1>
         </div>
       </div>
+
 
       {/* Main Content */}
       {/* Main Content */}
