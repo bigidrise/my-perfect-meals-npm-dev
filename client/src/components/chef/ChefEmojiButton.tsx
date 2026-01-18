@@ -14,19 +14,12 @@ export default function ChefEmojiButton({ onClick }: Props) {
       }}
       aria-label="Chef"
     >
-      <span
-        style={{
-          fontSize: "32px",
-          lineHeight: 1,
-          width: "32px",
-          height: "32px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        👨🏿‍🍳
-      </span>
+      <img
+        src="/icons/chef.png"
+        alt="Chef"
+        className="w-8 h-8 pointer-events-none"
+        style={{ width: "32px", height: "32px" }}
+      />
     </button>
   );
 }
