@@ -48,11 +48,11 @@ export default function TalkToChefButton({
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleOpen}
-        className="fixed bottom-24 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 hover:border-orange-400 backdrop-blur-sm transition-all"
+        className="fixed bottom-24 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 hover:border-orange-400 backdrop-blur-none transition-all"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
-        <span className="text-2xl">👨🏿‍🍳</span>
-        <Mic className="w-4 h-4 text-orange-400" />
+        <span className="text-4xl">👨🏿‍🍳</span>
+        <Mic className="w-6 h-6 text-orange-400" />
       </motion.button>
 
       {/* Voice overlay */}
