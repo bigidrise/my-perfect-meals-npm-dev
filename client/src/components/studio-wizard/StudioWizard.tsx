@@ -570,7 +570,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                   />
 
                   <button
-                    className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm transition flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition flex items-center justify-center gap-2"
                     onClick={goToChefsKitchenPrepare}
                   >
                     <ChefHat className="h-4 w-4" />
