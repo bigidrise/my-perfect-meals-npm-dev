@@ -44,13 +44,13 @@ export default function TalkToChefButton({
       {/* Chef emoji floating button at bottom */}
       <motion.button
         onClick={handleOpen}
-        className="fixed right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-full bg-orange-500/10 border border-orange-400/20 backdrop-blur-xl shadow-[0_0_18px_rgba(251,146,60,0.18)] hover:border-orange-400/35 transition-all"
+        className="fixed right-4 z-50 flex items-center gap-1"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-        whileHover={{ scale: 1.05, y: -2 }}
+        whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >
         <span className="text-4xl leading-none">👨🏿‍🍳</span>
-        <Mic className="w-6 h-6 text-orange-400" />
+        <Mic className="w-5 h-5 text-orange-400" />
       </motion.button>
 
       {/* Voice overlay */}
