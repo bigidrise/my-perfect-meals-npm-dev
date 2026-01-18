@@ -136,6 +136,9 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const [, setLocation] = useLocation();
   const { branding, steps, scripts, apiEndpoint, backRoute, source, defaultMealType, buildPrompt } = config;
 
+  // Persistence key unique to this studio (based on source)
+  const MEAL_PERSIST_KEY = `mpm_studio_meal_${source}`;
+
   const [studioStep, setStudioStep] = useState<StudioStep>(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const { speak, stop: stopChef } = useChefVoice(setIsPlaying);
@@ -163,6 +166,40 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const [error, setError] = useState<string | null>(null);
 
   const mealToShow = displayMeal || generatedMeal;
+
+  // Load persisted meal on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(MEAL_PERSIST_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as GeneratedMeal;
+        setGeneratedMeal(parsed);
+        setStudioStep(5);
+        // Lock all steps since we have a generated meal
+        for (let i = 0; i < steps.length; i++) {
+          setLocked(i, true);
+          setListened(i, true);
+        }
+        // Hydrate servings from persisted meal
+        if (parsed.servings && config.servingsStepIndex >= 0) {
+          updateStepValue(config.servingsStepIndex, String(parsed.servings));
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []);
+
+  // Persist meal when generated
+  useEffect(() => {
+    if (generatedMeal) {
+      try {
+        localStorage.setItem(MEAL_PERSIST_KEY, JSON.stringify(generatedMeal));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [generatedMeal, MEAL_PERSIST_KEY]);
 
   const updateStepValue = (index: number, value: string) => {
     stepValuesRef.current[index] = value;
@@ -222,6 +259,13 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     progressIntervalRef.current = null;
+
+    // Clear persisted meal
+    try {
+      localStorage.removeItem(MEAL_PERSIST_KEY);
+    } catch {
+      // Ignore storage errors
+    }
 
     stopChef();
   };
