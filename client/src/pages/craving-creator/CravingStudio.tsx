@@ -101,10 +101,10 @@ const CRAVING_STUDIO_READY =
   "Locked in. I’ll create the meal — then we’ll head to Chef’s Kitchen to cook.";
 
 const CRAVING_STUDIO_OPEN_START = "Okay — building your meal now.";
-const CRAVING_STUDIO_OPEN_PROGRESS1 = "Dialing in flavor and macros…";
-const CRAVING_STUDIO_OPEN_PROGRESS2 = "Finalizing ingredients and steps…";
+const CRAVING_STUDIO_OPEN_PROGRESS1 = "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.";
+const CRAVING_STUDIO_OPEN_PROGRESS2 = "";
 const CRAVING_STUDIO_OPEN_COMPLETE =
-  "Done. When you’re ready, enter Chef’s Kitchen and let’s cook.";
+  "";
 
 export default function CravingStudio() {
   const [, setLocation] = useLocation();
