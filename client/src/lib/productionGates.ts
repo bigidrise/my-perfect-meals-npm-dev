@@ -14,6 +14,7 @@ const FORCE_SHOW_STUDIOS = import.meta.env.VITE_FORCE_SHOW_STUDIOS === 'true';
  * Add your main dev URL here
  */
 const ALLOWED_DEV_HOSTNAMES = [
+  'my-perfect-meals-dev-space--bigidrise.replit.app',
   '6ec77f1f-9dac-4f2b-bee5-d2f285813ff1-00-1ejhf7hrpbxz8.picard.replit.dev',
   'localhost',
 ];
