@@ -97,12 +97,12 @@ export function KitchenStepCard({
         ) : (
           <>
             {!hasListened && (
-              <button
-                className={`w-full py-3 rounded-xl border text-white font-medium transition ${
-                  isPlaying
-                    ? "bg-green-900/40 border-green-500/40"
-                    : "bg-gradient-to-r from-orange-600 to-amber-500 border-orange-400/50 hover:from-orange-500 hover:to-amber-400 animate-pulse"
-                }`}
+                <button
+                  className={`w-full py-3 rounded-xl border text-white font-medium transition ${
+                    isPlaying
+                      ? "bg-green-900/40 border-green-500/40"
+                      : "bg-gradient-to-br from-black/80 via-orange-800 to-black/70 hover:from-orange-500 animate-pulse border-white/5 hover:border-white/10"
+                  }`}
                 onClick={onListen}
                 disabled={isPlaying}
                 data-testid={`button-listen-${stepTitle.toLowerCase().replace(/\s+/g, "-")}`}
