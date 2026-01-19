@@ -2,13 +2,12 @@
  * Production Gates - Hide unstable features from Apple/clients
  * 
  * ARCHITECTURE:
- * - Studios shown on: Main dev workspace OR Main dev URL (*.picard.replit.dev)
- * - Studios hidden on: Production URL (myperfectmeals.com), iOS app, other workspaces
+ * - Studios shown on: Main dev workspace OR Main dev URL (*.replit.dev)
+ * - Studios hidden on: Production URL (myperfectmeals.com), iOS app
  * 
- * DETECTION METHODS:
- * 1. VITE_FORCE_SHOW_STUDIOS=true (build-time, for dev workspace)
- * 2. Runtime hostname check for main dev URL pattern
- * 3. iOS/Capacitor detection to ensure gating on native app
+ * IMPORTANT: Check order matters!
+ * 1. FIRST check if we should ALLOW (dev URL or force flag)
+ * 2. THEN check if we should BLOCK (production or iOS)
  */
 
 /**
@@ -17,41 +16,40 @@
 const FORCE_SHOW_STUDIOS = import.meta.env.VITE_FORCE_SHOW_STUDIOS === 'true';
 
 /**
- * Check if running on the main dev URL (runtime check)
+ * Check if running on a Replit dev URL (runtime check)
  * This catches the published dev URL which uses a production build
  */
-function isMainDevUrl(): boolean {
+function isReplitDevUrl(): boolean {
   if (typeof window === 'undefined') return false;
   
   const hostname = window.location.hostname;
   
-  // Main dev workspace published URL patterns
-  // Matches: *.picard.replit.dev, *.replit.dev, *.repl.co
-  const devUrlPatterns = [
-    /\.picard\.replit\.dev$/,
-    /\.replit\.dev$/,
-    /\.repl\.co$/,
-  ];
-  
-  return devUrlPatterns.some(pattern => pattern.test(hostname));
+  // Replit dev URL patterns - these should SHOW studios
+  return (
+    hostname.endsWith('.replit.dev') ||
+    hostname.endsWith('.repl.co') ||
+    hostname.includes('.picard.') ||
+    hostname === 'localhost'
+  );
 }
 
 /**
- * Check if running on production domain
+ * Check if running on production domain - should HIDE studios
  */
 function isProductionDomain(): boolean {
   if (typeof window === 'undefined') return false;
   
   const hostname = window.location.hostname;
+  
+  // Only exact production domains
   return (
     hostname === 'myperfectmeals.com' ||
-    hostname === 'www.myperfectmeals.com' ||
-    hostname.endsWith('.myperfectmeals.com')
+    hostname === 'www.myperfectmeals.com'
   );
 }
 
 /**
- * Check if running in iOS/Capacitor native app
+ * Check if running in iOS/Capacitor native app - should HIDE studios
  */
 function isNativeApp(): boolean {
   if (typeof window === 'undefined') return false;
@@ -72,9 +70,6 @@ const ADMIN_EMAILS = [
 
 /**
  * Gated Features Configuration
- * 
- * Set to `false` to hide from production (gated)
- * Set to `true` to show everywhere (stable)
  */
 export const GATED_FEATURES = {
   // Studios - Gated (hidden in production/iOS)
@@ -94,36 +89,37 @@ export type GatedFeature = keyof typeof GATED_FEATURES;
 /**
  * Check if studios should be shown
  * 
- * SHOW studios when:
- * 1. VITE_FORCE_SHOW_STUDIOS=true (dev workspace), OR
- * 2. Running on *.replit.dev URL (main dev published URL)
- * 
- * HIDE studios when:
- * 1. Running on production domain (myperfectmeals.com)
- * 2. Running in iOS/Capacitor native app
+ * ORDER MATTERS:
+ * 1. FIRST: Check ALLOW conditions (dev URL, force flag) - return true
+ * 2. THEN: Check BLOCK conditions (production, iOS) - return false
+ * 3. DEFAULT: false (hide if unknown)
  */
 export function shouldShowStudios(): boolean {
-  // Production domain always hides studios
-  if (isProductionDomain()) {
-    return false;
-  }
+  // === ALLOW CONDITIONS (check these FIRST) ===
   
-  // iOS native app always hides studios
-  if (isNativeApp()) {
-    return false;
-  }
-  
-  // Dev workspace (env var set) shows studios
+  // Force override from env var (dev workspace)
   if (FORCE_SHOW_STUDIOS) {
     return true;
   }
   
-  // Main dev URL shows studios
-  if (isMainDevUrl()) {
+  // Replit dev URLs should show studios
+  if (isReplitDevUrl()) {
     return true;
   }
   
-  // Default: hide studios
+  // === BLOCK CONDITIONS (check these SECOND) ===
+  
+  // Production domain hides studios
+  if (isProductionDomain()) {
+    return false;
+  }
+  
+  // iOS native app hides studios
+  if (isNativeApp()) {
+    return false;
+  }
+  
+  // === DEFAULT: Hide studios (unknown environment) ===
   return false;
 }
 
