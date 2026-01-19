@@ -15,7 +15,13 @@
 const isDevelopment = import.meta.env.DEV || 
   import.meta.env.MODE === 'development' ||
   window.location.hostname.includes('localhost') ||
-  window.location.hostname.includes('replit.dev');
+  window.location.hostname.includes('replit.dev') ||
+  window.location.hostname.includes('replit.app') ||
+  window.location.hostname.includes('.repl.') ||
+  window.location.hostname.includes('webcontainer') ||
+  // This specific Replit workspace is the dev environment
+  window.location.hostname.includes('maindev') ||
+  window.location.hostname.includes('-00-');
 
 const ADMIN_EMAILS = [
   'admin@myperfectmeals.com',
