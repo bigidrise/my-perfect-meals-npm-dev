@@ -29,6 +29,7 @@ interface KitchenStepCardProps {
     yesPlaceholder?: string;
   };
   submitLabel?: string;
+  autoReady?: boolean;
 }
 
 export function KitchenStepCard({
@@ -53,6 +54,7 @@ export function KitchenStepCard({
   otherPlaceholder = "Type your answer...",
   yesnoConfig,
   submitLabel,
+  autoReady = false,
 }: KitchenStepCardProps) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherValue, setOtherValue] = useState("");
@@ -112,7 +114,7 @@ export function KitchenStepCard({
           </div>
         ) : (
           <>
-            {!hasListened && (
+            {!hasListened && !autoReady && (
                 <button
                   className={`w-full py-3 rounded-xl border text-white font-medium transition ${
                     isPlaying
@@ -127,7 +129,7 @@ export function KitchenStepCard({
               </button>
             )}
 
-            {hasListened && (
+            {(hasListened || autoReady) && (
               <>
                 {equipmentList && equipmentList.length > 0 && (
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3 space-y-2">

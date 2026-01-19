@@ -419,6 +419,13 @@ export default function ChefsKitchenPage() {
     }
   }, [generatedMeal]);
 
+  // Auto-trigger voice for Step 5 (Chef's Setup)
+  useEffect(() => {
+    if (studioStep === 5 && !step5Listened && !step5Locked && !isPlaying) {
+      speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep5Listened(true));
+    }
+  }, [studioStep, step5Listened, step5Locked, isPlaying]);
+
   // Persist prep state
   useEffect(() => {
     if (mode === "prepare" && generatedMeal) {
@@ -968,6 +975,7 @@ export default function ChefsKitchenPage() {
                 onEdit={editStep5}
                 canEdit={studioStep < 6}
                 submitLabel="OK"
+                autoReady
               />
             )}
 
