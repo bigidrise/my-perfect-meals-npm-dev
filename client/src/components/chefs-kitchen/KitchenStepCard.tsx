@@ -28,6 +28,7 @@ interface KitchenStepCardProps {
     noValue?: string;
     yesPlaceholder?: string;
   };
+  singleActionButton?: boolean;
 }
 
 export function KitchenStepCard({
