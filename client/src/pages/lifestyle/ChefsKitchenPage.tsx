@@ -945,15 +945,20 @@ export default function ChefsKitchenPage() {
             {studioStep >= 5 && (
               <KitchenStepCard
                 stepTitle="Step 5 · Chef's Setup"
-                question="Do you have these, or are you missing anything?"
+                question="Do you have everything you need?"
                 summaryText={`Kitchen setup: ${equipment || suggestedEquipment.join(", ")}`}
                 value={equipment}
                 setValue={setEquipment}
                 hasListened={step5Listened}
                 isLocked={step5Locked}
                 isPlaying={isPlaying}
-                placeholder="Yes, all set / I don't have a skillet but I have a pan..."
-                inputType="textarea"
+                inputType="yesno"
+                yesnoConfig={{
+                  noLabel: "Yes, I'm all set",
+                  yesLabel: "I'm missing something",
+                  noValue: "All set",
+                  yesPlaceholder: "What are you missing? e.g., I don't have a skillet but I have a pan...",
+                }}
                 equipmentList={suggestedEquipment}
                 onInputFocus={stopChef}
                 onListen={() => {
