@@ -234,7 +234,7 @@ export default function Router() {
         <Route path="/kids-meals" component={KidsMealsHub} />
         <Route path="/toddler-meals" component={ToddlersMealsHub} />
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/chefs-kitchen" component={ChefsKitchenPage} />
+        <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
@@ -481,8 +481,8 @@ export default function Router() {
         />
         {/* DELETED: /craving-hub route (old CravingHub moved to _quarantine - use /craving-creator-landing instead) */}
         <Route path="/craving-desserts" component={CravingDessertCreator} />
-        <Route path="/craving-studio" component={CravingStudio} />
-        <Route path="/dessert-studio" component={DessertStudio} />
+        <Route path="/craving-studio" component={withGate(CravingStudio, 'studioCreators')} />
+        <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
         <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
         <Route path="/craving-presets" component={CravingPresets} />
         {/* Alcohol Hub Routes */}
