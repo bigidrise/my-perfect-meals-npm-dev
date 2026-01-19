@@ -945,20 +945,15 @@ export default function ChefsKitchenPage() {
             {studioStep >= 5 && (
               <KitchenStepCard
                 stepTitle="Step 5 · Chef's Setup"
-                question="Do you have everything you need?"
-                summaryText={`Kitchen setup: ${equipment || suggestedEquipment.join(", ")}`}
-                value={equipment}
+                question="Take a look — grab what you need, then tap OK."
+                summaryText={`Kitchen setup: ${suggestedEquipment.join(", ") || "Ready"}`}
+                value={equipment || "Ready"}
                 setValue={setEquipment}
                 hasListened={step5Listened}
                 isLocked={step5Locked}
                 isPlaying={isPlaying}
-                inputType="yesno"
-                yesnoConfig={{
-                  noLabel: "Yes, I'm all set",
-                  yesLabel: "I'm missing something",
-                  noValue: "All set",
-                  yesPlaceholder: "What are you missing? e.g., I don't have a skillet but I have a pan...",
-                }}
+                inputType="buttons"
+                buttonOptions={["OK"]}
                 equipmentList={suggestedEquipment}
                 onInputFocus={stopChef}
                 onListen={() => {
@@ -966,6 +961,7 @@ export default function ChefsKitchenPage() {
                   speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep5Listened(true));
                 }}
                 onSubmit={() => {
+                  setEquipment("Ready");
                   setStep5Locked(true);
                   setStudioStep(6);
                   speak(KITCHEN_STUDIO_EQUIPMENT_CONFIRMED);
