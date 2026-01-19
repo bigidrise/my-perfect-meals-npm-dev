@@ -15,7 +15,16 @@ import { getGlycemicSettings } from "./glycemicSettingsService";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required for meal generation");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 // ---- CONFIG ----
 const MAX_DAYS = 7;
@@ -571,7 +580,7 @@ async function instructBatch(items: Skeleton[]): Promise<Record<string,string[]>
     const sys = "You write short, precise cooking instructions ONLY. Return JSON { instructions: [{ name, steps[] }] }. Steps are imperative, max 8, no fluff.";
     const user = `Generate instructions for these meals: ${items.map(s => `${s.name}: ${s.ingredients.map(i => i.name).join(', ')}`).join('; ')}`;
     
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: MODEL_INSTRUCTIONS,
       temperature: TEMPERATURE,
       messages: [
