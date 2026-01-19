@@ -483,7 +483,7 @@ export default function Router() {
         <Route path="/craving-desserts" component={CravingDessertCreator} />
         <Route path="/craving-studio" component={withGate(CravingStudio, 'studioCreators')} />
         <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
-        <Route path="/fridge-rescue-studio" component={withGate(FridgeRescueStudio, 'studioCreators')} />
+        <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
         <Route path="/craving-presets" component={CravingPresets} />
         {/* Alcohol Hub Routes */}
         <Route path="/alcohol-hub" component={AlcoholHubLanding} />
