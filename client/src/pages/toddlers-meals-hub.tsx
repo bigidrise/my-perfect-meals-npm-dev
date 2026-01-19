@@ -9,8 +9,9 @@ import { Users, ChefHat, ArrowLeft } from "lucide-react";
 import { toddlersMeals, type ToddlersMeal } from "@/data/toddlersMealsData";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -281,42 +282,10 @@ export default function ToddlersMealsHub() {
 
                 <p className="text-white/90 mb-4">{selected.description}</p>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2 mb-4">
-                  <AddToMealPlanButton
-                    meal={{
-                      id: selected.id,
-                      name: selected.name,
-                      description: selected.description,
-                      imageUrl: selected.image ?? `/images/toddlers/${selected.id}.jpg`,
-                      ingredients: scaledIngs.map(ing => ({
-                        name: ing.name,
-                        amount: formatQty(ing.quantity),
-                        unit: pluralize(ing.unit, ing.quantity) || "",
-                      })),
-                      instructions: selected.instructions,
-                    }}
-                  />
-                  <MealCardActions
-                    meal={{
-                      name: selected.name,
-                      description: selected.description,
-                      ingredients: scaledIngs.map(ing => ({
-                        name: ing.name,
-                        amount: formatQty(ing.quantity),
-                        unit: pluralize(ing.unit, ing.quantity)
-                      })),
-                      instructions: selected.instructions,
-                    }}
-                  />
-                </div>
-
-                {/* Health Badges */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <HealthBadgesPopover badges={selected.healthBadges} />
-                    <h3 className="font-bold text-lg text-white">Health Benefits</h3>
-                  </div>
+                {/* Medical Safety Badges */}
+                <div className="flex items-center gap-2 mb-4">
+                  <HealthBadgesPopover badges={selected.healthBadges} />
+                  <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
                 </div>
 
                 {/* Ingredients */}
@@ -361,13 +330,82 @@ export default function ToddlersMealsHub() {
                   </div>
                 )}
 
-                {/* Add to Macros */}
-                <Button
-                  onClick={() => setLocation("/biometrics?from=toddler-meals&view=macros")}
-                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center border border-white/30"
-                >
-                  Add to Macros
-                </Button>
+                {/* Standardized 3-Row Button Layout */}
+                <div className="space-y-2">
+                  {/* Row 1: Add to Macros (full width) */}
+                  <Button
+                    onClick={() => setLocation("/biometrics?from=toddler-meals&view=macros")}
+                    className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white border border-white/30"
+                  >
+                    Add to Macros
+                  </Button>
+
+                  {/* Row 2: Add to Plan + Translate (50/50) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <AddToMealPlanButton
+                      meal={{
+                        id: selected.id,
+                        name: selected.name,
+                        description: selected.description,
+                        imageUrl: selected.image ?? `/images/toddlers/${selected.id}.jpg`,
+                        ingredients: scaledIngs.map(ing => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity) || "",
+                        })),
+                        instructions: selected.instructions,
+                      }}
+                    />
+                    <TranslateToggle
+                      content={{
+                        name: selected.name,
+                        description: selected.description,
+                        instructions: selected.instructions,
+                      }}
+                      onTranslate={() => {}}
+                    />
+                  </div>
+
+                  {/* Row 3: Prepare with Chef + Share (50/50) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
+                      onClick={() => {
+                        const mealData = {
+                          id: selected.id,
+                          name: selected.name,
+                          description: selected.description,
+                          ingredients: scaledIngs.map(ing => ({
+                            name: ing.name,
+                            amount: formatQty(ing.quantity),
+                            unit: pluralize(ing.unit, ing.quantity) || "",
+                          })),
+                          instructions: selected.instructions,
+                          imageUrl: selected.image ?? `/images/toddlers/${selected.id}.jpg`,
+                        };
+                        localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+                        localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                        setLocation("/lifestyle/chefs-kitchen");
+                      }}
+                    >
+                      <ChefHat className="h-4 w-4" />
+                      Prepare with Chef
+                    </Button>
+                    <ShareRecipeButton
+                      recipe={{
+                        name: selected.name,
+                        description: selected.description,
+                        ingredients: scaledIngs.map(ing => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity),
+                        })),
+                      }}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

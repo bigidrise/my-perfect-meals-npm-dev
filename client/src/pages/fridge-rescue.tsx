@@ -35,8 +35,9 @@ import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
-import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -740,25 +741,6 @@ const FridgeRescuePage = () => {
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <AddToMealPlanButton meal={meal} />
-                        <MealCardActions
-                          meal={{
-                            name: meal.name,
-                            description: meal.description,
-                            ingredients: (meal.ingredients ?? []).map((ing: any) => ({
-                              name: typeof ing === "string" ? ing : ing.name,
-                              amount: typeof ing === "string" ? "" : ing.quantity,
-                              unit: typeof ing === "string" ? "" : ing.unit,
-                            })),
-                            instructions: typeof meal.instructions === "string"
-                              ? meal.instructions.split(/\.\s+/).filter(Boolean)
-                              : meal.instructions,
-                            nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
-                          }}
-                        />
-                      </div>
 
                       {/* Medical Badges */}
                       <div className="flex items-center gap-2">
@@ -911,8 +893,9 @@ const FridgeRescuePage = () => {
                         </div>
                       </div>
 
-                      {/* Bottom Actions */}
-                      <div className="mt-auto pt-4">
+                      {/* Standardized 3-Row Button Layout */}
+                      <div className="mt-auto pt-4 space-y-2">
+                        {/* Row 1: Add to Macros (full width) */}
                         <MacroBridgeButton
                           data-testid="fridge-add-to-shopping"
                           meal={{
@@ -923,6 +906,56 @@ const FridgeRescuePage = () => {
                           }}
                           source="fridge-rescue"
                         />
+
+                        {/* Row 2: Add to Plan + Translate (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <AddToMealPlanButton meal={meal} />
+                          <TranslateToggle
+                            content={{
+                              name: meal.name,
+                              description: meal.description,
+                              instructions: meal.instructions,
+                            }}
+                            onTranslate={() => {}}
+                          />
+                        </div>
+
+                        {/* Row 3: Prepare with Chef + Share (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold flex items-center justify-center gap-1.5"
+                            onClick={() => {
+                              const mealData = {
+                                id: meal.id || crypto.randomUUID(),
+                                name: meal.name,
+                                description: meal.description,
+                                ingredients: meal.ingredients || [],
+                                instructions: meal.instructions,
+                                imageUrl: meal.imageUrl,
+                              };
+                              localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+                              localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                              setLocation("/lifestyle/chefs-kitchen");
+                            }}
+                          >
+                            <ChefHat className="h-4 w-4" />
+                            Prepare with Chef
+                          </Button>
+                          <ShareRecipeButton
+                            recipe={{
+                              name: meal.name,
+                              description: meal.description,
+                              nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
+                              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
+                                name: typeof ing === "string" ? ing : ing.name,
+                                amount: typeof ing === "string" ? "" : ing.quantity,
+                                unit: typeof ing === "string" ? "" : ing.unit,
+                              })),
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
