@@ -1,8 +1,7 @@
 // Kitchen Studio Voice Scripts
 // Uses the same 11L voice system as ProTip and Copilot button
 
-export const KITCHEN_STUDIO_INTRO =
-  "What sounds good?";
+export const KITCHEN_STUDIO_INTRO = "What are we preparing today?";
 
 export const KITCHEN_STUDIO_STEP2 = "";
 
@@ -34,8 +33,7 @@ export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "";
 export const KITCHEN_STUDIO_SERVINGS = "How many servings?";
 
 // Kitchen Studio - After servings confirmed
-export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
-  "";
+export const KITCHEN_STUDIO_SERVINGS_CONFIRMED = "";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
