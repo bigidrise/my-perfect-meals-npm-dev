@@ -747,7 +747,7 @@ export default function ChefsKitchenPage() {
 
           <h1 className="text-lg font-bold text-white truncate min-w-0">
             Chef&apos;s Kitchen{" "}
-            <span className="text-xl leading-none">👨🏿‍🍳</span>
+            <span className="text-4xl leading-none">👨🏿‍🍳</span>
           </h1>
 
           <div className="flex-grow" />
