@@ -873,11 +873,11 @@ export default function ChefsKitchenPage() {
               />
             )}
 
-            {/* Step 3 - Preferences & Guardrails */}
+            {/* Step 3 - Preferences & Guardrails (Yes/No pattern) */}
             {studioStep >= 3 && (
               <KitchenStepCard
                 stepTitle="Step 3 · Preferences"
-                question="Anything to adjust — lower sugar, less salt, gluten-free, dairy-free? Quick or taking your time?"
+                question="Any preferences — lower sugar, less salt, gluten-free, dairy-free, quick meal?"
                 summaryText={
                   ingredientNotes
                     ? `Preferences: ${ingredientNotes}`
@@ -889,7 +889,13 @@ export default function ChefsKitchenPage() {
                 isLocked={step3Locked}
                 isPlaying={isPlaying}
                 placeholder="e.g., low sugar, gluten-free, no dairy, quick 15 min meal..."
-                inputType="textarea"
+                inputType="yesno"
+                yesnoConfig={{
+                  noLabel: "No, I'm good",
+                  yesLabel: "Yes, add preferences",
+                  noValue: "None",
+                  yesPlaceholder: "e.g., low sugar, gluten-free, no dairy, quick 15 min meal...",
+                }}
                 onInputFocus={stopChef}
                 onListen={() => {
                   if (step3Listened || isPlaying) return;

@@ -506,7 +506,7 @@ export default function CravingStudio() {
           />
         )}
 
-        {/* Step 2 — Dietary */}
+        {/* Step 2 — Dietary (Yes/No pattern) */}
         {studioStep >= 2 && (
           <KitchenStepCard
             stepTitle="Step 2 · Dietary Preferences"
@@ -520,7 +520,13 @@ export default function CravingStudio() {
             isLocked={s2Locked}
             isPlaying={isPlaying}
             placeholder="e.g., high protein, gluten-free, no dairy, no peanuts..."
-            inputType="textarea"
+            inputType="yesno"
+            yesnoConfig={{
+              noLabel: "No, I'm good",
+              yesLabel: "Yes, add preferences",
+              noValue: "None",
+              yesPlaceholder: "e.g., high protein, gluten-free, no dairy, no peanuts...",
+            }}
             onInputFocus={stopChef}
             onListen={() => {
               if (s2Listened || isPlaying) return;
@@ -570,7 +576,7 @@ export default function CravingStudio() {
           />
         )}
 
-        {/* Step 4 — Custom Notes */}
+        {/* Step 4 — Custom Notes (Yes/No pattern) */}
         {studioStep >= 4 && (
           <KitchenStepCard
             stepTitle="Step 4 · Custom Notes"
@@ -584,7 +590,13 @@ export default function CravingStudio() {
             isLocked={s4Locked}
             isPlaying={isPlaying}
             placeholder="e.g., lower sugar, low sodium, 15-minute meal, extra veggies..."
-            inputType="textarea"
+            inputType="yesno"
+            yesnoConfig={{
+              noLabel: "No, I'm good",
+              yesLabel: "Yes, add notes",
+              noValue: "None",
+              yesPlaceholder: "e.g., lower sugar, low sodium, 15-minute meal, extra veggies...",
+            }}
             onInputFocus={stopChef}
             onListen={() => {
               if (s4Listened || isPlaying) return;
@@ -595,7 +607,6 @@ export default function CravingStudio() {
               setS4Locked(true);
               setStudioStep(5);
 
-              // 🔊 Transition guidance (THIS is the missing piece)
               speak(
                 "If everything looks good, press Generate."
               );

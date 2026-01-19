@@ -52,11 +52,17 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     },
     {
       title: "Notes",
-      question: "Anything else?",
+      question: "Anything else I should know?",
       placeholder: "time limit, allergies, preferences…",
       voiceScript: "Anything else I should know?",
-      inputType: "textarea",
+      inputType: "yesno",
       summaryPrefix: "Notes",
+      yesnoConfig: {
+        noLabel: "No, I'm good",
+        yesLabel: "Yes, add notes",
+        noValue: "None",
+        yesPlaceholder: "e.g., time limit, allergies, preferences…",
+      },
     },
   ],
 
