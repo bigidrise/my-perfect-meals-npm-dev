@@ -8,6 +8,7 @@ import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
 import { setQuickView } from "@/lib/macrosQuickView";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
+import { isFeatureEnabled } from "@/lib/productionGates";
 
 export interface GeneratedMealData {
   id: string;
@@ -309,9 +310,9 @@ export default function GeneratedMealCard({
           />
         </div>
 
-        {/* Row 3: Prepare with Chef + Share (50/50) */}
+        {/* Row 3: Prepare with Chef + Share (50/50) - Chef's Kitchen gated */}
         <div className="grid grid-cols-2 gap-2">
-          {hasInstructions && (
+          {hasInstructions && isFeatureEnabled('chefsKitchen') && (
             <Button
               size="sm"
               className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
@@ -328,7 +329,7 @@ export default function GeneratedMealCard({
               nutrition: generatedMeal.nutrition,
               ingredients: normalizedIngredients,
             }}
-            className={hasInstructions ? "flex-1" : "col-span-2"}
+            className={hasInstructions && isFeatureEnabled('chefsKitchen') ? "flex-1" : "col-span-2"}
           />
         </div>
       </div>

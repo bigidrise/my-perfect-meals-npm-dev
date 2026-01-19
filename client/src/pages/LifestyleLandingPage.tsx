@@ -10,6 +10,7 @@ import {
   Wine,
   UtensilsCrossed,
 } from "lucide-react";
+import { isFeatureEnabled } from "@/lib/productionGates";
 
 interface AIFeature {
   title: string;
@@ -128,7 +129,15 @@ export default function LifestyleLandingPage() {
 
           {/* Lifestyle Features */}
           <div className="flex flex-col gap-3">
-            {lifestyleFeatures.map((feature) => {
+            {lifestyleFeatures
+              .filter((feature) => {
+                // Hide Chef's Kitchen when gated
+                if (feature.route === "/lifestyle/chefs-kitchen" && !isFeatureEnabled('chefsKitchen')) {
+                  return false;
+                }
+                return true;
+              })
+              .map((feature) => {
               const Icon = feature.icon;
               const isChefsKitchen =
                 feature.route === "/lifestyle/chefs-kitchen";

@@ -4,6 +4,7 @@ import { ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import { isFeatureEnabled } from "@/lib/productionGates";
 
 interface MealData {
   id?: string;
@@ -134,7 +135,7 @@ export default function MealCardActions({
           />
         )}
       </div>
-      {showPrepareButton && hasInstructions && (
+      {showPrepareButton && hasInstructions && isFeatureEnabled('chefsKitchen') && (
         <Button
           size="sm"
           className="w-full bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"

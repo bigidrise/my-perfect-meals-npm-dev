@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { isFeatureEnabled } from "@/lib/productionGates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import {
@@ -336,41 +337,43 @@ export default function DessertCreator() {
           className="max-w-2xl mx-auto px-4 pb-32"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
-          {/* Create with Chef Entry Point */}
-          <div className="relative mb-4">
-            <div
-              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
-              style={{
-                background:
-                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.75), rgba(239,68,68,0.35), rgba(0,0,0,0))",
-              }}
-            />
-            <Card
-              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
-              onClick={() => setLocation("/dessert-studio")}
-              data-testid="dessert-studio-entry"
-            >
-              <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
-                <span className="text-white font-semibold text-[9px]">
-                  Powered by Emotion AI™
-                </span>
-              </div>
-              <CardContent className="p-3">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                    <h3 className="text-sm font-semibold text-white">
-                      Create with Chef
-                    </h3>
-                  </div>
-                  <p className="text-xs text-white/80 ml-6">
-                    Step-by-step guided dessert creation with Chef voice assistance
-                  </p>
+          {/* Create with Chef Entry Point - Gated for production stability */}
+          {isFeatureEnabled('studioCreators') && (
+            <div className="relative mb-4">
+              <div
+                className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
+                style={{
+                  background:
+                    "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.75), rgba(239,68,68,0.35), rgba(0,0,0,0))",
+                }}
+              />
+              <Card
+                className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
+                onClick={() => setLocation("/dessert-studio")}
+                data-testid="dessert-studio-entry"
+              >
+                <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+                  <span className="text-white font-semibold text-[9px]">
+                    Powered by Emotion AI™
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <CardContent className="p-3">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                      <h3 className="text-sm font-semibold text-white">
+                        Create with Chef
+                      </h3>
+                    </div>
+                    <p className="text-xs text-white/80 ml-6">
+                      Step-by-step guided dessert creation with Chef voice assistance
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
             <CardHeader className="pb-3">
