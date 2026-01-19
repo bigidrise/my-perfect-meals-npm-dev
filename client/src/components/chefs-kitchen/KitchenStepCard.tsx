@@ -16,7 +16,7 @@ interface KitchenStepCardProps {
   onEdit?: () => void;
   canEdit?: boolean;
   placeholder?: string;
-  inputType?: "textarea" | "buttons" | "yesno";
+  inputType?: "textarea" | "buttons" | "yesno" | "none";
   buttonOptions?: string[];
   equipmentList?: string[];
   onInputFocus?: () => void;
@@ -227,6 +227,8 @@ export function KitchenStepCard({
                     className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                     maxLength={300}
                   />
+                ) : inputType === "none" ? (
+                  null
                 ) : showOtherInput ? (
                   <div className="space-y-2">
                     <textarea

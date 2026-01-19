@@ -952,6 +952,7 @@ export default function ChefsKitchenPage() {
                 hasListened={step5Listened}
                 isLocked={step5Locked}
                 isPlaying={isPlaying}
+                inputType="none"
                 equipmentList={suggestedEquipment}
                 onInputFocus={stopChef}
                 onListen={() => {
