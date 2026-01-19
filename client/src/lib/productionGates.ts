@@ -12,16 +12,13 @@
  * 3. Or conditionally render: {isFeatureEnabled('studioCreators') && <Component />}
  */
 
-const isDevelopment = import.meta.env.DEV || 
-  import.meta.env.MODE === 'development' ||
-  window.location.hostname.includes('localhost') ||
-  window.location.hostname.includes('replit.dev') ||
-  window.location.hostname.includes('replit.app') ||
-  window.location.hostname.includes('.repl.') ||
-  window.location.hostname.includes('webcontainer') ||
-  // This specific Replit workspace is the dev environment
-  window.location.hostname.includes('maindev') ||
-  window.location.hostname.includes('-00-');
+// Production is ONLY the published domain - everything else is dev
+const isProduction = 
+  window.location.hostname === 'myperfectmeals.com' ||
+  window.location.hostname === 'www.myperfectmeals.com' ||
+  window.location.hostname.endsWith('.myperfectmeals.com');
+
+const isDevelopment = !isProduction;
 
 const ADMIN_EMAILS = [
   'admin@myperfectmeals.com',
