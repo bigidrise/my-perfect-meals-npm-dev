@@ -2,13 +2,13 @@
  * Production Gates - Hide unstable features from Apple/clients
  * 
  * ARCHITECTURE:
- * - Dev URL (Replit dev space) → Studios ALWAYS visible (use VITE_FORCE_SHOW_STUDIOS=true)
- * - Production URL (myperfectmeals.com) → Studios obey gate settings
- * - iOS App → Studios obey gate settings
+ * - Studios are HIDDEN by default everywhere
+ * - Studios are ONLY shown when VITE_FORCE_SHOW_STUDIOS=true is explicitly set
+ * - This env var should ONLY be set in the main dev workspace
  * 
- * IMPORTANT: import.meta.env.MODE is set at BUILD TIME, not runtime.
- * When you publish your dev space with `npm run build`, MODE === "production"
- * even though you're on a dev URL. Use VITE_FORCE_SHOW_STUDIOS to override.
+ * RESULT:
+ * - Main dev workspace (with env var) → All studios visible
+ * - All other environments (iOS, production, other dev spaces) → Only Fridge Rescue visible
  * 
  * HOW TO USE:
  * 1. Import: import { isFeatureEnabled, GATED_FEATURES } from '@/lib/productionGates'
@@ -17,14 +17,13 @@
  */
 
 /**
- * FORCE OVERRIDE - Set VITE_FORCE_SHOW_STUDIOS=true in dev space secrets
- * This bypasses ALL gates regardless of build mode or hostname
+ * FORCE OVERRIDE - Set VITE_FORCE_SHOW_STUDIOS=true ONLY in main dev workspace
+ * This is the ONLY way to enable gated studios
  */
 const FORCE_SHOW_STUDIOS = import.meta.env.VITE_FORCE_SHOW_STUDIOS === 'true';
 
 /**
- * Domain-based detection (most reliable for runtime)
- * Production is ONLY myperfectmeals.com - everything else is dev
+ * Domain check (for reference, but not used for gating anymore)
  */
 const isProductionDomain = 
   typeof window !== 'undefined' && (
@@ -32,14 +31,6 @@ const isProductionDomain =
     window.location.hostname === 'www.myperfectmeals.com' ||
     window.location.hostname.endsWith('.myperfectmeals.com')
   );
-
-/**
- * Final production check:
- * - If FORCE_SHOW_STUDIOS is set, we're in dev mode (override)
- * - Otherwise, check if we're on the production domain
- */
-const isProduction = !FORCE_SHOW_STUDIOS && isProductionDomain;
-const isDevelopment = !isProduction;
 
 const ADMIN_EMAILS = [
   'admin@myperfectmeals.com',
@@ -49,22 +40,20 @@ const ADMIN_EMAILS = [
 /**
  * Gated Features Configuration
  * 
- * These settings ONLY apply in production.
- * In dev (including dev published URLs with VITE_FORCE_SHOW_STUDIOS=true), 
- * ALL features are always visible regardless of these settings.
+ * These features are HIDDEN everywhere EXCEPT when VITE_FORCE_SHOW_STUDIOS=true
  * 
- * Set to `false` to HIDE from production
- * Set to `true` to SHOW in production
+ * Set to `false` to HIDE from production (and all non-dev-workspace environments)
+ * Set to `true` to SHOW everywhere (use for stable features)
  */
 export const GATED_FEATURES = {
-  // Studios - currently having meal generation issues on published URLs
-  studioCreators: false,      // Craving Studio, Dessert Studio, Fridge Rescue Studio
+  // Studios - HIDDEN everywhere except main dev workspace
+  studioCreators: false,      // Craving Studio, Dessert Studio (Fridge Rescue is NOT gated)
   chefsKitchen: false,        // Chef's Kitchen page
   
-  // Voice - hands-free mode has timing/overlap issues
+  // Voice - HIDDEN everywhere except main dev workspace
   handsFreeVoice: false,      // Hands-free voice mode (walkie-talkie)
   
-  // Keep these enabled
+  // These are stable and shown everywhere
   quickCreators: true,        // Quick Create forms (stable)
   talkToChef: true,           // Tap-to-talk voice (stable)
 } as const;
@@ -72,65 +61,54 @@ export const GATED_FEATURES = {
 export type GatedFeature = keyof typeof GATED_FEATURES;
 
 /**
- * Check if we're in dev mode (always shows all features)
+ * Check if we're in the main dev workspace (force flag is set)
  */
 export function isDevMode(): boolean {
-  return isDevelopment;
+  return FORCE_SHOW_STUDIOS;
 }
 
 /**
- * Check if we're in production mode
+ * Check if we're in production mode (no force flag)
  */
 export function isProductionMode(): boolean {
-  return isProduction;
+  return !FORCE_SHOW_STUDIOS;
 }
 
 /**
- * Check if studios should be shown (centralized gate)
- * Use this for any studio-related visibility check
+ * Check if studios should be shown
+ * ONLY returns true when VITE_FORCE_SHOW_STUDIOS=true
  */
 export function shouldShowStudios(): boolean {
-  // Force override set in dev space
-  if (FORCE_SHOW_STUDIOS) {
-    return true;
-  }
-  
-  // Not on production domain = dev = show studios
-  if (!isProductionDomain) {
-    return true;
-  }
-  
-  // On production domain = hide studios (gated)
-  return false;
+  return FORCE_SHOW_STUDIOS;
 }
 
 /**
  * Check if a specific feature is enabled
  * 
- * KEY RULE: Dev ALWAYS bypasses gates. Production respects gate settings.
+ * STRICT RULE: Features are ONLY enabled when:
+ * 1. VITE_FORCE_SHOW_STUDIOS=true (main dev workspace), OR
+ * 2. The feature is marked as `true` in GATED_FEATURES (stable features), OR
+ * 3. User is an admin (for production debugging)
  */
 export function isFeatureEnabled(feature: GatedFeature, userEmail?: string | null): boolean {
-  // FORCE OVERRIDE: Always show all features when override is set
+  // FORCE OVERRIDE: Main dev workspace shows all features
   if (FORCE_SHOW_STUDIOS) {
     return true;
   }
   
-  // DEV: Not on production domain = show all features
-  if (!isProductionDomain) {
-    return true;
-  }
-  
-  // PRODUCTION: Admin override for debugging
+  // Admin override for debugging in any environment
   if (userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
     return true;
   }
   
-  // PRODUCTION: Respect the gate setting
+  // All other environments: respect the gate setting
+  // If GATED_FEATURES[feature] is false, feature is hidden
+  // If GATED_FEATURES[feature] is true, feature is shown (stable)
   return GATED_FEATURES[feature];
 }
 
 /**
- * Get the message to show when a feature is gated (production only)
+ * Get the message to show when a feature is gated
  */
 export function getGatedMessage(feature: GatedFeature): string {
   const messages: Record<GatedFeature, string> = {
