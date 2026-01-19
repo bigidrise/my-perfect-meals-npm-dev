@@ -952,8 +952,6 @@ export default function ChefsKitchenPage() {
                 hasListened={step5Listened}
                 isLocked={step5Locked}
                 isPlaying={isPlaying}
-                inputType="buttons"
-                buttonOptions={["OK"]}
                 equipmentList={suggestedEquipment}
                 onInputFocus={stopChef}
                 onListen={() => {
@@ -968,6 +966,7 @@ export default function ChefsKitchenPage() {
                 }}
                 onEdit={editStep5}
                 canEdit={studioStep < 6}
+                submitLabel="OK"
               />
             )}
 

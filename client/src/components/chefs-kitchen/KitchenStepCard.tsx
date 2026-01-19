@@ -28,7 +28,7 @@ interface KitchenStepCardProps {
     noValue?: string;
     yesPlaceholder?: string;
   };
-  singleActionButton?: boolean;
+  submitLabel?: string;
 }
 
 export function KitchenStepCard({
@@ -52,6 +52,7 @@ export function KitchenStepCard({
   otherEnabled = false,
   otherPlaceholder = "Type your answer...",
   yesnoConfig,
+  submitLabel,
 }: KitchenStepCardProps) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherValue, setOtherValue] = useState("");
@@ -296,7 +297,7 @@ export function KitchenStepCard({
                   onClick={onSubmit}
                   data-testid={`button-submit-${stepTitle.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  Continue
+                  {submitLabel || "Continue"}
                 </button>
               </>
             )}
