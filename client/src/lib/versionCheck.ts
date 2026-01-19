@@ -83,7 +83,9 @@ function compareSemanticVersion(a: string, b: string): number {
 }
 
 // Check if current version meets minimum supported version
-export function meetsMinimumVersion(current: string, minSupported: string): boolean {
+export function meetsMinimumVersion(current: string, minSupported?: string): boolean {
+  if (!current || !minSupported) return true; // No minimum specified = passes
+  
   const currentBase = current.split('+')[0];
   const minBase = minSupported.split('+')[0];
   
