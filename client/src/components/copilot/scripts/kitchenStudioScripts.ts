@@ -66,7 +66,7 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 export const KITCHEN_STUDIO_OPEN_START = "";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS1 =
-  "If you happy with your meal tap, Enter Chef’s Kitchen, and we’ll start cooking, if not, press Create New, and we can create a new meal.";
+  "If you happy with your meal tap, Enter Chef’s Kitchen! and we’ll start cooking. If not, press, Create New, and we can create a new meal.";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 
