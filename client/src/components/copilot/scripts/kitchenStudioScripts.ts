@@ -2,7 +2,7 @@
 // Uses the same 11L voice system as ProTip and Copilot button
 
 export const KITCHEN_STUDIO_INTRO =
-  "What sounds good?";
+  "What are we preparing today?";
 
 export const KITCHEN_STUDIO_STEP2 = "";
 

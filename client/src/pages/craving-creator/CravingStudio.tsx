@@ -93,10 +93,10 @@ function normalizeInstructions(raw: string | string[] | undefined): string[] {
 /** Voice scripts (tight + not corny) */
 const CRAVING_STUDIO_INTRO = "Alright — what are we craving today?";
 const CRAVING_STUDIO_STEP2 =
-  "Perfect. Any dietary preferences, allergies, or foods you want to avoid?";
-const CRAVING_STUDIO_STEP3 = "How many servings should I make?";
+  "Any dietary preferences, allergies, or foods you want to avoid?";
+const CRAVING_STUDIO_STEP3 = "How many servings?";
 const CRAVING_STUDIO_STEP4 =
-  "Anything custom? Lower sugar, low sodium, gluten-free, or a time goal?";
+  "Anything custom? Low sugar, low sodium, gluten-free, special diets?";
 
 const CRAVING_STUDIO_OPEN_START = "";
 const CRAVING_STUDIO_OPEN_PROGRESS1 =
