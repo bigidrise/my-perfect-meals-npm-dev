@@ -14,14 +14,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, ArrowLeft, Users, Brain } from "lucide-react";
+import { Sparkles, ArrowLeft, Users, Brain, ChefHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
-import MealCardActions from "@/components/MealCardActions";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -663,32 +664,6 @@ export default function DessertCreator() {
                         </h3>
                       </div>
                     </div>
-                    <div className="flex gap-2 mb-4">
-                      <AddToMealPlanButton meal={generatedDessert} />
-                      <MealCardActions
-                        meal={{
-                          name: generatedDessert.name,
-                          description: generatedDessert.description,
-                          ingredients: (generatedDessert.ingredients ?? []).map(
-                            (ing: any) => ({
-                              name: ing.name || ing.item,
-                              amount: ing.amount,
-                              unit: ing.unit,
-                            }),
-                          ),
-                          instructions: Array.isArray(
-                            generatedDessert.instructions,
-                          )
-                            ? generatedDessert.instructions
-                            : generatedDessert.instructions
-                              ? generatedDessert.instructions
-                                  .split("\n")
-                                  .filter((s: string) => s.trim())
-                              : [],
-                          nutrition: generatedDessert.nutrition,
-                        }}
-                      />
-                    </div>
                   </div>
 
                   {generatedDessert.ingredients?.length > 0 && (
@@ -732,16 +707,67 @@ export default function DessertCreator() {
                     </div>
                   )}
 
-                  <GlassButton
-                    onClick={() => {
-                      setLocation(
-                        "/biometrics?from=dessert-creator&view=macros",
-                      );
-                    }}
-                    className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center text-center"
-                  >
-                    Add to Macros
-                  </GlassButton>
+                  {/* Standardized 3-Row Button Layout */}
+                  <div className="space-y-2">
+                    {/* Row 1: Add to Macros (full width) */}
+                    <GlassButton
+                      onClick={() => {
+                        setLocation("/biometrics?from=dessert-creator&view=macros");
+                      }}
+                      className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center text-center border border-white/30"
+                    >
+                      Add to Macros
+                    </GlassButton>
+
+                    {/* Row 2: Add to Plan + Translate (50/50) */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <AddToMealPlanButton meal={generatedDessert} />
+                      <TranslateToggle
+                        content={{
+                          name: generatedDessert.name,
+                          description: generatedDessert.description,
+                          instructions: generatedDessert.instructions,
+                        }}
+                        onTranslate={() => {}}
+                      />
+                    </div>
+
+                    {/* Row 3: Prepare with Chef + Share (50/50) */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <GlassButton
+                        onClick={() => {
+                          const mealData = {
+                            id: crypto.randomUUID(),
+                            name: generatedDessert.name,
+                            description: generatedDessert.description,
+                            ingredients: generatedDessert.ingredients || [],
+                            instructions: generatedDessert.instructions,
+                            imageUrl: generatedDessert.imageUrl,
+                          };
+                          localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+                          localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                          setLocation("/lifestyle/chefs-kitchen");
+                        }}
+                        className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold flex items-center justify-center gap-1.5"
+                      >
+                        <ChefHat className="h-4 w-4" />
+                        Prepare with Chef
+                      </GlassButton>
+                      <ShareRecipeButton
+                        recipe={{
+                          name: generatedDessert.name,
+                          description: generatedDessert.description,
+                          nutrition: generatedDessert.nutrition,
+                          ingredients: (generatedDessert.ingredients ?? []).map((ing: any) => ({
+                            name: ing.name || ing.item,
+                            amount: ing.amount,
+                            unit: ing.unit,
+                          })),
+                        }}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

@@ -24,6 +24,8 @@ import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { apiUrl } from "@/lib/resolveApiBase";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import MealCardActions from "@/components/MealCardActions";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import {
   generateMedicalBadges,
@@ -1142,40 +1144,6 @@ export default function ChefsKitchenPage() {
                         </div>
                       </div>
 
-                      {/* Action Buttons Row */}
-                      <div className="flex gap-2">
-                        <AddToMealPlanButton meal={generatedMeal} />
-                        <MealCardActions
-                          meal={{
-                            name: generatedMeal.name,
-                            description: generatedMeal.description,
-                            ingredients: generatedMeal.ingredients.map(
-                              (ing) => ({
-                                name: ing.name,
-                                amount: String(
-                                  ing.amount ?? ing.quantity ?? "",
-                                ),
-                                unit: ing.unit,
-                              }),
-                            ),
-                            instructions: generatedMeal.instructions,
-                            nutrition: generatedMeal.nutrition,
-                          }}
-                          onContentUpdate={(updated) => {
-                            setDisplayMeal({
-                              ...generatedMeal,
-                              name: updated.name || generatedMeal.name,
-                              description:
-                                updated.description ||
-                                generatedMeal.description,
-                              instructions:
-                                updated.instructions ||
-                                generatedMeal.instructions,
-                            });
-                          }}
-                        />
-                      </div>
-
                       {/* Medical Badges */}
                       {(() => {
                         const profile = getUserMedicalProfile(1);
@@ -1259,40 +1227,77 @@ export default function ChefsKitchenPage() {
                         </div>
                       )}
 
-                      {/* Add Your Macros */}
-                      <button
-                        onClick={() => {
-                          setQuickView({
-                            protein: Math.round(generatedMeal.protein || 0),
-                            carbs: Math.round(generatedMeal.carbs || 0),
-                            starchyCarbs: 0,
-                            fibrousCarbs: 0,
-                            fat: Math.round(generatedMeal.fat || 0),
-                            calories: Math.round(generatedMeal.calories || 0),
-                            dateISO: new Date().toISOString().slice(0, 10),
-                            mealSlot: "snacks",
-                          });
-                          setLocation(
-                            "/biometrics?from=chefs-kitchen&view=macros",
-                          );
-                        }}
-                        className="w-full py-3 rounded-xl bg-black hover:bg-black/80 text-white font-semibold text-sm transition"
-                      >
-                        Add Your Macros
-                      </button>
+                      {/* Standardized 3-Row Button Layout */}
+                      <div className="space-y-2">
+                        {/* Row 1: Add to Macros (full width) */}
+                        <button
+                          onClick={() => {
+                            setQuickView({
+                              protein: Math.round(generatedMeal.protein || 0),
+                              carbs: Math.round(generatedMeal.carbs || 0),
+                              starchyCarbs: 0,
+                              fibrousCarbs: 0,
+                              fat: Math.round(generatedMeal.fat || 0),
+                              calories: Math.round(generatedMeal.calories || 0),
+                              dateISO: new Date().toISOString().slice(0, 10),
+                              mealSlot: "snacks",
+                            });
+                            setLocation("/biometrics?from=chefs-kitchen&view=macros");
+                          }}
+                          className="w-full py-3 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white font-semibold text-sm transition border border-white/30"
+                        >
+                          Add to Macros
+                        </button>
 
-                      {/* Prepare This Meal - Entry to Phase Two */}
-                      <button
-                        onClick={() => {
-                          stopChef();
-                          setPrepStep(0);
-                          setMode("prepare");
-                        }}
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
-                        data-testid="button-prepare-meal"
-                      >
-                        Enter Chef's Kitchen
-                      </button>
+                        {/* Row 2: Add to Plan + Translate (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <AddToMealPlanButton meal={generatedMeal} />
+                          <TranslateToggle
+                            content={{
+                              name: generatedMeal.name,
+                              description: generatedMeal.description,
+                              instructions: generatedMeal.instructions,
+                            }}
+                            onTranslate={(updated) => {
+                              setDisplayMeal({
+                                ...generatedMeal,
+                                name: updated.name || generatedMeal.name,
+                                description: updated.description || generatedMeal.description,
+                                instructions: updated.instructions || generatedMeal.instructions,
+                              });
+                            }}
+                          />
+                        </div>
+
+                        {/* Row 3: Prepare with Chef + Share (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              stopChef();
+                              setPrepStep(0);
+                              setMode("prepare");
+                            }}
+                            className="flex-1 py-2 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition flex items-center justify-center gap-1.5"
+                            data-testid="button-prepare-meal"
+                          >
+                            <ChefHat className="h-4 w-4" />
+                            Prepare with Chef
+                          </button>
+                          <ShareRecipeButton
+                            recipe={{
+                              name: generatedMeal.name,
+                              description: generatedMeal.description,
+                              nutrition: generatedMeal.nutrition,
+                              ingredients: generatedMeal.ingredients.map((ing) => ({
+                                name: ing.name,
+                                amount: String(ing.amount ?? ing.quantity ?? ""),
+                                unit: ing.unit,
+                              })),
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -1622,19 +1627,26 @@ export default function ChefsKitchenPage() {
 
       {/* Hands-free Voice Mode Overlay */}
       <VoiceModeOverlay
-        isActive={voiceStudio.isVoiceActive}
-        isListening={voiceStudio.isListening}
-        transcript={voiceStudio.transcript}
-        currentStepQuestion={voiceStudio.currentStepQuestion}
-        onStop={voiceStudio.stopVoiceMode}
+        isOpen={voiceStudio.isActive}
+        onClose={voiceStudio.stopVoiceMode}
+        voiceState={voiceStudio.voiceState}
+        currentStep={voiceStudio.currentVoiceStep}
+        totalSteps={6}
+        lastTranscript={voiceStudio.lastTranscript}
+        isPlaying={voiceStudio.isPlaying}
+        onStart={voiceStudio.startVoiceMode}
       />
 
       {/* Talk to Chef floating button - show during studio steps (before generate) */}
       {mode === "studio" && studioStep < 6 && !isGeneratingMeal && (
         <TalkToChefButton
-          onActivate={voiceStudio.startVoiceMode}
-          isActive={voiceStudio.isVoiceActive}
-          hintKey="chefs-kitchen"
+          voiceState={voiceStudio.voiceState}
+          currentStep={voiceStudio.currentVoiceStep}
+          totalSteps={6}
+          lastTranscript={voiceStudio.lastTranscript}
+          isPlaying={voiceStudio.isPlaying}
+          onStart={voiceStudio.startVoiceMode}
+          onStop={voiceStudio.stopVoiceMode}
         />
       )}
 
