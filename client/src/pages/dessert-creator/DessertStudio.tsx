@@ -100,22 +100,20 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
       defaultValue: "2 people",
     },
 
-    // 4 — DIETARY
+    // 4 — DIETARY (Yes/No pattern matching Chef's Kitchen Step 3)
     {
       title: "Dietary",
-      question: "Any dietary needs?",
+      question: "Any dietary needs or preferences?",
       voiceScript: "Any dietary preferences I should follow?",
-      inputType: "buttons",
-      buttonOptions: [
-        "None",
-        "Low Sugar",
-        "Gluten-Free",
-        "Dairy-Free",
-        "High Protein",
-        "Vegan",
-      ],
+      inputType: "yesno",
       summaryPrefix: "Dietary",
-      defaultValue: "None",
+      placeholder: "e.g., low sugar, gluten-free, dairy-free, high protein, vegan...",
+      yesnoConfig: {
+        noLabel: "No, I'm good",
+        yesLabel: "Yes, add preferences",
+        noValue: "None",
+        yesPlaceholder: "e.g., low sugar, gluten-free, dairy-free, high protein, vegan...",
+      },
     },
   ],
 

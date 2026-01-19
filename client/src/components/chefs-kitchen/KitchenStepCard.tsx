@@ -16,12 +16,18 @@ interface KitchenStepCardProps {
   onEdit?: () => void;
   canEdit?: boolean;
   placeholder?: string;
-  inputType?: "textarea" | "buttons";
+  inputType?: "textarea" | "buttons" | "yesno";
   buttonOptions?: string[];
   equipmentList?: string[];
   onInputFocus?: () => void;
   otherEnabled?: boolean;
   otherPlaceholder?: string;
+  yesnoConfig?: {
+    noLabel?: string;
+    yesLabel?: string;
+    noValue?: string;
+    yesPlaceholder?: string;
+  };
 }
 
 export function KitchenStepCard({
@@ -44,9 +50,17 @@ export function KitchenStepCard({
   onInputFocus,
   otherEnabled = false,
   otherPlaceholder = "Type your answer...",
+  yesnoConfig,
 }: KitchenStepCardProps) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherValue, setOtherValue] = useState("");
+  const [yesnoMode, setYesnoMode] = useState<"idle" | "no" | "yes">("idle");
+  const [yesnoText, setYesnoText] = useState("");
+
+  const yesnoNoLabel = yesnoConfig?.noLabel || "No, I'm good";
+  const yesnoYesLabel = yesnoConfig?.yesLabel || "Yes, add preferences";
+  const yesnoNoValue = yesnoConfig?.noValue || "None";
+  const yesnoYesPlaceholder = yesnoConfig?.yesPlaceholder || placeholder || "Type your preferences...";
 
   const handleOtherClick = () => {
     onInputFocus?.();
@@ -129,7 +143,80 @@ export function KitchenStepCard({
 
                 <label className="block text-sm text-white">{question}</label>
 
-                {inputType === "textarea" ? (
+                {inputType === "yesno" ? (
+                  <div className="space-y-3">
+                    {yesnoMode === "idle" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => {
+                            onInputFocus?.();
+                            setYesnoMode("no");
+                            setValue(yesnoNoValue);
+                          }}
+                          className="py-3 rounded-xl border text-sm font-medium transition bg-lime-600/20 text-lime-400 border-lime-500/40 hover:bg-lime-600/30 hover:border-lime-400"
+                        >
+                          {yesnoNoLabel}
+                        </button>
+                        <button
+                          onClick={() => {
+                            onInputFocus?.();
+                            setYesnoMode("yes");
+                            setValue("");
+                          }}
+                          className="py-3 rounded-xl border text-sm font-medium transition bg-orange-600/20 text-orange-400 border-orange-500/40 hover:bg-orange-600/30 hover:border-orange-400"
+                        >
+                          {yesnoYesLabel}
+                        </button>
+                      </div>
+                    )}
+                    {yesnoMode === "no" && (
+                      <div className="rounded-xl border border-lime-500/40 bg-lime-900/20 p-3 flex items-center justify-between">
+                        <span className="text-sm text-lime-400 font-medium flex items-center gap-2">
+                          <Check className="h-4 w-4" />
+                          No preferences needed
+                        </span>
+                        <button
+                          onClick={() => {
+                            setYesnoMode("idle");
+                            setValue("");
+                          }}
+                          className="text-xs text-white/60 hover:text-white/90 px-2 py-1 rounded hover:bg-white/10"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    )}
+                    {yesnoMode === "yes" && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-orange-400 font-medium">Add your preferences:</span>
+                          <button
+                            onClick={() => {
+                              setYesnoMode("idle");
+                              setYesnoText("");
+                              setValue("");
+                            }}
+                            className="text-xs text-white/60 hover:text-white/90 px-2 py-1 rounded hover:bg-white/10"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <textarea
+                          value={yesnoText}
+                          onChange={(e) => {
+                            setYesnoText(e.target.value);
+                            setValue(e.target.value);
+                          }}
+                          onFocus={onInputFocus}
+                          placeholder={yesnoYesPlaceholder}
+                          className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-orange-500/50 rounded-lg h-20 resize-none text-sm focus:ring-1 focus:ring-orange-500"
+                          maxLength={300}
+                          autoFocus
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : inputType === "textarea" ? (
                   <textarea
                     value={value}
                     onChange={(e) => setValue(e.target.value)}

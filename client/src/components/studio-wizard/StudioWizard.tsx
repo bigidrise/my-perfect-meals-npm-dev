@@ -58,13 +58,19 @@ export interface StudioStepConfig {
   question: string;
   placeholder?: string;
   voiceScript: string;
-  inputType: "textarea" | "buttons";
+  inputType: "textarea" | "buttons" | "yesno";
   buttonOptions?: string[];
   summaryPrefix: string;
   defaultValue?: string;
   required?: boolean;
   otherEnabled?: boolean;
   otherPlaceholder?: string;
+  yesnoConfig?: {
+    noLabel?: string;
+    yesLabel?: string;
+    noValue?: string;
+    yesPlaceholder?: string;
+  };
 }
 
 export interface StudioScripts {
@@ -523,6 +529,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
               buttonOptions={step.buttonOptions}
               otherEnabled={step.otherEnabled}
               otherPlaceholder={step.otherPlaceholder}
+              yesnoConfig={step.yesnoConfig}
               onInputFocus={stopChef}
               onListen={() => {
                 if (hasListened || isPlaying) return;
