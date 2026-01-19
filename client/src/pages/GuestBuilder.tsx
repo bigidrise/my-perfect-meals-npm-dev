@@ -36,6 +36,7 @@ import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GuestUpgradePromptModal } from "@/components/modals/GuestUpgradePromptModal";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { isFeatureEnabled } from "@/lib/productionGates";
 
 interface ActionButton {
   id: string;
