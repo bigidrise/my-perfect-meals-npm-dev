@@ -73,7 +73,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     generatingStart: "",
     generatingProgress1: "",
     generatingProgress2: "",
-    complete: "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking.",
+    complete: "If you happy with your meal tap, Enter Chef’s Kitchen, and we’ll start cooking, if not, press Create New, and we can create a new meal.",
   },
 
   apiEndpoint: "/api/craving-creator/generate",

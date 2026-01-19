@@ -100,7 +100,7 @@ const CRAVING_STUDIO_STEP4 =
 
 const CRAVING_STUDIO_OPEN_START = "";
 const CRAVING_STUDIO_OPEN_PROGRESS1 =
-  "When it’s ready, tap Enter Chef’s Kitchen and we’ll start cooking";
+  "If you happy with your meal tap, Enter Chef’s Kitchen, and we’ll start cooking, if not, press Create New, and we can create a new meal.";
 const CRAVING_STUDIO_OPEN_PROGRESS2 = "";
 const CRAVING_STUDIO_OPEN_COMPLETE = "";
 
