@@ -1,163 +1,118 @@
 /**
  * Production Gates - Hide unstable features from Apple/clients
  * 
- * ARCHITECTURE:
- * - Studios shown on: Main dev workspace OR Main dev URL (*.replit.dev)
- * - Studios hidden on: Production URL (myperfectmeals.com), iOS app
- * 
- * IMPORTANT: Check order matters!
- * 1. FIRST check if we should ALLOW (dev URL or force flag)
- * 2. THEN check if we should BLOCK (production or iOS)
+ * SIMPLE LOGIC:
+ * 1. If on ALLOWLISTED dev hostname → SHOW studios
+ * 2. If on production domain or iOS → HIDE studios
+ * 3. Default → HIDE studios
  */
 
-/**
- * Build-time override (works in dev workspace with Vite dev server)
- */
 const FORCE_SHOW_STUDIOS = import.meta.env.VITE_FORCE_SHOW_STUDIOS === 'true';
 
 /**
- * Check if running on a Replit dev URL (runtime check)
- * This catches the published dev URL which uses a production build
+ * ALLOWLIST: Exact hostnames that should show ALL studios
+ * Add your main dev URL here
  */
-function isReplitDevUrl(): boolean {
-  if (typeof window === 'undefined') return false;
-  
-  const hostname = window.location.hostname;
-  
-  // Replit dev URL patterns - these should SHOW studios
-  return (
-    hostname.endsWith('.replit.dev') ||
-    hostname.endsWith('.repl.co') ||
-    hostname.includes('.picard.') ||
-    hostname === 'localhost'
-  );
-}
-
-/**
- * Check if running on production domain - should HIDE studios
- */
-function isProductionDomain(): boolean {
-  if (typeof window === 'undefined') return false;
-  
-  const hostname = window.location.hostname;
-  
-  // Only exact production domains
-  return (
-    hostname === 'myperfectmeals.com' ||
-    hostname === 'www.myperfectmeals.com'
-  );
-}
-
-/**
- * Check if running in iOS/Capacitor native app - should HIDE studios
- */
-function isNativeApp(): boolean {
-  if (typeof window === 'undefined') return false;
-  
-  // Check for Capacitor
-  const hasCapacitor = !!(window as any).Capacitor?.isNativePlatform?.();
-  
-  // Check user agent for iOS webview
-  const userAgent = navigator.userAgent || '';
-  const isIOSWebView = /iPhone|iPad|iPod/.test(userAgent) && !/Safari/.test(userAgent);
-  
-  return hasCapacitor || isIOSWebView;
-}
-
-const ADMIN_EMAILS = [
-  'admin@myperfectmeals.com',
+const ALLOWED_DEV_HOSTNAMES = [
+  '6ec77f1f-9dac-4f2b-bee5-d2f285813ff1-00-1ejhf7hrpbxz8.picard.replit.dev',
+  'localhost',
 ];
 
 /**
- * Gated Features Configuration
+ * BLOCKLIST: Exact hostnames that should HIDE studios
  */
+const PRODUCTION_HOSTNAMES = [
+  'myperfectmeals.com',
+  'www.myperfectmeals.com',
+];
+
+function isAllowedDevHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return ALLOWED_DEV_HOSTNAMES.includes(hostname);
+}
+
+function isProductionHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return PRODUCTION_HOSTNAMES.includes(hostname);
+}
+
+function isNativeApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hasCapacitor = !!(window as any).Capacitor?.isNativePlatform?.();
+  const userAgent = navigator.userAgent || '';
+  const isIOSWebView = /iPhone|iPad|iPod/.test(userAgent) && !/Safari/.test(userAgent);
+  return hasCapacitor || isIOSWebView;
+}
+
+const ADMIN_EMAILS = ['admin@myperfectmeals.com'];
+
 export const GATED_FEATURES = {
-  // Studios - Gated (hidden in production/iOS)
-  studioCreators: false,      // Craving Studio, Dessert Studio (Fridge Rescue is NOT gated)
-  chefsKitchen: false,        // Chef's Kitchen page
-  
-  // Voice - Gated
-  handsFreeVoice: false,      // Hands-free voice mode
-  
-  // Stable features - Shown everywhere
-  quickCreators: true,        // Quick Create forms
-  talkToChef: true,           // Tap-to-talk voice
+  studioCreators: false,
+  chefsKitchen: false,
+  handsFreeVoice: false,
+  quickCreators: true,
+  talkToChef: true,
 } as const;
 
 export type GatedFeature = keyof typeof GATED_FEATURES;
 
 /**
- * Check if studios should be shown
+ * Should studios be shown?
  * 
- * ORDER MATTERS:
- * 1. FIRST: Check ALLOW conditions (dev URL, force flag) - return true
- * 2. THEN: Check BLOCK conditions (production, iOS) - return false
- * 3. DEFAULT: false (hide if unknown)
+ * Priority order:
+ * 1. Allowed dev host → YES
+ * 2. Force flag → YES
+ * 3. Production host → NO
+ * 4. Native app → NO
+ * 5. Default → NO
  */
 export function shouldShowStudios(): boolean {
-  // === ALLOW CONDITIONS (check these FIRST) ===
+  // FIRST: Check allowlist
+  if (isAllowedDevHost()) {
+    return true;
+  }
   
-  // Force override from env var (dev workspace)
+  // Force override
   if (FORCE_SHOW_STUDIOS) {
     return true;
   }
   
-  // Replit dev URLs should show studios
-  if (isReplitDevUrl()) {
-    return true;
-  }
-  
-  // === BLOCK CONDITIONS (check these SECOND) ===
-  
-  // Production domain hides studios
-  if (isProductionDomain()) {
+  // Block production
+  if (isProductionHost()) {
     return false;
   }
   
-  // iOS native app hides studios
+  // Block iOS
   if (isNativeApp()) {
     return false;
   }
   
-  // === DEFAULT: Hide studios (unknown environment) ===
+  // Default: hide
   return false;
 }
 
-/**
- * Check if we're in dev mode (workspace or dev URL)
- */
 export function isDevMode(): boolean {
   return shouldShowStudios();
 }
 
-/**
- * Check if we're in production mode
- */
 export function isProductionMode(): boolean {
   return !shouldShowStudios();
 }
 
-/**
- * Check if a specific feature is enabled
- */
 export function isFeatureEnabled(feature: GatedFeature, userEmail?: string | null): boolean {
-  // If studios should show (dev workspace or dev URL), enable all features
   if (shouldShowStudios()) {
     return true;
   }
   
-  // Admin override for debugging
   if (userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
     return true;
   }
   
-  // Production/iOS: respect the gate setting
   return GATED_FEATURES[feature];
 }
 
-/**
- * Get the message to show when a feature is gated
- */
 export function getGatedMessage(feature: GatedFeature): string {
   const messages: Record<GatedFeature, string> = {
     studioCreators: "Chef is warming up — this experience is temporarily paused while we finalize the next upgrade.",
