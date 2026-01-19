@@ -2,108 +2,160 @@
  * Production Gates - Hide unstable features from Apple/clients
  * 
  * ARCHITECTURE:
- * - Studios are HIDDEN by default everywhere
- * - Studios are ONLY shown when VITE_FORCE_SHOW_STUDIOS=true is explicitly set
- * - This env var should ONLY be set in the main dev workspace
+ * - Studios shown on: Main dev workspace OR Main dev URL (*.picard.replit.dev)
+ * - Studios hidden on: Production URL (myperfectmeals.com), iOS app, other workspaces
  * 
- * RESULT:
- * - Main dev workspace (with env var) → All studios visible
- * - All other environments (iOS, production, other dev spaces) → Only Fridge Rescue visible
- * 
- * HOW TO USE:
- * 1. Import: import { isFeatureEnabled, GATED_FEATURES } from '@/lib/productionGates'
- * 2. Check: if (isFeatureEnabled('studioCreators')) { ... }
- * 3. Or conditionally render: {isFeatureEnabled('studioCreators') && <Component />}
+ * DETECTION METHODS:
+ * 1. VITE_FORCE_SHOW_STUDIOS=true (build-time, for dev workspace)
+ * 2. Runtime hostname check for main dev URL pattern
+ * 3. iOS/Capacitor detection to ensure gating on native app
  */
 
 /**
- * FORCE OVERRIDE - Set VITE_FORCE_SHOW_STUDIOS=true ONLY in main dev workspace
- * This is the ONLY way to enable gated studios
+ * Build-time override (works in dev workspace with Vite dev server)
  */
 const FORCE_SHOW_STUDIOS = import.meta.env.VITE_FORCE_SHOW_STUDIOS === 'true';
 
 /**
- * Domain check (for reference, but not used for gating anymore)
+ * Check if running on the main dev URL (runtime check)
+ * This catches the published dev URL which uses a production build
  */
-const isProductionDomain = 
-  typeof window !== 'undefined' && (
-    window.location.hostname === 'myperfectmeals.com' ||
-    window.location.hostname === 'www.myperfectmeals.com' ||
-    window.location.hostname.endsWith('.myperfectmeals.com')
+function isMainDevUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const hostname = window.location.hostname;
+  
+  // Main dev workspace published URL patterns
+  // Matches: *.picard.replit.dev, *.replit.dev, *.repl.co
+  const devUrlPatterns = [
+    /\.picard\.replit\.dev$/,
+    /\.replit\.dev$/,
+    /\.repl\.co$/,
+  ];
+  
+  return devUrlPatterns.some(pattern => pattern.test(hostname));
+}
+
+/**
+ * Check if running on production domain
+ */
+function isProductionDomain(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const hostname = window.location.hostname;
+  return (
+    hostname === 'myperfectmeals.com' ||
+    hostname === 'www.myperfectmeals.com' ||
+    hostname.endsWith('.myperfectmeals.com')
   );
+}
+
+/**
+ * Check if running in iOS/Capacitor native app
+ */
+function isNativeApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check for Capacitor
+  const hasCapacitor = !!(window as any).Capacitor?.isNativePlatform?.();
+  
+  // Check user agent for iOS webview
+  const userAgent = navigator.userAgent || '';
+  const isIOSWebView = /iPhone|iPad|iPod/.test(userAgent) && !/Safari/.test(userAgent);
+  
+  return hasCapacitor || isIOSWebView;
+}
 
 const ADMIN_EMAILS = [
   'admin@myperfectmeals.com',
-  // Add your email here to see gated features in production
 ];
 
 /**
  * Gated Features Configuration
  * 
- * These features are HIDDEN everywhere EXCEPT when VITE_FORCE_SHOW_STUDIOS=true
- * 
- * Set to `false` to HIDE from production (and all non-dev-workspace environments)
- * Set to `true` to SHOW everywhere (use for stable features)
+ * Set to `false` to hide from production (gated)
+ * Set to `true` to show everywhere (stable)
  */
 export const GATED_FEATURES = {
-  // Studios - HIDDEN everywhere except main dev workspace
+  // Studios - Gated (hidden in production/iOS)
   studioCreators: false,      // Craving Studio, Dessert Studio (Fridge Rescue is NOT gated)
   chefsKitchen: false,        // Chef's Kitchen page
   
-  // Voice - HIDDEN everywhere except main dev workspace
-  handsFreeVoice: false,      // Hands-free voice mode (walkie-talkie)
+  // Voice - Gated
+  handsFreeVoice: false,      // Hands-free voice mode
   
-  // These are stable and shown everywhere
-  quickCreators: true,        // Quick Create forms (stable)
-  talkToChef: true,           // Tap-to-talk voice (stable)
+  // Stable features - Shown everywhere
+  quickCreators: true,        // Quick Create forms
+  talkToChef: true,           // Tap-to-talk voice
 } as const;
 
 export type GatedFeature = keyof typeof GATED_FEATURES;
 
 /**
- * Check if we're in the main dev workspace (force flag is set)
- */
-export function isDevMode(): boolean {
-  return FORCE_SHOW_STUDIOS;
-}
-
-/**
- * Check if we're in production mode (no force flag)
- */
-export function isProductionMode(): boolean {
-  return !FORCE_SHOW_STUDIOS;
-}
-
-/**
  * Check if studios should be shown
- * ONLY returns true when VITE_FORCE_SHOW_STUDIOS=true
+ * 
+ * SHOW studios when:
+ * 1. VITE_FORCE_SHOW_STUDIOS=true (dev workspace), OR
+ * 2. Running on *.replit.dev URL (main dev published URL)
+ * 
+ * HIDE studios when:
+ * 1. Running on production domain (myperfectmeals.com)
+ * 2. Running in iOS/Capacitor native app
  */
 export function shouldShowStudios(): boolean {
-  return FORCE_SHOW_STUDIOS;
-}
-
-/**
- * Check if a specific feature is enabled
- * 
- * STRICT RULE: Features are ONLY enabled when:
- * 1. VITE_FORCE_SHOW_STUDIOS=true (main dev workspace), OR
- * 2. The feature is marked as `true` in GATED_FEATURES (stable features), OR
- * 3. User is an admin (for production debugging)
- */
-export function isFeatureEnabled(feature: GatedFeature, userEmail?: string | null): boolean {
-  // FORCE OVERRIDE: Main dev workspace shows all features
+  // Production domain always hides studios
+  if (isProductionDomain()) {
+    return false;
+  }
+  
+  // iOS native app always hides studios
+  if (isNativeApp()) {
+    return false;
+  }
+  
+  // Dev workspace (env var set) shows studios
   if (FORCE_SHOW_STUDIOS) {
     return true;
   }
   
-  // Admin override for debugging in any environment
+  // Main dev URL shows studios
+  if (isMainDevUrl()) {
+    return true;
+  }
+  
+  // Default: hide studios
+  return false;
+}
+
+/**
+ * Check if we're in dev mode (workspace or dev URL)
+ */
+export function isDevMode(): boolean {
+  return shouldShowStudios();
+}
+
+/**
+ * Check if we're in production mode
+ */
+export function isProductionMode(): boolean {
+  return !shouldShowStudios();
+}
+
+/**
+ * Check if a specific feature is enabled
+ */
+export function isFeatureEnabled(feature: GatedFeature, userEmail?: string | null): boolean {
+  // If studios should show (dev workspace or dev URL), enable all features
+  if (shouldShowStudios()) {
+    return true;
+  }
+  
+  // Admin override for debugging
   if (userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
     return true;
   }
   
-  // All other environments: respect the gate setting
-  // If GATED_FEATURES[feature] is false, feature is hidden
-  // If GATED_FEATURES[feature] is true, feature is shown (stable)
+  // Production/iOS: respect the gate setting
   return GATED_FEATURES[feature];
 }
 
