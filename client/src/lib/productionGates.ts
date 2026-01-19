@@ -2,11 +2,13 @@
  * Production Gates - Hide unstable features from Apple/clients
  * 
  * ARCHITECTURE:
- * - Dev URL (Replit dev space) → Studios ALWAYS visible (bypass gates)
+ * - Dev URL (Replit dev space) → Studios ALWAYS visible (use VITE_FORCE_SHOW_STUDIOS=true)
  * - Production URL (myperfectmeals.com) → Studios obey gate settings
  * - iOS App → Studios obey gate settings
  * 
- * This ensures you can ALWAYS test in dev, while production stays protected.
+ * IMPORTANT: import.meta.env.MODE is set at BUILD TIME, not runtime.
+ * When you publish your dev space with `npm run build`, MODE === "production"
+ * even though you're on a dev URL. Use VITE_FORCE_SHOW_STUDIOS to override.
  * 
  * HOW TO USE:
  * 1. Import: import { isFeatureEnabled, GATED_FEATURES } from '@/lib/productionGates'
@@ -15,16 +17,15 @@
  */
 
 /**
- * Environment Detection
- * 
- * Production is ONLY:
- * - import.meta.env.MODE === 'production' (Vite build mode)
- * - OR the published domain (myperfectmeals.com)
- * 
- * Everything else is dev (including Replit dev URLs, localhost, etc.)
+ * FORCE OVERRIDE - Set VITE_FORCE_SHOW_STUDIOS=true in dev space secrets
+ * This bypasses ALL gates regardless of build mode or hostname
  */
-const isProductionBuild = import.meta.env.MODE === 'production';
+const FORCE_SHOW_STUDIOS = import.meta.env.VITE_FORCE_SHOW_STUDIOS === 'true';
 
+/**
+ * Domain-based detection (most reliable for runtime)
+ * Production is ONLY myperfectmeals.com - everything else is dev
+ */
 const isProductionDomain = 
   typeof window !== 'undefined' && (
     window.location.hostname === 'myperfectmeals.com' ||
@@ -32,9 +33,12 @@ const isProductionDomain =
     window.location.hostname.endsWith('.myperfectmeals.com')
   );
 
-// Production = production build OR production domain
-// Dev = everything else (Replit dev URLs, localhost, staging, etc.)
-const isProduction = isProductionBuild || isProductionDomain;
+/**
+ * Final production check:
+ * - If FORCE_SHOW_STUDIOS is set, we're in dev mode (override)
+ * - Otherwise, check if we're on the production domain
+ */
+const isProduction = !FORCE_SHOW_STUDIOS && isProductionDomain;
 const isDevelopment = !isProduction;
 
 const ADMIN_EMAILS = [
@@ -46,7 +50,8 @@ const ADMIN_EMAILS = [
  * Gated Features Configuration
  * 
  * These settings ONLY apply in production.
- * In dev, ALL features are always visible regardless of these settings.
+ * In dev (including dev published URLs with VITE_FORCE_SHOW_STUDIOS=true), 
+ * ALL features are always visible regardless of these settings.
  * 
  * Set to `false` to HIDE from production
  * Set to `true` to SHOW in production
@@ -81,13 +86,37 @@ export function isProductionMode(): boolean {
 }
 
 /**
+ * Check if studios should be shown (centralized gate)
+ * Use this for any studio-related visibility check
+ */
+export function shouldShowStudios(): boolean {
+  // Force override set in dev space
+  if (FORCE_SHOW_STUDIOS) {
+    return true;
+  }
+  
+  // Not on production domain = dev = show studios
+  if (!isProductionDomain) {
+    return true;
+  }
+  
+  // On production domain = hide studios (gated)
+  return false;
+}
+
+/**
  * Check if a specific feature is enabled
  * 
  * KEY RULE: Dev ALWAYS bypasses gates. Production respects gate settings.
  */
 export function isFeatureEnabled(feature: GatedFeature, userEmail?: string | null): boolean {
-  // DEV: Always show all features - this is your testing playground
-  if (isDevelopment) {
+  // FORCE OVERRIDE: Always show all features when override is set
+  if (FORCE_SHOW_STUDIOS) {
+    return true;
+  }
+  
+  // DEV: Not on production domain = show all features
+  if (!isProductionDomain) {
     return true;
   }
   
