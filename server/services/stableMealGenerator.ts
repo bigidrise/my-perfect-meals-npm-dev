@@ -15,12 +15,11 @@ import { getGlycemicSettings } from "./glycemicSettingsService";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
 
-// Lazy initialization to ensure OPENAI_API_KEY is available after env aliasing
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
     if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not set");
+      throw new Error("OPENAI_API_KEY is required for meal generation");
     }
     _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
