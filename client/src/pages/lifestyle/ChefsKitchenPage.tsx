@@ -1365,13 +1365,12 @@ export default function ChefsKitchenPage() {
                       </div>
                     )}
 
-                    {/* Listen to Chef */}
+                    {/* Press to Start */}
                     <button
-                      className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                       onClick={() => speak(KITCHEN_COOK_SETUP)}
                     >
-                      <Volume2 className="h-4 w-4" />
-                      Listen to Chef
+                      👉 Press to Start
                     </button>
 
                     <button
@@ -1421,13 +1420,12 @@ export default function ChefsKitchenPage() {
                             </p>
                           </div>
 
-                          {/* Listen to Chef */}
+                          {/* Press to Start */}
                           <button
-                            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                             onClick={() => speak(KITCHEN_PLATING)}
                           >
-                            <Volume2 className="h-4 w-4" />
-                            Listen to Chef
+                            👉 Press to Start
                           </button>
 
                           <div className="flex gap-3">
@@ -1486,13 +1484,12 @@ export default function ChefsKitchenPage() {
                           </p>
                         </div>
 
-                        {/* Listen to Chef for this step */}
+                        {/* Press to Start for this step */}
                         <button
-                          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                           onClick={() => speak(currentInstruction)}
                         >
-                          <Volume2 className="h-4 w-4" />
-                          Listen to Chef
+                          👉 Press to Start
                         </button>
 
                         {/* Timer Controls (if detected or running) */}

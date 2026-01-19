@@ -101,13 +101,13 @@ export function KitchenStepCard({
                 className={`w-full py-3 rounded-xl border text-white font-medium transition ${
                   isPlaying
                     ? "bg-green-900/40 border-green-500/40"
-                    : "bg-black/40 border-white/20 hover:bg-black/50"
+                    : "bg-gradient-to-r from-orange-600 to-amber-500 border-orange-400/50 hover:from-orange-500 hover:to-amber-400 animate-pulse"
                 }`}
                 onClick={onListen}
                 disabled={isPlaying}
                 data-testid={`button-listen-${stepTitle.toLowerCase().replace(/\s+/g, "-")}`}
               >
-                {isPlaying ? "Speaking..." : "Listen to Chef"}
+                {isPlaying ? "Speaking..." : "👉 Press to Start"}
               </button>
             )}
 
