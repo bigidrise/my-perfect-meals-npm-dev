@@ -1,8 +1,7 @@
 // Kitchen Studio Voice Scripts
 // Uses the same 11L voice system as ProTip and Copilot button
 
-export const KITCHEN_STUDIO_INTRO =
-  "What are we preparing today?";
+export const KITCHEN_STUDIO_INTRO = "What are we preparing today?";
 
 export const KITCHEN_STUDIO_STEP2 = "";
 
@@ -34,12 +33,11 @@ export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "";
 export const KITCHEN_STUDIO_SERVINGS = "How many servings?";
 
 // Kitchen Studio - After servings confirmed
-export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
-  "";
+export const KITCHEN_STUDIO_SERVINGS_CONFIRMED = "";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "Take a quick look — if you have everything type ‘OK’, If you’re missing anything, grab it real quick, and then press 'OK'.";
+  "Take a quick look — if you're missing anything, grab it real quick, and then press 'OK'.";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
@@ -66,7 +64,7 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 export const KITCHEN_STUDIO_OPEN_START = "";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS1 =
-  "If you happy with your meal tap, Enter Chef’s Kitchen! and we’ll start cooking. If not, press, Create New, and we can create a new meal.";
+  "If you happy with your meal press, Enter Chef’s Kitchen! and we’ll start cooking. If not, press, Create New, and we can create a new meal.";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 
