@@ -10,7 +10,12 @@ import { getAuthToken } from "@/lib/auth";
 
 type StepId = 1 | 2 | 3 | 4;
 
-type ActivityLevel = "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extremely_active";
+type ActivityLevel =
+  | "sedentary"
+  | "lightly_active"
+  | "moderately_active"
+  | "very_active"
+  | "extremely_active";
 type FitnessGoal = "weight_loss" | "muscle_gain" | "maintenance" | "endurance";
 
 type EditProfilePayload = {
@@ -86,14 +91,20 @@ export default function EditProfilePage() {
       weight: typeof u?.weight === "number" ? u.weight : null,
       activityLevel: (u?.activityLevel || "moderately_active") as ActivityLevel,
       fitnessGoal: (u?.fitnessGoal || "maintenance") as FitnessGoal,
-      dietaryRestrictions: Array.isArray(u?.dietaryRestrictions) ? u.dietaryRestrictions : [],
+      dietaryRestrictions: Array.isArray(u?.dietaryRestrictions)
+        ? u.dietaryRestrictions
+        : [],
       allergies: Array.isArray(u?.allergies) ? u.allergies : [],
     };
   }, [user]);
 
   const [form, setForm] = useState<EditProfilePayload>(initial);
-  const [dietaryText, setDietaryText] = useState(initial.dietaryRestrictions.join(", "));
-  const [allergiesText, setAllergiesText] = useState(initial.allergies.join(", "));
+  const [dietaryText, setDietaryText] = useState(
+    initial.dietaryRestrictions.join(", "),
+  );
+  const [allergiesText, setAllergiesText] = useState(
+    initial.allergies.join(", "),
+  );
 
   useEffect(() => {
     document.title = "Edit Profile | My Perfect Meals";
@@ -114,7 +125,8 @@ export default function EditProfilePage() {
   }, [user]);
 
   const canContinueStep1 = Boolean(form.firstName?.trim());
-  const canContinueStep2 = Boolean(form.fitnessGoal) && Boolean(form.activityLevel);
+  const canContinueStep2 =
+    Boolean(form.fitnessGoal) && Boolean(form.activityLevel);
   const canContinueStep3 = true;
 
   const handleSave = async () => {
@@ -138,7 +150,7 @@ export default function EditProfilePage() {
       const authToken = getAuthToken();
       const res = await fetch(apiUrl("/api/users/profile"), {
         method: "PUT",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           ...(authToken ? { "x-auth-token": authToken } : {}),
         },
@@ -172,7 +184,7 @@ export default function EditProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24">
       <div
         className="fixed left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
@@ -192,7 +204,10 @@ export default function EditProfilePage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
               <Utensils className="h-3.5 w-3.5 text-lime-400" />
               <span className="text-[11px] text-white/80">
-                Builder: <span className="text-white">{String(currentBuilderLabel)}</span>
+                Builder:{" "}
+                <span className="text-white">
+                  {String(currentBuilderLabel)}
+                </span>
               </span>
             </div>
           </div>
@@ -205,10 +220,13 @@ export default function EditProfilePage() {
       >
         <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardContent className="p-4">
-            <p className="text-white text-sm font-semibold mb-1">Meal Builder (Read-only)</p>
+            <p className="text-white text-sm font-semibold mb-1">
+              Meal Builder (Read-only)
+            </p>
             <p className="text-white/70 text-xs">
-              This page does not change your Meal Builder. To switch builders, use{" "}
-              <span className="text-white">Meal Builder Exchange</span> in My Hub.
+              This page does not change your Meal Builder. To switch builders,
+              use <span className="text-white">Meal Builder Exchange</span> in
+              My Hub.
             </p>
           </CardContent>
         </Card>
@@ -221,8 +239,8 @@ export default function EditProfilePage() {
                 step === (n as StepId)
                   ? "bg-lime-400"
                   : n < step
-                  ? "bg-white/50"
-                  : "bg-white/20"
+                    ? "bg-white/50"
+                    : "bg-white/20"
               }`}
             />
           ))}
@@ -240,7 +258,9 @@ export default function EditProfilePage() {
                   <label className="text-white/70 text-xs">First Name</label>
                   <input
                     value={form.firstName || ""}
-                    onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, firstName: e.target.value }))
+                    }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
                     placeholder="First name"
                   />
@@ -249,7 +269,9 @@ export default function EditProfilePage() {
                   <label className="text-white/70 text-xs">Last Name</label>
                   <input
                     value={form.lastName || ""}
-                    onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, lastName: e.target.value }))
+                    }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
                     placeholder="Last name"
                   />
@@ -261,7 +283,9 @@ export default function EditProfilePage() {
                   <label className="text-white/70 text-xs">Age</label>
                   <input
                     value={form.age ?? ""}
-                    onChange={(e) => setForm((p) => ({ ...p, age: clampInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, age: clampInt(e.target.value) }))
+                    }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
                     placeholder="35"
                     inputMode="numeric"
@@ -271,7 +295,12 @@ export default function EditProfilePage() {
                   <label className="text-white/70 text-xs">Height (cm)</label>
                   <input
                     value={form.height ?? ""}
-                    onChange={(e) => setForm((p) => ({ ...p, height: clampInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        height: clampInt(e.target.value),
+                      }))
+                    }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
                     placeholder="178"
                     inputMode="numeric"
@@ -281,7 +310,12 @@ export default function EditProfilePage() {
                   <label className="text-white/70 text-xs">Weight (kg)</label>
                   <input
                     value={form.weight ?? ""}
-                    onChange={(e) => setForm((p) => ({ ...p, weight: clampInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        weight: clampInt(e.target.value),
+                      }))
+                    }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
                     placeholder="75"
                     inputMode="numeric"
@@ -312,11 +346,18 @@ export default function EditProfilePage() {
                 <label className="text-white/70 text-xs">Fitness Goal</label>
                 <select
                   value={form.fitnessGoal || "maintenance"}
-                  onChange={(e) => setForm((p) => ({ ...p, fitnessGoal: e.target.value as FitnessGoal }))}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      fitnessGoal: e.target.value as FitnessGoal,
+                    }))
+                  }
                   className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
                 >
                   {Object.entries(GOAL_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -325,11 +366,18 @@ export default function EditProfilePage() {
                 <label className="text-white/70 text-xs">Activity Level</label>
                 <select
                   value={form.activityLevel || "moderately_active"}
-                  onChange={(e) => setForm((p) => ({ ...p, activityLevel: e.target.value as ActivityLevel }))}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      activityLevel: e.target.value as ActivityLevel,
+                    }))
+                  }
                   className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
                 >
                   {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -422,7 +470,10 @@ export default function EditProfilePage() {
                   Goal: {form.fitnessGoal ? GOAL_LABELS[form.fitnessGoal] : "—"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Activity: {form.activityLevel ? ACTIVITY_LABELS[form.activityLevel] : "—"}
+                  Activity:{" "}
+                  {form.activityLevel
+                    ? ACTIVITY_LABELS[form.activityLevel]
+                    : "—"}
                 </p>
                 <p className="text-white/80 text-xs">
                   Restrictions: {dietaryText.trim() || "None"}
@@ -446,7 +497,9 @@ export default function EditProfilePage() {
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : (
+                  {saving ? (
+                    "Saving..."
+                  ) : (
                     <span className="inline-flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" />
                       Save Changes
