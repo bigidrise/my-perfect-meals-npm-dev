@@ -39,7 +39,7 @@ export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "Take a quick look — if you have everything type ‘OK’, If you’re missing anything, grab it real quick, type OK and then press Continue.";
+  "Take a quick look — if you have everything type ‘OK’, If you’re missing anything, grab it real quick, and then press 'OK'.";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
