@@ -181,6 +181,13 @@ export default function OnboardingStandalone() {
     if (currentStep >= TOTAL_STEPS) {
       localStorage.setItem("onboardingCompleted", "true");
       localStorage.setItem("completedProfile", "true");
+      localStorage.setItem("isAuthenticated", "true");
+
+      // Flag WelcomeGate to show once
+      localStorage.removeItem("coachMode");
+      localStorage.setItem("showWelcomeGate", "true");
+
+      // Enter the app (home/dashboard/root)
       setLocation("/");
     } else {
       setCurrentStep((prev) => prev + 1);
