@@ -181,7 +181,7 @@ export default function OnboardingStandalone() {
     if (currentStep >= TOTAL_STEPS) {
       localStorage.setItem("onboardingCompleted", "true");
       localStorage.setItem("completedProfile", "true");
-      setLocation("/select-builder");
+      setLocation("/");
     } else {
       setCurrentStep((prev) => prev + 1);
       setTimeout(() => scrollToTop(), 0);
