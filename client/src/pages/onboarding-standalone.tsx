@@ -181,7 +181,7 @@ export default function OnboardingStandalone() {
     if (currentStep >= TOTAL_STEPS) {
       localStorage.setItem("onboardingCompleted", "true");
       localStorage.setItem("completedProfile", "true");
-      setLocation("/pricing");
+      setLocation("/select-builder");
     } else {
       setCurrentStep((prev) => prev + 1);
       setTimeout(() => scrollToTop(), 0);
@@ -640,11 +640,11 @@ export default function OnboardingStandalone() {
           )}
           <Button
             onClick={handleNext}
-            className={`${currentStep === 1 ? "w-full" : "flex-1"} h-12 bg-indigo-600 hover:bg-indigo-700 `}
+            className={`${currentStep === 1 ? "w-full" : "flex-1"} h-12 bg-lime-600 hover:bg-lime-700 `}
           >
             {currentStep === TOTAL_STEPS ? (
               <>
-                Continue to Pricing <Check className="h-4 w-4 ml-2" />
+                Get Started <Check className="h-4 w-4 ml-2" />
               </>
             ) : (
               <>
