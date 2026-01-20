@@ -301,7 +301,7 @@ export default function OnboardingStandalone() {
 
         <div>
           <Label className={showValidation && !data.gender ? "text-red-400" : ""}>
-            Gender *
+            Sex *
           </Label>
           <Select value={data.gender} onValueChange={(v) => updateData({ gender: v })}>
             <SelectTrigger className={`text-white bg-black/40 border-white/20 ${showValidation && !data.gender ? "border-red-500 border-2" : ""}`}>
