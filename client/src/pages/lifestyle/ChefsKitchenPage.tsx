@@ -1292,10 +1292,9 @@ export default function ChefsKitchenPage() {
                               setPrepStep(0);
                               setMode("prepare");
                             }}
-                            className="flex-1 py-2 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition flex items-center justify-center gap-1.5"
+                            className="flex-1 py-2 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
                             data-testid="button-prepare-meal"
                           >
-                            <ChefHat className="h-4 w-4" />
                             Prepare with Chef
                           </button>
                           <ShareRecipeButton

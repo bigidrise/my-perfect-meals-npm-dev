@@ -1078,9 +1078,8 @@ export default function CravingCreator() {
                               localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
                               setLocation("/lifestyle/chefs-kitchen");
                             }}
-                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            <ChefHat className="h-4 w-4" />
                             Prepare with Chef
                           </GlassButton>
                           <ShareRecipeButton

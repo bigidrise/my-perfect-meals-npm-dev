@@ -925,7 +925,7 @@ const FridgeRescuePage = () => {
                         <div className="grid grid-cols-2 gap-2">
                           <Button
                             size="sm"
-                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                             onClick={() => {
                               const mealData = {
                                 id: meal.id || crypto.randomUUID(),
@@ -940,7 +940,7 @@ const FridgeRescuePage = () => {
                               setLocation("/lifestyle/chefs-kitchen");
                             }}
                           >
-                            <ChefHat className="h-4 w-4" />
+                            
                             Prepare with Chef
                           </Button>
                           <ShareRecipeButton
