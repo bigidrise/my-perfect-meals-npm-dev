@@ -51,17 +51,22 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
+    // Public routes that don't require auth or gate check
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders"];
+    const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
+
+    // For authenticated users who haven't chosen coach mode, show WelcomeGate
+    // This applies to ANY route (except public and onboarding)
+    if (isAuthenticated && !hasChosenCoachMode && !isPublicRoute) {
+      setShowWelcomeGate(true);
+      return;
+    }
+
     // Handle root path "/"
     if (location === "/") {
       if (!isAuthenticated) {
         // Not signed in → redirect to Welcome page (sign in/create account)
         setLocation("/welcome");
-        return;
-      }
-
-      if (!hasChosenCoachMode) {
-        // Authenticated but hasn't chosen coach mode → show WelcomeGate
-        setShowWelcomeGate(true);
         return;
       }
 
@@ -79,10 +84,6 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    // Protect all routes except public pages
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest"];
-    const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
-    
     // Allow guest mode to access guest-allowed routes
     const guestModeActive = isGuestMode();
     const guestCanAccess = guestModeActive && isGuestAllowedRoute(location);
