@@ -67,6 +67,7 @@ import glp1Routes from "./routes/glp1"; // GLP-1 profile routes
 import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for stripeCheckoutRouter
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
 import lockedDaysRouter from "./routes/lockedDays";
+import usersProfileRouter from "./routes/usersProfile";
 
 // Helper function to determine features by subscription plan
 function getFeaturesByPlan(plan: string) {
@@ -4911,6 +4912,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/pro", procareRoutes);
   app.use("/api/founders", foundersRoutes);
   app.use("/api/physician-reports", physicianReportsRoutes);
+  app.use("/api/users", usersProfileRouter);
 
   // Mount builder plans routes
   app.use(builderPlansRoutes);

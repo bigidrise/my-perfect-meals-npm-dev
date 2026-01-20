@@ -129,6 +129,15 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const isProCareClient = user?.isProCare && user?.role !== "admin";
 
   const menuItems = [
+    // ✅ NEW: Personal profile editing entry
+    {
+      title: "My Profile",
+      description: "Update your personal info & preferences",
+      icon: User,
+      route: "/profile",
+      testId: "menu-my-profile",
+    },
+
     // Only show "Change Meal Builder" if NOT a Pro Care client
     ...(!isProCareClient
       ? [

@@ -112,6 +112,7 @@ import CravingPresets from "@/pages/CravingPresets";
 import CravingStudio from "@/pages/craving-creator/CravingStudio";
 import DessertStudio from "@/pages/dessert-creator/DessertStudio";
 import FridgeRescueStudio from "@/pages/fridge-rescue/FridgeRescueStudio";
+import EditProfilePage from "@/pages/profile/EditProfilePage";
 
 // Alcohol Hub pages
 import AlcoholHubLanding from "@/pages/AlcoholHubLanding";
@@ -225,8 +226,8 @@ export default function Router() {
         <Route path="/privacy" component={PrivacySecurity} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
-        {/* Profile functionality in My Hub (ProfileSheet) - no separate /profile page needed */}
-        {/* Settings functionality now in My Hub (ProfileSheet) */}
+        {/* Profile Edit Page */}
+        <Route path="/profile" component={EditProfilePage} />
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />
