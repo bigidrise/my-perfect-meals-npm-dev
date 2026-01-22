@@ -6,7 +6,7 @@ export interface ReleaseNote {
 }
 
 export const currentRelease: ReleaseNote = {
-  version: "1.0.6",
+  version: "1.0.7",
   date: "January 2026",
   bugFixes: [
     "Fixed screen flashing issues",
@@ -14,7 +14,7 @@ export const currentRelease: ReleaseNote = {
     "Fixed disappearing meal cards",
     "Fixed update banner refresh button not responding",
     "Fixed update banner appearing behind iOS notch",
-    "Fixed password eyeball toggle — now press-and-hold on all devices"
+    "Fixed password toggle jumping on mobile — now uses checkbox below field"
   ],
   designUpdates: [
     "Cleaned up Chef button — removed orange glow",
