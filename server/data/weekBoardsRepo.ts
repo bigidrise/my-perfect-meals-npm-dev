@@ -1,37 +1,6 @@
 import { db } from '../db';
-import { weekBoards, users } from '@shared/schema';
+import { weekBoards } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
-
-// Ensure fallback user exists in database (for alpha testing without auth)
-async function ensureFallbackUser(): Promise<void> {
-  try {
-    const fallbackUserId = 'local-user';
-    
-    // Check if fallback user exists
-    const [existing] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, fallbackUserId))
-      .limit(1);
-    
-    if (!existing) {
-      // Create fallback user if it doesn't exist
-      await db
-        .insert(users)
-        .values({
-          id: fallbackUserId,
-          username: 'local-user',
-          email: 'local@test.com',
-          password: 'hashed', // Not used for alpha testing
-        })
-        .onConflictDoNothing();
-      
-      console.log('✅ Created fallback user for alpha testing');
-    }
-  } catch (error) {
-    console.error('Error ensuring fallback user:', error);
-  }
-}
 
 // We'll add a local simple normalizer to avoid circular imports
 function simpleNormalizeBoard(board: any): any {
@@ -74,11 +43,6 @@ export async function getWeekBoard(userId: string, weekStartISO: string) {
 
 export async function upsertWeekBoard(userId: string, weekStartISO: string, board: any) {
   try {
-    // Ensure fallback user exists before attempting upsert (for alpha testing)
-    if (userId === 'local-user') {
-      await ensureFallbackUser();
-    }
-    
     await db
       .insert(weekBoards)
       .values({
@@ -104,7 +68,11 @@ export async function upsertWeekBoard(userId: string, weekStartISO: string, boar
 }
 
 export function resolveUserId(req: any): string {
-  // For now, use a fallback user ID for alpha testing
-  // Later this can use real auth: req.user?.id
-  return req.user?.id ?? 'local-user';
+  // CRITICAL SECURITY: Require authenticated user - no fallback to shared identity
+  // This prevents cross-account data leakage where multiple users would share 'local-user' data
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new Error('Authentication required: No user ID found in request');
+  }
+  return userId;
 }

@@ -50,6 +50,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           role: userData.role || "client",
           isProCare: userData.isProCare || false,
           activeBoard: userData.activeBoard || null,
+          // Onboarding completion - CRITICAL for enforcing onboarding gate
+          onboardingCompletedAt: userData.onboardingCompletedAt || null,
           // Profile data from onboarding (used by Edit Profile)
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,

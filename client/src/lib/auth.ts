@@ -63,6 +63,8 @@ export interface User {
   role?: UserRole;
   isProCare?: boolean;
   activeBoard?: MealBuilderType | null;
+  // Onboarding completion - CRITICAL for enforcing onboarding gate
+  onboardingCompletedAt?: string | null;
   // Profile data from onboarding (used by Edit Profile)
   firstName?: string | null;
   lastName?: string | null;
@@ -115,6 +117,19 @@ export async function signUp(email: string, password: string): Promise<User> {
     throw new Error("Password must be at least 6 characters");
   }
 
+  // CRITICAL: Clear ANY existing auth state before signup to prevent identity leakage
+  // This prevents iOS Keychain token reuse from causing cross-account data sharing
+  console.log("🔐 [Signup] Clearing all existing auth state before creating new account");
+  clearAuthToken();
+  localStorage.removeItem("mpm_current_user");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("coachMode");
+  localStorage.removeItem("onboardingCompleted");
+  localStorage.removeItem("completedProfile");
+  localStorage.removeItem("onboardingData");
+  localStorage.removeItem("selectedBuilder");
+
   try {
     const response = await fetch(apiUrl("/api/auth/signup"), {
       method: "POST",
@@ -130,7 +145,7 @@ export async function signUp(email: string, password: string): Promise<User> {
 
     const userData = await response.json();
     
-    // Store auth token from server response
+    // Store FRESH auth token from server response
     if (userData.authToken) {
       setAuthToken(userData.authToken);
     }
@@ -139,6 +154,8 @@ export async function signUp(email: string, password: string): Promise<User> {
       id: userData.id,
       email: userData.email,
       name: userData.username,
+      // New accounts have NO onboarding completion
+      onboardingCompletedAt: null,
     };
 
     // Save to localStorage for offline access
@@ -146,7 +163,7 @@ export async function signUp(email: string, password: string): Promise<User> {
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
-    console.log("✅ User created and saved:", user.email, "ID:", user.id);
+    console.log("✅ NEW user created and saved:", user.email, "ID:", user.id);
 
     return user;
   } catch (error: any) {

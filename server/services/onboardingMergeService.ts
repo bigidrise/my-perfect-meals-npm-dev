@@ -31,6 +31,12 @@ export async function mergeStepIntoPreferences(userId: string, stepKey: string, 
       if (Array.isArray(data?.preferredLowGICarbs)) update.preferredLowGICarbs = data.preferredLowGICarbs;
       if (Array.isArray(data?.preferredMidGICarbs)) update.preferredMidGICarbs = data.preferredMidGICarbs;
       if (Array.isArray(data?.preferredHighGICarbs)) update.preferredHighGICarbs = data.preferredHighGICarbs;
+      // CRITICAL: Mark onboarding as complete and set active builder
+      update.onboardingCompletedAt = new Date();
+      if (data?.activeBuilder) {
+        update.selectedMealBuilder = data.activeBuilder;
+        update.activeBoard = data.activeBuilder;
+      }
       break;
     case "profile-basics":
       if (data?.timezone) update.timezone = data.timezone;
