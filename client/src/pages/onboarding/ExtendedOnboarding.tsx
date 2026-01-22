@@ -31,6 +31,7 @@ interface BuilderOption {
   icon: React.ReactNode;
   bestFor: string[];
   goalCategories: string[];
+  planBadge: string;
 }
 
 const BUILDER_OPTIONS: BuilderOption[] = [
@@ -41,6 +42,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Calendar className="w-6 h-6" />,
     bestFor: ["General wellness", "Family meals", "Variety seekers"],
     goalCategories: ["general", "weight_loss"],
+    planBadge: "Basic Plan",
   },
   {
     id: "diabetic",
@@ -49,6 +51,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Heart className="w-6 h-6" />,
     bestFor: ["Type 1 or Type 2 diabetes", "Blood sugar management", "Pre-diabetes"],
     goalCategories: ["diabetes"],
+    planBadge: "Basic Plan",
   },
   {
     id: "glp1",
@@ -57,6 +60,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Pill className="w-6 h-6" />,
     bestFor: ["GLP-1 medication users", "Appetite management", "High protein needs"],
     goalCategories: ["glp1"],
+    planBadge: "Basic Plan",
   },
   {
     id: "anti_inflammatory",
@@ -65,6 +69,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Flame className="w-6 h-6" />,
     bestFor: ["Autoimmune conditions", "Joint pain", "Chronic inflammation"],
     goalCategories: ["anti_inflammatory"],
+    planBadge: "Basic Plan",
   },
   {
     id: "beach_body",
@@ -73,6 +78,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Trophy className="w-6 h-6" />,
     bestFor: ["Competition prep", "Rapid fat loss", "Physique goals"],
     goalCategories: ["performance"],
+    planBadge: "Ultimate Plan",
   },
 ];
 
@@ -386,7 +392,16 @@ export default function ExtendedOnboarding() {
                       {builder.icon}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-medium">{builder.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-white font-medium">{builder.title}</h3>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          builder.planBadge === "Ultimate Plan" 
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        }`}>
+                          {builder.planBadge}
+                        </span>
+                      </div>
                       <p className="text-white/60 text-xs mt-1">{builder.description}</p>
                     </div>
                     {selectedBuilder === builder.id && (
@@ -418,7 +433,16 @@ export default function ExtendedOnboarding() {
                       {builder.icon}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white/80 font-medium text-sm">{builder.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-white/80 font-medium text-sm">{builder.title}</h3>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          builder.planBadge === "Ultimate Plan" 
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        }`}>
+                          {builder.planBadge}
+                        </span>
+                      </div>
                     </div>
                     {selectedBuilder === builder.id && (
                       <Check className="w-5 h-5 text-orange-500" />

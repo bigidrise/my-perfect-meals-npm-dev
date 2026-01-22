@@ -29,36 +29,35 @@ const BUILDER_OPTIONS_DATA = [
     iconType: "utensils",
     description: "Balanced, healthy meals for everyday life. Focuses on flexibility, variety, and realistic meal planning.",
     note: "Designed for healthy eating without special medical rules.",
-    tier: "basic",
+    planBadge: "Basic Plan",
   },
   {
     id: "diabetic",
     name: "Diabetes Support",
     iconType: "heart",
     description: "Blood-sugar awareness and consistency. Diabetic-friendly guardrails for stable energy and glucose response.",
-    tier: "basic",
+    planBadge: "Basic Plan",
   },
   {
     id: "glp1",
     name: "GLP-1 Support",
     iconType: "pill",
     description: "For users on GLP-1 medications. Emphasizes satiety, protein, portion control, and digestive comfort.",
-    tier: "basic",
+    planBadge: "Basic Plan",
   },
   {
     id: "anti_inflammatory",
     name: "Anti-Inflammatory",
     iconType: "flame",
     description: "Nutrient quality and preparation methods that support long-term inflammation management.",
-    tier: "basic",
+    planBadge: "Basic Plan",
   },
   {
     id: "beachbody",
     name: "Beach Body / Physique",
     iconType: "dumbbell",
     description: "Leaning out and dialing in body composition while keeping meals realistic and sustainable.",
-    note: "Part of our advanced goal-focused programs.",
-    tier: "advanced",
+    planBadge: "Ultimate Plan",
   },
   {
     id: "professional",
@@ -66,7 +65,7 @@ const BUILDER_OPTIONS_DATA = [
     iconType: "usercheck",
     description: "For working with a trainer, coach, or healthcare professional. Follows structured protocols.",
     note: "Typically part of advanced or guided programs.",
-    tier: "advanced",
+    planBadge: "Premium Plan",
   },
 ];
 
@@ -833,7 +832,18 @@ export default function OnboardingStandalone() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <h4 className="text-sm font-semibold">{builder.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold">{builder.name}</h4>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                        builder.planBadge === "Ultimate Plan" 
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                          : builder.planBadge === "Premium Plan"
+                            ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                      }`}>
+                        {builder.planBadge}
+                      </span>
+                    </div>
                     <PillButton
                       active={selectedBuilder === builder.id}
                       onClick={() => setSelectedBuilder(builder.id)}
