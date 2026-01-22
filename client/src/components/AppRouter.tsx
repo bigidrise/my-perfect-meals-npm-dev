@@ -34,8 +34,10 @@ export default function AppRouter({ children }: AppRouterProps) {
     return !hideOnRoutes.some(route => location.startsWith(route));
   }, [location]);
 
+  // Determine if user needs onboarding - returns null while loading (unknown state)
   const needsOnboarding = useMemo(() => {
-    if (!user || loading) return false;
+    if (loading) return null; // Unknown while loading - don't make decisions yet
+    if (!user) return false; // No user = not authenticated
     if (user.role === "admin") return false;
     if (user.id.startsWith("guest-")) return false;
     if (user.onboardingCompletedAt) return false;
@@ -54,13 +56,19 @@ export default function AppRouter({ children }: AppRouterProps) {
     const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
-    if (isAuthenticated && needsOnboarding && !isPublicRoute) {
+    // Don't make routing decisions while auth is loading - wait for user state
+    if (loading && isAuthenticated && !isPublicRoute) {
+      return; // Wait for auth to finish loading before routing
+    }
+
+    if (isAuthenticated && needsOnboarding === true && !isPublicRoute) {
       console.log("🚨 [AppRouter] User needs onboarding - forcing redirect to /onboarding/extended");
       setLocation("/onboarding/extended");
       return;
     }
 
-    if (isAuthenticated && !hasChosenCoachMode && !isPublicRoute && !needsOnboarding) {
+    // Only show WelcomeGate when we KNOW user doesn't need onboarding (not loading)
+    if (isAuthenticated && !hasChosenCoachMode && !isPublicRoute && needsOnboarding === false) {
       setShowWelcomeGate(true);
       return;
     }
@@ -71,7 +79,12 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      if (needsOnboarding) {
+      // Wait for auth to finish loading before deciding where to route
+      if (needsOnboarding === null) {
+        return; // Still loading - don't route yet
+      }
+
+      if (needsOnboarding === true) {
         setLocation("/onboarding/extended");
         return;
       }
@@ -93,7 +106,7 @@ export default function AppRouter({ children }: AppRouterProps) {
         setLocation("/welcome");
       }
     }
-  }, [location, setLocation, needsOnboarding]);
+  }, [location, setLocation, needsOnboarding, loading]);
 
   if (showWelcomeGate) {
     return (
