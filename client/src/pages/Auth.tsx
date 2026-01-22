@@ -84,11 +84,15 @@ export default function Auth() {
             />
             <button
               type="button"
-              onPointerDown={() => setShowPassword(true)}
-              onPointerUp={() => setShowPassword(false)}
-              onPointerLeave={() => setShowPassword(false)}
+              onTouchStart={() => setShowPassword(true)}
+              onTouchEnd={() => setShowPassword(false)}
+              onTouchCancel={() => setShowPassword(false)}
+              onMouseDown={() => setShowPassword(true)}
+              onMouseUp={() => setShowPassword(false)}
+              onMouseLeave={() => setShowPassword(false)}
               onContextMenu={(e) => e.preventDefault()}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-2 touch-none select-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-2 select-none"
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
               aria-label="Hold to show password"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
