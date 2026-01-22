@@ -65,7 +65,7 @@ const BUILDER_OPTIONS_DATA = [
     iconType: "usercheck",
     description: "For working with a trainer, coach, or healthcare professional. Follows structured protocols.",
     note: "Typically part of advanced or guided programs.",
-    planBadge: "Premium Plan",
+    planBadge: "Ultimate Plan",
   },
 ];
 
@@ -813,8 +813,11 @@ export default function OnboardingStandalone() {
         {/* Builder Selection */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold mb-2">Your Meal Planning Builder</h3>
-          <p className="text-white/70 text-sm mb-4">
+          <p className="text-white/70 text-sm mb-2">
             Each builder follows a different set of rules. Pick the one that best matches your current needs.
+          </p>
+          <p className="text-emerald-400/80 text-xs mb-4">
+            You can always change your builder later in Settings.
           </p>
           
           {BUILDER_OPTIONS_DATA.map((builder) => (
@@ -837,9 +840,7 @@ export default function OnboardingStandalone() {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                         builder.planBadge === "Ultimate Plan" 
                           ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          : builder.planBadge === "Premium Plan"
-                            ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                       }`}>
                         {builder.planBadge}
                       </span>

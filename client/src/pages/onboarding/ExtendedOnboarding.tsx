@@ -371,6 +371,7 @@ export default function ExtendedOnboarding() {
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-white mb-2">Choose your Primary Builder</h2>
           <p className="text-white/70 text-sm">This is the only builder you'll be able to open in Planner.</p>
+          <p className="text-emerald-400/80 text-xs mt-2">You can always change your builder later in Settings.</p>
         </div>
 
         {recommended.length > 0 && (
