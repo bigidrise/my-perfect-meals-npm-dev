@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { PillButton } from "@/components/ui/pill-button";
 import { getResolvedTargets } from "@/lib/macroResolver";
 
 interface DailyTargetsCardProps {
@@ -31,14 +30,15 @@ export function DailyTargetsCard({
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-white/60 uppercase tracking-wide">Daily Targets</span>
           {showQuickAddButton && onQuickAddClick && (
-            <Button
-              onClick={onQuickAddClick}
-              className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
-              data-testid="button-quick-add-macros"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Quick Add
-            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">QUICK</span>
+              <PillButton
+                onClick={onQuickAddClick}
+                data-testid="button-quick-add-macros"
+              >
+                Add
+              </PillButton>
+            </div>
           )}
         </div>
         <div className="grid grid-cols-5 gap-2">

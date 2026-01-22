@@ -10,6 +10,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1682,20 +1683,18 @@ export default function MyBiometrics() {
             )}
 
             <div className="flex justify-between items-center gap-2 mt-3">
-              <Button
+              <PillButton
                 data-testid="biometrics-add-button"
                 onClick={addMacros}
-                className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
               >
-                <PlusCircle className="h-4 w-4 mr-1" /> Add
-              </Button>
-              <Button
+                Add
+              </PillButton>
+              <PillButton
                 onClick={resetToday}
-                className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
                 data-testid="button-reset-today"
               >
-                <RotateCcw className="h-4 w-4 mr-1" /> Reset Today
-              </Button>
+                Reset Today
+              </PillButton>
             </div>
 
             {/* Paste modal */}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { useLocation } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
@@ -2136,14 +2137,15 @@ export default function WeeklyMealBoard() {
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-white/60 uppercase tracking-wide">Daily Targets</span>
-                      <Button
-                        onClick={() => setAdditionalMacrosOpen(true)}
-                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
-                        data-testid="button-quick-add-macros"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Quick Add
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">QUICK</span>
+                        <PillButton
+                          onClick={() => setAdditionalMacrosOpen(true)}
+                          data-testid="button-quick-add-macros"
+                        >
+                          Add
+                        </PillButton>
+                      </div>
                     </div>
                     {hasStarchyFibrous ? (
                       <div className="grid grid-cols-5 gap-2">
