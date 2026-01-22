@@ -1879,15 +1879,18 @@ export default function MyBiometrics() {
                 />
               </div>
             </div>
-            <Button
-              id="save-weight-button"
-              data-testid="biometrics-save-weight-button"
-              data-walkthrough="save-weight"
-              onClick={saveWeight}
-              className="bg-lime-500 border border-white/20 text-white hover:bg-lime-700 mb-2"
-            >
-              Save Weight
-            </Button>
+            <div className="flex items-center gap-2 mb-2">
+              <PillButton
+                id="save-weight-button"
+                data-testid="biometrics-save-weight-button"
+                data-walkthrough="save-weight"
+                onClick={saveWeight}
+                className="!bg-lime-500/20 !border-lime-400/60 hover:!bg-lime-500/30"
+              >
+                Save
+              </PillButton>
+              <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">Weight</span>
+            </div>
             <ReadOnlyNote>
               Track your weight progress here over time. Your weight data
               automatically syncs with the <strong>Macro Calculator</strong>.
