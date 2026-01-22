@@ -21,36 +21,6 @@ export async function registerForPush(userId: string) {
     const reg = await navigator.serviceWorker.register("/sw.js");
     console.log("✅ Service Worker registered");
 
-    // ============================================
-    // BIG-APP PATTERN: No auto-reload during push registration
-    // Only signal update available, let user control refresh
-    // ============================================
-    
-    // Silent check for updates (no reload)
-    await reg.update().catch(() => {});
-    console.log("🔄 Checked for Service Worker updates (silent)");
-
-    // If a new SW is waiting, signal update available (NO reload)
-    if (reg.waiting) {
-      console.log("📝 New Service Worker waiting - signaling update available");
-      window.dispatchEvent(new CustomEvent('mpm:update-available'));
-      // Continue with push registration, don't return early
-    }
-
-    // Listen for future updates (signal only, no reload)
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      if (!newWorker) return;
-
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          console.log("📝 New Service Worker installed - signaling update available");
-          window.dispatchEvent(new CustomEvent('mpm:update-available'));
-          // NO auto-reload - let user control when to refresh
-        }
-      });
-    });
-
     // Request notification permission
     const perm = await Notification.requestPermission();
     if (perm !== "granted") {

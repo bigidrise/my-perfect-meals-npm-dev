@@ -17,20 +17,12 @@ I prefer iterative development and expect the agent to ask before making major a
 - Fixed screen flashing issues
 - Fixed meals incorrectly appearing across different meal boards
 - Fixed meal cards disappearing unexpectedly
-- Fixed update banner refresh button not responding to taps
-- Fixed update banner appearing repeatedly due to failed refresh attempts
-- Fixed update banner appearing behind iOS notch/safe area
-- Fixed password eyeball toggle being twitchy — now uses press-and-hold behavior
+- Fixed password toggle jumping on mobile — now uses checkbox below field
 
 **UI/Design Updates:**
 - Removed orange glow/shadow from Chef button — now clean icon on solid black background
-- Update banner now works on ALL platforms (iOS, Android, Web) — same black/orange design everywhere
-- Redesigned update notification banner:
-  - Moved to bottom of screen (above nav) to avoid iOS safe area conflicts
-  - Changed from purple to black/orange theme matching app design
-  - Added rounded corners and floating card design
-  - Simplified refresh to immediate hard reload for guaranteed reliability
-  - Added "What's New" pill button showing release notes before updating
+- Replaced unreliable update system with simple "What's New" banner (v2.0)
+- New update banner: black/orange MPM theme, "What's New" pill shows release notes
 
 ## Release History
 *Completed releases with push receipts*
@@ -72,10 +64,11 @@ The application is a monorepo utilizing React + Vite (TypeScript) for the fronte
   - **skipServerSync()**: Returns true when draft restored OR board modified, preventing background refetch from overwriting local edits
   - **Clean Coordination**: `markClean()` + `clearDraft()` called in all 6 builder saveBoard callbacks after successful server save
   - **Builders Integrated**: WeeklyMealBoard, GLP1MealBuilder, DiabeticMenuBuilder, AntiInflammatoryMenuBuilder, GeneralNutritionBuilder, PerformanceCompetitionBuilder
-- **Update Manager System v1.0**: Non-blocking app update flow following "Big App" standard (never auto-reload during normal use). Key files: `client/src/contexts/UpdateManagerContext.tsx`, `client/src/components/GlobalUpdateBanner.tsx`, `client/src/hooks/useVersionCheck.ts`, `client/src/lib/updateApp.ts`, `client/src/lib/pushClient.ts`. Features:
-  - **Event-Driven Updates**: Version checks and service worker updates dispatch `mpm:updateAvailable` event instead of auto-reloading
-  - **GlobalUpdateBanner**: Dismissible banner "Update Available — Refresh when ready" with manual refresh button
-  - **User-Controlled Timing**: Users decide when to refresh, preventing interruption during active work
+- **What's New System v2.0**: Simple release notification system. Key files: `client/public/release-manifest.json`, `client/src/hooks/useReleaseNotice.ts`, `client/src/components/WhatsNewBanner.tsx`, `client/src/lib/releaseNotes.ts`. Features:
+  - **Single Source of Truth**: One `release-manifest.json` with `releaseId` - no complex version comparisons
+  - **localStorage Check**: Compares `releaseId` to `localStorage.mpm_lastSeenReleaseId` on app load
+  - **User-Controlled**: "What's New" banner shows release notes, user taps "Refresh Now" or "Later"
+  - **Deploy Workflow**: Update `release-manifest.json` releaseId + `releaseNotes.ts` before each deploy
 - **Guided Macro Calculator v1.0**: Step-by-step walkthrough experience for the Macro Calculator page with "Talk to Chef" entry point. Features 13 guided steps (Goal, Body Type, Units, Sex, Age, Height, Weight, Activity, Sync Weight, Metabolic Considerations, Results Reveal, Starch Strategy, Final Save) using dropdowns for selections and input fields for numeric values. Users with existing saved settings bypass the guided flow. Includes Chef voice narration via TTS at each step using scripts from `macroCalculatorScripts.ts`.
 - **StudioWizard System v1.0**: Shared component (`client/src/components/studio-wizard/StudioWizard.tsx`) for creating guided "Powered by Emotion AI" experiences. Configurable via StudioConfig with branding (title, emoji, colors, icon), steps (title, question, voiceScript, inputType), scripts (ready, generating, complete), apiEndpoint, servingsStepIndex (explicit step for servings buttons), and buildPrompt function. Used by Craving Studio, Dessert Studio, and Fridge Rescue Studio.
 - **Craving Studio v1.0**: Guided step-by-step craving creation at `/craving-studio` with Chef voice narration. Steps: Craving Description, Meal Type, Servings, Dietary Preferences.

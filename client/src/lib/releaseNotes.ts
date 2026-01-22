@@ -12,14 +12,10 @@ export const currentRelease: ReleaseNote = {
     "Fixed screen flashing issues",
     "Resolved meals appearing across different meal boards",
     "Fixed disappearing meal cards",
-    "Fixed update banner refresh button not responding",
-    "Fixed update banner appearing behind iOS notch",
-    "Fixed password toggle jumping on mobile — now uses checkbox below field"
+    "Fixed password toggle jumping on mobile"
   ],
   designUpdates: [
     "Cleaned up Chef button — removed orange glow",
-    "Redesigned update notification — black/orange theme",
-    "Update banner works on all platforms (iOS, Android, Web)",
-    "Added 'What's New' button to see changes before updating"
+    "New 'What's New' update banner with release notes"
   ]
 };
