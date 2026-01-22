@@ -331,6 +331,18 @@ export const safetyOverrideAuditLogs = pgTable("safety_override_audit_logs", {
   createdAtIdx: index("idx_safety_override_created").on(t.createdAt),
 }));
 
+// Builder Switch Limit System - Track meal builder changes (3 per 12 months)
+export const builderSwitchHistory = pgTable("builder_switch_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  fromBuilder: text("from_builder"), // null if first selection
+  toBuilder: text("to_builder").notNull(), // weekly, diabetic, glp1, anti_inflammatory, beach_body, etc.
+  switchedAt: timestamp("switched_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index("idx_builder_switch_user").on(t.userId),
+  switchedAtIdx: index("idx_builder_switch_date").on(t.switchedAt),
+}));
+
 export const recipes = pgTable("recipes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
