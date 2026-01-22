@@ -32,6 +32,7 @@ import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useLogMacros } from "@/hooks/useLogMacros";
 import { useToast } from "@/hooks/use-toast";
+import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
@@ -44,6 +45,8 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -60,8 +63,6 @@ const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
     description: "Use what you have and skip unnecessary grocery trips.",
   },
 ];
-
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 interface StructuredIngredient {
   name: string;
@@ -106,6 +107,9 @@ const FridgeRescuePage = () => {
   const { toast } = useToast();
   const { runAction, open, startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("fridge-rescue");
+  // Get actual user ID from auth context for medical safety
+  const { user } = useAuth();
+  const userId = user?.id || "";
 
   // 🎯 Auto-start walkthrough on first visit
   useEffect(() => {
@@ -153,6 +157,10 @@ const FridgeRescuePage = () => {
   const [ingredients, setIngredients] = useState("");
   const [meals, setMeals] = useState<MealData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Safety override integration - always starts ON, auto-resets after generation
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const [overrideToken, setOverrideToken] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
@@ -297,16 +305,25 @@ const FridgeRescuePage = () => {
             .split(",")
             .map((i) => i.trim())
             .filter((i) => i),
-          userId: DEV_USER_ID,
+          userId: userId,
+          safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: !safetyEnabled ? overrideToken : undefined,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate meal");
-      }
-
       const data = await response.json();
       console.log("🧊 Frontend received data:", data);
+      
+      // Auto-reset safety to ON after generation attempt
+      setSafetyEnabled(true);
+      setOverrideToken(null);
+      
+      if (!response.ok) {
+        if (data.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+        throw new Error(data.message || "Failed to generate meal");
+      }
 
       // Handle both response formats: {meals: [...]} or {meal: {...}}
       let mealsArray;
@@ -339,10 +356,23 @@ const FridgeRescuePage = () => {
           });
         }
       }, 100);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating meals:", error);
       stopProgressTicker();
-      alert("Failed to generate meals. Please try again.");
+      const errorMsg = error?.message || String(error) || "";
+      if (isAllergyRelatedError(errorMsg)) {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description: formatAllergyAlertDescription(errorMsg),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: "Failed to generate meals. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -377,7 +407,7 @@ const FridgeRescuePage = () => {
 
     const { useWeeklyPlan } = await import("@/hooks/useWeeklyPlan");
     const { clearReplaceCtx } = await import("@/lib/replacementContext");
-    const { replaceOne } = useWeeklyPlan(DEV_USER_ID, replaceCtx.weekKey);
+    const { replaceOne } = useWeeklyPlan(userId, replaceCtx.weekKey);
 
     // Create meal object compatible with Weekly Plan
     const planMeal = {
@@ -424,7 +454,7 @@ const FridgeRescuePage = () => {
           .map((i) => i.trim())
           .filter((i) => i),
         goal: selectedGoal,
-        userId: DEV_USER_ID,
+        userId: userId,
       }),
     });
     const data = await resp.json();
@@ -456,15 +486,19 @@ const FridgeRescuePage = () => {
         body: JSON.stringify({
           ingredients: ingredients.trim(),
           goal: undefined, // You can add selectedGoal if needed
-          userId: DEV_USER_ID,
+          userId: userId,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
       const data = await response.json();
+      
+      if (!response.ok) {
+        // Check if this is an allergy safety block
+        if (data.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
       if (data?.meals?.length > 0) {
         const next = { ...data.meals[0] };
@@ -546,7 +580,7 @@ const FridgeRescuePage = () => {
                   <div className="flex items-center gap-2">
                     <Refrigerator className="h-4 w-4 flex-shrink-0 text-orange-500" />
                     <h3 className="text-sm font-semibold text-white">
-                      Create with Chef
+                      Chef's Kitchen Studio
                     </h3>
                   </div>
                   <p className="text-xs text-white/80 ml-6">
@@ -616,8 +650,20 @@ const FridgeRescuePage = () => {
                   </div>
                 )}
 
+                {/* Safety Guard Toggle */}
+                <div className="mb-4 flex justify-end">
+                  <SafetyGuardToggle
+                    safetyEnabled={safetyEnabled}
+                    onSafetyChange={(enabled, token) => {
+                      setSafetyEnabled(enabled);
+                      if (token) setOverrideToken(token);
+                    }}
+                    disabled={isLoading}
+                  />
+                </div>
+
                 <button
-                  onClick={handleGenerateMeals}
+                  onClick={() => handleGenerateMeals()}
                   disabled={isLoading}
                   data-testid="fridge-generate"
                   className="w-full bg-lime-600 backdrop-blur-lg hover:bg-lime-600 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
@@ -973,6 +1019,7 @@ const FridgeRescuePage = () => {
           steps={FRIDGE_RESCUE_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
+
       </motion.div>
     </PhaseGate>
   );

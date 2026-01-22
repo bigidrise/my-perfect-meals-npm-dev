@@ -262,26 +262,26 @@ export default function Profile() {
                 htmlFor="profile-photo-input"
                 className="cursor-pointer block"
               >
-                <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gradient-primary shadow-lg">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gradient-primary shadow-lg ring-2 ring-purple-500/50">
                   {profilePhotoUrl ? (
                     <img
                       src={profilePhotoUrl}
                       alt={userName}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <User className="h-8 w-8 text-white" />
+                      <User className="h-10 w-10 text-white" />
                     </div>
                   )}
                   {isUploadingPhoto && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                      <Loader2 className="h-8 w-8 text-white animate-spin" />
                     </div>
                   )}
                 </div>
-                <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-purple-600 border-2 border-black/40">
-                  <Camera className="h-3.5 w-3.5 text-white" />
+                <div className="absolute -bottom-1 -right-1 p-2 rounded-full bg-purple-600 border-2 border-black/40">
+                  <Camera className="h-4 w-4 text-white" />
                 </div>
               </label>
             </div>

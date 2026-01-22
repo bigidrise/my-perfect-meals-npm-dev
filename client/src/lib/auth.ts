@@ -63,6 +63,16 @@ export interface User {
   role?: UserRole;
   isProCare?: boolean;
   activeBoard?: MealBuilderType | null;
+  // Profile data from onboarding (used by Edit Profile)
+  firstName?: string | null;
+  lastName?: string | null;
+  age?: number | null;
+  height?: number | null;
+  weight?: number | null;
+  activityLevel?: string | null;
+  fitnessGoal?: string | null;
+  allergies?: string[];
+  dietaryRestrictions?: string[];
 }
 
 export function getAuthToken(): string | null {

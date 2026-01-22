@@ -1,6 +1,5 @@
 import { Cake } from "lucide-react";
 import StudioWizard, { StudioConfig } from "@/components/studio-wizard/StudioWizard";
-
 /**
  * DESSERT STUDIO — GUARDED & NON-GENERIC
  * Category → Flavor → Style → Servings → Dietary

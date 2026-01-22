@@ -50,6 +50,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           role: userData.role || "client",
           isProCare: userData.isProCare || false,
           activeBoard: userData.activeBoard || null,
+          // Profile data from onboarding (used by Edit Profile)
+          firstName: userData.firstName || null,
+          lastName: userData.lastName || null,
+          age: userData.age || null,
+          height: userData.height || null,
+          weight: userData.weight || null,
+          activityLevel: userData.activityLevel || null,
+          fitnessGoal: userData.fitnessGoal || null,
+          allergies: userData.allergies || [],
+          dietaryRestrictions: userData.dietaryRestrictions || [],
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));

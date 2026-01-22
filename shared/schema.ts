@@ -298,6 +298,9 @@ export const users = pgTable("users", {
   macrosDefined: boolean("macros_defined").default(false), // true when user has set macro targets
   starchPlanDefined: boolean("starch_plan_defined").default(false), // true when starch strategy is set
   onboardingMode: text("onboarding_mode").$type<"independent"|"procare">().default("independent"), // how user was onboarded
+  // MPM SafetyGuard PIN System
+  safetyPinHash: text("safety_pin_hash"), // bcrypt hash of 4-6 digit Safety PIN
+  safetyPinSetAt: timestamp("safety_pin_set_at", { withTimezone: true }), // when PIN was created/changed
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
@@ -312,6 +315,21 @@ export const pantryItems = pgTable("pantry_items", {
   unit: text("unit").default("unit"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// MPM SafetyGuard Override Audit Logs
+export const safetyOverrideAuditLogs = pgTable("safety_override_audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  mealRequest: text("meal_request").notNull(), // what the user requested
+  allergenTriggered: text("allergen_triggered").notNull(), // which allergen was overridden
+  safetyMode: text("safety_mode").$type<"CUSTOM_AUTHENTICATED">().notNull(), // always CUSTOM_AUTHENTICATED for overrides
+  builderId: text("builder_id"), // which meal builder was used (craving, dessert, fridge-rescue, etc.)
+  overrideReason: text("override_reason"), // optional user-provided reason
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index("idx_safety_override_user").on(t.userId),
+  createdAtIdx: index("idx_safety_override_created").on(t.createdAt),
+}));
 
 export const recipes = pgTable("recipes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -33,6 +33,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Brain, Target, Sparkles, Home, Users, ArrowLeft, ChefHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -47,9 +48,8 @@ import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
-
-// Development user ID - consistent across all components (UUID format)
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
+import { useAuth } from "@/contexts/AuthContext";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 
 interface StructuredIngredient {
   name: string;
@@ -178,8 +178,9 @@ export default function CravingCreator() {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
-  // Development user ID - consistent across app
-  const userId = DEV_USER_ID;
+  // Get actual user ID from auth context for medical safety
+  const { user } = useAuth();
+  const userId = user?.id || "";
 
   // 🎯 Auto-start walkthrough on first visit
   useEffect(() => {
@@ -305,7 +306,7 @@ export default function CravingCreator() {
             amount: ing.quantity || 1,
             unit: ing.unit || "unit",
           })),
-          userId: DEV_USER_ID,
+          userId: userId,
         }),
       });
 
@@ -330,6 +331,10 @@ export default function CravingCreator() {
   // 🔥 SIMPLIFIED: Use same pattern as Fridge Rescue (working system)
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Safety override integration - always starts ON, auto-resets after generation
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const [overrideToken, setOverrideToken] = useState<string | null>(null);
+
   const handleGenerateMeal = async () => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
 
@@ -347,6 +352,8 @@ export default function CravingCreator() {
       cravingInput,
       servings,
       selectedDiet,
+      safetyEnabled,
+      hasOverrideToken: !!overrideToken,
     });
     setIsGenerating(true);
     startProgressTicker();
@@ -361,16 +368,25 @@ export default function CravingCreator() {
           targetMealType: "snacks",
           cravingInput,
           dietaryRestrictions: selectedDiet || dietaryRestrictions,
-          userId: DEV_USER_ID,
-          servings: servings, // NEW: Send serving size to backend
+          userId: userId,
+          servings: servings,
+          safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: !safetyEnabled ? overrideToken : undefined,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate meal");
-      }
-
       const data = await response.json();
+      
+      // Auto-reset safety to ON after generation attempt
+      setSafetyEnabled(true);
+      setOverrideToken(null);
+      
+      if (!response.ok) {
+        if (data.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+        throw new Error(data.message || "Failed to generate meal");
+      }
       const meal = data.meal || data; // Handle both response formats
 
       stopProgressTicker();
@@ -399,12 +415,20 @@ export default function CravingCreator() {
       }, 500);
     } catch (error: any) {
       stopProgressTicker();
-      toast({
-        title: "Generation Failed",
-        description:
-          error.message || "Failed to generate meal. Please try again.",
-        variant: "destructive",
-      });
+      const errorMsg = error.message || "";
+      if (isAllergyRelatedError(errorMsg)) {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description: formatAllergyAlertDescription(errorMsg),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description: "SafetyGuard™ detected a potential concern. Try a different meal or adjust your request.",
+          variant: "warning",
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -432,7 +456,7 @@ export default function CravingCreator() {
 
     const { useWeeklyPlan } = await import("@/hooks/useWeeklyPlan");
     const { clearReplaceCtx } = await import("@/lib/replacementContext");
-    const { replaceOne } = useWeeklyPlan(DEV_USER_ID, replaceCtx.weekKey);
+    const { replaceOne } = useWeeklyPlan(userId, replaceCtx.weekKey);
 
     // Create meal object compatible with Weekly Plan
     const planMeal = {
@@ -535,43 +559,39 @@ export default function CravingCreator() {
             )}
           </div>
 
-          {/* Create with Chef Entry Point - Gated for production stability */}
-          {isFeatureEnabled('studioCreators') && (
-            <div className="relative mb-6">
-              <div
-                className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
-                style={{
-                  background:
-                    "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.75), rgba(239,68,68,0.35), rgba(0,0,0,0))",
-                }}
-              />
-              <Card
-                className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50 rounded-xl shadow-md overflow-hidden"
-                onClick={() => setLocation("/craving-studio")}
-                data-testid="cravingcreator-chef-studio"
-              >
-                <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
-                  <span className="text-white font-semibold text-[9px]">
-                    Powered by Emotion AI™
-                  </span>
-                </div>
-                <CardContent className="p-3">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                      <h3 className="text-sm font-semibold text-white">
-                        Create with Chef
-                      </h3>
-                    </div>
-                    <p className="text-xs text-white/80 ml-6">
-                      Step-by-step guided craving creation with Chef assistance
-                    </p>
+          {/* Create with Chef Entry Point - Coming Soon */}
+          <div className="relative mb-6">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-50"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.5), rgba(239,68,68,0.25), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
+              data-testid="cravingcreator-chef-studio"
+            >
+              <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                <span className="text-white font-semibold text-[9px]">
+                  Coming Soon
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Chef's Kitchen Studio
+                    </h3>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                  <p className="text-xs text-white/80 ml-6">
+                    Step-by-step guided craving creation with Chef assistance
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {isDeclinedMeal && (
             <Card className="mb-6 w-full max-w-xl mx-auto bg-black/20 backdrop-blur-lg border border-white/20 shadow-lg">
@@ -715,28 +735,10 @@ export default function CravingCreator() {
                         <SelectItem value="10">10 servings</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-md text-white mt-1">
-                      Ingredients and nutrition will be scaled for {servings}{" "}
-                      {servings === 1 ? "serving" : "servings"}
-                    </p>
+                    
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <label className="block text-md font-medium mb-1 text-white">
-                      Medical Safety Profile (Always Enabled)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={true}
-                        disabled={true}
-                        className="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500 opacity-50"
-                      />
-                      <span className="text-md text-green-300 font-medium">
-                        ✓ Protected
-                      </span>
-                    </div>
-                  </div>
+                  
 
                   {!selectedDiet && (
                     <div>
@@ -761,6 +763,18 @@ export default function CravingCreator() {
                     <p className="text-white/80 text-sm mt-2 text-center"></p>
                   )}
 
+                  {/* Safety Guard Toggle - right before generate button */}
+                  <div className="mt-4 flex justify-end">
+                    <SafetyGuardToggle
+                      safetyEnabled={safetyEnabled}
+                      onSafetyChange={(enabled, token) => {
+                        setSafetyEnabled(enabled);
+                        if (token) setOverrideToken(token);
+                      }}
+                      disabled={isGenerating}
+                    />
+                  </div>
+
                   {isGenerating ? (
                     <div className="max-w-md mx-auto mb-4">
                       <div className="flex items-center justify-between mb-2">
@@ -781,7 +795,7 @@ export default function CravingCreator() {
                     <GlassButton
                       data-testid="cravingcreator-create-button"
                       data-wt="cc-generate-button"
-                      onClick={handleGenerateMeal}
+                      onClick={() => handleGenerateMeal()}
                       disabled={isGenerating}
                       className="w-full bg-lime-600 hover:bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
@@ -1132,6 +1146,7 @@ export default function CravingCreator() {
           steps={CRAVING_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
+
       </motion.div>
     </PhaseGate>
   );

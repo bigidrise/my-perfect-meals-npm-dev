@@ -25,3 +25,4 @@ export function getCurrentUserPlan(): Plan {
   // TODO: Replace with actual user plan logic when authentication is implemented
   // return user?.plan ?? "BASIC";
 }
+

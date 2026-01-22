@@ -17,6 +17,14 @@ import holidayFamilyRecipeRouter from "./routes/holiday-family-recipe";
 
 import { generateCravingMeal, generateWeeklyMeals } from "./services/stableMealGenerator";
 import { generateCravingMealWithProfile } from "./services/generators/cravingCreatorWrapped";
+import { enforceSafetyProfile } from "./services/safetyProfileService";
+import { 
+  hasUserSetPin, 
+  setUserPin, 
+  changeUserPin, 
+  removeUserPin, 
+  verifyPinAndIssueOverrideToken 
+} from "./services/safetyPinService";
 // Shopping list import removed - will be implemented per ChatGPT specifications
 import avatarChatRouter from "./routes/avatarChat";
 import conciergeRouter from "./routes/concierge";
@@ -570,6 +578,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         starchContext               // Starch Game Plan context for intelligent carb distribution
       } = req.body;
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && input) {
+        const inputText = Array.isArray(input) ? input.join(' ') : input;
+        const safetyCheck = await enforceSafetyProfile(userId, inputText, `meals-generate-${type}`);
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            source: 'error',
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
+
       // Feature gate for fridge-rescue and premade types
       if (type === 'fridge-rescue' || type === 'premade') {
         const featureCheck = checkFeatureAccess("FRIDGE_RESCUE", req);
@@ -657,6 +682,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           error: "fridgeItems is required and must be a non-empty array"
         });
+      }
+      
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && userId !== "demo-user") {
+        const ingredientsText = fridgeItems.join(' ');
+        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked fridge rescue for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
       }
 
       // 🎯 Validate macro targets if provided (all fields optional)
@@ -819,6 +869,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId, days, schedule, dietaryRestrictions, selectedIngredients, includeImages = true, mode = "ai_varied", constraints = {} } = req.body;
 
       console.log("🎯 AI Meal Creator generating meal plan:", { userId, days, scheduleCount: schedule?.length });
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // Check selectedIngredients against user's allergy profile
+      if (userId && selectedIngredients && selectedIngredients.length > 0) {
+        const ingredientsText = selectedIngredients.join(' ');
+        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "ai-generate-meal-plan");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked AI meal plan for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       if (!schedule || schedule.length === 0) {
         return res.status(400).json({ error: "Schedule is required" });
@@ -1363,6 +1439,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meals/holiday-feast", async (req, res) => {
     console.log("🎯 DIRECT Holiday Feast route HIT! Body:", req.body);
     try {
+      const { userId, familyRecipe, cuisineType } = req.body;
+      
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId) {
+        // Check family recipe and cuisine type for allergens
+        const inputText = [familyRecipe, cuisineType].filter(Boolean).join(' ');
+        if (inputText) {
+          const safetyCheck = await enforceSafetyProfile(userId, inputText, "meals-holiday-feast");
+          if (safetyCheck.result === "BLOCKED") {
+            console.log(`🚫 [SAFETY] Blocked holiday feast for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+            return res.status(400).json({
+              success: false,
+              error: safetyCheck.message,
+              safetyBlocked: true,
+              blockedTerms: safetyCheck.blockedTerms,
+              suggestion: safetyCheck.suggestion
+            });
+          }
+          if (safetyCheck.result === "AMBIGUOUS") {
+            return res.status(400).json({
+              success: false,
+              error: safetyCheck.message,
+              safetyAmbiguous: true,
+              ambiguousTerms: safetyCheck.ambiguousTerms,
+              suggestion: safetyCheck.suggestion
+            });
+          }
+        }
+      }
+      
       const { generateHolidayFeast } = await import("./services/holidayFeastService");
       const result = await generateHolidayFeast({
         occasion: req.body.occasion || "Christmas",
@@ -1373,6 +1479,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         budgetLevel: req.body.budgetLevel || "moderate",
         familyRecipe: req.body.familyRecipe,
       });
+
+      // 🚨 POST-GENERATION VALIDATION: Filter unsafe feast items
+      if (userId && (result.feast?.length > 0 || result.recipes?.length > 0)) {
+        const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./services/safetyProfileService');
+        const profile = await loadSafetyProfile(userId);
+        if (profile) {
+          // Filter feast items
+          const safeFeast = (result.feast || []).filter((item: any) => {
+            const mealForValidation = {
+              name: item.name || '',
+              description: item.description || '',
+              ingredients: item.ingredients || [],
+              instructions: Array.isArray(item.instructions) ? item.instructions : []
+            };
+            const validation = validateMeal(mealForValidation, profile);
+            if (validation.result === 'BLOCKED') {
+              console.log(`🚫 [POST-GENERATION] Filtered feast item "${item.name}" for user ${userId}`);
+              return false;
+            }
+            return true;
+          });
+          
+          // Filter recipes
+          const safeRecipes = (result.recipes || []).filter((item: any) => {
+            const mealForValidation = {
+              name: item.name || '',
+              description: item.description || '',
+              ingredients: item.ingredients || [],
+              instructions: Array.isArray(item.instructions) ? item.instructions : []
+            };
+            const validation = validateMeal(mealForValidation, profile);
+            if (validation.result === 'BLOCKED') {
+              console.log(`🚫 [POST-GENERATION] Filtered recipe "${item.name}" for user ${userId}`);
+              return false;
+            }
+            return true;
+          });
+          
+          result.feast = safeFeast;
+          result.recipes = safeRecipes;
+        }
+      }
 
       res.json({
         holiday: req.body.occasion,
@@ -1443,29 +1591,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Medical Personalization API - Get personalized meal plan based on user's medical profile
+  // 🚨 SAFETY: This endpoint uses template-based generation (not AI) with user.allergies passed to profile
   app.post("/api/weekly-meal-plan/:userId/regenerate", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { mealsPerDay = 3, snacksPerDay = 1, duration = 7 } = req.body;
 
-      // Get user's medical profile from onboarding data  
       // Get user data directly
       const [user] = await db.select().from(users).where(eq(users.id, userId.toString())).limit(1);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Mock medical profile based on common conditions (replace with real user data)
+      // Build medical profile from user data - allergies enforced in MedicalPersonalizationService
       const userMedicalProfile = {
-        medicalConditions: user.healthConditions || ['diabetes_type2', 'hypertension'],
-        foodAllergies: user.allergies || ['nuts'],
-        dietaryRestrictions: user.dietaryRestrictions || ['gluten_free'],
+        medicalConditions: user.healthConditions || [],
+        foodAllergies: user.allergies || [],  // 🚨 SAFETY: Allergies from single source of truth
+        dietaryRestrictions: user.dietaryRestrictions || [],
         primaryGoal: user.fitnessGoal || 'weight_loss',
         activityLevel: user.activityLevel || 'moderate',
         customConditions: {}
       };
 
-      // Generate medically personalized meal plan
+      // Generate medically personalized meal plan (template-based, respects foodAllergies)
       const { MedicalPersonalizationService } = await import("./medicalPersonalizationService.js");
       const personalizedMealPlan = MedicalPersonalizationService.generateWeeklyMealPlan(
         userMedicalProfile,
@@ -1634,6 +1782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         username: user.username,
         firstName: user.firstName,
+        lastName: user.lastName || null,
         entitlements: user.entitlements || [],
         planLookupKey: user.planLookupKey,
         trialStartedAt: user.trialStartedAt,
@@ -1645,10 +1794,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: user.role || "client",
         isProCare: user.isProCare || false,
         activeBoard: user.activeBoard || null,
+        // Onboarding/Profile data - CRITICAL for Edit Profile page
+        age: user.age || null,
+        height: user.height || null,
+        weight: user.weight || null,
+        activityLevel: user.activityLevel || null,
+        fitnessGoal: user.fitnessGoal || null,
+        // Allergy and dietary data - CRITICAL for safety systems
+        allergies: user.allergies || [],
+        dietaryRestrictions: user.dietaryRestrictions || [],
+        healthConditions: user.healthConditions || [],
+        dislikedFoods: user.dislikedFoods || [],
+        likedFoods: user.likedFoods || [],
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
+
+  // User profile update endpoint - saves onboarding/profile data
+  // CRITICAL: This is the single source of truth for allergies, dietary restrictions, etc.
+  app.put("/api/users/profile", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      
+      const {
+        firstName,
+        lastName,
+        age,
+        height,
+        weight,
+        activityLevel,
+        fitnessGoal,
+        dietaryRestrictions,
+        allergies,
+        healthConditions,
+        dislikedFoods,
+        likedFoods,
+      } = req.body;
+      
+      // Build update object with only provided fields
+      const updateData: any = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      // Keep display name in sync with firstName/lastName
+      if (firstName !== undefined || lastName !== undefined) {
+        const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        const newFirst = firstName !== undefined ? firstName : (currentUser?.firstName || '');
+        const newLast = lastName !== undefined ? lastName : (currentUser?.lastName || '');
+        updateData.name = [newFirst, newLast].filter(Boolean).join(' ');
+      }
+      if (age !== undefined) updateData.age = age;
+      if (height !== undefined) updateData.height = height;
+      if (weight !== undefined) updateData.weight = weight;
+      if (activityLevel !== undefined) updateData.activityLevel = activityLevel;
+      if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
+      if (dietaryRestrictions !== undefined) updateData.dietaryRestrictions = dietaryRestrictions;
+      if (allergies !== undefined) updateData.allergies = allergies;
+      if (healthConditions !== undefined) updateData.healthConditions = healthConditions;
+      if (dislikedFoods !== undefined) updateData.dislikedFoods = dislikedFoods;
+      if (likedFoods !== undefined) updateData.likedFoods = likedFoods;
+      
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No fields to update" });
+      }
+      
+      const [updatedUser] = await db.update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      console.log(`✅ Profile updated for user ${userId}:`, Object.keys(updateData).join(", "));
+      
+      res.json({
+        success: true,
+        message: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update user profile" });
     }
   });
 
@@ -1766,6 +1996,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating meal builder:", error);
       res.status(500).json({ error: "Failed to update meal builder" });
+    }
+  });
+
+  // ===== MPM SafetyGuard PIN System =====
+  
+  // Check if user has set a Safety PIN
+  app.get("/api/safety-pin/status", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const hasPin = await hasUserSetPin(userId);
+      res.json({ hasPin });
+    } catch (error: any) {
+      console.error("Error checking Safety PIN status:", error);
+      res.status(500).json({ error: "Failed to check PIN status" });
+    }
+  });
+
+  // Set Safety PIN (first time or if not set)
+  app.post("/api/safety-pin/set", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "PIN is required" });
+      }
+      
+      // Check if PIN already exists
+      const hasPin = await hasUserSetPin(userId);
+      if (hasPin) {
+        return res.status(400).json({ error: "PIN already set. Use change endpoint." });
+      }
+      
+      const result = await setUserPin(userId, pin);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ success: true, message: "Safety PIN set successfully" });
+    } catch (error: any) {
+      console.error("Error setting Safety PIN:", error);
+      res.status(500).json({ error: "Failed to set Safety PIN" });
+    }
+  });
+
+  // Change Safety PIN (requires current PIN)
+  app.post("/api/safety-pin/change", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { currentPin, newPin } = req.body;
+      
+      if (!currentPin || !newPin) {
+        return res.status(400).json({ error: "Current PIN and new PIN are required" });
+      }
+      
+      const result = await changeUserPin(userId, currentPin, newPin);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ success: true, message: "Safety PIN changed successfully" });
+    } catch (error: any) {
+      console.error("Error changing Safety PIN:", error);
+      res.status(500).json({ error: "Failed to change Safety PIN" });
+    }
+  });
+
+  // Remove Safety PIN (requires current PIN)
+  app.post("/api/safety-pin/remove", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "Current PIN is required" });
+      }
+      
+      const result = await removeUserPin(userId, pin);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ success: true, message: "Safety PIN removed successfully" });
+    } catch (error: any) {
+      console.error("Error removing Safety PIN:", error);
+      res.status(500).json({ error: "Failed to remove Safety PIN" });
+    }
+  });
+
+  // Verify PIN and issue one-time override token
+  app.post("/api/safety-pin/verify-override", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin, allergen, mealRequest } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "PIN is required" });
+      }
+      if (!allergen || !mealRequest) {
+        return res.status(400).json({ error: "Allergen and meal request context required" });
+      }
+      
+      const result = await verifyPinAndIssueOverrideToken(userId, pin, allergen, mealRequest);
+      if (!result.success) {
+        return res.status(401).json({ error: result.error });
+      }
+      
+      res.json({ 
+        success: true, 
+        overrideToken: result.overrideToken,
+        message: "Override authorized for this meal only"
+      });
+    } catch (error: any) {
+      console.error("Error verifying Safety PIN:", error);
+      res.status(500).json({ error: "Failed to verify PIN" });
     }
   });
 
@@ -1898,6 +2248,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // 🚨 SAFETY: This endpoint uses pre-curated recipes, not AI generation
+      // Recipes are manually curated so no allergen enforcement needed here
+      // For AI-generated meals, use the unified pipeline which has full safety checks
+      
       const generatedPlan = await generateMealPlan(user);
       const [mealPlan] = await db.insert(mealPlans).values({
         userId,
@@ -2286,6 +2640,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🎯 Generate Craving Meal: ${craving} for user ${userId}`);
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && craving) {
+        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
+
       // Use the medical-aware craving creator service
       const { generateCravingMealWithProfile } = await import("./services/generators/cravingCreatorWrapped");
 
@@ -2309,6 +2687,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
       const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1 } = req.body;
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && cravingInput) {
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
@@ -2441,6 +2843,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!userId) {
         return res.status(400).json({ error: "userId required for onboarding enforcement" });
+      }
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (cravingInput) {
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked enforced craving for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
       }
 
       console.log("🛡️ Generating craving meal with medical validation for:", userId);
@@ -2621,6 +3047,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, generateAll = true } = req.body;
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // Weekly meals don't have user input text, but we still load the profile
+      // to ensure allergies are passed to the generator
+
       // Get user data for medical personalization
       let user = null;
       if (userId) {
@@ -2658,6 +3088,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("🧒 KIDS ROUTE (routes.ts): Generating kid-friendly meal for:", preferences);
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && preferences) {
+        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked kids meal for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
+
       // Use stable kids lunchbox generator with proper kid-friendly catalog
       const { kidsLunchboxV1Generate } = await import("./services/kidsLunchboxV1");
       
@@ -2688,6 +3142,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cookingTime: result.meal.prepTime
       };
 
+      // 🚨 POST-GENERATION VALIDATION: Ensure catalog meal doesn't contain user allergens
+      if (userId) {
+        const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./services/safetyProfileService');
+        const profile = await loadSafetyProfile(userId);
+        if (profile) {
+          const mealForValidation = {
+            name: generatedMeal.name,
+            description: generatedMeal.description,
+            ingredients: generatedMeal.ingredients.map((i: any) => i.name),
+            instructions: Array.isArray(generatedMeal.instructions) ? generatedMeal.instructions : [generatedMeal.instructions]
+          };
+          const validation = validateMeal(mealForValidation, profile);
+          if (validation.result === 'BLOCKED') {
+            console.log(`🚫 [POST-GENERATION] Blocked kids meal "${generatedMeal.name}" for user ${userId}: ${validation.blockedTerms.join(', ')}`);
+            return res.status(400).json({
+              success: false,
+              error: `This meal contains ${validation.blockedTerms[0]} which conflicts with your allergy profile. Please try a different preference.`,
+              safetyBlocked: true,
+              blockedTerms: validation.blockedTerms,
+              suggestion: validation.suggestion
+            });
+          }
+        }
+      }
+
       console.log("🧒 Kids meal generated:", generatedMeal.name);
       console.log("📊 Generation source: kids-catalog");
 
@@ -2709,6 +3188,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = Date.now();
 
       console.log("🤖 AI meal creator request:", { cravingInput, userId });
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && cravingInput) {
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked ai-creator for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       // Use unified pipeline (deterministic: cache → templates → fallback)
       const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
@@ -4456,6 +4959,10 @@ function getMealIngredientsDatabase() {
         return res.status(400).json({ error: "userId is required" });
       }
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Load user's allergy profile
+      // Weekly plan uses templates so we don't have user input to check,
+      // but the profile is used for filtering generated meals
+      
       // Fetch user preferences
       const [userPrefs] = await db
         .select()

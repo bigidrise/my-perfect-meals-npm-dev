@@ -30,6 +30,22 @@ import {
   HubCouplingResult 
 } from './hubCoupling';
 import { enforceCarbs } from '../utils/carbClassifier';
+import { 
+  buildForbiddenIngredients, 
+  buildSafetyGuardrails, 
+  scanForViolations,
+  validateMealSafety,
+  logSafetyEnforcement,
+  extractSafetyProfile,
+  UserSafetyProfile
+} from './allergyGuardrails';
+import { 
+  enforceSafetyProfile,
+  validateGeneratedMeal,
+  extractSafetyProfileFromUser,
+  SafetyAssessment
+} from './safetyProfileService';
+import { storage } from '../storage';
 import OpenAI from 'openai';
 
 let _openai: OpenAI | null = null;
@@ -143,8 +159,14 @@ export interface MealGenerationResponse {
   success: boolean;
   meal?: UnifiedMeal;
   meals?: UnifiedMeal[];
-  source: 'ai' | 'catalog' | 'fallback';
+  source: 'ai' | 'catalog' | 'fallback' | 'error';
   error?: string;
+  // Safety Profile enforcement fields
+  safetyBlocked?: boolean;
+  safetyAmbiguous?: boolean;
+  blockedTerms?: string[];
+  ambiguousTerms?: string[];
+  suggestion?: string;
 }
 
 /**
@@ -1276,38 +1298,69 @@ export async function generateMealUnified(
 ): Promise<MealGenerationResponse> {
   console.log(`🔄 Unified pipeline processing ${request.type} request for ${request.mealType}`);
 
+  // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+  // This MUST run before ANY AI generation to protect users with allergies
+  if (request.userId) {
+    const inputText = Array.isArray(request.input) ? request.input.join(' ') : request.input;
+    const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`);
+    
+    if (safetyCheck.result === 'BLOCKED') {
+      console.log(`🚫 [SAFETY] Blocked request for user ${request.userId}: ${safetyCheck.blockedTerms.join(', ')}`);
+      return {
+        success: false,
+        source: 'error',
+        error: safetyCheck.message,
+        safetyBlocked: true,
+        blockedTerms: safetyCheck.blockedTerms,
+        suggestion: safetyCheck.suggestion
+      };
+    }
+    
+    if (safetyCheck.result === 'AMBIGUOUS') {
+      console.log(`⚠️ [SAFETY] Ambiguous request for user ${request.userId}: ${safetyCheck.ambiguousTerms.join(', ')}`);
+      // For ambiguous dishes (like jambalaya, pad thai), return warning to user
+      return {
+        success: false,
+        source: 'error',
+        error: safetyCheck.message,
+        safetyAmbiguous: true,
+        ambiguousTerms: safetyCheck.ambiguousTerms,
+        suggestion: safetyCheck.suggestion
+      };
+    }
+  }
+
+  // Generate the meal
+  let result: MealGenerationResponse;
   switch (request.type) {
     case 'craving':
       const cravingInput = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      return generateCravingMealUnified(cravingInput, request.mealType, request.userId);
+      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId);
+      break;
 
     case 'create-with-chef':
-      // Create With Chef uses description-based generation (AI + DALL-E image)
-      // Supports diet-specific guardrails when dietType is provided
-      // Supports Starch Game Plan for intelligent carb distribution
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      return generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext);
+      break;
 
     case 'snack-creator':
-      // Snack Creator uses craving-to-healthy transformation (AI + DALL-E image)
-      // Supports diet-specific guardrails when dietType is provided
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      return generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType);
+      break;
 
     case 'fridge-rescue':
     case 'premade':
       const fridgeItems = Array.isArray(request.input) 
         ? request.input 
         : request.input.split(',').map(s => s.trim());
-      // Skip DALL-E for premades - use static fallbacks for instant loading
       const useFallbackOnly = request.type === 'premade';
-      return generateFridgeRescueUnified(
+      result = await generateFridgeRescueUnified(
         fridgeItems, 
         request.mealType, 
         request.userId,
@@ -1315,6 +1368,7 @@ export async function generateMealUnified(
         request.count || 1,
         useFallbackOnly
       );
+      break;
 
     default:
       return {
@@ -1323,4 +1377,75 @@ export async function generateMealUnified(
         error: `Unknown generation type: ${request.type}`
       };
   }
+
+  // 🚨 POST-GENERATION VALIDATION: Scan output for allergens that slipped through
+  if (request.userId && result.success) {
+    const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./safetyProfileService');
+    const profile = await loadSafetyProfile(request.userId);
+    
+    if (profile) {
+      // Helper to validate a single meal
+      const validateSingleMeal = (meal: UnifiedMeal) => {
+        const mealForValidation = {
+          name: meal.name,
+          description: meal.description,
+          ingredients: meal.ingredients,
+          instructions: Array.isArray(meal.instructions) 
+            ? meal.instructions 
+            : meal.instructions ? [meal.instructions] : []
+        };
+        return validateMeal(mealForValidation, profile);
+      };
+      
+      // Validate single meal
+      if (result.meal) {
+        const validation = validateSingleMeal(result.meal);
+        if (validation.result === 'BLOCKED') {
+          console.log(`🚫 [POST-GENERATION] Blocked meal "${result.meal.name}" for user ${request.userId}: ${validation.blockedTerms.join(', ')}`);
+          return {
+            success: false,
+            source: 'error',
+            error: `Generated meal contains ${validation.blockedTerms[0]} which conflicts with your allergy profile. Please try a different request.`,
+            safetyBlocked: true,
+            blockedTerms: validation.blockedTerms,
+            suggestion: validation.suggestion
+          };
+        }
+      }
+      
+      // Validate array of meals (weekly plans, batch generation)
+      if (result.meals && result.meals.length > 0) {
+        const safeMeals: UnifiedMeal[] = [];
+        const blockedMeals: string[] = [];
+        
+        for (const meal of result.meals) {
+          const validation = validateSingleMeal(meal);
+          if (validation.result === 'BLOCKED') {
+            console.log(`🚫 [POST-GENERATION] Filtered out meal "${meal.name}" for user ${request.userId}: ${validation.blockedTerms.join(', ')}`);
+            blockedMeals.push(meal.name);
+          } else {
+            safeMeals.push(meal);
+          }
+        }
+        
+        // If all meals were blocked, return error
+        if (safeMeals.length === 0) {
+          return {
+            success: false,
+            source: 'error',
+            error: `All generated meals contained ingredients that conflict with your allergy profile. Please try a different request.`,
+            safetyBlocked: true
+          };
+        }
+        
+        // Return only safe meals (silently filter out blocked ones)
+        result.meals = safeMeals;
+        if (blockedMeals.length > 0) {
+          console.log(`⚠️ [POST-GENERATION] Filtered ${blockedMeals.length} unsafe meals for user ${request.userId}`);
+        }
+      }
+    }
+  }
+
+  return result;
 }

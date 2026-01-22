@@ -83,7 +83,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       }, 100);
       return;
     }
-
+    
     // Allow guest mode to access guest-allowed routes
     const guestModeActive = isGuestMode();
     const guestCanAccess = guestModeActive && isGuestAllowedRoute(location);

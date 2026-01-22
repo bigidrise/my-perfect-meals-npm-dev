@@ -10,6 +10,27 @@ html, body {
   position: relative;
 }
 
+/* iOS WKWebView Anti-Flash - Prevents white screen flashes */
+html, body, #root {
+  background-color: #000 !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Prevent iOS white flash during page transitions */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS scroll momentum without revealing white background */
+html {
+  overscroll-behavior: none;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
 /* React root fills viewport */
 #root {
   height: 100%;

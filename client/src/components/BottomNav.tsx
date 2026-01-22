@@ -123,7 +123,7 @@ export default function BottomNav() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[var(--safe-bottom)]">
         <div className="max-w-screen-xl mx-auto px-4">
-          <div className="relative h-12 grid grid-cols-[1fr_auto_1fr] items-center">
+          <div className="relative h-16 grid grid-cols-[1fr_auto_1fr] items-center">
             {/* LEFT ITEMS */}
             <div className="flex items-center justify-start">
               {leftItems.map((item) => {

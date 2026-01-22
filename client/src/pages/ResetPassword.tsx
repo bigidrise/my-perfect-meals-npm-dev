@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
-import { Lock, CheckCircle, AlertCircle } from "lucide-react";
+import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -24,6 +24,8 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const [token, setToken] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     // Extract token from URL query params
@@ -166,14 +168,26 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel className="text-white">New Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter new password"
-                        className="bg-white/10 border-white/20 text-white placeholder-white/60
-                                   focus:ring-2 focus:ring-white/30 focus:border-white/30"
-                        data-testid="input-password"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter new password"
+                          className="bg-white/10 border-white/20 text-white placeholder-white/60
+                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 pr-12"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          data-testid="input-password"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage className="text-red-300" />
                   </FormItem>
@@ -187,14 +201,26 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel className="text-white">Confirm Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Confirm new password"
-                        className="bg-white/10 border-white/20 text-white placeholder-white/60
-                                   focus:ring-2 focus:ring-white/30 focus:border-white/30"
-                        data-testid="input-confirm-password"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirm new password"
+                          className="bg-white/10 border-white/20 text-white placeholder-white/60
+                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 pr-12"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          data-testid="input-confirm-password"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1"
+                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage className="text-red-300" />
                   </FormItem>

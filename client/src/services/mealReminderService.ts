@@ -28,8 +28,13 @@ async function getLocalNotifications() {
   if (!Capacitor.isNativePlatform()) return null;
   
   if (!LocalNotificationsModule) {
-    const mod = await import("@capacitor/local-notifications");
-    LocalNotificationsModule = mod.LocalNotifications;
+    try {
+      const mod = await import("@capacitor/local-notifications");
+      LocalNotificationsModule = mod.LocalNotifications;
+    } catch (e) {
+      console.error("Failed to load LocalNotifications module:", e);
+      return null;
+    }
   }
   
   return LocalNotificationsModule;

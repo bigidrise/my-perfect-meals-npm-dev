@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp } from "@/lib/auth";
-import { Eye } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -69,7 +69,7 @@ export default function Auth() {
           />
           <div className="relative mb-2">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Password"
               className="w-full p-3 pr-12 rounded-xl
                          bg-white/10 border border-white/20
@@ -84,25 +84,12 @@ export default function Auth() {
             />
             <button
               type="button"
-              onPointerDown={() => setShowPassword(true)}
-              onPointerUp={() => setShowPassword(false)}
-              onPointerLeave={() => setShowPassword(false)}
-              onPointerCancel={() => setShowPassword(false)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full
-                         text-white/50 hover:text-white/80 active:text-white
-                         touch-none select-none"
-              aria-label="Hold to reveal password"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1"
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              <Eye size={18} />
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
-            {showPassword && pwd && (
-              <div className="absolute inset-0 right-12 flex items-center
-                              pointer-events-none rounded-xl bg-neutral-800 px-3">
-                <span className="text-white text-base">
-                  {pwd}
-                </span>
-              </div>
-            )}
           </div>
 
           {mode === "login" && (

@@ -4,6 +4,7 @@
  */
 
 import { Capacitor } from "@capacitor/core";
+import { patchFetchForCredentials } from "@/lib/fetch-credentials-patch";
 
 /**
  * Safely hides the native splash screen.
@@ -19,6 +20,14 @@ async function hideSplashSafely() {
     // Never block boot
   }
 }
+
+/**
+ * ✅ Apply global fetch credentials patch
+ * - Runs once
+ * - Browser-only guarded internally
+ * - Safe for Vite production build
+ */
+patchFetchForCredentials();
 
 import("./app-entry")
   .then(({ AppEntry }) => {

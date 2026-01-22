@@ -17,8 +17,10 @@ import {
   StarchContext,
 } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
+import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -43,6 +45,8 @@ export function CreateWithChefModal({
   starchContext,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const [overrideToken, setOverrideToken] = useState<string | null>(null);
   const { user } = useAuth();
   
   // Support both authenticated users and guests
@@ -57,6 +61,8 @@ export function CreateWithChefModal({
   useEffect(() => {
     if (!open) {
       setDescription("");
+      setSafetyEnabled(true);
+      setOverrideToken(null);
       cancel();
     }
   }, [open, cancel]);
@@ -111,11 +117,19 @@ export function CreateWithChefModal({
       onMealGenerated(meal, mealType);
       onOpenChange(false);
     } else if (error) {
-      toast({
-        title: "Generation Failed",
-        description: error,
-        variant: "destructive",
-      });
+      if (isAllergyRelatedError(error)) {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description: formatAllergyAlertDescription(error),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -175,6 +189,19 @@ export function CreateWithChefModal({
           )}
 
           {error && <p className="text-sm text-red-400">{error}</p>}
+
+          {/* Safety Guard Toggle - ONLY override location */}
+          <div className="flex items-center justify-between py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+            <span className="text-xs text-white/60">Safety Profile for This Meal</span>
+            <SafetyGuardToggle
+              safetyEnabled={safetyEnabled}
+              onSafetyChange={(enabled, token) => {
+                setSafetyEnabled(enabled);
+                if (token) setOverrideToken(token);
+              }}
+              disabled={generating}
+            />
+          </div>
 
           <div className="flex gap-3 pt-2">
             <Button

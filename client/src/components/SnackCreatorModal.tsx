@@ -12,8 +12,10 @@ import { Progress } from "@/components/ui/progress";
 import { Cookie, Loader2 } from "lucide-react";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
 import { useToast } from "@/hooks/use-toast";
+import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -31,6 +33,8 @@ export function SnackCreatorModal({
   dietPhase,
 }: SnackCreatorModalProps) {
   const [description, setDescription] = useState("");
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const [overrideToken, setOverrideToken] = useState<string | undefined>();
   const { user } = useAuth();
   
   // Support both authenticated users and guests
@@ -77,27 +81,46 @@ export function SnackCreatorModal({
       return;
     }
 
-    const snack = await generateSnack(description.trim(), dietType, dietPhase);
+    try {
+      const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken);
 
-    if (snack) {
-      // Record guest generation for limit tracking (does not affect unlock progression)
-      if (isGuest) {
-        trackGuestGenerationUsage();
+      if (snack) {
+        // Record guest generation for limit tracking (does not affect unlock progression)
+        if (isGuest) {
+          trackGuestGenerationUsage();
+        }
+        
+        toast({
+          title: "Snack Created!",
+          description: `${snack.name} is ready for you`,
+        });
+        onSnackGenerated(snack);
+        onOpenChange(false);
+      } else if (error) {
+        if (isAllergyRelatedError(error)) {
+          toast({
+            title: "⚠️ ALLERGY ALERT",
+            description: formatAllergyAlertDescription(error),
+            variant: "warning",
+          });
+        } else {
+          toast({
+            title: "Generation Failed",
+            description: error,
+            variant: "destructive",
+          });
+        }
       }
-      
-      toast({
-        title: "Snack Created!",
-        description: `${snack.name} is ready for you`,
-      });
-      onSnackGenerated(snack);
-      onOpenChange(false);
-    } else if (error) {
-      toast({
-        title: "Generation Failed",
-        description: error,
-        variant: "destructive",
-      });
+    } finally {
+      // Auto-reset SafetyGuard after every generation (success or fail)
+      setSafetyEnabled(true);
+      setOverrideToken(undefined);
     }
+  };
+
+  const handleSafetyChange = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    setOverrideToken(token);
   };
 
   return (
@@ -145,6 +168,15 @@ export function SnackCreatorModal({
           {error && (
             <p className="text-sm text-red-400">{error}</p>
           )}
+
+          {/* SafetyGuard Toggle */}
+          <div className="flex justify-end">
+            <SafetyGuardToggle
+              safetyEnabled={safetyEnabled}
+              onSafetyChange={handleSafetyChange}
+              disabled={generating}
+            />
+          </div>
 
           <div className="flex gap-3 pt-2">
             <Button

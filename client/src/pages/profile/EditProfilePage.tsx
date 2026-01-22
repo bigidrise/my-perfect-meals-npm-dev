@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, User, Utensils } from "lucide-react";
+import { ArrowLeft, CheckCircle2, User, Utensils, Shield } from "lucide-react";
+import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -292,7 +293,7 @@ export default function EditProfilePage() {
                   />
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <label className="text-white/70 text-xs">Height (cm)</label>
+                  <label className="text-white/70 text-xs">Height (in)</label>
                   <input
                     value={form.height ?? ""}
                     onChange={(e) =>
@@ -302,12 +303,12 @@ export default function EditProfilePage() {
                       }))
                     }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                    placeholder="178"
+                    placeholder="70"
                     inputMode="numeric"
                   />
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <label className="text-white/70 text-xs">Weight (kg)</label>
+                  <label className="text-white/70 text-xs">Weight (lbs)</label>
                   <input
                     value={form.weight ?? ""}
                     onChange={(e) =>
@@ -317,7 +318,7 @@ export default function EditProfilePage() {
                       }))
                     }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                    placeholder="75"
+                    placeholder="165"
                     inputMode="numeric"
                   />
                 </div>
@@ -430,6 +431,17 @@ export default function EditProfilePage() {
                   className="mt-1 w-full min-h-[90px] bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
                   placeholder="e.g. peanuts, dairy, shellfish..."
                 />
+              </div>
+
+              <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-4 w-4 text-amber-400" />
+                  <span className="text-amber-300 font-semibold text-sm">SafetyGuard™ — Allergy Protection</span>
+                </div>
+                <p className="text-white/70 text-xs mb-3">
+                  Set a 4-digit PIN to allow one-time overrides when you intentionally want to modify an allergy-blocked meal.
+                </p>
+                <SafetyPinSettings />
               </div>
 
               <div className="flex gap-2 pt-2">

@@ -9,6 +9,7 @@ import { normalizeIngredients } from "../services/ingredientNormalizer";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { enforceSafetyProfile } from "../services/safetyProfileService";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -101,6 +102,31 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     if (!flavorFamily) {
       return res.status(400).json({ error: "Flavor family is required" });
+    }
+
+    // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+    if (userId) {
+      const inputText = [specificDessert, flavorFamily, dessertCategory].filter(Boolean).join(' ');
+      const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator");
+      if (safetyCheck.result === "BLOCKED") {
+        console.log(`🚫 [SAFETY] Blocked dessert for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+        return res.status(400).json({
+          success: false,
+          error: safetyCheck.message,
+          safetyBlocked: true,
+          blockedTerms: safetyCheck.blockedTerms,
+          suggestion: safetyCheck.suggestion
+        });
+      }
+      if (safetyCheck.result === "AMBIGUOUS") {
+        return res.status(400).json({
+          success: false,
+          error: safetyCheck.message,
+          safetyAmbiguous: true,
+          ambiguousTerms: safetyCheck.ambiguousTerms,
+          suggestion: safetyCheck.suggestion
+        });
+      }
     }
 
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;

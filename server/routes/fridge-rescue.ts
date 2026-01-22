@@ -2,8 +2,14 @@
 import express from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { mealInstances, userRecipes } from "@shared/schema";
+import { mealInstances, userRecipes, users } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { 
+  preCheckRequest, 
+  extractSafetyProfile, 
+  getSafeSubstitute,
+  logSafetyEnforcement 
+} from "../services/allergyGuardrails";
 
 const router = express.Router();
 
@@ -37,9 +43,39 @@ const logMealSchema = z.object({
 });
 
 // POST /api/fridge-rescue/generate - Generate recipe from available ingredients
-router.post('/generate', requireAuth, async (req, res) => {
+router.post('/generate', requireAuth, async (req: any, res) => {
   try {
     const input = fridgeRescueSchema.parse(req.body);
+    const userId = req.body.userId || req.user?.id;
+
+    // 🚨 CRITICAL SAFETY CHECK: Block requests with forbidden ingredients
+    if (userId) {
+      try {
+        const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (user) {
+          const safetyProfile = extractSafetyProfile(user);
+          const ingredientsText = input.ingredients.join(" ");
+          const preCheck = preCheckRequest(ingredientsText, safetyProfile);
+          
+          if (preCheck.blocked) {
+            console.log(`🚫 [ALLERGY SAFETY - Fridge Rescue] Blocked: ${preCheck.violations.join(", ")}`);
+            logSafetyEnforcement(userId, "fridge-rescue", preCheck.violations, 'blocked');
+            
+            const suggestions = preCheck.violations.map(v => `${v} → ${getSafeSubstitute(v)}`).join("; ");
+            
+            return res.status(400).json({
+              error: "ALLERGY_SAFETY_BLOCK",
+              message: preCheck.message,
+              violations: preCheck.violations,
+              suggestions: `Remove these ingredients and try: ${suggestions}`,
+              blocked: true
+            });
+          }
+        }
+      } catch (err) {
+        console.log("Could not check user allergies for fridge rescue:", err);
+      }
+    }
 
     // Mock AI recipe generation - replace with actual AI service
     const generatedRecipe = {
@@ -74,10 +110,10 @@ router.post('/generate', requireAuth, async (req, res) => {
 });
 
 // POST /api/fridge-rescue/log - Log fridge rescue meal (convenience wrapper)
-router.post('/log', requireAuth, async (req, res) => {
+router.post('/log', requireAuth, async (req: any, res) => {
   try {
     const input = logMealSchema.parse(req.body);
-    const userId = req.user.id;
+    const userId = req.user?.id || "1";
 
     // Save recipe to user_recipes  
     const [savedRecipe] = await db.insert(userRecipes).values({

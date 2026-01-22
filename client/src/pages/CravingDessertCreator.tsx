@@ -17,6 +17,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Sparkles, ArrowLeft, Users, Brain, ChefHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
@@ -27,8 +28,8 @@ import TranslateToggle from "@/components/TranslateToggle";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
+import { useAuth } from "@/contexts/AuthContext";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -133,6 +134,9 @@ export default function DessertCreator() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const quickTour = useQuickTour("craving-desserts");
+  // Get actual user ID from auth context for medical safety
+  const { user } = useAuth();
+  const userId = user?.id || "";
 
   const [dessertCategory, setDessertCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
@@ -155,6 +159,11 @@ export default function DessertCreator() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Safety PIN integration
+  // Safety override integration - always starts ON, auto-resets after generation
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const [overrideToken, setOverrideToken] = useState<string | null>(null);
 
   useCopilotPageExplanation();
 
@@ -204,7 +213,7 @@ export default function DessertCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateDessert() {
+  async function handleGenerateDessert(overrideToken?: string) {
     if (!dessertCategory) {
       toast({
         title: "Missing Information",
@@ -230,6 +239,8 @@ export default function DessertCreator() {
       flavorFamily,
       specificDessert,
       servingSize,
+      safetyEnabled,
+      hasOverrideToken: !!overrideToken,
     });
 
     try {
@@ -253,15 +264,26 @@ export default function DessertCreator() {
               : []),
             ...(customDietary.trim() ? [customDietary.trim()] : []),
           ],
-          userId: DEV_USER_ID,
+          userId: userId,
+          safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: !safetyEnabled ? overrideToken : undefined,
         }),
       });
 
       console.log("🍨 [DESSERT] API response received:", res.status);
+      
+      // Auto-reset safety to ON after generation attempt
+      setSafetyEnabled(true);
+      setOverrideToken(null);
 
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         console.error("🍨 Dessert Creator API Error:", res.status, errorBody);
+        
+        if (errorBody?.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${errorBody.message}`);
+        }
+        
         throw new Error(errorBody?.error || "Generation failed");
       }
 
@@ -276,14 +298,23 @@ export default function DessertCreator() {
         title: "✨ Dessert Created!",
         description: `${meal.name} is ready for you.`,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("🍨 [DESSERT] Generation error:", err);
       stopProgressTicker();
-      toast({
-        title: "Generation Failed",
-        description: "Please try again.",
-        variant: "destructive",
-      });
+      const errorMsg = err?.message || String(err) || "";
+      if (isAllergyRelatedError(errorMsg)) {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description: formatAllergyAlertDescription(errorMsg),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -337,48 +368,45 @@ export default function DessertCreator() {
           className="max-w-2xl mx-auto px-4 pb-32"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
-          {/* Create with Chef Entry Point - Gated for production stability */}
-          {isFeatureEnabled('studioCreators') && (
-            <div className="relative mb-4">
-              <div
-                className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
-                style={{
-                  background:
-                    "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.75), rgba(239,68,68,0.35), rgba(0,0,0,0))",
-                }}
-              />
-              <Card
-                className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
-                onClick={() => setLocation("/dessert-studio")}
-                data-testid="dessert-studio-entry"
-              >
-                <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
-                  <span className="text-white font-semibold text-[9px]">
-                    Powered by Emotion AI™
-                  </span>
-                </div>
-                <CardContent className="p-3">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                      <h3 className="text-sm font-semibold text-white">
-                        Create with Chef
-                      </h3>
-                    </div>
-                    <p className="text-xs text-white/80 ml-6">
-                      Step-by-step guided dessert creation with Chef voice assistance
-                    </p>
+          {/* Create with Chef Entry Point - Coming Soon */}
+          <div className="relative mb-4">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-50"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.5), rgba(239,68,68,0.25), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
+              data-testid="dessert-studio-entry"
+            >
+              <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                <span className="text-white font-semibold text-[9px]">
+                  Coming Soon
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Chef's Kitchen Studio
+                    </h3>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                  <p className="text-xs text-white/80 ml-6">
+                    Step-by-step guided dessert creation with Chef voice
+                    assistance
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-white">
-                Quick Create 
+                Quick Create
               </CardTitle>
             </CardHeader>
 
@@ -522,6 +550,18 @@ export default function DessertCreator() {
                 </Select>
               </div>
 
+              {/* Safety Guard Toggle */}
+              <div className="mb-4 flex justify-end">
+                <SafetyGuardToggle
+                  safetyEnabled={safetyEnabled}
+                  onSafetyChange={(enabled, token) => {
+                    setSafetyEnabled(enabled);
+                    if (token) setOverrideToken(token);
+                  }}
+                  disabled={isGenerating}
+                />
+              </div>
+
               {isGenerating ? (
                 <div className="max-w-md mx-auto mb-4">
                   <div className="flex items-center justify-between mb-2">
@@ -539,7 +579,7 @@ export default function DessertCreator() {
                 </div>
               ) : (
                 <GlassButton
-                  onClick={handleGenerateDessert}
+                  onClick={() => handleGenerateDessert()}
                   className="w-full bg-lime-600 hover:bg-lime-600 flex items-center justify-center"
                 >
                   Create My Dessert
@@ -715,7 +755,9 @@ export default function DessertCreator() {
                     {/* Row 1: Add to Macros (full width) */}
                     <GlassButton
                       onClick={() => {
-                        setLocation("/biometrics?from=dessert-creator&view=macros");
+                        setLocation(
+                          "/biometrics?from=dessert-creator&view=macros",
+                        );
                       }}
                       className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center text-center border border-white/30"
                     >
@@ -747,13 +789,18 @@ export default function DessertCreator() {
                             instructions: generatedDessert.instructions,
                             imageUrl: generatedDessert.imageUrl,
                           };
-                          localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-                          localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                          localStorage.setItem(
+                            "mpm_chefs_kitchen_meal",
+                            JSON.stringify(mealData),
+                          );
+                          localStorage.setItem(
+                            "mpm_chefs_kitchen_external_prepare",
+                            "true",
+                          );
                           setLocation("/lifestyle/chefs-kitchen");
                         }}
                         className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                       >
-                        
                         Prepare with Chef
                       </GlassButton>
                       <ShareRecipeButton
@@ -761,11 +808,13 @@ export default function DessertCreator() {
                           name: generatedDessert.name,
                           description: generatedDessert.description,
                           nutrition: generatedDessert.nutrition,
-                          ingredients: (generatedDessert.ingredients ?? []).map((ing: any) => ({
-                            name: ing.name || ing.item,
-                            amount: ing.amount,
-                            unit: ing.unit,
-                          })),
+                          ingredients: (generatedDessert.ingredients ?? []).map(
+                            (ing: any) => ({
+                              name: ing.name || ing.item,
+                              amount: ing.amount,
+                              unit: ing.unit,
+                            }),
+                          ),
                         }}
                         className="flex-1"
                       />
@@ -794,6 +843,7 @@ export default function DessertCreator() {
           steps={DESSERT_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
+
       </motion.div>
     </PhaseGate>
   );

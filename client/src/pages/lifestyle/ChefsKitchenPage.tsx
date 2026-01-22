@@ -22,6 +22,7 @@ import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import VoiceModeOverlay from "@/components/voice/VoiceModeOverlay";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import MealCardActions from "@/components/MealCardActions";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
@@ -31,6 +32,7 @@ import {
   generateMedicalBadges,
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { setQuickView } from "@/lib/macrosQuickView";
 import {
   extractTimerSeconds,
@@ -362,6 +364,10 @@ export default function ChefsKitchenPage() {
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  
+  // Safety override integration - always starts ON, auto-resets after generation
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const [overrideToken, setOverrideToken] = useState<string | null>(null);
   // Initialize with external meal if coming from prepare mode
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(
     externalMeal,
@@ -725,7 +731,11 @@ export default function ChefsKitchenPage() {
       setIsGeneratingMeal(false);
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong";
-      setGenerationError(`${errorMessage}. Please try again.`);
+      if (isAllergyRelatedError(errorMessage)) {
+        setGenerationError(`⚠️ ALLERGY ALERT: ${formatAllergyAlertDescription(errorMessage)}`);
+      } else {
+        setGenerationError(`${errorMessage}. Please try again.`);
+      }
       console.error("🚨 Chef's Kitchen generation error:", error);
     }
   };
@@ -1020,6 +1030,19 @@ export default function ChefsKitchenPage() {
                           <strong>Equipment:</strong> {equipment}
                         </p>
                       </div>
+                      
+                      {/* Safety Guard Toggle - right before generate button */}
+                      <div className="mb-3 flex justify-end">
+                        <SafetyGuardToggle
+                          safetyEnabled={safetyEnabled}
+                          onSafetyChange={(enabled, token) => {
+                            setSafetyEnabled(enabled);
+                            if (token) setOverrideToken(token);
+                          }}
+                          disabled={isGeneratingMeal}
+                        />
+                      </div>
+                      
                       <button
                         className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
                         onClick={startOpenKitchen}

@@ -14,6 +14,12 @@ import { generateMealFromPrompt } from "./universalMealGenerator";
 import { getGlycemicSettings } from "./glycemicSettingsService";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
+import { 
+  ensureHubsRegistered, 
+  resolveHubCoupling, 
+  detectHubTypeFromProfile,
+  isValidHubType
+} from "./hubCoupling";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -362,9 +368,30 @@ function loadCatalog(): Skeleton[] {
 }
 
 // ---- RULES (in CODE, deterministic) ----
+import { buildForbiddenIngredients, scanForViolations, UserSafetyProfile } from "./allergyGuardrails";
+
 function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[]) {
-  const s = ings.map(i => i.name.toLowerCase()).join(" | ");
-  return allergies.some(a => s.includes(a.toLowerCase()));
+  // Use comprehensive guardrails system for allergy checking
+  const safetyProfile: UserSafetyProfile = {
+    allergies: allergies,
+    dietaryRestrictions: [],
+    avoidIngredients: []
+  };
+  
+  const forbiddenIngredients = buildForbiddenIngredients(safetyProfile);
+  const mealForScan = {
+    name: "",
+    ingredients: ings.map(i => ({ name: i.name }))
+  };
+  
+  const violations = scanForViolations(mealForScan, forbiddenIngredients);
+  
+  if (violations.length > 0) {
+    console.log(`🚨 [ALLERGY SAFETY - StableGen] Blocked ingredients: ${violations.join(", ")}`);
+    return true;
+  }
+  
+  return false;
 }
 
 function violatesDiet(ings: Skeleton["ingredients"], diet: string[]) {
@@ -702,6 +729,49 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
   }
   
+  // 🩺 HUB COUPLING: Get medical context for diabetic/GLP-1 users
+  let medicalHubContext: any = null;
+  let detectedHubType: string | null = null;
+  if (userPrefs?.userId) {
+    try {
+      await ensureHubsRegistered();
+      detectedHubType = await detectHubTypeFromProfile(userPrefs.userId);
+      
+      if (detectedHubType === 'diabetic') {
+        medicalHubContext = await resolveHubCoupling('diabetic', userPrefs.userId, targetMealType);
+        if (medicalHubContext) {
+          console.log(`🩺 [DIABETES INTEGRATION] Active - BGL context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
+          if (medicalHubContext.guardrails?.carbCeiling) {
+            console.log(`🩺 Diabetic guardrails: max ${medicalHubContext.guardrails.carbCeiling}g carbs, min ${medicalHubContext.guardrails.fiberMin}g fiber`);
+          }
+        }
+      } else if (detectedHubType === 'glp1') {
+        medicalHubContext = await resolveHubCoupling('glp1', userPrefs.userId, targetMealType);
+        if (medicalHubContext) {
+          console.log(`💉 [GLP-1 INTEGRATION] Active - symptom context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
+          if (medicalHubContext.guardrails) {
+            console.log(`💉 GLP-1 guardrails: max ${medicalHubContext.guardrails.portionCap} cal, min ${medicalHubContext.guardrails.proteinFloor}g protein, max ${medicalHubContext.guardrails.fatCeiling}g fat`);
+          }
+        }
+      } else if (detectedHubType === 'anti_inflammatory') {
+        medicalHubContext = await resolveHubCoupling('anti_inflammatory', userPrefs.userId, targetMealType);
+        if (medicalHubContext) {
+          console.log(`🌿 [ANTI-INFLAMMATORY INTEGRATION] Active - diet context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
+          if (medicalHubContext.guardrails) {
+            console.log(`🌿 Anti-inflammatory guardrails: min ${medicalHubContext.guardrails.fiberMin}g fiber, ${medicalHubContext.guardrails.blockedIngredients?.length || 0} blocked ingredients`);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not load medical hub context:', err);
+    }
+  }
+  
+  // Alias for backward compatibility
+  const diabeticHubContext = detectedHubType === 'diabetic' ? medicalHubContext : null;
+  const glp1HubContext = detectedHubType === 'glp1' ? medicalHubContext : null;
+  const antiInflammatoryHubContext = detectedHubType === 'anti_inflammatory' ? medicalHubContext : null;
+  
   const catalog = loadCatalog();
   // First, correct any meal type mismatches in the catalog
   const correctedCatalog = catalog.map(meal => correctMealType(meal));
@@ -740,6 +810,152 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       console.log(`🩸 Applied glycemic filtering: ${filtered.length} meals match preferred low-GI carbs`);
     } else if (originalCount > 0) {
       telemetry.tagFallback(sessionId, "glycemic_filter_fallback", `No meals matched glycemic preferences, keeping ${originalCount} meals`);
+    }
+  }
+
+  // 🩺 DIABETIC CARB FILTERING: Apply carb ceiling from diabetic guardrails
+  if (diabeticHubContext?.guardrails?.carbCeiling) {
+    const carbCeiling = diabeticHubContext.guardrails.carbCeiling;
+    const originalCount = filtered.length;
+    const diabeticFiltered = filtered.filter(s => {
+      // Estimate carbs from ingredients (rough calculation)
+      const estimatedCarbs = s.ingredients.reduce((sum: number, ing: { name: string; grams: number }) => {
+        const name = ing.name.toLowerCase();
+        // High carb ingredients
+        if (name.includes('rice') || name.includes('pasta') || name.includes('bread') || 
+            name.includes('potato') || name.includes('oat') || name.includes('flour')) {
+          return sum + (ing.grams * 0.7);
+        }
+        // Medium carb ingredients
+        if (name.includes('bean') || name.includes('lentil') || name.includes('corn') || 
+            name.includes('pea') || name.includes('quinoa')) {
+          return sum + (ing.grams * 0.3);
+        }
+        // Low carb vegetables
+        if (name.includes('vegetable') || name.includes('broccoli') || name.includes('spinach') ||
+            name.includes('lettuce') || name.includes('cucumber')) {
+          return sum + (ing.grams * 0.05);
+        }
+        return sum + (ing.grams * 0.1); // Default low estimate
+      }, 0);
+      
+      return estimatedCarbs <= carbCeiling;
+    });
+    
+    if (diabeticFiltered.length > 0) {
+      filtered = diabeticFiltered;
+      console.log(`🩺 Applied diabetic carb filtering: ${filtered.length}/${originalCount} meals under ${carbCeiling}g carbs`);
+    } else {
+      console.log(`⚠️ No meals under ${carbCeiling}g carbs, keeping best options`);
+      // Sort by estimated carbs and take lowest ones
+      filtered = filtered.sort((a, b) => {
+        const carbsA = a.ingredients.reduce((sum: number, ing: { name: string; grams: number }) => sum + ing.grams * 0.2, 0);
+        const carbsB = b.ingredients.reduce((sum: number, ing: { name: string; grams: number }) => sum + ing.grams * 0.2, 0);
+        return carbsA - carbsB;
+      }).slice(0, 5);
+    }
+  }
+
+  // 💉 GLP-1 FILTERING: Apply portion cap, protein floor, and blocked ingredients
+  if (glp1HubContext?.guardrails) {
+    const guardrails = glp1HubContext.guardrails;
+    const originalCount = filtered.length;
+    
+    // Filter out blocked ingredients (fried, greasy, heavy foods)
+    const blockedIngredients = guardrails.blockedIngredients || [];
+    let glp1Filtered = filtered.filter(s => {
+      const mealText = `${s.name} ${s.ingredients.map((i: { name: string }) => i.name).join(' ')}`.toLowerCase();
+      const hasBlocked = blockedIngredients.some((blocked: string) => mealText.includes(blocked.toLowerCase()));
+      if (hasBlocked) {
+        console.log(`💉 Filtered out ${s.name}: contains blocked GLP-1 ingredient`);
+      }
+      return !hasBlocked;
+    });
+    
+    // Filter by estimated calories (portion cap) and protein
+    if (guardrails.portionCap || guardrails.proteinFloor) {
+      glp1Filtered = glp1Filtered.filter(s => {
+        // Rough calorie estimate based on ingredients
+        const estimatedCalories = s.ingredients.reduce((sum: number, ing: { name: string; grams: number }) => {
+          const name = ing.name.toLowerCase();
+          // Protein sources
+          if (name.includes('chicken') || name.includes('fish') || name.includes('turkey') || name.includes('egg')) {
+            return sum + (ing.grams * 1.5);
+          }
+          // Carb sources
+          if (name.includes('rice') || name.includes('pasta') || name.includes('bread') || name.includes('potato')) {
+            return sum + (ing.grams * 3.5);
+          }
+          // Fat sources
+          if (name.includes('oil') || name.includes('butter') || name.includes('cheese')) {
+            return sum + (ing.grams * 7);
+          }
+          return sum + (ing.grams * 1.2); // Default
+        }, 0);
+        
+        // Rough protein estimate
+        const estimatedProtein = s.ingredients.reduce((sum: number, ing: { name: string; grams: number }) => {
+          const name = ing.name.toLowerCase();
+          if (name.includes('chicken') || name.includes('fish') || name.includes('turkey') || 
+              name.includes('beef') || name.includes('pork') || name.includes('tofu')) {
+            return sum + (ing.grams * 0.25);
+          }
+          if (name.includes('egg') || name.includes('greek yogurt') || name.includes('cottage cheese')) {
+            return sum + (ing.grams * 0.12);
+          }
+          return sum;
+        }, 0);
+        
+        const underPortionCap = !guardrails.portionCap || estimatedCalories <= guardrails.portionCap;
+        const meetsProteinFloor = !guardrails.proteinFloor || estimatedProtein >= guardrails.proteinFloor;
+        
+        return underPortionCap && meetsProteinFloor;
+      });
+    }
+    
+    if (glp1Filtered.length > 0) {
+      filtered = glp1Filtered;
+      console.log(`💉 Applied GLP-1 filtering: ${filtered.length}/${originalCount} meals meet guardrails`);
+    } else {
+      console.log(`⚠️ No meals meet GLP-1 guardrails, keeping best options`);
+    }
+  }
+
+  // 🌿 ANTI-INFLAMMATORY FILTERING: Block pro-inflammatory ingredients
+  if (antiInflammatoryHubContext?.guardrails) {
+    const guardrails = antiInflammatoryHubContext.guardrails;
+    const originalCount = filtered.length;
+    
+    // Filter out blocked pro-inflammatory ingredients
+    const blockedIngredients = guardrails.blockedIngredients || [];
+    let antiInflamFiltered = filtered.filter(s => {
+      const mealText = `${s.name} ${s.ingredients.map((i: { name: string }) => i.name).join(' ')}`.toLowerCase();
+      const hasBlocked = blockedIngredients.some((blocked: string) => mealText.includes(blocked.toLowerCase()));
+      if (hasBlocked) {
+        console.log(`🌿 Filtered out ${s.name}: contains pro-inflammatory ingredient`);
+      }
+      return !hasBlocked;
+    });
+    
+    // Prioritize meals with anti-inflammatory ingredients (salmon, olive oil, turmeric, etc.)
+    const preferredIngredients = guardrails.preferredIngredients || [];
+    if (preferredIngredients.length > 0 && antiInflamFiltered.length > 3) {
+      const preferredMeals = antiInflamFiltered.filter(s => {
+        const mealText = `${s.name} ${s.ingredients.map((i: { name: string }) => i.name).join(' ')}`.toLowerCase();
+        return preferredIngredients.some((preferred: string) => mealText.includes(preferred.toLowerCase()));
+      });
+      
+      if (preferredMeals.length > 0) {
+        antiInflamFiltered = preferredMeals;
+        console.log(`🌿 Prioritized ${antiInflamFiltered.length} meals with anti-inflammatory ingredients (salmon, turmeric, olive oil, etc.)`);
+      }
+    }
+    
+    if (antiInflamFiltered.length > 0) {
+      filtered = antiInflamFiltered;
+      console.log(`🌿 Applied anti-inflammatory filtering: ${filtered.length}/${originalCount} meals meet guardrails`);
+    } else {
+      console.log(`⚠️ No meals meet anti-inflammatory guardrails, keeping best options`);
     }
   }
 
@@ -964,8 +1180,22 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       // Tag the fallback to GPT-4 before delegating
       telemetry.tagFallback(sessionId, "no_catalog_match", `Craving "${cravingLower}" not found in catalog`);
       telemetry.closeSession(sessionId);
+      
+      // 🩺 MEDICAL PROMPT INJECTION: Add medical guidance to craving
+      let enhancedCraving = craving;
+      if (diabeticHubContext?.promptFragment) {
+        console.log(`🩺 [DIABETES AI] Injecting glucose-based guidance into AI prompt`);
+        enhancedCraving = `${craving}\n\n${diabeticHubContext.promptFragment}`;
+      } else if (glp1HubContext?.promptFragment) {
+        console.log(`💉 [GLP-1 AI] Injecting symptom-based guidance into AI prompt`);
+        enhancedCraving = `${craving}\n\n${glp1HubContext.promptFragment}`;
+      } else if (antiInflammatoryHubContext?.promptFragment) {
+        console.log(`🌿 [ANTI-INFLAMMATORY AI] Injecting diet guidance into AI prompt`);
+        enhancedCraving = `${craving}\n\n${antiInflammatoryHubContext.promptFragment}`;
+      }
+      
       // Use Universal AI Meal Generator as fallback (it has its own telemetry session)
-      return await generateMealFromPrompt(craving, targetMealType, userPrefs);
+      return await generateMealFromPrompt(enhancedCraving, targetMealType, userPrefs);
     }
   }
   
@@ -996,9 +1226,117 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
   }
   
-  const selected = filtered[Math.floor(Math.random() * filtered.length)];
+  let selected = filtered[Math.floor(Math.random() * filtered.length)];
   console.log(`🎯 Selected meal: ${selected.name} from ${filtered.length} options`);
-  const nutrition = await computeNutrition(selected.ingredients);
+  let nutrition = await computeNutrition(selected.ingredients);
+  
+  // 🩺 DIABETIC POST-SELECTION VALIDATION: Check carbs against guardrails
+  if (diabeticHubContext?.guardrails?.carbCeiling && nutrition.carbs > diabeticHubContext.guardrails.carbCeiling) {
+    console.log(`⚠️ [DIABETES] Selected meal has ${nutrition.carbs}g carbs, exceeds limit of ${diabeticHubContext.guardrails.carbCeiling}g`);
+    
+    // Try to find a lower-carb alternative
+    const alternativeOptions = [];
+    for (const candidate of filtered.slice(0, 10)) {
+      if (candidate.name !== selected.name) {
+        const candidateNutrition = await computeNutrition(candidate.ingredients);
+        if (candidateNutrition.carbs <= diabeticHubContext.guardrails.carbCeiling) {
+          alternativeOptions.push({ meal: candidate, nutrition: candidateNutrition });
+        }
+      }
+    }
+    
+    if (alternativeOptions.length > 0) {
+      const alternative = alternativeOptions[Math.floor(Math.random() * alternativeOptions.length)];
+      console.log(`🩺 [DIABETES] Switching to ${alternative.meal.name} (${alternative.nutrition.carbs}g carbs) to meet diabetic guardrails`);
+      selected = alternative.meal;
+      nutrition = alternative.nutrition;
+    } else {
+      console.log(`⚠️ [DIABETES] No alternatives under carb limit, using lowest-carb option`);
+      // No alternatives found - add a warning badge
+    }
+  }
+  
+  // 💉 GLP-1 POST-SELECTION VALIDATION: Check calories and protein against guardrails
+  if (glp1HubContext?.guardrails) {
+    const guardrails = glp1HubContext.guardrails;
+    const violations: string[] = [];
+    
+    if (guardrails.portionCap && nutrition.calories > guardrails.portionCap) {
+      violations.push(`calories (${nutrition.calories}) exceed ${guardrails.portionCap} cap`);
+    }
+    if (guardrails.proteinFloor && nutrition.protein < guardrails.proteinFloor) {
+      violations.push(`protein (${nutrition.protein}g) below ${guardrails.proteinFloor}g minimum`);
+    }
+    if (guardrails.fatCeiling && nutrition.fat > guardrails.fatCeiling) {
+      violations.push(`fat (${nutrition.fat}g) exceeds ${guardrails.fatCeiling}g limit`);
+    }
+    
+    if (violations.length > 0) {
+      console.log(`⚠️ [GLP-1] Selected meal has violations: ${violations.join(', ')}`);
+      
+      // Try to find a better alternative
+      const alternativeOptions = [];
+      for (const candidate of filtered.slice(0, 10)) {
+        if (candidate.name !== selected.name) {
+          const candidateNutrition = await computeNutrition(candidate.ingredients);
+          const meetsRequirements = 
+            (!guardrails.portionCap || candidateNutrition.calories <= guardrails.portionCap) &&
+            (!guardrails.proteinFloor || candidateNutrition.protein >= guardrails.proteinFloor) &&
+            (!guardrails.fatCeiling || candidateNutrition.fat <= guardrails.fatCeiling);
+          
+          if (meetsRequirements) {
+            alternativeOptions.push({ meal: candidate, nutrition: candidateNutrition });
+          }
+        }
+      }
+      
+      if (alternativeOptions.length > 0) {
+        const alternative = alternativeOptions[Math.floor(Math.random() * alternativeOptions.length)];
+        console.log(`💉 [GLP-1] Switching to ${alternative.meal.name} (${alternative.nutrition.calories} cal, ${alternative.nutrition.protein}g protein) to meet GLP-1 guardrails`);
+        selected = alternative.meal;
+        nutrition = alternative.nutrition;
+      } else {
+        console.log(`⚠️ [GLP-1] No alternatives meet all guardrails`);
+      }
+    }
+  }
+  
+  // 🌿 ANTI-INFLAMMATORY POST-SELECTION VALIDATION: Check for blocked ingredients
+  if (antiInflammatoryHubContext?.guardrails) {
+    const guardrails = antiInflammatoryHubContext.guardrails;
+    const mealText = `${selected.name} ${selected.ingredients.map((i: { name: string }) => i.name).join(' ')}`.toLowerCase();
+    const blockedIngredients = guardrails.blockedIngredients || [];
+    
+    const violations = blockedIngredients.filter((blocked: string) => mealText.includes(blocked.toLowerCase()));
+    
+    if (violations.length > 0) {
+      console.log(`⚠️ [ANTI-INFLAMMATORY] Selected meal contains: ${violations.join(', ')}`);
+      
+      // Try to find a better alternative
+      const alternativeOptions = [];
+      for (const candidate of filtered.slice(0, 10)) {
+        if (candidate.name !== selected.name) {
+          const candidateText = `${candidate.name} ${candidate.ingredients.map((i: { name: string }) => i.name).join(' ')}`.toLowerCase();
+          const hasBlocked = blockedIngredients.some((blocked: string) => candidateText.includes(blocked.toLowerCase()));
+          
+          if (!hasBlocked) {
+            const candidateNutrition = await computeNutrition(candidate.ingredients);
+            alternativeOptions.push({ meal: candidate, nutrition: candidateNutrition });
+          }
+        }
+      }
+      
+      if (alternativeOptions.length > 0) {
+        const alternative = alternativeOptions[Math.floor(Math.random() * alternativeOptions.length)];
+        console.log(`🌿 [ANTI-INFLAMMATORY] Switching to ${alternative.meal.name} (no pro-inflammatory ingredients)`);
+        selected = alternative.meal;
+        nutrition = alternative.nutrition;
+      } else {
+        console.log(`⚠️ [ANTI-INFLAMMATORY] No alternatives without blocked ingredients`);
+      }
+    }
+  }
+  
   const medicalBadges = medicalBadgesFor(selected, userPrefs?.medicalFlags || []);
   
   // Generate instructions for single meal

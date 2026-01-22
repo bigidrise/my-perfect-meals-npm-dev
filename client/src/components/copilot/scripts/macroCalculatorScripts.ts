@@ -2,19 +2,19 @@
 // Uses the same 11L voice system as Chef's Kitchen and ProTip
 
 export const MACRO_CALC_ENTRY = 
-  "Hey there! I'm going to help you dial in your perfect macros. Let's do this step by step — it'll only take a minute.";
+  "Ok, let's dial in your macros.";
 
 export const MACRO_CALC_GOAL = 
-  "First up — what's your goal? Are you looking to lose weight, maintain, or put on some muscle?";
+  "What's your goal? Are you wanting to cut, maintain, or build?";
 
 export const MACRO_CALC_BODY_TYPE = 
-  "“Alright, this is the body type section. If you’re naturally lean, that’s ectomorph. Medium build, that’s mesomorph, and if your body tends to hold weight easier, that’s endomorph. Not sure where you land? No problem — tap the dropdown and we’ll break it down for you.";
+  "Are you an ectomorph, mesomorph, or an endomorph? Check the drop-down below to see which category you fit in.";
 
 export const MACRO_CALC_UNITS = 
   "Do you use imperial system, the (U.S) or metric system?";
 
 export const MACRO_CALC_SEX = 
-  "Next, this is for metabolic calculations. what is your biological sex male or female?";
+  "What is your biological sex male or female? (Necessary for metabolic calculations)";
 
 export const MACRO_CALC_AGE = 
   "What's your age? This affects how many calories you burn at rest.";
@@ -23,19 +23,19 @@ export const MACRO_CALC_HEIGHT =
   "How tall are you? Enter your height.";
 
 export const MACRO_CALC_WEIGHT = 
-  "And what's your current weight? We'll use this to calculate your daily needs.";
+  "What's your current weight? We'll use this to calculate your daily needs.";
 
 export const MACRO_CALC_ACTIVITY = 
   "How active are you? Sedentary, lightly active, moderately active, very active, or athlete level?";
 
 export const MACRO_CALC_SYNC_WEIGHT = 
-  "Sync weight to your tracking to keep accurately log your progress over time.";
+  "Sync weight to biometrics to keep an accurate log of your progress.";
 
 export const MACRO_CALC_METABOLIC = 
-  "Any metabolic considerations I should know about? Things like menopause, thyroid conditions, or anything that affects your metabolism?";
+  "Metabolic considerations? For example: Menopause, Thyroid conditions, or anything that affects your metabolism?";
 
-export const MACRO_CALC_RESULTS = 
-  "Here are your personalized macros, calculated from everything you just told me and saved to your biometrics. These numbers are now your baseline and will stay in place as long as you’re losing weight and feeling good. If your weight stalls, progress slows, or you decide you don’t want to lose anymore, this is where you’ll come back to re-check and adjust.";
+export const MACRO_CALC_RESULTS =
+"These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal changes—loss, gain, or maintenance—rerun the Macro Calculator to reset your targets.";
 
 export const MACRO_CALC_STARCH = 
   "Starchy carbs are the biggest lever for controlling body weight, so instead of spreading them across every meal, we usually place them intentionally. Your plan will include one or two meals where starchy carbs make the most sense. Do you want to concentrate them into one meal, split them between two meals, include smaller amounts with most meals, or keep them minimal overall?";

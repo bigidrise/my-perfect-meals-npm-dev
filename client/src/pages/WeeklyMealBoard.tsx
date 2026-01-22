@@ -1152,7 +1152,7 @@ export default function WeeklyMealBoard() {
     queryClient.invalidateQueries({
       queryKey: [
         "/api/users",
-        "00000000-0000-0000-0000-000000000001",
+        user?.id || "",
         "macros",
         "today",
       ],

@@ -2,6 +2,15 @@
 import { Router } from "express";
 import { MealEngineService } from "../services/mealEngineService";
 import { createFallbackMeal } from "../services/fallbackMealService";
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { 
+  preCheckRequest, 
+  extractSafetyProfile, 
+  getSafeSubstitute,
+  logSafetyEnforcement 
+} from "../services/allergyGuardrails";
 
 const router = Router();
 const engine = new MealEngineService();
@@ -14,6 +23,37 @@ router.get("/meal-engine/health", (req, res) => {
 // Generate a single meal (Craving Creator / Replace This Meal / Fridge Rescue single)
 router.post("/meal-engine/generate", async (req, res) => {
   try {
+    const { userId, craving, ingredients, mealType } = req.body;
+    
+    // 🚨 CRITICAL SAFETY CHECK: Block requests with forbidden ingredients
+    if (userId) {
+      try {
+        const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (user) {
+          const safetyProfile = extractSafetyProfile(user);
+          const requestText = [craving, ingredients, mealType].filter(Boolean).join(" ");
+          const preCheck = preCheckRequest(requestText, safetyProfile);
+          
+          if (preCheck.blocked) {
+            console.log(`🚫 [ALLERGY SAFETY - MealEngine] Blocked: ${preCheck.violations.join(", ")}`);
+            logSafetyEnforcement(userId, requestText, preCheck.violations, 'blocked');
+            
+            const suggestions = preCheck.violations.map(v => `${v} → ${getSafeSubstitute(v)}`).join("; ");
+            
+            return res.status(400).json({
+              error: "ALLERGY_SAFETY_BLOCK",
+              message: preCheck.message,
+              violations: preCheck.violations,
+              suggestions: `Try safe alternatives: ${suggestions}`,
+              blocked: true
+            });
+          }
+        }
+      } catch (err) {
+        console.log("Could not check user allergies for meal engine:", err);
+      }
+    }
+    
     const meal = await engine.generateSingleMeal(req.body);
     res.json(meal);
   } catch (e: any) {

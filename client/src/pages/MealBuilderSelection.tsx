@@ -4,7 +4,6 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Check,
   Utensils,
   Heart,
   Pill,
@@ -13,6 +12,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { PillButton } from "@/components/ui/pill-button";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import DisclaimerModal from "@/components/DisclaimerModal";
@@ -52,7 +52,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
   },
   {
     id: "anti_inflammatory",
-    title: "Anti-Inflammatory Builder",
+    title: "Anti-Inflam. Builder",
     description:
       "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
     icon: <Flame className="w-8 h-8" />,
@@ -234,35 +234,37 @@ export default function MealBuilderSelection() {
           {/* Available builders - only show if NOT in locked state */}
           {!(isProCareClient && !user?.activeBoard) &&
             availableBuilders.map((option) => (
-              <motion.button
+              <div
                 key={option.id}
-                onClick={() => setSelected(option.id)}
-                whileTap={{ scale: 0.98 }}
-                className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
+                className={`w-full p-4 rounded-2xl border-2 transition-all ${
                   selected === option.id
-                    ? "border-white bg-white/10"
-                    : "border-white/20 bg-black/30 hover:border-white/40"
+                    ? "border-emerald-500/50 bg-white/10"
+                    : "border-white/20 bg-black/30"
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} text-white`}
+                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} text-white flex-shrink-0`}
                   >
                     {option.icon}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">{option.title}</h3>
-                      {selected === option.id && (
-                        <Check className="w-5 h-5 text-emerald-400" />
-                      )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-base font-semibold truncate">{option.title}</h3>
+                      <PillButton
+                        active={selected === option.id}
+                        onClick={() => setSelected(option.id)}
+                        className="flex-shrink-0"
+                      >
+                        {selected === option.id ? "On" : "Off"}
+                      </PillButton>
                     </div>
                     <p className="text-white/70 text-sm mt-1">
                       {option.description}
                     </p>
                   </div>
                 </div>
-              </motion.button>
+              </div>
             ))}
         </div>
 

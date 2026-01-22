@@ -26,42 +26,69 @@ export async function requireAuth(
   next: NextFunction
 ): Promise<void> {
   const token = req.headers["x-auth-token"] as string;
+  const sessionUser = (req as any).session?.userId;
 
-  if (!token) {
-    res.status(401).json({ error: "Missing auth token" });
-    return;
-  }
+  // Check for x-auth-token header first
+  if (token) {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.authToken, token))
+        .limit(1);
 
-  try {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.authToken, token))
-      .limit(1);
-
-    if (!user) {
-      res.status(401).json({ error: "Invalid auth token" });
-      return;
+      if (user) {
+        (req as AuthenticatedRequest).authUser = {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          plan: user.plan,
+          entitlements: user.entitlements || [],
+          planLookupKey: user.planLookupKey || null,
+          trialStartedAt: user.trialStartedAt || null,
+          trialEndsAt: user.trialEndsAt || null,
+          selectedMealBuilder: user.selectedMealBuilder || null,
+          isTester: user.isTester || false,
+        };
+        return next();
+      }
+    } catch (error) {
+      console.error("Auth token lookup error:", error);
     }
-
-    (req as AuthenticatedRequest).authUser = {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      plan: user.plan,
-      entitlements: user.entitlements || [],
-      planLookupKey: user.planLookupKey || null,
-      trialStartedAt: user.trialStartedAt || null,
-      trialEndsAt: user.trialEndsAt || null,
-      selectedMealBuilder: user.selectedMealBuilder || null,
-      isTester: user.isTester || false,
-    };
-
-    next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    res.status(500).json({ error: "Authentication failed" });
   }
+
+  // Fallback to session-based authentication
+  if (sessionUser) {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, sessionUser))
+        .limit(1);
+
+      if (user) {
+        (req as AuthenticatedRequest).authUser = {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          plan: user.plan,
+          entitlements: user.entitlements || [],
+          planLookupKey: user.planLookupKey || null,
+          trialStartedAt: user.trialStartedAt || null,
+          trialEndsAt: user.trialEndsAt || null,
+          selectedMealBuilder: user.selectedMealBuilder || null,
+          isTester: user.isTester || false,
+        };
+        return next();
+      }
+    } catch (error) {
+      console.error("Session lookup error:", error);
+    }
+  }
+
+  // No valid authentication found
+  res.status(401).json({ error: "Authentication required" });
+  return;
 }
 
 export function generateAuthToken(): string {

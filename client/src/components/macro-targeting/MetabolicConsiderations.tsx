@@ -13,6 +13,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PillButton } from '@/components/ui/pill-button';
 import {
   Collapsible,
   CollapsibleContent,
@@ -147,23 +148,12 @@ export default function MetabolicConsiderations({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-white">{def.label}</span>
                       </div>
-                      <button
+                      <PillButton
                         onClick={() => handleToggle(key, !isEnabled)}
-                        aria-pressed={isEnabled}
-                        className={`
-                          !min-h-0 !min-w-0 inline-flex items-center justify-center
-                          px-4 py-[2px] min-w-[44px] rounded-full
-                          text-[9px] font-semibold uppercase tracking-wide
-                          transition-all duration-150 ease-out whitespace-nowrap
-                          ${isEnabled
-                            ? "bg-emerald-600/80 text-white border border-emerald-400/40"
-                            : "bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 border border-amber-400/40"
-                          }
-                        `}
-
+                        active={isEnabled}
                       >
                         {isEnabled ? "On" : "Off"}
-                      </button>
+                      </PillButton>
                     </div>
                     <p className="text-xs text-white/60 mb-2">{def.description}</p>
 

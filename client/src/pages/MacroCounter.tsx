@@ -24,6 +24,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -1343,7 +1344,7 @@ export default function MacroCounter() {
                 </Card>
                 <Button
                   onClick={() => advanceGuided("starch")}
-                  className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
+                  className="w-full py-4 bg-lime-600 text-white font-semibold text-lg rounded-xl"
                 >
                   Continue
                 </Button>
@@ -1371,30 +1372,56 @@ export default function MacroCounter() {
                       How are you going to eat your starches? One meal or split
                       across two?
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div
-                        onClick={() => {
-                          setStarchStrategy("one");
-                          advanceGuided("save");
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg cursor-pointer ${starchStrategy === "one" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
+                        className={`p-4 rounded-xl border transition-all ${
+                          starchStrategy === "one"
+                            ? "bg-black/60 border-white/20"
+                            : "bg-white/5 border-white/10"
+                        }`}
                       >
-                        <div className="font-medium">One Starch Meal</div>
-                        <div className="text-sm opacity-80">
-                          Recommended - all starches in one meal
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-white">One Starch Meal</span>
+                            <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">Recommended</span>
+                          </div>
+                          <PillButton
+                            onClick={() => {
+                              setStarchStrategy("one");
+                              advanceGuided("save");
+                            }}
+                            active={starchStrategy === "one"}
+                          >
+                            {starchStrategy === "one" ? "On" : "Off"}
+                          </PillButton>
                         </div>
+                        <p className="text-xs text-white/60">
+                          All starches in one meal - best for appetite control
+                        </p>
                       </div>
+
                       <div
-                        onClick={() => {
-                          setStarchStrategy("flex");
-                          advanceGuided("save");
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg cursor-pointer ${starchStrategy === "flex" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
+                        className={`p-4 rounded-xl border transition-all ${
+                          starchStrategy === "flex"
+                            ? "bg-black/60 border-white/20"
+                            : "bg-white/5 border-white/10"
+                        }`}
                       >
-                        <div className="font-medium">Flex Split</div>
-                        <div className="text-sm opacity-80">
-                          Split starches across two meals
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-white">Flex Split</span>
+                          <PillButton
+                            onClick={() => {
+                              setStarchStrategy("flex");
+                              advanceGuided("save");
+                            }}
+                            active={starchStrategy === "flex"}
+                          >
+                            {starchStrategy === "flex" ? "On" : "Off"}
+                          </PillButton>
                         </div>
+                        <p className="text-xs text-white/60">
+                          Split starches across two meals
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -2152,73 +2179,52 @@ export default function MacroCounter() {
                         managed. Choose how you'll use your daily starch budget:
                       </p>
 
-                      <RadioGroup
-                        value={starchStrategy}
-                        onValueChange={(v) =>
-                          setStarchStrategy(v as StarchStrategy)
-                        }
-                        className="space-y-3"
-                      >
+                      <div className="space-y-3">
                         <div
-                          className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                          className={`p-4 rounded-xl border transition-all ${
                             starchStrategy === "one"
-                              ? "border-amber-500 bg-amber-500/10"
-                              : "border-white/20 hover:border-white/40"
+                              ? "bg-black/60 border-white/20"
+                              : "bg-white/5 border-white/10"
                           }`}
-                          onClick={() => setStarchStrategy("one")}
                         >
-                          <RadioGroupItem
-                            value="one"
-                            id="starch-one"
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <Label
-                              htmlFor="starch-one"
-                              className="text-base font-semibold text-white cursor-pointer"
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-white">One Starch Meal</span>
+                              <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">Recommended</span>
+                            </div>
+                            <PillButton
+                              onClick={() => setStarchStrategy("one")}
+                              active={starchStrategy === "one"}
                             >
-                              One Starch Meal
-                              <span className="ml-2 text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
-                                Recommended
-                              </span>
-                            </Label>
-                            <p className="text-sm text-white/60 mt-1">
-                              Use your full starch allowance (
-                              {getStarchyCarbs(sex, goal)}g) in one meal. Best
-                              for appetite control and fat loss.
-                            </p>
+                              {starchStrategy === "one" ? "On" : "Off"}
+                            </PillButton>
                           </div>
+                          <p className="text-xs text-white/60">
+                            Use your full starch allowance ({getStarchyCarbs(sex, goal)}g) in one meal. Best for appetite control and fat loss.
+                          </p>
                         </div>
 
                         <div
-                          className={`flex items-start space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                          className={`p-4 rounded-xl border transition-all ${
                             starchStrategy === "flex"
-                              ? "border-amber-500 bg-amber-500/10"
-                              : "border-white/20 hover:border-white/40"
+                              ? "bg-black/60 border-white/20"
+                              : "bg-white/5 border-white/10"
                           }`}
-                          onClick={() => setStarchStrategy("flex")}
                         >
-                          <RadioGroupItem
-                            value="flex"
-                            id="starch-flex"
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <Label
-                              htmlFor="starch-flex"
-                              className="text-base font-semibold text-white cursor-pointer"
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-white">Flex Split</span>
+                            <PillButton
+                              onClick={() => setStarchStrategy("flex")}
+                              active={starchStrategy === "flex"}
                             >
-                              Flex Split
-                            </Label>
-                            <p className="text-sm text-white/60 mt-1">
-                              Divide starch across two meals (~
-                              {Math.round(getStarchyCarbs(sex, goal) / 2)}g
-                              each). Useful for training days or larger
-                              schedules.
-                            </p>
+                              {starchStrategy === "flex" ? "On" : "Off"}
+                            </PillButton>
                           </div>
+                          <p className="text-xs text-white/60">
+                            Divide starch across two meals (~{Math.round(getStarchyCarbs(sex, goal) / 2)}g each). Useful for training days or larger schedules.
+                          </p>
                         </div>
-                      </RadioGroup>
+                      </div>
                     </CardContent>
                   </Card>
 

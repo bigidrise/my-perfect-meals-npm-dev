@@ -672,7 +672,7 @@ export default function WeeklyMealBoard() {
     console.log('🌅 Midnight macro reset triggered');
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: ["/api/users", "00000000-0000-0000-0000-000000000001", "macros", "today"]
+      queryKey: ["/api/users", user?.id || "", "macros", "today"]
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));

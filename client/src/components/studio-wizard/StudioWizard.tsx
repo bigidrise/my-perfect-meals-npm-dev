@@ -15,6 +15,8 @@ import {
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
+import { useToast } from "@/hooks/use-toast";
 import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 
@@ -437,7 +439,11 @@ export default function StudioWizard({ config }: StudioWizardProps) {
       }
       setIsGenerating(false);
       const msg = e instanceof Error ? e.message : "Something went wrong";
-      setError(`${msg}. Please try again.`);
+      if (isAllergyRelatedError(msg)) {
+        setError(`⚠️ ALLERGY ALERT: ${formatAllergyAlertDescription(msg)}`);
+      } else {
+        setError(`${msg}. Please try again.`);
+      }
       console.error(`🚨 ${branding.title} error:`, e);
     }
   };

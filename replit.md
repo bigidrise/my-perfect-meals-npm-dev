@@ -41,6 +41,31 @@ The application is a monorepo utilizing React + Vite (TypeScript) for the fronte
 - **Fridge Rescue Studio v1.0**: Guided ingredient-based meal creation at `/fridge-rescue-studio` with Chef voice narration. Steps: Available Ingredients, Preferred Meal Style, Servings, Dietary Restrictions.
 - **Two-Feature Creator Pattern v1.0**: All creator pages (Craving Creator, Dessert Creator, Fridge Rescue) offer two distinct creation modes: "Create with Chef" (guided studio with voice) and "Quick Create" (fast form-based interface). Each page displays both options clearly with visual separation.
 - **Create with Chef Branding v1.0**: All "Create with Chef" entry points use amber/orange Chef's Kitchen illumination (`rgba(251,146,60,0.75), rgba(239,68,68,0.35)`) with black-to-orange gradient card backgrounds (`from-black via-orange-950/40 to-black`) and "Powered by Emotion AI™" badges.
+- **Profile Single Source of Truth (SSOT) Architecture**: Both Onboarding and Edit Profile read/write the same `users` table. Meal builders read user data from the same source. No separate onboarding or profile tables - unified data flow.
+  - **Onboarding**: Saves via `/api/onboarding/step/standalone-profile` → `mergeStepIntoPreferences` → `users` table
+  - **Edit Profile**: Saves via `/api/users/profile` → `users` table directly
+  - **Meal Builders**: Read from `users` table via `loadSafetyProfile()` and `user.allergies`
+- **MPM SafetyGuard v1.1**: Two-layer food safety system with authenticated override capability. Apple App Store compliant language. Features:
+  - **Single Source of Truth**: `users.allergies` column in database - both onboarding and Edit Profile read/write same field
+  - **Safety PIN System**: 4-6 digit PIN for authenticated allergy overrides (bcrypt hashed, never stored plaintext)
+    - Set during onboarding (optional, can skip)
+    - Manageable via SafetyPinSettings component
+    - Required for CUSTOM_AUTHENTICATED mode overrides
+    - Rate-limited: 5 attempts max, 15-minute lockout
+  - **Safety Modes**: STRICT (default, full enforcement), CUSTOM (allow preference substitutions), CUSTOM_AUTHENTICATED (allows allergy override after PIN verification)
+  - **One-Time Override Tokens**: Issued after successful PIN verification, valid for 5 minutes, consumed on use
+  - **Audit Logging**: All overrides logged to `safety_override_audit_logs` table with userId, mealRequest, allergen, builderId
+  - **Pre-Generation Blocking**: Two complementary systems:
+    - `enforceSafetyProfile()` in `safetyProfileService.ts` - Returns SAFE/AMBIGUOUS/BLOCKED with suggestions, accepts SafetyOptions for override tokens
+    - `preCheckRequest()` in `allergyGuardrails.ts` - Returns blocked/violations for immediate termination
+  - **Protected Endpoints**: All meal generators enforce safety at request boundary:
+    - Main routes.ts: /api/meals/generate, /api/meals/craving-creator, /api/meals/kids, /api/meals/ai-creator, /api/meals/holiday-feast, /api/meals/fridge-rescue, /api/ai/generate-meal-plan, /api/generate-craving-meal
+    - Separate routers: dessert-creator.ts, craving-creator.ts, fridge-rescue.ts, mealEngine.routes.ts
+  - **Post-Generation Validation**: `validateGeneratedMeal()` scans output (name, description, ingredients, instructions) and blocks meals containing allergens
+  - **Allergen Taxonomy**: Category → Family → TermBank expansion covering Shellfish (crustaceans, mollusks), Fish, Peanuts, Tree Nuts, Dairy, Eggs, Soy, Gluten, Sesame, plus 100+ variants, dishes (paella, pad thai, satay), and misspellings
+  - **Ambiguous Dish Detection**: Warns users when requesting dishes that commonly contain allergens (jambalaya, pad thai, curry, etc.)
+  - **Audit Logging**: All safety blocks logged with userId, builderId, matchedTerms, and timestamp
+  - Key files: `server/services/safetyProfileService.ts`, `server/services/allergyGuardrails.ts`
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.

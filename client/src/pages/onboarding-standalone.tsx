@@ -13,8 +13,62 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, ArrowLeft, X, Check } from "lucide-react";
+import { ArrowRight, ArrowLeft, X, Check, Shield, Eye, EyeOff, Utensils, Heart, Pill, Flame, Dumbbell, UserCheck } from "lucide-react";
+import { PillButton } from "@/components/ui/pill-button";
 import HeightInput from "@/components/inputs/HeightInput";
+import { getDeviceId } from "@/utils/deviceId";
+import { useAuth } from "@/contexts/AuthContext";
+import { getAuthToken } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
+
+const BUILDER_OPTIONS_DATA = [
+  {
+    id: "weekly",
+    name: "General Nutrition",
+    subtitle: "Everyday Planning",
+    iconType: "utensils",
+    description: "Balanced, healthy meals for everyday life. Focuses on flexibility, variety, and realistic meal planning.",
+    note: "Designed for healthy eating without special medical rules.",
+    tier: "basic",
+  },
+  {
+    id: "diabetic",
+    name: "Diabetes Support",
+    iconType: "heart",
+    description: "Blood-sugar awareness and consistency. Diabetic-friendly guardrails for stable energy and glucose response.",
+    tier: "basic",
+  },
+  {
+    id: "glp1",
+    name: "GLP-1 Support",
+    iconType: "pill",
+    description: "For users on GLP-1 medications. Emphasizes satiety, protein, portion control, and digestive comfort.",
+    tier: "basic",
+  },
+  {
+    id: "anti_inflammatory",
+    name: "Anti-Inflammatory",
+    iconType: "flame",
+    description: "Nutrient quality and preparation methods that support long-term inflammation management.",
+    tier: "basic",
+  },
+  {
+    id: "beachbody",
+    name: "Beach Body / Physique",
+    iconType: "dumbbell",
+    description: "Leaning out and dialing in body composition while keeping meals realistic and sustainable.",
+    note: "Part of our advanced goal-focused programs.",
+    tier: "advanced",
+  },
+  {
+    id: "professional",
+    name: "Professional / Coach",
+    iconType: "usercheck",
+    description: "For working with a trainer, coach, or healthcare professional. Follows structured protocols.",
+    note: "Typically part of advanced or guided programs.",
+    tier: "advanced",
+  },
+];
 
 interface OnboardingData {
   firstName: string;
@@ -39,7 +93,7 @@ interface OnboardingData {
   preferredHighGICarbs: string[];
 }
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 const medicalConditionsList = [
   { id: "diabetes-type1", label: "Type 1 Diabetes", category: "metabolic" },
@@ -88,11 +142,20 @@ const highGIOptions = [
 
 export default function OnboardingStandalone() {
   const [, setLocation] = useLocation();
+  const { user, refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
   const [customAllergyInput, setCustomAllergyInput] = useState("");
   const [customMedicalInput, setCustomMedicalInput] = useState("");
   const [customDietaryInput, setCustomDietaryInput] = useState("");
+  
+  // Page 4: Builder Selection + Safety PIN
+  const [selectedBuilder, setSelectedBuilder] = useState("weekly");
+  const [safetyPin, setSafetyPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [savingPin, setSavingPin] = useState(false);
 
   const [data, setData] = useState<OnboardingData>({
     firstName: "",
@@ -165,12 +228,21 @@ export default function OnboardingStandalone() {
         return true;
       case 3:
         return true;
+      case 4:
+        // Builder must be selected (always true since we have a default)
+        // PIN is optional - user can skip
+        if (safetyPin.length > 0 || confirmPin.length > 0) {
+          // If they started entering a PIN, validate it
+          if (safetyPin.length !== 4) return false;
+          if (safetyPin !== confirmPin) return false;
+        }
+        return true;
       default:
         return false;
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isStepValid()) {
       setShowValidation(true);
       setTimeout(() => scrollToTop(), 0);
@@ -179,9 +251,102 @@ export default function OnboardingStandalone() {
     setShowValidation(false);
 
     if (currentStep >= TOTAL_STEPS) {
+      // Get auth token once for all save operations
+      const deviceId = getDeviceId();
+      const authToken = getAuthToken();
+      
+      // Save onboarding data to server - includes userId for syncing to Edit Profile
+      try {
+        const headers: Record<string, string> = { 
+          "Content-Type": "application/json",
+          "X-Device-Id": deviceId
+        };
+        if (authToken) {
+          headers["x-auth-token"] = authToken;
+        }
+        
+        await fetch("/api/onboarding/step/standalone-profile", {
+          method: "PUT",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({ 
+            data: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              age: data.age,
+              birthdayMonth: data.birthdayMonth,
+              birthdayDay: data.birthdayDay,
+              gender: data.gender,
+              height: data.height,
+              weight: data.weight,
+              activityLevel: data.activityLevel,
+              primaryGoal: data.primaryGoal,
+              customGoal: data.customGoal,
+              medicalConditions: [...data.medicalConditions, ...data.customMedicalConditions],
+              foodAllergies: [...data.foodAllergies, ...data.customAllergies],
+              dietaryRestrictions: [...data.dietaryRestrictions, ...data.customDietaryRestrictions],
+              preferredLowGICarbs: data.preferredLowGICarbs,
+              preferredMidGICarbs: data.preferredMidGICarbs,
+              preferredHighGICarbs: data.preferredHighGICarbs,
+              activeBuilder: selectedBuilder, // Save selected builder
+            },
+            userId: user?.id, // Pass userId to sync to Edit Profile
+            completed: true,
+            apply: true
+          }),
+        });
+        console.log("✅ Onboarding data saved to server and synced to profile");
+      } catch (profileError) {
+        console.error("Failed to save onboarding profile data:", profileError);
+        // Continue anyway - data is saved locally
+      }
+      
+      // Save Safety PIN if provided (separate try-catch so profile failure doesn't block PIN)
+        if (safetyPin.length === 4 && safetyPin === confirmPin && authToken) {
+          try {
+            const pinResponse = await fetch(apiUrl("/api/safety-pin/set"), {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-auth-token": authToken,
+              },
+              body: JSON.stringify({ pin: safetyPin }),
+            });
+            if (pinResponse.ok) {
+              console.log("✅ Safety PIN saved successfully");
+            }
+          } catch (pinError) {
+            console.error("Failed to save Safety PIN:", pinError);
+          }
+        }
+        
+        // Save builder to user profile via API
+        if (authToken) {
+          try {
+            await fetch(apiUrl("/api/user/select-meal-builder"), {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-auth-token": authToken,
+              },
+              body: JSON.stringify({ selectedMealBuilder: selectedBuilder }),
+            });
+            console.log("✅ Builder selection saved:", selectedBuilder);
+          } catch (builderError) {
+            console.error("Failed to save builder selection:", builderError);
+          }
+        }
+        
+        // Refresh user data to get updated profile
+        if (user?.id) {
+          await refreshUser?.();
+        }
+      
       localStorage.setItem("onboardingCompleted", "true");
       localStorage.setItem("completedProfile", "true");
+      localStorage.setItem("onboardingData", JSON.stringify(data));
       localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("selectedBuilder", selectedBuilder);
 
       // Flag WelcomeGate to show once
       localStorage.removeItem("coachMode");
@@ -308,19 +473,25 @@ export default function OnboardingStandalone() {
 
         <div>
           <Label className={showValidation && !data.gender ? "text-red-400" : ""}>
-            Sex *
+            Sex (Biological) *
           </Label>
+
           <Select value={data.gender} onValueChange={(v) => updateData({ gender: v })}>
-            <SelectTrigger className={`text-white bg-black/40 border-white/20 ${showValidation && !data.gender ? "border-red-500 border-2" : ""}`}>
-              <SelectValue placeholder="Select gender" />
+            <SelectTrigger
+              className={`text-white bg-black/40 border-white/20 ${
+                showValidation && !data.gender ? "border-red-500 border-2" : ""
+              }`}
+            >
+              <SelectValue placeholder="Select biological sex" />
             </SelectTrigger>
+
             <SelectContent>
               <SelectItem value="male">Male</SelectItem>
               <SelectItem value="female">Female</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
 
         <HeightInput
           valueInches={data.height}
@@ -618,6 +789,166 @@ export default function OnboardingStandalone() {
     </Card>
   );
 
+  const getBuilderIcon = (iconType: string) => {
+    switch (iconType) {
+      case "utensils": return <Utensils className="w-5 h-5" />;
+      case "heart": return <Heart className="w-5 h-5" />;
+      case "pill": return <Pill className="w-5 h-5" />;
+      case "flame": return <Flame className="w-5 h-5" />;
+      case "dumbbell": return <Dumbbell className="w-5 h-5" />;
+      case "usercheck": return <UserCheck className="w-5 h-5" />;
+      default: return <Utensils className="w-5 h-5" />;
+    }
+  };
+
+  const renderStep4 = () => (
+    <Card className="w-full max-w-2xl mx-auto bg-black/40 backdrop-blur-md border-white/15">
+      <CardHeader className="bg-gradient-to-br from-neutral-600 via-black/60 to-black text-white rounded-t-lg">
+        <CardTitle className="text-center text-xl">Choose Your Starting Builder</CardTitle>
+        <p className="text-sm text-white/80 text-center mt-2">
+          This isn't permanent. It's simply where we'll start based on what you told us.
+          You can switch builders later as your goals, needs, or support change.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6 text-white pt-6">
+        {/* Builder Selection */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold mb-2">Your Meal Planning Builder</h3>
+          <p className="text-white/70 text-sm mb-4">
+            Each builder follows a different set of rules. Pick the one that best matches your current needs.
+          </p>
+          
+          {BUILDER_OPTIONS_DATA.map((builder) => (
+            <div
+              key={builder.id}
+              className={`p-3 rounded-xl border transition-all ${
+                selectedBuilder === builder.id
+                  ? "border-emerald-500/50 bg-white/10"
+                  : "border-white/20 bg-black/30"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-black/40 text-white flex-shrink-0">
+                  {getBuilderIcon(builder.iconType)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-semibold">{builder.name}</h4>
+                    <PillButton
+                      active={selectedBuilder === builder.id}
+                      onClick={() => setSelectedBuilder(builder.id)}
+                      className="flex-shrink-0"
+                    >
+                      {selectedBuilder === builder.id ? "On" : "Off"}
+                    </PillButton>
+                  </div>
+                  <p className="text-white/60 text-xs mt-1">{builder.description}</p>
+                  {builder.note && (
+                    <p className="text-amber-400/80 text-xs mt-1 italic">{builder.note}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Safety PIN Section */}
+        <div className="pt-4 border-t border-white/10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Allergy Safety Protection</h3>
+              <p className="text-white/60 text-xs">Optional 4-digit PIN for safety overrides</p>
+            </div>
+          </div>
+
+          <div className="bg-black/30 rounded-xl p-4 border border-white/10 space-y-4">
+            <p className="text-white/80 text-sm leading-relaxed">
+              My Perfect Meals includes a two-layer allergy protection system designed to help prevent meals from being created with ingredients you've marked as unsafe.
+            </p>
+            <p className="text-white/70 text-sm leading-relaxed">
+              In rare cases, you may want to temporarily override allergy protection for a specific meal. To prevent accidental changes, a <span className="text-green-400 font-medium">4-digit Safety PIN</span> is required.
+            </p>
+
+            <div className="bg-black/20 rounded-lg p-3 space-y-2">
+              <p className="text-white/60 text-xs font-medium uppercase tracking-wide">Safety Rules</p>
+              <ul className="text-white/70 text-xs space-y-1">
+                <li>• Required <strong>every time</strong> allergy protection is turned off</li>
+                <li>• Applies to <strong>one meal only</strong></li>
+                <li>• Automatically turns back on after generation</li>
+                <li>• Does <strong>not</strong> affect medical or clinical rules</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Label className="text-white/80 text-sm">Create Your 4-Digit Safety PIN</Label>
+              <div className="relative">
+                <Input
+                  type={showPin ? "text" : "password"}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder="4 digits"
+                  value={safetyPin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setSafetyPin(val);
+                    setPinError(null);
+                  }}
+                  className="bg-black/40 border-white/20 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPin(!showPin)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
+                >
+                  {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <Input
+                  type={showPin ? "text" : "password"}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder="Confirm PIN"
+                  value={confirmPin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setConfirmPin(val);
+                    setPinError(null);
+                  }}
+                  className="bg-black/40 border-white/20 text-white"
+                />
+              </div>
+
+              {pinError && (
+                <p className="text-red-400 text-xs">{pinError}</p>
+              )}
+
+              {safetyPin.length > 0 && confirmPin.length > 0 && safetyPin !== confirmPin && (
+                <p className="text-amber-400 text-xs">PINs do not match</p>
+              )}
+
+              {safetyPin.length === 4 && confirmPin.length === 4 && safetyPin === confirmPin && (
+                <p className="text-green-400 text-xs flex items-center gap-1">
+                  <Check className="w-3 h-3" /> PIN ready to save
+                </p>
+              )}
+
+              <p className="text-white/50 text-xs italic">
+                You can skip this step and set up your PIN later in Settings.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black text-white flex flex-col p-4">
       <div className="w-full max-w-2xl mx-auto flex-1">
@@ -633,6 +964,7 @@ export default function OnboardingStandalone() {
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
         </div>
 
         <div className="flex gap-3 max-w-2xl mx-auto">
@@ -647,7 +979,7 @@ export default function OnboardingStandalone() {
           )}
           <Button
             onClick={handleNext}
-            className={`${currentStep === 1 ? "w-full" : "flex-1"} h-12 bg-lime-600 hover:bg-lime-700 `}
+            className={`${currentStep === 1 ? "w-full" : "flex-1"} h-12 bg-lime-600 hover:bg-lime-700`}
           >
             {currentStep === TOTAL_STEPS ? (
               <>

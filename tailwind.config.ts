@@ -82,10 +82,21 @@ export default {
             height: "0",
           },
         },
+        "pulse-glow-green": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px rgba(52, 211, 153, 0.4), 0 0 16px 4px rgba(16, 185, 129, 0.2)",
+            borderColor: "rgba(52, 211, 153, 0.7)",
+          },
+          "50%": {
+            boxShadow: "0 0 12px 4px rgba(52, 211, 153, 0.6), 0 0 24px 8px rgba(16, 185, 129, 0.3)",
+            borderColor: "rgba(110, 231, 183, 0.9)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-glow-green": "pulse-glow-green 2s ease-in-out infinite",
       },
     },
   },

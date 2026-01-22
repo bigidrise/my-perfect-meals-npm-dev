@@ -206,14 +206,17 @@ router.delete("/api/auth/delete-account", requireAuth, async (req, res) => {
 router.post("/api/auth/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
+    console.log(`📧 [FORGOT-PASSWORD] Request received for email: ${email}`);
 
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    console.log(`📧 [FORGOT-PASSWORD] Normalized email: ${normalizedEmail}`);
 
     const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+    console.log(`📧 [FORGOT-PASSWORD] User found: ${user ? 'YES' : 'NO'}`);
 
     if (user) {
       const resetToken = crypto.randomBytes(32).toString("hex");
@@ -224,27 +227,33 @@ router.post("/api/auth/forgot-password", async (req, res) => {
         resetTokenHash,
         resetTokenExpires,
       }).where(eq(users.id, user.id));
+      console.log(`📧 [FORGOT-PASSWORD] Token saved to database`);
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL 
         || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
         || "http://localhost:5000";
       const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
+      console.log(`📧 [FORGOT-PASSWORD] Reset link generated: ${resetLink}`);
 
-      const { sendPasswordResetEmail } = await import("../services/emailService");
-      await sendPasswordResetEmail({
-        to: normalizedEmail,
-        resetLink,
-        userName: user.username || user.email.split("@")[0],
-      });
-
-      console.log(`✅ Password reset email sent to: ${normalizedEmail}`);
+      try {
+        const { sendPasswordResetEmail } = await import("../services/emailService");
+        console.log(`📧 [FORGOT-PASSWORD] Calling sendPasswordResetEmail...`);
+        await sendPasswordResetEmail({
+          to: normalizedEmail,
+          resetLink,
+          userName: user.username || user.email.split("@")[0],
+        });
+        console.log(`✅ [FORGOT-PASSWORD] Email sent successfully to: ${normalizedEmail}`);
+      } catch (emailError: any) {
+        console.error(`❌ [FORGOT-PASSWORD] Email sending failed:`, emailError.message);
+      }
     } else {
-      console.log(`⚠️ Password reset requested for non-existent email: ${normalizedEmail}`);
+      console.log(`⚠️ [FORGOT-PASSWORD] Email not found in database: ${normalizedEmail}`);
     }
 
     res.json({ message: "If that email exists, a reset link has been sent." });
   } catch (error: any) {
-    console.error("Forgot password error:", error);
+    console.error("❌ [FORGOT-PASSWORD] Error:", error);
     res.status(500).json({ error: "Failed to process password reset request" });
   }
 });

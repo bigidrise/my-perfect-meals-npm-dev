@@ -42,7 +42,7 @@ interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string) => Promise<Snack | null>;
   cancel: () => void;
 }
 
@@ -80,7 +80,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
   const generateSnack = async (
     description: string,
     dietType?: DietType,
-    dietPhase?: BeachBodyPhase
+    dietPhase?: BeachBodyPhase,
+    overrideToken?: string
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -100,6 +101,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           count: 1,
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody
+          overrideToken: overrideToken || null, // SafetyGuard override token
         }),
         signal: abortControllerRef.current.signal,
       });
