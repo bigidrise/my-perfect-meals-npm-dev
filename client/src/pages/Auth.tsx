@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp } from "@/lib/auth";
+import { Eye } from "lucide-react";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -11,6 +12,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,18 +67,43 @@ export default function Auth() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full p-3 mb-2 rounded-xl
-                       bg-white/10 border border-white/20
-                       text-white placeholder-white/60
-                       focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
-            required
-            minLength={6}
-            value={pwd}
-            onChange={(e) => setPwd(e.target.value)}
-          />
+          <div className="relative mb-2">
+            <input
+              type="password"
+              placeholder="Password"
+              className="w-full p-3 pr-12 rounded-xl
+                         bg-white/10 border border-white/20
+                         text-white placeholder-white/60
+                         focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+              required
+              minLength={6}
+              autoCorrect="off"
+              autoCapitalize="off"
+              value={pwd}
+              onChange={(e) => setPwd(e.target.value)}
+            />
+            <button
+              type="button"
+              onPointerDown={() => setShowPassword(true)}
+              onPointerUp={() => setShowPassword(false)}
+              onPointerLeave={() => setShowPassword(false)}
+              onPointerCancel={() => setShowPassword(false)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full
+                         text-white/50 hover:text-white/80 active:text-white
+                         touch-none select-none"
+              aria-label="Hold to reveal password"
+            >
+              <Eye size={18} />
+            </button>
+            {showPassword && pwd && (
+              <div className="absolute inset-0 right-12 flex items-center
+                              pointer-events-none rounded-xl bg-neutral-800 px-3">
+                <span className="text-white text-base">
+                  {pwd}
+                </span>
+              </div>
+            )}
+          </div>
 
           {mode === "login" && (
             <div className="text-right mb-3">
