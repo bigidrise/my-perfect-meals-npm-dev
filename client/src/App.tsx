@@ -13,9 +13,6 @@ import ScrollManager from "@/components/ScrollManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { loadRewardful } from "@/lib/rewardful";
 import { AudioProvider } from "@/audio/AudioProvider";
-import { useVersionCheck } from "@/hooks/useVersionCheck";
-import { ForcedUpdateModal } from "@/components/ForcedUpdateModal";
-import { updateApp } from "@/lib/updateApp";
 import { CopilotSystem } from "@/components/copilot/CopilotSystem";
 import type { CopilotAction } from "@/components/copilot/CopilotContext";
 import { setNavigationHandler, setModalHandler } from "@/components/copilot/CopilotCommandRegistry";
@@ -25,8 +22,6 @@ import { RootViewport } from "./layouts/RootViewport";
 import { setupNotificationListeners } from "@/services/mealReminderService";
 import DevBadge from "./components/DevBadge";
 import { Capacitor } from "@capacitor/core";
-import { UpdateManagerProvider } from "@/contexts/UpdateManagerContext";
-import { GlobalUpdateBanner } from "@/components/GlobalUpdateBanner";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -45,7 +40,6 @@ if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
 
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
-  const { versionState } = useVersionCheck();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -81,11 +75,6 @@ export default function App() {
       loadRewardful(key);
     }
   }, []);
-
-  // Handle update action
-  const handleUpdate = () => {
-    updateApp();
-  };
 
   const handleCopilotAction = (action: CopilotAction) => {
     switch (action.type) {
@@ -125,35 +114,21 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <UpdateManagerProvider>
-              <AudioProvider>
-                <ScrollManager />
+            <AudioProvider>
+              <ScrollManager />
 
-                {/* Global Update Banner - BIG-APP PATTERN: User-controlled updates */}
-                <GlobalUpdateBanner />
-
-                {/* Forced Update Modal (blocks app access if version too old) */}
-                {versionState?.forceUpdate && versionState.remoteInfo && (
-                  <ForcedUpdateModal
-                    currentVersion={versionState.currentVersion}
-                    requiredVersion={versionState.remoteInfo.minSupported}
-                    onUpdate={handleUpdate}
-                  />
-                )}
-
-                <CopilotSystem onAction={handleCopilotAction}>
-                  <RootViewport>
-                    <AppRouter>
-                      <Router />
-                    </AppRouter>
-                  </RootViewport>
-                  <AvatarSelector />
-                  <ChefVoiceAssistant />
-                  <VoiceConcierge />
-                  <Toaster />
-                </CopilotSystem>
-              </AudioProvider>
-            </UpdateManagerProvider>
+              <CopilotSystem onAction={handleCopilotAction}>
+                <RootViewport>
+                  <AppRouter>
+                    <Router />
+                  </AppRouter>
+                </RootViewport>
+                <AvatarSelector />
+                <ChefVoiceAssistant />
+                <VoiceConcierge />
+                <Toaster />
+              </CopilotSystem>
+            </AudioProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
