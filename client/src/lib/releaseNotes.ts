@@ -6,7 +6,7 @@ export interface ReleaseNote {
 }
 
 export const currentRelease: ReleaseNote = {
-  version: "1.0.8",
+  version: "1.0.9",
   date: "January 2026",
   bugFixes: [
     "Fixed screen flashing issues",
@@ -16,6 +16,7 @@ export const currentRelease: ReleaseNote = {
   ],
   designUpdates: [
     "Cleaned up Chef button — removed orange glow",
-    "New 'What's New' update banner with release notes"
+    "New 'What's New' update banner with release notes",
+    "Premium branded voice experience — consistent Chef voice throughout"
   ]
 };
