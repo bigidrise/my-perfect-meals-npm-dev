@@ -28,6 +28,9 @@ export function useVersionCheck() {
         console.log('📢 [MPM Update] Update detected via periodic check:', result.latestVersion);
         // Dispatch event for update banner - user controls when to refresh
         window.dispatchEvent(new CustomEvent('mpm:update-available'));
+      } else {
+        // Versions match - sync localStorage to prevent focus handler mismatch
+        localStorage.setItem("appVersion", result.latestVersion);
       }
     } catch (error) {
       console.error('Version check failed:', error);
