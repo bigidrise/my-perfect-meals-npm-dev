@@ -1885,7 +1885,7 @@ export default function MyBiometrics() {
                 data-testid="biometrics-save-weight-button"
                 data-walkthrough="save-weight"
                 onClick={saveWeight}
-                className="!bg-lime-500/20 !border-lime-400/60 hover:!bg-lime-500/30"
+                className="!bg-lime-500/20 !border-lime-400 hover:!bg-lime-500/30"
               >
                 Save
               </PillButton>
