@@ -7,6 +7,31 @@ My Perfect Meals (MPM) is a live, AI-powered meal planning and nutrition trackin
 I prefer iterative development and expect the agent to ask before making major architectural changes. Do not modify the "Meal Visual Alignment System v1" without explicit approval. Specifically, do not change AI Prompts, Image Prompts, `ensureImage` Logic, Fallback Images, Cache Key Generation, or S3 Upload Logic within this system.
 **Product Doctrine**: See `/docs/STARCH_STRATEGY_AND_MEAL_BOARD_DOCTRINE.md` for authoritative decisions about starch strategy, meal board behavior, and intentionally hidden features. Do not violate without discussion.
 **Deployment Workflow**: This is the maindev space. After every significant change, ask "Ready to push to production?" and provide the git command: `git push origin production`
+**Session Tracking**: Track all changes between pushes. A session is only closed when user provides a push receipt. Push often to catch mistakes faster and make rollbacks easier. When session closes, move changelog to Release History.
+
+## Pending Changelog (Current Session)
+*Changes since last push — clear this section when push receipt received*
+
+**Bug Fixes:**
+- Fixed screen flashing issues
+- Fixed meals incorrectly appearing across different meal boards
+- Fixed meal cards disappearing unexpectedly
+- Fixed update banner refresh button not responding to taps
+- Fixed update banner appearing repeatedly due to failed refresh attempts
+- Fixed update banner appearing behind iOS notch/safe area
+
+**UI/Design Updates:**
+- Removed orange glow/shadow from Chef button — now clean icon on solid black background
+- Redesigned update notification banner:
+  - Moved to bottom of screen (above nav) to avoid iOS safe area conflicts
+  - Changed from purple to black/orange theme matching app design
+  - Added rounded corners and floating card design
+  - Simplified refresh to immediate hard reload for guaranteed reliability
+
+## Release History
+*Completed releases with push receipts*
+
+(No releases logged yet)
 
 ## System Architecture
 The application is a monorepo utilizing React + Vite (TypeScript) for the frontend and Express.js (TypeScript) for the backend. PostgreSQL with Drizzle ORM manages data persistence. OpenAI GPT-4 is integrated for AI meal generation, including DALL-E 3 for image creation.
