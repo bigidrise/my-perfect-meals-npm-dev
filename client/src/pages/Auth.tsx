@@ -1,5 +1,5 @@
 // client/src/pages/Auth.tsx
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp } from "@/lib/auth";
@@ -13,6 +13,7 @@ export default function Auth() {
   const [pwd, setPwd] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,11 +68,12 @@ export default function Auth() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <div className="relative mb-2">
+          <div className="relative mb-2 h-12">
             <input
+              ref={passwordInputRef}
               type={showPassword ? "text" : "password"}
               placeholder="Password"
-              className="w-full p-3 pr-12 rounded-xl
+              className="w-full h-12 px-3 pr-12 rounded-xl
                          bg-white/10 border border-white/20
                          text-white placeholder-white/60
                          focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
@@ -84,7 +86,16 @@ export default function Auth() {
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                passwordInputRef.current?.blur();
+                setShowPassword(v => !v);
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                passwordInputRef.current?.blur();
+                setShowPassword(v => !v);
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
