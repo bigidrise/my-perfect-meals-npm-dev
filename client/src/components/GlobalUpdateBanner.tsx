@@ -9,9 +9,18 @@ export function GlobalUpdateBanner() {
     return null;
   }
 
+  const handleRefresh = () => {
+    applyUpdate();
+    // Fallback: If applyUpdate doesn't reload within 2 seconds, force reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  };
+
   return (
     <div 
-      className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg safe-area-inset-top"
+      className="fixed left-0 right-0 z-[100] bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
+      style={{ top: 'env(safe-area-inset-top, 0px)' }}
       data-testid="global-update-banner"
     >
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
@@ -25,7 +34,7 @@ export function GlobalUpdateBanner() {
         
         <div className="flex items-center gap-2">
           <Button
-            onClick={applyUpdate}
+            onClick={handleRefresh}
             className="bg-white text-purple-600 hover:bg-white/90 font-semibold text-xs px-3 py-1 h-auto"
             size="sm"
             data-testid="button-refresh-now"
