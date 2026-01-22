@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppRouter from "@/components/AppRouter";
 import Router from "@/components/Router";
-// Biometric imports moved to Router.tsx to prevent circular dependencies
 import { AvatarSelector } from "@/components/AvatarSelector";
 import { ChefVoiceAssistant } from "@/components/ChefVoiceAssistant";
 import { VoiceConcierge } from "@/components/VoiceConcierge";
@@ -15,22 +14,19 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { loadRewardful } from "@/lib/rewardful";
 import { AudioProvider } from "@/audio/AudioProvider";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
-import { UpdateBanner } from "@/components/UpdateBanner";
 import { ForcedUpdateModal } from "@/components/ForcedUpdateModal";
 import { updateApp } from "@/lib/updateApp";
 import { CopilotSystem } from "@/components/copilot/CopilotSystem";
 import type { CopilotAction } from "@/components/copilot/CopilotContext";
 import { setNavigationHandler, setModalHandler } from "@/components/copilot/CopilotCommandRegistry";
 import { useLocation } from "wouter";
-import { TourProvider } from "./contexts/TourContext";
-import { MobileVoiceHandler } from "./components/MobileVoiceHandler";
-import { OnboardingFooter } from "./components/OnboardingFooter";
-import { CopilotProvider } from "./components/copilot/CopilotContext";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { setupNotificationListeners } from "@/services/mealReminderService";
 import DevBadge from "./components/DevBadge";
 import { Capacitor } from "@capacitor/core";
+import { UpdateManagerProvider } from "@/contexts/UpdateManagerContext";
+import { GlobalUpdateBanner } from "@/components/GlobalUpdateBanner";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -129,31 +125,35 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <AudioProvider>
-              <ScrollManager />
+            <UpdateManagerProvider>
+              <AudioProvider>
+                <ScrollManager />
 
-              {/* Forced Update Modal (blocks app access if version too old) */}
-              {versionState?.forceUpdate && versionState.remoteInfo && (
-                <ForcedUpdateModal
-                  currentVersion={versionState.currentVersion}
-                  requiredVersion={versionState.remoteInfo.minSupported}
-                  onUpdate={handleUpdate}
-                />
-              )}
+                {/* Global Update Banner - BIG-APP PATTERN: User-controlled updates */}
+                <GlobalUpdateBanner />
 
-              {/* Update Banner removed - focus event auto-reload handles updates */}
-              <CopilotSystem onAction={handleCopilotAction}>
-                <RootViewport>
-                  <AppRouter>
-                    <Router />
-                  </AppRouter>
-                </RootViewport>
-                <AvatarSelector />
-                <ChefVoiceAssistant />
-                <VoiceConcierge />
-                <Toaster />
-              </CopilotSystem>
-            </AudioProvider>
+                {/* Forced Update Modal (blocks app access if version too old) */}
+                {versionState?.forceUpdate && versionState.remoteInfo && (
+                  <ForcedUpdateModal
+                    currentVersion={versionState.currentVersion}
+                    requiredVersion={versionState.remoteInfo.minSupported}
+                    onUpdate={handleUpdate}
+                  />
+                )}
+
+                <CopilotSystem onAction={handleCopilotAction}>
+                  <RootViewport>
+                    <AppRouter>
+                      <Router />
+                    </AppRouter>
+                  </RootViewport>
+                  <AvatarSelector />
+                  <ChefVoiceAssistant />
+                  <VoiceConcierge />
+                  <Toaster />
+                </CopilotSystem>
+              </AudioProvider>
+            </UpdateManagerProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

@@ -58,9 +58,11 @@ export function UpdateNotification({ onUpdate, onDismiss }: UpdateNotificationPr
 }
 
 // Hook to detect service worker updates
+// BIG-APP PATTERN: Never auto-reload. Only show banner, let user control refresh.
 export function useServiceWorkerUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [userRequestedRefresh, setUserRequestedRefresh] = useState(false);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -70,6 +72,8 @@ export function useServiceWorkerUpdate() {
         // CRITICAL: Check if a worker is already waiting (missed update case)
         if (reg.waiting && navigator.serviceWorker.controller) {
           setUpdateAvailable(true);
+          // Dispatch event for global update manager
+          window.dispatchEvent(new CustomEvent('mpm:update-available'));
         }
 
         // Check for new updates
@@ -79,31 +83,50 @@ export function useServiceWorkerUpdate() {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 setUpdateAvailable(true);
+                // Dispatch event for global update manager
+                window.dispatchEvent(new CustomEvent('mpm:update-available'));
               }
             });
           }
         });
 
-        // Manually check for updates
-        reg.update();
+        // Manually check for updates (silent, no reload)
+        reg.update().catch(() => {});
       });
 
-      // Listen for controller change (new SW activated)
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
+      // REMOVED: Auto-reload on controllerchange - this was causing random flashes
+      // Only reload on controllerchange if USER explicitly requested it
+      const handleControllerChange = () => {
+        if (userRequestedRefresh) {
+          console.log('🔄 [MPM Update] User-initiated refresh after SW activation');
+          window.location.reload();
+        } else {
+          console.log('📝 [MPM Update] SW controller changed, but no user request - skipping reload');
+        }
+      };
+      
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+      
+      return () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      };
     }
-  }, []);
+  }, [userRequestedRefresh]);
 
   const updateServiceWorker = () => {
+    // Mark that user explicitly requested refresh
+    setUserRequestedRefresh(true);
+    
     if (registration?.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    }
-    // CRITICAL: Force immediate reload with cache bust to show new content
-    // Don't wait for controllerchange - it may not fire reliably on iOS
-    setTimeout(() => {
+      // Give SW time to activate, then reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } else {
+      // No waiting worker, just reload
       window.location.reload();
-    }, 500);
+    }
   };
 
   return {

@@ -1,8 +1,13 @@
 // App update mechanism - handles service worker updates and reloads
+// BIG-APP PATTERN: Only reload when user explicitly requests it
 import { forceReloadWithCacheClear, clearWebViewCache } from './webviewCache';
 
+/**
+ * User-initiated app update - called when user clicks "Update Now" button
+ * This is the ONLY place that should trigger a reload for updates
+ */
 export async function updateApp() {
-  console.log('🔄 Starting app update...');
+  console.log('🔄 [MPM Update] User-initiated app update starting...');
   
   // Clear WKWebView cache first on iOS (critical for updates)
   await clearWebViewCache();
@@ -12,63 +17,52 @@ export async function updateApp() {
     try {
       const registration = await navigator.serviceWorker.getRegistration();
       
-      if (registration) {
-        console.log('📦 Service worker found, triggering update flow');
+      if (registration?.waiting) {
+        console.log('⏳ [MPM Update] Activating waiting service worker...');
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         
-        // If there's a waiting worker, activate it
-        if (registration.waiting) {
-          console.log('⏳ Waiting worker found, sending SKIP_WAITING message');
-          
-          // Send message to waiting worker to skip waiting
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          
-          // Wait for the new service worker to take control
-          return new Promise<void>((resolve) => {
-            navigator.serviceWorker.addEventListener('controllerchange', async () => {
-              console.log('✅ New service worker activated, reloading with cache clear...');
-              await forceReloadWithCacheClear();
-              resolve();
-            });
-            
-            // Fallback: if controllerchange doesn't fire within 3 seconds, reload anyway
-            setTimeout(async () => {
-              console.log('⏱️ Timeout waiting for controller change, reloading with cache clear');
-              await forceReloadWithCacheClear();
-              resolve();
-            }, 3000);
-          });
-        } else {
-          // No waiting worker, check for updates
-          console.log('🔍 No waiting worker, checking for updates');
-          await registration.update();
-          
-          // After update check, reload with cache clear
-          setTimeout(async () => {
-            await forceReloadWithCacheClear();
-          }, 1000);
-        }
+        // Give SW time to activate, then reload
+        setTimeout(async () => {
+          console.log('✅ [MPM Update] Reloading with cache clear...');
+          await forceReloadWithCacheClear();
+        }, 500);
       } else {
-        // No service worker registered, force reload with cache clear
-        console.log('❌ No service worker registered, performing cache-cleared reload');
+        // No waiting worker, just reload with cache clear
+        console.log('🔄 [MPM Update] No waiting worker, reloading with cache clear...');
         await forceReloadWithCacheClear();
       }
     } catch (error) {
-      console.error('Service worker update error:', error);
-      // Fallback to cache-cleared reload
+      console.error('[MPM Update] Service worker error:', error);
       await forceReloadWithCacheClear();
     }
   } else {
-    // Service worker not supported, force reload with cache clear
-    console.log('❌ Service worker not supported, performing cache-cleared reload');
+    console.log('🔄 [MPM Update] No SW support, reloading with cache clear...');
     await forceReloadWithCacheClear();
   }
 }
 
-// Reload while preserving the current route
-function reloadPreservingRoute() {
-  const currentPath = window.location.pathname + window.location.search + window.location.hash;
-  console.log(`🔄 Reloading with preserved route: ${currentPath}`);
+/**
+ * Silent update check - does NOT reload, only signals if update available
+ * Use this for background version checking
+ */
+export async function checkForUpdatesSilently(): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) return false;
   
-  // Use location.replace to reload without adding to history
-  window.location.replace(currentPath);
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return false;
+    
+    // Check for updates silently
+    await registration.update();
+    
+    // Return true if there's a waiting worker
+    if (registration.waiting) {
+      window.dispatchEvent(new CustomEvent('mpm:update-available'));
+      return true;
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
 }

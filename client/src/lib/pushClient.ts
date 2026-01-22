@@ -22,43 +22,31 @@ export async function registerForPush(userId: string) {
     console.log("✅ Service Worker registered");
 
     // ============================================
-    // FORCE UPDATE FLOW (Mobile PWA Cache Purge)
+    // BIG-APP PATTERN: No auto-reload during push registration
+    // Only signal update available, let user control refresh
     // ============================================
     
-    // Force check for updates
-    await reg.update();
-    console.log("🔄 Checked for Service Worker updates");
+    // Silent check for updates (no reload)
+    await reg.update().catch(() => {});
+    console.log("🔄 Checked for Service Worker updates (silent)");
 
-    // If a new SW is waiting, activate it immediately and reload
+    // If a new SW is waiting, signal update available (NO reload)
     if (reg.waiting) {
-      console.log("⏳ New Service Worker waiting, activating now...");
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      
-      // Reload once the new SW takes control
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log("🔄 New Service Worker activated, reloading page...");
-        window.location.reload();
-      }, { once: true });
-      
-      return; // Exit early, page will reload
+      console.log("📝 New Service Worker waiting - signaling update available");
+      window.dispatchEvent(new CustomEvent('mpm:update-available'));
+      // Continue with push registration, don't return early
     }
 
-    // Listen for future updates
+    // Listen for future updates (signal only, no reload)
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       if (!newWorker) return;
 
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New SW is installed and waiting
-          console.log("⏳ New Service Worker installed, activating...");
-          newWorker.postMessage({ type: 'SKIP_WAITING' });
-          
-          // Reload when it takes control
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log("🔄 New Service Worker activated, reloading page...");
-            window.location.reload();
-          }, { once: true });
+          console.log("📝 New Service Worker installed - signaling update available");
+          window.dispatchEvent(new CustomEvent('mpm:update-available'));
+          // NO auto-reload - let user control when to refresh
         }
       });
     });

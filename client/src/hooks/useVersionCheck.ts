@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { checkForUpdates, type VersionCheckResult } from '@/lib/versionCheck';
-import { forceReloadWithCacheClear } from '@/lib/webviewCache';
+// BIG-APP PATTERN: No auto-reload imports - all reloads are user-controlled now
 
 const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -25,7 +25,9 @@ export function useVersionCheck() {
       setVersionState(result);
 
       if (result.updateAvailable || result.forceUpdate) {
-        console.log('🔄 Update available:', result.latestVersion);
+        console.log('📢 [MPM Update] Update detected via periodic check:', result.latestVersion);
+        // Dispatch event for update banner - user controls when to refresh
+        window.dispatchEvent(new CustomEvent('mpm:update-available'));
       }
     } catch (error) {
       console.error('Version check failed:', error);
@@ -73,10 +75,8 @@ export function useVersionCheck() {
     };
   }, []);
 
-  // CRITICAL: Auto-reload when app wakes from background (iOS fix)
-  // This handles the case where iOS freezes JS when app is backgrounded
-  // When user taps the app, we check version and reload if changed
-  // NOTE: Only compare major.minor.patch, ignore build metadata to prevent false reloads
+  // BIG-APP PATTERN: Check version on focus but NEVER auto-reload
+  // Only dispatch update available event, let user control when to refresh
   useEffect(() => {
     const handleFocus = async () => {
       try {
@@ -106,14 +106,15 @@ export function useVersionCheck() {
           return;
         }
 
-        // Only reload if the base version (major.minor.patch) changed, not just build metadata
+        // If base version changed, signal update available (NO auto-reload)
         if (baseVersion !== baseCurrentVersion) {
-          console.log(`🔄 Version changed: ${baseCurrentVersion} → ${baseVersion}, clearing cache and reloading...`);
+          console.log(`📢 [MPM Update] New version detected: ${baseCurrentVersion} → ${baseVersion}`);
           localStorage.setItem("appVersion", version);
-          await forceReloadWithCacheClear();
+          // Dispatch event for update banner - user controls when to refresh
+          window.dispatchEvent(new CustomEvent('mpm:update-available'));
         } else if (version !== current) {
-          // Build metadata changed but base version same - just update localStorage, don't reload
-          console.log(`📝 Build metadata updated: ${current} → ${version} (no reload needed)`);
+          // Build metadata changed but base version same - silently update localStorage
+          console.log(`📝 Build metadata updated: ${current} → ${version} (no action needed)`);
           localStorage.setItem("appVersion", version);
         }
       } catch (err) {
