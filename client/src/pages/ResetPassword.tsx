@@ -181,18 +181,10 @@ export default function ResetPassword() {
                         />
                         <button
                           type="button"
-                          onTouchStart={() => setShowPassword(true)}
-                          onTouchEnd={() => setShowPassword(false)}
-                          onTouchCancel={() => setShowPassword(false)}
-                          onMouseDown={() => setShowPassword(true)}
-                          onMouseUp={() => setShowPassword(false)}
-                          onMouseLeave={() => setShowPassword(false)}
-                          onContextMenu={(e) => e.preventDefault()}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-2 select-none"
-                          style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-                          aria-label="Hold to show password"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </FormControl>
@@ -221,18 +213,10 @@ export default function ResetPassword() {
                         />
                         <button
                           type="button"
-                          onTouchStart={() => setShowConfirmPassword(true)}
-                          onTouchEnd={() => setShowConfirmPassword(false)}
-                          onTouchCancel={() => setShowConfirmPassword(false)}
-                          onMouseDown={() => setShowConfirmPassword(true)}
-                          onMouseUp={() => setShowConfirmPassword(false)}
-                          onMouseLeave={() => setShowConfirmPassword(false)}
-                          onContextMenu={(e) => e.preventDefault()}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-2 select-none"
-                          style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-                          aria-label="Hold to show password"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
                         >
-                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </FormControl>
