@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { getWeekStartISO, isValidISODate } from '../utils/week';
 import { buildShoppingList } from '../services/shopping-list/list-builder';
-import { resolveUserId, getWeekBoard, upsertWeekBoard } from '../data/weekBoardsRepo';
+import { resolveUserId, getWeekBoard, upsertWeekBoard, AuthenticationRequiredError } from '../data/weekBoardsRepo';
 import { processMealImageForSave } from '../services/imageLifecycle';
 
 // Type definition for WeekBoard
@@ -412,14 +412,21 @@ export default function weekBoardRoutes(app: Express) {
 
   // GET current week board (America/Chicago Monday)
   app.get("/api/week-boards/current-week", async (req: Request, res: Response) => {
-    const userId = resolveUserId(req);
-    const weekStartISO = getWeekStartISO();
-    let board = await getWeekBoard(userId, weekStartISO);
-    if (!board) {
-      board = getOrCreateWeek(weekStartISO);
-      await upsertWeekBoard(userId, weekStartISO, board);
+    try {
+      const userId = resolveUserId(req);
+      const weekStartISO = getWeekStartISO();
+      let board = await getWeekBoard(userId, weekStartISO);
+      if (!board) {
+        board = getOrCreateWeek(weekStartISO);
+        await upsertWeekBoard(userId, weekStartISO, board);
+      }
+      return res.json({ weekStartISO, week: normalizeBoard(board) });
+    } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      throw error;
     }
-    return res.json({ weekStartISO, week: normalizeBoard(board) });
   });
 
   // GET specific week board by weekStartISO (YYYY-MM-DD)
@@ -428,13 +435,20 @@ export default function weekBoardRoutes(app: Express) {
     if (!isValidISODate(weekStartISO)) {
       return res.status(400).json({ error: 'Invalid weekStartISO format (YYYY-MM-DD)' });
     }
-    const userId = resolveUserId(req);
-    let board = await getWeekBoard(userId, weekStartISO);
-    if (!board) {
-      board = getOrCreateWeek(weekStartISO);
-      await upsertWeekBoard(userId, weekStartISO, board);
+    try {
+      const userId = resolveUserId(req);
+      let board = await getWeekBoard(userId, weekStartISO);
+      if (!board) {
+        board = getOrCreateWeek(weekStartISO);
+        await upsertWeekBoard(userId, weekStartISO, board);
+      }
+      return res.json({ weekStartISO, week: normalizeBoard(board) });
+    } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      throw error;
     }
-    return res.json({ weekStartISO, week: normalizeBoard(board) });
   });
 
   // PUT specific week board (save/replace the week)
@@ -445,28 +459,35 @@ export default function weekBoardRoutes(app: Express) {
       return res.status(400).json({ error: 'Invalid weekStartISO format (YYYY-MM-DD)' });
     }
 
-    const userId = resolveUserId(req);
-    // Accept the same shape your current /api/week-board expects
-    const incoming = normalizeBoard(req.body?.week ?? req.body);
-    
-    // Canva-style image gate: Process all meal images before save
-    const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
-    if (imagesProcessed > 0) {
-      console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for week ${weekStartISO}`);
+    try {
+      const userId = resolveUserId(req);
+      // Accept the same shape your current /api/week-board expects
+      const incoming = normalizeBoard(req.body?.week ?? req.body);
+      
+      // Canva-style image gate: Process all meal images before save
+      const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
+      if (imagesProcessed > 0) {
+        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for week ${weekStartISO}`);
+      }
+      
+      // enforce id + timestamps for consistency
+      const now = new Date().toISOString();
+      const saved: WeekBoard = {
+        ...processedBoard,
+        id: `week-${weekStartISO}`,
+        meta: {
+          createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
+          lastUpdatedAt: now,
+        },
+      };
+      await upsertWeekBoard(userId, weekStartISO, saved);
+      return res.json({ weekStartISO, week: normalizeBoard(saved), imagesProcessed, imagesPending });
+    } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      throw error;
     }
-    
-    // enforce id + timestamps for consistency
-    const now = new Date().toISOString();
-    const saved: WeekBoard = {
-      ...processedBoard,
-      id: `week-${weekStartISO}`,
-      meta: {
-        createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
-        lastUpdatedAt: now,
-      },
-    };
-    await upsertWeekBoard(userId, weekStartISO, saved);
-    return res.json({ weekStartISO, week: normalizeBoard(saved), imagesProcessed, imagesPending });
   });
 
   // BULLETPROOF WEEKLY BOARD API (guarantees response, create-if-missing)
@@ -476,21 +497,28 @@ export default function weekBoardRoutes(app: Express) {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
     
-    const userId = resolveUserId(req);
-    let board = await getWeekBoard(userId, weekStartISO);
-    let source = "db";
-    
-    if (!board) {
-      board = getOrCreateWeek(weekStartISO);
-      await upsertWeekBoard(userId, weekStartISO, board);
-      source = "seed";
+    try {
+      const userId = resolveUserId(req);
+      let board = await getWeekBoard(userId, weekStartISO);
+      let source = "db";
+      
+      if (!board) {
+        board = getOrCreateWeek(weekStartISO);
+        await upsertWeekBoard(userId, weekStartISO, board);
+        source = "seed";
+      }
+      
+      return res.json({ 
+        weekStartISO, 
+        week: normalizeBoard(board),
+        source 
+      });
+    } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      throw error;
     }
-    
-    return res.json({ 
-      weekStartISO, 
-      week: normalizeBoard(board),
-      source 
-    });
   });
 
   // PUT weekly board with idempotent saves (query param version)
@@ -499,35 +527,42 @@ export default function weekBoardRoutes(app: Express) {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
     
-    const userId = resolveUserId(req);
-    const incoming = normalizeBoard(req.body?.week ?? req.body);
-    const opId = req.body?.opId; // Idempotent operation ID (for future use)
-    
-    // Canva-style image gate: Process all meal images before save
-    const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
-    if (imagesProcessed > 0) {
-      console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}`);
+    try {
+      const userId = resolveUserId(req);
+      const incoming = normalizeBoard(req.body?.week ?? req.body);
+      const opId = req.body?.opId; // Idempotent operation ID (for future use)
+      
+      // Canva-style image gate: Process all meal images before save
+      const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
+      if (imagesProcessed > 0) {
+        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}`);
+      }
+      
+      const now = new Date().toISOString();
+      const saved: WeekBoard = {
+        ...processedBoard,
+        id: `week-${weekStartISO}`,
+        meta: {
+          createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
+          lastUpdatedAt: now,
+        },
+      };
+      
+      await upsertWeekBoard(userId, weekStartISO, saved);
+      
+      return res.json({ 
+        weekStartISO, 
+        week: normalizeBoard(saved),
+        source: "db",
+        imagesProcessed,
+        imagesPending
+      });
+    } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      throw error;
     }
-    
-    const now = new Date().toISOString();
-    const saved: WeekBoard = {
-      ...processedBoard,
-      id: `week-${weekStartISO}`,
-      meta: {
-        createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
-        lastUpdatedAt: now,
-      },
-    };
-    
-    await upsertWeekBoard(userId, weekStartISO, saved);
-    
-    return res.json({ 
-      weekStartISO, 
-      week: normalizeBoard(saved),
-      source: "db",
-      imagesProcessed,
-      imagesPending
-    });
   });
 
   // SHOPPING LIST ENDPOINT
@@ -558,22 +593,29 @@ export default function weekBoardRoutes(app: Express) {
       return res.status(400).json({ error: "Invalid weekStartISO format (YYYY-MM-DD)" });
     }
 
-    // Normalize to Monday (UTC) so server always works with a canonical key
-    const mondayISO = toMondayISO(weekStartISO);
+    try {
+      // Normalize to Monday (UTC) so server always works with a canonical key
+      const mondayISO = toMondayISO(weekStartISO);
 
-    const userId = resolveUserId(req);
-    let board = await getWeekBoard(userId, mondayISO);
-    if (!board) {
-      board = getOrCreateWeek(mondayISO);
-      await upsertWeekBoard(userId, mondayISO, board);
+      const userId = resolveUserId(req);
+      let board = await getWeekBoard(userId, mondayISO);
+      if (!board) {
+        board = getOrCreateWeek(mondayISO);
+        await upsertWeekBoard(userId, mondayISO, board);
+      }
+
+      const week = normalizeBoard(board);
+      const excludedItems = (board.meta as any)?.excludedItems || [];
+      const list = buildShoppingList(week, excludedItems);
+
+      // Return the normalized canonical weekStartISO
+      return res.json({ weekStartISO: mondayISO, list });
+    } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      throw error;
     }
-
-    const week = normalizeBoard(board);
-    const excludedItems = (board.meta as any)?.excludedItems || [];
-    const list = buildShoppingList(week, excludedItems);
-
-    // Return the normalized canonical weekStartISO
-    return res.json({ weekStartISO: mondayISO, list });
   });
 
   // POST add a single meal to a specific day/slot (structured clone, no AI)
@@ -672,6 +714,9 @@ export default function weekBoardRoutes(app: Express) {
         meal: mealToAdd,
       });
     } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
       console.error("❌ Error adding meal to board:", error);
       return res.status(500).json({ error: "Failed to add meal to board" });
     }
@@ -691,39 +736,46 @@ export default function weekBoardRoutes(app: Express) {
       return res.status(400).json({ error: "Missing or invalid type/name in request body" });
     }
 
-    // Normalize to Monday (UTC)
-    const mondayISO = toMondayISO(weekStartISO);
+    try {
+      // Normalize to Monday (UTC)
+      const mondayISO = toMondayISO(weekStartISO);
 
-    const userId = resolveUserId(req);
-    let board = await getWeekBoard(userId, mondayISO);
-    
-    if (!board) {
-      return res.status(404).json({ error: "Week board not found" });
+      const userId = resolveUserId(req);
+      let board = await getWeekBoard(userId, mondayISO);
+      
+      if (!board) {
+        return res.status(404).json({ error: "Week board not found" });
+      }
+
+      // Initialize excludedItems if it doesn't exist
+      if (!board.meta) {
+        board.meta = { createdAt: new Date().toISOString(), lastUpdatedAt: new Date().toISOString() };
+      }
+      if (!(board.meta as any).excludedItems) {
+        (board.meta as any).excludedItems = [];
+      }
+
+      // Create a unique key for the excluded item
+      const excludedKey = type === "pantry" 
+        ? `pantry||${name}`
+        : `groceries||${name}||${amount ?? ''}`;
+
+      // Add to excluded items if not already there
+      const excludedItems = (board.meta as any).excludedItems as string[];
+      if (!excludedItems.includes(excludedKey)) {
+        excludedItems.push(excludedKey);
+      }
+
+      // Update the board
+      board.meta.lastUpdatedAt = new Date().toISOString();
+      await upsertWeekBoard(userId, mondayISO, board);
+
+      return res.json({ success: true, weekStartISO: mondayISO });
+    } catch (error) {
+      if (error instanceof AuthenticationRequiredError) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      throw error;
     }
-
-    // Initialize excludedItems if it doesn't exist
-    if (!board.meta) {
-      board.meta = { createdAt: new Date().toISOString(), lastUpdatedAt: new Date().toISOString() };
-    }
-    if (!(board.meta as any).excludedItems) {
-      (board.meta as any).excludedItems = [];
-    }
-
-    // Create a unique key for the excluded item
-    const excludedKey = type === "pantry" 
-      ? `pantry||${name}`
-      : `groceries||${name}||${amount ?? ''}`;
-
-    // Add to excluded items if not already there
-    const excludedItems = (board.meta as any).excludedItems as string[];
-    if (!excludedItems.includes(excludedKey)) {
-      excludedItems.push(excludedKey);
-    }
-
-    // Update the board
-    board.meta.lastUpdatedAt = new Date().toISOString();
-    await upsertWeekBoard(userId, mondayISO, board);
-
-    return res.json({ success: true, weekStartISO: mondayISO });
   });
 }

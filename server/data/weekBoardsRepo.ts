@@ -67,12 +67,20 @@ export async function upsertWeekBoard(userId: string, weekStartISO: string, boar
   }
 }
 
+// Custom error class for auth failures - allows routes to catch and return 401
+export class AuthenticationRequiredError extends Error {
+  constructor(message: string = 'Authentication required: No user ID found in request') {
+    super(message);
+    this.name = 'AuthenticationRequiredError';
+  }
+}
+
 export function resolveUserId(req: any): string {
   // CRITICAL SECURITY: Require authenticated user - no fallback to shared identity
   // This prevents cross-account data leakage where multiple users would share 'local-user' data
   const userId = req.user?.id;
   if (!userId) {
-    throw new Error('Authentication required: No user ID found in request');
+    throw new AuthenticationRequiredError();
   }
   return userId;
 }
