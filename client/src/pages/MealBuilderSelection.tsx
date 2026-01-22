@@ -131,14 +131,15 @@ export default function MealBuilderSelection() {
       return;
     }
 
-    if (switchStatus && !switchStatus.canSwitch) {
-      toast({
-        title: "Switch limit reached",
-        description: `You've used all 3 builder switches this year. Next switch available ${switchStatus.nextSwitchAvailable ? new Date(switchStatus.nextSwitchAvailable).toLocaleDateString() : "later this year"}.`,
-        variant: "destructive",
-      });
-      return;
-    }
+    // Switch limit check - currently disabled (ENFORCE_SWITCH_LIMITS = false on backend)
+    // if (switchStatus && !switchStatus.canSwitch) {
+    //   toast({
+    //     title: "Switch limit reached",
+    //     description: `You've used all 3 builder switches this year. Next switch available ${switchStatus.nextSwitchAvailable ? new Date(switchStatus.nextSwitchAvailable).toLocaleDateString() : "later this year"}.`,
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     const authToken = getAuthToken();
     if (!authToken) {
@@ -277,8 +278,8 @@ export default function MealBuilderSelection() {
           </p>
         </div>
 
-        {/* Builder Switch Status */}
-        {!loadingStatus && switchStatus && (
+        {/* Builder Switch Status - Currently disabled, uncomment when ENFORCE_SWITCH_LIMITS is true */}
+        {/* {!loadingStatus && switchStatus && (
           <div className={`rounded-xl p-4 mb-6 ${switchStatus.canSwitch ? "bg-zinc-900/60 border border-zinc-700" : "bg-amber-900/30 border border-amber-500/50"}`}>
             <div className="flex items-center gap-3">
               {switchStatus.canSwitch ? (
@@ -312,7 +313,7 @@ export default function MealBuilderSelection() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="space-y-4 mb-8">
           {/* Locked state: Pro Care client with no assigned board */}
@@ -382,10 +383,10 @@ export default function MealBuilderSelection() {
         {!(isProCareClient && !user?.activeBoard) && (
           <Button
             onClick={handleContinue}
-            disabled={!selected || saving || (switchStatus && !switchStatus.canSwitch && selected !== user?.selectedMealBuilder)}
+            disabled={!selected || saving}
             className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
           >
-            {saving ? "Saving..." : switchStatus && !switchStatus.canSwitch && selected !== user?.selectedMealBuilder ? "Switch Limit Reached" : "Continue with This Builder"}
+            {saving ? "Saving..." : "Continue with This Builder"}
           </Button>
         )}
       </div>

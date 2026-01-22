@@ -5,6 +5,9 @@ import { eq, and, gte, desc } from "drizzle-orm";
 const SWITCH_LIMIT = 3;
 const WINDOW_MONTHS = 12;
 
+// FEATURE FLAG: Set to true to enforce builder switch limits
+const ENFORCE_SWITCH_LIMITS = false;
+
 export interface BuilderSwitchStatus {
   switchesUsed: number;
   switchesRemaining: number;
@@ -84,7 +87,8 @@ export async function attemptBuilderSwitch(
   
   const status = await getBuilderSwitchStatus(userId);
   
-  if (!status.canSwitch) {
+  // Only enforce limits if the feature flag is enabled
+  if (ENFORCE_SWITCH_LIMITS && !status.canSwitch) {
     const nextDate = status.nextSwitchAvailable
       ? status.nextSwitchAvailable.toLocaleDateString("en-US", {
           month: "long",
