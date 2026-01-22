@@ -101,6 +101,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount, hasActiveMealDaySession, getActiveMealDaySessionRemaining } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ProTipCard } from "@/components/ProTipCard";
+import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -264,13 +265,31 @@ export default function WeeklyMealBoard() {
     }
   }, [toast]);
 
+  // Draft persistence for crash/reload recovery
+  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+    {
+      userId: user?.id,
+      builderId: 'weekly-meal-board',
+      weekStartISO,
+    },
+    board,
+    setBoard,
+    hookLoading,
+    hookBoard
+  );
+
   // Sync hook board to local state only after loading completes
+  // Skip if draft was restored to prevent server data from overwriting local changes
   React.useEffect(() => {
+    if (skipServerSync()) {
+      console.log('⚠️ [MPM Board] Skipping server sync - draft is active');
+      return;
+    }
     if (!hookLoading && !Object.is(boardRef.current, hookBoard)) {
       setBoard(hookBoard);
       boardRef.current = hookBoard;
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Use hook's loading state directly (no local copy needed)
   const loading = hookLoading;
@@ -284,6 +303,9 @@ export default function WeeklyMealBoard() {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        // Clear draft and mark clean after successful server save
+        clearDraft();
+        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         toast({
@@ -295,7 +317,7 @@ export default function WeeklyMealBoard() {
         setSaving(false);
       }
     },
-    [saveToHook, toast],
+    [saveToHook, toast, clearDraft, markClean],
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<

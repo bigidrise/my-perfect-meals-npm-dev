@@ -96,6 +96,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
   {
@@ -193,13 +194,30 @@ export default function DiabeticMenuBuilder() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
-  // Sync hook board to local state
+  // Draft persistence for crash/reload recovery
+  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+    {
+      userId: user?.id,
+      builderId: 'diabetic-menu-builder',
+      weekStartISO,
+    },
+    board,
+    setBoard,
+    hookLoading,
+    hookBoard
+  );
+
+  // Sync hook board to local state (skip if draft is active)
   React.useEffect(() => {
+    if (skipServerSync()) {
+      setLoading(hookLoading);
+      return;
+    }
     if (hookBoard) {
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(
@@ -210,6 +228,8 @@ export default function DiabeticMenuBuilder() {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        clearDraft();
+        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         toast({
@@ -221,7 +241,7 @@ export default function DiabeticMenuBuilder() {
         setSaving(false);
       }
     },
-    [saveToHook, toast],
+    [saveToHook, toast, clearDraft, markClean],
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<

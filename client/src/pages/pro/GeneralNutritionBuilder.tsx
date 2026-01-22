@@ -64,6 +64,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Build Client Meals", description: "Tap the + button on any meal card to add personalized recipes for your client." },
@@ -132,13 +133,29 @@ export default function WeeklyMealBoard() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
-  // Sync hook board to local state only after loading completes
+  // Draft persistence for crash/reload recovery
+  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+    {
+      userId: user?.id,
+      builderId: 'general-nutrition-builder',
+      weekStartISO,
+    },
+    board,
+    setBoard,
+    hookLoading,
+    hookBoard
+  );
+
+  // Sync hook board to local state only after loading completes (skip if draft is active)
   React.useEffect(() => {
+    if (skipServerSync()) {
+      return;
+    }
     if (!hookLoading && !Object.is(boardRef.current, hookBoard)) {
       setBoard(hookBoard);
       boardRef.current = hookBoard;
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Use hook's loading state directly (no local copy needed)
   const loading = hookLoading;
@@ -151,13 +168,15 @@ export default function WeeklyMealBoard() {
       await saveToHook(updatedBoard as any, uuidv4());
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
+      clearDraft();
+      markClean();
     } catch (err) {
       console.error("Failed to save board:", err);
       toast({ title: "Save failed", description: "Changes will retry when you're online", variant: "destructive" });
     } finally {
       setSaving(false);
     }
-  }, [saveToHook, toast]);
+  }, [saveToHook, toast, clearDraft, markClean]);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<"breakfast"|"lunch"|"dinner"|"snacks"|null>(null);
   const [manualModalOpen, setManualModalOpen] = React.useState(false);

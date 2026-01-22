@@ -93,6 +93,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -229,13 +230,30 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
-  // Sync hook board to local state
+  // Draft persistence for crash/reload recovery
+  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+    {
+      userId: user?.id,
+      builderId: 'performance-competition-builder',
+      weekStartISO,
+    },
+    board,
+    setBoard,
+    hookLoading,
+    hookBoard
+  );
+
+  // Sync hook board to local state (skip if draft is active)
   React.useEffect(() => {
+    if (skipServerSync()) {
+      setLoading(hookLoading);
+      return;
+    }
     if (hookBoard) {
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(
@@ -245,6 +263,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        clearDraft();
+        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         toast({
@@ -256,7 +276,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         setSaving(false);
       }
     },
-    [saveToHook, toast],
+    [saveToHook, toast, clearDraft, markClean],
   );
 
   // Manual save handler for Save Plan button
