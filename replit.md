@@ -22,6 +22,7 @@ I prefer iterative development and expect the agent to ask before making major a
 
 **UI/Design Updates:**
 - Removed orange glow/shadow from Chef button — now clean icon on solid black background
+- Update banner now works on ALL platforms (iOS, Android, Web) — same black/orange design everywhere
 - Redesigned update notification banner:
   - Moved to bottom of screen (above nav) to avoid iOS safe area conflicts
   - Changed from purple to black/orange theme matching app design
