@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
-import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, CheckCircle, AlertCircle } from "lucide-react";
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -26,8 +26,6 @@ export default function ResetPassword() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const passwordInputRef = useRef<HTMLInputElement>(null);
-  const confirmPasswordInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Extract token from URL query params
@@ -170,33 +168,26 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel className="text-white">New Password</FormLabel>
                     <FormControl>
-                      <div className="relative h-10">
+                      <div className="space-y-2">
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter new password"
                           className="bg-white/10 border-white/20 text-white placeholder-white/60
-                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 pr-12 h-10"
+                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 h-10"
                           autoCorrect="off"
                           autoCapitalize="off"
                           data-testid="input-password"
                           {...field}
                         />
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            (document.activeElement as HTMLElement)?.blur();
-                            setShowPassword(v => !v);
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            (document.activeElement as HTMLElement)?.blur();
-                            setShowPassword(v => !v);
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                        <label className="flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showPassword}
+                            onChange={(e) => setShowPassword(e.target.checked)}
+                            className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
+                          />
+                          Show password
+                        </label>
                       </div>
                     </FormControl>
                     <FormMessage className="text-red-300" />
@@ -211,33 +202,26 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel className="text-white">Confirm Password</FormLabel>
                     <FormControl>
-                      <div className="relative h-10">
+                      <div className="space-y-2">
                         <Input
                           type={showConfirmPassword ? "text" : "password"}
                           placeholder="Confirm new password"
                           className="bg-white/10 border-white/20 text-white placeholder-white/60
-                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 pr-12 h-10"
+                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 h-10"
                           autoCorrect="off"
                           autoCapitalize="off"
                           data-testid="input-confirm-password"
                           {...field}
                         />
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            (document.activeElement as HTMLElement)?.blur();
-                            setShowConfirmPassword(v => !v);
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            (document.activeElement as HTMLElement)?.blur();
-                            setShowConfirmPassword(v => !v);
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-                        >
-                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                        <label className="flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showConfirmPassword}
+                            onChange={(e) => setShowConfirmPassword(e.target.checked)}
+                            className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
+                          />
+                          Show password
+                        </label>
                       </div>
                     </FormControl>
                     <FormMessage className="text-red-300" />
