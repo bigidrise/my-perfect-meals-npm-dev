@@ -6,7 +6,7 @@ export interface ReleaseNote {
 }
 
 export const currentRelease: ReleaseNote = {
-  version: "1.0.7",
+  version: "1.0.8",
   date: "January 2026",
   bugFixes: [
     "Fixed screen flashing issues",
