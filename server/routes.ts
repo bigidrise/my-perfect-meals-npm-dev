@@ -45,6 +45,7 @@ import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
 import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
+import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
@@ -1963,7 +1964,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update meal builder selection (for settings)
+  // Get builder switch status (remaining switches, can switch, etc.)
+  app.get("/api/user/builder-switch-status", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const status = await getBuilderSwitchStatus(userId);
+      res.json(status);
+    } catch (error: any) {
+      console.error("Error getting builder switch status:", error);
+      res.status(500).json({ error: "Failed to get builder switch status" });
+    }
+  });
+
+  // Update meal builder selection (for settings) - ENFORCES 3 SWITCHES PER 12 MONTHS
   // Uses x-auth-token header for secure authentication
   app.patch("/api/user/meal-builder", requireAuth, async (req: any, res) => {
     try {
@@ -1980,18 +1994,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid meal builder selection" });
       }
       
-      const [user] = await db.update(users)
-        .set({ selectedMealBuilder })
-        .where(eq(users.id, userId))
-        .returning();
+      const result = await attemptBuilderSwitch(userId, selectedMealBuilder);
       
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+      if (!result.success) {
+        return res.status(403).json({
+          success: false,
+          error: result.error,
+          switchStatus: result.status,
+        });
       }
       
       res.json({
         success: true,
-        selectedMealBuilder: user.selectedMealBuilder,
+        selectedMealBuilder,
+        switchStatus: result.status,
       });
     } catch (error: any) {
       console.error("Error updating meal builder:", error);
