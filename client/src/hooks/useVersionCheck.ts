@@ -76,6 +76,7 @@ export function useVersionCheck() {
   // CRITICAL: Auto-reload when app wakes from background (iOS fix)
   // This handles the case where iOS freezes JS when app is backgrounded
   // When user taps the app, we check version and reload if changed
+  // NOTE: Only compare major.minor.patch, ignore build metadata to prevent false reloads
   useEffect(() => {
     const handleFocus = async () => {
       try {
@@ -93,17 +94,27 @@ export function useVersionCheck() {
         const { version } = await res.json();
         const current = localStorage.getItem("appVersion");
 
+        // Extract base version (before '+' build metadata) for comparison
+        // e.g., "1.0.0+2026.01.22.abc123" -> "1.0.0"
+        const extractBaseVersion = (v: string) => v?.split('+')[0] || v;
+        const baseVersion = extractBaseVersion(version);
+        const baseCurrentVersion = extractBaseVersion(current || '');
+
         // Store version on first load
         if (!current) {
           localStorage.setItem("appVersion", version);
           return;
         }
 
-        // If version changed, force immediate reload with WKWebView cache clear (iOS fix)
-        if (version !== current) {
-          console.log(`🔄 Version changed: ${current} → ${version}, clearing cache and reloading...`);
+        // Only reload if the base version (major.minor.patch) changed, not just build metadata
+        if (baseVersion !== baseCurrentVersion) {
+          console.log(`🔄 Version changed: ${baseCurrentVersion} → ${baseVersion}, clearing cache and reloading...`);
           localStorage.setItem("appVersion", version);
           await forceReloadWithCacheClear();
+        } else if (version !== current) {
+          // Build metadata changed but base version same - just update localStorage, don't reload
+          console.log(`📝 Build metadata updated: ${current} → ${version} (no reload needed)`);
+          localStorage.setItem("appVersion", version);
         }
       } catch (err) {
         console.error("Focus version check failed:", err);
