@@ -18,7 +18,7 @@ export interface VersionCheckResult {
 // Get current app version from environment variable
 // This is injected at build time
 export function getCurrentVersion(): string {
-  return import.meta.env.VITE_APP_VERSION || '1.0.0+dev';
+  return import.meta.env.VITE_APP_VERSION || '1.0.7+dev';
 }
 
 // Fetch the latest version info from server
