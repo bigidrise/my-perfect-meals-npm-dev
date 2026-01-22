@@ -28,6 +28,7 @@ I prefer iterative development and expect the agent to ask before making major a
   - Changed from purple to black/orange theme matching app design
   - Added rounded corners and floating card design
   - Simplified refresh to immediate hard reload for guaranteed reliability
+  - Added "What's New" pill button showing release notes before updating
 
 ## Release History
 *Completed releases with push receipts*
