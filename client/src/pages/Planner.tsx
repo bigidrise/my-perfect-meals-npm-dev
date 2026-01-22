@@ -72,7 +72,10 @@ export default function Planner() {
   ];
 
   const userActiveBoard = user?.activeBoard || user?.selectedMealBuilder;
-  const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
+  
+  // Check for Apple Review Full Access mode - grants admin-level access
+  const isAppleReviewMode = localStorage.getItem("appleReviewFullAccess") === "true";
+  const isAdmin = isAppleReviewMode || user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
   const needsOnboarding = !isAdmin && !userActiveBoard;
 
   const isBuilderUnlocked = (builderId: string): boolean => {

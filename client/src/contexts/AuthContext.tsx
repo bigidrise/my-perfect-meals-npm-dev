@@ -86,7 +86,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Refresh user data from server
       refreshUser();
     } else if (appleReviewFullAccess) {
-      // Apple Review Full Access mode - create a demo user for full app exploration
+      // Apple Review Full Access mode - create a demo user with FULL admin access
+      // Must match Welcome.tsx demo user exactly to prevent state mismatch on reload
       const demoUser: User = {
         id: "00000000-0000-0000-0000-000000000001",
         email: "reviewer@apple.com",
@@ -98,9 +99,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         selectedMealBuilder: "weekly",
         isTester: true,
         profilePhotoUrl: null,
-        role: "client",
+        role: "admin", // Admin role for full access - matches Welcome.tsx
         isProCare: false,
         activeBoard: "weekly",
+        onboardingCompletedAt: new Date().toISOString(), // Skip onboarding - matches Welcome.tsx
       };
       setUser(demoUser);
       localStorage.setItem("mpm_current_user", JSON.stringify(demoUser));

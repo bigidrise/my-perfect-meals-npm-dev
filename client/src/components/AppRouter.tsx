@@ -34,8 +34,15 @@ export default function AppRouter({ children }: AppRouterProps) {
     return !hideOnRoutes.some(route => location.startsWith(route));
   }, [location]);
 
+  // Check for Apple Review Full Access mode - bypasses ALL onboarding/gates
+  const isAppleReviewMode = useMemo(() => {
+    return localStorage.getItem("appleReviewFullAccess") === "true";
+  }, []);
+
   // Determine if user needs onboarding - returns null while loading (unknown state)
   const needsOnboarding = useMemo(() => {
+    // Apple Review mode ALWAYS bypasses onboarding
+    if (isAppleReviewMode) return false;
     if (loading) return null; // Unknown while loading - don't make decisions yet
     if (!user) return false; // No user = not authenticated
     if (user.role === "admin") return false;
@@ -43,7 +50,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (user.onboardingCompletedAt) return false;
     const hasActiveBoard = user.activeBoard || user.selectedMealBuilder;
     return !hasActiveBoard;
-  }, [user, loading]);
+  }, [user, loading, isAppleReviewMode]);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
