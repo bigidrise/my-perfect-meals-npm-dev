@@ -147,21 +147,21 @@ export class VoiceSessionController {
   private speak(text: string, onEnd?: () => void) {
     this.stopListening();
 
-    setTimeout(() => {
-      if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.onend = () => onEnd?.();
-        window.speechSynthesis.speak(utterance);
-      } else {
-        console.log("[Chef]:", text);
+    setTimeout(async () => {
+      // Use VoiceManager for branded voice only - no speechSynthesis fallback
+      const { voiceManager } = await import('./VoiceManager');
+      const result = await voiceManager.speak(text, onEnd);
+      if (result.status === 'not_ready' || result.status === 'failed') {
+        console.log("[Chef] Voice not ready, staying silent:", text);
         onEnd?.();
       }
     }, 400);
   }
 
   private stopSpeaking() {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    // Use VoiceManager for stop
+    import('./VoiceManager').then(({ voiceManager }) => {
+      voiceManager.stop();
+    });
   }
 }

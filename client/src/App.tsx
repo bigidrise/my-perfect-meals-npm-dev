@@ -23,6 +23,7 @@ import { setupNotificationListeners } from "@/services/mealReminderService";
 import DevBadge from "./components/DevBadge";
 import { Capacitor } from "@capacitor/core";
 import { WhatsNewBanner } from "@/components/WhatsNewBanner";
+import { VoiceProvider } from "@/voice/VoiceProvider";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -116,10 +117,11 @@ export default function App() {
         <TooltipProvider>
           <AuthProvider>
             <AudioProvider>
-              <ScrollManager />
-              <WhatsNewBanner />
+              <VoiceProvider>
+                <ScrollManager />
+                <WhatsNewBanner />
 
-              <CopilotSystem onAction={handleCopilotAction}>
+                <CopilotSystem onAction={handleCopilotAction}>
                 <RootViewport>
                   <AppRouter>
                     <Router />
@@ -130,6 +132,7 @@ export default function App() {
                 <VoiceConcierge />
                 <Toaster />
               </CopilotSystem>
+              </VoiceProvider>
             </AudioProvider>
           </AuthProvider>
         </TooltipProvider>
