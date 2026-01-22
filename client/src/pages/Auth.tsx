@@ -84,9 +84,12 @@ export default function Auth() {
             />
             <button
               type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              onPointerDown={() => setShowPassword(true)}
+              onPointerUp={() => setShowPassword(false)}
+              onPointerLeave={() => setShowPassword(false)}
+              onContextMenu={(e) => e.preventDefault()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-2 touch-none select-none"
+              aria-label="Hold to show password"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>

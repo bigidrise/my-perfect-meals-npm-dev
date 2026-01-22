@@ -19,6 +19,7 @@ I prefer iterative development and expect the agent to ask before making major a
 - Fixed update banner refresh button not responding to taps
 - Fixed update banner appearing repeatedly due to failed refresh attempts
 - Fixed update banner appearing behind iOS notch/safe area
+- Fixed password eyeball toggle being twitchy — now uses press-and-hold behavior
 
 **UI/Design Updates:**
 - Removed orange glow/shadow from Chef button — now clean icon on solid black background

@@ -181,9 +181,12 @@ export default function ResetPassword() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          onPointerDown={() => setShowPassword(true)}
+                          onPointerUp={() => setShowPassword(false)}
+                          onPointerLeave={() => setShowPassword(false)}
+                          onContextMenu={(e) => e.preventDefault()}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-2 touch-none select-none"
+                          aria-label="Hold to show password"
                         >
                           {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -214,9 +217,12 @@ export default function ResetPassword() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowConfirmPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1"
-                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                          onPointerDown={() => setShowConfirmPassword(true)}
+                          onPointerUp={() => setShowConfirmPassword(false)}
+                          onPointerLeave={() => setShowConfirmPassword(false)}
+                          onContextMenu={(e) => e.preventDefault()}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-2 touch-none select-none"
+                          aria-label="Hold to show password"
                         >
                           {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
