@@ -8,6 +8,7 @@ I prefer iterative development and expect the agent to ask before making major a
 **Product Doctrine**: See `/docs/STARCH_STRATEGY_AND_MEAL_BOARD_DOCTRINE.md` for authoritative decisions about starch strategy, meal board behavior, and intentionally hidden features. Do not violate without discussion.
 **Deployment Workflow**: This is the maindev space. After every significant change, ask "Ready to push to production?" and provide the git command: `git push origin production`
 **Session Tracking**: Track all changes between pushes. A session is only closed when user provides a push receipt. Push often to catch mistakes faster and make rollbacks easier. When session closes, move changelog to Release History.
+**Push Protocol**: When user says "let's push" or "we're pushing" — sync the Pending Changelog to `client/src/lib/releaseNotes.ts` immediately before they push. This ensures users see honest, real-time release notes.
 
 ## Pending Changelog (Current Session)
 *Changes since last push — clear this section when push receipt received*
