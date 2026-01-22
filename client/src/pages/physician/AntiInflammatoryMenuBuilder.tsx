@@ -189,10 +189,11 @@ export default function AntiInflammatoryMenuBuilder() {
         markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
+        // Calm, non-alarming message - will retry automatically
         toast({
-          title: "Save failed",
-          description: "Changes will retry when you're online",
-          variant: "destructive",
+          title: "Saving...",
+          description: "We'll retry automatically.",
+          duration: 3000,
         });
       } finally {
         setSaving(false);
@@ -967,18 +968,12 @@ export default function AntiInflammatoryMenuBuilder() {
     }
   }, [loading, source, toast]);
 
-  // 🎯 Show error toast if board load fails
+  // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      toast({
-        title: "Connection Issue",
-        description:
-          "Showing cached meal plan. Changes will sync when you're back online.",
-        variant: "default",
-        duration: 5000,
-      });
+      console.log("[Network] Board load encountered an issue, using cached data if available");
     }
-  }, [error, toast]);
+  }, [error]);
 
   // Check for localStorage meal to add (after board loads)
   React.useEffect(() => {
