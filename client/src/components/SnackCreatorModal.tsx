@@ -35,6 +35,10 @@ export function SnackCreatorModal({
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [overrideToken, setOverrideToken] = useState<string | undefined>();
+  
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+  
   const { user } = useAuth();
   
   // Support both authenticated users and guests
@@ -44,6 +48,23 @@ export function SnackCreatorModal({
   
   const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest(userId);
   const { toast } = useToast();
+  
+  // Handle safety override continuation
+  const handleSafetyChange = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      setPendingGeneration(true);
+    }
+  };
+  
+  // Effect: Auto-generate when override token is set
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !generating) {
+      setPendingGeneration(false);
+      handleGenerate();
+    }
+  }, [pendingGeneration, overrideToken, generating]);
 
   useEffect(() => {
     if (!open) {
@@ -116,11 +137,6 @@ export function SnackCreatorModal({
       setSafetyEnabled(true);
       setOverrideToken(undefined);
     }
-  };
-
-  const handleSafetyChange = (enabled: boolean, token?: string) => {
-    setSafetyEnabled(enabled);
-    setOverrideToken(token);
   };
 
   return (

@@ -164,6 +164,26 @@ export default function DessertCreator() {
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [overrideToken, setOverrideToken] = useState<string | null>(null);
+  
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+  
+  // Handle safety override continuation - auto-generate when override token received
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      setPendingGeneration(true);
+    }
+  };
+  
+  // Effect: Auto-generate when override token is set and generation is pending
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isGenerating) {
+      setPendingGeneration(false);
+      handleGenerateDessert(overrideToken);
+    }
+  }, [pendingGeneration, overrideToken, isGenerating]);
 
   useCopilotPageExplanation();
 
@@ -554,10 +574,7 @@ export default function DessertCreator() {
               <div className="mb-4 flex justify-end">
                 <SafetyGuardToggle
                   safetyEnabled={safetyEnabled}
-                  onSafetyChange={(enabled, token) => {
-                    setSafetyEnabled(enabled);
-                    if (token) setOverrideToken(token);
-                  }}
+                  onSafetyChange={handleSafetyOverride}
                   disabled={isGenerating}
                 />
               </div>

@@ -162,6 +162,27 @@ const FridgeRescuePage = () => {
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [overrideToken, setOverrideToken] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+  
+  // Handle safety override continuation - auto-generate when override token received
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      setPendingGeneration(true);
+    }
+  };
+  
+  // Effect: Auto-generate when override token is set and generation is pending
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isLoading) {
+      setPendingGeneration(false);
+      handleGenerateMeals();
+    }
+  }, [pendingGeneration, overrideToken, isLoading]);
+  
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
@@ -654,10 +675,7 @@ const FridgeRescuePage = () => {
                 <div className="mb-4 flex justify-end">
                   <SafetyGuardToggle
                     safetyEnabled={safetyEnabled}
-                    onSafetyChange={(enabled, token) => {
-                      setSafetyEnabled(enabled);
-                      if (token) setOverrideToken(token);
-                    }}
+                    onSafetyChange={handleSafetyOverride}
                     disabled={isLoading}
                   />
                 </div>

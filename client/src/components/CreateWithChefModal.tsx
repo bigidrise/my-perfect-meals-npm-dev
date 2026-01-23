@@ -47,6 +47,10 @@ export function CreateWithChefModal({
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [overrideToken, setOverrideToken] = useState<string | null>(null);
+  
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+  
   const { user } = useAuth();
   
   // Support both authenticated users and guests
@@ -57,6 +61,23 @@ export function CreateWithChefModal({
   const { generating, progress, error, generateMeal, cancel } =
     useCreateWithChefRequest(userId);
   const { toast } = useToast();
+  
+  // Handle safety override continuation
+  const handleSafetyChange = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      setPendingGeneration(true);
+    }
+  };
+  
+  // Effect: Auto-generate when override token is set
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !generating) {
+      setPendingGeneration(false);
+      handleGenerate();
+    }
+  }, [pendingGeneration, overrideToken, generating]);
 
   useEffect(() => {
     if (!open) {
@@ -195,10 +216,7 @@ export function CreateWithChefModal({
             <span className="text-xs text-white/60">Safety Profile for This Meal</span>
             <SafetyGuardToggle
               safetyEnabled={safetyEnabled}
-              onSafetyChange={(enabled, token) => {
-                setSafetyEnabled(enabled);
-                if (token) setOverrideToken(token);
-              }}
+              onSafetyChange={handleSafetyChange}
               disabled={generating}
             />
           </div>
