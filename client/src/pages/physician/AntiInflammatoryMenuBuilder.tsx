@@ -317,6 +317,7 @@ export default function AntiInflammatoryMenuBuilder() {
             activeDayISO,
             updatedDayLists,
           );
+          setBoard(updatedBoard);
           await saveBoard(updatedBoard);
         } else {
           // Week mode: update local board and save

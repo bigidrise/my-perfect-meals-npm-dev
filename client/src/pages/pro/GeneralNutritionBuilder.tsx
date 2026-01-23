@@ -294,6 +294,7 @@ export default function WeeklyMealBoard() {
           snacks: [...dayLists.snacks, snack]
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       } else {
         // Week mode: update local board and save

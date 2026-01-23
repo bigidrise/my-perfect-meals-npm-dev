@@ -307,6 +307,7 @@ export default function GLP1MealBuilder() {
           snacks: [...dayLists.snacks, snack]
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       } else {
         // Week mode: update local board and save
