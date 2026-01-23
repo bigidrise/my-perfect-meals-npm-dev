@@ -48,10 +48,11 @@ export function SafetyGuardToggle({
     setError(null);
 
     try {
-      const data = await apiRequest("/api/safety-pin/verify", {
+      const data = await apiRequest("/api/safety-pin/verify-override", {
         method: "POST",
         body: JSON.stringify({
           pin,
+          allergen: "user-override",
           mealRequest: "Safety override requested",
         }),
       });
