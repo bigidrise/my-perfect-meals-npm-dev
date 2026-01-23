@@ -695,6 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId && userId !== "demo-user") {
         const ingredientsText = fridgeItems.join(' ');
         const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue", {
+          safetyMode: safetyMode || "STRICT",
           overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined
         });
         
