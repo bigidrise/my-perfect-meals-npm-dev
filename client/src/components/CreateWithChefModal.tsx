@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { ChefHat, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   useCreateWithChefRequest,
   DietType,
@@ -17,10 +17,11 @@ import {
   StarchContext,
 } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
-import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -46,7 +47,6 @@ export function CreateWithChefModal({
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
-  const [overrideToken, setOverrideToken] = useState<string | null>(null);
   const [pendingGeneration, setPendingGeneration] = useState(false);
   
   const { user } = useAuth();
@@ -59,7 +59,17 @@ export function CreateWithChefModal({
     useCreateWithChefRequest(userId);
   const { toast } = useToast();
   
-  const handleSafetyChange = (enabled: boolean, token?: string) => {
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride
+  } = useSafetyGuardPrecheck();
+  
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
@@ -68,20 +78,53 @@ export function CreateWithChefModal({
   };
   
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !generating) {
+    if (pendingGeneration && overrideToken && !generating && !safetyChecking) {
       setPendingGeneration(false);
-      handleGenerate();
+      executeGeneration();
     }
-  }, [pendingGeneration, overrideToken, generating]);
+  }, [pendingGeneration, overrideToken, generating, safetyChecking]);
 
   useEffect(() => {
     if (!open) {
       setDescription("");
       setSafetyEnabled(true);
-      setOverrideToken(null);
+      clearSafetyAlert();
       cancel();
     }
-  }, [open, cancel]);
+  }, [open, cancel, clearSafetyAlert]);
+
+  const executeGeneration = async () => {
+    const meal = await generateMeal(
+      description.trim(),
+      mealType,
+      dietType,
+      dietPhase,
+      starchContext,
+      {
+        safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+        overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
+      }
+    );
+
+    if (meal) {
+      if (isGuest) {
+        trackGuestGenerationUsage();
+      }
+      
+      toast({
+        title: "Meal Created!",
+        description: `${meal.name} is ready for you`,
+      });
+      onMealGenerated(meal, mealType);
+      onOpenChange(false);
+    } else if (error) {
+      toast({
+        title: "Generation Failed",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleGenerate = async () => {
     if (!userId) {
@@ -111,43 +154,15 @@ export function CreateWithChefModal({
       return;
     }
 
-    const meal = await generateMeal(
-      description.trim(),
-      mealType,
-      dietType,
-      dietPhase,
-      starchContext,
-      {
-        safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
-        overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
-      }
-    );
+    if (hasActiveOverride || !safetyEnabled) {
+      await executeGeneration();
+      return;
+    }
 
-    if (meal) {
-      if (isGuest) {
-        trackGuestGenerationUsage();
-      }
-      
-      toast({
-        title: "Meal Created!",
-        description: `${meal.name} is ready for you`,
-      });
-      onMealGenerated(meal, mealType);
-      onOpenChange(false);
-    } else if (error) {
-      if (isAllergyRelatedError(error)) {
-        toast({
-          title: "⚠️ ALLERGY ALERT",
-          description: formatAllergyAlertDescription(error),
-          variant: "warning",
-        });
-      } else {
-        toast({
-          title: "Generation Failed",
-          description: error,
-          variant: "destructive",
-        });
-      }
+    const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
+    
+    if (isSafe) {
+      await executeGeneration();
     }
   };
 
@@ -163,6 +178,8 @@ export function CreateWithChefModal({
         return "e.g., 'something light and healthy,' 'high-protein meal'";
     }
   };
+
+  const isProcessing = generating || safetyChecking;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -182,10 +199,10 @@ export function CreateWithChefModal({
               placeholder={getPlaceholder()}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              disabled={generating}
+              disabled={isProcessing}
               className="bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-orange-400/50"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !generating) {
+                if (e.key === "Enter" && !isProcessing) {
                   handleGenerate();
                 }
               }}
@@ -196,25 +213,33 @@ export function CreateWithChefModal({
             </p>
           </div>
 
-          {generating && (
+          {/* SafetyGuard Preflight Banner - Black/Yellow Alert */}
+          <SafetyGuardBanner
+            alert={safetyAlert}
+            mealRequest={description}
+            onDismiss={clearSafetyAlert}
+            onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+          />
+
+          {isProcessing && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Chef is preparing your meal...
+                {safetyChecking ? "Checking safety profile..." : "Chef is preparing your meal..."}
               </div>
-              <Progress value={progress} className="h-2" />
+              <Progress value={safetyChecking ? 30 : progress} className="h-2" />
             </div>
           )}
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && !safetyAlert.show && <p className="text-sm text-red-400">{error}</p>}
 
           {/* Safety Guard Toggle - ONLY override location */}
           <div className="flex items-center justify-between py-2 px-3 bg-black/30 rounded-lg border border-white/10">
             <span className="text-xs text-white/60">Safety Profile for This Meal</span>
             <SafetyGuardToggle
               safetyEnabled={safetyEnabled}
-              onSafetyChange={handleSafetyChange}
-              disabled={generating}
+              onSafetyChange={handleSafetyOverride}
+              disabled={isProcessing}
             />
           </div>
 
@@ -222,12 +247,12 @@ export function CreateWithChefModal({
             <Button
               className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
               onClick={handleGenerate}
-              disabled={generating || !description.trim()}
+              disabled={isProcessing || !description.trim()}
             >
-              {generating ? (
+              {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
+                  {safetyChecking ? "Checking..." : "Generating..."}
                 </>
               ) : (
                 <>Generate AI Meal</>
@@ -237,7 +262,7 @@ export function CreateWithChefModal({
               variant="outline"
               className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
               onClick={() => onOpenChange(false)}
-              disabled={generating}
+              disabled={isProcessing}
             >
               Cancel
             </Button>
