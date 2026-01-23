@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.1.1",
+  "releaseId": "1.1.2",
   "publishedAt": "2026-01-23",
   "changes": [
-    "SafetyGuard alerts now appear consistently across all meal creators",
-    "Improved allergy protection for desserts, snacks, and cravings",
-    "Better visual feedback when checking your safety profile"
+    "Added Lactose Intolerance as a separate allergy option",
+    "Fixed SafetyGuard override for ambiguous dishes like cheesecake",
+    "Lactose-intolerant users can now enjoy eggs, cream cheese, and aged cheeses"
   ]
 }
