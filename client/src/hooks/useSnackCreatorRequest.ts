@@ -102,6 +102,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody
           overrideToken: overrideToken || null, // SafetyGuard override token
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT", // Required for override token to work
         }),
         signal: abortControllerRef.current.signal,
       });

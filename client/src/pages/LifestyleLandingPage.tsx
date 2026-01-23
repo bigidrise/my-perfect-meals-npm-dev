@@ -165,16 +165,16 @@ export default function LifestyleLandingPage() {
                   )}
 
                   <Card
-                    className={`relative bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden transition ${
+                    className={`relative rounded-xl shadow-md overflow-hidden transition ${
                       disableChefsKitchenEntry
                         ? "opacity-65 cursor-not-allowed"
-                        : "cursor-pointer active:scale-95"
+                        : "cursor-pointer active:scale-95 hover:scale-[1.02]"
                     } ${
                       isChefsKitchen
-                        ? "border-orange-400/30"
+                        ? "bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
                         : isCravingCreator
-                          ? "border-pink-400/30"
-                          : "border-white/10"
+                          ? "bg-black/30 backdrop-blur-lg border border-pink-400/30"
+                          : "bg-black/30 backdrop-blur-lg border border-white/10"
                     }`}
                     onClick={() => {
                       if (disableChefsKitchenEntry) return;
