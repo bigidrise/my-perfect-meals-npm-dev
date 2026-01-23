@@ -50,6 +50,8 @@ import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 interface StructuredIngredient {
   name: string;
@@ -333,7 +335,17 @@ export default function CravingCreator() {
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
-  const [overrideToken, setOverrideToken] = useState<string | null>(null);
+  
+  // 🔐 SafetyGuard preflight system
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
   
   // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -352,11 +364,11 @@ export default function CravingCreator() {
   useEffect(() => {
     if (pendingGeneration && overrideToken && !isGenerating) {
       setPendingGeneration(false);
-      handleGenerateMeal();
+      handleGenerateMeal(true); // true = skip preflight (already have override)
     }
   }, [pendingGeneration, overrideToken, isGenerating]);
 
-  const handleGenerateMeal = async () => {
+  const handleGenerateMeal = async (skipPreflight = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
 
     if (!cravingInput.trim()) {
@@ -367,6 +379,15 @@ export default function CravingCreator() {
         variant: "destructive",
       });
       return;
+    }
+
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const isSafe = await checkSafety(cravingInput, "craving-creator");
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
     }
 
     console.log("✅ Starting generation with:", {
@@ -391,16 +412,16 @@ export default function CravingCreator() {
           dietaryRestrictions: selectedDiet || dietaryRestrictions,
           userId: userId,
           servings: servings,
-          safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
-          overrideToken: !safetyEnabled ? overrideToken : undefined,
+          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: hasActiveOverride ? overrideToken : undefined,
         }),
       });
 
       const data = await response.json();
       
-      // Auto-reset safety to ON after generation attempt
+      // Auto-reset safety state after generation attempt
       setSafetyEnabled(true);
-      setOverrideToken(null);
+      clearSafetyAlert();
       
       if (!response.ok) {
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
@@ -784,12 +805,19 @@ export default function CravingCreator() {
                     <p className="text-white/80 text-sm mt-2 text-center"></p>
                   )}
 
+                  {/* SafetyGuard Preflight Banner */}
+                  <SafetyGuardBanner
+                    alert={safetyAlert}
+                    onDismiss={clearSafetyAlert}
+                    onOverride={handleSafetyOverride}
+                  />
+
                   {/* Safety Guard Toggle - right before generate button */}
                   <div className="mt-4 flex justify-end">
                     <SafetyGuardToggle
                       safetyEnabled={safetyEnabled}
                       onSafetyChange={handleSafetyOverride}
-                      disabled={isGenerating}
+                      disabled={isGenerating || safetyChecking}
                     />
                   </div>
 
@@ -814,10 +842,10 @@ export default function CravingCreator() {
                       data-testid="cravingcreator-create-button"
                       data-wt="cc-generate-button"
                       onClick={() => handleGenerateMeal()}
-                      disabled={isGenerating}
+                      disabled={isGenerating || safetyChecking}
                       className="w-full bg-lime-600 hover:bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
-                      Create My Craving
+                      {safetyChecking ? "Checking Safety..." : "Create My Craving"}
                     </GlassButton>
                   )}
                 </CardContent>

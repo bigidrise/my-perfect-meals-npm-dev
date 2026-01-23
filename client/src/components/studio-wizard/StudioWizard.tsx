@@ -19,6 +19,9 @@ import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/al
 import { useToast } from "@/hooks/use-toast";
 import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 
 import GeneratedMealCard from "@/components/meal/GeneratedMealCard";
 
@@ -174,6 +177,38 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(null);
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // 🔐 SafetyGuard preflight system
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
+  
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+  
+  // Handle safety override continuation - auto-generate when override token received
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      setPendingGeneration(true);
+    }
+  };
+  
+  // Effect: Auto-generate when override token is set and generation is pending
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isGenerating) {
+      setPendingGeneration(false);
+      generateMeal(true); // true = skip preflight (already have override)
+    }
+  }, [pendingGeneration, overrideToken, isGenerating]);
 
   const mealToShow = displayMeal || generatedMeal;
 
@@ -337,7 +372,19 @@ export default function StudioWizard({ config }: StudioWizardProps) {
     };
   }, []);
 
-  const generateMeal = async () => {
+  const generateMeal = async (skipPreflight = false) => {
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    const currentValues = stepValuesRef.current;
+    const inputForSafetyCheck = currentValues.join(" "); // Combine all step values for safety check
+    
+    if (!skipPreflight && !hasActiveOverride) {
+      const isSafe = await checkSafety(inputForSafetyCheck, source);
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
+    }
+    
     setIsGenerating(true);
     setProgress(10);
     setError(null);
@@ -353,7 +400,6 @@ export default function StudioWizard({ config }: StudioWizardProps) {
     setTimeout(() => speak(scripts.generatingProgress2), 3400);
 
     try {
-      const currentValues = stepValuesRef.current;
       const currentServings = config.servingsStepIndex >= 0 ? Number(currentValues[config.servingsStepIndex]) || 2 : 2;
       const payload = buildPrompt(currentValues, currentServings);
       const fullUrl = apiUrl(apiEndpoint);
@@ -367,6 +413,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
           mealType: defaultMealType,
           source,
           servings: currentServings,
+          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: hasActiveOverride ? overrideToken : undefined,
         }),
       });
 
@@ -598,12 +646,29 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                     ))}
                   </div>
 
+                  {/* SafetyGuard Preflight Banner */}
+                  <SafetyGuardBanner
+                    alert={safetyAlert}
+                    onDismiss={clearSafetyAlert}
+                    onOverride={handleSafetyOverride}
+                  />
+
+                  {/* Safety Guard Toggle */}
+                  <div className="mb-4 flex justify-end">
+                    <SafetyGuardToggle
+                      safetyEnabled={safetyEnabled}
+                      onSafetyChange={handleSafetyOverride}
+                      disabled={isGenerating || safetyChecking}
+                    />
+                  </div>
+
                   <button
-                    className={`w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition`}
-                    onClick={generateMeal}
+                    className={`w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition disabled:opacity-50`}
+                    onClick={() => generateMeal()}
+                    disabled={safetyChecking}
                     data-testid="button-generate-meal"
                   >
-                    Generate Meal
+                    {safetyChecking ? "Checking Safety..." : "Generate Meal"}
                   </button>
                 </div>
               )}

@@ -47,6 +47,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -160,8 +162,18 @@ const FridgeRescuePage = () => {
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
-  const [overrideToken, setOverrideToken] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  
+  // 🔐 SafetyGuard preflight system
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
   
   // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -179,7 +191,7 @@ const FridgeRescuePage = () => {
   useEffect(() => {
     if (pendingGeneration && overrideToken && !isLoading) {
       setPendingGeneration(false);
-      handleGenerateMeals();
+      handleGenerateMeals(true); // true = skip preflight (already have override)
     }
   }, [pendingGeneration, overrideToken, isLoading]);
   
@@ -301,7 +313,7 @@ const FridgeRescuePage = () => {
     setProgress(100); // Complete progress
   };
 
-  const handleGenerateMeals = async () => {
+  const handleGenerateMeals = async (skipPreflight = false) => {
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
       detail: { testId: "fridge-rescue-interacted", event: "interacted" },
@@ -311,6 +323,15 @@ const FridgeRescuePage = () => {
     if (!ingredients.trim()) {
       alert("Please enter some ingredients first!");
       return;
+    }
+
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const isSafe = await checkSafety(ingredients, "fridge-rescue");
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -327,17 +348,17 @@ const FridgeRescuePage = () => {
             .map((i) => i.trim())
             .filter((i) => i),
           userId: userId,
-          safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
-          overrideToken: !safetyEnabled ? overrideToken : undefined,
+          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: hasActiveOverride ? overrideToken : undefined,
         }),
       });
 
       const data = await response.json();
       console.log("🧊 Frontend received data:", data);
       
-      // Auto-reset safety to ON after generation attempt
+      // Auto-reset safety state after generation attempt
       setSafetyEnabled(true);
-      setOverrideToken(null);
+      clearSafetyAlert();
       
       if (!response.ok) {
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
@@ -671,18 +692,25 @@ const FridgeRescuePage = () => {
                   </div>
                 )}
 
+                {/* SafetyGuard Preflight Banner */}
+                <SafetyGuardBanner
+                  alert={safetyAlert}
+                  onDismiss={clearSafetyAlert}
+                  onOverride={handleSafetyOverride}
+                />
+
                 {/* Safety Guard Toggle */}
                 <div className="mb-4 flex justify-end">
                   <SafetyGuardToggle
                     safetyEnabled={safetyEnabled}
                     onSafetyChange={handleSafetyOverride}
-                    disabled={isLoading}
+                    disabled={isLoading || safetyChecking}
                   />
                 </div>
 
                 <button
                   onClick={() => handleGenerateMeals()}
-                  disabled={isLoading}
+                  disabled={isLoading || safetyChecking}
                   data-testid="fridge-generate"
                   className="w-full bg-lime-600 backdrop-blur-lg hover:bg-lime-600 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
                 >
