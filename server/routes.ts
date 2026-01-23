@@ -2142,6 +2142,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 🛡️ SafetyGuard Preflight Check - Client calls BEFORE generation to get instant feedback
+  // This prevents "progress bar then failure" UX - shows banner immediately
+  app.post("/api/safety-check", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { input, builderId = "preflight" } = req.body;
+      
+      if (!input || typeof input !== "string") {
+        return res.status(400).json({ error: "input text is required" });
+      }
+      
+      // Run safety check with STRICT mode (no override token for preflight)
+      const safetyCheck = await enforceSafetyProfile(userId, input, builderId, {
+        safetyMode: "STRICT"
+      });
+      
+      res.json({
+        result: safetyCheck.result,
+        blockedTerms: safetyCheck.blockedTerms,
+        blockedCategories: safetyCheck.blockedCategories,
+        ambiguousTerms: safetyCheck.ambiguousTerms,
+        message: safetyCheck.message,
+        suggestion: safetyCheck.suggestion
+      });
+    } catch (error: any) {
+      console.error("Error in safety preflight check:", error);
+      res.status(500).json({ error: "Failed to perform safety check" });
+    }
+  });
+
   // Complete onboarding - marks user as having completed extended onboarding
   // VALIDATION: Requires that builder and macros are actually persisted in the database
   app.post("/api/user/complete-onboarding", requireAuth, async (req: any, res) => {
