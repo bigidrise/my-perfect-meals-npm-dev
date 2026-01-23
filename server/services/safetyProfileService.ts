@@ -418,6 +418,33 @@ export async function enforceSafetyProfile(
   const ambiguousDishes = checkAmbiguousDishes(userText, profile);
   
   if (ambiguousDishes.length > 0) {
+    // Check for authenticated override with valid one-time token (also applies to AMBIGUOUS)
+    if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
+      const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
+      
+      if (tokenData) {
+        // Log the authenticated override for audit trail
+        await logSafetyOverride(
+          userId,
+          userText,
+          tokenData.allergen,
+          builderId
+        );
+        
+        console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}`);
+        
+        return {
+          result: "SAFE",
+          blockedTerms: [],
+          blockedCategories: [],
+          ambiguousTerms: [],
+          message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent"
+        };
+      } else {
+        console.log(`[SafetyGuard] Invalid/expired override token for AMBIGUOUS check, user ${userId}`);
+      }
+    }
+    
     const firstDish = ambiguousDishes[0];
     return {
       result: "AMBIGUOUS",
