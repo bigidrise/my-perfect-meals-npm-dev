@@ -1,8 +1,8 @@
 {
-  "releaseId": "1.1.3",
+  "releaseId": "1.1.4",
   "publishedAt": "2026-01-23",
   "changes": [
-    "Replaced browser confirmation popups with styled modal dialogs for Delete All buttons",
-    "Updated all meal builders: Weekly, GLP-1, Diabetic, Anti-Inflammatory, and Performance"
+    "Removed all meal creation limits for pre-launch testing",
+    "TestFlight testers and reviewers can now create unlimited meals"
   ]
 }
