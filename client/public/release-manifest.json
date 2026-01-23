@@ -1,4 +1,9 @@
 {
   "releaseId": "1.1.1",
-  "publishedAt": "2026-01-23"
+  "publishedAt": "2026-01-23",
+  "changes": [
+    "SafetyGuard alerts now appear consistently across all meal creators",
+    "Improved allergy protection for desserts, snacks, and cravings",
+    "Better visual feedback when checking your safety profile"
+  ]
 }

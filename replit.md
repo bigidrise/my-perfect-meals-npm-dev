@@ -8,7 +8,7 @@ I prefer iterative development and expect the agent to ask before making major a
 **Product Doctrine**: See `/docs/STARCH_STRATEGY_AND_MEAL_BOARD_DOCTRINE.md` for authoritative decisions about starch strategy, meal board behavior, and intentionally hidden features. Do not violate without discussion.
 **Deployment Workflow**: This is the maindev space. After every significant change, ask "Ready to push to production?" and provide the git command: `git push origin production`
 **Session Tracking**: Track all changes between pushes. A session is only closed when user provides a push receipt. Push often to catch mistakes faster and make rollbacks easier. When session closes, move changelog to Release History.
-**Push Protocol**: When user says "let's push" or "we're pushing" — sync the Pending Changelog to `client/src/lib/releaseNotes.ts` immediately before they push. This ensures users see honest, real-time release notes.
+**Push Protocol**: When user says "let's push" or "we're pushing" — update `client/public/release-manifest.json` with the new version number and a `changes` array listing what was updated. Also bump the version in `client/src/lib/releaseNotes.ts`. This ensures users see honest, real-time release notes in the expandable What's New banner.
 
 ## System Architecture
 The application is a monorepo built with React + Vite (TypeScript) for the frontend and Express.js (TypeScript) for the backend, utilizing PostgreSQL with Drizzle ORM for data persistence. OpenAI GPT-4 powers AI meal generation, including DALL-E 3 for image creation.
@@ -38,7 +38,7 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Profile Photo Upload**: Allows users to upload profile photos to object storage.
 - **Builder Switch Limit System v1.0**: Infrastructure to limit builder switches (currently disabled via feature flag).
 - **Draft Persistence System v2.0**: Prevents data loss using content-based hashing, localStorage persistence, and dirty flag protection across multiple meal builders.
-- **What's New System v2.0**: A simple release notification system leveraging `release-manifest.json` and `localStorage` for user-controlled update visibility.
+- **What's New System v3.0**: An enhanced release notification system with expandable changelog. Uses `release-manifest.json` (with `changes[]` array), `WhatsNewBanner.tsx` component, and `useReleaseNotice` hook. Users can tap to see actual update details before refreshing.
 - **Guided Macro Calculator v1.0**: A step-by-step walkthrough for the Macro Calculator page with Chef voice narration, supporting 13 guided steps.
 - **StudioWizard System v1.0**: A shared component (`client/src/components/studio-wizard/StudioWizard.tsx`) for creating guided "Powered by Emotion AI" experiences, used by Craving, Dessert, and Fridge Rescue Studios.
 - **Craving Studio v1.0, Dessert Studio v1.0, Fridge Rescue Studio v1.0**: Guided step-by-step creation experiences with Chef voice narration for cravings, desserts, and ingredient-based meals.

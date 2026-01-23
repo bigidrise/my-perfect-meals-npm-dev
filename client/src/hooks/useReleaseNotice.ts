@@ -5,11 +5,13 @@ const STORAGE_KEY = 'mpm_lastSeenReleaseId';
 interface ReleaseManifest {
   releaseId: string;
   publishedAt: string;
+  changes?: string[];
 }
 
 export function useReleaseNotice() {
   const [showBanner, setShowBanner] = useState(false);
   const [releaseId, setReleaseId] = useState<string | null>(null);
+  const [changes, setChanges] = useState<string[]>([]);
 
   useEffect(() => {
     const checkRelease = async () => {
@@ -21,6 +23,7 @@ export function useReleaseNotice() {
         const lastSeen = localStorage.getItem(STORAGE_KEY);
         
         setReleaseId(manifest.releaseId);
+        setChanges(manifest.changes || []);
         
         if (lastSeen !== manifest.releaseId) {
           setShowBanner(true);
@@ -47,5 +50,5 @@ export function useReleaseNotice() {
     window.location.reload();
   };
 
-  return { showBanner, dismiss, update, releaseId };
+  return { showBanner, dismiss, update, releaseId, changes };
 }
