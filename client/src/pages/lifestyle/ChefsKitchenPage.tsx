@@ -707,6 +707,8 @@ export default function ChefsKitchenPage() {
           blockedTerms: data.blockedTerms || [],
           blockedCategories: [],
           ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Safety alert detected",
+          suggestion: data.suggestion,
         });
         return;
       }

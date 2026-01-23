@@ -431,6 +431,8 @@ export default function CravingCreator() {
           blockedTerms: data.blockedTerms || [],
           blockedCategories: [],
           ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Safety alert detected",
+          suggestion: data.suggestion,
         });
         return;
       }
