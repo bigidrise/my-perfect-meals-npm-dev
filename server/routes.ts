@@ -576,13 +576,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroTargets,
         count = 1,
         dietType,                   // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
-        starchContext               // Starch Game Plan context for intelligent carb distribution
+        starchContext,              // Starch Game Plan context for intelligent carb distribution
+        safetyMode,                 // Safety override mode
+        overrideToken               // One-time override token from PIN verification
       } = req.body;
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && input) {
         const inputText = Array.isArray(input) ? input.join(' ') : input;
-        const safetyCheck = await enforceSafetyProfile(userId, inputText, `meals-generate-${type}`);
+        const safetyCheck = await enforceSafetyProfile(userId, inputText, `meals-generate-${type}`, {
+          safetyMode: safetyMode || "STRICT",
+          overrideToken: overrideToken
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({

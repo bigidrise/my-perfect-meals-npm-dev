@@ -123,6 +123,10 @@ export function CreateWithChefModal({
       dietType,
       dietPhase,
       starchContext,
+      {
+        safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+        overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
+      }
     );
 
     if (meal) {
