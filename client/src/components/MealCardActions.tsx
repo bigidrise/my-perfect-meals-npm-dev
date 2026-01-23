@@ -142,7 +142,7 @@ export default function MealCardActions({
           onClick={handlePrepareWithChef}
         >
           <ChefHat className="h-4 w-4" />
-          Prepare with Chef
+          Cook w/ Chef
         </Button>
       )}
     </div>

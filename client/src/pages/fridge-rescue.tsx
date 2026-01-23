@@ -1005,7 +1005,7 @@ const FridgeRescuePage = () => {
                             }}
                           >
                             
-                            Prepare with Chef
+                            Cook w/ Chef
                           </Button>
                           <ShareRecipeButton
                             recipe={{

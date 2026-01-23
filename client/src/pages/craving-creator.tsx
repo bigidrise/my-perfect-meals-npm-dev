@@ -1112,7 +1112,7 @@ export default function CravingCreator() {
                             }}
                             className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Prepare with Chef
+                            Cook w/ Chef
                           </GlassButton>
                           <ShareRecipeButton
                             recipe={{

@@ -319,7 +319,7 @@ export default function GeneratedMealCard({
               onClick={handlePrepareWithChef}
             >
               <ChefHat className="h-4 w-4" />
-              Prepare with Chef
+              Cook w/ Chef
             </Button>
           )}
           <ShareRecipeButton

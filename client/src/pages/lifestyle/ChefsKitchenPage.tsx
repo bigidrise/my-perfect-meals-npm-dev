@@ -1336,7 +1336,7 @@ export default function ChefsKitchenPage() {
                             className="flex-1 py-2 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
                             data-testid="button-prepare-meal"
                           >
-                            Prepare with Chef
+                            Cook w/ Chef
                           </button>
                           <ShareRecipeButton
                             recipe={{

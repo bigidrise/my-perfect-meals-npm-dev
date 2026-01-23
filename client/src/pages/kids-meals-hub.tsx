@@ -374,7 +374,7 @@ export default function KidsMealsHub() {
                       }}
                     >
                       <ChefHat className="h-4 w-4" />
-                      Prepare with Chef
+                      Cook w/ Chef
                     </Button>
                     <ShareRecipeButton
                       recipe={{
