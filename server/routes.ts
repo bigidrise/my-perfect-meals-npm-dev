@@ -681,7 +681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
-      const { fridgeItems, userId = "demo-user", servings = 4, count = 3, macroTargets, _aliasUsed } = req.body;
+      const { fridgeItems, userId = "demo-user", servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -691,9 +691,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // Skip safety check if user has authenticated override token
       if (userId && userId !== "demo-user") {
         const ingredientsText = fridgeItems.join(' ');
-        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue");
+        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue", {
+          overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined
+        });
+        
+        // If override token was valid, safety check returns SAFE even for blocked terms
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked fridge rescue for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -712,6 +717,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ambiguousTerms: safetyCheck.ambiguousTerms,
             suggestion: safetyCheck.suggestion
           });
+        }
+        
+        // Log if override was used
+        if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
+          console.log(`✅ [SAFETY OVERRIDE] Fridge rescue proceeding with authenticated override for user ${userId}`);
         }
       }
 
