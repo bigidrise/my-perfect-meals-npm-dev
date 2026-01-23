@@ -17,6 +17,7 @@ import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsa
 import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -100,11 +101,19 @@ export function SnackCreatorModal({
       onSnackGenerated(snack);
       onOpenChange(false);
     } else if (error) {
-      toast({
-        title: "Generation Failed",
-        description: error,
-        variant: "destructive",
-      });
+      if (isAllergyRelatedError(error)) {
+        toast({
+          title: "⚠️ Allergy Alert",
+          description: error,
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error,
+          variant: "destructive",
+        });
+      }
     }
   };
 

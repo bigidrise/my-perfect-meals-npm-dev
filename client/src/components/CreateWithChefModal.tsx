@@ -22,6 +22,7 @@ import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsa
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -118,11 +119,19 @@ export function CreateWithChefModal({
       onMealGenerated(meal, mealType);
       onOpenChange(false);
     } else if (error) {
-      toast({
-        title: "Generation Failed",
-        description: error,
-        variant: "destructive",
-      });
+      if (isAllergyRelatedError(error)) {
+        toast({
+          title: "⚠️ Allergy Alert",
+          description: error,
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error,
+          variant: "destructive",
+        });
+      }
     }
   };
 
