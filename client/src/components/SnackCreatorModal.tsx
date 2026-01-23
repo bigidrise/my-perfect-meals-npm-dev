@@ -12,17 +12,17 @@ import { Progress } from "@/components/ui/progress";
 import { Cookie, Loader2 } from "lucide-react";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
 import { useToast } from "@/hooks/use-toast";
-import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
-import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 interface SnackCreatorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSnackGenerated: (snack: any) => void;
-  dietType?: DietType; // Optional diet type for guardrails
-  dietPhase?: BeachBodyPhase; // Optional phase for BeachBody
+  dietType?: DietType;
+  dietPhase?: BeachBodyPhase;
 }
 
 export function SnackCreatorModal({
@@ -33,15 +33,10 @@ export function SnackCreatorModal({
   dietPhase,
 }: SnackCreatorModalProps) {
   const [description, setDescription] = useState("");
-  const [safetyEnabled, setSafetyEnabled] = useState(true);
-  const [overrideToken, setOverrideToken] = useState<string | undefined>();
-  
-  // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
   
   const { user } = useAuth();
   
-  // Support both authenticated users and guests
   const isGuest = isGuestMode();
   const guestSession = isGuest ? getGuestSession() : null;
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
@@ -49,29 +44,58 @@ export function SnackCreatorModal({
   const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest(userId);
   const { toast } = useToast();
   
-  // Handle safety override continuation
-  const handleSafetyChange = (enabled: boolean, token?: string) => {
-    setSafetyEnabled(enabled);
-    if (token) {
-      setOverrideToken(token);
-      setPendingGeneration(true);
-    }
+  const {
+    checking,
+    alert,
+    checkSafety,
+    clearAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride
+  } = useSafetyGuardPrecheck();
+  
+  const handleOverrideSuccess = (token: string) => {
+    setOverrideToken(token);
+    setPendingGeneration(true);
   };
   
-  // Effect: Auto-generate when override token is set
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !generating) {
+    if (pendingGeneration && overrideToken && !generating && !checking) {
       setPendingGeneration(false);
-      handleGenerate();
+      executeGeneration();
     }
-  }, [pendingGeneration, overrideToken, generating]);
+  }, [pendingGeneration, overrideToken, generating, checking]);
 
   useEffect(() => {
     if (!open) {
       setDescription("");
+      clearAlert();
       cancel();
     }
-  }, [open, cancel]);
+  }, [open, cancel, clearAlert]);
+
+  const executeGeneration = async () => {
+    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined);
+
+    if (snack) {
+      if (isGuest) {
+        trackGuestGenerationUsage();
+      }
+      
+      toast({
+        title: "Snack Created!",
+        description: `${snack.name} is ready for you`,
+      });
+      onSnackGenerated(snack);
+      onOpenChange(false);
+    } else if (error) {
+      toast({
+        title: "Generation Failed",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleGenerate = async () => {
     if (!userId) {
@@ -83,7 +107,6 @@ export function SnackCreatorModal({
       return;
     }
     
-    // Check guest generation limits
     if (isGuest && !canGuestGenerate()) {
       toast({
         title: "Guest limit reached",
@@ -102,42 +125,19 @@ export function SnackCreatorModal({
       return;
     }
 
-    try {
-      const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken);
+    if (hasActiveOverride) {
+      await executeGeneration();
+      return;
+    }
 
-      if (snack) {
-        // Record guest generation for limit tracking (does not affect unlock progression)
-        if (isGuest) {
-          trackGuestGenerationUsage();
-        }
-        
-        toast({
-          title: "Snack Created!",
-          description: `${snack.name} is ready for you`,
-        });
-        onSnackGenerated(snack);
-        onOpenChange(false);
-      } else if (error) {
-        if (isAllergyRelatedError(error)) {
-          toast({
-            title: "⚠️ ALLERGY ALERT",
-            description: formatAllergyAlertDescription(error),
-            variant: "warning",
-          });
-        } else {
-          toast({
-            title: "Generation Failed",
-            description: error,
-            variant: "destructive",
-          });
-        }
-      }
-    } finally {
-      // Auto-reset SafetyGuard after every generation (success or fail)
-      setSafetyEnabled(true);
-      setOverrideToken(undefined);
+    const isSafe = await checkSafety(description.trim(), "snack-creator");
+    
+    if (isSafe) {
+      await executeGeneration();
     }
   };
+
+  const isProcessing = generating || checking;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -148,75 +148,70 @@ export function SnackCreatorModal({
             Snack Creator
           </DialogTitle>
           <DialogDescription className="text-white/60">
-            Tell us what you're craving and we'll create a healthy version
+            Describe your craving and get a healthy snack
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
           <div>
             <Input
-              placeholder="e.g., 'something crunchy and salty,' 'chocolatey treat,' 'fruity and refreshing'"
+              placeholder="e.g., 'something crunchy and salty,' 'sweet but healthy'"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              disabled={generating}
-              className="bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-amber-400/50"
+              disabled={isProcessing}
+              className="bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-lime-400/50"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !generating) {
+                if (e.key === "Enter" && !isProcessing) {
                   handleGenerate();
                 }
               }}
             />
             <p className="text-xs text-white/40 mt-2">
-              Describe your craving and we'll transform it into a healthy snack option
+              Tell us what you're craving and we'll create a healthy snack for you
             </p>
           </div>
 
-          {generating && (
+          {alert.show && (
+            <SafetyGuardBanner
+              alert={alert}
+              mealRequest={description}
+              onDismiss={clearAlert}
+              onOverrideSuccess={handleOverrideSuccess}
+            />
+          )}
+
+          {isProcessing && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Creating your healthy snack...
+                {checking ? "Checking safety profile..." : "Creating your snack..."}
               </div>
-              <Progress value={progress} className="h-2" />
+              <Progress value={checking ? 30 : progress} className="h-2" />
             </div>
           )}
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
-
-          {/* SafetyGuard Toggle */}
-          <div className="flex justify-end">
-            <SafetyGuardToggle
-              safetyEnabled={safetyEnabled}
-              onSafetyChange={handleSafetyChange}
-              disabled={generating}
-            />
-          </div>
+          {error && !alert.show && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="flex gap-3 pt-2">
             <Button
-              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white"
+              className="flex-1 bg-lime-600 hover:bg-lime-500 text-white"
               onClick={handleGenerate}
-              disabled={generating || !description.trim()}
+              disabled={isProcessing || !description.trim()}
             >
-              {generating ? (
+              {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
+                  {checking ? "Checking..." : "Creating..."}
                 </>
               ) : (
-                <>
-
-                  Generate AI Meal
-                </>
+                <>Create Healthy Snack</>
               )}
             </Button>
             <Button
               variant="outline"
-              className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
+              className="bg-black/60 backdrop-blur border-white/30 text-white"
               onClick={() => onOpenChange(false)}
-              disabled={generating}
+              disabled={isProcessing}
             >
               Cancel
             </Button>
