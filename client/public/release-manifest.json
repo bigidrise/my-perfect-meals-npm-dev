@@ -1,9 +1,8 @@
 {
-  "releaseId": "1.1.2",
+  "releaseId": "1.1.3",
   "publishedAt": "2026-01-23",
   "changes": [
-    "Added Lactose Intolerance as a separate allergy option",
-    "Fixed SafetyGuard override for ambiguous dishes like cheesecake",
-    "Lactose-intolerant users can now enjoy eggs, cream cheese, and aged cheeses"
+    "Replaced browser confirmation popups with styled modal dialogs for Delete All buttons",
+    "Updated all meal builders: Weekly, GLP-1, Diabetic, Anti-Inflammatory, and Performance"
   ]
 }

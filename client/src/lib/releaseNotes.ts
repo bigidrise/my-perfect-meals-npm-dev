@@ -1,1 +1,1 @@
-export const currentReleaseId = "1.1.2";
+export const currentReleaseId = "1.1.3";
