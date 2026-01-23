@@ -172,6 +172,7 @@ export default function DessertCreator() {
     alert: safetyAlert,
     checkSafety,
     clearAlert: clearSafetyAlert,
+    setAlert: setSafetyAlert,
     setOverrideToken,
     overrideToken,
     hasActiveOverride

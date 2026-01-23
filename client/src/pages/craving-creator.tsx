@@ -342,6 +342,7 @@ export default function CravingCreator() {
     alert: safetyAlert,
     checkSafety,
     clearAlert: clearSafetyAlert,
+    setAlert: setSafetyAlert,
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
