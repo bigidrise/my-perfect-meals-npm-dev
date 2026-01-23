@@ -367,18 +367,7 @@ export async function enforceSafetyProfile(
   }
   
   const termBank = buildActiveTermBank(profile);
-  
-  // DEBUG: Log safety check details
-  console.log(`[SafetyGuard DEBUG] userId: ${userId}`);
-  console.log(`[SafetyGuard DEBUG] allergies: ${JSON.stringify(profile.allergies)}`);
-  console.log(`[SafetyGuard DEBUG] userText: "${userText}"`);
-  console.log(`[SafetyGuard DEBUG] termBank size: ${termBank.size}`);
-  console.log(`[SafetyGuard DEBUG] termBank includes 'shrimp': ${termBank.has('shrimp')}`);
-  console.log(`[SafetyGuard DEBUG] termBank sample: ${Array.from(termBank).slice(0, 30).join(', ')}`);
-  
   const matchedTerms = findMatchedTerms(userText, termBank);
-  console.log(`[SafetyGuard DEBUG] matchedTerms: ${JSON.stringify(matchedTerms)}`);
-  
   const matchedCategories = findMatchedCategories(matchedTerms, profile);
   
   if (matchedTerms.length > 0) {
