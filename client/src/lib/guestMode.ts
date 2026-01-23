@@ -14,9 +14,15 @@ const SOFT_NUDGE_LOOP = 3; // Show soft nudge at loop 3
 const MEAL_DAY_SESSION_HOURS = 24; // Active meal day session lasts 24 hours
 
 // ============================================
-// DEV SPACE BYPASS - Unlimited access for testing
+// PRE-LAUNCH MODE - All limits disabled until go-to-market
 // ============================================
+// TODO: When ready to launch, change PRE_LAUNCH_MODE to false
+const PRE_LAUNCH_MODE = true;
+
 function isDevSpace(): boolean {
+  // PRE-LAUNCH: Everything wide open for TestFlight, dev spaces, and all testing
+  if (PRE_LAUNCH_MODE) return true;
+  
   if (typeof window === "undefined") return false;
   const hostname = window.location.hostname;
   // Production domains should enforce limits
