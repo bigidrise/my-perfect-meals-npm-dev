@@ -1,6 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PillButton } from "@/components/ui/pill-button";
 import { useLocation } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
@@ -329,6 +339,7 @@ export default function WeeklyMealBoard() {
   >(null);
   const [showSnackModal, setShowSnackModal] = React.useState(false);
   const [showOverview, setShowOverview] = React.useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
   // NEW: Day/Week planning state
   const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
@@ -1671,50 +1682,67 @@ export default function WeeklyMealBoard() {
                   if (checkLockedDay()) {
                     return;
                   }
-                  if (
-                    confirm(
-                      "Delete all meals from this board? This action cannot be undone.",
-                    )
-                  ) {
-                    if (board) {
-                      const clearedBoard = {
-                        ...board,
-                        lists: {
-                          breakfast: [],
-                          lunch: [],
-                          dinner: [],
-                          snacks: [],
-                        },
-                        days: board.days
-                          ? Object.fromEntries(
-                              Object.keys(board.days).map((dateISO) => [
-                                dateISO,
-                                {
-                                  breakfast: [],
-                                  lunch: [],
-                                  dinner: [],
-                                  snacks: [],
-                                },
-                              ]),
-                            )
-                          : undefined,
-                      };
-                      setBoard(clearedBoard);
-                      boardRef.current = clearedBoard;
-                      saveBoard(clearedBoard);
-                      toast({
-                        title: "All Meals Deleted",
-                        description:
-                          "Successfully cleared all meals from the board",
-                      });
-                    }
-                  }
+                  setShowDeleteAllConfirm(true);
                 }}
                 disabled={planningMode === "week" && weekModeReadOnly}
                 className={`${planningMode === "week" && weekModeReadOnly ? "opacity-50 cursor-not-allowed" : ""} bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl`}
               >
                 Delete All
               </Button>
+              
+              <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+                <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
+                    <AlertDialogDescription className="text-zinc-400">
+                      Delete all meals from this board? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        if (board) {
+                          const clearedBoard = {
+                            ...board,
+                            lists: {
+                              breakfast: [],
+                              lunch: [],
+                              dinner: [],
+                              snacks: [],
+                            },
+                            days: board.days
+                              ? Object.fromEntries(
+                                  Object.keys(board.days).map((dateISO) => [
+                                    dateISO,
+                                    {
+                                      breakfast: [],
+                                      lunch: [],
+                                      dinner: [],
+                                      snacks: [],
+                                    },
+                                  ]),
+                                )
+                              : undefined,
+                          };
+                          setBoard(clearedBoard);
+                          boardRef.current = clearedBoard;
+                          saveBoard(clearedBoard);
+                          toast({
+                            title: "All Meals Deleted",
+                            description: "Successfully cleared all meals from the board",
+                          });
+                        }
+                      }}
+                      className="bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
               <Button
                 onClick={handleSave}
