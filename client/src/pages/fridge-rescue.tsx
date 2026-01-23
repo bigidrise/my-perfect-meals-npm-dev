@@ -170,6 +170,7 @@ const FridgeRescuePage = () => {
     alert: safetyAlert,
     checkSafety,
     clearAlert: clearSafetyAlert,
+    setAlert: setSafetyAlert,
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
@@ -358,15 +359,28 @@ const FridgeRescuePage = () => {
       const data = await response.json();
       console.log("🧊 Frontend received data:", data);
       
-      // Auto-reset safety state after generation attempt
+      // Check for safety blocks/ambiguous - show banner instead of error
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        stopProgressTicker();
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Allergy alert detected",
+          suggestion: data.suggestion
+        });
+        setIsLoading(false);
+        return; // Don't throw error, let banner handle it
+      }
+      
+      // Auto-reset safety state after successful generation
       setSafetyEnabled(true);
       clearSafetyAlert();
       
       if (!response.ok) {
-        if (data.error === "ALLERGY_SAFETY_BLOCK") {
-          throw new Error(`🚨 Safety Alert: ${data.message}`);
-        }
-        throw new Error(data.message || "Failed to generate meal");
+        throw new Error(data.message || data.error || "Failed to generate meal");
       }
 
       // Handle both response formats: {meals: [...]} or {meal: {...}}

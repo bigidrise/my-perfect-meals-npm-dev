@@ -16,6 +16,7 @@ interface UseSafetyGuardPrecheckResult {
   alert: SafetyAlertState;
   checkSafety: (input: string, builderId?: string) => Promise<boolean>;
   clearAlert: () => void;
+  setAlert: (alert: SafetyAlertState) => void;
   setOverrideToken: (token: string) => void;
   overrideToken: string | undefined;
   hasActiveOverride: boolean;
@@ -90,6 +91,7 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
     alert,
     checkSafety,
     clearAlert,
+    setAlert,
     setOverrideToken,
     overrideToken,
     hasActiveOverride: !!overrideToken
