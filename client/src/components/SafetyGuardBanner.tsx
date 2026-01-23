@@ -1,6 +1,4 @@
 import { AlertTriangle, Shield, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SafetyGuardToggle } from "./SafetyGuardToggle";
 
 export interface SafetyAlertState {
   show: boolean;
@@ -32,13 +30,6 @@ export function SafetyGuardBanner({
   }
 
   const isBlocked = alert.result === "BLOCKED";
-  const isAmbiguous = alert.result === "AMBIGUOUS";
-
-  const handleSafetyChange = (enabled: boolean, token?: string) => {
-    if (!enabled && token) {
-      onOverrideSuccess(token);
-    }
-  };
 
   return (
     <div className={`rounded-lg border p-4 ${isBlocked ? "bg-amber-950/50 border-amber-500/50" : "bg-yellow-950/50 border-yellow-500/50"} ${className}`}>
@@ -82,21 +73,9 @@ export function SafetyGuardBanner({
           )}
           
           {alert.suggestion && (
-            <p className="text-white/60 text-xs mb-3">
+            <p className="text-white/60 text-xs">
               💡 Suggestion: {alert.suggestion}
             </p>
-          )}
-          
-          {isBlocked && (
-            <div className="pt-2 border-t border-amber-500/20">
-              <p className="text-amber-200/70 text-xs mb-2">
-                If you understand the risks and have verified your allergist's guidance, you may override this protection:
-              </p>
-              <SafetyGuardToggle
-                safetyEnabled={true}
-                onSafetyChange={handleSafetyChange}
-              />
-            </div>
           )}
         </div>
       </div>
