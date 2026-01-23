@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const STORAGE_KEY = 'mpm_lastSeenReleaseId';
+const POLL_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes
 
 interface ReleaseManifest {
   releaseId: string;
@@ -12,11 +13,13 @@ export function useReleaseNotice() {
   const [showBanner, setShowBanner] = useState(false);
   const [releaseId, setReleaseId] = useState<string | null>(null);
   const [changes, setChanges] = useState<string[]>([]);
+  const pollIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     const checkRelease = async () => {
       try {
-        const res = await fetch('/release-manifest.json', { cache: 'no-store' });
+        // Add cache-busting timestamp to ensure fresh data
+        const res = await fetch(`/release-manifest.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) return;
         
         const manifest: ReleaseManifest = await res.json();
@@ -33,7 +36,17 @@ export function useReleaseNotice() {
       }
     };
 
+    // Check immediately on mount
     checkRelease();
+    
+    // Then poll every 5 minutes for updates
+    pollIntervalRef.current = window.setInterval(checkRelease, POLL_INTERVAL_MS);
+    
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
   }, []);
 
   const dismiss = () => {
