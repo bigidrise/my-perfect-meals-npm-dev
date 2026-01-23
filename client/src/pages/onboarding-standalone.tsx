@@ -113,7 +113,7 @@ const medicalConditionsList = [
 ];
 
 const allergyOptions = [
-  "Peanuts", "Tree Nuts", "Dairy", "Eggs", "Wheat/Gluten", 
+  "Peanuts", "Tree Nuts", "Dairy", "Lactose Intolerance", "Eggs", "Wheat/Gluten", 
   "Soy", "Fish", "Shellfish", "Sesame"
 ];
 

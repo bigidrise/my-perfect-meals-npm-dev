@@ -71,6 +71,33 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "butter", "cheese", "yogurt", "whey", "casein", "lactose"
   ],
   
+  // Lactose Intolerance - High-lactose items only (NOT eggs, cream cheese, hard aged cheeses)
+  // People with lactose intolerance can often tolerate: eggs, aged cheeses, cream cheese, lactose-free products
+  "lactose intolerance": [
+    "milk", "whole milk", "skim milk", "2% milk", "buttermilk",
+    "ice cream", "gelato", "soft serve", "frozen yogurt",
+    "whipped cream", "heavy cream", "half and half", "half-and-half",
+    "condensed milk", "evaporated milk", "milk powder", "dried milk",
+    "cottage cheese", "ricotta", "fresh mozzarella", "brie", "camembert",
+    "sour cream", "creme fraiche", "custard", "pudding",
+    "milk chocolate", "hot chocolate", "latte", "cappuccino",
+    "cream sauce", "alfredo", "bechamel", "white sauce",
+    "lactose", "whey protein concentrate"
+  ],
+  
+  // Also accept without space
+  lactose_intolerance: [
+    "milk", "whole milk", "skim milk", "2% milk", "buttermilk",
+    "ice cream", "gelato", "soft serve", "frozen yogurt",
+    "whipped cream", "heavy cream", "half and half", "half-and-half",
+    "condensed milk", "evaporated milk", "milk powder", "dried milk",
+    "cottage cheese", "ricotta", "fresh mozzarella", "brie", "camembert",
+    "sour cream", "creme fraiche", "custard", "pudding",
+    "milk chocolate", "hot chocolate", "latte", "cappuccino",
+    "cream sauce", "alfredo", "bechamel", "white sauce",
+    "lactose", "whey protein concentrate"
+  ],
+  
   // Eggs
   eggs: [
     "egg", "eggs", "egg white", "egg yolk", "egg whites", "egg yolks",
