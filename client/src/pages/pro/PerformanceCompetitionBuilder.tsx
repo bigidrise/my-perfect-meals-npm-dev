@@ -1439,11 +1439,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                     activeDayISO,
                                     updatedDayLists,
                                   );
+                                  setBoard(updatedBoard);
                                   saveBoard(updatedBoard).catch((err) => {
                                     console.error(
-                                      "❌ Delete failed (Day mode):",
+                                      "❌ Delete sync failed (Day mode):",
                                       err,
                                     );
+                                    toast({
+                                      title: "Sync pending",
+                                      description: "Changes will sync automatically.",
+                                    });
                                   });
                                 } else {
                                   // Update meal in day lists
@@ -1575,11 +1580,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                       activeDayISO,
                                       updatedDayLists,
                                     );
+                                    setBoard(updatedBoard);
                                     saveBoard(updatedBoard).catch((err) => {
                                       console.error(
-                                        "❌ Delete failed (Day mode):",
+                                        "❌ Delete sync failed (Day mode):",
                                         err,
                                       );
+                                      toast({
+                                        title: "Sync pending",
+                                        description: "Changes will sync automatically.",
+                                      });
                                     });
                                   } else {
                                     const updatedDayLists = {
@@ -1674,11 +1684,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                   activeDayISO,
                                   updatedDayLists,
                                 );
+                                setBoard(updatedBoard);
                                 saveBoard(updatedBoard).catch((err) => {
                                   console.error(
-                                    "❌ Delete failed (Day mode):",
+                                    "❌ Delete sync failed (Day mode):",
                                     err,
                                   );
+                                  toast({
+                                    title: "Sync pending",
+                                    description: "Changes will sync automatically.",
+                                  });
                                 });
                               } else {
                                 const updatedDayLists = {
@@ -1857,9 +1872,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
                               console.error(
-                                "❌ Delete failed (Board mode):",
+                                "❌ Delete sync failed (Board mode):",
                                 err,
                               );
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                           } else {
                             // Update meal

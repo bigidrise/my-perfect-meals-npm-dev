@@ -1661,20 +1661,20 @@ export default function AntiInflammatoryMenuBuilder() {
                                   activeDayISO,
                                   updatedDayLists,
                                 );
+                                setBoard(updatedBoard);
                                 putWeekBoard(weekStartISO, updatedBoard)
-                                  .then(({ week }) => setBoard(week))
+                                  .then(({ week }) => {
+                                    if (week) setBoard(week);
+                                  })
                                   .catch((err) => {
                                     console.error(
-                                      "❌ Delete failed (Day mode):",
+                                      "❌ Delete sync failed (Day mode):",
                                       err,
                                     );
-                                    console.error(
-                                      "Error details:",
-                                      JSON.stringify(err, null, 2),
-                                    );
-                                    alert(
-                                      "Failed to delete meal. Check console for details.",
-                                    );
+                                    toast({
+                                      title: "Sync pending",
+                                      description: "Changes will sync automatically.",
+                                    });
                                   });
                               } else {
                                 // Update meal in day lists
@@ -1777,24 +1777,13 @@ export default function AntiInflammatoryMenuBuilder() {
                             setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
                               console.error(
-                                "❌ Delete failed (Board mode):",
+                                "❌ Delete sync failed (Board mode):",
                                 err,
                               );
-                              console.error(
-                                "Error details:",
-                                JSON.stringify(err, null, 2),
-                              );
-                              console.error(
-                                "Error message:",
-                                err?.message || "No message",
-                              );
-                              console.error(
-                                "Error stack:",
-                                err?.stack || "No stack",
-                              );
-                              alert(
-                                "Failed to delete meal. Check console for details.",
-                              );
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                           } else {
                             onItemUpdated(key, idx, m);

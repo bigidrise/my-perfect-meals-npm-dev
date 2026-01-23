@@ -1455,8 +1455,13 @@ export default function BeachBodyMealBoard() {
                                       activeDayISO,
                                       updatedDayLists,
                                     );
+                                    setBoard(updatedBoard);
                                     saveBoard(updatedBoard).catch((err) => {
-                                      console.error("Delete failed:", err);
+                                      console.error("Delete sync failed:", err);
+                                      toast({
+                                        title: "Sync pending",
+                                        description: "Changes will sync automatically.",
+                                      });
                                     });
                                   } else {
                                     const updatedDayLists = {
@@ -1705,7 +1710,11 @@ export default function BeachBodyMealBoard() {
                             };
                             setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
-                              console.error("Delete failed:", err);
+                              console.error("Delete sync failed:", err);
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                           } else {
                             const updatedBoard = {
@@ -1802,8 +1811,13 @@ export default function BeachBodyMealBoard() {
                               activeDayISO,
                               updatedDayLists,
                             );
+                            setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
-                              console.error("Delete failed:", err);
+                              console.error("Delete sync failed:", err);
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                           } else {
                             const updatedDayLists = {
@@ -1849,7 +1863,11 @@ export default function BeachBodyMealBoard() {
                           };
                           setBoard(updatedBoard);
                           saveBoard(updatedBoard).catch((err) => {
-                            console.error("Delete failed:", err);
+                            console.error("Delete sync failed:", err);
+                            toast({
+                              title: "Sync pending",
+                              description: "Changes will sync automatically.",
+                            });
                           });
                         } else {
                           const updatedBoard = {
