@@ -92,6 +92,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
       cakeType,
       dietaryPreferences,
       userId,
+      safetyMode,
+      overrideToken,
     } = req.body ?? {};
 
     if (isDev) console.log("[DESSERT] Request params:", { dessertCategory, flavorFamily, servingSize, cakeStyle, cakeType });
@@ -107,7 +109,10 @@ dessertCreatorRouter.post("/", async (req, res) => {
     // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
     if (userId) {
       const inputText = [specificDessert, flavorFamily, dessertCategory].filter(Boolean).join(' ');
-      const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator");
+      const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator", {
+        safetyMode: safetyMode || "STRICT",
+        overrideToken: overrideToken
+      });
       if (safetyCheck.result === "BLOCKED") {
         console.log(`🚫 [SAFETY] Blocked dessert for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
         return res.status(400).json({

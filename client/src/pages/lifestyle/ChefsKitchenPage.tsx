@@ -33,6 +33,8 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { setQuickView } from "@/lib/macrosQuickView";
 import {
   extractTimerSeconds,
@@ -367,7 +369,17 @@ export default function ChefsKitchenPage() {
   
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
-  const [overrideToken, setOverrideToken] = useState<string | null>(null);
+  
+  // 🔐 SafetyGuard preflight system
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
   
   // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -377,6 +389,8 @@ export default function ChefsKitchenPage() {
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
+      clearSafetyAlert(); // Clear banner on successful override
+      // Set pending flag - generation will auto-trigger
       setPendingGeneration(true);
     }
   };
@@ -385,7 +399,7 @@ export default function ChefsKitchenPage() {
   useEffect(() => {
     if (pendingGeneration && overrideToken && !isGeneratingMeal) {
       setPendingGeneration(false);
-      startOpenKitchen();
+      startOpenKitchen(true); // true = skip preflight (already have override)
     }
   }, [pendingGeneration, overrideToken, isGeneratingMeal]);
   
@@ -597,7 +611,17 @@ export default function ChefsKitchenPage() {
     };
   }, []);
 
-  const startOpenKitchen = async () => {
+  const startOpenKitchen = async (skipPreflight = false) => {
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const requestDescription = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
+      const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
+    }
+    
     setIsGeneratingMeal(true);
     setGenerationProgress(10);
     setGenerationError(null);
@@ -652,6 +676,8 @@ export default function ChefsKitchenPage() {
           mealType: "dinner",
           source: "chefs-kitchen",
           servings: servings,
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: overrideToken || undefined,
         }),
       });
 
@@ -1052,21 +1078,30 @@ export default function ChefsKitchenPage() {
                         </p>
                       </div>
                       
+                      {/* SafetyGuard Preflight Banner */}
+                      <SafetyGuardBanner
+                        alert={safetyAlert}
+                        mealRequest={`${dishIdea} ${cookMethod}`}
+                        onDismiss={clearSafetyAlert}
+                        onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+                      />
+                      
                       {/* Safety Guard Toggle - right before generate button */}
                       <div className="mb-3 flex justify-end">
                         <SafetyGuardToggle
                           safetyEnabled={safetyEnabled}
                           onSafetyChange={handleSafetyOverride}
-                          disabled={isGeneratingMeal}
+                          disabled={isGeneratingMeal || safetyChecking}
                         />
                       </div>
                       
                       <button
                         className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                        onClick={startOpenKitchen}
+                        onClick={() => startOpenKitchen()}
+                        disabled={safetyChecking}
                         data-testid="button-generate-meal"
                       >
-                        Create the plan
+                        {safetyChecking ? "Checking..." : "Create the plan"}
                       </button>
                     </div>
                   )}
@@ -1095,7 +1130,7 @@ export default function ChefsKitchenPage() {
                       </p>
                       <button
                         className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                        onClick={startOpenKitchen}
+                        onClick={() => startOpenKitchen()}
                       >
                         Try Again
                       </button>

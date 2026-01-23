@@ -2660,13 +2660,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Craving Creator endpoints for WMC2 adapter
   app.post("/api/craving-creator/generate", async (req, res) => {
     try {
-      const { userId, courseStyle, includeImage = false, variation = 0 } = req.body;
+      const { userId, courseStyle, craving, mealType, servings = 1, includeImage = false, variation = 0, safetyMode, overrideToken } = req.body;
+      
+      // Support both courseStyle (legacy) and craving (new) patterns
+      const inputText = craving || courseStyle || "";
 
-      console.log(`🎯 Craving Creator Generate: ${courseStyle} for user ${userId}`);
+      console.log(`🎯 Craving Creator Generate: ${inputText} for user ${userId}`);
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && inputText) {
+        const safetyCheck = await enforceSafetyProfile(userId, inputText, "craving-creator-generate", {
+          safetyMode: safetyMode || "STRICT",
+          overrideToken: overrideToken
+        });
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       const meal = await generateCravingMeal(
-        courseStyle as any, // MealType
-        `${courseStyle} meal${variation ? ` variation ${variation}` : ''}`,
+        (mealType || courseStyle) as any, // MealType
+        inputText || `${courseStyle} meal${variation ? ` variation ${variation}` : ''}`,
         { userId: userId || "1" }
       );
 

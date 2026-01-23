@@ -183,6 +183,7 @@ const FridgeRescuePage = () => {
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
+      clearSafetyAlert(); // Clear banner on successful override
       // Set pending flag - generation will auto-trigger
       setPendingGeneration(true);
     }

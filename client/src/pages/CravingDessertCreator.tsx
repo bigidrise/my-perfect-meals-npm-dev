@@ -182,6 +182,7 @@ export default function DessertCreator() {
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
+      clearSafetyAlert(); // Clear banner on successful override
       setPendingGeneration(true);
     }
   };
