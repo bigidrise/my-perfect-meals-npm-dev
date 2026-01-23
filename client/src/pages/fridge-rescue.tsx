@@ -176,108 +176,25 @@ const FridgeRescuePage = () => {
   } = useSafetyGuardPrecheck();
   
   // 🔐 Pending request for SafetyGuard continuation bridge
-  const pendingGenerationRef = useRef(false);
+  const [pendingGeneration, setPendingGeneration] = useState(false);
   
   // Handle safety override continuation - auto-generate when override token received
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
-      // Set flag and trigger generation on next tick to ensure state is updated
-      pendingGenerationRef.current = true;
+      // Set pending flag - generation will auto-trigger
+      setPendingGeneration(true);
     }
   };
   
-  // Effect: Auto-generate when override token is set
+  // Effect: Auto-generate when override token is set and generation is pending
   useEffect(() => {
-    if (pendingGenerationRef.current && overrideToken && !isLoading) {
-      pendingGenerationRef.current = false;
-      // Small delay to ensure all state is settled
-      setTimeout(() => {
-        handleGenerateMealsWithOverride();
-      }, 100);
+    if (pendingGeneration && overrideToken && !isLoading) {
+      setPendingGeneration(false);
+      handleGenerateMeals(true); // true = skip preflight (already have override)
     }
-  }, [overrideToken]);
-  
-  // Separate function for override-triggered generation (avoids stale closure)
-  const handleGenerateMealsWithOverride = async () => {
-    if (!ingredients.trim()) return;
-    
-    setIsLoading(true);
-    startProgressTicker();
-    try {
-      const response = await fetch(apiUrl("/api/meals/fridge-rescue"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fridgeItems: ingredients
-            .split(",")
-            .map((i) => i.trim())
-            .filter((i) => i),
-          userId: userId,
-          safetyMode: "CUSTOM_AUTHENTICATED",
-          overrideToken: overrideToken,
-        }),
-      });
-
-      const data = await response.json();
-      console.log("🧊 Override generation received data:", data);
-      
-      // Reset safety state after generation
-      setSafetyEnabled(true);
-      clearSafetyAlert();
-      
-      if (!response.ok) {
-        if (data.error === "ALLERGY_SAFETY_BLOCK") {
-          throw new Error(`🚨 Safety Alert: ${data.message}`);
-        }
-        throw new Error(data.message || "Failed to generate meal");
-      }
-
-      let mealsArray;
-      if (data.meals && Array.isArray(data.meals)) {
-        mealsArray = data.meals;
-      } else if (data.meal) {
-        mealsArray = [data.meal];
-      } else {
-        throw new Error("No meals found in response");
-      }
-
-      stopProgressTicker();
-      setMeals(mealsArray);
-      setShowResults(true);
-
-      setTimeout(() => {
-        if (resultsRef.current) {
-          resultsRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }
-      }, 100);
-    } catch (error: any) {
-      console.error("Error generating meals with override:", error);
-      stopProgressTicker();
-      const errorMsg = error?.message || String(error) || "";
-      if (isAllergyRelatedError(errorMsg)) {
-        toast({
-          title: "⚠️ ALLERGY ALERT",
-          description: formatAllergyAlertDescription(errorMsg),
-          variant: "warning",
-        });
-      } else {
-        toast({
-          title: "Generation Failed",
-          description: "Failed to generate meals. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [pendingGeneration, overrideToken, isLoading]);
   
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
