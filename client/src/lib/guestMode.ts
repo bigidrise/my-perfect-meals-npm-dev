@@ -14,6 +14,24 @@ const SOFT_NUDGE_LOOP = 3; // Show soft nudge at loop 3
 const MEAL_DAY_SESSION_HOURS = 24; // Active meal day session lasts 24 hours
 
 // ============================================
+// DEV SPACE BYPASS - Unlimited access for testing
+// ============================================
+function isDevSpace(): boolean {
+  if (typeof window === "undefined") return false;
+  const hostname = window.location.hostname;
+  // Production domains should enforce limits
+  if (hostname === "myperfectmeals.com" || hostname === "www.myperfectmeals.com") {
+    return false;
+  }
+  // iOS native app should enforce limits
+  if ((window as any).Capacitor?.isNativePlatform?.()) {
+    return false;
+  }
+  // All other environments (dev spaces, staging, localhost) = unlimited
+  return true;
+}
+
+// ============================================
 // GUEST SUITE JOURNEY STATE (Phase System)
 // ============================================
 
@@ -473,10 +491,14 @@ export function getGuestGenerationsRemaining(): number {
 }
 
 export function canGuestGenerate(): boolean {
+  // Dev space bypass - unlimited generations for testing
+  if (isDevSpace()) return true;
   return getGuestGenerationsRemaining() > 0;
 }
 
 export function isGuestExpired(): boolean {
+  // Dev space bypass - never expire for testing
+  if (isDevSpace()) return false;
   const progress = getGuestProgress();
   if (!progress) return false;
   
@@ -496,8 +518,15 @@ export function getGuestDaysRemaining(): number {
  * Check if guest should see upgrade prompt (limits reached but not blocked)
  */
 export function shouldShowGuestUpgradePrompt(): boolean {
+  // Dev space bypass - never show upgrade prompts for testing
+  if (isDevSpace()) return false;
   return !canGuestGenerate() || isGuestExpired();
 }
+
+/**
+ * Export isDevSpace for use in other modules
+ */
+export { isDevSpace };
 
 // ============================================
 // GENERATION TRACKING (separate from meal-building unlocks)
@@ -658,6 +687,8 @@ export function shouldShowSoftNudge(): boolean {
  * Check if hard gate should be shown (at loop 4)
  */
 export function shouldShowHardGate(): boolean {
+  // Dev space bypass - never show hard gate for testing
+  if (isDevSpace()) return false;
   return getGuestLoopCount() >= MAX_GUEST_LOOPS;
 }
 
