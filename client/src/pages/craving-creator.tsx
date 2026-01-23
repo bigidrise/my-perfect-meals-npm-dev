@@ -421,6 +421,20 @@ export default function CravingCreator() {
 
       const data = await response.json();
       
+      // Check for safety blocks/ambiguous - show banner instead of error
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+        });
+        return;
+      }
+      
       // Auto-reset safety state after generation attempt
       setSafetyEnabled(true);
       clearSafetyAlert();

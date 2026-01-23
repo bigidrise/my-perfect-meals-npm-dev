@@ -376,6 +376,7 @@ export default function ChefsKitchenPage() {
     alert: safetyAlert,
     checkSafety,
     clearAlert: clearSafetyAlert,
+    setAlert: setSafetyAlert,
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
@@ -695,6 +696,20 @@ export default function ChefsKitchenPage() {
 
       const data = await response.json();
       console.log("🍳 Chef's Kitchen API response:", data);
+
+      // Check for safety blocks/ambiguous - show banner instead of error
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+        });
+        return;
+      }
 
       const meal = data.meal;
 
