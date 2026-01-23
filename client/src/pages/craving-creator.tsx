@@ -808,8 +808,9 @@ export default function CravingCreator() {
                   {/* SafetyGuard Preflight Banner */}
                   <SafetyGuardBanner
                     alert={safetyAlert}
+                    mealRequest={cravingInput}
                     onDismiss={clearSafetyAlert}
-                    onOverride={handleSafetyOverride}
+                    onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                   />
 
                   {/* Safety Guard Toggle - right before generate button */}

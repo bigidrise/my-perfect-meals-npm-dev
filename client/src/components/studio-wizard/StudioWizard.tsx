@@ -649,8 +649,9 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                   {/* SafetyGuard Preflight Banner */}
                   <SafetyGuardBanner
                     alert={safetyAlert}
+                    mealRequest={stepValuesRef.current.join(" ")}
                     onDismiss={clearSafetyAlert}
-                    onOverride={handleSafetyOverride}
+                    onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                   />
 
                   {/* Safety Guard Toggle */}
