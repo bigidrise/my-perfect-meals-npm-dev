@@ -116,7 +116,7 @@ export function SafetyGuardToggle({
       </div>
 
       {showPinEntry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="bg-gray-900 border border-white/20 rounded-2xl p-6 w-80 max-w-[90vw]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
