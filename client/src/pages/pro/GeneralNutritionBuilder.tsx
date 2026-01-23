@@ -51,7 +51,6 @@ import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
@@ -196,10 +195,6 @@ export default function WeeklyMealBoard() {
 
   // Shopping list v2 modal state
   const [shoppingListModal, setShoppingListModal] = useState<{ isOpen: boolean; meal: any | null }>({ isOpen: false, meal: null });
-
-  // AI Meal Creator modal state (for all meal slots)
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
 
   // Snack Picker state
   const [snackPickerOpen, setSnackPickerOpen] = useState(false);
@@ -603,76 +598,6 @@ export default function WeeklyMealBoard() {
       description: `${ingredients.length} items from entire week added to your master list`
     });
   }, [board, weekStartISO, weekDatesList, toast]);
-
-  // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
-    if (!activeDayISO) return;
-
-    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", slot);
-
-    // Transform API response to match Meal type structure (copy Fridge Rescue format)
-    const transformedMeal: Meal = {
-      id: `ai-meal-${Date.now()}`,
-      name: generatedMeal.name,
-      title: generatedMeal.name,
-      description: generatedMeal.description,
-      ingredients: generatedMeal.ingredients || [],
-      instructions: generatedMeal.instructions || '',
-      servings: 1,
-      imageUrl: generatedMeal.imageUrl,
-      cookingTime: generatedMeal.cookingTime,
-      difficulty: generatedMeal.difficulty,
-      medicalBadges: generatedMeal.medicalBadges || [],
-      nutrition: {
-        calories: generatedMeal.calories || 0,
-        protein: generatedMeal.protein || 0,
-        carbs: generatedMeal.carbs || 0,
-        fat: generatedMeal.fat || 0,
-      },
-    };
-
-    // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
-    const newMeals = [transformedMeal];
-
-    // Save to localStorage with slot info (persists until next generation)
-    saveAIMealsCache(newMeals, activeDayISO, slot);
-
-    // Also update board optimistically - REMOVE old AI meals first from the correct slot
-    if (board) {
-      const dayLists = getDayLists(board, activeDayISO);
-      // Filter out all old AI meals from the target slot
-      const currentSlotMeals = dayLists[slot];
-      const nonAIMeals = currentSlotMeals.filter(m => !m.id.startsWith('ai-meal-'));
-      // Add only the new AI meal
-      const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-      const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
-      const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
-      setBoard(updatedBoard);
-    }
-
-    // Format slot name for display (capitalize first letter)
-    const slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1);
-
-    // Dispatch meal:saved event for coach progression
-    const mealIdMap: Record<string, string> = {
-      breakfast: "breakfast",
-      lunch: "lunch",
-      dinner: "dinner",
-      snacks: "snack1"
-    };
-    window.dispatchEvent(
-      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[slot] || "snack1" } })
-    );
-
-    toast({
-      title: "AI Meal Created!",
-      description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
-    });
-
-    // Advance guided tour to next step
-    advanceTourStep();
-  }, [board, activeDayISO, toast, advanceTourStep]);
 
   const profile = useOnboardingProfile();
   const targets = computeTargetsFromOnboarding(profile);
@@ -1749,15 +1674,6 @@ export default function WeeklyMealBoard() {
         isOpen={shoppingListModal.isOpen}
         onClose={() => setShoppingListModal({ isOpen: false, meal: null })}
         meal={shoppingListModal.meal}
-      />
-
-      {/* AI Meal Creator with Ingredient Picker - All Meal Slots */}
-      <AIMealCreatorModal
-        open={aiMealModalOpen}
-        onOpenChange={setAiMealModalOpen}
-        onMealGenerated={handleAIMealGenerated}
-        mealSlot={aiMealSlot}
-        showMacroTargeting={false}
       />
 
       {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}

@@ -13,7 +13,6 @@ import {
 } from "@/lib/boardApi";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
@@ -296,11 +295,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   >(null);
   const [showOverview, setShowOverview] = React.useState(false);
 
-  // AI Meal Creator modal state
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks"
-  >("breakfast");
 
 
   // Create With Chef modal state
@@ -728,20 +722,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-  // AI Meal Creator handler - Save to localStorage (Weekly Meal Board pattern)
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(
+  const handleChefMealGenerated = useCallback(
     async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
-      console.log(
-        "🤖 AI Meal Generated - Replacing old meals with new one:",
-        generatedMeal,
-        "for slot:",
-        slot,
-      );
-
-      // Transform API response to match Meal type structure
       const transformedMeal: Meal = {
         id: `ai-meal-${Date.now()}`,
         name: generatedMeal.name,
@@ -762,13 +746,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         },
       };
 
-      // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
       const newMeals = [transformedMeal];
-
-      // Save to localStorage with slot info (persists until next generation)
       saveAIMealsCache(newMeals, activeDayISO, slot);
 
-      // Immediately add to board (optimistic update)
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
         const existingSlotMeals = dayLists[slot].filter(
@@ -796,7 +776,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     },
     [activeDayISO, board, saveBoard, toast],
   );
-
 
   // Handler for snack selection from SnackPickerDrawer (Competition Snacks)
   const handleSnackSelect = useCallback(
@@ -2099,17 +2078,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           meal={shoppingListModal.meal}
         />
 
-        {/* AI Meal Creator Modal - Competition Diet Type */}
-        <AIMealCreatorModal
-          open={aiMealModalOpen}
-          onOpenChange={setAiMealModalOpen}
-          onMealGenerated={handleAIMealGenerated}
-          mealSlot={aiMealSlot}
-          dietType="competition"
-          showMacroTargeting={false}
-        />
-
-
         {/* Snack Picker Drawer - Competition Snacks */}
         <SnackPickerDrawer
           open={snackPickerOpen}
@@ -2123,7 +2091,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           open={createWithChefOpen}
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
-          onMealGenerated={handleAIMealGenerated}
+          onMealGenerated={handleChefMealGenerated}
           dietType="performance"
           starchContext={starchContext}
         />

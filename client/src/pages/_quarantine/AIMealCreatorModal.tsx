@@ -45,6 +45,8 @@ import { mealIngredients } from "@/data/mealIngredients";
 import competitionIngredients from "@/data/competitionIngredients";
 import { useMacroTargeting } from "@/hooks/useMacroTargeting";
 import { MacroTargetingControls } from "@/components/macro-targeting/MacroTargetingControls";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 interface AIMealCreatorModalProps {
   open: boolean;
@@ -97,6 +99,31 @@ export default function AIMealCreatorModal({
   const macroTargetingState = useMacroTargeting(
     "macroTargets::trainer::aiMealCreator",
   );
+  
+  // 🔐 SafetyGuard preflight system
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
+  
+  const handleSafetyOverride = (token: string) => {
+    setOverrideToken(token);
+    setPendingGeneration(true);
+  };
+  
+  // Effect: Auto-generate when override token is set and generation is pending
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !generating && !safetyChecking) {
+      setPendingGeneration(false);
+      generateMeal(selectedIngredients, cookingStyles, true);
+    }
+  }, [pendingGeneration, overrideToken, generating, safetyChecking]);
 
   // List of ingredients that need cooking style selection (matching MealPremadePicker)
   const NEEDS_PREP = [
@@ -257,7 +284,7 @@ export default function AIMealCreatorModal({
     }
   };
 
-  const handleGenerateMeal = () => {
+  const handleGenerateMeal = async () => {
     if (selectedIngredients.length === 0) {
       toast({
         title: "No ingredients selected",
@@ -267,9 +294,19 @@ export default function AIMealCreatorModal({
       return;
     }
 
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!hasActiveOverride) {
+      const inputForSafetyCheck = selectedIngredients.join(" ");
+      const isSafe = await checkSafety(inputForSafetyCheck, "ai-meal-creator");
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
+    }
+
     // All prep should already be done (happened when clicking ingredients)
     // Just generate the meal with selected ingredients and their styles
-    generateMeal(selectedIngredients, cookingStyles);
+    generateMeal(selectedIngredients, cookingStyles, false);
   };
 
   const handlePrepSelect = (ingredient: string, style: string) => {
@@ -287,6 +324,7 @@ export default function AIMealCreatorModal({
   const generateMeal = async (
     ingredients: string[],
     styles: Record<string, string>,
+    skipPreflight = false,
   ) => {
     setGenerating(true);
     startProgressTicker();
@@ -328,6 +366,8 @@ export default function AIMealCreatorModal({
           userId,
           ...(customMacroTargets && { macroTargets: customMacroTargets }),
           count: 1,
+          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: hasActiveOverride ? overrideToken : undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -555,15 +595,24 @@ export default function AIMealCreatorModal({
           </div>
         )}
 
+        {/* SafetyGuard Preflight Banner */}
+        <SafetyGuardBanner
+          alert={safetyAlert}
+          mealRequest={selectedIngredients.join(" ")}
+          onDismiss={clearSafetyAlert}
+          onOverrideSuccess={handleSafetyOverride}
+          className="mb-3"
+        />
+
         {/* Action Buttons */}
         <div className="flex items-center gap-3 mb-3">
           <Button
             onClick={handleGenerateMeal}
-            disabled={generating || selectedIngredients.length === 0}
+            disabled={generating || safetyChecking || selectedIngredients.length === 0}
             className="flex-1 bg-lime-600 hover:bg-lime-700 text-white border-0"
             data-wt="wmb-generate-meal-button"
           >
-            Generate AI Meal
+            {safetyChecking ? "Checking Safety..." : "Generate AI Meal"}
           </Button>
           <Button
             onClick={handleCancel}

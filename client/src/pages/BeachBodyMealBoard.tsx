@@ -15,7 +15,6 @@ import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AthleteMealPickerDrawer } from "@/components/pickers/AthleteMealPickerDrawer";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import {
   RemainingMacrosFooter,
   type ConsumedMacros,
@@ -244,12 +243,6 @@ export default function BeachBodyMealBoard() {
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
   const [showOverview, setShowOverview] = React.useState(false);
-
-  // AI Meal Creator modal state
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks"
-  >("breakfast");
 
   // Snack Picker state
   const [snackPickerOpen, setSnackPickerOpen] = useState(false);
@@ -874,12 +867,9 @@ export default function BeachBodyMealBoard() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(
+  const handleChefMealGenerated = useCallback(
     async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
-
-      // Guard: Check if day is locked before allowing edits
       if (checkLockedDay()) return;
 
       const transformedMeal: Meal = {
@@ -2111,15 +2101,6 @@ export default function BeachBodyMealBoard() {
           meal={shoppingListModal.meal}
         />
 
-        <AIMealCreatorModal
-          open={aiMealModalOpen}
-          onOpenChange={setAiMealModalOpen}
-          onMealGenerated={handleAIMealGenerated}
-          mealSlot={aiMealSlot}
-          showMacroTargeting={false}
-          beachBodyMode={true}
-        />
-
         {/* AI Premade Picker - Competition Meals */}
         <MealPremadePicker
           open={premadePickerOpen}
@@ -2160,7 +2141,7 @@ export default function BeachBodyMealBoard() {
           open={createWithChefOpen}
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
-          onMealGenerated={handleAIMealGenerated}
+          onMealGenerated={handleChefMealGenerated}
           dietType="beachbody"
           dietPhase="lean"
           starchContext={starchContext}

@@ -72,7 +72,6 @@ import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import AdditionalMacrosModal from "@/components/modals/AdditionalMacrosModal";
@@ -229,12 +228,6 @@ export default function GLP1MealBuilder() {
     isOpen: boolean;
     meal: any | null;
   }>({ isOpen: false, meal: null });
-
-  // AI Meal Creator modal state (for all meal slots)
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks"
-  >("breakfast");
 
   // AI Premades modal state
   const [premadePickerOpen, setPremadePickerOpen] = useState(false);
@@ -770,23 +763,12 @@ export default function GLP1MealBuilder() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-  // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(
+
+  const handleChefMealGenerated = useCallback(
     async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
-      
-      // Guard: Check if day is locked before allowing edits
       if (checkLockedDay()) return;
 
-      console.log(
-        "🤖 AI Meal Generated - Replacing old meals with new one:",
-        generatedMeal,
-        "for slot:",
-        slot,
-      );
-
-      // Transform API response to match Meal type structure (copy Fridge Rescue format)
       const transformedMeal: Meal = {
         id: `ai-meal-${Date.now()}`,
         name: generatedMeal.name,
@@ -807,34 +789,24 @@ export default function GLP1MealBuilder() {
         },
       };
 
-      // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
       const newMeals = [transformedMeal];
-
-      // Save to localStorage with slot info (persists until next generation)
       saveAIMealsCache(newMeals, activeDayISO, slot);
 
-      // Also update board optimistically - REMOVE old AI meals first from the correct slot
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
-        // Filter out all old AI meals from the target slot
         const currentSlotMeals = dayLists[slot];
         const nonAIMeals = currentSlotMeals.filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
-        // Add only the new AI meal
         const updatedSlotMeals = [...nonAIMeals, transformedMeal];
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
       }
 
-      // Format slot name for display (capitalize first letter)
-      const slotLabel =
-        slot.charAt(0).toUpperCase() + slot.slice(1);
-
       toast({
         title: "AI Meal Created!",
-        description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
+        description: `${generatedMeal.name} saved to your ${slot}`,
       });
     },
     [board, activeDayISO, toast],
@@ -1938,15 +1910,6 @@ export default function GLP1MealBuilder() {
         meal={shoppingListModal.meal}
       />
 
-      {/* AI Meal Creator with Ingredient Picker - All Meal Slots */}
-      <AIMealCreatorModal
-        open={aiMealModalOpen}
-        onOpenChange={setAiMealModalOpen}
-        onMealGenerated={handleAIMealGenerated}
-        mealSlot={aiMealSlot}
-        showMacroTargeting={false}
-      />
-
       {/* Meal Premade Picker Modal */}
       <MealPremadePicker
         open={premadePickerOpen}
@@ -1969,7 +1932,7 @@ export default function GLP1MealBuilder() {
         open={createWithChefOpen}
         onOpenChange={setCreateWithChefOpen}
         mealType={createWithChefSlot}
-        onMealGenerated={handleAIMealGenerated}
+        onMealGenerated={handleChefMealGenerated}
         dietType="glp1"
         starchContext={starchContext}
       />
