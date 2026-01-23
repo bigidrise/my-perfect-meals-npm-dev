@@ -30,6 +30,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -161,12 +163,19 @@ export default function DessertCreator() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Safety PIN integration
-  // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
-  const [overrideToken, setOverrideToken] = useState<string | null>(null);
-  
-  // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  
+  // SafetyGuard preflight hook
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride
+  } = useSafetyGuardPrecheck();
   
   // Handle safety override continuation - auto-generate when override token received
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
@@ -179,11 +188,11 @@ export default function DessertCreator() {
   
   // Effect: Auto-generate when override token is set and generation is pending
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGenerating) {
+    if (pendingGeneration && overrideToken && !isGenerating && !safetyChecking) {
       setPendingGeneration(false);
       handleGenerateDessert(overrideToken);
     }
-  }, [pendingGeneration, overrideToken, isGenerating]);
+  }, [pendingGeneration, overrideToken, isGenerating, safetyChecking]);
 
   useCopilotPageExplanation();
 
@@ -252,6 +261,15 @@ export default function DessertCreator() {
       return;
     }
 
+    // SafetyGuard preflight check if safety is enabled and no override
+    if (safetyEnabled && !hasActiveOverride && !overrideToken) {
+      const requestDescription = `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
+      const isSafe = await checkSafety(requestDescription, "dessert-creator");
+      if (!isSafe) {
+        return; // Banner will show automatically
+      }
+    }
+
     setIsGenerating(true);
     startProgressTicker();
     console.log("🍨 [DESSERT] Starting generation...", {
@@ -294,7 +312,7 @@ export default function DessertCreator() {
       
       // Auto-reset safety to ON after generation attempt
       setSafetyEnabled(true);
-      setOverrideToken(null);
+      clearSafetyAlert();
 
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
@@ -570,27 +588,35 @@ export default function DessertCreator() {
                 </Select>
               </div>
 
+              {/* SafetyGuard Preflight Banner */}
+              <SafetyGuardBanner
+                alert={safetyAlert}
+                mealRequest={`${dessertCategory} ${flavorFamily} ${specificDessert}`.trim()}
+                onDismiss={clearSafetyAlert}
+                onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+              />
+
               {/* Safety Guard Toggle */}
               <div className="mb-4 flex justify-end">
                 <SafetyGuardToggle
                   safetyEnabled={safetyEnabled}
                   onSafetyChange={handleSafetyOverride}
-                  disabled={isGenerating}
+                  disabled={isGenerating || safetyChecking}
                 />
               </div>
 
-              {isGenerating ? (
+              {(isGenerating || safetyChecking) ? (
                 <div className="max-w-md mx-auto mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-white/80">
-                      AI Analysis Progress
+                      {safetyChecking ? "Checking Safety Profile" : "AI Analysis Progress"}
                     </span>
                     <span className="text-sm text-white/80">
-                      {Math.round(progress)}%
+                      {safetyChecking ? "..." : `${Math.round(progress)}%`}
                     </span>
                   </div>
                   <Progress
-                    value={progress}
+                    value={safetyChecking ? 30 : progress}
                     className="h-3 bg-black/30 border border-white/20"
                   />
                 </div>

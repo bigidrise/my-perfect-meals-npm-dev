@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -33,6 +34,7 @@ export function SnackCreatorModal({
   dietPhase,
 }: SnackCreatorModalProps) {
   const [description, setDescription] = useState("");
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
   
   const { user } = useAuth();
@@ -54,6 +56,14 @@ export function SnackCreatorModal({
     hasActiveOverride
   } = useSafetyGuardPrecheck();
   
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      setPendingGeneration(true);
+    }
+  };
+  
   const handleOverrideSuccess = (token: string) => {
     setOverrideToken(token);
     setPendingGeneration(true);
@@ -69,6 +79,7 @@ export function SnackCreatorModal({
   useEffect(() => {
     if (!open) {
       setDescription("");
+      setSafetyEnabled(true);
       clearAlert();
       cancel();
     }
@@ -125,7 +136,7 @@ export function SnackCreatorModal({
       return;
     }
 
-    if (hasActiveOverride) {
+    if (hasActiveOverride || !safetyEnabled) {
       await executeGeneration();
       return;
     }
@@ -191,6 +202,16 @@ export function SnackCreatorModal({
           )}
 
           {error && !alert.show && <p className="text-sm text-red-400">{error}</p>}
+
+          {/* Safety Guard Toggle */}
+          <div className="flex items-center justify-between py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+            <span className="text-xs text-white/60">Safety Profile for This Snack</span>
+            <SafetyGuardToggle
+              safetyEnabled={safetyEnabled}
+              onSafetyChange={handleSafetyOverride}
+              disabled={isProcessing}
+            />
+          </div>
 
           <div className="flex gap-3 pt-2">
             <Button
