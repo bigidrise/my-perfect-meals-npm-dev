@@ -2704,11 +2704,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1 } = req.body;
+      const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1, safetyMode, overrideToken } = req.body;
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator");
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
+          safetyMode: safetyMode || "STRICT",
+          overrideToken: overrideToken
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
