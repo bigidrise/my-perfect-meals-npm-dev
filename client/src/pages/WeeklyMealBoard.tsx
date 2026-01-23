@@ -1216,18 +1216,10 @@ export default function WeeklyMealBoard() {
 
   // 🎯 Show toast when loading from cache/offline
   React.useEffect(() => {
-    if (!loading && source && source !== "db") {
-      const msg =
-        source === "cache"
-          ? "Viewing cached meal plan (offline)"
-          : "Starting fresh meal plan for this week";
-      toast({
-        title: "Offline Mode",
-        description: msg,
-        duration: 3000,
-      });
+    if (!loading && source) {
+      console.log("[Board] Loaded from source:", source);
     }
-  }, [loading, source, toast]);
+  }, [loading, source]);
 
   // Silent error handling - Facebook-style: no UI for transient network events
   // Only log to console for debugging, don't interrupt UX with toasts
