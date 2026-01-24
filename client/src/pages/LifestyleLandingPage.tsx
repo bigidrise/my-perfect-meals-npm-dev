@@ -36,7 +36,7 @@ export default function LifestyleLandingPage() {
 
   const lifestyleFeatures: AIFeature[] = [
     {
-      title: "Chef’s Kitchen",
+      title: "Chef’s Kitchen Studio",
       description:
         "Cook alongside AI. Learn, create, and have fun in the kitchen.",
       icon: UtensilsCrossed,
