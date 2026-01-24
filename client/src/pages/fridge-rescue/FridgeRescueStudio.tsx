@@ -9,7 +9,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     emoji: "🧊",
     introTitle: "Create with Chef",
     introDescription: "Tell me what you have — I’ll make something from it.",
-    accentColor: "text-orange-400",
+    accentColor: "text-lime-400",
     gradientFrom: "from-black/60",
     gradientVia: "via-orange-600",
     gradientTo: "to-lime-800",

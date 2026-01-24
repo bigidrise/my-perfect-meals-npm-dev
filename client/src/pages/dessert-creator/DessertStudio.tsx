@@ -11,7 +11,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
     emoji: "🍰",
     introTitle: "Create with Chef",
     introDescription: "Pick what you're in the mood for — I'll build the dessert.",
-    accentColor: "text-orange-400",
+    accentColor: "text-lim-400",
     gradientFrom: "from-black/60",
     gradientVia: "via-orange-600",
     gradientTo: "to-orange-800",

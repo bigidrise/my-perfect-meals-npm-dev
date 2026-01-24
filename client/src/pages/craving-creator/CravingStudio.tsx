@@ -5,11 +5,14 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft,
+  Refrigerator,
   Sparkles,
   ChefHat,
+  FlameIcon,
   Loader2,
   Users,
   Brain,
+  Flame,
 } from "lucide-react";
 
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
@@ -465,7 +468,7 @@ export default function CravingStudio() {
         <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-orange-500" />
+              <Flame className="h-5 w-5 text-lime-400" />
               <h2 className="text-lg font-bold text-white">Create with Chef</h2>
             </div>
             <p className="text-sm text-white/80">
