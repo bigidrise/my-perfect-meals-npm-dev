@@ -2155,28 +2155,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🛡️ SafetyGuard Preflight Check - Client calls BEFORE generation to get instant feedback
   // This prevents "progress bar then failure" UX - shows banner immediately
-  app.post("/api/safety-check", requireAuth, async (req: any, res) => {
+  // Supports both authenticated users (uses DB profile) and guests (uses request-provided allergies)
+  app.post("/api/safety-check", async (req: any, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const { input, builderId = "preflight" } = req.body;
+      const { input, builderId = "preflight", guestAllergies } = req.body;
       
       if (!input || typeof input !== "string") {
         return res.status(400).json({ error: "input text is required" });
       }
       
-      // Run safety check with STRICT mode (no override token for preflight)
-      const safetyCheck = await enforceSafetyProfile(userId, input, builderId, {
-        safetyMode: "STRICT"
-      });
+      // Check if we have an authenticated user
+      const authUser = req.authUser;
       
-      res.json({
-        result: safetyCheck.result,
-        blockedTerms: safetyCheck.blockedTerms,
-        blockedCategories: safetyCheck.blockedCategories,
-        ambiguousTerms: safetyCheck.ambiguousTerms,
-        message: safetyCheck.message,
-        suggestion: safetyCheck.suggestion
+      if (authUser?.id) {
+        // Authenticated user - use their profile from DB
+        const safetyCheck = await enforceSafetyProfile(authUser.id, input, builderId, {
+          safetyMode: "STRICT"
+        });
+        
+        return res.json({
+          result: safetyCheck.result,
+          blockedTerms: safetyCheck.blockedTerms,
+          blockedCategories: safetyCheck.blockedCategories,
+          ambiguousTerms: safetyCheck.ambiguousTerms,
+          message: safetyCheck.message,
+          suggestion: safetyCheck.suggestion
+        });
+      }
+      
+      // Guest user - use provided allergies from request
+      if (guestAllergies && Array.isArray(guestAllergies) && guestAllergies.length > 0) {
+        const { enforceSafetyProfileSync } = await import("./services/safetyProfileService");
+        
+        const guestProfile = {
+          userId: "guest",
+          allergies: guestAllergies,
+          dietaryRestrictions: [],
+          healthConditions: [],
+          avoidIngredients: []
+        };
+        
+        const safetyCheck = enforceSafetyProfileSync(guestProfile, input);
+        
+        return res.json({
+          result: safetyCheck.result,
+          blockedTerms: safetyCheck.blockedTerms,
+          blockedCategories: safetyCheck.blockedCategories,
+          ambiguousTerms: safetyCheck.ambiguousTerms,
+          message: safetyCheck.message,
+          suggestion: safetyCheck.suggestion
+        });
+      }
+      
+      // No auth and no guest allergies - allow but warn
+      console.log("[SafetyCheck] Guest request with no allergies - allowing");
+      return res.json({
+        result: "SAFE",
+        blockedTerms: [],
+        blockedCategories: [],
+        ambiguousTerms: [],
+        message: "No safety profile configured"
       });
     } catch (error: any) {
       console.error("Error in safety preflight check:", error);

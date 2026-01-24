@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { SafetyAlertState, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
+import { isGuestMode } from "@/lib/guestMode";
 
 interface PreflightResult {
   result: "SAFE" | "BLOCKED" | "AMBIGUOUS";
@@ -14,7 +15,7 @@ interface PreflightResult {
 interface UseSafetyGuardPrecheckResult {
   checking: boolean;
   alert: SafetyAlertState;
-  checkSafety: (input: string, builderId?: string) => Promise<boolean>;
+  checkSafety: (input: string, builderId?: string, guestAllergies?: string[]) => Promise<boolean>;
   clearAlert: () => void;
   setAlert: (alert: SafetyAlertState) => void;
   setOverrideToken: (token: string) => void;
@@ -27,7 +28,7 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
   const [alert, setAlert] = useState<SafetyAlertState>(EMPTY_SAFETY_ALERT);
   const [overrideToken, setOverrideTokenState] = useState<string | undefined>();
 
-  const checkSafety = useCallback(async (input: string, builderId: string = "preflight"): Promise<boolean> => {
+  const checkSafety = useCallback(async (input: string, builderId: string = "preflight", guestAllergies?: string[]): Promise<boolean> => {
     if (!input.trim()) {
       return true;
     }
@@ -39,11 +40,17 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
     setChecking(true);
     
     try {
+      const isGuest = isGuestMode();
+      
       const response = await fetch(apiUrl("/api/safety-check"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ input, builderId })
+        body: JSON.stringify({ 
+          input, 
+          builderId,
+          ...(isGuest && guestAllergies && guestAllergies.length > 0 ? { guestAllergies } : {})
+        })
       });
 
       if (!response.ok) {
