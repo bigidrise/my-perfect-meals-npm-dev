@@ -17,6 +17,11 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **iOS Viewport Architecture**: Uses a fixed shell with `100dvh` and a single scroll container for optimal iOS WKWebView performance.
 - **Scientific Transparency**: Nutritional calculations are supported by citations via the `MedicalSourcesInfo` component.
 - **iOS App Store Compliance**: Adheres to Apple guidelines for payments (StoreKit 2) and medical citations.
+- **Modal UI Patterns (Preferred)**: Always use consistent modal patterns for user interactions:
+  - **Coming Soon Modal**: Use `GatedRoute` component with black glass button styling for gated features. Button text should be "Go Back" and navigate to previous page (not home).
+  - **Delete Confirmation Modal**: Use consistent delete confirmation dialogs before destructive actions.
+  - **Allergy Alert Modal**: Use for safety-critical allergen warnings with clear, prominent styling.
+  - All modals should use: dark glassmorphic backgrounds, white text, black glass buttons with white text and border-white/20 borders.
 
 **Technical Implementations:**
 - **Monorepo Structure**: Frontend and backend code are co-located.
