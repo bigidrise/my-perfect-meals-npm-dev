@@ -124,7 +124,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
     complete: "If you happy with your meal tap, Enter Chef’s Kitchen, and we’ll start cooking, if not, press Create New, and we can create a new meal.",
   },
 
-  apiEndpoint: "/api/craving-creator/generate",
+  apiEndpoint: "/api/studio/generate",
   backRoute: "/craving-desserts",
   source: "dessert-studio",
   defaultMealType: "dessert",

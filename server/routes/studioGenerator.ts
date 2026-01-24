@@ -8,9 +8,20 @@ const router = Router();
 type StudioType = "craving" | "fridge" | "dessert";
 type EngineType = "library" | "queue" | "legacy";
 
+function sourceToStudio(source?: string): StudioType | null {
+  if (!source) return null;
+  const normalized = source.toLowerCase();
+  if (normalized.includes("craving") || normalized.includes("chef")) return "craving";
+  if (normalized.includes("fridge")) return "fridge";
+  if (normalized.includes("dessert")) return "dessert";
+  return null;
+}
+
 interface StudioGenerateRequest {
-  studio: StudioType;
+  studio?: StudioType;
+  source?: string;
   intentText?: string;
+  craving?: string;
   constraints?: {
     caloriesTarget?: number;
     proteinTarget?: number;
@@ -257,21 +268,30 @@ async function queueEngine(request: StudioGenerateRequest): Promise<StudioGenera
 router.post("/generate", async (req: Request, res: Response) => {
   try {
     const body = req.body as StudioGenerateRequest;
-    if (!body.studio || !["craving", "fridge", "dessert"].includes(body.studio)) {
+    
+    const studio = body.studio || sourceToStudio(body.source);
+    if (!studio || !["craving", "fridge", "dessert"].includes(studio)) {
       return res.status(400).json({
         success: false,
-        error: "Invalid or missing studio type",
+        error: "Invalid or missing studio type. Provide studio or source field.",
       });
     }
-    const engine = getEngineForStudio(body.studio);
-    console.log(`[StudioGenerator] ${body.studio} using ${engine} engine`);
+    
+    const normalizedRequest: StudioGenerateRequest = {
+      ...body,
+      studio,
+      intentText: body.intentText || body.craving || "",
+    };
+    
+    const engine = getEngineForStudio(studio);
+    console.log(`[StudioGenerator] ${studio} using ${engine} engine`);
     let result: StudioGenerateResponse | null = null;
     switch (engine) {
       case "library":
-        result = await libraryEngine(body);
+        result = await libraryEngine(normalizedRequest);
         break;
       case "queue":
-        result = await queueEngine(body);
+        result = await queueEngine(normalizedRequest);
         break;
       case "legacy":
         return res.status(501).json({
@@ -279,7 +299,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           error: "Legacy engine not implemented - use existing endpoints",
         });
       default:
-        result = await libraryEngine(body);
+        result = await libraryEngine(normalizedRequest);
     }
     if (!result) {
       return res.status(404).json({
