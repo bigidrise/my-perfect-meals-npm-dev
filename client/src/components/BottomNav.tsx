@@ -106,7 +106,7 @@ export default function BottomNav() {
     <>
       {/* CHEF BUTTON - Dead-stable shell to prevent iOS viewport drift */}
       <div
-        className="fixed left-1/2 z-[60] pointer-events-none"
+        className="fixed left-1/2 z-[45] pointer-events-none"
         style={{ bottom: `calc(var(--safe-bottom) + 6px)` }}
       >
         <div
@@ -121,7 +121,7 @@ export default function BottomNav() {
         </div>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[var(--safe-bottom)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[var(--safe-bottom)]">
         <div className="max-w-screen-xl mx-auto px-4">
           <div className="relative h-16 grid grid-cols-[1fr_auto_1fr] items-center">
             {/* LEFT ITEMS */}
