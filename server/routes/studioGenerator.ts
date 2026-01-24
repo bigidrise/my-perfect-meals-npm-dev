@@ -116,19 +116,24 @@ function matchesDiet(meal: MealLibraryItem, userDiets: string[]): boolean {
 function matchesMacros(meal: MealLibraryItem, constraints?: StudioGenerateRequest["constraints"]): boolean {
   if (!constraints) return true;
   const macros = meal.macrosJson as { calories?: number; protein?: number; carbs?: number; fat?: number } || {};
-  if (constraints.caloriesTarget && macros.calories) {
+  
+  if (constraints.caloriesTarget) {
+    if (macros.calories === undefined || macros.calories === null) return false;
     const tolerance = constraints.caloriesTarget * 0.15;
     if (Math.abs(macros.calories - constraints.caloriesTarget) > tolerance) return false;
   }
-  if (constraints.proteinTarget && macros.protein) {
+  if (constraints.proteinTarget) {
+    if (macros.protein === undefined || macros.protein === null) return false;
     const tolerance = constraints.proteinTarget * 0.20;
     if (Math.abs(macros.protein - constraints.proteinTarget) > tolerance) return false;
   }
-  if (constraints.carbTarget && macros.carbs) {
+  if (constraints.carbTarget) {
+    if (macros.carbs === undefined || macros.carbs === null) return false;
     const tolerance = constraints.carbTarget * 0.20;
     if (Math.abs(macros.carbs - constraints.carbTarget) > tolerance) return false;
   }
-  if (constraints.fatTarget && macros.fat) {
+  if (constraints.fatTarget) {
+    if (macros.fat === undefined || macros.fat === null) return false;
     const tolerance = constraints.fatTarget * 0.20;
     if (Math.abs(macros.fat - constraints.fatTarget) > tolerance) return false;
   }
@@ -137,9 +142,11 @@ function matchesMacros(meal: MealLibraryItem, constraints?: StudioGenerateReques
 
 function scoreMeal(meal: MealLibraryItem, request: StudioGenerateRequest, recentMealIds: string[]): number {
   let score = meal.qualityScore || 50;
+  
   if (recentMealIds.includes(meal.id)) {
     score -= 30;
   }
+  
   if (request.intentText && meal.searchText) {
     const intentWords = request.intentText.toLowerCase().split(/\s+/);
     const searchText = meal.searchText.toLowerCase();
@@ -149,15 +156,26 @@ function scoreMeal(meal: MealLibraryItem, request: StudioGenerateRequest, recent
       }
     }
   }
+  
   const cravingTags = meal.cravingTagsJson as Record<string, number> || {};
+  const emotionTags = meal.emotionTagsJson as Record<string, number> || {};
+  
   if (request.intentText) {
     const intent = request.intentText.toLowerCase();
+    
     for (const [tag, weight] of Object.entries(cravingTags)) {
       if (intent.includes(tag.toLowerCase())) {
         score += weight * 20;
       }
     }
+    
+    for (const [tag, weight] of Object.entries(emotionTags)) {
+      if (intent.includes(tag.toLowerCase())) {
+        score += weight * 15;
+      }
+    }
   }
+  
   return score;
 }
 
