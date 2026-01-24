@@ -1146,7 +1146,7 @@ export default function ChefsKitchenPage() {
                         {generationError}
                       </p>
                       <button
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
                         onClick={() => startOpenKitchen()}
                       >
                         Try Again
