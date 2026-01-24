@@ -51,12 +51,17 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
       defaultValue: "2",
     },
     {
-      title: "Notes",
-      question: "Anything else?",
-      placeholder: "time limit, allergies, preferences…",
-      voiceScript: "Anything else I should know?",
-      inputType: "textarea",
-      summaryPrefix: "Notes",
+      title: "Preferences",
+      question: "Any preferences — allergies, time limits, dietary needs?",
+      voiceScript: "Any preferences — allergies, time limits, or dietary needs?",
+      inputType: "yesno",
+      summaryPrefix: "Preferences",
+      yesnoConfig: {
+        noLabel: "No, I'm good",
+        yesLabel: "Yes, add preferences",
+        noValue: "None",
+        yesPlaceholder: "e.g., gluten-free, under 30 min, no dairy...",
+      },
     },
   ],
 
@@ -83,12 +88,12 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
   servingsStepIndex: 2,
 
   buildPrompt: (values, servings) => {
-    const [ingredients, hunger, , notes] = values;
+    const [ingredients, hunger, , preferences] = values;
 
     const parts: string[] = [];
     parts.push(`Ingredients available: ${ingredients}`);
     parts.push(`Hunger level: ${hunger}`);
-    if (notes?.trim()) parts.push(`Notes: ${notes.trim()}`);
+    if (preferences?.trim() && preferences !== "None") parts.push(`Preferences: ${preferences.trim()}`);
     parts.push("Use only the ingredients listed — no shopping needed.");
 
     return {
