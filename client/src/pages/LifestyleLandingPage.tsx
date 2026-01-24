@@ -1,7 +1,8 @@
 import { useLocation } from "wouter";
-import { useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Sparkles,
   RefrigeratorIcon,
@@ -9,8 +10,10 @@ import {
   Baby,
   Wine,
   UtensilsCrossed,
+  ChefHat,
+  ArrowLeft,
 } from "lucide-react";
-import { isPublicProduction } from "@/lib/productionGates";
+import { isPublicProduction, getGatedMessage } from "@/lib/productionGates";
 
 interface AIFeature {
   title: string;
@@ -23,6 +26,7 @@ interface AIFeature {
 
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
@@ -33,6 +37,7 @@ export default function LifestyleLandingPage() {
   // Open in all dev/workspace environments for testing
   // Users can always access Stage 2 via meal card "Prepare with Chef" buttons
   const CHEFS_KITCHEN_COMING_SOON = isPublicProduction();
+  const chefsKitchenMessage = getGatedMessage('chefsKitchen');
 
   const lifestyleFeatures: AIFeature[] = [
     {
@@ -167,11 +172,7 @@ export default function LifestyleLandingPage() {
                   )}
 
                   <Card
-                    className={`relative rounded-xl shadow-md overflow-hidden transition ${
-                      disableChefsKitchenEntry
-                        ? "opacity-65 cursor-not-allowed"
-                        : "cursor-pointer active:scale-95 hover:scale-[1.02]"
-                    } ${
+                    className={`relative rounded-xl shadow-md overflow-hidden transition cursor-pointer active:scale-95 hover:scale-[1.02] ${
                       isChefsKitchen
                         ? "bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
                         : isCravingCreator
@@ -179,10 +180,12 @@ export default function LifestyleLandingPage() {
                           : "bg-black/30 backdrop-blur-lg border border-white/10"
                     }`}
                     onClick={() => {
-                      if (disableChefsKitchenEntry) return;
+                      if (disableChefsKitchenEntry) {
+                        setShowComingSoonModal(true);
+                        return;
+                      }
                       handleCardClick(feature.route);
                     }}
-                    aria-disabled={disableChefsKitchenEntry}
                     data-testid={feature.testId}
                   >
                     {/* Badges */}
@@ -223,6 +226,47 @@ export default function LifestyleLandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Coming Soon Modal for Chef's Kitchen */}
+      <AnimatePresence>
+        {showComingSoonModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-6"
+            onClick={() => setShowComingSoonModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-gradient-to-b from-zinc-900 to-black rounded-2xl p-8 max-w-sm w-full text-center border border-white/10 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center mb-6 mx-auto">
+                <ChefHat className="w-10 h-10 text-amber-400" />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-white mb-3">
+                Coming Soon
+              </h2>
+              
+              <p className="text-zinc-400 mb-8">
+                {chefsKitchenMessage}
+              </p>
+              
+              <Button 
+                onClick={() => setShowComingSoonModal(false)}
+                className="bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:border-white/30 shadow-lg"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

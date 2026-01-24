@@ -2,7 +2,6 @@ import { isFeatureEnabled, getGatedMessage, type GatedFeature } from '@/lib/prod
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ChefHat, ArrowLeft } from 'lucide-react';
-import { useLocation } from 'wouter';
 
 interface GatedRouteProps {
   feature: GatedFeature;
@@ -11,7 +10,6 @@ interface GatedRouteProps {
 
 export function GatedRoute({ feature, children }: GatedRouteProps) {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
   
   const isEnabled = isFeatureEnabled(feature, user?.email);
   
@@ -20,6 +18,14 @@ export function GatedRoute({ feature, children }: GatedRouteProps) {
   }
   
   const message = getGatedMessage(feature);
+  
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/';
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black flex flex-col items-center justify-center px-6 text-center">
@@ -36,12 +42,11 @@ export function GatedRoute({ feature, children }: GatedRouteProps) {
       </p>
       
       <Button 
-        variant="outline" 
-        onClick={() => setLocation('/')}
-        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+        onClick={handleGoBack}
+        className="bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:border-white/30 shadow-lg"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Home
+        Go Back
       </Button>
     </div>
   );
