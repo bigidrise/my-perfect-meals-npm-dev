@@ -37,14 +37,14 @@ export const KITCHEN_STUDIO_SERVINGS_CONFIRMED = "";
 
 // Kitchen Studio - Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT =
-  "Take a quick look — if you're missing anything, grab it real quick, and then press 'OK'.";
+  "Take a quick look — grab what you need, then tap 'OK'.";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
   "If everything looks good, press Create the Plan.";
 
 export const KITCHEN_STUDIO_HANDOFF_TO_PREP =
-  "This looks great. Now let’s enter Chefs Kitchen so we can prep it step by step.";
+  "This looks great. Now let’s enter Chefs Kitchen so we can prepare your meal.";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
@@ -64,7 +64,7 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 export const KITCHEN_STUDIO_OPEN_START = "";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS1 =
-  "If everything looks good press the Enter Chef’s Kitchen button, if not, press, Create New, and we can create a new meal.";
+  "If everything looks good press the Enter Chef’s Kitchen button, if not, press, Create New, and we create a new meal.";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 
