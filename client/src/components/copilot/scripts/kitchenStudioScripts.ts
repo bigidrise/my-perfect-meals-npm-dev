@@ -41,7 +41,7 @@ export const KITCHEN_STUDIO_EQUIPMENT =
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "If everything looks good, press Create the Plan.";
+  "If everything looks good, tap Create the Plan.";
 
 export const KITCHEN_STUDIO_HANDOFF_TO_PREP =
   "This looks great. Now let’s enter Chefs Kitchen so we can prepare your meal.";
