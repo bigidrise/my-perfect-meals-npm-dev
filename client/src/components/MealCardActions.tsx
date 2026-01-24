@@ -135,11 +135,13 @@ export default function MealCardActions({
           />
         )}
       </div>
-      {showPrepareButton && hasInstructions && isFeatureEnabled('chefsKitchen') && (
+      {showPrepareButton && isFeatureEnabled('chefsKitchen') && (
         <Button
           size="sm"
           className="w-full bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
           onClick={handlePrepareWithChef}
+          disabled={!hasInstructions}
+          title={!hasInstructions ? "No cooking instructions available" : undefined}
         >
           <ChefHat className="h-4 w-4" />
           Cook w/ Chef
