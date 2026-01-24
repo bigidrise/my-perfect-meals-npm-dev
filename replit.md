@@ -47,6 +47,7 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Profile Single Source of Truth (SSOT) Architecture**: Onboarding, Edit Profile, and Meal Builders all read/write from the same `users` table for unified data flow.
 - **MPM SafetyGuard v1.1**: A two-layer food safety system with authenticated override capabilities, compliant with Apple App Store guidelines. Features include a Safety PIN system, multiple safety modes (STRICT, CUSTOM, CUSTOM_AUTHENTICATED), one-time override tokens, audit logging, pre-generation blocking, post-generation validation, and extensive allergen taxonomy.
 - **SafetyGuard Unified Alert System v1.0**: Provides consistent preflight checking and yellow banner alerts across all meal generators, utilizing a dedicated preflight API and a reusable `SafetyGuardBanner` component.
+- **Meal Generation Facade v1.0**: Architectural pivot from live AI generation to precompiled recipe library (LibraryEngine) to solve cross-origin/CORS issues in production iOS environments. Uses 3 database tables (`meal_library_items`, `meal_library_usage`, `meal_generation_jobs`), feature flag engine selection (`STUDIO_ENGINE_CRAVING|FRIDGE|DESSERT`), and multi-layer scoring (craving tags, emotion tags, novelty penalty, quality score). Endpoint: `POST /api/studio/generate`. Seed script: `server/scripts/seedMealLibrary.ts`.
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
