@@ -95,10 +95,12 @@ import translateRouter from "./routes/translate";
 
 const app = express();
 
-// CORS middleware for production (Vercel frontend)
+// CORS middleware for production (all frontend origins)
 app.use((req, res, next) => {
   const allowedOrigins = [
     'https://my-perfect-meals-frontend-clean.vercel.app',
+    'https://myperfectmeals.com',
+    'https://www.myperfectmeals.com',
     'http://localhost:5173', // for local dev
     'http://localhost:5000'  // for Replit dev
   ];
