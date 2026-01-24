@@ -92,6 +92,7 @@ import builderPlansRouter from "./routes/builderPlans";
 import passwordResetRouter from "./routes/password-reset";
 import iosVerifyRouter from "./routes/iosVerify";
 import translateRouter from "./routes/translate";
+import studioGeneratorRouter from "./routes/studioGenerator";
 
 const app = express();
 
@@ -359,6 +360,9 @@ app.use("/api/avatar", avatarContextRoutes);
 app.use("/api/craving-creator", cravingCreatorRouter);  
 app.use("/api/meals/dessert-creator", dessertCreatorRouter);
 app.use("/api/holiday-feast", holidayFeastRouter);
+
+// Studio Generation Facade (LibraryEngine + QueueEngine)
+app.use("/api/studio", studioGeneratorRouter);
 app.use("/api/breakfast", breakfastRouter);
 app.use("/api/lunch", lunchRouter);
 app.use("/api/dinner", dinnerRouter);
