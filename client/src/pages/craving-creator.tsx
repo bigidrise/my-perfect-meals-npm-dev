@@ -619,7 +619,7 @@ export default function CravingCreator() {
             )}
           </div>
 
-          {/* Create with Chef Entry Point - Coming Soon */}
+          {/* Create with Chef Entry Point */}
           <div className="relative mb-6">
             <div
               className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-50"
@@ -631,10 +631,12 @@ export default function CravingCreator() {
             <Card
               className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
               data-testid="cravingcreator-chef-studio"
+              onClick={() => setLocation("/craving-studio")}
             >
               <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
                 <span className="text-white font-semibold text-[9px]">
-                  Coming Soon
+                  Powered by Emotion AI™
                 </span>
               </div>
               <CardContent className="p-3">
