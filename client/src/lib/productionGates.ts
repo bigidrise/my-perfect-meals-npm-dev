@@ -38,7 +38,7 @@ const ADMIN_EMAILS = ['admin@myperfectmeals.com'];
  */
 export const GATED_FEATURES = {
   studioCreators: false,      // Stage 1 - Studios (Craving Studio, Dessert Studio) - HIDDEN on prod/iOS
-  chefsKitchen: true,         // Stage 2 - Chef's Kitchen / Prepare with Chef - AVAILABLE everywhere
+  chefsKitchen: false,        // Stage 2 - Chef's Kitchen front door - HIDDEN on prod/iOS (Prepare with Chef still works)
   handsFreeVoice: false,
   quickCreators: true,
   talkToChef: true,
