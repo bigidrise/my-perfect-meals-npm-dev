@@ -1,8 +1,9 @@
 {
-  "releaseId": "1.1.4",
-  "publishedAt": "2026-01-23",
+  "releaseId": "1.1.5",
+  "publishedAt": "2026-01-24",
   "changes": [
-    "Removed all meal creation limits for pre-launch testing",
-    "TestFlight testers and reviewers can now create unlimited meals"
+    "New Meal Generation system for faster, more reliable results",
+    "Improved meal matching with emotion-aware scoring",
+    "Enhanced craving and dessert studio reliability"
   ]
 }

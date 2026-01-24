@@ -78,10 +78,10 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     generatingStart: "",
     generatingProgress1: "",
     generatingProgress2: "",
-    complete: "If you happy with your meal tap, Enter Chef’s Kitchen, and we’ll start cooking, if not, press Create New, and we can create a new meal.",
+    complete: "If everything looks good press the Enter Chef’s Kitchen button, if not, press, Create New, and we create a new meal.",
   },
 
-  apiEndpoint: "/api/studio/generate",
+  apiEndpoint: "/api/craving-creator/generate",
   backRoute: "/fridge-rescue",
   source: "fridge-rescue-studio",
   defaultMealType: "dinner",

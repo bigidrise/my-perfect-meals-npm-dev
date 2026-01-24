@@ -103,7 +103,7 @@ const CRAVING_STUDIO_STEP4 =
 
 const CRAVING_STUDIO_OPEN_START = "";
 const CRAVING_STUDIO_OPEN_PROGRESS1 =
-  "If you happy with your meal tap, Enter Chef’s Kitchen, and we’ll start cooking, if not, press Create New, and we can create a new meal.";
+  "If everything looks good press the Enter Chef’s Kitchen button, if not, press, Create New, and we create a new meal.";
 const CRAVING_STUDIO_OPEN_PROGRESS2 = "";
 const CRAVING_STUDIO_OPEN_COMPLETE = "";
 
@@ -611,7 +611,7 @@ export default function CravingStudio() {
               setStudioStep(5);
 
               speak(
-                "If everything looks good, press Generate."
+                "If everything looks good, tap, Create the Plan."
               );
             }}
 
