@@ -10,6 +10,7 @@ import {
   Wine,
   UtensilsCrossed,
 } from "lucide-react";
+import { isPublicProduction } from "@/lib/productionGates";
 
 interface AIFeature {
   title: string;
@@ -28,9 +29,10 @@ export default function LifestyleLandingPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Chef's Kitchen front-door is always disabled (Coming Soon)
-  // Users can still access Stage 2 via meal card "Prepare with Chef" buttons
-  const CHEFS_KITCHEN_COMING_SOON = true;
+  // Chef's Kitchen front-door: "Coming Soon" only on production/iOS
+  // Open in all dev/workspace environments for testing
+  // Users can always access Stage 2 via meal card "Prepare with Chef" buttons
+  const CHEFS_KITCHEN_COMING_SOON = isPublicProduction();
 
   const lifestyleFeatures: AIFeature[] = [
     {
