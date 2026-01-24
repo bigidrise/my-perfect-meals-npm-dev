@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Sparkles, LogIn } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
-import { startGuestSession } from "@/lib/guestMode";
+import { startGuestSession, endGuestSession } from "@/lib/guestMode";
 
 // 🚩 FEATURE FLAG: Set to true to show carousel, false for simple layout
 const SHOW_CAROUSEL = false;
@@ -234,6 +234,9 @@ export default function Welcome() {
           <Button
             data-testid="button-full-access"
             onClick={() => {
+              // Clear any existing guest session to prevent conflicts
+              endGuestSession();
+              
               // Create complete demo user with all required fields BEFORE navigation
               const appleReviewUser = {
                 id: "00000000-0000-0000-0000-000000000001",
