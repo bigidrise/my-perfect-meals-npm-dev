@@ -22,6 +22,17 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Disable hover effects on touch devices to prevent flickering */
+@media (hover: none) {
+  button:hover,
+  a:hover,
+  [role="button"]:hover {
+    background-color: inherit !important;
+    opacity: inherit !important;
+    transform: none !important;
+  }
+}
+
 /* iOS scroll momentum without revealing white background */
 html {
   overscroll-behavior: none;
