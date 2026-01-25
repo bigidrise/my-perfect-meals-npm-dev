@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.1.5",
+  "releaseId": "1.1.6",
   "publishedAt": "2026-01-24",
   "changes": [
-    "New Meal Generation system for faster, more reliable results",
-    "Improved meal matching with emotion-aware scoring",
-    "Enhanced craving and dessert studio reliability"
+    "Cook with Chef button now available on all meal cards",
+    "Apple Review mode improvements for seamless testing",
+    "Added GLP-1, Diabetic & Anti-Inflammatory builders to Guest Suite"
   ]
 }
