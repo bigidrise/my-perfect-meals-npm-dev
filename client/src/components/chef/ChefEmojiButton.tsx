@@ -8,8 +8,8 @@ export default function ChefEmojiButton({ onClick }: Props) {
       onClick={onClick}
       className="rounded-full border-2 border-white/15 select-none touch-manipulation overflow-hidden"
       style={{
-        width: "68px",
-        height: "68px",
+        width: "60px",
+        height: "60px",
         backgroundImage: "url(/icons/chef.png?v=2026b)",
         backgroundSize: "130%",
         backgroundPosition: "center",
