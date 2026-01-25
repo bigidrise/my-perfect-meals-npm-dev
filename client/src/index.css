@@ -2,12 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   Apple Device Safe Area Variables
+   For iPhone 17 Pro Max & iPad Air 11" (M3)
+   ============================================ */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+}
+
 /* iOS Viewport Wobble Fix - Prevents horizontal shift on navigation */
 html, body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
   position: relative;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
 }
 
 /* iOS WKWebView Anti-Flash - Prevents white screen flashes */
@@ -42,9 +56,10 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* React root fills viewport */
+/* React root fills viewport with dynamic height */
 #root {
-  height: 100%;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
   overflow: hidden;
 }
 
@@ -1167,18 +1182,30 @@ body {
 
 /* ============================================
    iPad & Large iPhone Responsive Optimization
-   Fixes for iPhone 17 Pro Max & iPad Air 11"
+   Fixes for iPhone 17 Pro Max & iPad Air 11" (M3)
+   Apple Guideline 4.0 Compliance
    ============================================ */
 
-/* iPad-specific layouts (768px and up) */
+/* For larger phones and small tablets (portrait) */
+@media (min-width: 414px) and (max-width: 834px) {
+  .content,
+  .page-content {
+    padding: 20px;
+    font-size: 1.1rem;
+  }
+}
+
+/* iPad and large screens (portrait/landscape) - iPad Air 11" ~834px logical width */
 @media (min-width: 768px) {
-  /* Constrain content width for readability on large screens */
+  /* Center content for readability - don't stretch full width */
+  .app-container,
   .page-container,
   .content-wrapper,
-  main > div {
-    max-width: 768px;
+  main > div:not(.full-width) {
+    max-width: 900px;
     margin-left: auto;
     margin-right: auto;
+    border-radius: 20px;
   }
   
   /* Cards and meal items should have better spacing */
@@ -1194,47 +1221,60 @@ body {
   }
 }
 
-/* Large iPad layouts (1024px and up) */
+/* Large iPad layouts and landscape (1024px and up) */
 @media (min-width: 1024px) {
+  .app-container,
   .page-container,
   .content-wrapper,
-  main > div {
-    max-width: 900px;
+  main > div:not(.full-width) {
+    max-width: 1100px;
   }
 }
 
-/* iPhone 17 Pro Max specific (taller screens) */
+/* iPad landscape mode adjustments */
+@media (min-width: 1024px) and (orientation: landscape) {
+  .app-container,
+  .page-container,
+  .content-wrapper {
+    max-width: 1100px;
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
+  }
+}
+
+/* iPhone 17 Pro Max specific (taller screens ~956pt height) */
 @media (min-height: 900px) and (max-width: 500px) {
   /* Ensure content fills the taller viewport properly */
   .min-h-screen,
   .h-screen {
     min-height: 100dvh;
   }
+  
+  /* Dynamic Island safe area (~47-59px) */
+  header,
+  .fixed[class*="top-0"] {
+    padding-top: var(--safe-area-inset-top);
+  }
 }
 
 /* Safe area insets for all modern devices */
 .safe-area-padded {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  padding-top: var(--safe-area-inset-top);
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-left: var(--safe-area-inset-left);
+  padding-right: var(--safe-area-inset-right);
 }
 
 /* Ensure fixed elements respect safe areas on all devices */
 .fixed[class*="bottom-0"] {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-area-inset-bottom);
 }
 
 .fixed[class*="top-0"] {
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--safe-area-inset-top);
 }
 
-/* iPad landscape mode adjustments */
-@media (min-width: 1024px) and (orientation: landscape) {
-  .page-container,
-  .content-wrapper {
-    max-width: 800px;
-    padding-left: max(2rem, env(safe-area-inset-left));
-    padding-right: max(2rem, env(safe-area-inset-right));
-  }
+/* Touch interaction improvements for iOS */
+button, a, [role="button"], .interactive {
+  touch-action: manipulation;
 }
