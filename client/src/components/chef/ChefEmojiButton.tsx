@@ -10,7 +10,7 @@ export default function ChefEmojiButton({ onClick }: Props) {
       style={{
         width: "68px",
         height: "68px",
-        backgroundImage: "url(/icons/chef.png?v=2026)",
+        backgroundImage: "url(/icons/chef.png?v=2026b)",
         backgroundSize: "130%",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
