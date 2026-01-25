@@ -75,12 +75,24 @@ export class AuthenticationRequiredError extends Error {
   }
 }
 
+// Apple Review mode user ID - hardcoded for App Store review testing
+const APPLE_REVIEW_USER_ID = '00000000-0000-0000-0000-000000000001';
+
 export function resolveUserId(req: any): string {
   // CRITICAL SECURITY: Require authenticated user - no fallback to shared identity
   // This prevents cross-account data leakage where multiple users would share 'local-user' data
   const userId = req.user?.id;
-  if (!userId) {
-    throw new AuthenticationRequiredError();
+  if (userId) {
+    return userId;
   }
-  return userId;
+  
+  // Apple Review mode: Allow specific hardcoded user ID via header
+  // This enables App Store reviewers to test the app without real authentication
+  const appleReviewHeader = req.headers['x-apple-review-user'];
+  if (appleReviewHeader === APPLE_REVIEW_USER_ID) {
+    console.log('[Auth] Apple Review mode active for weekly board');
+    return APPLE_REVIEW_USER_ID;
+  }
+  
+  throw new AuthenticationRequiredError();
 }

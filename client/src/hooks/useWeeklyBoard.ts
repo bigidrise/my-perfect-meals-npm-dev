@@ -7,6 +7,17 @@ const FETCH_TIMEOUT_MS = 8000;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 300;
 
+// Apple Review mode user ID - must match server
+const APPLE_REVIEW_USER_ID = '00000000-0000-0000-0000-000000000001';
+
+// Helper to get Apple Review headers if applicable
+function getAppleReviewHeaders(userId: string): Record<string, string> {
+  if (userId === APPLE_REVIEW_USER_ID) {
+    return { 'x-apple-review-user': APPLE_REVIEW_USER_ID };
+  }
+  return {};
+}
+
 // Cache key helper
 function cacheKey(userId: string, weekStartISO: string): string {
   return `${CACHE_NS}:${userId}:${weekStartISO}`;
@@ -83,7 +94,10 @@ function loadWeeklyBoard({
   return (async () => {
     try {
       const url = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
-      const res = await fetchWithRetry(url, { credentials: "include" });
+      const res = await fetchWithRetry(url, { 
+        credentials: "include",
+        headers: getAppleReviewHeaders(userId),
+      });
       
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
@@ -124,7 +138,10 @@ async function saveWeeklyBoard({
 
   const res = await fetchWithRetry(url, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      ...getAppleReviewHeaders(userId),
+    },
     credentials: "include",
     body: JSON.stringify(payload),
   });
