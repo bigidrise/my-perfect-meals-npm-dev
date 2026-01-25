@@ -11,17 +11,22 @@
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  /* Responsive font scaling for larger screens */
+  --base-font: clamp(16px, 3.5vw, 18px);
 }
 
 /* iOS Viewport Wobble Fix - Prevents horizontal shift on navigation */
 html, body {
-  width: 100%;
+  width: 100dvw;
   max-width: 100%;
   overflow-x: hidden;
+  overflow: hidden;
   position: relative;
   height: 100dvh;
   margin: 0;
   padding: 0;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 /* iOS WKWebView Anti-Flash - Prevents white screen flashes */
@@ -1202,10 +1207,11 @@ body {
   .page-container,
   .content-wrapper,
   main > div:not(.full-width) {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-    border-radius: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
   }
   
   /* Cards and meal items should have better spacing */
@@ -1236,9 +1242,10 @@ body {
   .app-container,
   .page-container,
   .content-wrapper {
-    max-width: 1100px;
-    padding-left: max(2rem, env(safe-area-inset-left));
-    padding-right: max(2rem, env(safe-area-inset-right));
+    max-width: 1200px;
+    padding: 0 40px;
+    padding-left: max(40px, env(safe-area-inset-left));
+    padding-right: max(40px, env(safe-area-inset-right));
   }
 }
 
