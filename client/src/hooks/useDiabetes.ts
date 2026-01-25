@@ -83,6 +83,7 @@ export function useSaveDiabetesProfile() {
       const response = await fetch(apiUrl("/api/diabetes/profile"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(profile),
       });
       if (!response.ok) throw new Error("Failed to save profile");
