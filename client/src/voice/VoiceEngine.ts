@@ -24,6 +24,7 @@ export interface VoiceEngineCallbacks {
   onChefSpeak: (text: string) => Promise<void>;
   onChefStop: () => void;
   onReadyToGenerate: (collectedData: CollectedData) => void;
+  onDataChange?: (collectedData: CollectedData) => void;
   onError: (error: string) => void;
   onPermissionDenied: () => void;
 }
@@ -373,6 +374,9 @@ export class VoiceEngine {
     if (!hasDietaryRule && !foundIngredients) {
       this.collectedData.preferences.push(transcript);
     }
+    
+    // Notify listener of data change
+    this.callbacks.onDataChange?.(this.getCollectedData());
   }
 
   private finishConversation(): void {

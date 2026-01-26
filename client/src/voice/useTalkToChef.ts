@@ -14,6 +14,7 @@ interface UseTalkToChefReturn {
   isActive: boolean;
   voiceState: VoiceState;
   transcript: string;
+  collectedData: CollectedData;
   startTalking: () => Promise<boolean>;
   stopTalking: () => void;
   permissionDenied: boolean;
@@ -28,6 +29,12 @@ export function useTalkToChef({
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState("");
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [collectedData, setCollectedData] = useState<CollectedData>({
+    ingredients: [],
+    preferences: [],
+    dietaryRules: [],
+    rawTranscripts: [],
+  });
   
   const [isPlaying, setIsPlaying] = useState(false);
   const { speak, stop: stopChef } = useChefVoice(setIsPlaying);
@@ -47,6 +54,12 @@ export function useTalkToChef({
     
     setPermissionDenied(false);
     setTranscript("");
+    setCollectedData({
+      ingredients: [],
+      preferences: [],
+      dietaryRules: [],
+      rawTranscripts: [],
+    });
     
     const script = getStudioScript(studioType);
     
@@ -67,7 +80,11 @@ export function useTalkToChef({
         onReadyToGenerate: (data) => {
           setIsActive(false);
           setVoiceState("idle");
+          setCollectedData(data);
           onReadyToGenerate(data);
+        },
+        onDataChange: (data) => {
+          setCollectedData(data);
         },
         onError: (error) => {
           console.error("TalkToChef error:", error);
@@ -117,6 +134,7 @@ export function useTalkToChef({
     isActive,
     voiceState,
     transcript,
+    collectedData,
     startTalking,
     stopTalking,
     permissionDenied,
