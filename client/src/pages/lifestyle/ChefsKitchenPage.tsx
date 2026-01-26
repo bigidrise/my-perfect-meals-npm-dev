@@ -512,12 +512,11 @@ export default function ChefsKitchenPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Voice Studio configuration for hands-free mode (5 steps before generate)
+  // Voice Studio configuration for hands-free mode (4 input steps)
   const KITCHEN_VOICE_STEP1 = "Alright — what are we making today?";
   const KITCHEN_VOICE_STEP2 = "Got it. How do you want to cook it? Stovetop, oven, air fryer, or something else?";
-  const KITCHEN_VOICE_STEP3 = "Anything else you want to add or change before I start generating your meal?";
+  const KITCHEN_VOICE_STEP3 = "Anything else you want to add or avoid?";
   const KITCHEN_VOICE_STEP4 = "How many servings should I make?";
-  const KITCHEN_VOICE_STEP5 = "Perfect — I’ve got what I need. Generating your meal now.";
 
   const voiceStudio = useVoiceStudio({
     steps: [
@@ -572,21 +571,16 @@ export default function ChefsKitchenPage() {
           return match ? match[0] : "2";
         },
       },
-      {
-        voiceScript: KITCHEN_VOICE_STEP5,
-        setValue: setEquipment,
-        setLocked: setStep5Locked,
-        setListened: setStep5Listened,
-      },
     ],
     onAllStepsComplete: (collectedValues: string[]) => {
       // Use collected values directly to avoid React state timing issues
-      // Values order: [dishIdea, cookMethod, ingredientNotes, servings, equipment]
-      const [voiceDish, voiceMethod, voiceIngredients, voiceServings, voiceEquipment] = collectedValues;
-      console.log("🎤 Voice studio collected:", { voiceDish, voiceMethod, voiceIngredients, voiceServings, voiceEquipment });
+      // Values order: [dishIdea, cookMethod, ingredientNotes, servings] - 4 steps
+      const [voiceDish, voiceMethod, voiceIngredients, voiceServings] = collectedValues;
+      console.log("🎤 Voice studio collected:", { voiceDish, voiceMethod, voiceIngredients, voiceServings });
       
-      setStudioStep(6);
-      startOpenKitchenWithValues(voiceDish, voiceMethod, voiceIngredients, voiceServings, voiceEquipment);
+      setStudioStep(5);
+      // Use suggested equipment as default since we don't ask for it in voice mode
+      startOpenKitchenWithValues(voiceDish, voiceMethod, voiceIngredients, voiceServings, suggestedEquipment.join(", "));
     },
     setStudioStep: (step) => setStudioStep(step as 1 | 2 | 3 | 4 | 5 | 6),
   });
