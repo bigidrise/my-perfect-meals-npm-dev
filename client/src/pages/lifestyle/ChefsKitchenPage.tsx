@@ -578,7 +578,12 @@ export default function ChefsKitchenPage() {
       const [voiceDish, voiceMethod, voiceIngredients, voiceServings] = collectedValues;
       console.log("🎤 Voice studio collected:", { voiceDish, voiceMethod, voiceIngredients, voiceServings });
       
-      setStudioStep(5);
+      // Skip step 5 (equipment) in hands-free mode - go directly to generation (step 6)
+      // This prevents the step 5 useEffect from triggering overlapping TTS
+      setStudioStep(6);
+      setStep5Listened(true); // Mark as listened to prevent auto-speak
+      setStep5Locked(true);   // Lock to prevent interaction
+      
       // Use suggested equipment as default since we don't ask for it in voice mode
       startOpenKitchenWithValues(voiceDish, voiceMethod, voiceIngredients, voiceServings, suggestedEquipment.join(", "));
     },
@@ -636,17 +641,13 @@ export default function ChefsKitchenPage() {
     setGenerationProgress(10);
     setGenerationError(null);
 
-    speak(KITCHEN_STUDIO_OPEN_START);
-
+    // Note: Voice studio already speaks completion message, so skip TTS here to avoid overlap
     progressIntervalRef.current = setInterval(() => {
       setGenerationProgress((p) => {
         if (p >= 90) return p;
         return p + Math.floor(Math.random() * 8) + 4;
       });
     }, 700);
-
-    setTimeout(() => speak(KITCHEN_STUDIO_OPEN_PROGRESS1), 2000);
-    setTimeout(() => speak(KITCHEN_STUDIO_OPEN_PROGRESS2), 4000);
 
     try {
       const chefPromptParts = [
