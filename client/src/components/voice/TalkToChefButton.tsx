@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, AudioWaveform } from "lucide-react";
+import { Mic, AudioWaveform, ChefHat } from "lucide-react";
 import VoiceModeOverlay from "./VoiceModeOverlay";
 
 type VoiceState = "idle" | "speaking" | "listening" | "processing";
@@ -83,7 +83,7 @@ export default function TalkToChefButton({
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
         <div className="flex items-center gap-1">
-          <span className="text-4xl leading-none">🧑‍🍳</span>
+          <ChefHat className="w-10 h-10 text-white" />
           <Mic className="w-6 h-6 text-orange-400" />
         </div>
         <div className="flex items-center gap-1 mt-0.5">
