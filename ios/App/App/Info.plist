@@ -32,6 +32,8 @@
         <string>My Perfect Meals needs microphone access for voice input features.</string>
         <key>NSSpeechRecognitionUsageDescription</key>
         <string>My Perfect Meals uses speech recognition to enable hands-free voice commands for meal creation.</string>
+        <key>NSBluetoothAlwaysUsageDescription</key>
+        <string>My Perfect Meals uses Bluetooth to capture audio from connected microphones or headsets for hands-free cooking.</string>
         <key>NSPhotoLibraryAddUsageDescription</key>
         <string>My Perfect Meals needs to save photos to your library.</string>
         <key>NSPhotoLibraryUsageDescription</key>
