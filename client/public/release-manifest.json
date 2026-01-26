@@ -1,9 +1,15 @@
 {
-  "releaseId": "1.1.6",
-  "publishedAt": "2026-01-24",
+  "releaseId": "1.1.7",
+  "publishedAt": "2026-01-26",
   "changes": [
-    "Cook with Chef button now available on all meal cards",
-    "Apple Review mode improvements for seamless testing",
-    "Added GLP-1, Diabetic & Anti-Inflammatory builders to Guest Suite"
+    "Hands-Free Voice Mode - Talk to Chef with the new floating microphone button",
+    "Natural conversation flow with 5-second pause tolerance",
+    "Real-time feedback with Chef avatar states (speaking, listening, thinking)",
+    "Live transcript shows what you're saying",
+    "Say 'cook now' or 'I'm ready' when finished",
+    "Interrupt Chef anytime with barge-in support",
+    "iOS Bluetooth headset support for AirPods and other devices",
+    "Smart voice data mapping to studio steps",
+    "Improved hands-free generation flow with no double-talking"
   ]
 }
