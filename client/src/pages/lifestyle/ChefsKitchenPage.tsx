@@ -1015,10 +1015,16 @@ export default function ChefsKitchenPage() {
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Chef&apos;s Kitchen{" "}
-            <span className="text-4xl leading-none">👨🏿‍🍳</span>
+          <h1 className="text-lg font-bold text-white truncate min-w-0 flex items-center gap-2">
+            Chef&apos;s Kitchen
+            <img
+              src="/icons/chef.png"
+              alt="Chef"
+              className="w-10 h-10 rounded-full ring-2 ring-amber-400/30 shadow-[0_0_18px_rgba(251,191,36,0.35)]"
+              draggable={false}
+            />
           </h1>
+
 
           <div className="flex-grow" />
 
@@ -1211,8 +1217,8 @@ export default function ChefsKitchenPage() {
               />
             )}
 
-            {/* Step 5 - Chef's Setup (Equipment) - Only in manual mode, hands-free skips to 6 */}
-            {studioStep === 5 && (
+            {/* Step 5 - Chef's Setup (Equipment) */}
+            {studioStep >= 5 && (
               <KitchenStepCard
                 stepTitle="Step 5 · Chef's Setup"
                 question="Take a look — grab what you need, then tap OK."
