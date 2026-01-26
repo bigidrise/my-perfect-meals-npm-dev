@@ -84,6 +84,8 @@ export class VoiceEngine {
     this.setState("speaking");
     
     try {
+      // Stop any previous speech before starting new
+      this.callbacks.onChefStop();
       await this.callbacks.onChefSpeak(this.script.openingPrompt);
       this.startListening();
       return true;
@@ -257,6 +259,8 @@ export class VoiceEngine {
       this.stopListening();
       
       try {
+        // Stop any previous speech before starting new
+        this.callbacks.onChefStop();
         await this.callbacks.onChefSpeak(guidePrompt);
         if (this.config.resumeAfterInterrupt || !this.isBargedIn) {
           this.isBargedIn = false;
@@ -281,6 +285,8 @@ export class VoiceEngine {
     this.stopListening();
     
     try {
+      // Stop any previous speech before starting new
+      this.callbacks.onChefStop();
       await this.callbacks.onChefSpeak(this.script.readyPrompt);
       this.startListening(false);
     } catch {
