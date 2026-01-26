@@ -83,8 +83,7 @@ export default function TalkToChefButton({
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
         <div className="flex items-center gap-1">
-          <ChefHat className="w-10 h-10 text-white" />
-          <Mic className="w-6 h-6 text-orange-400" />
+          <span className="text-4xl leading-none">🎙️</span>
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           <AudioWaveform className="w-4 h-4 text-orange-400" />
