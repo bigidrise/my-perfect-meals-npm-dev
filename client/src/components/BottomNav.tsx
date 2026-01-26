@@ -104,19 +104,12 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* CHEF BUTTON - Dead-stable shell to prevent iOS viewport drift */}
+      {/* CHEF BUTTON - DO NOT add safe-area here, nav handles it */}
       <div
-        className="fixed left-1/2 z-[45] pointer-events-none"
-        style={{ bottom: `calc(var(--safe-bottom) + 6px)` }}
+        className="fixed left-1/2 z-[45] pointer-events-none flex items-center justify-center"
+        style={{ bottom: "6px", transform: "translateX(-50%)" }}
       >
-        <div
-          className="pointer-events-auto"
-          style={{
-            transform: "translateX(-50%)",
-            width: "max-content",
-            backfaceVisibility: "hidden",
-          }}
-        >
+        <div className="pointer-events-auto">
           <ChefEmojiButton onClick={handleChefClick} />
         </div>
       </div>
