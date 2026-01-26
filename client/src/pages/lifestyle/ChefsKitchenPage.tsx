@@ -1020,7 +1020,7 @@ export default function ChefsKitchenPage() {
             <img
               src="/icons/chef.png"
               alt="Chef"
-              className="w-10 h-10 rounded-full ring-2 ring-amber-400/30 shadow-[0_0_18px_rgba(251,191,36,0.35)]"
+              className="w-16 h-16 rounded-full ring-2 ring-white/10 shadow"
               draggable={false}
             />
           </h1>
