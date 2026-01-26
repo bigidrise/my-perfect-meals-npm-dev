@@ -18,10 +18,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
 import { useToast } from "@/hooks/use-toast";
 import TalkToChefButton from "@/components/voice/TalkToChefButton";
-import ConversationalVoiceOverlay from "@/components/voice/ConversationalVoiceOverlay";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
-import { useTalkToChef } from "@/voice/useTalkToChef";
-import type { StudioType } from "@/voice/StudioScripts";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
@@ -108,11 +105,8 @@ export interface StudioConfig {
   apiEndpoint: string;
   backRoute: string;
   source: string;
-  studioType?: StudioType;
   defaultMealType: string;
   servingsStepIndex: number;
-  ingredientsStepIndex?: number;
-  preferencesStepIndex?: number;
   buildPrompt: (values: string[], servings: number) => Record<string, any>;
   afterStepScripts?: Record<number, string>;
   disableVoiceSteps?: number[];
@@ -183,50 +177,6 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(null);
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // 🎙️ Conversational Voice System (Talk to Chef)
-  const [showConversationalVoice, setShowConversationalVoice] = useState(false);
-  const studioTypeForVoice: StudioType = config.studioType || 
-    (source === "fridge_rescue" ? "fridgeRescue" : 
-     source === "craving" ? "craving" : 
-     source === "dessert" ? "dessert" : "chefsKitchen");
-  
-  // Config-driven step indices for voice data mapping
-  const ingredientsIdx = config.ingredientsStepIndex ?? 0;
-  const preferencesIdx = config.preferencesStepIndex ?? 
-    steps.findIndex(s => s.summaryPrefix === "Preferences" || s.title.toLowerCase().includes("preference"));
-  
-  const conversationalVoice = useTalkToChef({
-    studioType: studioTypeForVoice,
-    onReadyToGenerate: (data) => {
-      setShowConversationalVoice(false);
-      // Map collected voice data to step values using config-driven indices
-      if (data.ingredients.length > 0 && ingredientsIdx >= 0 && ingredientsIdx < steps.length) {
-        updateStepValue(ingredientsIdx, data.ingredients.join(", "));
-        setLocked(ingredientsIdx, true);
-        setListened(ingredientsIdx, true);
-      }
-      if ((data.preferences.length > 0 || data.dietaryRules.length > 0) && preferencesIdx >= 0 && preferencesIdx < steps.length) {
-        const allPrefs = [...data.preferences, ...data.dietaryRules];
-        updateStepValue(preferencesIdx, allPrefs.join(", "));
-        setLocked(preferencesIdx, true);
-        setListened(preferencesIdx, true);
-      }
-      // Mark all steps as listened and lock them
-      for (let i = 0; i < steps.length; i++) {
-        if (!stepLocked[i]) {
-          setLocked(i, true);
-          setListened(i, true);
-        }
-      }
-      // Move to generate step and trigger generation
-      setStudioStep((steps.length + 1) as StudioStep);
-      setTimeout(() => generateMeal(), 100);
-    },
-    onError: (error) => {
-      console.error("Voice error:", error);
-    },
-  });
 
   // 🔐 SafetyGuard preflight system
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -781,33 +731,18 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
       </div>
 
-      {/* Talk to Chef floating button - Conversational voice mode */}
+      {/* Talk to Chef floating button - show during studio steps (before generate), hidden on disabled voice steps */}
       {studioStep <= steps.length && !isGenerating && !isVoiceDisabledForCurrentStep && (
-        <button
-          onClick={() => setShowConversationalVoice(true)}
-          className="fixed right-4 z-50 flex flex-col items-center select-none touch-manipulation"
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-        >
-          <div className="flex items-center gap-1">
-            <span className="text-5xl leading-none">👨🏿‍🍳</span>
-            <ChefHat className="w-6 h-6 text-orange-400" />
-          </div>
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className="text-[10px] text-orange-400 font-medium">Talk to Chef</span>
-          </div>
-        </button>
+        <TalkToChefButton
+          voiceState={voiceStudio.voiceState}
+          currentStep={voiceStudio.currentVoiceStep}
+          totalSteps={steps.length}
+          lastTranscript={voiceStudio.lastTranscript}
+          isPlaying={voiceStudio.isPlaying}
+          onStart={() => voiceStudio.startVoiceMode(currentStepIndex)}
+          onStop={voiceStudio.stopVoiceMode}
+        />
       )}
-
-      {/* Conversational Voice Overlay */}
-      <ConversationalVoiceOverlay
-        isOpen={showConversationalVoice}
-        onClose={() => setShowConversationalVoice(false)}
-        voiceState={conversationalVoice.voiceState}
-        transcript={conversationalVoice.transcript}
-        collectedData={conversationalVoice.collectedData}
-        onStart={conversationalVoice.startTalking}
-        onStop={conversationalVoice.stopTalking}
-      />
     </motion.div>
   );
 }
