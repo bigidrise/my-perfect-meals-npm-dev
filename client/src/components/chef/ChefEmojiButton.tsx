@@ -4,7 +4,7 @@ type Props = {
   version?: string;       // optional cache buster
 };
 
-export default function ChefEmojiButton({ onClick, size = 56, version = "2026c" }: Props) {
+export default function ChefEmojiButton({ onClick, size = 64, version = "2026c" }: Props) {
   return (
     <button
       onClick={onClick}
