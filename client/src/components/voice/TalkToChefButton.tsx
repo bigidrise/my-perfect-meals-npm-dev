@@ -82,14 +82,9 @@ export default function TalkToChefButton({
         className="fixed right-4 z-50 flex flex-col items-center select-none touch-manipulation"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
-        <div className="flex items-center gap-0.5">
-          <img 
-            src="/icons/chef.png?v=2026d" 
-            alt="Chef" 
-            className="w-14 h-14 object-contain drop-shadow-lg"
-            style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" }}
-          />
-          <Mic className="w-5 h-5 text-orange-400 -ml-2" />
+        <div className="flex items-center gap-1">
+          <span className="text-4xl leading-none">🧑‍🍳</span>
+          <Mic className="w-6 h-6 text-orange-400" />
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           <AudioWaveform className="w-4 h-4 text-orange-400" />
