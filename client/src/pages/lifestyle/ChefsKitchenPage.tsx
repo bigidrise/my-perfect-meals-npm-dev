@@ -579,9 +579,14 @@ export default function ChefsKitchenPage() {
         setListened: setStep5Listened,
       },
     ],
-    onAllStepsComplete: () => {
+    onAllStepsComplete: (collectedValues: string[]) => {
+      // Use collected values directly to avoid React state timing issues
+      // Values order: [dishIdea, cookMethod, ingredientNotes, servings, equipment]
+      const [voiceDish, voiceMethod, voiceIngredients, voiceServings, voiceEquipment] = collectedValues;
+      console.log("🎤 Voice studio collected:", { voiceDish, voiceMethod, voiceIngredients, voiceServings, voiceEquipment });
+      
       setStudioStep(6);
-      startOpenKitchen();
+      startOpenKitchenWithValues(voiceDish, voiceMethod, voiceIngredients, voiceServings, voiceEquipment);
     },
     setStudioStep: (step) => setStudioStep(step as 1 | 2 | 3 | 4 | 5 | 6),
   });
@@ -611,6 +616,195 @@ export default function ChefsKitchenPage() {
       }
     };
   }, []);
+
+  // Core generation logic - accepts explicit values to avoid React state timing issues
+  const generateMealWithValues = async (
+    voiceDish: string,
+    voiceMethod: string,
+    voiceIngredients: string,
+    voiceServingsStr: string,
+    voiceEquipment: string,
+    skipPreflight = false
+  ) => {
+    // Parse servings from voice input
+    const voiceServings = parseInt(voiceServingsStr?.replace(/\D/g, ""), 10) || 2;
+    
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const requestDescription = `${voiceDish} ${voiceMethod} ${voiceIngredients}`.trim();
+      const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
+      if (!isSafe) {
+        return;
+      }
+    }
+    
+    setIsGeneratingMeal(true);
+    setGenerationProgress(10);
+    setGenerationError(null);
+
+    speak(KITCHEN_STUDIO_OPEN_START);
+
+    progressIntervalRef.current = setInterval(() => {
+      setGenerationProgress((p) => {
+        if (p >= 90) return p;
+        return p + Math.floor(Math.random() * 8) + 4;
+      });
+    }, 700);
+
+    setTimeout(() => speak(KITCHEN_STUDIO_OPEN_PROGRESS1), 2000);
+    setTimeout(() => speak(KITCHEN_STUDIO_OPEN_PROGRESS2), 4000);
+
+    try {
+      const chefPromptParts = [
+        `Create with Chef: ${voiceDish}`,
+        `Cooking method: ${voiceMethod}`,
+      ];
+
+      if (voiceIngredients) {
+        chefPromptParts.push(`Preferences: ${voiceIngredients}`);
+      }
+
+      const equipmentContext = voiceEquipment || suggestedEquipment.join(", ");
+      if (equipmentContext) {
+        chefPromptParts.push(`Equipment available: ${equipmentContext}`);
+      }
+
+      const cravingPrompt = chefPromptParts.join(". ");
+
+      const fullUrl = apiUrl("/api/craving-creator/generate");
+      console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
+      console.log("🔥 CHEF KITCHEN API CALL - Payload:", { craving: cravingPrompt, mealType: "dinner", source: "chefs-kitchen", servings: voiceServings });
+      
+      const response = await fetch(fullUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          craving: cravingPrompt,
+          mealType: "dinner",
+          source: "chefs-kitchen",
+          servings: voiceServings,
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: overrideToken || undefined,
+        }),
+      });
+
+      console.log("🔥 CHEF KITCHEN API RESPONSE - Status:", response.status, response.statusText);
+
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("🔥 CHEF KITCHEN API ERROR - Body:", errorText);
+        throw new Error(`Failed to generate meal: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("🍳 Chef's Kitchen API response:", data);
+
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Safety alert detected",
+          suggestion: data.suggestion,
+        });
+        return;
+      }
+
+      const meal = data.meal;
+
+      if (!meal) {
+        throw new Error("No meal data returned from API");
+      }
+
+      const srcNutrition = meal.nutrition || {};
+      const nutritionCalories = srcNutrition.calories ?? meal.calories ?? 0;
+      const nutritionProtein = srcNutrition.protein ?? meal.protein ?? 0;
+      const nutritionCarbs = srcNutrition.carbs ?? meal.carbs ?? 0;
+      const nutritionFat = srcNutrition.fat ?? meal.fat ?? 0;
+
+      const normalizedMeal: GeneratedMeal = {
+        id: meal.id || `chef-${Date.now()}`,
+        name: meal.name,
+        description: meal.description || "",
+        mealType: meal.mealType || "dinner",
+        ingredients: (meal.ingredients || []).map((ing: any) => ({
+          name: ing.name,
+          quantity: ing.quantity || ing.displayText,
+          amount: ing.amount,
+          unit: ing.unit,
+          notes: ing.notes || "",
+        })),
+        instructions: normalizeInstructions(meal.instructions || meal.preparationSteps),
+        imageUrl: meal.imageUrl || null,
+        calories: nutritionCalories,
+        protein: nutritionProtein,
+        carbs: nutritionCarbs,
+        fat: nutritionFat,
+        nutrition: {
+          calories: nutritionCalories,
+          protein: nutritionProtein,
+          carbs: nutritionCarbs,
+          fat: nutritionFat,
+        },
+        medicalBadges: meal.medicalBadges || [],
+        flags: meal.flags || [],
+        servingSize: meal.servingSize,
+        servings: voiceServings,
+        reasoning: meal.reasoning,
+      };
+
+      console.log("✅ Chef's Kitchen normalized meal:", normalizedMeal);
+
+      setGeneratedMeal(normalizedMeal);
+      setGenerationProgress(100);
+      speak(KITCHEN_STUDIO_OPEN_COMPLETE);
+
+      setTimeout(() => {
+        setIsGeneratingMeal(false);
+      }, 500);
+    } catch (error: any) {
+      console.error("Chef's Kitchen generation error:", error);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      
+      if (isAllergyRelatedError(error.message)) {
+        const allergyDescription = formatAllergyAlertDescription(error.message);
+        setGenerationError(`Safety Alert: ${allergyDescription}`);
+      } else {
+        setGenerationError(error.message || "Failed to generate meal. Please try again.");
+      }
+      setIsGeneratingMeal(false);
+      setGenerationProgress(0);
+    }
+  };
+
+  // Wrapper for voice studio - uses passed values directly
+  const startOpenKitchenWithValues = (
+    voiceDish?: string,
+    voiceMethod?: string,
+    voiceIngredients?: string,
+    voiceServings?: string,
+    voiceEquipment?: string
+  ) => {
+    generateMealWithValues(
+      voiceDish || "",
+      voiceMethod || "",
+      voiceIngredients || "",
+      voiceServings || "2",
+      voiceEquipment || "",
+      false
+    );
+  };
 
   const startOpenKitchen = async (skipPreflight = false) => {
     // 🔐 Preflight safety check - BEFORE starting progress bar

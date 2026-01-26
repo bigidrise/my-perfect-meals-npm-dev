@@ -12,7 +12,7 @@ interface VoiceStudioStep {
 
 interface UseVoiceStudioOptions {
   steps: VoiceStudioStep[];
-  onAllStepsComplete: () => void;
+  onAllStepsComplete: (collectedValues: string[]) => void;
   setStudioStep: (step: number) => void;
   disabledSteps?: number[];
 }
@@ -41,6 +41,9 @@ export function useVoiceStudio({
   const gotResultRef = useRef(false);
   const restartCountRef = useRef(0);
   const listenStartedAtRef = useRef(0);
+  
+  // Track collected values across all steps to avoid React state timing issues
+  const collectedValuesRef = useRef<string[]>([]);
   
   const MAX_RESTARTS = 3;
   const MIN_LISTEN_MS = 1200;
@@ -137,6 +140,10 @@ export function useVoiceStudio({
       if (!step) return;
 
       const value = step.parseValue ? step.parseValue(transcript) : transcript;
+      
+      // Store collected value in ref (avoids React state timing issues)
+      collectedValuesRef.current[stepIndex] = value;
+      console.log("🎤 Stored value for step", stepIndex, ":", value);
 
       // Lock current step first
       step.setListened(true);
@@ -149,16 +156,18 @@ export function useVoiceStudio({
       setStudioStep(nextStepIndex + 1);
 
       if (nextStepIndex >= steps.length) {
-        // All steps complete
+        // All steps complete - pass collected values to callback
+        const finalValues = [...collectedValuesRef.current];
+        console.log("🎤 All steps complete, collected values:", finalValues);
         setVoiceState("speaking");
         speak("Got it. Building your meal now.").then(() => {
           setIsActive(false);
           setVoiceState("idle");
-          onAllStepsComplete();
+          onAllStepsComplete(finalValues);
         }).catch(() => {
           setIsActive(false);
           setVoiceState("idle");
-          onAllStepsComplete();
+          onAllStepsComplete(finalValues);
         });
       } else {
         // Move to next step and speak
@@ -308,6 +317,7 @@ export function useVoiceStudio({
     setLastTranscript("");
     setSilenceCount(0);
     restartCountRef.current = 0;
+    collectedValuesRef.current = []; // Reset collected values for new session
     
     // Set studio to the enabled step (1-indexed)
     setStudioStep(firstEnabledStep + 1);
