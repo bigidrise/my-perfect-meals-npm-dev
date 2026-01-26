@@ -515,7 +515,8 @@ export default function ChefsKitchenPage() {
   // Voice Studio configuration for hands-free mode (5 steps before generate)
   const KITCHEN_VOICE_STEP1 = "Alright — what are we making today?";
   const KITCHEN_VOICE_STEP2 = "Got it. How do you want to cook it? Stovetop, oven, air fryer, or something else?";
-  const KITCHEN_VOICE_STEP3 = "Any specific ingredients you want, or anything you want to avoid?";
+  const KITCHEN_VOICE_STEP5 =
+  "Anything else you want to add or change before I start generating your meal?";
   const KITCHEN_VOICE_STEP4 = "How many servings should I make?";
   const KITCHEN_VOICE_STEP5 = "Any equipment preferences? I can suggest based on your cooking method.";
 
