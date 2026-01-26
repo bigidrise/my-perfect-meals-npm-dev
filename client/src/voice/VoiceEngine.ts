@@ -62,6 +62,7 @@ export class VoiceEngine {
   private hasResumedThisSilence = false;
   private hasOfferedToGenerate = false;
   private isBargedIn = false;
+  private isSpeaking = false;
   private accumulatedTranscript = "";
 
   constructor(
@@ -82,15 +83,16 @@ export class VoiceEngine {
     }
 
     this.setState("speaking");
+    this.isSpeaking = true;
     
     try {
-      // Stop any previous speech before starting new
-      this.callbacks.onChefStop();
       await this.callbacks.onChefSpeak(this.script.openingPrompt);
+      this.isSpeaking = false;
       this.startListening();
       return true;
     } catch (error) {
       console.error("VoiceEngine: Failed to speak opening prompt", error);
+      this.isSpeaking = false;
       this.startListening();
       return true;
     }
@@ -146,6 +148,7 @@ export class VoiceEngine {
     this.hasResumedThisSilence = false;
     this.hasOfferedToGenerate = false;
     this.isBargedIn = false;
+    this.isSpeaking = false;
     this.accumulatedTranscript = "";
     this.collectedData = {
       ingredients: [],
@@ -255,18 +258,23 @@ export class VoiceEngine {
       const guidePrompt = this.script.guidePrompts[this.currentGuideIndex];
       this.currentGuideIndex++;
       
+      if (this.isSpeaking) {
+        return; // Don't overlap speech
+      }
+      
       this.setState("speaking");
       this.stopListening();
+      this.isSpeaking = true;
       
       try {
-        // Stop any previous speech before starting new
-        this.callbacks.onChefStop();
         await this.callbacks.onChefSpeak(guidePrompt);
+        this.isSpeaking = false;
         if (this.config.resumeAfterInterrupt || !this.isBargedIn) {
           this.isBargedIn = false;
           this.startListening(false);
         }
       } catch {
+        this.isSpeaking = false;
         this.startListening(false);
       }
     } else {
@@ -280,16 +288,21 @@ export class VoiceEngine {
       return;
     }
     
+    if (this.isSpeaking) {
+      return; // Don't overlap speech
+    }
+    
     this.hasOfferedToGenerate = true;
     this.setState("speaking");
     this.stopListening();
+    this.isSpeaking = true;
     
     try {
-      // Stop any previous speech before starting new
-      this.callbacks.onChefStop();
       await this.callbacks.onChefSpeak(this.script.readyPrompt);
+      this.isSpeaking = false;
       this.startListening(false);
     } catch {
+      this.isSpeaking = false;
       this.startListening(false);
     }
   }
