@@ -1211,8 +1211,8 @@ export default function ChefsKitchenPage() {
               />
             )}
 
-            {/* Step 5 - Chef's Setup (Equipment) */}
-            {studioStep >= 5 && (
+            {/* Step 5 - Chef's Setup (Equipment) - Only in manual mode, hands-free skips to 6 */}
+            {studioStep === 5 && (
               <KitchenStepCard
                 stepTitle="Step 5 · Chef's Setup"
                 question="Take a look — grab what you need, then tap OK."
