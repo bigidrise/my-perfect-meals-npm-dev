@@ -83,7 +83,11 @@ export default function TalkToChefButton({
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
         <div className="flex items-center gap-1">
-          <span className="text-5xl leading-none">👨🏿‍🍳</span>
+          <img 
+            src="/icons/chef.png?v=2026c" 
+            alt="Chef" 
+            className="w-12 h-12 object-contain"
+          />
           <Mic className="w-6 h-6 text-orange-400" />
         </div>
         <div className="flex items-center gap-1 mt-0.5">
