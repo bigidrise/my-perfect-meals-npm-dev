@@ -31,14 +31,37 @@
     <meta name="theme-color" content="#000000" />
     <title>My Perfect Meals</title>
     <style>
+      /* Prevent any white flash during boot - Apple HIG compliance */
       html,
       body {
-        background-color: #000;
+        background-color: #000 !important;
         min-height: 100%;
+        margin: 0;
+        padding: 0;
       }
       #root {
         min-height: 100dvh;
+        background-color: #000 !important;
+      }
+      /* Initial loading state before React hydrates */
+      #root:empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100dvh;
         background-color: #000;
+      }
+      #root:empty::after {
+        content: "";
+        width: 32px;
+        height: 32px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
     </style>
   </head>

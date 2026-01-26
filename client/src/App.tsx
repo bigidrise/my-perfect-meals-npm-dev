@@ -99,13 +99,27 @@ export default function App() {
     }
   };
 
+  // Show branded loading shell until app is ready
+  // This prevents white flash / 404 during boot sequence
   if (!isAppReady) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white/80 text-sm">Loading My Perfect Meals...</p>
-        </div>
+      <div 
+        style={{
+          backgroundColor: "#000",
+          height: "100dvh",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column"
+        }}
+      >
+        <img 
+          src="/icons/chef.png?v=2026b" 
+          alt="Loading" 
+          style={{ width: "80px", height: "80px", marginBottom: "16px" }}
+        />
+        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>Loading...</p>
       </div>
     );
   }
