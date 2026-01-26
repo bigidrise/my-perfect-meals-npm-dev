@@ -36,14 +36,17 @@ export function useVoiceStudio({
 
   const recognitionRef = useRef<any>(null);
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const speechEndTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isActiveRef = useRef(false);
   const currentVoiceStepRef = useRef(0);
   const gotResultRef = useRef(false);
   const restartCountRef = useRef(0);
   const listenStartedAtRef = useRef(0);
+  const accumulatedTranscriptRef = useRef("");
   
-  const MAX_RESTARTS = 3;
+  const MAX_RESTARTS = 5;
   const MIN_LISTEN_MS = 1200;
+  const SPEECH_END_DELAY = 2000; // Wait 2s after last speech before processing
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -61,15 +64,24 @@ export function useVoiceStudio({
     }
   }, []);
 
+  const clearSpeechEndTimeout = useCallback(() => {
+    if (speechEndTimeoutRef.current) {
+      clearTimeout(speechEndTimeoutRef.current);
+      speechEndTimeoutRef.current = null;
+    }
+  }, []);
+
   const stopListening = useCallback(() => {
     clearSilenceTimeout();
+    clearSpeechEndTimeout();
+    accumulatedTranscriptRef.current = "";
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch (e) {}
       recognitionRef.current = null;
     }
-  }, [clearSilenceTimeout]);
+  }, [clearSilenceTimeout, clearSpeechEndTimeout]);
 
   const endSession = useCallback(() => {
     setIsActive(false);
@@ -97,11 +109,13 @@ export function useVoiceStudio({
     setVoiceState("listening");
     gotResultRef.current = false;
     listenStartedAtRef.current = Date.now();
+    accumulatedTranscriptRef.current = "";
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true; // Keep listening for multiple phrases
+    recognition.interimResults = true; // Get partial results while speaking
     recognition.lang = "en-US";
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       console.log("🎤 Speech recognition started - listening now");
@@ -120,50 +134,85 @@ export function useVoiceStudio({
     };
 
     recognition.onresult = (event: any) => {
-      console.log("🎤 Got result:", event.results[0][0].transcript);
-      gotResultRef.current = true;
-      restartCountRef.current = 0; // Reset on success
-      const transcript = event.results[0][0].transcript;
-      setLastTranscript(transcript);
       clearSilenceTimeout();
-      setSilenceCount(0);
+      clearSpeechEndTimeout();
       
-      // Process the transcript
-      setVoiceState("processing");
-      stopListening();
-
-      const stepIndex = currentVoiceStepRef.current;
-      const step = steps[stepIndex];
-      if (!step) return;
-
-      const value = step.parseValue ? step.parseValue(transcript) : transcript;
-
-      // Lock current step first
-      step.setListened(true);
-      step.setLocked(true);
-      step.setValue(value);
-
-      const nextStepIndex = stepIndex + 1;
+      let finalTranscript = "";
+      let interimTranscript = "";
       
-      // Update studio step (1-indexed: step 0 complete -> studioStep 2, etc.)
-      setStudioStep(nextStepIndex + 1);
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+      
+      if (finalTranscript) {
+        accumulatedTranscriptRef.current += finalTranscript;
+        console.log("🎤 Final transcript chunk:", finalTranscript);
+        console.log("🎤 Accumulated so far:", accumulatedTranscriptRef.current);
+        gotResultRef.current = true;
+        restartCountRef.current = 0;
+      }
+      
+      // Reset silence timer when we get any speech
+      silenceTimeoutRef.current = setTimeout(() => {
+        if (!isActiveRef.current) return;
+        recognitionRef.current?.stop();
+        handleSilenceTimeout();
+      }, 10000); // 10 second silence timeout
+      
+      // Wait for user to stop talking (2s pause after last speech)
+      if (accumulatedTranscriptRef.current.trim()) {
+        speechEndTimeoutRef.current = setTimeout(() => {
+          if (!isActiveRef.current) return;
+          
+          const transcript = accumulatedTranscriptRef.current.trim();
+          console.log("🎤 Speech ended, processing:", transcript);
+          
+          setLastTranscript(transcript);
+          setSilenceCount(0);
+          
+          // Process the transcript
+          setVoiceState("processing");
+          stopListening();
 
-      if (nextStepIndex >= steps.length) {
-        // All steps complete
-        setVoiceState("speaking");
-        speak("Got it. Building your meal now.").then(() => {
-          setIsActive(false);
-          setVoiceState("idle");
-          onAllStepsComplete();
-        }).catch(() => {
-          setIsActive(false);
-          setVoiceState("idle");
-          onAllStepsComplete();
-        });
-      } else {
-        // Move to next step and speak
-        setCurrentVoiceStep(nextStepIndex);
-        speakStepWithCallback(nextStepIndex);
+          const stepIndex = currentVoiceStepRef.current;
+          const step = steps[stepIndex];
+          if (!step) return;
+
+          const value = step.parseValue ? step.parseValue(transcript) : transcript;
+
+          // Lock current step first
+          step.setListened(true);
+          step.setLocked(true);
+          step.setValue(value);
+
+          const nextStepIndex = stepIndex + 1;
+          
+          // Update studio step (1-indexed: step 0 complete -> studioStep 2, etc.)
+          setStudioStep(nextStepIndex + 1);
+
+          if (nextStepIndex >= steps.length) {
+            // All steps complete
+            setVoiceState("speaking");
+            speak("Got it. Building your meal now.").then(() => {
+              setIsActive(false);
+              setVoiceState("idle");
+              onAllStepsComplete();
+            }).catch(() => {
+              setIsActive(false);
+              setVoiceState("idle");
+              onAllStepsComplete();
+            });
+          } else {
+            // Move to next step and speak
+            setCurrentVoiceStep(nextStepIndex);
+            speakStepWithCallback(nextStepIndex);
+          }
+        }, SPEECH_END_DELAY);
       }
     };
 
@@ -211,13 +260,13 @@ export function useVoiceStudio({
     recognitionRef.current = recognition;
     recognition.start();
 
-    // Set silence timeout (7 seconds)
+    // Set initial silence timeout (10 seconds)
     silenceTimeoutRef.current = setTimeout(() => {
       if (!isActiveRef.current) return;
       stopListening();
       handleSilenceTimeout();
-    }, 7000);
-  }, [clearSilenceTimeout, steps, setStudioStep, onAllStepsComplete, speak, stopListening]);
+    }, 10000);
+  }, [clearSilenceTimeout, clearSpeechEndTimeout, steps, setStudioStep, onAllStepsComplete, speak, stopListening]);
 
   const handleSilenceTimeout = useCallback(() => {
     setSilenceCount((prev) => {
