@@ -123,15 +123,35 @@ export function useVoiceStudio({
     };
 
     recognition.onresult = (event: any) => {
-      console.log("🎤 Got result:", event.results[0][0].transcript);
+      const resultIndex = event.resultIndex;
+      const result = event.results[resultIndex];
+      const transcript = result[0].transcript;
+      const isFinal = result.isFinal;
+      
+      console.log("🎤 Got result:", transcript, "| isFinal:", isFinal);
+      
+      // Always update transcript for visual feedback
+      setLastTranscript(transcript);
+      
+      // Reset silence timeout on any speech activity
+      clearSilenceTimeout();
+      silenceTimeoutRef.current = setTimeout(() => {
+        if (!isActiveRef.current) return;
+        stopListening();
+        handleSilenceTimeout();
+      }, 10000); // 10 second silence timeout
+      
+      // Only process FINAL results - don't cut off user mid-sentence
+      if (!isFinal) {
+        console.log("🎤 Interim result, waiting for final...");
+        return;
+      }
+      
       gotResultRef.current = true;
       restartCountRef.current = 0; // Reset on success
-      const transcript = event.results[0][0].transcript;
-      setLastTranscript(transcript);
-      clearSilenceTimeout();
       setSilenceCount(0);
       
-      // Process the transcript
+      // Process the final transcript
       setVoiceState("processing");
       stopListening();
 
@@ -143,7 +163,7 @@ export function useVoiceStudio({
       
       // Store collected value in ref (avoids React state timing issues)
       collectedValuesRef.current[stepIndex] = value;
-      console.log("🎤 Stored value for step", stepIndex, ":", value);
+      console.log("🎤 Stored FINAL value for step", stepIndex, ":", value);
 
       // Lock current step first
       step.setListened(true);
