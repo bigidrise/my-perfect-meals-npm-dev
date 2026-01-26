@@ -30,6 +30,8 @@
         <string>My Perfect Meals uses your location to find nearby grocery stores and restaurants.</string>
         <key>NSMicrophoneUsageDescription</key>
         <string>My Perfect Meals needs microphone access for voice input features.</string>
+        <key>NSSpeechRecognitionUsageDescription</key>
+        <string>My Perfect Meals uses speech recognition to enable hands-free voice commands for meal creation.</string>
         <key>NSPhotoLibraryAddUsageDescription</key>
         <string>My Perfect Meals needs to save photos to your library.</string>
         <key>NSPhotoLibraryUsageDescription</key>
