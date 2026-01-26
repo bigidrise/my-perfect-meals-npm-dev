@@ -58,7 +58,7 @@ export default function ChefVoiceAvatar({ voiceState, onClick }: ChefVoiceAvatar
         }
         transition={{ repeat: Infinity, duration: 0.8 }}
       >
-        <ChefEmojiButton onClick={onClick} animate={false} />
+        <ChefEmojiButton onClick={onClick} size={72} />
       </motion.div>
     </div>
   );
