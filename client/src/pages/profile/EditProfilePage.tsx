@@ -344,7 +344,7 @@ export default function EditProfilePage() {
 
               <div className="flex gap-2 pt-2">
                 <Button
-                  className="w-full bg-lime-600 text-black"
+                  className="w-full bg-lime-600 text-white"
                   disabled={!canContinueStep1}
                   onClick={() => setStep(2)}
                 >
@@ -410,7 +410,7 @@ export default function EditProfilePage() {
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-black"
+                  className="w-1/2 bg-lime-600 text-white"
                   disabled={!canContinueStep2}
                   onClick={() => setStep(3)}
                 >
@@ -471,7 +471,7 @@ export default function EditProfilePage() {
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-black"
+                  className="w-1/2 bg-lime-600 text-white"
                   disabled={!canContinueStep3}
                   onClick={() => setStep(4)}
                 >
@@ -523,7 +523,7 @@ export default function EditProfilePage() {
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-black"
+                  className="w-1/2 bg-lime-600 text-white"
                   onClick={handleSave}
                   disabled={saving}
                 >
