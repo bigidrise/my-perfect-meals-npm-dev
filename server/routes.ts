@@ -1842,6 +1842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const {
         firstName,
         lastName,
+        email,
         age,
         height,
         weight,
@@ -1858,6 +1859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateData: any = {};
       if (firstName !== undefined) updateData.firstName = firstName;
       if (lastName !== undefined) updateData.lastName = lastName;
+      if (email !== undefined && email.trim()) updateData.email = email.trim();
       // Keep display name in sync with firstName/lastName
       if (firstName !== undefined || lastName !== undefined) {
         const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);

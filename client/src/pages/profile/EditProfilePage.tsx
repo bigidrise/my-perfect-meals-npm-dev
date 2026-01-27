@@ -22,6 +22,7 @@ type FitnessGoal = "weight_loss" | "muscle_gain" | "maintenance" | "endurance";
 type EditProfilePayload = {
   firstName?: string;
   lastName?: string;
+  email?: string;
   age?: number | null;
   height?: number | null;
   weight?: number | null;
@@ -87,6 +88,7 @@ export default function EditProfilePage() {
     return {
       firstName: u?.firstName || u?.name?.split(" ")[0] || "",
       lastName: u?.lastName || u?.name?.split(" ").slice(1).join(" ") || "",
+      email: u?.email || "",
       age: typeof u?.age === "number" ? u.age : null,
       height: typeof u?.height === "number" ? u.height : null,
       weight: typeof u?.weight === "number" ? u.weight : null,
@@ -322,6 +324,22 @@ export default function EditProfilePage() {
                     inputMode="numeric"
                   />
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <label className="text-white/70 text-xs">Email Address</label>
+                <input
+                  type="email"
+                  value={form.email || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, email: e.target.value }))
+                  }
+                  className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
+                  placeholder="you@example.com"
+                  inputMode="email"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
               </div>
 
               <div className="flex gap-2 pt-2">
