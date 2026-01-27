@@ -344,7 +344,7 @@ export default function EditProfilePage() {
 
               <div className="flex gap-2 pt-2">
                 <Button
-                  className="w-full bg-lime-600 hover:bg-lime-500 text-black"
+                  className="w-full bg-lime-600 text-black"
                   disabled={!canContinueStep1}
                   onClick={() => setStep(2)}
                 >
@@ -404,13 +404,13 @@ export default function EditProfilePage() {
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  className="w-1/2 bg-white/5 border-white/20 text-white"
                   onClick={() => setStep(1)}
                 >
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 hover:bg-lime-500 text-black"
+                  className="w-1/2 bg-lime-600 text-black"
                   disabled={!canContinueStep2}
                   onClick={() => setStep(3)}
                 >
@@ -465,13 +465,13 @@ export default function EditProfilePage() {
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  className="w-1/2 bg-white/5 border-white/20 text-white"
                   onClick={() => setStep(2)}
                 >
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 hover:bg-lime-500 text-black"
+                  className="w-1/2 bg-lime-600 text-black"
                   disabled={!canContinueStep3}
                   onClick={() => setStep(4)}
                 >
@@ -516,14 +516,14 @@ export default function EditProfilePage() {
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  className="w-1/2 bg-white/5 border-white/20 text-white"
                   onClick={() => setStep(3)}
                   disabled={saving}
                 >
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 hover:bg-lime-500 text-black"
+                  className="w-1/2 bg-lime-600 text-black"
                   onClick={handleSave}
                   disabled={saving}
                 >
