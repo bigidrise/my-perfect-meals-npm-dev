@@ -48,7 +48,11 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import { useChefVoice } from "@/lib/useChefVoice";
-import { RESTAURANT_GUIDE_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
+import { RESTAURANT_GUIDE_ENTRY, RESTAURANT_GUIDE_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
+import { ChefHat } from "lucide-react";
+
+// Guided flow step type (matches Macro Calculator pattern)
+type GuidedStep = "entry" | "input" | "generating" | "results";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
@@ -232,6 +236,24 @@ export default function RestaurantGuidePage() {
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  const hasSpokenEntryRef = useRef(false);
+
+  // Guided step state (matches Macro Calculator pattern)
+  const hasCachedResults = loadRestaurantCache()?.restaurantData?.meals?.length > 0;
+  const [guidedStep, setGuidedStep] = useState<GuidedStep>(
+    hasCachedResults ? "results" : "entry"
+  );
+
+  // Speak entry script on mount (if starting fresh)
+  useEffect(() => {
+    if (guidedStep === "entry" && !hasSpokenEntryRef.current) {
+      hasSpokenEntryRef.current = true;
+      const timer = setTimeout(() => {
+        speak(RESTAURANT_GUIDE_ENTRY);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [guidedStep, speak]);
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -248,15 +270,11 @@ export default function RestaurantGuidePage() {
       setRestaurantInput(cached.restaurant || "");
       setCravingInput(cached.craving || "");
       setMatchedCuisine(cached.cuisine || null);
+      setGuidedStep("results");
       // Restore restaurant info if cached
       if (cached.restaurantData.restaurantInfo) {
         setRestaurantInfo(cached.restaurantData.restaurantInfo);
       }
-      toast({
-        title: "🔄 Restaurant Guide Restored",
-        description:
-          "Your generated restaurant meals will remain saved on this page until you search again.",
-      });
     }
   }, []); // Only run once on mount
 
@@ -330,6 +348,7 @@ export default function RestaurantGuidePage() {
     onSuccess: (data) => {
       stopProgressTicker();
       setGeneratedMeals(data.recommendations || []);
+      setGuidedStep("results");
 
       // Store restaurant info from Google Places
       if (data.restaurantInfo) {
@@ -407,6 +426,7 @@ export default function RestaurantGuidePage() {
 
     setMatchedCuisine(match || null);
     setRestaurantInfo(null);
+    setGuidedStep("generating");
 
     // Copilot speaks during generation
     stop();
@@ -505,6 +525,36 @@ export default function RestaurantGuidePage() {
           className="max-w-4xl mx-auto px-4 sm:px-6 overflow-x-hidden pb-8"
           style={{ paddingTop: "6rem" }}
         >
+          {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
+          {guidedStep === "entry" && (
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">
+              <CardContent className="p-8 text-center">
+                <div className="flex justify-center mb-6">
+                  <div className="bg-orange-500/20 p-4 rounded-full">
+                    <ChefHat className="h-12 w-12 text-orange-400" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-3">
+                  Restaurant Guide
+                </h2>
+                <p className="text-white/70 mb-6">
+                  Tell me where you're eating and what you're in the mood for, and I'll show you the best options from their menu.
+                </p>
+                <Button
+                  onClick={() => {
+                    stop();
+                    setGuidedStep("input");
+                  }}
+                  className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
+                >
+                  Let's Find Dishes
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* INPUT SCREEN - Search form */}
+          {(guidedStep === "input" || guidedStep === "generating") && (
           <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
             <CardContent className="p-6">
               <div className="space-y-3 mb-6">
@@ -663,9 +713,14 @@ export default function RestaurantGuidePage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+          )}
 
-              {/* Generated Meals Section */}
-              {generatedMeals.length > 0 && (
+          {/* RESULTS SCREEN - Generated Meals Section */}
+          {guidedStep === "results" && generatedMeals.length > 0 && (
+            <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
+              <CardContent className="p-6">
                 <div data-wt="rg-results-list" className="space-y-6 mb-6">
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
@@ -686,11 +741,15 @@ export default function RestaurantGuidePage() {
                           setGeneratedMeals([]);
                           clearRestaurantCache();
                           setRestaurantInput("");
+                          setCravingInput("");
+                          setZipCode("");
+                          setGuidedStep("entry");
+                          hasSpokenEntryRef.current = false;
                         }}
                         className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
                         data-testid="button-create-new"
                       >
-                        Create New
+                        Search Again
                       </button>
                     </div>
                     {restaurantInfo?.address && (
@@ -910,67 +969,10 @@ export default function RestaurantGuidePage() {
                     ))}
                   </div>
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          )}
 
-              {matchedCuisine &&
-              !generateMealsMutation.isPending &&
-              generatedMeals.length === 0 ? (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-bold text-orange-400">
-                    {matchedCuisine} Cuisine Tips:
-                  </h2>
-                  <div className="bg-black/40 backdrop-blur-lg border border-white/20 rounded-lg p-4">
-                    <ul className="space-y-2">
-                      {cuisineTips[matchedCuisine].map((tip, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-orange-400 font-bold">•</span>
-                          <span className="text-white/80">{tip}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-black/20 border border-white/10 rounded-lg backdrop-blur-sm">
-                    <p className="text-orange-200 text-sm">
-                      💡 <strong>Pro Tip:</strong> These recommendations are
-                      tailored to help you stay on track with your health goals
-                      while still enjoying dining out!
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-6xl mb-4">🔍</div>
-                  <p className="text-white mb-2"></p>
-                  <p className="text-sm text-white"></p>
-                </div>
-              )}
-
-              <div className="mt-6 pt-4 border-t border-white/20">
-                <h3 className="font-semibold text-lg text-white mb-2">
-                  Quick Cuisine Tips:
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {Object.keys(cuisineTips).map((cuisine) => (
-                    <button
-                      key={cuisine}
-                      onClick={() => {
-                        setRestaurantInput(`${cuisine} restaurant`);
-                        setMatchedCuisine(cuisine);
-                      }}
-                      className="px-3 py-1 bg-black text-white rounded-full text-sm transition-colors font-medium"
-                    >
-                      {cuisine}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-white/60 text-xs mt-2">
-                  Tap a cuisine to fill in the restaurant field, then enter your
-                  craving and ZIP to search.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <QuickTourModal
