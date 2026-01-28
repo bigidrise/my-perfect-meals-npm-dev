@@ -61,7 +61,7 @@ export default function MetabolicConsiderations({
   
   // Voice explanation on first open only
   const hasSpokenRef = useRef(false);
-  const { speak, preload } = useChefVoice();
+  const { speak, stop, preload } = useChefVoice();
   
   // Preload voice on mount so it's ready when they tap
   useEffect(() => {
@@ -82,6 +82,8 @@ export default function MetabolicConsiderations({
   const hasActive = hasAnyActiveAdvisory(advisory);
 
   const handleToggle = (key: AdvisoryConditionKey, enabled: boolean) => {
+    // Stop voice on any button interaction
+    stop();
     const updated: ClinicalAdvisoryState = {
       ...advisory,
       [key]: {
