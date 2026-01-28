@@ -110,7 +110,7 @@ export default function MetabolicConsiderations({
                   )}
                 </h3>
                 {!isOpen && (
-                  <span className="text-xs text-white/50 italic ml-7 mt-1">
+                  <span className="text-sm text-pink-300/80 ml-7 mt-1">
                     Tap to review & adjust (optional)
                   </span>
                 )}
@@ -126,14 +126,19 @@ export default function MetabolicConsiderations({
 
         <CollapsibleContent>
           <CardContent className="pt-0 px-5 pb-5 space-y-4">
-            <div className="text-sm text-white/80 font-medium mb-1">
-              Select any that apply to you (optional)
+            <div className="mb-3">
+              <div className="text-base text-white font-semibold">
+                Select any that apply to you (optional)
+              </div>
+              <div className="text-xs text-white/60 mt-1">
+                These adjust your macros for metabolic accuracy.
+              </div>
             </div>
             <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-blue-200/90">
-                  These adjust your macros for metabolic accuracy. They help fine-tune recommendations without overriding your goals.
+                  They help fine-tune recommendations without overriding your goals.
                 </p>
               </div>
             </div>
