@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -31,8 +32,9 @@ import { useChefVoice } from "@/lib/useChefVoice";
 import { FIND_MY_MEAL_ENTRY, FIND_MY_MEAL_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
 
-// Guided flow step type (matches Macro Calculator pattern)
-type GuidedStep = "entry" | "input" | "generating" | "results";
+// Guided flow step type - step-by-step wizard
+// entry → step1 (craving) → step2 (location) → generating → results
+type GuidedStep = "entry" | "step1" | "step2" | "generating" | "results";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -354,7 +356,7 @@ export default function MealFinder() {
                 <Button
                   onClick={() => {
                     stop();
-                    setGuidedStep("input");
+                    setGuidedStep("step1");
                   }}
                   className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
                 >
@@ -364,116 +366,163 @@ export default function MealFinder() {
             </Card>
           )}
 
-          {/* INPUT SCREEN - Search form */}
-          {(guidedStep === "input" || guidedStep === "generating") && (
-          <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl text-white">
-                <MapPin className="h-5 w-5" />
-                Search by Location
-              </CardTitle>
-              <CardDescription className="text-md text-white/80">
-                Enter what you're craving and your Zip code to find nearby
-                restaurant recommendations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-md font-medium text-white/80 mb-2">
-                    What are you craving?
-                  </label>
-                  <Input
-                    placeholder="e.g., steak dinner, sushi, pasta, burger"
-                    value={mealQuery}
-                    onChange={(e) => setMealQuery(e.target.value)}
-                    className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                    onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                    data-testid="findmeals-search"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-md text-white/80 mb-2">
-                    Zip Code
-                  </label>
-                  <div className="flex gap-2">
+          {/* STEP 1 - What are you craving? */}
+          {guidedStep === "step1" && (
+            <motion.div
+              key="guided-step1"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-orange-500" />
+                    <h3 className="text-lg font-semibold text-white">Step 1</h3>
+                  </div>
+                  <p className="text-white text-base">
+                    What are you craving? Tell me what kind of meal you're in the mood for.
+                  </p>
+                  <div className="relative">
                     <Input
-                      placeholder="e.g., 30303, 90210, 10001"
-                      value={zipCode}
-                      onChange={(e) =>
-                        setZipCode(
-                          e.target.value.replace(/\D/g, "").slice(0, 5),
-                        )
-                      }
-                      className="flex-1 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
-                      maxLength={5}
-                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                      data-testid="input-zip-code"
+                      placeholder="e.g., steak dinner, sushi, pasta, burger"
+                      value={mealQuery}
+                      onChange={(e) => setMealQuery(e.target.value)}
+                      className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
+                      autoComplete="off"
+                      onKeyPress={(e) => e.key === "Enter" && mealQuery.trim() && setGuidedStep("step2")}
+                      data-testid="findmeals-search"
                     />
+                    {mealQuery && (
+                      <button
+                        onClick={() => setMealQuery("")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
+                        type="button"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => setGuidedStep("step2")}
+                    disabled={!mealQuery.trim()}
+                    className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
+                  >
+                    Next
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* STEP 2 - Your location */}
+          {guidedStep === "step2" && (
+            <motion.div
+              key="guided-step2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-orange-500" />
+                    <h3 className="text-lg font-semibold text-white">Step 2</h3>
+                  </div>
+                  <p className="text-white text-base">
+                    Enter your ZIP code so I can find nearby restaurants.
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        placeholder="e.g., 30303, 90210, 10001"
+                        value={zipCode}
+                        onChange={(e) =>
+                          setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
+                        }
+                        className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 text-lg py-3"
+                        maxLength={5}
+                        onKeyPress={(e) => e.key === "Enter" && zipCode.length === 5 && handleSearch()}
+                        data-testid="input-zip-code"
+                      />
+                      {zipCode && (
+                        <button
+                          onClick={() => setZipCode("")}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80"
+                          type="button"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                     <Button
                       type="button"
                       onClick={handleUseLocation}
                       disabled={isGettingLocation}
                       className={`px-3 flex-shrink-0 text-white ${
-                        isGettingLocation
-                          ? "bg-blue-700 cursor-wait"
-                          : "bg-blue-600 hover:bg-blue-500"
+                        isGettingLocation ? "bg-blue-700 cursor-wait" : "bg-blue-600 hover:bg-blue-500"
                       }`}
-                      aria-label={
-                        isGettingLocation
-                          ? "Finding your location"
-                          : "Use my location"
-                      }
                     >
-                      <div className="flex items-center gap-2">
-                        {isGettingLocation ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">Finding location…</span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">Use my location</span>
-                          </>
-                        )}
-                      </div>
+                      {isGettingLocation ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MapPin className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
-                </div>
-
-                <Button
-                  onClick={handleSearch}
-                  disabled={findMealsMutation.isPending}
-                  className="w-full bg-lime-600 hover:bg-lime-600 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
-                  data-testid="button-find-meals"
-                >
-                  {findMealsMutation.isPending
-                    ? "Finding Meals..."
-                    : "Find Meals"}
-                </Button>
-              </div>
-
-              {findMealsMutation.isPending && (
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white/80">
-                      AI Analysis Progress
-                    </span>
-                    <span className="text-sm text-white/80">
-                      {Math.round(progress)}%
-                    </span>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => setGuidedStep("step1")}
+                      variant="outline"
+                      className="flex-1 border-white/30 text-white hover:bg-white/10"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleSearch}
+                      disabled={zipCode.length !== 5}
+                      className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
+                      data-testid="button-find-meals"
+                    >
+                      Find Meals
+                    </Button>
                   </div>
-                  <Progress
-                    value={progress}
-                    className="h-3 bg-black/30 border border-white/20"
-                  />
-                  <p className="text-white/70 text-sm text-center mt-3"></p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* GENERATING SCREEN - Shows during AI generation */}
+          {guidedStep === "generating" && (
+            <motion.div
+              key="guided-generating"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-orange-500/20 p-4 rounded-full animate-pulse">
+                      <ChefHat className="h-10 w-10 text-orange-400" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white text-center">
+                    Finding Nearby Restaurants...
+                  </h3>
+                  <p className="text-white/70 text-center">
+                    Searching for {mealQuery} options near you
+                  </p>
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-white/80">AI Analysis Progress</span>
+                      <span className="text-sm text-white/80">{Math.round(progress)}%</span>
+                    </div>
+                    <Progress value={progress} className="h-3 bg-black/30 border border-white/20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
 
           {/* RESULTS SCREEN - Show results after generation */}

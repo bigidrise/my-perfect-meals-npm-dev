@@ -554,28 +554,33 @@ export default function RestaurantGuidePage() {
             </Card>
           )}
 
-          {/* INPUT SCREEN - Search form */}
-          {(guidedStep === "input" || guidedStep === "generating") && (
-          <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
-            <CardContent className="p-6">
-              <div className="space-y-3 mb-6">
-                <div>
-                  <label
-                    htmlFor="craving-input"
-                    className="block text-lg font-semibold text-white mb-2"
-                  >
-                    What dish are you craving?
-                  </label>
+          {/* STEP 1 - What are you craving? */}
+          {guidedStep === "step1" && (
+            <motion.div
+              key="guided-step1"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-orange-500" />
+                    <h3 className="text-lg font-semibold text-white">Step 1</h3>
+                  </div>
+                  <p className="text-white text-base">
+                    What dish or type of food are you craving?
+                  </p>
                   <div className="relative">
                     <Input
                       data-wt="rg-craving-input"
                       id="craving-input"
-                      placeholder="e.g. chicken, salmon, pasta"
+                      placeholder="e.g. chicken, salmon, pasta, steak"
                       value={cravingInput}
                       onChange={(e) => setCravingInput(e.target.value)}
-                      className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white"
+                      className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      onKeyPress={(e) => e.key === "Enter" && cravingInput.trim() && setGuidedStep("step2")}
                     />
                     {cravingInput && (
                       <button
@@ -587,17 +592,35 @@ export default function RestaurantGuidePage() {
                       </button>
                     )}
                   </div>
-                </div>
-                <div>
-                  <label
-                    htmlFor="restaurant-input"
-                    className="block text-lg font-semibold text-white mb-2"
+                  <Button
+                    onClick={() => setGuidedStep("step2")}
+                    disabled={!cravingInput.trim()}
+                    className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
                   >
-                    Where are you eating?{" "}
-                    <span className="text-md text-white/60">
-                      (Specific Restaurant)
-                    </span>
-                  </label>
+                    Next
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* STEP 2 - Where are you eating? */}
+          {guidedStep === "step2" && (
+            <motion.div
+              key="guided-step2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-orange-500" />
+                    <h3 className="text-lg font-semibold text-white">Step 2</h3>
+                  </div>
+                  <p className="text-white text-base">
+                    Where are you eating? Enter the restaurant name.
+                  </p>
                   <div className="relative">
                     <Input
                       data-testid="restaurantguide-search"
@@ -606,9 +629,9 @@ export default function RestaurantGuidePage() {
                       placeholder="e.g. Cheesecake Factory, P.F. Chang's, Chipotle"
                       value={restaurantInput}
                       onChange={(e) => setRestaurantInput(e.target.value)}
-                      className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white"
+                      className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      onKeyPress={(e) => e.key === "Enter" && restaurantInput.trim() && setGuidedStep("step3")}
                     />
                     {restaurantInput && (
                       <button
@@ -620,14 +643,44 @@ export default function RestaurantGuidePage() {
                       </button>
                     )}
                   </div>
-                </div>
-                <div>
-                  <label
-                    htmlFor="zip-input"
-                    className="block text-lg font-semibold text-white mb-2"
-                  >
-                    Your ZIP Code
-                  </label>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => setGuidedStep("step1")}
+                      variant="outline"
+                      className="flex-1 border-white/30 text-white hover:bg-white/10"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={() => setGuidedStep("step3")}
+                      disabled={!restaurantInput.trim()}
+                      className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* STEP 3 - Your location */}
+          {guidedStep === "step3" && (
+            <motion.div
+              key="guided-step3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-orange-500" />
+                    <h3 className="text-lg font-semibold text-white">Step 3</h3>
+                  </div>
+                  <p className="text-white text-base">
+                    Enter your ZIP code so I can find the nearest location.
+                  </p>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -636,13 +689,11 @@ export default function RestaurantGuidePage() {
                         placeholder="e.g. 30303, 90210, 10001"
                         value={zipCode}
                         onChange={(e) =>
-                          setZipCode(
-                            e.target.value.replace(/\D/g, "").slice(0, 5),
-                          )
+                          setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
                         }
-                        className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50"
+                        className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 text-lg py-3"
                         maxLength={5}
-                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                        onKeyPress={(e) => e.key === "Enter" && zipCode.length === 5 && handleSearch()}
                       />
                       {zipCode && (
                         <button
@@ -659,63 +710,68 @@ export default function RestaurantGuidePage() {
                       onClick={handleUseLocation}
                       disabled={isGettingLocation}
                       className={`px-3 flex-shrink-0 text-white ${
-                        isGettingLocation
-                          ? "bg-blue-700 cursor-wait"
-                          : "bg-blue-600 hover:bg-blue-500"
+                        isGettingLocation ? "bg-blue-700 cursor-wait" : "bg-blue-600 hover:bg-blue-500"
                       }`}
-                      aria-label={
-                        isGettingLocation
-                          ? "Finding your location"
-                          : "Use my location"
-                      }
                     >
-                      <div className="flex items-center gap-2">
-                        {isGettingLocation ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">Finding location…</span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">Use my location</span>
-                          </>
-                        )}
-                      </div>
+                      {isGettingLocation ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MapPin className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
-                </div>
-                <Button
-                  data-wt="rg-search-button"
-                  onClick={handleSearch}
-                  disabled={generateMealsMutation.isPending}
-                  className="w-full bg-lime-600 hover:bg-lime-600 text-white text-md shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
-                >
-                  {generateMealsMutation.isPending
-                    ? "Finding Dishes..."
-                    : "Find Dishes"}
-                </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => setGuidedStep("step2")}
+                      variant="outline"
+                      className="flex-1 border-white/30 text-white hover:bg-white/10"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleSearch}
+                      disabled={zipCode.length !== 5}
+                      className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
+                    >
+                      Find Dishes
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
-                {generateMealsMutation.isPending && (
+          {/* GENERATING SCREEN - Shows during AI generation */}
+          {guidedStep === "generating" && (
+            <motion.div
+              key="guided-generating"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-orange-500/20 p-4 rounded-full animate-pulse">
+                      <ChefHat className="h-10 w-10 text-orange-400" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white text-center">
+                    Finding Your Perfect Dishes...
+                  </h3>
+                  <p className="text-white/70 text-center">
+                    Searching {restaurantInput} for {cravingInput} options
+                  </p>
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">
-                        AI Analysis Progress
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {Math.round(progress)}%
-                      </span>
+                      <span className="text-sm text-white/80">AI Analysis Progress</span>
+                      <span className="text-sm text-white/80">{Math.round(progress)}%</span>
                     </div>
-                    <Progress
-                      value={progress}
-                      className="h-3 bg-black/30 border border-white/20"
-                    />
-                    <p className="text-white/70 text-sm text-center mt-3"></p>
+                    <Progress value={progress} className="h-3 bg-black/30 border border-white/20" />
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
 
           {/* RESULTS SCREEN - Generated Meals Section */}
