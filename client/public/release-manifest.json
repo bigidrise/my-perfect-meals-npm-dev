@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.1",
+  "releaseId": "1.2.2",
   "publishedAt": "2026-01-28",
   "changes": [
+    "New MPM logo on Copilot cards replacing chef emoji",
     "Copilot Chef now guides you step-by-step through Social Meal Finder",
-    "Copilot Chef now guides you step-by-step through Restaurant Guide",
-    "Improved guided experience with voice at each step transition"
+    "Copilot Chef now guides you step-by-step through Restaurant Guide"
   ]
 }
