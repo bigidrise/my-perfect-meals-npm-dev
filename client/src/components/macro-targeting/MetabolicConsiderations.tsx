@@ -10,10 +10,12 @@
  * - High Stress / Poor Sleep
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PillButton } from '@/components/ui/pill-button';
+import { useChefVoice } from '@/lib/useChefVoice';
+import { MACRO_CALC_METABOLIC_OPEN } from '@/components/copilot/scripts/macroCalculatorScripts';
 import {
   Collapsible,
   CollapsibleContent,
@@ -56,6 +58,19 @@ export default function MetabolicConsiderations({
   const [advisory, setAdvisory] = useState<ClinicalAdvisoryState>(() => loadUserAdvisory() || {});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingDeltas, setPendingDeltas] = useState<MacroDeltas | null>(null);
+  
+  // Voice explanation on first open only
+  const hasSpokenRef = useRef(false);
+  const { speak } = useChefVoice();
+  
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    // Speak explanation on first open only
+    if (open && !hasSpokenRef.current) {
+      hasSpokenRef.current = true;
+      speak(MACRO_CALC_METABOLIC_OPEN);
+    }
+  };
 
   const suggestions = calculateAdvisorySuggestions(advisory, currentTargets);
   const aggregated = aggregateDeltas(suggestions);
@@ -95,7 +110,7 @@ export default function MetabolicConsiderations({
 
   return (
     <Card className="bg-zinc-900/80 border border-white/30 text-white mt-5">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
         <CollapsibleTrigger asChild>
           <CardContent className="p-5 cursor-pointer hover:bg-white/5 transition-colors">
             <div className="flex items-center justify-between">

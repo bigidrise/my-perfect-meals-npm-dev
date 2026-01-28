@@ -45,3 +45,7 @@ export const MACRO_CALC_SAVE =
 
 export const MACRO_CALC_DONE = "";
 
+// Triggered when user opens the Metabolic & Hormonal Considerations dropdown
+export const MACRO_CALC_METABOLIC_OPEN = 
+  "Go ahead and select any that apply to you. These are optional, but they help me fine-tune your macros more accurately. If menopause or hormone therapy applies to you, it means hormonal changes can affect how your body holds muscle, uses carbs, and stores fat, so we usually prioritize protein a bit more. If you have suspected insulin resistance, that means your body doesn't handle carbs as efficiently, so moderating carbs and emphasizing protein helps keep blood sugar steady. And if high stress or poor sleep applies, cortisol can mess with fat storage and recovery, so we adjust things to support your body through that. Just tap any that fit, and I'll handle the rest.";
+
