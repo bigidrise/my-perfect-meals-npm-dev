@@ -28,7 +28,11 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import { useChefVoice } from "@/lib/useChefVoice";
-import { FIND_MY_MEAL_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
+import { FIND_MY_MEAL_ENTRY, FIND_MY_MEAL_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
+import { ChefHat } from "lucide-react";
+
+// Guided flow step type (matches Macro Calculator pattern)
+type GuidedStep = "entry" | "input" | "generating" | "results";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -124,6 +128,24 @@ export default function MealFinder() {
   const [results, setResults] = useState<MealResult[]>([]);
   const [progress, setProgress] = useState(0);
   const hasRestoredRef = useRef(false);
+  const hasSpokenEntryRef = useRef(false);
+
+  // Guided step state (matches Macro Calculator pattern)
+  const hasCachedResults = loadMealFinderCache() !== null;
+  const [guidedStep, setGuidedStep] = useState<GuidedStep>(
+    hasCachedResults ? "results" : "entry"
+  );
+
+  // Speak entry script on mount (if starting fresh)
+  useEffect(() => {
+    if (guidedStep === "entry" && !hasSpokenEntryRef.current) {
+      hasSpokenEntryRef.current = true;
+      const timer = setTimeout(() => {
+        speak(FIND_MY_MEAL_ENTRY);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [guidedStep, speak]);
 
   useEffect(() => {
     if (hasRestoredRef.current) return;
@@ -133,10 +155,7 @@ export default function MealFinder() {
       setResults(cached.results);
       setMealQuery(cached.mealQuery);
       setZipCode(cached.zipCode);
-      toast({
-        title: "🔄 Meal Finder Restored",
-        description: `Your search results for "${cached.mealQuery}" will remain saved on this page until you search again.`,
-      });
+      setGuidedStep("results");
       hasRestoredRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -167,6 +186,7 @@ export default function MealFinder() {
     onSuccess: (data) => {
       const newResults = data.results || [];
       setResults(newResults);
+      setGuidedStep("results");
 
       saveMealFinderCache({
         results: newResults,
@@ -228,6 +248,7 @@ export default function MealFinder() {
 
     setResults([]);
     clearMealFinderCache();
+    setGuidedStep("generating");
     stop();
     speak(FIND_MY_MEAL_GENERATING);
     findMealsMutation.mutate({ mealQuery, zipCode });
@@ -315,6 +336,36 @@ export default function MealFinder() {
           className="max-w-4xl mx-auto px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
+          {guidedStep === "entry" && (
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">
+              <CardContent className="p-8 text-center">
+                <div className="flex justify-center mb-6">
+                  <div className="bg-orange-500/20 p-4 rounded-full">
+                    <ChefHat className="h-12 w-12 text-orange-400" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-3">
+                  Find My Meal
+                </h2>
+                <p className="text-white/70 mb-6">
+                  Tell me what you're craving and I'll find nearby restaurants with healthy options that fit your goals.
+                </p>
+                <Button
+                  onClick={() => {
+                    stop();
+                    setGuidedStep("input");
+                  }}
+                  className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
+                >
+                  Let's Find Meals
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* INPUT SCREEN - Search form */}
+          {(guidedStep === "input" || guidedStep === "generating") && (
           <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl text-white">
@@ -423,8 +474,10 @@ export default function MealFinder() {
               )}
             </CardContent>
           </Card>
+          )}
 
-          {results.length > 0 && (
+          {/* RESULTS SCREEN - Show results after generation */}
+          {guidedStep === "results" && results.length > 0 && (
             <div className="space-y-6 mb-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">
@@ -438,11 +491,13 @@ export default function MealFinder() {
                     clearMealFinderCache();
                     setMealQuery("");
                     setZipCode("");
+                    setGuidedStep("entry");
+                    hasSpokenEntryRef.current = false;
                   }}
                   className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
                   data-testid="button-create-new"
                 >
-                  Create New
+                  Search Again
                 </button>
               </div>
               <div className="grid gap-4">
