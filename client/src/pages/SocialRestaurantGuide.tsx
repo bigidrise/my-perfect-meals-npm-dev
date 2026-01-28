@@ -47,6 +47,8 @@ import { getLocation } from "@/lib/capacitorLocation";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
+import { useChefVoice } from "@/lib/useChefVoice";
+import { RESTAURANT_GUIDE_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
@@ -212,6 +214,7 @@ const cuisineKeywords: Record<string, string> = {
 export default function RestaurantGuidePage() {
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("restaurant-guide");
+  const { speak, stop } = useChefVoice();
   const [cravingInput, setCravingInput] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
@@ -404,6 +407,10 @@ export default function RestaurantGuidePage() {
 
     setMatchedCuisine(match || null);
     setRestaurantInfo(null);
+
+    // Copilot speaks during generation
+    stop();
+    speak(RESTAURANT_GUIDE_GENERATING);
 
     // Generate meals with craving, restaurant, and ZIP code
     generateMealsMutation.mutate({

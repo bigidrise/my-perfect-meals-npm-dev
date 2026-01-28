@@ -27,6 +27,8 @@ import { getLocation } from "@/lib/capacitorLocation";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
+import { useChefVoice } from "@/lib/useChefVoice";
+import { FIND_MY_MEAL_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -107,6 +109,7 @@ export default function MealFinder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const quickTour = useQuickTour("social-find-meals");
+  const { speak, stop } = useChefVoice();
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -225,6 +228,8 @@ export default function MealFinder() {
 
     setResults([]);
     clearMealFinderCache();
+    stop();
+    speak(FIND_MY_MEAL_GENERATING);
     findMealsMutation.mutate({ mealQuery, zipCode });
   };
 
