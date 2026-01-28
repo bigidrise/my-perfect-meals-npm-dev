@@ -16,7 +16,7 @@
 // - Persistent caching system (survives navigation/refresh)
 // - Real-time progress ticker (0-90% with visual feedback)
 // - Medical personalization with user health data integration
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -48,7 +48,13 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import { useChefVoice } from "@/lib/useChefVoice";
-import { RESTAURANT_GUIDE_ENTRY, RESTAURANT_GUIDE_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
+import { 
+  RESTAURANT_GUIDE_ENTRY, 
+  RESTAURANT_GUIDE_STEP1,
+  RESTAURANT_GUIDE_STEP2,
+  RESTAURANT_GUIDE_STEP3,
+  RESTAURANT_GUIDE_GENERATING 
+} from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
 
 // Guided flow step type - step-by-step wizard
@@ -220,6 +226,40 @@ export default function RestaurantGuidePage() {
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("restaurant-guide");
   const { speak, stop } = useChefVoice();
+
+  // Map of step to voice script - matches Macro Calculator pattern
+  const stepScripts = useMemo<Record<GuidedStep, string>>(
+    () => ({
+      entry: RESTAURANT_GUIDE_ENTRY,
+      step1: RESTAURANT_GUIDE_STEP1,
+      step2: RESTAURANT_GUIDE_STEP2,
+      step3: RESTAURANT_GUIDE_STEP3,
+      generating: RESTAURANT_GUIDE_GENERATING,
+      results: "",
+    }),
+    [],
+  );
+
+  // Helper to advance to next step with voice - matches Macro Calculator pattern
+  const advanceGuided = useCallback(
+    (nextStep: GuidedStep) => {
+      stop(); // Stop any currently playing voice first
+      setGuidedStep(nextStep);
+      // Speak the script for this step (skip entry since it's handled by mount effect)
+      if (nextStep !== "entry") {
+        const script = stepScripts[nextStep];
+        if (script) {
+          speak(script);
+        }
+      }
+      // Smooth scroll to top when advancing
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    },
+    [speak, stop, stepScripts],
+  );
+
   const [cravingInput, setCravingInput] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
@@ -427,11 +467,7 @@ export default function RestaurantGuidePage() {
 
     setMatchedCuisine(match || null);
     setRestaurantInfo(null);
-    setGuidedStep("generating");
-
-    // Copilot speaks during generation
-    stop();
-    speak(RESTAURANT_GUIDE_GENERATING);
+    advanceGuided("generating");
 
     // Generate meals with craving, restaurant, and ZIP code
     generateMealsMutation.mutate({
@@ -542,10 +578,7 @@ export default function RestaurantGuidePage() {
                   Tell me where you're eating and what you're in the mood for, and I'll show you the best options from their menu.
                 </p>
                 <Button
-                  onClick={() => {
-                    stop();
-                    setGuidedStep("step1");
-                  }}
+                  onClick={() => advanceGuided("step1")}
                   className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
                 >
                   Let's Find Dishes
@@ -580,7 +613,7 @@ export default function RestaurantGuidePage() {
                       onChange={(e) => setCravingInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && cravingInput.trim() && setGuidedStep("step2")}
+                      onKeyPress={(e) => e.key === "Enter" && cravingInput.trim() && advanceGuided("step2")}
                     />
                     {cravingInput && (
                       <button
@@ -593,7 +626,7 @@ export default function RestaurantGuidePage() {
                     )}
                   </div>
                   <Button
-                    onClick={() => setGuidedStep("step2")}
+                    onClick={() => advanceGuided("step2")}
                     disabled={!cravingInput.trim()}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
                   >
@@ -631,7 +664,7 @@ export default function RestaurantGuidePage() {
                       onChange={(e) => setRestaurantInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && restaurantInput.trim() && setGuidedStep("step3")}
+                      onKeyPress={(e) => e.key === "Enter" && restaurantInput.trim() && advanceGuided("step3")}
                     />
                     {restaurantInput && (
                       <button
@@ -645,14 +678,14 @@ export default function RestaurantGuidePage() {
                   </div>
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => setGuidedStep("step1")}
+                      onClick={() => advanceGuided("step1")}
                       variant="outline"
                       className="flex-1 border-white/30 text-white hover:bg-white/10"
                     >
                       Back
                     </Button>
                     <Button
-                      onClick={() => setGuidedStep("step3")}
+                      onClick={() => advanceGuided("step3")}
                       disabled={!restaurantInput.trim()}
                       className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold"
                     >
@@ -722,7 +755,7 @@ export default function RestaurantGuidePage() {
                   </div>
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => setGuidedStep("step2")}
+                      onClick={() => advanceGuided("step2")}
                       variant="outline"
                       className="flex-1 border-white/30 text-white hover:bg-white/10"
                     >

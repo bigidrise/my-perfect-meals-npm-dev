@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -121,6 +121,38 @@ export default function MealFinder() {
   const { toast } = useToast();
   const quickTour = useQuickTour("social-find-meals");
   const { speak, stop } = useChefVoice();
+
+  // Map of step to voice script - matches Macro Calculator pattern
+  const stepScripts = useMemo<Record<GuidedStep, string>>(
+    () => ({
+      entry: FIND_MY_MEAL_ENTRY,
+      step1: FIND_MY_MEAL_STEP1,
+      step2: FIND_MY_MEAL_STEP2,
+      generating: FIND_MY_MEAL_GENERATING,
+      results: "",
+    }),
+    [],
+  );
+
+  // Helper to advance to next step with voice - matches Macro Calculator pattern
+  const advanceGuided = useCallback(
+    (nextStep: GuidedStep) => {
+      stop(); // Stop any currently playing voice first
+      setGuidedStep(nextStep);
+      // Speak the script for this step (skip entry since it's handled by mount effect)
+      if (nextStep !== "entry") {
+        const script = stepScripts[nextStep];
+        if (script) {
+          speak(script);
+        }
+      }
+      // Smooth scroll to top when advancing
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    },
+    [speak, stop, stepScripts],
+  );
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -255,9 +287,7 @@ export default function MealFinder() {
 
     setResults([]);
     clearMealFinderCache();
-    setGuidedStep("generating");
-    stop();
-    speak(FIND_MY_MEAL_GENERATING);
+    advanceGuided("generating");
     findMealsMutation.mutate({ mealQuery, zipCode });
   };
 
@@ -359,10 +389,7 @@ export default function MealFinder() {
                   Tell me what you're craving and I'll find nearby restaurants with healthy options that fit your goals.
                 </p>
                 <Button
-                  onClick={() => {
-                    stop();
-                    setGuidedStep("step1");
-                  }}
+                  onClick={() => advanceGuided("step1")}
                   className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
                 >
                   Let's Find Meals
@@ -395,7 +422,7 @@ export default function MealFinder() {
                       onChange={(e) => setMealQuery(e.target.value)}
                       className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && mealQuery.trim() && setGuidedStep("step2")}
+                      onKeyPress={(e) => e.key === "Enter" && mealQuery.trim() && advanceGuided("step2")}
                       data-testid="findmeals-search"
                     />
                     {mealQuery && (
@@ -409,7 +436,7 @@ export default function MealFinder() {
                     )}
                   </div>
                   <Button
-                    onClick={() => setGuidedStep("step2")}
+                    onClick={() => advanceGuided("step2")}
                     disabled={!mealQuery.trim()}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
                   >
@@ -477,7 +504,7 @@ export default function MealFinder() {
                   </div>
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => setGuidedStep("step1")}
+                      onClick={() => advanceGuided("step1")}
                       variant="outline"
                       className="flex-1 border-white/30 text-white hover:bg-white/10"
                     >
