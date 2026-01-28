@@ -28,7 +28,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Home, Clock, Users, ArrowLeft, MapPin, Loader2, Plus, Navigation, Copy, CalendarPlus } from "lucide-react";
+import {
+  Home,
+  Clock,
+  Users,
+  ArrowLeft,
+  MapPin,
+  Loader2,
+  Plus,
+  Navigation,
+  Copy,
+  CalendarPlus,
+} from "lucide-react";
 import { useLocation } from "wouter";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
@@ -48,18 +59,24 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import { useChefVoice } from "@/lib/useChefVoice";
-import { 
-  RESTAURANT_GUIDE_ENTRY, 
+import {
+  RESTAURANT_GUIDE_ENTRY,
   RESTAURANT_GUIDE_STEP1,
   RESTAURANT_GUIDE_STEP2,
   RESTAURANT_GUIDE_STEP3,
-  RESTAURANT_GUIDE_GENERATING 
+  RESTAURANT_GUIDE_GENERATING,
 } from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
-type GuidedStep = "entry" | "step1" | "step2" | "step3" | "generating" | "results";
+type GuidedStep =
+  | "entry"
+  | "step1"
+  | "step2"
+  | "step3"
+  | "generating"
+  | "results";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
@@ -280,9 +297,10 @@ export default function RestaurantGuidePage() {
   const hasSpokenEntryRef = useRef(false);
 
   // Guided step state (matches Macro Calculator pattern)
-  const hasCachedResults = loadRestaurantCache()?.restaurantData?.meals?.length > 0;
+  const hasCachedResults =
+    loadRestaurantCache()?.restaurantData?.meals?.length > 0;
   const [guidedStep, setGuidedStep] = useState<GuidedStep>(
-    hasCachedResults ? "results" : "entry"
+    hasCachedResults ? "results" : "entry",
   );
 
   // Speak entry script on mount (if starting fresh)
@@ -575,11 +593,12 @@ export default function RestaurantGuidePage() {
                   Restaurant Guide
                 </h2>
                 <p className="text-white/70 mb-6">
-                  Tell me where you're eating and what you're in the mood for, and I'll show you the best options from their menu.
+                  Tell me where you're eating and what you're in the mood for,
+                  and I'll show you the best options from their menu.
                 </p>
                 <Button
                   onClick={() => advanceGuided("step1")}
-                  className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
+                  className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
                 >
                   Let's Find Dishes
                 </Button>
@@ -613,7 +632,11 @@ export default function RestaurantGuidePage() {
                       onChange={(e) => setCravingInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && cravingInput.trim() && advanceGuided("step2")}
+                      onKeyPress={(e) =>
+                        e.key === "Enter" &&
+                        cravingInput.trim() &&
+                        advanceGuided("step2")
+                      }
                     />
                     {cravingInput && (
                       <button
@@ -664,7 +687,11 @@ export default function RestaurantGuidePage() {
                       onChange={(e) => setRestaurantInput(e.target.value)}
                       className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && restaurantInput.trim() && advanceGuided("step3")}
+                      onKeyPress={(e) =>
+                        e.key === "Enter" &&
+                        restaurantInput.trim() &&
+                        advanceGuided("step3")
+                      }
                     />
                     {restaurantInput && (
                       <button
@@ -731,11 +758,17 @@ export default function RestaurantGuidePage() {
                         placeholder="e.g. 30303, 90210, 10001"
                         value={zipCode}
                         onChange={(e) =>
-                          setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
+                          setZipCode(
+                            e.target.value.replace(/\D/g, "").slice(0, 5),
+                          )
                         }
                         className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 text-lg py-3"
                         maxLength={5}
-                        onKeyPress={(e) => e.key === "Enter" && zipCode.length === 5 && handleSearch()}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" &&
+                          zipCode.length === 5 &&
+                          handleSearch()
+                        }
                       />
                       {zipCode && (
                         <button
@@ -752,7 +785,9 @@ export default function RestaurantGuidePage() {
                       onClick={handleUseLocation}
                       disabled={isGettingLocation}
                       className={`px-3 flex-shrink-0 text-white ${
-                        isGettingLocation ? "bg-blue-700 cursor-wait" : "bg-blue-600 hover:bg-blue-500"
+                        isGettingLocation
+                          ? "bg-blue-700 cursor-wait"
+                          : "bg-blue-600 hover:bg-blue-500"
                       }`}
                     >
                       {isGettingLocation ? (
@@ -815,10 +850,17 @@ export default function RestaurantGuidePage() {
                   </p>
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">AI Analysis Progress</span>
-                      <span className="text-sm text-white/80">{Math.round(progress)}%</span>
+                      <span className="text-sm text-white/80">
+                        AI Analysis Progress
+                      </span>
+                      <span className="text-sm text-white/80">
+                        {Math.round(progress)}%
+                      </span>
                     </div>
-                    <Progress value={progress} className="h-3 bg-black/30 border border-white/20" />
+                    <Progress
+                      value={progress}
+                      className="h-3 bg-black/30 border border-white/20"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -868,15 +910,19 @@ export default function RestaurantGuidePage() {
                           aria-label="Open in Maps"
                         >
                           <Navigation className="h-3 w-3" />
-                          <span className="underline">{restaurantInfo.address}</span>
+                          <span className="underline">
+                            {restaurantInfo.address}
+                          </span>
                         </button>
                         <button
                           onClick={async () => {
-                            const success = await copyAddressToClipboard(restaurantInfo.address);
+                            const success = await copyAddressToClipboard(
+                              restaurantInfo.address,
+                            );
                             toast({
                               title: success ? "Address copied" : "Copy failed",
-                              description: success 
-                                ? "Paste into Maps or Waze." 
+                              description: success
+                                ? "Paste into Maps or Waze."
                                 : "Please copy manually.",
                             });
                           }}
@@ -930,11 +976,13 @@ export default function RestaurantGuidePage() {
                                     ingredients: meal.ingredients || [],
                                   });
                                   return (
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
-                                      starchClass.isStarchMeal 
-                                        ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
-                                        : 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                    }`}>
+                                    <span
+                                      className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
+                                        starchClass.isStarchMeal
+                                          ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                                          : "bg-green-500/20 text-green-300 border border-green-500/30"
+                                      }`}
+                                    >
                                       {starchClass.emoji} {starchClass.label}
                                     </span>
                                   );
@@ -982,7 +1030,9 @@ export default function RestaurantGuidePage() {
                                       <HealthBadgesPopover
                                         badges={badgeStrings}
                                       />
-                                      <h3 className="font-semibold text-white">Medical Safety</h3>
+                                      <h3 className="font-semibold text-white">
+                                        Medical Safety
+                                      </h3>
                                     </div>
                                   </div>
                                 )
@@ -1040,10 +1090,14 @@ export default function RestaurantGuidePage() {
                                     carbs: Math.round(meal.carbs || 0),
                                     fat: Math.round(meal.fat || 0),
                                     calories: Math.round(meal.calories || 0),
-                                    dateISO: new Date().toISOString().slice(0, 10),
+                                    dateISO: new Date()
+                                      .toISOString()
+                                      .slice(0, 10),
                                     mealSlot: "lunch",
                                   });
-                                  setLocation("/biometrics?from=restaurant-guide&view=macros");
+                                  setLocation(
+                                    "/biometrics?from=restaurant-guide&view=macros",
+                                  );
                                 }}
                                 className="w-full bg-black text-white font-medium"
                               >
@@ -1054,16 +1108,21 @@ export default function RestaurantGuidePage() {
                               {/* Add to Meal Plan Button */}
                               <AddToMealPlanButton
                                 meal={{
-                                  id: meal.id || `restaurant-${index}-${Date.now()}`,
+                                  id:
+                                    meal.id ||
+                                    `restaurant-${index}-${Date.now()}`,
                                   title: meal.name || meal.meal,
                                   name: meal.name || meal.meal,
                                   description: meal.description || meal.reason,
                                   imageUrl: meal.imageUrl,
-                                  ingredients: meal.ingredients?.map((ing: string) => ({
-                                    item: ing,
-                                    amount: "1 serving",
-                                  })) || [],
-                                  instructions: meal.modifications ? [meal.modifications] : [],
+                                  ingredients:
+                                    meal.ingredients?.map((ing: string) => ({
+                                      item: ing,
+                                      amount: "1 serving",
+                                    })) || [],
+                                  instructions: meal.modifications
+                                    ? [meal.modifications]
+                                    : [],
                                   calories: meal.calories,
                                   protein: meal.protein,
                                   carbs: meal.carbs,
@@ -1080,7 +1139,6 @@ export default function RestaurantGuidePage() {
               </CardContent>
             </Card>
           )}
-
         </div>
 
         <QuickTourModal

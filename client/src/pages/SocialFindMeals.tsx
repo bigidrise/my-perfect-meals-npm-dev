@@ -398,7 +398,7 @@ export default function MealFinder() {
                 </p>
                 <Button
                   onClick={() => advanceGuided("step1")}
-                  className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
+                  className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
                 >
                   Let's Find Meals
                 </Button>
