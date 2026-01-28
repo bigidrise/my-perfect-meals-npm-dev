@@ -1,11 +1,9 @@
 {
-  "releaseId": "1.1.9",
+  "releaseId": "1.2.0",
   "publishedAt": "2026-01-28",
   "changes": [
-    "Macro Calculator UX improvements - clearer guidance on Metabolic & Hormonal Considerations",
-    "Copilot now explains each metabolic option when you open the section",
-    "Starch Strategy buttons start unselected - tap to choose your preference",
-    "Consistent card layout for all metabolic consideration options",
-    "Voice loads faster when opening metabolic section"
+    "Macro Calculator button styling - borders added for better visibility",
+    "Copilot voice now stops when you tap any button",
+    "Improved button consistency across the app"
   ]
 }
