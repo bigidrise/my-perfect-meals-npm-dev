@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.0",
+  "releaseId": "1.2.1",
   "publishedAt": "2026-01-28",
   "changes": [
-    "Macro Calculator button styling - borders added for better visibility",
-    "Copilot voice now stops when you tap any button",
-    "Improved button consistency across the app"
+    "Copilot Chef now guides you step-by-step through Social Meal Finder",
+    "Copilot Chef now guides you step-by-step through Restaurant Guide",
+    "Improved guided experience with voice at each step transition"
   ]
 }

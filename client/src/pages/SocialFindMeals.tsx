@@ -10,7 +10,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Sparkles, ArrowLeft, Star, Loader2, Plus, Navigation, Copy, CalendarPlus } from "lucide-react";
+import {
+  MapPin,
+  Sparkles,
+  ArrowLeft,
+  Star,
+  Loader2,
+  Plus,
+  Navigation,
+  Copy,
+  CalendarPlus,
+} from "lucide-react";
 import { useLocation } from "wouter";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
@@ -29,11 +39,11 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import { useChefVoice } from "@/lib/useChefVoice";
-import { 
-  FIND_MY_MEAL_ENTRY, 
+import {
+  FIND_MY_MEAL_ENTRY,
   FIND_MY_MEAL_STEP1,
   FIND_MY_MEAL_STEP2,
-  FIND_MY_MEAL_GENERATING 
+  FIND_MY_MEAL_GENERATING,
 } from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
 
@@ -172,7 +182,7 @@ export default function MealFinder() {
   // Guided step state (matches Macro Calculator pattern)
   const hasCachedResults = loadMealFinderCache() !== null;
   const [guidedStep, setGuidedStep] = useState<GuidedStep>(
-    hasCachedResults ? "results" : "entry"
+    hasCachedResults ? "results" : "entry",
   );
 
   // Speak entry script on mount (if starting fresh)
@@ -293,22 +303,19 @@ export default function MealFinder() {
 
   const handleUseLocation = async () => {
     setIsGettingLocation(true);
-    
+
     try {
       const coords = await getLocation();
-      
-      const response = await apiRequest(
-        "/api/restaurants/reverse-geocode",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lat: coords.latitude,
-            lng: coords.longitude,
-          }),
-        },
-      );
-      
+
+      const response = await apiRequest("/api/restaurants/reverse-geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: coords.latitude,
+          lng: coords.longitude,
+        }),
+      });
+
       if (response.zipCode) {
         setZipCode(response.zipCode);
         toast({
@@ -386,7 +393,8 @@ export default function MealFinder() {
                   Find My Meal
                 </h2>
                 <p className="text-white/70 mb-6">
-                  Tell me what you're craving and I'll find nearby restaurants with healthy options that fit your goals.
+                  Tell me what you're craving and I'll find nearby restaurants
+                  with healthy options that fit your goals.
                 </p>
                 <Button
                   onClick={() => advanceGuided("step1")}
@@ -422,7 +430,11 @@ export default function MealFinder() {
                       onChange={(e) => setMealQuery(e.target.value)}
                       className="w-full bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 focus:bg-black/40 focus:text-white caret-white text-lg py-3"
                       autoComplete="off"
-                      onKeyPress={(e) => e.key === "Enter" && mealQuery.trim() && advanceGuided("step2")}
+                      onKeyPress={(e) =>
+                        e.key === "Enter" &&
+                        mealQuery.trim() &&
+                        advanceGuided("step2")
+                      }
                       data-testid="findmeals-search"
                     />
                     {mealQuery && (
@@ -470,11 +482,17 @@ export default function MealFinder() {
                         placeholder="e.g., 30303, 90210, 10001"
                         value={zipCode}
                         onChange={(e) =>
-                          setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
+                          setZipCode(
+                            e.target.value.replace(/\D/g, "").slice(0, 5),
+                          )
                         }
                         className="w-full pr-10 bg-black/40 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/50 text-lg py-3"
                         maxLength={5}
-                        onKeyPress={(e) => e.key === "Enter" && zipCode.length === 5 && handleSearch()}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" &&
+                          zipCode.length === 5 &&
+                          handleSearch()
+                        }
                         data-testid="input-zip-code"
                       />
                       {zipCode && (
@@ -492,7 +510,9 @@ export default function MealFinder() {
                       onClick={handleUseLocation}
                       disabled={isGettingLocation}
                       className={`px-3 flex-shrink-0 text-white ${
-                        isGettingLocation ? "bg-blue-700 cursor-wait" : "bg-blue-600 hover:bg-blue-500"
+                        isGettingLocation
+                          ? "bg-blue-700 cursor-wait"
+                          : "bg-blue-600 hover:bg-blue-500"
                       }`}
                     >
                       {isGettingLocation ? (
@@ -556,10 +576,17 @@ export default function MealFinder() {
                   </p>
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">AI Analysis Progress</span>
-                      <span className="text-sm text-white/80">{Math.round(progress)}%</span>
+                      <span className="text-sm text-white/80">
+                        AI Analysis Progress
+                      </span>
+                      <span className="text-sm text-white/80">
+                        {Math.round(progress)}%
+                      </span>
                     </div>
-                    <Progress value={progress} className="h-3 bg-black/30 border border-white/20" />
+                    <Progress
+                      value={progress}
+                      className="h-3 bg-black/30 border border-white/20"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -572,7 +599,10 @@ export default function MealFinder() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">
                   🍽️ Found{" "}
-                  {new Set(results.map((r: MealResult) => r.restaurantName)).size}{" "}
+                  {
+                    new Set(results.map((r: MealResult) => r.restaurantName))
+                      .size
+                  }{" "}
                   Restaurants with {results.length} Meals:
                 </h2>
                 <button
@@ -629,15 +659,22 @@ export default function MealFinder() {
                                   aria-label="Open in Maps"
                                 >
                                   <Navigation className="h-3 w-3" />
-                                  <span className="underline">{result.address}</span>
+                                  <span className="underline">
+                                    {result.address}
+                                  </span>
                                 </button>
                                 <button
                                   onClick={async () => {
-                                    const success = await copyAddressToClipboard(result.address);
+                                    const success =
+                                      await copyAddressToClipboard(
+                                        result.address,
+                                      );
                                     toast({
-                                      title: success ? "Address copied" : "Copy failed",
-                                      description: success 
-                                        ? "Paste into Maps or Waze." 
+                                      title: success
+                                        ? "Address copied"
+                                        : "Copy failed",
+                                      description: success
+                                        ? "Paste into Maps or Waze."
                                         : "Please copy manually.",
                                     });
                                   }}
@@ -670,11 +707,13 @@ export default function MealFinder() {
                               ingredients: result.meal.ingredients || [],
                             });
                             return (
-                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit mb-2 ${
-                                starchClass.isStarchMeal 
-                                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
-                                  : 'bg-green-500/20 text-green-300 border border-green-500/30'
-                              }`}>
+                              <span
+                                className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit mb-2 ${
+                                  starchClass.isStarchMeal
+                                    ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                                    : "bg-green-500/20 text-green-300 border border-green-500/30"
+                                }`}
+                              >
                                 {starchClass.emoji} {starchClass.label}
                               </span>
                             );
@@ -712,10 +751,10 @@ export default function MealFinder() {
                             badgeStrings.length > 0 && (
                               <div className="mb-3">
                                 <div className="flex items-center gap-3">
-                                  <HealthBadgesPopover
-                                    badges={badgeStrings}
-                                  />
-                                  <h3 className="font-semibold text-white">Medical Safety</h3>
+                                  <HealthBadgesPopover badges={badgeStrings} />
+                                  <h3 className="font-semibold text-white">
+                                    Medical Safety
+                                  </h3>
                                 </div>
                               </div>
                             )
@@ -779,7 +818,9 @@ export default function MealFinder() {
                                 dateISO: new Date().toISOString().slice(0, 10),
                                 mealSlot: "lunch",
                               });
-                              setLocation("/biometrics?from=find-meals&view=macros");
+                              setLocation(
+                                "/biometrics?from=find-meals&view=macros",
+                              );
                             }}
                             className="w-full bg-black text-white font-medium"
                           >
@@ -795,11 +836,14 @@ export default function MealFinder() {
                               name: result.meal.name,
                               description: result.meal.description,
                               imageUrl: result.meal.imageUrl,
-                              ingredients: result.meal.ingredients?.map((ing: string) => ({
-                                item: ing,
-                                amount: "1 serving",
-                              })) || [],
-                              instructions: result.meal.modifications ? [result.meal.modifications] : [],
+                              ingredients:
+                                result.meal.ingredients?.map((ing: string) => ({
+                                  item: ing,
+                                  amount: "1 serving",
+                                })) || [],
+                              instructions: result.meal.modifications
+                                ? [result.meal.modifications]
+                                : [],
                               calories: result.meal.calories,
                               protein: result.meal.protein,
                               carbs: result.meal.carbs,
