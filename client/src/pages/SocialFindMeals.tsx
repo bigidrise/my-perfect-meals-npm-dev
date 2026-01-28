@@ -505,8 +505,17 @@ export default function MealFinder() {
                   <div className="flex gap-3">
                     <Button
                       onClick={() => advanceGuided("step1")}
-                      variant="outline"
-                      className="flex-1 border-white/30 text-white hover:bg-white/10"
+                      className="
+                        flex-1
+                        bg-black/60
+                        text-white
+                        border
+                        border-white/20
+                        backdrop-blur-lg
+                        font-medium
+                        rounded-xl
+                        transition-none
+                      "
                     >
                       Back
                     </Button>
