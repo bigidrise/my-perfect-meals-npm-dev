@@ -1,26 +1,26 @@
 /**
  * MetabolicConsiderations Component v1.0
- * 
+ *
  * User-facing section for the Macro Calculator that displays
  * metabolic and hormonal considerations that may affect macro needs.
- * 
+ *
  * V1 Conditions (LOCKED):
  * - Menopause / Hormone Therapy
  * - Suspected Insulin Resistance
  * - High Stress / Poor Sleep
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PillButton } from '@/components/ui/pill-button';
-import { useChefVoice } from '@/lib/useChefVoice';
-import { MACRO_CALC_METABOLIC_OPEN } from '@/components/copilot/scripts/macroCalculatorScripts';
+import { useState, useRef, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
+import { useChefVoice } from "@/lib/useChefVoice";
+import { MACRO_CALC_METABOLIC_OPEN } from "@/components/copilot/scripts/macroCalculatorScripts";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+} from "@/components/ui/collapsible";
 import {
   Heart,
   Info,
@@ -29,7 +29,7 @@ import {
   AlertCircle,
   Check,
   X,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   ADVISORY_DEFINITIONS,
   ADVISORY_KEYS,
@@ -43,7 +43,7 @@ import {
   loadUserAdvisory,
   saveUserAdvisory,
   hasAnyActiveAdvisory,
-} from '@/lib/clinicalAdvisory';
+} from "@/lib/clinicalAdvisory";
 
 interface MetabolicConsiderationsProps {
   currentTargets: MacroTargets;
@@ -55,19 +55,21 @@ export default function MetabolicConsiderations({
   onApplyAdjustments,
 }: MetabolicConsiderationsProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [advisory, setAdvisory] = useState<ClinicalAdvisoryState>(() => loadUserAdvisory() || {});
+  const [advisory, setAdvisory] = useState<ClinicalAdvisoryState>(
+    () => loadUserAdvisory() || {},
+  );
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingDeltas, setPendingDeltas] = useState<MacroDeltas | null>(null);
-  
+
   // Voice explanation on first open only
   const hasSpokenRef = useRef(false);
   const { speak, stop, preload } = useChefVoice();
-  
+
   // Preload voice on mount so it's ready when they tap
   useEffect(() => {
     preload?.();
   }, [preload]);
-  
+
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     // Speak explanation on first open only
@@ -160,7 +162,8 @@ export default function MetabolicConsiderations({
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-blue-200/90">
-                  They help fine-tune recommendations without overriding your goals.
+                  They help fine-tune recommendations without overriding your
+                  goals.
                 </p>
               </div>
             </div>
@@ -175,14 +178,14 @@ export default function MetabolicConsiderations({
                   <div
                     key={key}
                     className={`p-4 rounded-lg border transition-colors ${
-                      isEnabled
-                        ? 'bg-black/60'
-                        : 'bg-white/5 border-white/10'
+                      isEnabled ? "bg-black/60" : "bg-white/5 border-white/10"
                     }`}
                   >
                     <div className="mb-2">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-medium text-white">{def.label}</span>
+                        <span className="text-sm font-medium text-white">
+                          {def.label}
+                        </span>
                       </div>
                       <PillButton
                         onClick={() => handleToggle(key, !isEnabled)}
@@ -191,23 +194,54 @@ export default function MetabolicConsiderations({
                         {isEnabled ? "On" : "Off"}
                       </PillButton>
                     </div>
-                    <p className="text-xs text-white/60 mb-2">{def.description}</p>
+                    <p className="text-xs text-white/60 mb-2">
+                      {def.description}
+                    </p>
 
                     {isEnabled && (
                       <div className="mt-3 p-3 bg-black/30 rounded-lg">
-                        <div className="text-xs font-medium text-white/80 mb-2">Suggested adjustment:</div>
+                        <div className="text-xs font-medium text-white/80 mb-2">
+                          Suggested adjustment:
+                        </div>
                         <div className="flex gap-4 text-xs mb-2">
-                          <span className={def.proteinDeltaPercent > 0 ? 'text-green-400' : def.proteinDeltaPercent < 0 ? 'text-red-400' : 'text-white/60'}>
-                            Protein: {formatDeltaPercent(def.proteinDeltaPercent)}
+                          <span
+                            className={
+                              def.proteinDeltaPercent > 0
+                                ? "text-green-400"
+                                : def.proteinDeltaPercent < 0
+                                  ? "text-red-400"
+                                  : "text-white/60"
+                            }
+                          >
+                            Protein:{" "}
+                            {formatDeltaPercent(def.proteinDeltaPercent)}
                           </span>
-                          <span className={def.carbDeltaPercent > 0 ? 'text-green-400' : def.carbDeltaPercent < 0 ? 'text-red-400' : 'text-white/60'}>
+                          <span
+                            className={
+                              def.carbDeltaPercent > 0
+                                ? "text-green-400"
+                                : def.carbDeltaPercent < 0
+                                  ? "text-red-400"
+                                  : "text-white/60"
+                            }
+                          >
                             Carbs: {formatDeltaPercent(def.carbDeltaPercent)}
                           </span>
-                          <span className={def.fatDeltaPercent > 0 ? 'text-green-400' : def.fatDeltaPercent < 0 ? 'text-red-400' : 'text-white/60'}>
+                          <span
+                            className={
+                              def.fatDeltaPercent > 0
+                                ? "text-green-400"
+                                : def.fatDeltaPercent < 0
+                                  ? "text-red-400"
+                                  : "text-white/60"
+                            }
+                          >
                             Fat: {formatDeltaPercent(def.fatDeltaPercent)}
                           </span>
                         </div>
-                        <p className="text-xs text-white/70 italic">{def.userExplanation}</p>
+                        <p className="text-xs text-white/70 italic">
+                          {def.userExplanation}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -218,22 +252,51 @@ export default function MetabolicConsiderations({
             {hasActive && suggestions.length > 0 && (
               <div className="mt-4 p-4 bg-black/60 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-white">Combined adjustments:</span>
+                  <span className="text-sm font-medium text-white">
+                    Combined adjustments:
+                  </span>
                 </div>
                 <div className="flex gap-4 text-sm mb-4">
-                  <span className={aggregated.protein > 0 ? 'text-green-400' : aggregated.protein < 0 ? 'text-red-400' : 'text-white/60'}>
-                    Protein: {aggregated.protein > 0 ? '+' : ''}{aggregated.protein}g
+                  <span
+                    className={
+                      aggregated.protein > 0
+                        ? "text-green-400"
+                        : aggregated.protein < 0
+                          ? "text-red-400"
+                          : "text-white/60"
+                    }
+                  >
+                    Protein: {aggregated.protein > 0 ? "+" : ""}
+                    {aggregated.protein}g
                   </span>
-                  <span className={aggregated.carbs > 0 ? 'text-green-400' : aggregated.carbs < 0 ? 'text-red-400' : 'text-white/60'}>
-                    Carbs: {aggregated.carbs > 0 ? '+' : ''}{aggregated.carbs}g
+                  <span
+                    className={
+                      aggregated.carbs > 0
+                        ? "text-green-400"
+                        : aggregated.carbs < 0
+                          ? "text-red-400"
+                          : "text-white/60"
+                    }
+                  >
+                    Carbs: {aggregated.carbs > 0 ? "+" : ""}
+                    {aggregated.carbs}g
                   </span>
-                  <span className={aggregated.fat > 0 ? 'text-green-400' : aggregated.fat < 0 ? 'text-red-400' : 'text-white/60'}>
-                    Fat: {aggregated.fat > 0 ? '+' : ''}{aggregated.fat}g
+                  <span
+                    className={
+                      aggregated.fat > 0
+                        ? "text-green-400"
+                        : aggregated.fat < 0
+                          ? "text-red-400"
+                          : "text-white/60"
+                    }
+                  >
+                    Fat: {aggregated.fat > 0 ? "+" : ""}
+                    {aggregated.fat}g
                   </span>
                 </div>
                 <Button
                   onClick={handlePreviewChanges}
-                  className="w-full bg-blue-800 text-white"
+                  className="w-full bg-lime-600  border border-2 border-lime-400 text-white"
                 >
                   Preview Changes
                 </Button>
@@ -245,10 +308,11 @@ export default function MetabolicConsiderations({
                 Educational Notice
               </div>
               <p>
-                Metabolic and hormone-related insights are provided for educational and
-                lifestyle guidance only. They do not diagnose, treat, or replace medical
-                advice. Individual responses vary. Consult a qualified healthcare
-                professional for medical concerns.
+                Metabolic and hormone-related insights are provided for
+                educational and lifestyle guidance only. They do not diagnose,
+                treat, or replace medical advice. Individual responses vary.
+                Consult a qualified healthcare professional for medical
+                concerns.
               </p>
             </div>
           </CardContent>
@@ -261,30 +325,42 @@ export default function MetabolicConsiderations({
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <AlertCircle className="h-5 w-5 text-pink-400" />
-                <h3 className="text-lg font-semibold text-white">Apply Adjustments?</h3>
+                <h3 className="text-lg font-semibold text-white">
+                  Apply Adjustments?
+                </h3>
               </div>
 
               <p className="text-sm text-white/80 mb-4">
-                These adjustments will be applied to your calculated macro targets:
+                These adjustments will be applied to your calculated macro
+                targets:
               </p>
 
               <div className="p-4 bg-black/30 rounded-lg mb-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className={`text-lg font-bold ${pendingDeltas.protein > 0 ? 'text-green-400' : pendingDeltas.protein < 0 ? 'text-red-400' : 'text-white/60'}`}>
-                      {pendingDeltas.protein > 0 ? '+' : ''}{pendingDeltas.protein}g
+                    <div
+                      className={`text-lg font-bold ${pendingDeltas.protein > 0 ? "text-green-400" : pendingDeltas.protein < 0 ? "text-red-400" : "text-white/60"}`}
+                    >
+                      {pendingDeltas.protein > 0 ? "+" : ""}
+                      {pendingDeltas.protein}g
                     </div>
                     <div className="text-xs text-white/60">Protein</div>
                   </div>
                   <div>
-                    <div className={`text-lg font-bold ${pendingDeltas.carbs > 0 ? 'text-green-400' : pendingDeltas.carbs < 0 ? 'text-red-400' : 'text-white/60'}`}>
-                      {pendingDeltas.carbs > 0 ? '+' : ''}{pendingDeltas.carbs}g
+                    <div
+                      className={`text-lg font-bold ${pendingDeltas.carbs > 0 ? "text-green-400" : pendingDeltas.carbs < 0 ? "text-red-400" : "text-white/60"}`}
+                    >
+                      {pendingDeltas.carbs > 0 ? "+" : ""}
+                      {pendingDeltas.carbs}g
                     </div>
                     <div className="text-xs text-white/60">Carbs</div>
                   </div>
                   <div>
-                    <div className={`text-lg font-bold ${pendingDeltas.fat > 0 ? 'text-green-400' : pendingDeltas.fat < 0 ? 'text-red-400' : 'text-white/60'}`}>
-                      {pendingDeltas.fat > 0 ? '+' : ''}{pendingDeltas.fat}g
+                    <div
+                      className={`text-lg font-bold ${pendingDeltas.fat > 0 ? "text-green-400" : pendingDeltas.fat < 0 ? "text-red-400" : "text-white/60"}`}
+                    >
+                      {pendingDeltas.fat > 0 ? "+" : ""}
+                      {pendingDeltas.fat}g
                     </div>
                     <div className="text-xs text-white/60">Fat</div>
                   </div>

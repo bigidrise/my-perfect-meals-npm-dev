@@ -330,9 +330,9 @@ export default function MacroCounter() {
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
   // Start with undefined so user must make an active choice (UX improvement)
   const existingTargets = getMacroTargets(user?.id);
-  const [starchStrategy, setStarchStrategy] = useState<StarchStrategy | undefined>(
-    existingTargets?.starchStrategy ?? undefined,
-  );
+  const [starchStrategy, setStarchStrategy] = useState<
+    StarchStrategy | undefined
+  >(existingTargets?.starchStrategy ?? undefined);
 
   // Guided Mode State
   const hasExistingSettings = savedSettings !== null;
@@ -715,7 +715,7 @@ export default function MacroCounter() {
                         bg-black/30
                         text-white font-semibold text-lg
                         rounded-xl
-                        border border-white/30
+                        border border-white/60
                       "
                       data-testid="guided-talk-to-chef"
                     >
@@ -981,7 +981,7 @@ export default function MacroCounter() {
                         bg-black/30 
                         text-white font-semibold text-lg
                         rounded-xl
-                        border border-white/30
+                        border border-white/60
                         disabled:opacity-40 disabled:cursor-not-allowed
                       "
                     >
@@ -1066,7 +1066,7 @@ export default function MacroCounter() {
                       onClick={() => advanceGuided("weight")}
                       disabled={
                         units === "imperial"
-                          ? (!heightFt && !heightIn)
+                          ? !heightFt && !heightIn
                           : !heightCm
                       }
                       className="
@@ -1074,13 +1074,12 @@ export default function MacroCounter() {
                         bg-black/30
                         text-white font-semibold text-lg
                         rounded-xl
-                        border border-white/30
+                        border border-white/60
                         disabled:opacity-40 disabled:cursor-not-allowed
                       "
                     >
                       Continue
                     </Button>
-
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1135,7 +1134,7 @@ export default function MacroCounter() {
                         bg-black/30
                         text-white font-semibold text-lg
                         rounded-xl
-                        border border-white/30
+                        border border-white/60
                         disabled:opacity-40 disabled:cursor-not-allowed
                       "
                     >
@@ -1243,7 +1242,8 @@ export default function MacroCounter() {
                         });
                         advanceGuided("metabolic");
                       }}
-                      className="w-full py-3 bg-lime-700 hover:bg-lime-600 text-white font-semibold rounded-xl"
+                      className="w-full py-3 bg-lime-600     border border-lime-300
+ text-white font-semibold rounded-xl"
                     >
                       <Scale className="h-4 w-4 mr-2" />
                       Save Weight to Biometrics
@@ -1304,7 +1304,7 @@ export default function MacroCounter() {
                         setShowResults(true);
                         advanceGuided("results");
                       }}
-                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white border border-white/30 font-semibold text-lg rounded-xl"
+                      className="w-full py-4 bg-black/30  border border-white/60 text-white font-semibold text-lg rounded-xl"
                     >
                       Let's See What We Got!
                     </Button>
@@ -1378,7 +1378,7 @@ export default function MacroCounter() {
                     bg-lime-600
                     text-white font-semibold text-lg
                     rounded-xl
-                    border border-white/30
+                    border border-white/60
                   "
                 >
                   Continue
@@ -1417,8 +1417,12 @@ export default function MacroCounter() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-white">One Starch Meal</span>
-                            <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">Recommended</span>
+                            <span className="text-sm font-medium text-white">
+                              One Starch Meal
+                            </span>
+                            <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
+                              Recommended
+                            </span>
                           </div>
                           <PillButton
                             onClick={() => {
@@ -1443,7 +1447,9 @@ export default function MacroCounter() {
                         }`}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-white">Flex Split</span>
+                          <span className="text-sm font-medium text-white">
+                            Flex Split
+                          </span>
                           <PillButton
                             onClick={() => {
                               setStarchStrategy("flex");
@@ -1595,7 +1601,7 @@ export default function MacroCounter() {
                           setIsSaving(false);
                         }
                       }}
-                      className="w-full py-4 bg-lime-600 hover:bg-lime-500 text-black font-semibold text-lg rounded-xl"
+                      className="w-full py-4 bg-lime-600  border border-lime-300 text-white font-semibold text-lg rounded-xl"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
                       {isSaving ? "Saving..." : "Save & Go to Meal Builder"}
@@ -1626,7 +1632,7 @@ export default function MacroCounter() {
                   <Button
                     onClick={resetGuidedFlow}
                     variant="outline"
-                    className="bg-black/50 text-white  border border-white/50 hover:bg-black/80 hover:text-white"
+                    className="bg-black/60 text-white  border border-white/60 hover:bg-black/80 hover:text-white"
                     data-testid="recalculate-with-chef"
                   >
                     <ChefHat className="h-4 w-4 mr-2 text-white" />
@@ -2224,8 +2230,12 @@ export default function MacroCounter() {
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-white">One Starch Meal</span>
-                              <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">Recommended</span>
+                              <span className="text-sm font-medium text-white">
+                                One Starch Meal
+                              </span>
+                              <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
+                                Recommended
+                              </span>
                             </div>
                             <PillButton
                               onClick={() => setStarchStrategy("one")}
@@ -2235,7 +2245,9 @@ export default function MacroCounter() {
                             </PillButton>
                           </div>
                           <p className="text-xs text-white/60">
-                            Use your full starch allowance ({getStarchyCarbs(sex, goal)}g) in one meal. Best for appetite control and fat loss.
+                            Use your full starch allowance (
+                            {getStarchyCarbs(sex, goal)}g) in one meal. Best for
+                            appetite control and fat loss.
                           </p>
                         </div>
 
@@ -2247,7 +2259,9 @@ export default function MacroCounter() {
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-white">Flex Split</span>
+                            <span className="text-sm font-medium text-white">
+                              Flex Split
+                            </span>
                             <PillButton
                               onClick={() => setStarchStrategy("flex")}
                               active={starchStrategy === "flex"}
@@ -2256,7 +2270,9 @@ export default function MacroCounter() {
                             </PillButton>
                           </div>
                           <p className="text-xs text-white/60">
-                            Divide starch across two meals (~{Math.round(getStarchyCarbs(sex, goal) / 2)}g each). Useful for training days or larger schedules.
+                            Divide starch across two meals (~
+                            {Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
+                            Useful for training days or larger schedules.
                           </p>
                         </div>
                       </div>
@@ -2339,7 +2355,7 @@ export default function MacroCounter() {
                         }
                       }}
                       id="save-biometrics-button"
-                      className="w-full bg-lime-600 border-2 border-lime-400 text-white hover:bg-lime-800 hover:border-lime-300 text-lg font-semibold mt-4"
+                      className="w-full bg-lime-600 border-2 border-lime-400 text-white text-lg font-semibold mt-4"
                     >
                       <Target className="h-4 w-4 mr-2" />
                       {isSaving ? "Saving..." : "1st Step → Save to Biometrics"}
@@ -2430,7 +2446,7 @@ export default function MacroCounter() {
                         }
                       }}
                       id="build-meals-button"
-                      className="w-full bg-black/90 border-2 border-white/90 text-white hover:bg-black/60 hover:border-black/20 text-white font-semi-bold px-8 text-lg py-4 rounded-2xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-black/90 border-2 border-white/90 text-white text-white font-semi-bold px-8 text-lg py-4 rounded-2xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
                       {isSaving ? "Saving..." : "2nd Step → Your Meal Builder"}
