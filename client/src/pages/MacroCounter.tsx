@@ -45,7 +45,9 @@ import {
   Info,
   Ruler,
   Scale,
+  LifeBuoy,
   Target,
+  Compass,
   X,
   Home,
   ChefHat,
@@ -719,8 +721,8 @@ export default function MacroCounter() {
                       "
                       data-testid="guided-talk-to-chef"
                     >
-                      <ChefHat className="h-5 w-5 mr-2" />
-                      Talk to Chef
+                      <LifeBuoy className="h-5 w-5 mr-2" />
+                      Start Chef-Assisted Setup
                     </Button>
                   </CardContent>
                 </Card>

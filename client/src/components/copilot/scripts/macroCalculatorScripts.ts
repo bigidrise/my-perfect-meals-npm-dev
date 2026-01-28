@@ -1,7 +1,7 @@
 // Macro Calculator Guided Walkthrough Voice Scripts
 // Uses the same 11L voice system as Chef's Kitchen and ProTip
 
-export const MACRO_CALC_ENTRY = "Ok, let's dial in your macros.";
+export const MACRO_CALC_ENTRY = " I see we have a new user, nice to meet you. If your looking for the perfect meal your in the right place. I’m Chef Copilot and Welcome to the Macro Calculator. Together we're going to set up your macro numbers to acheive your nutrition goals. Begin by tapping the start button below.";
 
 export const MACRO_CALC_GOAL =
   "What's your goal? Are you wanting to cut, maintain, or build?";
