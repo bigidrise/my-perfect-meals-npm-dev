@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.2",
+  "releaseId": "1.2.3",
   "publishedAt": "2026-01-28",
   "changes": [
+    "Added 'Testers Start Here' badge to guide beta testers",
     "New MPM logo on Copilot cards replacing chef emoji",
-    "Copilot Chef now guides you step-by-step through Social Meal Finder",
-    "Copilot Chef now guides you step-by-step through Restaurant Guide"
+    "Copilot Chef guided experience for Social Meal Finder and Restaurant Guide"
   ]
 }

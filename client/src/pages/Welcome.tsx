@@ -214,21 +214,31 @@ export default function Welcome() {
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
             <Sparkles className="h-5 w-5" />
-            Enter Guest Suite
+            Use Our Guest Suite - No Signup
           </Button>
 
           {/* Sign In / Create Account - Combined auth button */}
-          <Button
-            data-testid="button-signin"
-            onClick={signIn}
-            className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
-                     text-white shadow-lg
-                     transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <LogIn className="h-5 w-5" />
-            Sign In / Create Account
-          </Button>
+          <div className="relative">
+            <span
+              className="absolute -top-2 -right-2 z-10 text-xs px-2 py-0.5 rounded-full
+                         bg-orange-600 text-white font-semibold"
+            >
+              TESTERS START HERE
+            </span>
+
+            <Button
+              data-testid="button-signin"
+              onClick={signIn}
+              className="w-full h-14 text-md font-medium rounded-2xl
+              bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
+                       text-white shadow-lg
+                       transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <LogIn className="h-5 w-5" />
+              Sign In / Create Account
+            </Button>
+          </div>
+
 
           {/* Full Access - Apple Review Bypass */}
           <Button
