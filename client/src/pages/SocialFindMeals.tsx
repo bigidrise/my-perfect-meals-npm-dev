@@ -29,7 +29,12 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { openInMaps, copyAddressToClipboard } from "@/utils/mapUtils";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import { useChefVoice } from "@/lib/useChefVoice";
-import { FIND_MY_MEAL_ENTRY, FIND_MY_MEAL_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
+import { 
+  FIND_MY_MEAL_ENTRY, 
+  FIND_MY_MEAL_STEP1,
+  FIND_MY_MEAL_STEP2,
+  FIND_MY_MEAL_GENERATING 
+} from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
 
 // Guided flow step type - step-by-step wizard
