@@ -51,8 +51,9 @@ import { useChefVoice } from "@/lib/useChefVoice";
 import { RESTAURANT_GUIDE_ENTRY, RESTAURANT_GUIDE_GENERATING } from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
 
-// Guided flow step type (matches Macro Calculator pattern)
-type GuidedStep = "entry" | "input" | "generating" | "results";
+// Guided flow step type - step-by-step wizard
+// entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
+type GuidedStep = "entry" | "step1" | "step2" | "step3" | "generating" | "results";
 
 const RESTAURANT_TOUR_STEPS: TourStep[] = [
   {
@@ -543,7 +544,7 @@ export default function RestaurantGuidePage() {
                 <Button
                   onClick={() => {
                     stop();
-                    setGuidedStep("input");
+                    setGuidedStep("step1");
                   }}
                   className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 text-lg font-semibold"
                 >
