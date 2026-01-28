@@ -10,7 +10,7 @@
  * - High Stress / Poor Sleep
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PillButton } from '@/components/ui/pill-button';
@@ -61,7 +61,12 @@ export default function MetabolicConsiderations({
   
   // Voice explanation on first open only
   const hasSpokenRef = useRef(false);
-  const { speak } = useChefVoice();
+  const { speak, preload } = useChefVoice();
+  
+  // Preload voice on mount so it's ready when they tap
+  useEffect(() => {
+    preload?.();
+  }, [preload]);
   
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);

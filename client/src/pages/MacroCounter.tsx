@@ -710,7 +710,13 @@ export default function MacroCounter() {
                     </p>
                     <Button
                       onClick={() => advanceGuided("goal")}
-                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
+                      className="
+                        w-full py-4
+                        bg-black/30
+                        text-white font-semibold text-lg
+                        rounded-xl
+                        border border-white/30
+                      "
                       data-testid="guided-talk-to-chef"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
@@ -970,7 +976,14 @@ export default function MacroCounter() {
                     <Button
                       onClick={() => advanceGuided("height")}
                       disabled={!age || age <= 0}
-                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
+                      className="
+                        w-full py-4
+                        bg-black/30 
+                        text-white font-semibold text-lg
+                        rounded-xl
+                        border border-white/30
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                      "
                     >
                       Continue
                     </Button>
@@ -1053,13 +1066,21 @@ export default function MacroCounter() {
                       onClick={() => advanceGuided("weight")}
                       disabled={
                         units === "imperial"
-                          ? !heightFt && !heightIn
+                          ? (!heightFt && !heightIn)
                           : !heightCm
                       }
-                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
+                      className="
+                        w-full py-4
+                        bg-black/30
+                        text-white font-semibold text-lg
+                        rounded-xl
+                        border border-white/30
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                      "
                     >
                       Continue
                     </Button>
+
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1109,7 +1130,14 @@ export default function MacroCounter() {
                     <Button
                       onClick={() => advanceGuided("activity")}
                       disabled={units === "imperial" ? !weightLbs : !weightKg}
-                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
+                      className="
+                        w-full py-4
+                        bg-black/30
+                        text-white font-semibold text-lg
+                        rounded-xl
+                        border border-white/30
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                      "
                     >
                       Continue
                     </Button>
@@ -1276,7 +1304,7 @@ export default function MacroCounter() {
                         setShowResults(true);
                         advanceGuided("results");
                       }}
-                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white font-semibold text-lg rounded-xl"
+                      className="w-full py-4 bg-black/30 hover:bg-black/30 text-white border border-white/30 font-semibold text-lg rounded-xl"
                     >
                       Let's See What We Got!
                     </Button>
@@ -1345,7 +1373,13 @@ export default function MacroCounter() {
                 </Card>
                 <Button
                   onClick={() => advanceGuided("starch")}
-                  className="w-full py-4 bg-lime-600 text-white font-semibold text-lg rounded-xl"
+                  className="
+                    w-full py-4
+                    bg-lime-600
+                    text-white font-semibold text-lg
+                    rounded-xl
+                    border border-white/30
+                  "
                 >
                   Continue
                 </Button>
@@ -1592,7 +1626,7 @@ export default function MacroCounter() {
                   <Button
                     onClick={resetGuidedFlow}
                     variant="outline"
-                    className="bg-black text-white border-white/30 hover:bg-black/80 hover:text-white"
+                    className="bg-black/50 text-white  border border-white/50 hover:bg-black/80 hover:text-white"
                     data-testid="recalculate-with-chef"
                   >
                     <ChefHat className="h-4 w-4 mr-2 text-white" />

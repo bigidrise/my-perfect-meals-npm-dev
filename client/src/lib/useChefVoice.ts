@@ -27,5 +27,9 @@ export function useChefVoice() {
     voiceManager.stop();
   }, []);
 
-  return { speak, stop };
+  const preload = useCallback(async () => {
+    await voiceManager.preload();
+  }, []);
+
+  return { speak, stop, preload };
 }
