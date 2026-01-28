@@ -38,7 +38,7 @@ export const MACRO_CALC_RESULTS =
 "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal changes—loss, gain, or maintenance—rerun the Macro Calculator to reset your targets.";
 
 export const MACRO_CALC_STARCH = 
-  "Starchy carbs are the biggest lever for controlling body weight, so instead of spreading them across every meal, we usually place them intentionally. Your plan will include one or two meals where starchy carbs make the most sense. Do you want to concentrate them into one meal, split them between two meals, include smaller amounts with most meals, or keep them minimal overall?";
+  "Starchy carbs are the biggest lever for controlling body weight, so we place them intentionally. Tap one of the buttons below to choose your strategy. One Starch Meal puts all your carbs in one meal for appetite control. Flex Split divides them across two meals if you prefer. Tap the one that fits your lifestyle, then we'll lock it in.";
 
 export const MACRO_CALC_SAVE =
   "Perfect! Hit save and you're all set. Your macros are locked in. Let's head over to our meal bulder";

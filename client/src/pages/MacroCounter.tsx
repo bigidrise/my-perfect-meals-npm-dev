@@ -327,10 +327,11 @@ export default function MacroCounter() {
     fat: 0,
   });
 
-  // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = split across 2 meals
+  // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
+  // Start with undefined so user must make an active choice (UX improvement)
   const existingTargets = getMacroTargets(user?.id);
-  const [starchStrategy, setStarchStrategy] = useState<StarchStrategy>(
-    existingTargets?.starchStrategy ?? "one",
+  const [starchStrategy, setStarchStrategy] = useState<StarchStrategy | undefined>(
+    existingTargets?.starchStrategy ?? undefined,
   );
 
   // Guided Mode State
