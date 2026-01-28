@@ -99,15 +99,22 @@ export default function MetabolicConsiderations({
         <CollapsibleTrigger asChild>
           <CardContent className="p-5 cursor-pointer hover:bg-white/5 transition-colors">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Heart className="h-5 w-5 text-pink-400" />
-                Metabolic & Hormonal Considerations
-                {hasActive && (
-                  <span className="text-xs bg-black/60 text-pink-200 px-2 py-0.5 rounded-full ml-2">
-                    {suggestions.length} active
+              <div className="flex flex-col">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-pink-400" />
+                  Metabolic & Hormonal Considerations
+                  {hasActive && (
+                    <span className="text-xs bg-black/60 text-pink-200 px-2 py-0.5 rounded-full ml-2">
+                      {suggestions.length} active
+                    </span>
+                  )}
+                </h3>
+                {!isOpen && (
+                  <span className="text-xs text-white/50 italic ml-7 mt-1">
+                    Tap to review & adjust (optional)
                   </span>
                 )}
-              </h3>
+              </div>
               {isOpen ? (
                 <ChevronUp className="h-5 w-5 text-white/60" />
               ) : (
@@ -119,12 +126,14 @@ export default function MetabolicConsiderations({
 
         <CollapsibleContent>
           <CardContent className="pt-0 px-5 pb-5 space-y-4">
+            <div className="text-sm text-white/80 font-medium mb-1">
+              Select any that apply to you (optional)
+            </div>
             <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-blue-200/90">
-                  These factors can influence how your body responds to calories and macros.
-                  They do not override your goals — they help fine-tune recommendations.
+                  These adjust your macros for metabolic accuracy. They help fine-tune recommendations without overriding your goals.
                 </p>
               </div>
             </div>

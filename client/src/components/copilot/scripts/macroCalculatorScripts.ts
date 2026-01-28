@@ -8,7 +8,7 @@ export const MACRO_CALC_GOAL =
   "What's your goal? Are you wanting to cut, maintain, or build?";
 
 export const MACRO_CALC_BODY_TYPE = 
-  "Are you an ectomorph, mesomorph, or an endomorph? Check the drop-down below to see which category you fit in.";
+  "Are you an ectomorph, mesomorph, or an endomorph? If your not sure check the drop-down below to see which category you fit in.";
 
 export const MACRO_CALC_UNITS = 
   "Do you use imperial system, the (U.S) or metric system?";
@@ -32,7 +32,7 @@ export const MACRO_CALC_SYNC_WEIGHT =
   "Sync weight to biometrics to keep an accurate log of your progress.";
 
 export const MACRO_CALC_METABOLIC = 
-  "Metabolic considerations? For example: Menopause, Thyroid conditions, or anything that affects your metabolism?";
+  "Before we lock these macros in, take a second to check Metabolic & Hormonal Considerations below. If things like menopause, thyroid conditions, or GLP-1 meds apply to you, tap that section to open it. You can make optional adjustments there, and I’ll fine-tune your macros automatically.";
 
 export const MACRO_CALC_RESULTS =
 "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal changes—loss, gain, or maintenance—rerun the Macro Calculator to reset your targets.";
