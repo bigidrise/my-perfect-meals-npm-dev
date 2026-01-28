@@ -413,7 +413,7 @@ export default function MealFinder() {
                     <h3 className="text-lg font-semibold text-white">Step 1</h3>
                   </div>
                   <p className="text-white text-base">
-                    What are you craving? Tell me what kind of meal you're in the mood for.
+                    What are you in the mood to eat?
                   </p>
                   <div className="relative">
                     <Input
