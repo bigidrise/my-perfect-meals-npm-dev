@@ -55,7 +55,9 @@ export default function MetabolicConsiderations({
   onApplyAdjustments,
 }: MetabolicConsiderationsProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [advisory, setAdvisory] = useState<ClinicalAdvisoryState>(() => loadUserAdvisory() || {});
+  // Start with all options OFF - user must actively enable them
+  // (Don't auto-load previous selections - fresh start each time)
+  const [advisory, setAdvisory] = useState<ClinicalAdvisoryState>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingDeltas, setPendingDeltas] = useState<MacroDeltas | null>(null);
   
