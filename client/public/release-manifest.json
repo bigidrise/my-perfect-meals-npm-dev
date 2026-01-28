@@ -1,9 +1,11 @@
 {
-  "releaseId": "1.1.8",
-  "publishedAt": "2026-01-27",
+  "releaseId": "1.1.9",
+  "publishedAt": "2026-01-28",
   "changes": [
-    "Email field added to Edit Profile - update your account email anytime",
-    "Forgot Password system verified and ready - password reset emails work",
-    "Fixed button flickering on Edit Profile page"
+    "Macro Calculator UX improvements - clearer guidance on Metabolic & Hormonal Considerations",
+    "Copilot now explains each metabolic option when you open the section",
+    "Starch Strategy buttons start unselected - tap to choose your preference",
+    "Consistent card layout for all metabolic consideration options",
+    "Voice loads faster when opening metabolic section"
   ]
 }
