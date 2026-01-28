@@ -178,8 +178,8 @@ export default function MetabolicConsiderations({
                         : 'bg-white/5 border-white/10'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                    <div className="mb-2">
+                      <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm font-medium text-white">{def.label}</span>
                       </div>
                       <PillButton
