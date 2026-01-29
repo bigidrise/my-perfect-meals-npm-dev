@@ -279,7 +279,7 @@ export function KitchenStepCard({
                           className={`py-2 rounded-lg border text-sm transition ${
                             value === option
                               ? "bg-lime-600 text-black border-lime-600"
-                              : "bg-black/40 text-white border-white/20 hover:bg-black/50"
+                              : "bg-white/90 text-black border-white/20 hover:bg-white"
                           }`}
                         >
                           {option}
