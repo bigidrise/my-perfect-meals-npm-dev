@@ -100,6 +100,20 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "lactose", "whey protein concentrate"
   ],
   
+  // Also accept just "lactose" as shorthand for lactose intolerance
+  lactose: [
+    "milk", "whole milk", "skim milk", "2% milk", "buttermilk",
+    "ice cream", "gelato", "soft serve", "frozen yogurt",
+    "yogurt", "greek yogurt", "plain yogurt", "flavored yogurt", "kefir",
+    "whipped cream", "heavy cream", "half and half", "half-and-half",
+    "condensed milk", "evaporated milk", "milk powder", "dried milk",
+    "cottage cheese", "ricotta", "fresh mozzarella", "brie", "camembert",
+    "sour cream", "creme fraiche", "custard", "pudding",
+    "milk chocolate", "hot chocolate", "latte", "cappuccino", "milkshake",
+    "cream sauce", "alfredo", "bechamel", "white sauce", "queso",
+    "lactose", "whey protein concentrate"
+  ],
+  
   // Eggs
   eggs: [
     "egg", "eggs", "egg white", "egg yolk", "egg whites", "egg yolks",
