@@ -1,9 +1,8 @@
 {
-  "releaseId": "1.2.6",
+  "releaseId": "1.2.7",
   "publishedAt": "2026-01-29",
   "changes": [
-    "All Studios now use the proven meal generation system",
-    "Chef's Kitchen, Craving Studio, Dessert Studio, and Fridge Rescue now correctly honor your food requests",
-    "Fixed issue where AI was ignoring user food requests and generating default chicken meals"
+    "Fixed Chef's Kitchen header alignment on iOS - back button, title, chef icon, and guide now properly aligned",
+    "Fixed top card being hidden behind iOS safe area"
   ]
 }

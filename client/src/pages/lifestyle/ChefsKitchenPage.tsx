@@ -1084,25 +1084,25 @@ export default function ChefsKitchenPage() {
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
+        <div className="px-4 h-14 flex items-center gap-3">
           <button
             onClick={() => setLocation("/lifestyle")}
-            className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
+            className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
             data-testid="button-back-to-lifestyle"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
           </button>
 
-          <h1 className="text-lg font-bold text-white truncate min-w-0 flex items-center gap-2">
+          <h1 className="text-lg font-bold text-white truncate">
             Chef&apos;s Kitchen
-            <img
-              src="/icons/chef.png"
-              alt="Chef"
-              className="w-16 h-16 rounded-full ring-2 ring-white/10 shadow"
-              draggable={false}
-            />
           </h1>
+
+          <img
+            src="/icons/chef.png"
+            alt="Chef"
+            className="w-8 h-8 rounded-full ring-2 ring-white/10 shadow flex-shrink-0"
+            draggable={false}
+          />
 
           <div className="flex-grow" />
 
@@ -1116,7 +1116,7 @@ export default function ChefsKitchenPage() {
       <div
         className="px-4 space-y-4"
         style={{
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 68px)",
         }}
       >
         {/* ENTRY MODE */}
