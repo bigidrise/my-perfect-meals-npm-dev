@@ -1,8 +1,9 @@
 {
-  "releaseId": "1.2.5",
+  "releaseId": "1.2.6",
   "publishedAt": "2026-01-29",
   "changes": [
-    "Fixed shopping bar positioning - now correctly sits at the bottom of the screen",
-    "Safety PIN settings now shows helpful message when session expires"
+    "All Studios now use the proven meal generation system",
+    "Chef's Kitchen, Craving Studio, Dessert Studio, and Fridge Rescue now correctly honor your food requests",
+    "Fixed issue where AI was ignoring user food requests and generating default chicken meals"
   ]
 }
