@@ -576,11 +576,7 @@ export default function CravingStudio() {
             onSubmit={() => {
               stopChef();
               setS4Locked(true);
-              setStudioStep(5);
-
-              speak(
-                "If everything looks good, tap, Create the Plan."
-              );
+              setStudioStep(4);
             }}
 
             onEdit={() => {
@@ -611,7 +607,11 @@ export default function CravingStudio() {
             onSubmit={() => {
               stopChef();
               setS3Locked(true);
-              setStudioStep(4);
+              setStudioStep(5);
+
+              speak(
+                "If everything looks good, tap, Create the Plan."
+              );
             }}
             onEdit={() => {
               stopChef();
