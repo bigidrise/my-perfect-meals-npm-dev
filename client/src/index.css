@@ -184,7 +184,7 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
   --app-header-h: 80px;
 
   /* Navigation System Heights */
-  --bottom-nav-height: 56px; /* h-14 */
+  --bottom-nav-height: 64px; /* h-16 - actual nav height */
   --shopping-banner-height: 72px; /* Standard shopping banner */
   --safe-bottom-total: calc(var(--bottom-nav-height) + var(--shopping-banner-height)); /* 128px */
   --safe-bottom-with-banner: var(--shopping-banner-height); /* Just banner */
