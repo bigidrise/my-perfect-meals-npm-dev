@@ -449,7 +449,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
           ? meal.ingredients.map((ing: any) => {
               if (typeof ing === "string") return { name: ing };
               return {
-                name: ing.name || "",
+                // Handle both 'item' (from meal-engine) and 'name' (from other APIs)
+                name: ing.name || ing.item || "",
                 quantity: ing.quantity,
                 amount: ing.amount ?? ing.grams,
                 unit: ing.unit ?? "g",

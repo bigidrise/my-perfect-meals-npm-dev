@@ -794,7 +794,8 @@ export default function ChefsKitchenPage() {
         description: meal.description || "",
         mealType: meal.mealType || "dinner",
         ingredients: (meal.ingredients || []).map((ing: any) => ({
-          name: ing.name,
+          // Handle both 'item' (from meal-engine) and 'name' (from other APIs)
+          name: ing.name || ing.item || "",
           quantity: ing.quantity || ing.displayText,
           amount: ing.amount,
           unit: ing.unit,
@@ -1013,7 +1014,8 @@ export default function ChefsKitchenPage() {
                 };
               }
               return {
-                name: ing.name || "",
+                // Handle both 'item' (from meal-engine) and 'name' (from other APIs)
+                name: ing.name || ing.item || "",
                 quantity: ing.quantity,
                 amount: ing.amount ?? ing.grams, // FinalMeal uses 'amount', skeleton uses 'grams'
                 unit: ing.unit ?? "g",
