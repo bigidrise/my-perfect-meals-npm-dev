@@ -64,7 +64,8 @@ export function KitchenStepCard({
   const yesnoNoLabel = yesnoConfig?.noLabel || "No, I'm good";
   const yesnoYesLabel = yesnoConfig?.yesLabel || "Yes, add preferences";
   const yesnoNoValue = yesnoConfig?.noValue || "None";
-  const yesnoYesPlaceholder = yesnoConfig?.yesPlaceholder || placeholder || "Type your preferences...";
+  const yesnoYesPlaceholder =
+    yesnoConfig?.yesPlaceholder || placeholder || "Type your preferences...";
 
   const handleOtherClick = () => {
     onInputFocus?.();
@@ -115,12 +116,12 @@ export function KitchenStepCard({
         ) : (
           <>
             {!hasListened && !autoReady && (
-                <button
-                  className={`w-full py-3 rounded-xl border text-white font-medium transition ${
-                    isPlaying
-                      ? "bg-green-900/40 border-green-500/40"
-                      : "bg-gradient-to-br from-black/80 via-orange-800 to-black/70 hover:from-orange-500 animate-pulse border-white/5 hover:border-white/10"
-                  }`}
+              <button
+                className={`w-full py-3 rounded-xl border text-white font-medium transition ${
+                  isPlaying
+                    ? "bg-green-900/40 border-green-500/40"
+                    : "bg-gradient-to-br from-black/80 via-orange-800 to-black/70 hover:from-orange-500 animate-pulse border-white/5 hover:border-white/10"
+                }`}
                 onClick={onListen}
                 disabled={isPlaying}
                 data-testid={`button-listen-${stepTitle.toLowerCase().replace(/\s+/g, "-")}`}
@@ -133,10 +134,15 @@ export function KitchenStepCard({
               <>
                 {equipmentList && equipmentList.length > 0 && (
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3 space-y-2">
-                    <p className="text-xs text-white/60 font-medium">You'll need:</p>
+                    <p className="text-xs text-white/60 font-medium">
+                      You'll need:
+                    </p>
                     <ul className="space-y-1">
                       {equipmentList.map((item, i) => (
-                        <li key={i} className="text-sm text-white/90 flex items-center gap-2">
+                        <li
+                          key={i}
+                          className="text-sm text-white/90 flex items-center gap-2"
+                        >
                           <span className="text-lime-500">•</span>
                           {item}
                         </li>
@@ -193,7 +199,9 @@ export function KitchenStepCard({
                     {yesnoMode === "yes" && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-orange-400 font-medium">Add your preferences:</span>
+                          <span className="text-xs text-orange-400 font-medium">
+                            Add your preferences:
+                          </span>
                           <button
                             onClick={() => {
                               setYesnoMode("idle");
@@ -229,9 +237,7 @@ export function KitchenStepCard({
                     className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                     maxLength={300}
                   />
-                ) : inputType === "none" ? (
-                  null
-                ) : showOtherInput ? (
+                ) : inputType === "none" ? null : showOtherInput ? (
                   <div className="space-y-2">
                     <textarea
                       value={otherValue}
@@ -297,7 +303,7 @@ export function KitchenStepCard({
 
                 <button
                   disabled={!value.trim() || isPlaying}
-                  className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
+                  className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm disabled:opacity-50 transition"
                   onClick={onSubmit}
                   data-testid={`button-submit-${stepTitle.toLowerCase().replace(/\s+/g, "-")}`}
                 >
