@@ -116,7 +116,8 @@ export function roundUnitsInIngredients(
 }
 
 /** Helpers */
-function norm(s: string) {
+function norm(s: string | undefined | null) {
+  if (!s) return "";
   return s.trim().toLowerCase();
 }
 function containsBanned(item: string, banned: Set<string>) {
