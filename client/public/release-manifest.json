@@ -1,9 +1,8 @@
 {
-  "releaseId": "1.2.4",
+  "releaseId": "1.2.5",
   "publishedAt": "2026-01-29",
   "changes": [
-    "SafetyGuard PIN override now works correctly across all safety layers",
-    "Fixed lactose allergen detection mapping",
-    "Resolved duplicate safety checks blocking authenticated overrides"
+    "Fixed shopping bar positioning - now correctly sits at the bottom of the screen",
+    "Safety PIN settings now shows helpful message when session expires"
   ]
 }
