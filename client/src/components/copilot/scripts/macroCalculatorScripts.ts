@@ -7,21 +7,21 @@ export const MACRO_CALC_GOAL =
   "What's your goal? Are you wanting to cut, maintain, or build?";
 
 export const MACRO_CALC_BODY_TYPE =
-  "Are you an ectomorph, mesomorph, or an endomorph? If your not sure check the drop-down below to see which category you fit in.";
+  "Are you an ectomorph, mesomorph, or an endomorph? If your not sure tap the body type guide button below to see which category you fit in.";
 
 export const MACRO_CALC_UNITS =
   "Do you use imperial system, the (U.S) or metric system?";
 
 export const MACRO_CALC_SEX =
-  "What is your biological sex male or female? (Necessary for metabolic calculations)";
+  "What is your biological sex male or female?";
 
 export const MACRO_CALC_AGE =
-  "What's your age? This affects how many calories you burn at rest.";
+  "What's your age?";
 
-export const MACRO_CALC_HEIGHT = "How tall are you? Enter your height.";
+export const MACRO_CALC_HEIGHT = "How tall are you?";
 
 export const MACRO_CALC_WEIGHT =
-  "What's your current weight? We'll use this to calculate your daily needs.";
+  "What's your current weight?";
 
 export const MACRO_CALC_ACTIVITY =
   "How active are you? Sedentary, lightly active, moderately active, very active, or athlete level?";
