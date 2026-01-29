@@ -107,14 +107,18 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
         signal: abortControllerRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate snack");
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        // Check if this is a safety/allergy block with detailed message
+        if (data.safetyBlocked && data.error) {
+          throw new Error(data.error);
+        }
+        throw new Error(data.error || data.message || "Failed to generate snack");
       }
 
-      const data = await response.json();
-
-      if (!data.success || !data.meals?.[0]) {
-        throw new Error(data.error || "No snack found in response");
+      if (!data.meals?.[0]) {
+        throw new Error("No snack found in response");
       }
 
       const generatedSnack = data.meals[0];

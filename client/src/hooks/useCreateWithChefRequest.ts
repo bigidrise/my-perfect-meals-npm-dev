@@ -129,14 +129,18 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
         signal: abortControllerRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate meal");
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        // Check if this is a safety/allergy block with detailed message
+        if (data.safetyBlocked && data.error) {
+          throw new Error(data.error);
+        }
+        throw new Error(data.error || data.message || "Failed to generate meal");
       }
 
-      const data = await response.json();
-
-      if (!data.success || !data.meals?.[0]) {
-        throw new Error(data.error || "No meal found in response");
+      if (!data.meals?.[0]) {
+        throw new Error("No meal found in response");
       }
 
       const generatedMeal = data.meals[0];
