@@ -341,7 +341,7 @@ export default function CravingStudio() {
 
     try {
       const prompt = buildCravingPrompt();
-      const fullUrl = apiUrl("/api/meal-engine/generate");
+      const fullUrl = apiUrl("/api/meals/craving-creator");
 
       const response = await fetch(fullUrl, {
         method: "POST",
@@ -349,11 +349,10 @@ export default function CravingStudio() {
         credentials: "include",
         body: JSON.stringify({
           cravingInput: prompt,
-          mealType: "dinner",
-          source: "craving-studio",
+          targetMealType: "dinner",
+          servings,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
-          servings,
         }),
       });
 

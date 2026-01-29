@@ -411,8 +411,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
         body: JSON.stringify({
           ...payload,
           cravingInput: payload.craving || payload.cravingInput || "",
-          mealType: defaultMealType,
-          source,
+          targetMealType: defaultMealType,
           servings: currentServings,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
