@@ -219,7 +219,6 @@ export default function Welcome() {
 
           {/* Sign In / Create Account - Combined auth button */}
           <div className="relative">
-            
 
             <Button
               data-testid="button-signin"
@@ -236,47 +235,7 @@ export default function Welcome() {
 
 
           {/* Full Access - Apple Review Bypass */}
-          <Button
-            data-testid="button-full-access"
-            onClick={() => {
-              // Clear any existing guest session to prevent conflicts
-              endGuestSession();
-              
-              // Create complete demo user with all required fields BEFORE navigation
-              const appleReviewUser = {
-                id: "00000000-0000-0000-0000-000000000001",
-                email: "reviewer@apple.com",
-                name: "Apple Reviewer",
-                entitlements: ["FULL_ACCESS"],
-                planLookupKey: "premium",
-                trialStartedAt: null,
-                trialEndsAt: null,
-                selectedMealBuilder: "weekly",
-                isTester: true,
-                profilePhotoUrl: null,
-                role: "admin",
-                isProCare: false,
-                activeBoard: "weekly",
-                onboardingCompletedAt: new Date().toISOString(),
-              };
-              
-              // Set all auth state BEFORE navigation to prevent race conditions
-              localStorage.setItem("mpm_current_user", JSON.stringify(appleReviewUser));
-              localStorage.setItem("userId", appleReviewUser.id);
-              localStorage.setItem("isAuthenticated", "true");
-              localStorage.setItem("coachMode", "self");
-              localStorage.setItem("appleReviewFullAccess", "true");
-              
-              // Navigate to dashboard
-              setLocation("/dashboard");
-            }}
-            className="w-full h-12 text-sm font-medium rounded-2xl
-                     bg-white/5 hover:bg-white/10 backdrop-blur-md
-                     border border-white/10 text-white/60 hover:text-white/80
-                     transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            Full Access (Apple Review)
-          </Button>
+          
         </div>
       </div>
     );
