@@ -1,8 +1,7 @@
 {
-  "releaseId": "1.2.7",
+  "releaseId": "1.2.8",
   "publishedAt": "2026-01-29",
   "changes": [
-    "Fixed Chef's Kitchen header alignment on iOS - back button, title, chef icon, and guide now properly aligned",
-    "Fixed top card being hidden behind iOS safe area"
+    "Added extra bottom padding in Chef's Kitchen so step cards don't get covered by the navigation bar"
   ]
 }
