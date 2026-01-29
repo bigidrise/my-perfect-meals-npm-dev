@@ -240,7 +240,7 @@ export function CreateWithChefModal({
             </div>
           )}
 
-          {error && !safetyAlert.show && <p className="text-sm text-red-400">{error}</p>}
+          {error && !safetyAlert.show && <p className="text-sm text-amber-400">{error}</p>}
 
           {/* Safety Guard Toggle - ONLY override location */}
           <div className="flex items-center justify-between py-2 px-3 bg-black/30 rounded-lg border border-white/10">

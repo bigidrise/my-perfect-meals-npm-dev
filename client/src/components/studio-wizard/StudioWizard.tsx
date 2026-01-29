@@ -690,7 +690,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
               {error && (
                 <div className="text-center py-6">
-                  <p className="text-red-400 mb-4">{error}</p>
+                  <p className="text-amber-400 mb-4">{error}</p>
                   <button
                     className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition"
                     onClick={restartStudio}

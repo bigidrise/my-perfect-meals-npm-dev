@@ -210,7 +210,7 @@ export function SnackCreatorModal({
             </div>
           )}
 
-          {error && !alert.show && <p className="text-sm text-red-400">{error}</p>}
+          {error && !alert.show && <p className="text-sm text-amber-400">{error}</p>}
 
           {/* Safety Guard Toggle */}
           <div className="flex items-center justify-between py-2 px-3 bg-black/30 rounded-lg border border-white/10">
