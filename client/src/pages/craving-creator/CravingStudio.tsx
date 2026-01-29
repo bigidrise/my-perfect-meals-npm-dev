@@ -528,7 +528,8 @@ export default function CravingStudio() {
               noLabel: "No, I'm good",
               yesLabel: "Yes, add preferences",
               noValue: "None",
-              yesPlaceholder: "e.g., high protein, gluten-free, no dairy, no peanuts...",
+              yesPlaceholder:
+                "e.g., high protein, gluten-free, no dairy, no peanuts...",
             }}
             onInputFocus={stopChef}
             onListen={() => {
@@ -582,8 +583,8 @@ export default function CravingStudio() {
         {/* Step 4 — Custom Notes (Yes/No pattern) */}
         {studioStep >= 4 && (
           <KitchenStepCard
-            stepTitle="Step 4 · Custom Notes"
-            question="Any custom restriction or tweak?"
+            stepTitle="Step 4 · Preferences"
+            question="Any dietary preference?"
             summaryText={
               customNotes ? `Notes: ${customNotes}` : "No custom notes"
             }
@@ -598,7 +599,8 @@ export default function CravingStudio() {
               noLabel: "No, I'm good",
               yesLabel: "Yes, add notes",
               noValue: "None",
-              yesPlaceholder: "e.g., lower sugar, low sodium, 15-minute meal, extra veggies...",
+              yesPlaceholder:
+                "e.g., lower sugar, low sodium, 15-minute meal, extra veggies...",
             }}
             onInputFocus={stopChef}
             onListen={() => {
@@ -610,11 +612,8 @@ export default function CravingStudio() {
               setS4Locked(true);
               setStudioStep(5);
 
-              speak(
-                "If everything looks good, tap, Create the Plan."
-              );
+              speak("If everything looks good, tap, Create the Plan.");
             }}
-
             onEdit={() => {
               stopChef();
               editStep4();

@@ -22,7 +22,10 @@ import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import VoiceModeOverlay from "@/components/voice/VoiceModeOverlay";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
+import {
+  isAllergyRelatedError,
+  formatAllergyAlertDescription,
+} from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import MealCardActions from "@/components/MealCardActions";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
@@ -71,7 +74,7 @@ type KitchenMode = "entry" | "studio" | "prepare";
 // Normalize instructions to always be an array for Phase 2 step-by-step navigation
 function normalizeInstructions(raw: string | string[] | undefined): string[] {
   if (!raw) return [];
-  
+
   // If array, always try to split single-element arrays that might be paragraphs
   if (Array.isArray(raw)) {
     const filtered = raw.filter(Boolean);
@@ -85,28 +88,28 @@ function normalizeInstructions(raw: string | string[] | undefined): string[] {
     }
     return filtered;
   }
-  
+
   // Split paragraph into steps - try numbered steps first (inline or newline separated)
   // Pattern matches: "1. ", "1) ", "Step 1:", etc.
   const numberedInlinePattern = /\b(\d+[\.\):])\s+/g;
   const hasNumberedSteps = numberedInlinePattern.test(raw);
-  
+
   if (hasNumberedSteps) {
     // Split on numbered patterns like "1. " or "2) "
     return raw
       .split(/\b\d+[\.\):]\s+/)
-      .map(s => s.trim())
+      .map((s) => s.trim())
       .filter(Boolean)
-      .map(s => s.replace(/\.$/, '').trim() + '.');
+      .map((s) => s.replace(/\.$/, "").trim() + ".");
   }
-  
+
   // Fall back to sentence splitting (split on ". " followed by capital letter or end)
   const sentences = raw
     .split(/\.\s+(?=[A-Z])/)
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean)
-    .map(s => s.endsWith('.') ? s : s + '.');
-  
+    .map((s) => (s.endsWith(".") ? s : s + "."));
+
   return sentences.length > 0 ? sentences : [raw];
 }
 
@@ -120,7 +123,12 @@ function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
     const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
 
     // 🔥 PRODUCTION DIAGNOSTIC - Remove after verification
-    console.log("🔥 CHEF KITCHEN INIT - externalPrepare:", externalPrepare, "hasMeal:", !!saved);
+    console.log(
+      "🔥 CHEF KITCHEN INIT - externalPrepare:",
+      externalPrepare,
+      "hasMeal:",
+      !!saved,
+    );
 
     if (externalPrepare === "true" && saved) {
       const parsed = JSON.parse(saved) as GeneratedMeal;
@@ -217,10 +225,10 @@ export default function ChefsKitchenPage() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
+
   // Voice studio ref for stopping voice when editing steps
   const voiceStopRef = useRef<(() => void) | null>(null);
-  
+
   // Stop voice if active (used when manually editing)
   const stopVoiceIfActive = () => {
     voiceStopRef.current?.();
@@ -366,10 +374,10 @@ export default function ChefsKitchenPage() {
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  
+
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
-  
+
   // 🔐 SafetyGuard preflight system
   const {
     checking: safetyChecking,
@@ -381,10 +389,10 @@ export default function ChefsKitchenPage() {
     overrideToken,
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
-  
+
   // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
-  
+
   // Handle safety override continuation - auto-generate when override token received
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
@@ -395,7 +403,7 @@ export default function ChefsKitchenPage() {
       setPendingGeneration(true);
     }
   };
-  
+
   // Effect: Auto-generate when override token is set and generation is pending
   useEffect(() => {
     if (pendingGeneration && overrideToken && !isGeneratingMeal) {
@@ -403,7 +411,7 @@ export default function ChefsKitchenPage() {
       startOpenKitchen(true); // true = skip preflight (already have override)
     }
   }, [pendingGeneration, overrideToken, isGeneratingMeal]);
-  
+
   // Initialize with external meal if coming from prepare mode
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(
     externalMeal,
@@ -514,8 +522,10 @@ export default function ChefsKitchenPage() {
 
   // Voice Studio configuration for hands-free mode (4 input steps)
   const KITCHEN_VOICE_STEP1 = "Alright — what are we making today?";
-  const KITCHEN_VOICE_STEP2 = "Got it. How do you want to cook it? Stovetop, oven, air fryer, or something else?";
-  const KITCHEN_VOICE_STEP3 = "Any specific ingredients you want, or anything you want to avoid?";
+  const KITCHEN_VOICE_STEP2 =
+    "Got it. How do you want to cook it? Stovetop, oven, air fryer, or something else?";
+  const KITCHEN_VOICE_STEP3 =
+    "Any specific ingredients you want, or anything you want to avoid?";
   const KITCHEN_VOICE_STEP4 = "How many servings should I make?";
 
   const voiceStudio = useVoiceStudio({
@@ -533,13 +543,31 @@ export default function ChefsKitchenPage() {
         setListened: setStep2Listened,
         parseValue: (transcript) => {
           const lower = transcript.toLowerCase();
-          if (lower.includes("stove") || lower.includes("pan") || lower.includes("skillet")) return "stovetop";
-          if (lower.includes("oven") || lower.includes("bake") || lower.includes("roast")) return "oven";
-          if (lower.includes("air") || lower.includes("fryer")) return "air fryer";
+          if (
+            lower.includes("stove") ||
+            lower.includes("pan") ||
+            lower.includes("skillet")
+          )
+            return "stovetop";
+          if (
+            lower.includes("oven") ||
+            lower.includes("bake") ||
+            lower.includes("roast")
+          )
+            return "oven";
+          if (lower.includes("air") || lower.includes("fryer"))
+            return "air fryer";
           if (lower.includes("grill")) return "grill";
-          if (lower.includes("instant") || lower.includes("pressure")) return "instant pot";
-          if (lower.includes("slow") || lower.includes("crock")) return "slow cooker";
-          if (lower.includes("no cook") || lower.includes("raw") || lower.includes("fresh")) return "no-cook";
+          if (lower.includes("instant") || lower.includes("pressure"))
+            return "instant pot";
+          if (lower.includes("slow") || lower.includes("crock"))
+            return "slow cooker";
+          if (
+            lower.includes("no cook") ||
+            lower.includes("raw") ||
+            lower.includes("fresh")
+          )
+            return "no-cook";
           return transcript;
         },
       },
@@ -559,9 +587,18 @@ export default function ChefsKitchenPage() {
         setListened: setStep4Listened,
         parseValue: (transcript) => {
           const words: Record<string, number> = {
-            one: 1, two: 2, three: 3, four: 4, five: 5,
-            six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-            eleven: 11, twelve: 12,
+            one: 1,
+            two: 2,
+            three: 3,
+            four: 4,
+            five: 5,
+            six: 6,
+            seven: 7,
+            eight: 8,
+            nine: 9,
+            ten: 10,
+            eleven: 11,
+            twelve: 12,
           };
           const lower = transcript.toLowerCase();
           for (const [word, num] of Object.entries(words)) {
@@ -575,17 +612,29 @@ export default function ChefsKitchenPage() {
     onAllStepsComplete: (collectedValues: string[]) => {
       // Use collected values directly to avoid React state timing issues
       // Values order: [dishIdea, cookMethod, ingredientNotes, servings] - 4 steps
-      const [voiceDish, voiceMethod, voiceIngredients, voiceServings] = collectedValues;
-      console.log("🎤 Voice studio collected:", { voiceDish, voiceMethod, voiceIngredients, voiceServings });
-      
+      const [voiceDish, voiceMethod, voiceIngredients, voiceServings] =
+        collectedValues;
+      console.log("🎤 Voice studio collected:", {
+        voiceDish,
+        voiceMethod,
+        voiceIngredients,
+        voiceServings,
+      });
+
       // Skip step 5 (equipment) in hands-free mode - go directly to generation (step 6)
       // This prevents the step 5 useEffect from triggering overlapping TTS
       setStudioStep(6);
       setStep5Listened(true); // Mark as listened to prevent auto-speak
-      setStep5Locked(true);   // Lock to prevent interaction
-      
+      setStep5Locked(true); // Lock to prevent interaction
+
       // Use suggested equipment as default since we don't ask for it in voice mode
-      startOpenKitchenWithValues(voiceDish, voiceMethod, voiceIngredients, voiceServings, suggestedEquipment.join(", "));
+      startOpenKitchenWithValues(
+        voiceDish,
+        voiceMethod,
+        voiceIngredients,
+        voiceServings,
+        suggestedEquipment.join(", "),
+      );
     },
     setStudioStep: (step) => setStudioStep(step as 1 | 2 | 3 | 4 | 5 | 6),
   });
@@ -623,20 +672,22 @@ export default function ChefsKitchenPage() {
     voiceIngredients: string,
     voiceServingsStr: string,
     voiceEquipment: string,
-    skipPreflight = false
+    skipPreflight = false,
   ) => {
     // Parse servings from voice input
-    const voiceServings = parseInt(voiceServingsStr?.replace(/\D/g, ""), 10) || 2;
-    
+    const voiceServings =
+      parseInt(voiceServingsStr?.replace(/\D/g, ""), 10) || 2;
+
     // 🔐 Preflight safety check - BEFORE starting progress bar
     if (!skipPreflight && !hasActiveOverride) {
-      const requestDescription = `${voiceDish} ${voiceMethod} ${voiceIngredients}`.trim();
+      const requestDescription =
+        `${voiceDish} ${voiceMethod} ${voiceIngredients}`.trim();
       const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
       if (!isSafe) {
         return;
       }
     }
-    
+
     setIsGeneratingMeal(true);
     setGenerationProgress(10);
     setGenerationError(null);
@@ -668,8 +719,13 @@ export default function ChefsKitchenPage() {
 
       const fullUrl = apiUrl("/api/craving-creator/generate");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
-      console.log("🔥 CHEF KITCHEN API CALL - Payload:", { craving: cravingPrompt, mealType: "dinner", source: "chefs-kitchen", servings: voiceServings });
-      
+      console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
+        craving: cravingPrompt,
+        mealType: "dinner",
+        source: "chefs-kitchen",
+        servings: voiceServings,
+      });
+
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -684,7 +740,11 @@ export default function ChefsKitchenPage() {
         }),
       });
 
-      console.log("🔥 CHEF KITCHEN API RESPONSE - Status:", response.status, response.statusText);
+      console.log(
+        "🔥 CHEF KITCHEN API RESPONSE - Status:",
+        response.status,
+        response.statusText,
+      );
 
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
@@ -693,7 +753,9 @@ export default function ChefsKitchenPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("🔥 CHEF KITCHEN API ERROR - Body:", errorText);
-        throw new Error(`Failed to generate meal: ${response.status} ${errorText}`);
+        throw new Error(
+          `Failed to generate meal: ${response.status} ${errorText}`,
+        );
       }
 
       const data = await response.json();
@@ -738,7 +800,9 @@ export default function ChefsKitchenPage() {
           unit: ing.unit,
           notes: ing.notes || "",
         })),
-        instructions: normalizeInstructions(meal.instructions || meal.preparationSteps),
+        instructions: normalizeInstructions(
+          meal.instructions || meal.preparationSteps,
+        ),
         imageUrl: meal.imageUrl || null,
         calories: nutritionCalories,
         protein: nutritionProtein,
@@ -771,12 +835,14 @@ export default function ChefsKitchenPage() {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
-      
+
       if (isAllergyRelatedError(error.message)) {
         const allergyDescription = formatAllergyAlertDescription(error.message);
         setGenerationError(`Safety Alert: ${allergyDescription}`);
       } else {
-        setGenerationError(error.message || "Failed to generate meal. Please try again.");
+        setGenerationError(
+          error.message || "Failed to generate meal. Please try again.",
+        );
       }
       setIsGeneratingMeal(false);
       setGenerationProgress(0);
@@ -789,7 +855,7 @@ export default function ChefsKitchenPage() {
     voiceMethod?: string,
     voiceIngredients?: string,
     voiceServings?: string,
-    voiceEquipment?: string
+    voiceEquipment?: string,
   ) => {
     generateMealWithValues(
       voiceDish || "",
@@ -797,21 +863,22 @@ export default function ChefsKitchenPage() {
       voiceIngredients || "",
       voiceServings || "2",
       voiceEquipment || "",
-      false
+      false,
     );
   };
 
   const startOpenKitchen = async (skipPreflight = false) => {
     // 🔐 Preflight safety check - BEFORE starting progress bar
     if (!skipPreflight && !hasActiveOverride) {
-      const requestDescription = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
+      const requestDescription =
+        `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
       const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
       if (!isSafe) {
         // Banner will show automatically via safetyAlert state
         return;
       }
     }
-    
+
     setIsGeneratingMeal(true);
     setGenerationProgress(10);
     setGenerationError(null);
@@ -855,8 +922,13 @@ export default function ChefsKitchenPage() {
       // Call Craving Creator endpoint (intent-first generation)
       const fullUrl = apiUrl("/api/craving-creator/generate");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
-      console.log("🔥 CHEF KITCHEN API CALL - Payload:", { craving: cravingPrompt, mealType: "dinner", source: "chefs-kitchen", servings });
-      
+      console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
+        craving: cravingPrompt,
+        mealType: "dinner",
+        source: "chefs-kitchen",
+        servings,
+      });
+
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -871,7 +943,11 @@ export default function ChefsKitchenPage() {
         }),
       });
 
-      console.log("🔥 CHEF KITCHEN API RESPONSE - Status:", response.status, response.statusText);
+      console.log(
+        "🔥 CHEF KITCHEN API RESPONSE - Status:",
+        response.status,
+        response.statusText,
+      );
 
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
@@ -880,7 +956,9 @@ export default function ChefsKitchenPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("🔥 CHEF KITCHEN API ERROR - Body:", errorText);
-        throw new Error(`Failed to generate meal: ${response.status} ${errorText}`);
+        throw new Error(
+          `Failed to generate meal: ${response.status} ${errorText}`,
+        );
       }
 
       const data = await response.json();
@@ -944,7 +1022,9 @@ export default function ChefsKitchenPage() {
               };
             })
           : [],
-        instructions: normalizeInstructions(meal.cookingInstructions || meal.instructions),
+        instructions: normalizeInstructions(
+          meal.cookingInstructions || meal.instructions,
+        ),
         imageUrl: meal.imageUrl,
         // Flat nutrition fields for components that expect them
         calories: nutritionCalories,
@@ -985,7 +1065,9 @@ export default function ChefsKitchenPage() {
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong";
       if (isAllergyRelatedError(errorMessage)) {
-        setGenerationError(`⚠️ ALLERGY ALERT: ${formatAllergyAlertDescription(errorMessage)}`);
+        setGenerationError(
+          `⚠️ ALLERGY ALERT: ${formatAllergyAlertDescription(errorMessage)}`,
+        );
       } else {
         setGenerationError(`${errorMessage}. Please try again.`);
       }
@@ -1024,7 +1106,6 @@ export default function ChefsKitchenPage() {
               draggable={false}
             />
           </h1>
-
 
           <div className="flex-grow" />
 
@@ -1153,7 +1234,7 @@ export default function ChefsKitchenPage() {
             {studioStep >= 3 && (
               <KitchenStepCard
                 stepTitle="Step 3 · Preferences"
-                question="Any preferences — lower sugar, less salt, gluten-free, dairy-free, quick meal?"
+                question="Any dietary preference, low sugar, low sodium, gluten free, food allergies, or food to avoid?"
                 summaryText={
                   ingredientNotes
                     ? `Preferences: ${ingredientNotes}`
@@ -1170,7 +1251,8 @@ export default function ChefsKitchenPage() {
                   noLabel: "No, I'm good",
                   yesLabel: "Yes, add preferences",
                   noValue: "None",
-                  yesPlaceholder: "e.g., low sugar, gluten-free, no dairy, quick 15 min meal...",
+                  yesPlaceholder:
+                    "e.g., low sugar, gluten-free, no dairy, quick 15 min meal...",
                 }}
                 onInputFocus={stopChef}
                 onListen={() => {
@@ -1221,7 +1303,7 @@ export default function ChefsKitchenPage() {
             {studioStep >= 5 && (
               <KitchenStepCard
                 stepTitle="Step 5 · Chef's Setup"
-                question="Take a look — grab what you need, then tap OK."
+                question="Take a look — if we have everything we need, tap OK."
                 summaryText={`Kitchen setup: ${suggestedEquipment.join(", ") || "Ready"}`}
                 value={equipment || "Ready"}
                 setValue={setEquipment}
@@ -1289,15 +1371,17 @@ export default function ChefsKitchenPage() {
                           <strong>Equipment:</strong> {equipment}
                         </p>
                       </div>
-                      
+
                       {/* SafetyGuard Preflight Banner */}
                       <SafetyGuardBanner
                         alert={safetyAlert}
                         mealRequest={`${dishIdea} ${cookMethod}`}
                         onDismiss={clearSafetyAlert}
-                        onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+                        onOverrideSuccess={(token) =>
+                          handleSafetyOverride(false, token)
+                        }
                       />
-                      
+
                       {/* Safety Guard Toggle - right before generate button */}
                       <div className="mb-3 flex justify-end">
                         <SafetyGuardToggle
@@ -1306,14 +1390,14 @@ export default function ChefsKitchenPage() {
                           disabled={isGeneratingMeal || safetyChecking}
                         />
                       </div>
-                      
+
                       <button
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
                         onClick={() => startOpenKitchen()}
                         disabled={safetyChecking}
                         data-testid="button-generate-meal"
                       >
-                        {safetyChecking ? "Checking..." : "Create the plan"}
+                        {safetyChecking ? "Checking..." : "Create the Plan"}
                       </button>
                     </div>
                   )}
@@ -1545,7 +1629,9 @@ export default function ChefsKitchenPage() {
                               dateISO: new Date().toISOString().slice(0, 10),
                               mealSlot: "snacks",
                             });
-                            setLocation("/biometrics?from=chefs-kitchen&view=macros");
+                            setLocation(
+                              "/biometrics?from=chefs-kitchen&view=macros",
+                            );
                           }}
                           className="w-full py-3 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white font-semibold text-sm transition border border-white/30"
                         >
@@ -1565,8 +1651,12 @@ export default function ChefsKitchenPage() {
                               setDisplayMeal({
                                 ...generatedMeal,
                                 name: updated.name || generatedMeal.name,
-                                description: updated.description || generatedMeal.description,
-                                instructions: updated.instructions || generatedMeal.instructions,
+                                description:
+                                  updated.description ||
+                                  generatedMeal.description,
+                                instructions:
+                                  updated.instructions ||
+                                  generatedMeal.instructions,
                               });
                             }}
                           />
@@ -1590,11 +1680,15 @@ export default function ChefsKitchenPage() {
                               name: generatedMeal.name,
                               description: generatedMeal.description,
                               nutrition: generatedMeal.nutrition,
-                              ingredients: generatedMeal.ingredients.map((ing) => ({
-                                name: ing.name,
-                                amount: String(ing.amount ?? ing.quantity ?? ""),
-                                unit: ing.unit,
-                              })),
+                              ingredients: generatedMeal.ingredients.map(
+                                (ing) => ({
+                                  name: ing.name,
+                                  amount: String(
+                                    ing.amount ?? ing.quantity ?? "",
+                                  ),
+                                  unit: ing.unit,
+                                }),
+                              ),
                             }}
                             className="flex-1"
                           />
@@ -1962,7 +2056,6 @@ export default function ChefsKitchenPage() {
           }))}
           source="Chef's Kitchen"
           sourceSlug="chefs-kitchen"
-          
         />
       )}
     </motion.div>

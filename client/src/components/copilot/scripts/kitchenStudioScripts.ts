@@ -24,7 +24,7 @@ export const KITCHEN_STUDIO_PREFS_LINE5 =
 
 // If you need a single combined string for the UI, keep this too:
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
-  "Any dietary needs or preferences? Choose a cuisine, tell me your time frame, and speak in any language — Translate is always available.";
+  "Any dietary preference, low sugar, low sodium, gluten free, food allergies, or food to avoid?";
 
 // Kitchen Studio - After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "";
@@ -36,12 +36,11 @@ export const KITCHEN_STUDIO_SERVINGS = "How many servings?";
 export const KITCHEN_STUDIO_SERVINGS_CONFIRMED = "";
 
 // Kitchen Studio - Chef's Setup (equipment)
-export const KITCHEN_STUDIO_EQUIPMENT =
-  "";
+export const KITCHEN_STUDIO_EQUIPMENT = "If we have evrything we need, tap OK";
 
 // Kitchen Studio - After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
-  "If everything looks great lets head over to the kitchen studio and cook with Chef.";
+  "If everything looks good, tap, Create the Plan.";
 
 export const KITCHEN_STUDIO_HANDOFF_TO_PREP =
   "This looks great. Now let’s enter Chefs Kitchen so we can prepare your meal.";
