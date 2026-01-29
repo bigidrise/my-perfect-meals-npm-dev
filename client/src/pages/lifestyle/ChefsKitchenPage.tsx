@@ -1662,24 +1662,37 @@ export default function ChefsKitchenPage() {
                           />
                         </div>
 
-                        {/* Row 3: Share Recipe */}
-                        <ShareRecipeButton
-                          recipe={{
-                            name: generatedMeal.name,
-                            description: generatedMeal.description,
-                            nutrition: generatedMeal.nutrition,
-                            ingredients: generatedMeal.ingredients.map(
-                              (ing) => ({
-                                name: ing.name,
-                                amount: String(
-                                  ing.amount ?? ing.quantity ?? "",
-                                ),
-                                unit: ing.unit,
-                              }),
-                            ),
-                          }}
-                          className="w-full"
-                        />
+                        {/* Row 3: Prepare with Chef + Share (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              stopChef();
+                              setPrepStep(0);
+                              setMode("prepare");
+                            }}
+                            className="flex-1 py-2 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
+                            data-testid="button-prepare-meal"
+                          >
+                            Cook w/ Chef
+                          </button>
+                          <ShareRecipeButton
+                            recipe={{
+                              name: generatedMeal.name,
+                              description: generatedMeal.description,
+                              nutrition: generatedMeal.nutrition,
+                              ingredients: generatedMeal.ingredients.map(
+                                (ing) => ({
+                                  name: ing.name,
+                                  amount: String(
+                                    ing.amount ?? ing.quantity ?? "",
+                                  ),
+                                  unit: ing.unit,
+                                }),
+                              ),
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
 
                         {/* Start Cooking - Full width CTA matching studio pattern */}
                         <button
