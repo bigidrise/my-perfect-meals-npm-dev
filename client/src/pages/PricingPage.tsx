@@ -187,9 +187,12 @@ export default function PricingPage() {
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> GLP-1 & Diabetic Support</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Anti-Inflammatory Builder</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Daily Macro Calculator</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> MacroScan</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Master Shopping Lists</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Biometrics Tracking</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Spirits & Alcohol Hub</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Daily Health Journal</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Supplement Hub</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> SafetyGuard Allergy Protection</li>
                           </>
                         )}
