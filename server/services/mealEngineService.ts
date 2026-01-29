@@ -460,9 +460,14 @@ export class MealEngineService {
       );
     }
 
-    // 6) Persist & return
-    const savedId = await persistMeal(req.userId, meal);
-    meal.id = savedId;
+    // 6) Persist & return (only for authenticated users)
+    if (req.userId) {
+      const savedId = await persistMeal(req.userId, meal);
+      meal.id = savedId;
+    } else {
+      // Guest user - generate a temporary ID, meal won't be persisted
+      meal.id = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
     return meal;
   }
 
