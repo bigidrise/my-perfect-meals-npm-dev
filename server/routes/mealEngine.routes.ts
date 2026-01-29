@@ -55,7 +55,8 @@ router.post("/meal-engine/generate", async (req, res) => {
     }
     
     const meal = await engine.generateSingleMeal(req.body);
-    res.json(meal);
+    // Wrap response for client consistency (client expects { meal: ... })
+    res.json({ meal });
   } catch (e: any) {
     console.error(e);
     res.status(500).json({ error: e.message ?? "Meal generation failed" });
