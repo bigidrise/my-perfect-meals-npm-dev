@@ -102,7 +102,7 @@ const CRAVING_STUDIO_STEP3 =
 const CRAVING_STUDIO_STEP4 = "How many servings?";
 const CRAVING_STUDIO_OPEN_START = "";
 const CRAVING_STUDIO_OPEN_PROGRESS1 =
-  "If everything looks good press the Enter Chef’s Kitchen button, if not, press, Create New, and we create a new meal.";
+  "If you are satisfied with your meal press the Enter Chef’s Kitchen button, if not, press, Create New, and we create a new meal.";
 const CRAVING_STUDIO_OPEN_PROGRESS2 = "";
 const CRAVING_STUDIO_OPEN_COMPLETE = "";
 
@@ -568,7 +568,8 @@ export default function CravingStudio() {
               noLabel: "No, I'm good",
               yesLabel: "Yes, add preferences",
               noValue: "None",
-              yesPlaceholder: "e.g., high protein, gluten-free, no dairy, no peanuts...",
+              yesPlaceholder:
+                "e.g., high protein, gluten-free, no dairy, no peanuts...",
             }}
             onInputFocus={stopChef}
             onListen={() => {
@@ -607,7 +608,8 @@ export default function CravingStudio() {
               noLabel: "No, I'm good",
               yesLabel: "Yes, add notes",
               noValue: "None",
-              yesPlaceholder: "e.g., lower sugar, low sodium, 15-minute meal, extra veggies...",
+              yesPlaceholder:
+                "e.g., lower sugar, low sodium, 15-minute meal, extra veggies...",
             }}
             onInputFocus={stopChef}
             onListen={() => {
@@ -619,7 +621,6 @@ export default function CravingStudio() {
               setS4Locked(true);
               setStudioStep(4);
             }}
-
             onEdit={() => {
               stopChef();
               editStep4();
@@ -650,9 +651,7 @@ export default function CravingStudio() {
               setS3Locked(true);
               setStudioStep(5);
 
-              speak(
-                "If everything looks good, tap, Create the Plan."
-              );
+              speak("If everything looks good, tap, Create the Plan.");
             }}
             onEdit={() => {
               stopChef();
