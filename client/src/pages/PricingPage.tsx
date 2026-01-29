@@ -180,27 +180,45 @@ export default function PricingPage() {
                       </div>
                       
                       {/* Feature highlights per tier */}
-                      <ul className="text-white/70 text-xs space-y-1 mb-4">
+                      <ul className="text-white/70 text-xs space-y-1.5 mb-4">
                         {product.internalSku === "mpm_basic_monthly" && (
                           <>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Meal Planning & Builders</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Weekly Meal Board</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Smart Menu Builder</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> GLP-1 & Diabetic Support</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Anti-Inflammatory Builder</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Daily Macro Calculator</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Smart Shopping Lists</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Biometrics Tracking</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Spirits & Alcohol Hub</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Women's & Men's Hormones</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> SafetyGuard Allergy Protection</li>
                           </>
                         )}
                         {product.internalSku === "mpm_premium_monthly" && (
                           <>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Everything in Basic</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Everything in Basic, plus:</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Chef's Kitchen Studio</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Craving & Dessert Creators</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Craving & Dessert Studios</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Fridge Rescue</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Restaurant Guide</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Potluck Planner</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Holiday Feast Planner</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Learn to Cook with Chef</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Kids & Toddler Meals</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Copilot Voice Guidance</li>
                           </>
                         )}
                         {product.internalSku === "mpm_ultimate_monthly" && (
                           <>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Everything in Premium</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Everything in Premium, plus:</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Pro Care Team Access</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Beach Body Meal Builder</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Competition Prep Builder</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Lab Metrics Integration</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Priority Support</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Coach Workspace</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Clinical Advisory System</li>
                           </>
                         )}
                       </ul>
