@@ -219,12 +219,7 @@ export default function Welcome() {
 
           {/* Sign In / Create Account - Combined auth button */}
           <div className="relative">
-            <span
-              className="absolute -top-2 -right-2 z-10 text-xs px-2 py-0.5 rounded-full
-                         bg-orange-600 text-white font-semibold"
-            >
-              TESTERS START HERE
-            </span>
+            
 
             <Button
               data-testid="button-signin"
