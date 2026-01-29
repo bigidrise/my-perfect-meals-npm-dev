@@ -146,7 +146,7 @@ export default function PricingPage() {
             </div>
           )}
 
-          {/* Subscription plans */}
+          {/* Subscription plans - Always show products to Apple reviewers */}
           {!hasSubscription && (
             <div className="space-y-4 mb-6">
               <h2 className="text-xl font-bold text-center mb-4">Choose Your Plan</h2>
@@ -155,48 +155,72 @@ export default function PricingPage() {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
                 </div>
-              ) : iosProducts.length === 0 ? (
-                <div className="bg-amber-500/20 border border-amber-500/30 rounded-xl p-4 text-center">
-                  <p className="text-amber-300 font-medium text-sm mb-2">Subscriptions temporarily unavailable</p>
-                  <p className="text-white/60 text-xs">Please try again later or check your internet connection.</p>
-                  <Button
-                    onClick={loadIosProducts}
-                    variant="outline"
-                    className="mt-3 text-white border-white/20 hover:bg-white/10"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Retry
-                  </Button>
-                </div>
               ) : (
                 IOS_PRODUCTS.map((product) => {
                   const storeProduct = iosProducts.find(p => p.productId === product.productId);
                   const displayPrice = storeProduct?.displayPrice || `$${product.price.toFixed(2)}/mo`;
                   const isPurchasing = purchasingProduct === product.productId;
+                  const isPremium = product.internalSku === "mpm_premium_monthly";
 
                   return (
                     <div
                       key={product.productId}
-                      className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-5"
+                      className={`bg-black/40 backdrop-blur-lg border rounded-xl p-5 ${
+                        isPremium ? "border-orange-400/50 ring-1 ring-orange-400/30" : "border-white/15"
+                      }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <h3 className="text-white font-bold text-lg">{product.label}</h3>
                           <p className="text-white/60 text-sm">{displayPrice}</p>
                         </div>
-                        {product.internalSku === "mpm_premium_monthly" && (
-                          <Badge className="bg-orange-500/80 text-white text-xs">Popular</Badge>
+                        {isPremium && (
+                          <Badge className="bg-orange-500/80 text-white text-xs">Most Popular</Badge>
                         )}
                       </div>
+                      
+                      {/* Feature highlights per tier */}
+                      <ul className="text-white/70 text-xs space-y-1 mb-4">
+                        {product.internalSku === "mpm_basic_monthly" && (
+                          <>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Meal Planning & Builders</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> GLP-1 & Diabetic Support</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Daily Macro Calculator</li>
+                          </>
+                        )}
+                        {product.internalSku === "mpm_premium_monthly" && (
+                          <>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Everything in Basic</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Chef's Kitchen Studio</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Craving & Dessert Creators</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Restaurant Guide</li>
+                          </>
+                        )}
+                        {product.internalSku === "mpm_ultimate_monthly" && (
+                          <>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Everything in Premium</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Pro Care Team Access</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Beach Body Meal Builder</li>
+                          </>
+                        )}
+                      </ul>
+                      
                       <Button
                         onClick={() => handleIosPurchase(product)}
                         disabled={isPurchasing}
-                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                        className={`w-full ${
+                          isPremium 
+                            ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold"
+                            : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                        }`}
                       >
                         {isPurchasing ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
                         ) : (
-                          "Subscribe"
+                          <>
+                            <Apple className="w-4 h-4 mr-2" />
+                            Subscribe with Apple
+                          </>
                         )}
                       </Button>
                     </div>
