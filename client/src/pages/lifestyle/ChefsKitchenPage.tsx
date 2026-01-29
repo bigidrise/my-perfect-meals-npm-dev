@@ -717,12 +717,11 @@ export default function ChefsKitchenPage() {
 
       const cravingPrompt = chefPromptParts.join(". ");
 
-      const fullUrl = apiUrl("/api/meal-engine/generate");
+      const fullUrl = apiUrl("/api/meals/craving-creator");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
       console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
         cravingInput: cravingPrompt,
-        mealType: "dinner",
-        source: "chefs-kitchen",
+        targetMealType: "dinner",
         servings: voiceServings,
       });
 
@@ -732,8 +731,7 @@ export default function ChefsKitchenPage() {
         credentials: "include",
         body: JSON.stringify({
           cravingInput: cravingPrompt,
-          mealType: "dinner",
-          source: "chefs-kitchen",
+          targetMealType: "dinner",
           servings: voiceServings,
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
@@ -920,12 +918,11 @@ export default function ChefsKitchenPage() {
 
       const cravingPrompt = chefPromptParts.join(". ");
 
-      const fullUrl = apiUrl("/api/meal-engine/generate");
+      const fullUrl = apiUrl("/api/meals/craving-creator");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
       console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
         cravingInput: cravingPrompt,
-        mealType: "dinner",
-        source: "chefs-kitchen",
+        targetMealType: "dinner",
         servings,
       });
 
@@ -935,8 +932,7 @@ export default function ChefsKitchenPage() {
         credentials: "include",
         body: JSON.stringify({
           cravingInput: cravingPrompt,
-          mealType: "dinner",
-          source: "chefs-kitchen",
+          targetMealType: "dinner",
           servings: servings,
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
