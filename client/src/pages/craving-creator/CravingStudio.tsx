@@ -298,13 +298,15 @@ export default function CravingStudio() {
 
     try {
       const prompt = buildCravingPrompt();
-      const fullUrl = apiUrl("/api/craving-creator/generate");
+      const fullUrl = apiUrl("/api/studio/generate");
 
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          studio: "craving",
+          intentText: prompt,
           craving: prompt,
           mealType: "dinner",
           source: "craving-studio",

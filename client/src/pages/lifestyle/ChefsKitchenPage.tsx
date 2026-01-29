@@ -717,9 +717,11 @@ export default function ChefsKitchenPage() {
 
       const cravingPrompt = chefPromptParts.join(". ");
 
-      const fullUrl = apiUrl("/api/craving-creator/generate");
+      const fullUrl = apiUrl("/api/studio/generate");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
       console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
+        studio: "craving",
+        intentText: cravingPrompt,
         craving: cravingPrompt,
         mealType: "dinner",
         source: "chefs-kitchen",
@@ -731,6 +733,8 @@ export default function ChefsKitchenPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          studio: "craving",
+          intentText: cravingPrompt,
           craving: cravingPrompt,
           mealType: "dinner",
           source: "chefs-kitchen",
@@ -919,10 +923,12 @@ export default function ChefsKitchenPage() {
 
       const cravingPrompt = chefPromptParts.join(". ");
 
-      // Call Craving Creator endpoint (intent-first generation)
-      const fullUrl = apiUrl("/api/craving-creator/generate");
+      // Call Library Engine endpoint (CORS-safe, iOS compatible)
+      const fullUrl = apiUrl("/api/studio/generate");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
       console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
+        studio: "craving",
+        intentText: cravingPrompt,
         craving: cravingPrompt,
         mealType: "dinner",
         source: "chefs-kitchen",
@@ -934,6 +940,8 @@ export default function ChefsKitchenPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          studio: "craving",
+          intentText: cravingPrompt,
           craving: cravingPrompt,
           mealType: "dinner",
           source: "chefs-kitchen",

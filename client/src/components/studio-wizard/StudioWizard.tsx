@@ -404,12 +404,19 @@ export default function StudioWizard({ config }: StudioWizardProps) {
       const payload = buildPrompt(currentValues, currentServings);
       const fullUrl = apiUrl(apiEndpoint);
 
+      // Derive studio type from source for Library Engine
+      const studioType = source.toLowerCase().includes("dessert") ? "dessert" 
+        : source.toLowerCase().includes("fridge") ? "fridge" 
+        : "craving";
+      
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           ...payload,
+          studio: studioType,
+          intentText: payload.craving || payload.intentText || "",
           mealType: defaultMealType,
           source,
           servings: currentServings,
