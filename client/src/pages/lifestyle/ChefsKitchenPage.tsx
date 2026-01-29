@@ -717,12 +717,10 @@ export default function ChefsKitchenPage() {
 
       const cravingPrompt = chefPromptParts.join(". ");
 
-      const fullUrl = apiUrl("/api/studio/generate");
+      const fullUrl = apiUrl("/api/meal-engine/generate");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
       console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
-        studio: "craving",
-        intentText: cravingPrompt,
-        craving: cravingPrompt,
+        cravingInput: cravingPrompt,
         mealType: "dinner",
         source: "chefs-kitchen",
         servings: voiceServings,
@@ -733,9 +731,7 @@ export default function ChefsKitchenPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          studio: "craving",
-          intentText: cravingPrompt,
-          craving: cravingPrompt,
+          cravingInput: cravingPrompt,
           mealType: "dinner",
           source: "chefs-kitchen",
           servings: voiceServings,
@@ -923,13 +919,10 @@ export default function ChefsKitchenPage() {
 
       const cravingPrompt = chefPromptParts.join(". ");
 
-      // Call Library Engine endpoint (CORS-safe, iOS compatible)
-      const fullUrl = apiUrl("/api/studio/generate");
+      const fullUrl = apiUrl("/api/meal-engine/generate");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
       console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
-        studio: "craving",
-        intentText: cravingPrompt,
-        craving: cravingPrompt,
+        cravingInput: cravingPrompt,
         mealType: "dinner",
         source: "chefs-kitchen",
         servings,
@@ -940,9 +933,7 @@ export default function ChefsKitchenPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          studio: "craving",
-          intentText: cravingPrompt,
-          craving: cravingPrompt,
+          cravingInput: cravingPrompt,
           mealType: "dinner",
           source: "chefs-kitchen",
           servings: servings,

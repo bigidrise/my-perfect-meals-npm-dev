@@ -81,7 +81,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     complete: "If everything looks good press the Enter Chef’s Kitchen button, if not, press, Create New, and we create a new meal.",
   },
 
-  apiEndpoint: "/api/studio/generate",
+  apiEndpoint: "/api/meal-engine/generate",
   backRoute: "/fridge-rescue",
   source: "fridge-rescue-studio",
   defaultMealType: "dinner",
