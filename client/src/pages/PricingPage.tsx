@@ -182,16 +182,14 @@ export default function PricingPage() {
                       {/* Feature highlights per tier */}
                       <ul className="text-white/70 text-xs space-y-1.5 mb-4">
                         {product.internalSku === "mpm_basic_monthly" && (
-                          <>
+                          <><li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Copilot Voice Guidance</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Weekly Meal Board</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Smart Menu Builder</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> GLP-1 & Diabetic Support</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Anti-Inflammatory Builder</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Daily Macro Calculator</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Smart Shopping Lists</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Master Shopping Lists</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Biometrics Tracking</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Spirits & Alcohol Hub</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Women's & Men's Hormones</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> SafetyGuard Allergy Protection</li>
                           </>
                         )}
@@ -199,14 +197,14 @@ export default function PricingPage() {
                           <>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Everything in Basic, plus:</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Chef's Kitchen Studio</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Craving & Dessert Studios</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Fridge Rescue</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Craving Creator/ Studio</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Craving Presets</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" />Dessert Creator/ Studio </li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Fridge Rescue/ Studio</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Restaurant Guide</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Potluck Planner</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Holiday Feast Planner</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Learn to Cook with Chef</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Find Meals Near Me</li>
+                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Spirits & Alcohol Hub</li>
                             <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Kids & Toddler Meals</li>
-                            <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-lime-400" /> Copilot Voice Guidance</li>
                           </>
                         )}
                         {product.internalSku === "mpm_ultimate_monthly" && (
@@ -400,14 +398,18 @@ export default function PricingPage() {
 
   const legacyFeatures = {
     basic: [
+      "Copilot Voice Guidance",
       "Weekly Meal Builder",
       "GLP-1 Hub and Meal Builder",
       "Diabetic Hub and Meal Builder",
       "Anti-Inflammatory Meal Bulider",
       "Daily Macro Calculator",
       "Supplement Hub",
-      "Biometrics",
+      "Master Shopping List",
+      "Biometrics Tracking",
+      "Spirits & Alcohol Hub",
       "Daily Health Journal",
+      "SafeGuard Allergy Protection",
     ],
     premium: [
       "Everything in Basic",
@@ -416,6 +418,7 @@ export default function PricingPage() {
       "Craving Creator plus Studio (healthy versions of your favorite cravings)",
       "Dessert Creator plus Studio (healthy versions of your favorite desserts)",
       "Fridge Rescue plus Studio (turn what you have into meals)",
+      "Restaurant & Eating Out Guide",
       "Restaurant & Eating Out Guide",
       "Healthy Kids & Family Meals",
       "Spirits & Lifestyle Hub",
