@@ -29,6 +29,8 @@ import {
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -147,6 +149,31 @@ export default function CravingStudio() {
   );
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // SafetyGuard preflight system
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+
+  const handleSafetyOverride = (token: string) => {
+    setOverrideToken(token);
+    setPendingGeneration(true);
+  };
+
+  // Auto-generate after override token is set
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isGenerating) {
+      setPendingGeneration(false);
+      doGenerate(true);
+    }
+  }, [pendingGeneration, overrideToken, isGenerating]);
 
   const mealToShow = displayMeal || generatedMeal;
 
@@ -281,7 +308,23 @@ export default function CravingStudio() {
     return parts.join(". ");
   };
 
+  // Main entry point - runs preflight check first
   const generateMeal = async () => {
+    const prompt = buildCravingPrompt();
+    
+    // Run SafetyGuard preflight check
+    const isSafe = await checkSafety(prompt, "craving-studio");
+    if (!isSafe) {
+      // Alert will be shown by SafetyGuardBanner
+      return;
+    }
+    
+    // Safe to proceed
+    doGenerate(false);
+  };
+
+  // Actual generation logic
+  const doGenerate = async (skipPreflight: boolean) => {
     setIsGenerating(true);
     setProgress(10);
     setError(null);
@@ -308,6 +351,8 @@ export default function CravingStudio() {
           cravingInput: prompt,
           mealType: "dinner",
           source: "craving-studio",
+          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: hasActiveOverride ? overrideToken : undefined,
           servings,
         }),
       });
@@ -699,12 +744,24 @@ export default function CravingStudio() {
                     </p>
                   </div>
 
+                  {/* SafetyGuard Banner */}
+                  {safetyAlert.show && (
+                    <SafetyGuardBanner
+                      alert={safetyAlert}
+                      mealRequest={buildCravingPrompt()}
+                      onDismiss={clearSafetyAlert}
+                      onOverrideSuccess={handleSafetyOverride}
+                      className="mb-4"
+                    />
+                  )}
+
                   <button
-                    className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
+                    className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition disabled:opacity-50"
                     onClick={generateMeal}
+                    disabled={safetyChecking}
                     data-testid="button-generate-craving-meal"
                   >
-                    Create the plan
+                    {safetyChecking ? "Checking safety…" : "Create the plan"}
                   </button>
                 </div>
               )}
