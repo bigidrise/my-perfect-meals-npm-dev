@@ -12,6 +12,7 @@ type Mode = "view" | "set" | "change" | "remove";
 export function SafetyPinSettings() {
   const { toast } = useToast();
   const [hasPin, setHasPin] = useState<boolean | null>(null);
+  const [authFailed, setAuthFailed] = useState(false);
   const [mode, setMode] = useState<Mode>("view");
   const [loading, setLoading] = useState(false);
   
@@ -28,7 +29,10 @@ export function SafetyPinSettings() {
   const checkPinStatus = async () => {
     try {
       const authToken = getAuthToken();
-      if (!authToken) return;
+      if (!authToken) {
+        setAuthFailed(true);
+        return;
+      }
 
       const response = await fetch(apiUrl("/api/safety-pin/status"), {
         headers: { "x-auth-token": authToken },
@@ -37,9 +41,13 @@ export function SafetyPinSettings() {
       if (response.ok) {
         const data = await response.json();
         setHasPin(data.hasPin);
+        setAuthFailed(false);
+      } else if (response.status === 401) {
+        setAuthFailed(true);
       }
     } catch (err) {
       console.error("Failed to check PIN status:", err);
+      setAuthFailed(true);
     }
   };
 
@@ -168,6 +176,26 @@ export function SafetyPinSettings() {
     setError(null);
     setShowPin(false);
   };
+
+  if (authFailed) {
+    return (
+      <Card className="bg-black/30 border-white/10">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-semibold">Safety PIN</h3>
+              <p className="text-amber-400 text-xs">
+                Session expired - please log out and back in to manage your PIN
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (hasPin === null) {
     return (
