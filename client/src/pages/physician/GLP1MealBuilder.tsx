@@ -813,6 +813,14 @@ export default function GLP1MealBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
+        
+        // Persist to database (was missing - caused meals to not persist!)
+        await saveBoard(updatedBoard);
+        clearAIMealsCache();
+        
+        // Dispatch events for other components
+        window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
+        window.dispatchEvent(new Event("macros:updated"));
       }
 
       toast({
@@ -820,7 +828,7 @@ export default function GLP1MealBuilder() {
         description: `${generatedMeal.name} saved to your ${slot}`,
       });
     },
-    [board, activeDayISO, toast],
+    [board, activeDayISO, toast, saveBoard, weekStartISO],
   );
 
   const profile = useOnboardingProfile();
