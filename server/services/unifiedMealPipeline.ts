@@ -1383,7 +1383,8 @@ export async function generateMealUnified(
   }
 
   // 🚨 POST-GENERATION VALIDATION: Scan output for allergens that slipped through
-  if (request.userId && result.success) {
+  // Skip if safety was already checked with override token (user acknowledged the risk)
+  if (request.userId && result.success && !request.safetyAlreadyChecked) {
     const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./safetyProfileService');
     const profile = await loadSafetyProfile(request.userId);
     
