@@ -356,9 +356,10 @@ async function llmGenerateMeal(
       name: parsed.name,
       description: parsed.description ?? "",
       ingredients: (parsed.ingredients ?? []).map((ing: any) => ({
-        item: ing.item,
-        amount: Number(ing.amount),
-        unit: String(ing.unit),
+        // GPT sometimes uses different keys for ingredient name - handle all variants
+        item: ing.item ?? ing.name ?? ing.ingredient ?? ing.food ?? "",
+        amount: Number(ing.amount ?? ing.quantity ?? 0),
+        unit: String(ing.unit ?? ing.measure ?? ""),
         notes: ing.notes ?? undefined,
       })),
       instructions: parsed.instructions ?? [],
