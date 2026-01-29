@@ -56,8 +56,8 @@ ABSOLUTE RULES:
 - "Heavy Casserole" as BREAKFAST (this is dinner)
 - "Steak and Potatoes" as BREAKFAST (this is dinner)
 - "Heavy Casserole" as BREAKFAST (this is dinner)
-${req.source === "craving" && (req as any).cravingInput ? `
-🔥 CRITICAL CRAVING OVERRIDE: User specifically requested "${(req as any).cravingInput}". You MUST create this exact dish/recipe. Do NOT substitute with a different meal. This is their explicit craving request.` : ""}
+${(req as any).cravingInput ? `
+🔥 CRITICAL USER REQUEST: User specifically requested "${(req as any).cravingInput}". You MUST create this exact dish/recipe. Do NOT substitute with a different meal. This is their explicit request - honor it precisely.` : ""}
 
 OUTPUT FORMAT: a single JSON object with keys:
 {
