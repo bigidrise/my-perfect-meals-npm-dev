@@ -153,6 +153,7 @@ export interface MealGenerationRequest {
   count?: number; // number of meals to generate (default 1)
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
+  safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
 }
 
 export interface MealGenerationResponse {
@@ -1300,7 +1301,8 @@ export async function generateMealUnified(
 
   // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
   // This MUST run before ANY AI generation to protect users with allergies
-  if (request.userId) {
+  // Skip if safety was already checked at route level (e.g., with override token)
+  if (request.userId && !request.safetyAlreadyChecked) {
     const inputText = Array.isArray(request.input) ? request.input.join(' ') : request.input;
     const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`);
     
@@ -1328,6 +1330,8 @@ export async function generateMealUnified(
         suggestion: safetyCheck.suggestion
       };
     }
+  } else if (request.safetyAlreadyChecked) {
+    console.log(`✅ [SAFETY] Skipping internal check - already verified at route level with override token`);
   }
 
   // Generate the meal

@@ -646,7 +646,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroTargets,
         count,
         dietType,
-        starchContext
+        starchContext,
+        safetyAlreadyChecked: true // Route already verified with enforceSafetyProfile (may include override token)
       });
 
       // Record metrics for AI health tracking
