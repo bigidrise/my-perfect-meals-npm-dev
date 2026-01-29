@@ -150,6 +150,44 @@ export default function CravingStudio() {
 
   const mealToShow = displayMeal || generatedMeal;
 
+  // Persistence key for Craving Studio meal
+  const CRAVING_MEAL_KEY = "mpm_craving_studio_meal";
+
+  // Load persisted meal on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CRAVING_MEAL_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as GeneratedMeal;
+        setGeneratedMeal(parsed);
+        setStudioStep(5);
+        // Lock all steps since we have a generated meal
+        setS1Locked(true);
+        setS2Locked(true);
+        setS3Locked(true);
+        setS4Locked(true);
+        setCraving(parsed.name || "");
+        // Hydrate servings from persisted meal
+        if (parsed.servings) {
+          setServings(parsed.servings);
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []);
+
+  // Persist meal when generated
+  useEffect(() => {
+    if (generatedMeal) {
+      try {
+        localStorage.setItem(CRAVING_MEAL_KEY, JSON.stringify(generatedMeal));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [generatedMeal]);
+
   // Edits
   // Edit step handlers (also stop voice if active)
   const stopVoiceIfActive = () => {
@@ -212,6 +250,9 @@ export default function CravingStudio() {
     setGeneratedMeal(null);
     setDisplayMeal(null);
     setError(null);
+
+    // Clear persisted meal when restarting
+    localStorage.removeItem(CRAVING_MEAL_KEY);
 
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     progressIntervalRef.current = null;
