@@ -97,10 +97,9 @@ function normalizeInstructions(raw: string | string[] | undefined): string[] {
 const CRAVING_STUDIO_INTRO = "Alright — what are we craving today?";
 const CRAVING_STUDIO_STEP2 =
   "Any dietary preferences, allergies, or foods you want to avoid?";
-const CRAVING_STUDIO_STEP3 = "How many servings?";
-const CRAVING_STUDIO_STEP4 =
+const CRAVING_STUDIO_STEP3 =
   "Anything custom? Low sugar, low sodium, gluten-free, special diets?";
-
+const CRAVING_STUDIO_STEP4 = "How many servings?";
 const CRAVING_STUDIO_OPEN_START = "";
 const CRAVING_STUDIO_OPEN_PROGRESS1 =
   "If everything looks good press the Enter Chef’s Kitchen button, if not, press, Create New, and we create a new meal.";
@@ -548,41 +547,10 @@ export default function CravingStudio() {
           />
         )}
 
-        {/* Step 3 — Servings */}
+        {/* Step 3 — Custom Notes (Yes/No pattern) */}
         {studioStep >= 3 && (
           <KitchenStepCard
-            stepTitle="Step 3 · Servings"
-            question="How many servings?"
-            summaryText={`Servings: ${servings} ${servings === 1 ? "person" : "people"}`}
-            value={String(servings)}
-            setValue={(v) => setServings(Number(v) || 2)}
-            hasListened={s3Listened}
-            isLocked={s3Locked}
-            isPlaying={isPlaying}
-            inputType="buttons"
-            buttonOptions={["1", "2", "3", "4", "5", "6"]}
-            onInputFocus={stopChef}
-            onListen={() => {
-              if (s3Listened || isPlaying) return;
-              speak(CRAVING_STUDIO_STEP3, () => setS3Listened(true));
-            }}
-            onSubmit={() => {
-              stopChef();
-              setS3Locked(true);
-              setStudioStep(4);
-            }}
-            onEdit={() => {
-              stopChef();
-              editStep3();
-            }}
-            canEdit={!generatedMeal && !isGenerating}
-          />
-        )}
-
-        {/* Step 4 — Custom Notes (Yes/No pattern) */}
-        {studioStep >= 4 && (
-          <KitchenStepCard
-            stepTitle="Step 4 · Custom Notes"
+            stepTitle="Step 3 · Custom Notes"
             question="Any custom restriction or tweak?"
             summaryText={
               customNotes ? `Notes: ${customNotes}` : "No custom notes"
@@ -603,7 +571,7 @@ export default function CravingStudio() {
             onInputFocus={stopChef}
             onListen={() => {
               if (s4Listened || isPlaying) return;
-              speak(CRAVING_STUDIO_STEP4, () => setS4Listened(true));
+              speak(CRAVING_STUDIO_STEP3, () => setS4Listened(true));
             }}
             onSubmit={() => {
               stopChef();
@@ -618,6 +586,36 @@ export default function CravingStudio() {
             onEdit={() => {
               stopChef();
               editStep4();
+            }}
+            canEdit={!generatedMeal && !isGenerating}
+          />
+        )}
+        {/* Step 4 — Servings */}
+        {studioStep >= 4 && (
+          <KitchenStepCard
+            stepTitle="Step 4 · Servings"
+            question="How many servings?"
+            summaryText={`Servings: ${servings} ${servings === 1 ? "person" : "people"}`}
+            value={String(servings)}
+            setValue={(v) => setServings(Number(v) || 2)}
+            hasListened={s3Listened}
+            isLocked={s3Locked}
+            isPlaying={isPlaying}
+            inputType="buttons"
+            buttonOptions={["1", "2", "3", "4", "5", "6"]}
+            onInputFocus={stopChef}
+            onListen={() => {
+              if (s3Listened || isPlaying) return;
+              speak(CRAVING_STUDIO_STEP4, () => setS3Listened(true));
+            }}
+            onSubmit={() => {
+              stopChef();
+              setS3Locked(true);
+              setStudioStep(4);
+            }}
+            onEdit={() => {
+              stopChef();
+              editStep3();
             }}
             canEdit={!generatedMeal && !isGenerating}
           />
