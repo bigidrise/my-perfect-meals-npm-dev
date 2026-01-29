@@ -66,10 +66,10 @@ const FLAVOR_FAMILIES = [
 ];
 
 const SERVING_SIZES = [
-  { value: "single", label: "Single serving" },
-  { value: "two", label: "Two servings" },
-  { value: "family", label: "Family-style" },
-  { value: "batch", label: "Batch" },
+  { value: "single", label: "Single portion" },
+  { value: "two", label: "Two portions" },
+  { value: "family", label: "Group (4–6 portions)" },
+  { value: "batch", label: "Batch (8–12 portions)" },
 ];
 
 const WEDDING_SERVING_SIZES = [
