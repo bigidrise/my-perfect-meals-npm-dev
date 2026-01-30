@@ -1,7 +1,7 @@
 {
-  "releaseId": "1.2.8",
-  "publishedAt": "2026-01-29",
+  "releaseId": "1.2.9",
+  "publishedAt": "2026-01-30",
   "changes": [
-    "Added extra bottom padding in Chef's Kitchen so step cards don't get covered by the navigation bar"
+    "Temporarily hidden hands-free mode in Chef's Kitchen until mobile experience improves"
   ]
 }

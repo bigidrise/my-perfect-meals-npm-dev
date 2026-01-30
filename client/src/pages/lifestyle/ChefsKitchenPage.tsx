@@ -2031,8 +2031,8 @@ export default function ChefsKitchenPage() {
         )}
       </div>
 
-      {/* Hands-free Voice Mode Overlay */}
-      <VoiceModeOverlay
+      {/* Hands-free Voice Mode - temporarily hidden until mobile experience improves */}
+      {/* <VoiceModeOverlay
         isOpen={voiceStudio.isActive}
         onClose={voiceStudio.stopVoiceMode}
         voiceState={voiceStudio.voiceState}
@@ -2041,10 +2041,10 @@ export default function ChefsKitchenPage() {
         lastTranscript={voiceStudio.lastTranscript}
         isPlaying={voiceStudio.isPlaying}
         onStart={voiceStudio.startVoiceMode}
-      />
+      /> */}
 
-      {/* Talk to Chef floating button - show during studio steps (before generate) */}
-      {mode === "studio" && studioStep < 6 && !isGeneratingMeal && (
+      {/* Talk to Chef floating button - temporarily hidden until mobile experience improves */}
+      {/* {mode === "studio" && studioStep < 6 && !isGeneratingMeal && (
         <TalkToChefButton
           voiceState={voiceStudio.voiceState}
           currentStep={voiceStudio.currentVoiceStep}
@@ -2054,7 +2054,7 @@ export default function ChefsKitchenPage() {
           onStart={voiceStudio.startVoiceMode}
           onStop={voiceStudio.stopVoiceMode}
         />
-      )}
+      )} */}
 
       {/* Shopping Aggregate Bar - appears after meal is generated */}
       {generatedMeal && generatedMeal.ingredients?.length > 0 && (
