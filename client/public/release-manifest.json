@@ -1,8 +1,9 @@
 {
-  "releaseId": "1.2.14",
+  "releaseId": "1.2.15",
   "publishedAt": "2026-01-30",
   "changes": [
-    "Fixed builder switch: your chosen builder now correctly takes priority",
-    "Cleaned up stale data that was overriding your selection"
+    "SafetyGuard v1.2: Allergies now PIN-protected in Edit Profile",
+    "Added green Unlock button for allergy editing",
+    "Streamlined Edit Profile: removed height/weight/age fields"
   ]
 }
