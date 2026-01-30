@@ -1,7 +1,7 @@
 {
-  "releaseId": "1.2.10",
+  "releaseId": "1.2.11",
   "publishedAt": "2026-01-30",
   "changes": [
-    "Temporarily hidden hands-free mode across all Studios until mobile experience improves"
+    "Fixed Fridge Rescue page gradient - removed green tint to match orange theme"
   ]
 }

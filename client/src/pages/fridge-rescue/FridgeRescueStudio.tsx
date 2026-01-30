@@ -12,7 +12,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
     accentColor: "text-lime-400",
     gradientFrom: "from-black/60",
     gradientVia: "via-orange-600",
-    gradientTo: "to-lime-800",
+    gradientTo: "to-black/80",
     icon: Refrigerator,
   },
 
