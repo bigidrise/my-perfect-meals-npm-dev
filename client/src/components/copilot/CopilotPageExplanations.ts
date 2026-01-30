@@ -323,9 +323,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "diabetic-hub",
     title: "Diabetic Hub",
     description:
-      "Your control center for managing blood sugar with clinician-style guardrails and daily glucose tracking.",
+      "Your control center for managing blood sugar with GlucoseGuard™ protection, clinician-style guardrails, and daily glucose tracking.",
     spokenText:
-      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. When you’re ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
+      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. GlucoseGuard — your blood sugar protection system — reads your latest glucose log and automatically adjusts meal generation to match your current state. When your glucose is low, meals include more carbs to stabilize. When elevated, meals go lower carb to help bring you back into range. When you're ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
     autoClose: true,
   },
 
@@ -333,7 +333,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Diabetic Meal Builder",
     description:
-      "Build meals that support balanced blood sugar using diabetic-specific guardrails. The starch indicator helps you manage starchy carbs — green means slots available, orange means all used, red means over limit.",
+      "Build meals that support balanced blood sugar with GlucoseGuard™ protection. The starch indicator helps you manage starchy carbs — green means slots available, orange means all used, red means over limit.",
     spokenText:
       "Welcome to the Diabetic Meal Builder. This builder works like the others, but it’s designed specifically to support steady blood-sugar control throughout the day. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein, carbs, and food choices. The Chef will build meals that stay within diabetic-friendly guardrails without feeling restrictive. You can plan one day or a full week, adjust days as needed, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps energy steady and numbers predictable. As you build, focus on protein and carbs — those matter most for blood-sugar balance. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start planning meals that work with your body, not against it.",
     autoClose: true,

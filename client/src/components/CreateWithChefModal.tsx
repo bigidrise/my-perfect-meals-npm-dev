@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
@@ -242,14 +243,15 @@ export function CreateWithChefModal({
 
           {error && !safetyAlert.show && <p className="text-sm text-amber-400">{error}</p>}
 
-          {/* Safety Guard Toggle - ONLY override location */}
-          <div className="flex items-center justify-between py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-            <span className="text-xs text-white/60">Safety Profile for This Meal</span>
+          {/* Meal Safety Section */}
+          <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
+            <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
             <SafetyGuardToggle
               safetyEnabled={safetyEnabled}
               onSafetyChange={handleSafetyOverride}
               disabled={isProcessing}
             />
+            <GlucoseGuardToggle disabled={isProcessing} />
           </div>
 
           <div className="flex gap-3 pt-2">

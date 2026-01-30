@@ -7,16 +7,21 @@ const INACTIVE_STYLES = "bg-yellow-500/20 text-white/90 hover:bg-yellow-500/30 a
 
 const ACTIVE_STYLES = "bg-emerald-600/80 text-white hover:bg-emerald-600/90 active:bg-emerald-500/80 border border-emerald-400/60 active:border-emerald-300/80 animate-pulse-glow-green";
 
+const ACTIVE_AMBER_STYLES = "bg-amber-600/80 text-white hover:bg-amber-600/90 active:bg-amber-500/80 border border-amber-400/60 active:border-amber-300/80 animate-pulse-glow-amber";
+
 export const PILL_BUTTON_STYLES = `${BASE_STYLES} ${INACTIVE_STYLES}`;
+
+export type PillButtonVariant = "emerald" | "amber";
 
 interface PillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   active?: boolean;
+  variant?: PillButtonVariant;
   debounceMs?: number;
 }
 
 export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
-  ({ children, className, active = false, debounceMs = 300, onClick, ...props }, ref) => {
+  ({ children, className, active = false, variant = "emerald", debounceMs = 300, onClick, ...props }, ref) => {
     const lastClickRef = useRef<number>(0);
 
     const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
@@ -29,12 +34,17 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
       onClick?.(e);
     }, [onClick, debounceMs]);
 
+    const getActiveStyles = () => {
+      if (!active) return INACTIVE_STYLES;
+      return variant === "amber" ? ACTIVE_AMBER_STYLES : ACTIVE_STYLES;
+    };
+
     return (
       <button
         ref={ref}
         className={cn(
           BASE_STYLES,
-          active ? ACTIVE_STYLES : INACTIVE_STYLES,
+          getActiveStyles(),
           className
         )}
         onClick={handleClick}
