@@ -71,7 +71,10 @@ export default function Planner() {
     },
   ];
 
-  const userActiveBoard = user?.activeBoard || user?.selectedMealBuilder;
+  // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
+  const userActiveBoard = user?.isProCare 
+    ? (user?.activeBoard || user?.selectedMealBuilder)
+    : (user?.selectedMealBuilder || user?.activeBoard);
   
   // Check for Apple Review Full Access mode - grants admin-level access
   const isAppleReviewMode = localStorage.getItem("appleReviewFullAccess") === "true";

@@ -1,7 +1,8 @@
 {
-  "releaseId": "1.2.12",
+  "releaseId": "1.2.14",
   "publishedAt": "2026-01-30",
   "changes": [
-    "Fixed meal builder switch not displaying correctly after changing"
+    "Fixed builder switch: your chosen builder now correctly takes priority",
+    "Cleaned up stale data that was overriding your selection"
   ]
 }

@@ -48,7 +48,10 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (user.role === "admin") return false;
     if (user.id.startsWith("guest-")) return false;
     if (user.onboardingCompletedAt) return false;
-    const hasActiveBoard = user.activeBoard || user.selectedMealBuilder;
+    // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
+    const hasActiveBoard = user.isProCare 
+      ? (user.activeBoard || user.selectedMealBuilder)
+      : (user.selectedMealBuilder || user.activeBoard);
     return !hasActiveBoard;
   }, [user, loading, isAppleReviewMode]);
 

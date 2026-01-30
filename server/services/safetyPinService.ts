@@ -16,12 +16,18 @@ interface TokenData {
   mealRequest: string;
 }
 
+interface AllergyEditTokenData {
+  userId: string;
+  expiresAt: number;
+}
+
 interface RateLimitData {
   attempts: number;
   lockedUntil: number | null;
 }
 
 const activeOverrideTokens: Record<string, TokenData> = {};
+const activeAllergyEditTokens: Record<string, AllergyEditTokenData> = {};
 const pinRateLimits: Record<string, RateLimitData> = {};
 
 setInterval(() => {
@@ -29,6 +35,11 @@ setInterval(() => {
   Object.keys(activeOverrideTokens).forEach((token) => {
     if (activeOverrideTokens[token].expiresAt < now) {
       delete activeOverrideTokens[token];
+    }
+  });
+  Object.keys(activeAllergyEditTokens).forEach((token) => {
+    if (activeAllergyEditTokens[token].expiresAt < now) {
+      delete activeAllergyEditTokens[token];
     }
   });
   Object.keys(pinRateLimits).forEach((userId) => {
@@ -274,4 +285,72 @@ export async function logSafetyOverride(
     builderId,
     overrideReason
   });
+}
+
+const ALLERGY_EDIT_TOKEN_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+export async function createAllergyEditToken(
+  userId: string,
+  pin: string
+): Promise<{ success: boolean; token?: string; error?: string }> {
+  const rateCheck = checkRateLimit(userId);
+  if (!rateCheck.allowed) {
+    return { success: false, error: `Too many attempts. Try again in ${rateCheck.waitTime} seconds.` };
+  }
+
+  const [user] = await db
+    .select({ safetyPinHash: users.safetyPinHash })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user?.safetyPinHash) {
+    return { success: false, error: "No Safety PIN set. Please set a PIN first." };
+  }
+
+  const valid = await bcrypt.compare(pin, user.safetyPinHash);
+  if (!valid) {
+    recordFailedAttempt(userId);
+    return { success: false, error: "Incorrect PIN" };
+  }
+
+  clearRateLimit(userId);
+
+  const token = crypto.randomBytes(32).toString("hex");
+  activeAllergyEditTokens[token] = {
+    userId,
+    expiresAt: Date.now() + ALLERGY_EDIT_TOKEN_EXPIRY_MS
+  };
+
+  return { success: true, token };
+}
+
+export function validateAllergyEditToken(
+  token: string,
+  userId: string
+): { valid: boolean; error?: string } {
+  const tokenData = activeAllergyEditTokens[token];
+  
+  if (!tokenData) {
+    return { valid: false, error: "Invalid or expired token" };
+  }
+
+  if (tokenData.userId !== userId) {
+    return { valid: false, error: "Token does not match user" };
+  }
+
+  if (tokenData.expiresAt < Date.now()) {
+    delete activeAllergyEditTokens[token];
+    return { valid: false, error: "Token has expired" };
+  }
+
+  delete activeAllergyEditTokens[token];
+  return { valid: true };
+}
+
+export function hasValidAllergyEditToken(userId: string): boolean {
+  const now = Date.now();
+  return Object.values(activeAllergyEditTokens).some(
+    (tokenData) => tokenData.userId === userId && tokenData.expiresAt > now
+  );
 }

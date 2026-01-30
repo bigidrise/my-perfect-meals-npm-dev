@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, User, Utensils, Shield } from "lucide-react";
+import { ArrowLeft, CheckCircle2, User, Utensils, Shield, Lock, Unlock } from "lucide-react";
 import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthToken } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
 
 type StepId = 1 | 2 | 3 | 4;
 
@@ -23,20 +24,11 @@ type EditProfilePayload = {
   firstName?: string;
   lastName?: string;
   email?: string;
-  age?: number | null;
-  height?: number | null;
-  weight?: number | null;
   activityLevel?: ActivityLevel;
   fitnessGoal?: FitnessGoal;
   dietaryRestrictions?: string[];
   allergies?: string[];
 };
-
-function clampInt(val: string): number | null {
-  const n = Number(val);
-  if (!Number.isFinite(n) || val.trim() === "") return null;
-  return Math.max(0, Math.floor(n));
-}
 
 function StepShell({
   title,
@@ -89,9 +81,6 @@ export default function EditProfilePage() {
       firstName: u?.firstName || u?.name?.split(" ")[0] || "",
       lastName: u?.lastName || u?.name?.split(" ").slice(1).join(" ") || "",
       email: u?.email || "",
-      age: typeof u?.age === "number" ? u.age : null,
-      height: typeof u?.height === "number" ? u.height : null,
-      weight: typeof u?.weight === "number" ? u.weight : null,
       activityLevel: (u?.activityLevel || "moderately_active") as ActivityLevel,
       fitnessGoal: (u?.fitnessGoal || "maintenance") as FitnessGoal,
       dietaryRestrictions: Array.isArray(u?.dietaryRestrictions)
@@ -108,23 +97,75 @@ export default function EditProfilePage() {
   const [allergiesText, setAllergiesText] = useState(
     initial.allergies.join(", "),
   );
+  
+  const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
+  const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
 
   useEffect(() => {
     document.title = "Edit Profile | My Perfect Meals";
     setForm(initial);
     setDietaryText(initial.dietaryRestrictions.join(", "));
     setAllergiesText(initial.allergies.join(", "));
+    setAllergiesUnlocked(false);
+    setAllergyEditToken(null);
   }, [initial]);
+  
+  const verifyPinForAllergies = async () => {
+    if (pinInput.length !== 4) {
+      setPinError("PIN must be 4 digits");
+      return;
+    }
+    
+    try {
+      const authToken = getAuthToken();
+      const res = await fetch(apiUrl("/api/safety/verify-pin"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        body: JSON.stringify({ pin: pinInput }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setAllergiesUnlocked(true);
+        setAllergyEditToken(data.allergyEditToken);
+        setShowPinModal(false);
+        setPinInput("");
+        setPinError("");
+        toast({
+          title: "Allergies Unlocked",
+          description: "You can now edit your allergies. Changes will be saved when you complete your profile.",
+        });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setPinError(errorData.error || "Incorrect PIN. Please try again.");
+      }
+    } catch {
+      setPinError("Could not verify PIN. Please try again.");
+    }
+  };
 
   const currentBuilderLabel = useMemo(() => {
-    const u: any = user || {};
-    return (
-      u?.builderName ||
-      u?.mealBuilderName ||
-      u?.builder ||
-      u?.selectedBuilder ||
-      "Meal Builder"
-    );
+    // Use the correct field based on ProCare status
+    const builderType = user?.isProCare 
+      ? (user?.activeBoard || user?.selectedMealBuilder)
+      : (user?.selectedMealBuilder || user?.activeBoard);
+    
+    const builderNames: Record<string, string> = {
+      weekly: "Weekly Meal Board",
+      diabetic: "Diabetic Builder",
+      glp1: "GLP-1 Builder",
+      anti_inflammatory: "Anti-Inflammatory",
+      "anti-inflammatory": "Anti-Inflammatory",
+      beach_body: "Beach Body",
+    };
+    
+    return builderType ? (builderNames[builderType] || builderType) : "Not Set";
   }, [user]);
 
   const canContinueStep1 = Boolean(form.firstName?.trim());
@@ -144,10 +185,26 @@ export default function EditProfilePage() {
         .map((s: string) => s.trim())
         .filter(Boolean);
 
-      const payload: EditProfilePayload = {
+      const originalAllergies = (initial.allergies || []).sort().join(",");
+      const newAllergies = allergiesArray.sort().join(",");
+      const allergiesChanged = originalAllergies !== newAllergies;
+
+      if (allergiesChanged && !allergiesUnlocked) {
+        toast({
+          title: "Allergies Protected",
+          description: "You must unlock allergies with your Safety PIN before making changes.",
+          variant: "destructive",
+        });
+        setSaving(false);
+        setStep(3);
+        return;
+      }
+
+      const payload: EditProfilePayload & { allergyEditToken?: string } = {
         ...form,
         dietaryRestrictions: dietaryArray,
-        allergies: allergiesArray,
+        allergies: allergiesChanged ? allergiesArray : undefined,
+        ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
       };
 
       const authToken = getAuthToken();
@@ -281,51 +338,6 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <label className="text-white/70 text-xs">Age</label>
-                  <input
-                    value={form.age ?? ""}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, age: clampInt(e.target.value) }))
-                    }
-                    className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                    placeholder="35"
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <label className="text-white/70 text-xs">Height (in)</label>
-                  <input
-                    value={form.height ?? ""}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        height: clampInt(e.target.value),
-                      }))
-                    }
-                    className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                    placeholder="70"
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <label className="text-white/70 text-xs">Weight (lbs)</label>
-                  <input
-                    value={form.weight ?? ""}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        weight: clampInt(e.target.value),
-                      }))
-                    }
-                    className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                    placeholder="165"
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <label className="text-white/70 text-xs">Email Address</label>
                 <input
@@ -439,25 +451,64 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-amber-400" />
+                    <span className="text-amber-300 font-semibold text-sm">SafetyGuard™ — Allergy Protection</span>
+                  </div>
+                  {allergiesUnlocked ? (
+                    <div className="flex items-center gap-1 text-emerald-400 text-xs">
+                      <Unlock className="h-3.5 w-3.5" />
+                      <span>Unlocked</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-amber-400 text-xs">
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Locked</span>
+                    </div>
+                  )}
+                </div>
+                
                 <label className="text-white/70 text-xs">
                   Allergies (comma-separated)
                 </label>
-                <textarea
-                  value={allergiesText}
-                  onChange={(e) => setAllergiesText(e.target.value)}
-                  className="mt-1 w-full min-h-[90px] bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                  placeholder="e.g. peanuts, dairy, shellfish..."
-                />
+                {allergiesUnlocked ? (
+                  <textarea
+                    value={allergiesText}
+                    onChange={(e) => setAllergiesText(e.target.value)}
+                    className="mt-1 w-full min-h-[90px] bg-black/40 border border-emerald-500/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    placeholder="e.g. peanuts, dairy, shellfish..."
+                  />
+                ) : (
+                  <div 
+                    onClick={() => setShowPinModal(true)}
+                    className="mt-1 w-full min-h-[90px] bg-black/40 border border-amber-500/20 rounded-lg px-3 py-2 text-white/60 text-sm cursor-pointer hover:bg-black/50 transition-colors flex items-center justify-center"
+                  >
+                    <div className="text-center">
+                      <Lock className="h-5 w-5 mx-auto mb-2 text-amber-400" />
+                      <p className="text-amber-300 text-xs font-medium">
+                        {allergiesText.trim() || "No allergies set"}
+                      </p>
+                      <p className="text-white/50 text-xs mt-1">
+                        Tap to unlock with your Safety PIN
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-white/60 text-xs mt-2">
+                  Your allergies are protected by your Safety PIN. This prevents accidental changes.
+                </p>
               </div>
 
-              <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-4 w-4 text-amber-400" />
-                  <span className="text-amber-300 font-semibold text-sm">SafetyGuard™ — Allergy Protection</span>
+                  <Shield className="h-4 w-4 text-white/60" />
+                  <span className="text-white/80 font-semibold text-sm">Manage Safety PIN</span>
                 </div>
-                <p className="text-white/70 text-xs mb-3">
-                  Set a 4-digit PIN to allow one-time overrides when you intentionally want to modify an allergy-blocked meal.
+                <p className="text-white/60 text-xs mb-3">
+                  Your PIN protects your allergies and allows meal overrides.
                 </p>
                 <SafetyPinSettings />
               </div>
@@ -541,6 +592,59 @@ export default function EditProfilePage() {
           </StepShell>
         )}
       </div>
+      
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-white/20 rounded-2xl p-6 w-[90%] max-w-sm mx-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="h-5 w-5 text-amber-400" />
+              <h3 className="text-white font-semibold">Unlock Allergies</h3>
+            </div>
+            <p className="text-white/70 text-sm mb-4">
+              Enter your 4-digit Safety PIN to edit your allergies.
+            </p>
+            
+            <Input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pinInput}
+              onChange={(e) => {
+                setPinInput(e.target.value.replace(/\D/g, ""));
+                setPinError("");
+              }}
+              placeholder="• • • •"
+              className="text-center text-2xl tracking-[0.5em] bg-black/40 border-white/20 text-white mb-2"
+              autoFocus
+            />
+            
+            {pinError && (
+              <p className="text-red-400 text-xs mb-3 text-center">{pinError}</p>
+            )}
+            
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                className="flex-1 bg-black/40 border-white/20 text-white"
+                onClick={() => {
+                  setShowPinModal(false);
+                  setPinInput("");
+                  setPinError("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-amber-600 text-white hover:bg-amber-500"
+                onClick={verifyPinForAllergies}
+                disabled={pinInput.length !== 4}
+              >
+                Unlock
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

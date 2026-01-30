@@ -116,7 +116,11 @@ export default function ExtendedOnboarding() {
     document.title = "Choose Your Builder | My Perfect Meals";
     
     if (user?.selectedMealBuilder || user?.activeBoard) {
-      setSelectedBuilder(user.activeBoard || user.selectedMealBuilder || null);
+      // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
+      const currentBuilder = user.isProCare 
+        ? (user.activeBoard || user.selectedMealBuilder)
+        : (user.selectedMealBuilder || user.activeBoard);
+      setSelectedBuilder(currentBuilder || null);
     }
     
     // ProCare with assignment: redirect to macro calculator directly

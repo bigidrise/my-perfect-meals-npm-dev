@@ -85,6 +85,18 @@ export default function MealBuilderSelection() {
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
       : BUILDER_OPTIONS;
 
+  // Initialize selected state from user's current builder
+  // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
+  useEffect(() => {
+    const isProCare = user?.isProCare === true;
+    const currentBuilder = isProCare 
+      ? (user?.activeBoard || user?.selectedMealBuilder)
+      : (user?.selectedMealBuilder || user?.activeBoard);
+    if (currentBuilder && !selected) {
+      setSelected(currentBuilder as MealBuilderType);
+    }
+  }, [user?.activeBoard, user?.selectedMealBuilder, user?.isProCare, selected]);
+
   useEffect(() => {
     const fetchSwitchStatus = async () => {
       const authToken = getAuthToken();
@@ -351,7 +363,14 @@ export default function MealBuilderSelection() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-base font-semibold truncate">{option.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-semibold truncate">{option.title}</h3>
+                        {((user?.isProCare ? user?.activeBoard : user?.selectedMealBuilder) || user?.selectedMealBuilder) === option.id && (
+                          <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
+                            Current
+                          </span>
+                        )}
+                      </div>
                       <PillButton
                         active={selected === option.id}
                         onClick={() => setSelected(option.id)}
