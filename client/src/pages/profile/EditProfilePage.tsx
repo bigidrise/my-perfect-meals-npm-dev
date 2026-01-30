@@ -10,6 +10,11 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthToken } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
+import { useCopilot } from "@/components/copilot/CopilotContext";
+import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
+import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
+import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
+import { isGuestMode } from "@/lib/guestMode";
 
 type StepId = 1 | 2 | 3 | 4;
 
@@ -72,9 +77,39 @@ export default function EditProfilePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
+  const { isOpen, open, setLastResponse } = useCopilot();
 
   const [step, setStep] = useState<StepId>(1);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!shouldAllowAutoOpen()) return;
+
+    const stepPath = `/profile/edit-step-${step}`;
+    
+    if (CopilotExplanationStore.hasSessionOpened(stepPath)) return;
+
+    const explanation = getGuestPageExplanation(stepPath, isGuestMode());
+    if (!explanation) return;
+
+    CopilotExplanationStore.markSessionOpened(stepPath);
+
+    const timer = setTimeout(() => {
+      if (!isOpen) {
+        open();
+      }
+      setTimeout(() => {
+        setLastResponse({
+          title: explanation.title,
+          description: explanation.description,
+          spokenText: explanation.spokenText,
+          autoClose: explanation.autoClose ?? true,
+        });
+      }, 300);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [step, isOpen, open, setLastResponse]);
 
   const initial = useMemo(() => {
     const u: any = user || {};
