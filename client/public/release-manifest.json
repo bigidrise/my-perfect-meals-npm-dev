@@ -1,9 +1,8 @@
 {
-  "releaseId": "1.2.15",
+  "releaseId": "1.2.16",
   "publishedAt": "2026-01-30",
   "changes": [
-    "SafetyGuard v1.2: Allergies now PIN-protected in Edit Profile",
-    "Added green Unlock button for allergy editing",
-    "Streamlined Edit Profile: removed height/weight/age fields"
+    "Fixed Edit Profile header to prevent text wrapping",
+    "Builder name now truncates cleanly on mobile"
   ]
 }
