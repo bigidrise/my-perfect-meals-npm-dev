@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthToken } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
+import { PillButton } from "@/components/ui/pill-button";
 
 type StepId = 1 | 2 | 3 | 4;
 
@@ -481,18 +482,21 @@ export default function EditProfilePage() {
                     placeholder="e.g. peanuts, dairy, shellfish..."
                   />
                 ) : (
-                  <div 
-                    onClick={() => setShowPinModal(true)}
-                    className="mt-1 w-full min-h-[90px] bg-black/40 border border-amber-500/20 rounded-lg px-3 py-2 text-white/60 text-sm cursor-pointer hover:bg-black/50 transition-colors flex items-center justify-center"
-                  >
-                    <div className="text-center">
-                      <Lock className="h-5 w-5 mx-auto mb-2 text-amber-400" />
-                      <p className="text-amber-300 text-xs font-medium">
-                        {allergiesText.trim() || "No allergies set"}
-                      </p>
-                      <p className="text-white/50 text-xs mt-1">
-                        Tap to unlock with your Safety PIN
-                      </p>
+                  <div className="mt-1">
+                    <div className="flex justify-center mb-2">
+                      <PillButton
+                        active={true}
+                        onClick={() => setShowPinModal(true)}
+                      >
+                        Unlock to Edit
+                      </PillButton>
+                    </div>
+                    <div className="w-full min-h-[70px] bg-black/40 border border-amber-500/20 rounded-lg px-3 py-2 text-white/60 text-sm flex items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-amber-300 text-xs font-medium">
+                          {allergiesText.trim() || "No allergies set"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
