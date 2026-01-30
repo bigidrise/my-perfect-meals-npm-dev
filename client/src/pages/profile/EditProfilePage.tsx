@@ -117,14 +117,21 @@ export default function EditProfilePage() {
   }, [initial]);
 
   const currentBuilderLabel = useMemo(() => {
-    const u: any = user || {};
-    return (
-      u?.builderName ||
-      u?.mealBuilderName ||
-      u?.builder ||
-      u?.selectedBuilder ||
-      "Meal Builder"
-    );
+    // Use the correct field based on ProCare status
+    const builderType = user?.isProCare 
+      ? (user?.activeBoard || user?.selectedMealBuilder)
+      : (user?.selectedMealBuilder || user?.activeBoard);
+    
+    const builderNames: Record<string, string> = {
+      weekly: "Weekly Meal Board",
+      diabetic: "Diabetic Builder",
+      glp1: "GLP-1 Builder",
+      anti_inflammatory: "Anti-Inflammatory",
+      "anti-inflammatory": "Anti-Inflammatory",
+      beach_body: "Beach Body",
+    };
+    
+    return builderType ? (builderNames[builderType] || builderType) : "Not Set";
   }, [user]);
 
   const canContinueStep1 = Boolean(form.firstName?.trim());
