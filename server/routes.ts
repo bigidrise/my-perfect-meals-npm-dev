@@ -23,7 +23,9 @@ import {
   setUserPin, 
   changeUserPin, 
   removeUserPin, 
-  verifyPinAndIssueOverrideToken 
+  verifyPinAndIssueOverrideToken,
+  createAllergyEditToken,
+  validateAllergyEditToken
 } from "./services/safetyPinService";
 // Shopping list import removed - will be implemented per ChatGPT specifications
 import avatarChatRouter from "./routes/avatarChat";
@@ -1874,7 +1876,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (activityLevel !== undefined) updateData.activityLevel = activityLevel;
       if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
       if (dietaryRestrictions !== undefined) updateData.dietaryRestrictions = dietaryRestrictions;
-      if (allergies !== undefined) updateData.allergies = allergies;
+      
+      if (allergies !== undefined) {
+        const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        
+        const currentAllergies = (currentUser?.allergies || []).sort().join(",");
+        const newAllergies = (Array.isArray(allergies) ? allergies : []).sort().join(",");
+        
+        if (currentAllergies !== newAllergies && currentUser?.safetyPinHash) {
+          const allergyEditToken = req.body.allergyEditToken;
+          if (!allergyEditToken) {
+            return res.status(403).json({ 
+              error: "Allergy changes require PIN verification",
+              code: "ALLERGY_PIN_REQUIRED"
+            });
+          }
+          
+          const tokenValidation = validateAllergyEditToken(allergyEditToken, userId);
+          if (!tokenValidation.valid) {
+            return res.status(403).json({ 
+              error: tokenValidation.error || "Invalid or expired allergy edit token",
+              code: "ALLERGY_TOKEN_INVALID"
+            });
+          }
+        }
+        
+        updateData.allergies = allergies;
+      }
       if (healthConditions !== undefined) updateData.healthConditions = healthConditions;
       if (dislikedFoods !== undefined) updateData.dislikedFoods = dislikedFoods;
       if (likedFoods !== undefined) updateData.likedFoods = likedFoods;
@@ -2152,6 +2183,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error verifying Safety PIN:", error);
+      res.status(500).json({ error: "Failed to verify PIN" });
+    }
+  });
+
+  // Verify PIN for allergy editing - issues a short-lived token
+  app.post("/api/safety/verify-pin", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "PIN is required" });
+      }
+      
+      const result = await createAllergyEditToken(userId, pin);
+      if (!result.success) {
+        return res.status(401).json({ error: result.error });
+      }
+      
+      res.json({ 
+        success: true, 
+        allergyEditToken: result.token,
+        message: "Allergy editing authorized for 10 minutes"
+      });
+    } catch (error: any) {
+      console.error("Error verifying Safety PIN for allergy edit:", error);
       res.status(500).json({ error: "Failed to verify PIN" });
     }
   });
