@@ -77,18 +77,24 @@ export function getAssignedBuilder(healthConditions?: string[]): AssignedBuilder
 
 /**
  * Get the assigned builder from localStorage - checks multiple sources
- * Priority: user.activeBoard → user.selectedMealBuilder → guestSelectedBuilder → onboarding profile
- * NOTE: Authenticated user's builder takes priority over guest selection
+ * Priority: 
+ *   - For ProCare clients: activeBoard (coach-assigned) takes priority
+ *   - For regular users: selectedMealBuilder (user-chosen) takes priority
+ *   - Fallback: guestSelectedBuilder → onboarding profile → weekly
  */
 export function getAssignedBuilderFromStorage(): AssignedBuilder {
   try {
-    // FIRST: Check authenticated user's selectedMealBuilder (set by AuthContext)
-    // This takes priority because it's the source of truth after login/switch
+    // FIRST: Check authenticated user's builder
     const userStr = localStorage.getItem("mpm_current_user");
     if (userStr) {
       const user = JSON.parse(userStr);
-      // Check activeBoard first (ProCare assigned), then selectedMealBuilder
-      const builderType = user.activeBoard || user.selectedMealBuilder;
+      // For ProCare clients, use coach-assigned activeBoard
+      // For regular users, use their selectedMealBuilder (ignore stale activeBoard)
+      const isProCare = user.isProCare === true;
+      const builderType = isProCare 
+        ? (user.activeBoard || user.selectedMealBuilder)
+        : (user.selectedMealBuilder || user.activeBoard);
+      
       if (builderType && BUILDER_MAP[builderType]) {
         return BUILDER_MAP[builderType];
       }

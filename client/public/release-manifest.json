@@ -1,9 +1,8 @@
 {
-  "releaseId": "1.2.13",
+  "releaseId": "1.2.14",
   "publishedAt": "2026-01-30",
   "changes": [
-    "Fixed meal builder switch not displaying correctly after changing",
-    "Added 'Current' badge to show your active builder on selection page",
-    "Builder selection page now pre-selects your current builder"
+    "Fixed builder switch: your chosen builder now correctly takes priority",
+    "Cleaned up stale data that was overriding your selection"
   ]
 }
