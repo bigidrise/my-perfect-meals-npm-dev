@@ -47,6 +47,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
@@ -716,13 +717,15 @@ const FridgeRescuePage = () => {
                   onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                 />
 
-                {/* Safety Guard Toggle */}
-                <div className="mb-4 flex justify-end">
+                {/* Meal Safety Section */}
+                <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
+                  <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
                   <SafetyGuardToggle
                     safetyEnabled={safetyEnabled}
                     onSafetyChange={handleSafetyOverride}
                     disabled={isLoading || safetyChecking}
                   />
+                  <GlucoseGuardToggle disabled={isLoading || safetyChecking} />
                 </div>
 
                 <button

@@ -7,7 +7,7 @@ export interface PageExplanation {
   // Guest-specific marketing copy - used when in guest mode for onboarding/sales
   guestSpokenText?: string;
   guestDescription?: string;
-}
+} 
 
 export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/dashboard": {
@@ -16,7 +16,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your home base. Access meal planning, tracking, cravings, and lifestyle tools from one place.",
     spokenText:
-      "Welcome to My Perfect Meals. I’m Chef Copilot — your coach in your pocket. I’m here to guide you through the app, hands-free if you want, or completely quiet until you press Listen. You’re always in control: turn me on, turn me off, or close me anytime. This is your dashboard — your home base — where you’ll plan meals, build recipes, track macros, manage cravings, and use your lifestyle tools. The control hub at the top gives you access to settings, labs, and the app library, and Chef Studio is where you create, experiment, or explore meals freely. When building meals, keep it simple; broad requests work best, and more detail just fine-tunes the result. Start by setting your targets in the Macro Calculator. From there, I’ll guide you step by step through meals, boards, and tools — with Copilot on or off. Your call.",
+      "Welcome to My Perfect Meals. I’m Chef Copilot — your coach in your pocket — here to guide you through the app hands-free or whenever you need help, and you can turn me on or off using the Auto toggle in the Copilot bar. You’re on your dashboard, your home base for accessing meal tools, planning features, and app resources, with buttons that take you to things like your planner, shopping list, nutrition utilities, inspiration, and reference information. Tap the gear icon in the top-right to manage your account, switch meal builders, adjust settings, and review app information. Chef Studio is where you can freely explore, experiment, and generate meals, and when you’re building, starting broad works great, but the more specific you are, the more tailored your results will be. My Perfect Meals also includes SafetyGuard — Allergy Protection — our built-in two-layer system designed to help prevent meals from being generated with ingredients you’ve marked as unsafe. When you’re ready, set your targets in the Macro Calculator, and from there I’ll guide you step by step through meals, boards, and tools, with Copilot on or off — your call.",
     autoClose: true,
   },
 
@@ -40,7 +40,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create healthier versions of the foods you crave — and add them directly to your meal plan.",
     spokenText:
-      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s plan. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it..",
+      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s plan. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it.",
     autoClose: true,
     guestDescription:
       "We redesign cravings. Stay satisfied, stay on plan — without giving up what you love.",
@@ -323,9 +323,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "diabetic-hub",
     title: "Diabetic Hub",
     description:
-      "Your control center for managing blood sugar with clinician-style guardrails and daily glucose tracking.",
+      "Your control center for managing blood sugar with GlucoseGuard™ protection, clinician-style guardrails, and daily glucose tracking.",
     spokenText:
-      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. When you’re ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
+      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. GlucoseGuard — your blood sugar protection system — reads your latest glucose log and automatically adjusts meal generation to match your current state. When your glucose is low, meals include more carbs to stabilize. When elevated, meals go lower carb to help bring you back into range. When you're ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
     autoClose: true,
   },
 
@@ -333,9 +333,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Diabetic Meal Builder",
     description:
-      "Build meals that support balanced blood sugar using diabetic-specific guardrails. The starch indicator helps you manage starchy carbs — green means slots available, orange means all used, red means over limit.",
+      "Build meals that support balanced blood sugar with GlucoseGuard™ protection. The starch indicator helps you manage starchy carbs — green means slots available, orange means all used, red means over limit.",
     spokenText:
-      "Welcome to the Diabetic Meal Builder. This builder works like the others, but it’s designed specifically to support steady blood-sugar control throughout the day. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein, carbs, and food choices. The Chef will build meals that stay within diabetic-friendly guardrails without feeling restrictive. You can plan one day or a full week, adjust days as needed, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps energy steady and numbers predictable. As you build, focus on protein and carbs — those matter most for blood-sugar balance. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start planning meals that work with your body, not against it.",
+      "Welcome to the Diabetic Meal Builder. This builder works like the others, but it’s designed specifically to support steady blood-sugar control throughout the day. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein, carbs, and food choices. The Chef will build meals that stay within diabetic-friendly guardrails without feeling restrictive. You can plan one day or a full week, adjust days as needed, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps energy steady and numbers predictable. As you build, focus on protein and carbs — those matter most for blood-sugar balance. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. SafetyGuard protects you from allergens, and GlucoseGuard adjusts meals based on your latest glucose reading. Open your builder and start planning meals that work with your body, not against it.",
     autoClose: true,
   },
 
@@ -355,7 +355,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create portion-aware meals designed to support GLP-1 goals. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
-      "Welcome to the GLP-1 Meal Builder. This builder works like the others, but it’s designed to support GLP-1 goals like satiety, portion control, steady energy, and protein prioritization. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein goals, lighter portions, lower fat, or gentler foods if needed. The Chef will build meals that stay aligned with GLP-1-friendly guardrails without feeling restrictive. You can plan one day or a full week, adjust days as needed, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals simple, satisfying, and consistent. As you build, focus on protein and carbs — those are the primary drivers of satiety, energy stability, and lean tissue support. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start creating meals that work with your appetite, not against it.",
+      "Welcome to the GLP-1 Meal Builder. This builder works like the others, but it’s designed to support GLP-1 goals like satiety, portion control, steady energy, and protein prioritization. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein goals, lighter portions, lower fat, or gentler foods if needed. The Chef will build meals that stay aligned with GLP-1-friendly guardrails without feeling restrictive. You can plan one day or a full week, adjust days as needed, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals simple, satisfying, and consistent. As you build, focus on protein and carbs — those are the primary drivers of satiety, energy stability, and lean tissue support. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. SafetyGuard protects you from allergens. Open your builder and start creating meals that work with your appetite, not against it.",
 
     autoClose: true,
   },
@@ -366,7 +366,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build meals focused on inflammation-friendly ingredients. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
-      "Welcome to the Anti-Inflammatory Meal Builder. This builder is designed to help reduce inflammation while supporting energy, recovery, and long-term health. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein, carbs, or ingredients you prefer to avoid. The Chef will build meals using anti-inflammatory guardrails without sacrificing flavor or variety. You can plan one day or a full week, adjust weekdays and weekends differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals balanced and easy to follow. As you build, focus on protein and carbs — those are the most important drivers for energy and recovery. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. Open your builder and start creating meals that help your body feel and perform better.",
+      "Welcome to the Anti-Inflammatory Meal Builder. This builder is designed to help reduce inflammation while supporting energy, recovery, and long-term health. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein, carbs, or ingredients you prefer to avoid. The Chef will build meals using anti-inflammatory guardrails without sacrificing flavor or variety. You can plan one day or a full week, adjust weekdays and weekends differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals balanced and easy to follow. As you build, focus on protein and carbs — those are the most important drivers for energy and recovery. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. SafetyGuard protects you from allergens. Open your builder and start creating meals that help your body feel and perform better.",
 
     autoClose: true,
   },
@@ -377,7 +377,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create structured meals designed for performance and body composition. The starch indicator shows your daily starch meal status — green means slots available, orange means all used, red means over limit.",
     spokenText:
-      "Welcome to the Beach Body Meal Builder. This builder is designed for leaning out, tightening up, and dialing in your physique while keeping meals realistic and sustainable. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein targets, carb levels, or foods you want to limit. The Chef will build meals that support fat loss, muscle tone, and performance without overcomplicating things. You can plan one day or a full week, keep weekdays structured, and loosen things slightly on weekends if you choose. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves instead of traditional serving math. As you build, prioritize protein and carbs — those drive energy, training output, and physique changes. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make tweaks anytime. Open your builder and start creating meals that move your body where you want it to go.",
+      "Welcome to the Beach Body Meal Builder. This builder is designed for leaning out, tightening up, and dialing in your physique while keeping meals realistic and sustainable. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used, and red means over your daily limit. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein targets, carb levels, or foods you want to limit. The Chef will build meals that support fat loss, muscle tone, and performance without overcomplicating things. You can plan one day or a full week, keep weekdays structured, and loosen things slightly on weekends if you choose. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves instead of traditional serving math. As you build, prioritize protein and carbs — those drive energy, training output, and physique changes. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make tweaks anytime. SafetyGuard protects you from allergens. Open your builder and start creating meals that move your body where you want it to go.",
 
     autoClose: true,
   },
@@ -419,6 +419,46 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Set macro targets, choose the Starch Game Plan, assign meal builders, and guide performance nutrition for your client.",
     spokenText:
       "Welcome to the Trainer Dashboard. This is your client control center, where you set everything that drives their nutrition. Start with macro targets — protein, starchy carbs, fibrous carbs, and fat. Then choose the Starch Game Plan. One Starch Meal concentrates all starchy carbs into a single meal for appetite control and fat loss. Flex Split divides starchy carbs across two meals for more flexibility. Remember, fibrous carbs like vegetables are always unlimited. When you’re ready, assign a meal builder — General Nutrition for balanced everyday meals, or Performance and Competition for athletes and high-output clients. Finally, use the builder shortcuts to jump directly into meal generation for your client.",
+    autoClose: true,
+  },
+
+  "/profile/edit-step-1": {
+    pageId: "edit-profile-step-1",
+    title: "Edit Profile — Personal Info",
+    description:
+      "Update your name and email. This is the foundation of your profile.",
+    spokenText:
+      "This is where you update your personal information — your name and email. These details help personalize your experience and keep your account secure. Make any changes you need, then continue to the next step.",
+    autoClose: true,
+  },
+
+  "/profile/edit-step-2": {
+    pageId: "edit-profile-step-2",
+    title: "Edit Profile — Goals & Activity",
+    description:
+      "Set your fitness goal and activity level. These shape how your nutrition targets are calculated.",
+    spokenText:
+      "This step is about your goals and activity level. Your fitness goal — whether that's weight loss, muscle gain, maintenance, or endurance — combined with how active you are, directly shapes your daily nutrition targets. Choose what fits your current lifestyle, and we'll build around that.",
+    autoClose: true,
+  },
+
+  "/profile/edit-step-3": {
+    pageId: "edit-profile-step-3",
+    title: "Edit Profile — Allergy & Safety",
+    description:
+      "Configure your allergies and SafetyGuard protection. Your Safety PIN protects these settings.",
+    spokenText:
+      "This is where you set up SafetyGuard — Allergy Protection — My Perfect Meals' built-in two-layer safety system designed to prevent meals from being created with ingredients you've marked as unsafe. The first layer is established during onboarding and profile setup, where your allergies and restrictions are saved and hard-wired into the meal generator so unsafe ingredients are blocked before a meal can even be generated. The second layer operates inside the meal builders themselves, meaning that even if an unsafe ingredient is typed or requested directly, the builder will still block it from being included. On top of these protections, SafetyGuard includes a controlled override system that requires your Safety PIN and applies to one meal only, automatically turning protection back on afterward so no other meals are affected and nothing can be disabled accidentally or globally.",
+    autoClose: true,
+  },
+
+  "/profile/edit-step-4": {
+    pageId: "edit-profile-step-4",
+    title: "Edit Profile — Review & Save",
+    description:
+      "Review your changes and save your updated profile.",
+    spokenText:
+      "This is your final review. Take a moment to double-check everything — your name, goals, activity level, dietary restrictions, and allergies. When you're ready, save your changes and they'll take effect immediately across the app.",
     autoClose: true,
   },
 
