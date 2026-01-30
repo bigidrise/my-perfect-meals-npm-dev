@@ -83,14 +83,19 @@ export default function EditProfilePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!shouldAllowAutoOpen()) return;
-
     const stepPath = `/profile/edit-step-${step}`;
-    
-    if (CopilotExplanationStore.hasSessionOpened(stepPath)) return;
-
     const explanation = getGuestPageExplanation(stepPath, isGuestMode());
     if (!explanation) return;
+
+    setLastResponse({
+      title: explanation.title,
+      description: explanation.description,
+      spokenText: explanation.spokenText,
+      autoClose: explanation.autoClose ?? true,
+    });
+
+    if (!shouldAllowAutoOpen()) return;
+    if (CopilotExplanationStore.hasSessionOpened(stepPath)) return;
 
     CopilotExplanationStore.markSessionOpened(stepPath);
 
@@ -98,14 +103,6 @@ export default function EditProfilePage() {
       if (!isOpen) {
         open();
       }
-      setTimeout(() => {
-        setLastResponse({
-          title: explanation.title,
-          description: explanation.description,
-          spokenText: explanation.spokenText,
-          autoClose: explanation.autoClose ?? true,
-        });
-      }, 300);
     }, 800);
 
     return () => clearTimeout(timer);
