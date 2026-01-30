@@ -77,23 +77,13 @@ export function getAssignedBuilder(healthConditions?: string[]): AssignedBuilder
 
 /**
  * Get the assigned builder from localStorage - checks multiple sources
- * Priority: guestSelectedBuilder → user.activeBoard → user.selectedMealBuilder → onboarding profile
+ * Priority: user.activeBoard → user.selectedMealBuilder → guestSelectedBuilder → onboarding profile
+ * NOTE: Authenticated user's builder takes priority over guest selection
  */
 export function getAssignedBuilderFromStorage(): AssignedBuilder {
   try {
-    // First, check guest-specific builder selection (set during extended onboarding)
-    const guestBuilder = localStorage.getItem("guestSelectedBuilder");
-    if (guestBuilder) {
-      if (BUILDER_MAP[guestBuilder]) {
-        return BUILDER_MAP[guestBuilder];
-      }
-      // Handle underscore variant (anti_inflammatory)
-      if (guestBuilder === "anti_inflammatory") {
-        return BUILDER_MAP["anti-inflammatory"];
-      }
-    }
-
-    // Second, check the current user's selectedMealBuilder (set by AuthContext)
+    // FIRST: Check authenticated user's selectedMealBuilder (set by AuthContext)
+    // This takes priority because it's the source of truth after login/switch
     const userStr = localStorage.getItem("mpm_current_user");
     if (userStr) {
       const user = JSON.parse(userStr);
@@ -104,6 +94,19 @@ export function getAssignedBuilderFromStorage(): AssignedBuilder {
       }
       // Handle underscore variant (anti_inflammatory)
       if (builderType === "anti_inflammatory") {
+        return BUILDER_MAP["anti-inflammatory"];
+      }
+    }
+
+    // Second, check guest-specific builder selection (set during extended onboarding)
+    // Only used if no authenticated user is present
+    const guestBuilder = localStorage.getItem("guestSelectedBuilder");
+    if (guestBuilder) {
+      if (BUILDER_MAP[guestBuilder]) {
+        return BUILDER_MAP[guestBuilder];
+      }
+      // Handle underscore variant (anti_inflammatory)
+      if (guestBuilder === "anti_inflammatory") {
         return BUILDER_MAP["anti-inflammatory"];
       }
     }
