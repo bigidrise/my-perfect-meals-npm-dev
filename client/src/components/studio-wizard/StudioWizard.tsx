@@ -22,7 +22,6 @@ import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
-import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 
 import GeneratedMealCard from "@/components/meal/GeneratedMealCard";
 
@@ -656,15 +655,13 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                     onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                   />
 
-                  {/* Meal Safety Section */}
-                  <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                    <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                  {/* Safety Guard Toggle */}
+                  <div className="mb-4 flex justify-end">
                     <SafetyGuardToggle
                       safetyEnabled={safetyEnabled}
                       onSafetyChange={handleSafetyOverride}
                       disabled={isGenerating || safetyChecking}
                     />
-                    <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
                   </div>
 
                   <button

@@ -50,7 +50,6 @@ import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
-import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
@@ -834,15 +833,13 @@ export default function CravingCreator() {
                     onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                   />
 
-                  {/* Meal Safety Section */}
-                  <div className="mt-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                    <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                  {/* Safety Guard Toggle - right before generate button */}
+                  <div className="mt-4 flex justify-end">
                     <SafetyGuardToggle
                       safetyEnabled={safetyEnabled}
                       onSafetyChange={handleSafetyOverride}
                       disabled={isGenerating || safetyChecking}
                     />
-                    <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
                   </div>
 
                   {isGenerating ? (
