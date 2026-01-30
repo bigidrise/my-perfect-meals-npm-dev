@@ -422,6 +422,46 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/profile/edit-step-1": {
+    pageId: "edit-profile-step-1",
+    title: "Edit Profile — Personal Info",
+    description:
+      "Update your name and email. This is the foundation of your profile.",
+    spokenText:
+      "This is where you update your personal information — your name and email. These details help personalize your experience and keep your account secure. Make any changes you need, then continue to the next step.",
+    autoClose: true,
+  },
+
+  "/profile/edit-step-2": {
+    pageId: "edit-profile-step-2",
+    title: "Edit Profile — Goals & Activity",
+    description:
+      "Set your fitness goal and activity level. These shape how your nutrition targets are calculated.",
+    spokenText:
+      "This step is about your goals and activity level. Your fitness goal — whether that's weight loss, muscle gain, maintenance, or endurance — combined with how active you are, directly shapes your daily nutrition targets. Choose what fits your current lifestyle, and we'll build around that.",
+    autoClose: true,
+  },
+
+  "/profile/edit-step-3": {
+    pageId: "edit-profile-step-3",
+    title: "Edit Profile — Allergy & Safety",
+    description:
+      "Configure your allergies and SafetyGuard protection. Your Safety PIN protects these settings.",
+    spokenText:
+      "This is where you set up SafetyGuard — Allergy Protection — My Perfect Meals' built-in two-layer safety system designed to prevent meals from being created with ingredients you've marked as unsafe. The first layer is established during onboarding and profile setup, where your allergies and restrictions are saved and hard-wired into the meal generator so unsafe ingredients are blocked before a meal can even be generated. The second layer operates inside the meal builders themselves, meaning that even if an unsafe ingredient is typed or requested directly, the builder will still block it from being included. On top of these protections, SafetyGuard includes a controlled override system that requires your Safety PIN and applies to one meal only, automatically turning protection back on afterward so no other meals are affected and nothing can be disabled accidentally or globally.",
+    autoClose: true,
+  },
+
+  "/profile/edit-step-4": {
+    pageId: "edit-profile-step-4",
+    title: "Edit Profile — Review & Save",
+    description:
+      "Review your changes and save your updated profile.",
+    spokenText:
+      "This is your final review. Take a moment to double-check everything — your name, goals, activity level, dietary restrictions, and allergies. When you're ready, save your changes and they'll take effect immediately across the app.",
+    autoClose: true,
+  },
+
   "/pro/clients/:id/diabetic-builder": {
     pageId: "procare-diabetic-builder",
     title: "ProCare Diabetic Meal Builder",
