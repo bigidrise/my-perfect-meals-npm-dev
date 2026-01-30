@@ -1,7 +1,7 @@
 {
-  "releaseId": "1.2.11",
+  "releaseId": "1.2.12",
   "publishedAt": "2026-01-30",
   "changes": [
-    "Fixed Fridge Rescue page gradient - removed green tint to match orange theme"
+    "Fixed meal builder switch not displaying correctly after changing"
   ]
 }
