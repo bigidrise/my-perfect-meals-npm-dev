@@ -42,7 +42,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import IOSMealReminders from "@/components/ios/IOSMealReminders";
 import { Capacitor } from "@capacitor/core";
-import { Camera as CapacitorCamera, CameraResultType, CameraSource } from "@capacitor/camera";
+import {
+  Camera as CapacitorCamera,
+  CameraResultType,
+  CameraSource,
+} from "@capacitor/camera";
 
 interface ProfileSheetProps {
   children: React.ReactNode;
@@ -104,7 +108,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
       if (!presignedRes.ok) {
         const errData = await presignedRes.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed to get upload URL (${presignedRes.status})`);
+        throw new Error(
+          errData.error || `Failed to get upload URL (${presignedRes.status})`,
+        );
       }
 
       const { uploadURL, objectPath } = await presignedRes.json();
@@ -115,7 +121,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         body: file,
       });
 
-      if (!uploadRes.ok) throw new Error(`Failed to upload image (${uploadRes.status})`);
+      if (!uploadRes.ok)
+        throw new Error(`Failed to upload image (${uploadRes.status})`);
 
       const updateHeaders: Record<string, string> = {
         "Content-Type": "application/json",
@@ -133,7 +140,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
       if (!updateRes.ok) {
         const errData = await updateRes.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed to update profile (${updateRes.status})`);
+        throw new Error(
+          errData.error || `Failed to update profile (${updateRes.status})`,
+        );
       }
 
       await refreshUser();
@@ -167,7 +176,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       if (image.dataUrl) {
         const response = await fetch(image.dataUrl);
         const blob = await response.blob();
-        const file = new File([blob], `profile-${Date.now()}.jpg`, { type: "image/jpeg" });
+        const file = new File([blob], `profile-${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
         await uploadPhoto(file);
       }
     } catch (error: any) {
@@ -183,7 +194,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     }
   };
 
-  const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       await uploadPhoto(file);
@@ -329,7 +342,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       testId: "menu-tutorials",
     },
     {
-      title: "About My Perfect Meals",
+      title: "Meet the MPM Team",
       description: "Message from our founders",
       icon: MessageCircle,
       route: "/founders",
@@ -399,19 +412,26 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
               {userEmail && (
                 <p className="text-white/70 text-sm truncate">{userEmail}</p>
               )}
-              <p className="text-orange-300/70 text-xs mt-0.5">Tap photo to change</p>
+              <p className="text-orange-300/70 text-xs mt-0.5">
+                Tap photo to change
+              </p>
             </div>
           </div>
         </div>
 
         {/* Photo Options Action Sheet (iOS native) */}
         {showPhotoOptions && (
-          <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setShowPhotoOptions(false)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/60"
+            onClick={() => setShowPhotoOptions(false)}
+          >
             <div
               className="absolute bottom-0 left-0 right-0 bg-neutral-900 rounded-t-2xl p-4 pb-8 space-y-2"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-center text-white/60 text-sm mb-3">Update Profile Photo</p>
+              <p className="text-center text-white/60 text-sm mb-3">
+                Update Profile Photo
+              </p>
               <button
                 onClick={() => handleCapacitorPhoto(CameraSource.Camera)}
                 className="w-full py-3 rounded-xl bg-white/10 text-white font-medium flex items-center justify-center gap-2 active:bg-white/20"

@@ -7,7 +7,7 @@ export interface PageExplanation {
   // Guest-specific marketing copy - used when in guest mode for onboarding/sales
   guestSpokenText?: string;
   guestDescription?: string;
-}
+} 
 
 export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/dashboard": {
@@ -16,7 +16,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your home base. Access meal planning, tracking, cravings, and lifestyle tools from one place.",
     spokenText:
-      "Welcome to My Perfect Meals. I’m Chef Copilot — your coach in your pocket. I’m here to guide you through the app, hands-free if you want, or completely quiet until you press Listen. You’re always in control: turn me on, turn me off, or close me anytime. This is your dashboard — your home base — where you’ll plan meals, build recipes, track macros, manage cravings, and use your lifestyle tools. The control hub at the top gives you access to settings, labs, and the app library, and Chef Studio is where you create, experiment, or explore meals freely. When building meals, keep it simple; broad requests work best, and more detail just fine-tunes the result. Start by setting your targets in the Macro Calculator. From there, I’ll guide you step by step through meals, boards, and tools — with Copilot on or off. Your call.",
+      "Welcome to My Perfect Meals. I’m Chef Copilot — your coach in your pocket — here to guide you through the app hands-free or whenever you need help, and you can turn me on or off using the Auto toggle in the Copilot bar. You’re on your dashboard, your home base for accessing meal tools, planning features, and app resources, with buttons that take you to things like your planner, shopping list, nutrition utilities, inspiration, and reference information. Tap the gear icon in the top-right to manage your account, switch meal builders, adjust settings, and review app information. Chef Studio is where you can freely explore, experiment, and generate meals, and when you’re building, starting broad works great, but the more specific you are, the more tailored your results will be. My Perfect Meals also includes SafetyGuard — Allergy Protection — our built-in two-layer system designed to help prevent meals from being generated with ingredients you’ve marked as unsafe. When you’re ready, set your targets in the Macro Calculator, and from there I’ll guide you step by step through meals, boards, and tools, with Copilot on or off — your call.",
     autoClose: true,
   },
 
