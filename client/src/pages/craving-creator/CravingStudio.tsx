@@ -1016,8 +1016,8 @@ export default function CravingStudio() {
         />
       )}
 
-      {/* Floating Hands-Free Voice Button */}
-      {!isGenerating && !generatedMeal && (
+      {/* Floating Hands-Free Voice Button - temporarily hidden until mobile experience improves */}
+      {/* {!isGenerating && !generatedMeal && (
         <TalkToChefButton
           voiceState={voiceStudio.voiceState}
           currentStep={voiceStudio.currentVoiceStep}
@@ -1027,7 +1027,7 @@ export default function CravingStudio() {
           onStart={voiceStudio.startVoiceMode}
           onStop={voiceStudio.stopVoiceMode}
         />
-      )}
+      )} */}
     </motion.div>
   );
 }

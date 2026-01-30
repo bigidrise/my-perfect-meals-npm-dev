@@ -1,7 +1,7 @@
 {
-  "releaseId": "1.2.9",
+  "releaseId": "1.2.10",
   "publishedAt": "2026-01-30",
   "changes": [
-    "Temporarily hidden hands-free mode in Chef's Kitchen until mobile experience improves"
+    "Temporarily hidden hands-free mode across all Studios until mobile experience improves"
   ]
 }

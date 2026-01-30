@@ -732,8 +732,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
       </div>
 
-      {/* Talk to Chef floating button - show during studio steps (before generate), hidden on disabled voice steps */}
-      {studioStep <= steps.length && !isGenerating && !isVoiceDisabledForCurrentStep && (
+      {/* Talk to Chef floating button - temporarily hidden until mobile experience improves */}
+      {/* {studioStep <= steps.length && !isGenerating && !isVoiceDisabledForCurrentStep && (
         <TalkToChefButton
           voiceState={voiceStudio.voiceState}
           currentStep={voiceStudio.currentVoiceStep}
@@ -743,7 +743,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
           onStart={() => voiceStudio.startVoiceMode(currentStepIndex)}
           onStop={voiceStudio.stopVoiceMode}
         />
-      )}
+      )} */}
     </motion.div>
   );
 }
