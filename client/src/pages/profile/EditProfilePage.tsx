@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthToken } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
+import { PillButton } from "@/components/ui/pill-button";
 
 type StepId = 1 | 2 | 3 | 4;
 
@@ -252,22 +253,19 @@ export default function EditProfilePage() {
         <div className="px-4 py-3 flex items-center gap-2">
           <button
             onClick={() => setLocation("/dashboard")}
-            className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
+            className="flex-shrink-0 flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
           >
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          <h1 className="text-lg font-bold text-white">Edit Profile</h1>
+          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Edit Profile</h1>
 
-          <div className="ml-auto flex items-center gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-              <Utensils className="h-3.5 w-3.5 text-lime-400" />
-              <span className="text-[11px] text-white/80">
-                Builder:{" "}
-                <span className="text-white">
-                  {String(currentBuilderLabel)}
-                </span>
+          <div className="flex-shrink-0 flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 max-w-[140px]">
+              <Utensils className="h-3.5 w-3.5 text-lime-400 flex-shrink-0" />
+              <span className="text-[11px] text-white/80 truncate">
+                {String(currentBuilderLabel)}
               </span>
             </div>
           </div>
@@ -481,18 +479,21 @@ export default function EditProfilePage() {
                     placeholder="e.g. peanuts, dairy, shellfish..."
                   />
                 ) : (
-                  <div 
-                    onClick={() => setShowPinModal(true)}
-                    className="mt-1 w-full min-h-[90px] bg-black/40 border border-amber-500/20 rounded-lg px-3 py-2 text-white/60 text-sm cursor-pointer hover:bg-black/50 transition-colors flex items-center justify-center"
-                  >
-                    <div className="text-center">
-                      <Lock className="h-5 w-5 mx-auto mb-2 text-amber-400" />
-                      <p className="text-amber-300 text-xs font-medium">
-                        {allergiesText.trim() || "No allergies set"}
-                      </p>
-                      <p className="text-white/50 text-xs mt-1">
-                        Tap to unlock with your Safety PIN
-                      </p>
+                  <div className="mt-1">
+                    <div className="flex justify-center mb-2">
+                      <PillButton
+                        active={true}
+                        onClick={() => setShowPinModal(true)}
+                      >
+                        Unlock to Edit
+                      </PillButton>
+                    </div>
+                    <div className="w-full min-h-[70px] bg-black/40 border border-amber-500/20 rounded-lg px-3 py-2 text-white/60 text-sm flex items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-amber-300 text-xs font-medium">
+                          {allergiesText.trim() || "No allergies set"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -1,8 +1,8 @@
 {
-  "releaseId": "1.2.14",
+  "releaseId": "1.2.16",
   "publishedAt": "2026-01-30",
   "changes": [
-    "Fixed builder switch: your chosen builder now correctly takes priority",
-    "Cleaned up stale data that was overriding your selection"
+    "Fixed Edit Profile header to prevent text wrapping",
+    "Builder name now truncates cleanly on mobile"
   ]
 }
