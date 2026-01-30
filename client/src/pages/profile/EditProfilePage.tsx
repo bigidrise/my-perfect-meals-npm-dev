@@ -253,22 +253,19 @@ export default function EditProfilePage() {
         <div className="px-4 py-3 flex items-center gap-2">
           <button
             onClick={() => setLocation("/dashboard")}
-            className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
+            className="flex-shrink-0 flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
           >
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          <h1 className="text-lg font-bold text-white">Edit Profile</h1>
+          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Edit Profile</h1>
 
-          <div className="ml-auto flex items-center gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-              <Utensils className="h-3.5 w-3.5 text-lime-400" />
-              <span className="text-[11px] text-white/80">
-                Builder:{" "}
-                <span className="text-white">
-                  {String(currentBuilderLabel)}
-                </span>
+          <div className="flex-shrink-0 flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 max-w-[140px]">
+              <Utensils className="h-3.5 w-3.5 text-lime-400 flex-shrink-0" />
+              <span className="text-[11px] text-white/80 truncate">
+                {String(currentBuilderLabel)}
               </span>
             </div>
           </div>
