@@ -16,16 +16,7 @@
  * Returns true ONLY for end-user facing channels that should be curated.
  */
 export function isPublicProduction(): boolean {
-  if (typeof window === 'undefined') return false;
-  
-  const hostname = window.location.hostname;
-  
-  // iOS / Android (Capacitor native app)
-  if ((window as any).Capacitor?.isNativePlatform?.()) return true;
-  
-  // Production domain ONLY
-  if (hostname === 'myperfectmeals.com' || hostname === 'www.myperfectmeals.com') return true;
-  
+  // TEMPORARILY UNGATED - All features open everywhere for testing
   return false;
 }
 
