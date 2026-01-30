@@ -41,7 +41,7 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Pro Tip Audio Card v1.0**: Global instructional audio feature on Meal Builder pages.
 - **Prepare with Chef System v1.0**: Global guided cooking mode accessible from any meal card, reusing existing UI.
 - **Profile Photo Upload**: Allows users to upload profile photos to object storage.
-- **Builder Switch Limit System v1.0**: Infrastructure to limit builder switches (currently disabled via feature flag).
+- **Builder Switch Limit System v1.1**: Infrastructure to limit builder switches. Feature flag `ENFORCE_SWITCH_LIMITS` in `server/services/builderSwitchService.ts` (currently `false` = unlimited). At launch: set to `true` to enforce 3 switches/year limit. Future monetization: $29.99 "Unlimited Builder Switching" add-on to bypass limit.
 - **Draft Persistence System v2.0**: Prevents data loss using content-based hashing, localStorage persistence, and dirty flag protection across multiple meal builders.
 - **What's New System v3.0**: An enhanced release notification system with expandable changelog. Uses `release-manifest.json` (with `changes[]` array), `WhatsNewBanner.tsx` component, and `useReleaseNotice` hook. Users can tap to see actual update details before refreshing.
 - **Guided Macro Calculator v1.0**: A step-by-step walkthrough for the Macro Calculator page with Chef voice narration, supporting 13 guided steps.
