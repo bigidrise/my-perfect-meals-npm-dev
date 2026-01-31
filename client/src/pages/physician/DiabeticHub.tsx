@@ -150,6 +150,12 @@ export default function DiabeticHub() {
     }
 
     try {
+      console.log("[GlucoseLog] Attempting to log:", {
+        userId,
+        valueMgdl: parseInt(glucoseReading),
+        context: glucoseContext,
+      });
+      
       await logMutation.mutateAsync({
         userId,
         valueMgdl: parseInt(glucoseReading),
@@ -158,8 +164,14 @@ export default function DiabeticHub() {
       });
       setGlucoseReading("");
       toast({ title: "Reading logged successfully" });
-    } catch (error) {
-      toast({ title: "Failed to log reading", variant: "destructive" });
+    } catch (error: any) {
+      console.error("[GlucoseLog] Failed to log reading:", error);
+      const errorMsg = error?.message || error?.body || "Unknown error";
+      toast({ 
+        title: "Failed to log reading", 
+        description: errorMsg.slice(0, 100),
+        variant: "destructive" 
+      });
     }
   };
 

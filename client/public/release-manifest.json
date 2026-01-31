@@ -1,8 +1,8 @@
 {
-  "releaseId": "1.2.16",
-  "publishedAt": "2026-01-30",
+  "releaseId": "1.2.17",
+  "publishedAt": "2026-01-31",
   "changes": [
-    "Fixed Edit Profile header to prevent text wrapping",
-    "Builder name now truncates cleanly on mobile"
+    "Fixed glucose logging reliability across all platforms",
+    "Improved error messages when logging glucose readings"
   ]
 }
