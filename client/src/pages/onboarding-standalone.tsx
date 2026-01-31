@@ -90,6 +90,9 @@ interface OnboardingData {
   preferredLowGICarbs: string[];
   preferredMidGICarbs: string[];
   preferredHighGICarbs: string[];
+  palateSpiceTolerance: "none" | "mild" | "medium" | "hot";
+  palateSeasoningIntensity: "light" | "balanced" | "bold";
+  palateFlavorStyle: "classic" | "herb" | "savory" | "bright";
 }
 
 const TOTAL_STEPS = 4;
@@ -177,6 +180,9 @@ export default function OnboardingStandalone() {
     preferredLowGICarbs: [],
     preferredMidGICarbs: [],
     preferredHighGICarbs: [],
+    palateSpiceTolerance: "mild",
+    palateSeasoningIntensity: "balanced",
+    palateFlavorStyle: "classic",
   });
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
@@ -782,6 +788,70 @@ export default function OnboardingStandalone() {
                 <span className="text-sm">{option}</span>
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* Palate Preferences Section */}
+        <div className="pt-6 border-t border-white/10">
+          <h3 className="text-xl font-semibold mb-2">Flavor Preferences (Optional)</h3>
+          <p className="text-white/70 text-sm mb-6">
+            Help us season meals to your taste. You can change this anytime later.
+          </p>
+
+          <div className="space-y-6">
+            {/* Spice Tolerance */}
+            <div className="space-y-3">
+              <label className="text-white/90 text-sm font-medium flex items-center gap-2">
+                <span className="text-lg">🌶️</span> Spice Tolerance
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {(["none", "mild", "medium", "hot"] as const).map((level) => (
+                  <PillButton
+                    key={level}
+                    active={data.palateSpiceTolerance === level}
+                    onClick={() => updateData({ palateSpiceTolerance: level })}
+                  >
+                    {level === "none" ? "None" : level === "mild" ? "Mild" : level === "medium" ? "Medium" : "Hot"}
+                  </PillButton>
+                ))}
+              </div>
+            </div>
+
+            {/* Seasoning Intensity */}
+            <div className="space-y-3">
+              <label className="text-white/90 text-sm font-medium flex items-center gap-2">
+                <span className="text-lg">🧂</span> Seasoning Intensity
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {(["light", "balanced", "bold"] as const).map((level) => (
+                  <PillButton
+                    key={level}
+                    active={data.palateSeasoningIntensity === level}
+                    onClick={() => updateData({ palateSeasoningIntensity: level })}
+                  >
+                    {level === "light" ? "Light" : level === "balanced" ? "Balanced" : "Bold"}
+                  </PillButton>
+                ))}
+              </div>
+            </div>
+
+            {/* Flavor Style */}
+            <div className="space-y-3">
+              <label className="text-white/90 text-sm font-medium flex items-center gap-2">
+                <span className="text-lg">🌿</span> Flavor Style
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {(["classic", "herb", "savory", "bright"] as const).map((style) => (
+                  <PillButton
+                    key={style}
+                    active={data.palateFlavorStyle === style}
+                    onClick={() => updateData({ palateFlavorStyle: style })}
+                  >
+                    {style === "classic" ? "Classic" : style === "herb" ? "Herb-forward" : style === "savory" ? "Savory" : "Bright & Fresh"}
+                  </PillButton>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>
