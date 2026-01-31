@@ -1,10 +1,10 @@
 {
-  "releaseId": "1.2.20",
+  "releaseId": "1.2.21",
   "publishedAt": "2026-01-31",
   "changes": [
-    "Flavor Preference Toggle added to Craving Creator, Dessert Creator, and Fridge Rescue",
-    "Toggle between Personal (your palate preferences) and Neutral (for cooking for others)",
-    "AI meal generation respects flavor toggle - neutral seasoning when making meals for family/guests",
-    "Backend integration ensures skipPalate flows through all three creator features"
+    "Flavor Toggle now available in all Studios (Craving Studio, Dessert Studio, Fridge Rescue Studio)",
+    "Translation system now translates ingredient names in addition to meal name, description, and instructions",
+    "Fixed translation button responsiveness on iOS devices",
+    "Improved TypeScript types for ingredient handling across meal cards"
   ]
 }
