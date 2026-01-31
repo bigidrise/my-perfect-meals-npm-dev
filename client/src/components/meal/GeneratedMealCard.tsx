@@ -297,6 +297,7 @@ export default function GeneratedMealCard({
               name: generatedMeal.name,
               description: generatedMeal.description,
               instructions: generatedMeal.instructions,
+              ingredients: generatedMeal.ingredients,
             }}
             onTranslate={(translated) => {
               if (onContentUpdate) {
@@ -304,6 +305,7 @@ export default function GeneratedMealCard({
                   name: translated.name || generatedMeal.name,
                   description: translated.description || generatedMeal.description,
                   instructions: translated.instructions || generatedMeal.instructions,
+                  ingredients: (translated.ingredients as any) || generatedMeal.ingredients,
                 });
               }
             }}

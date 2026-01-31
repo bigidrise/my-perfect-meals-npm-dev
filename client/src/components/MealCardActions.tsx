@@ -93,6 +93,7 @@ export default function MealCardActions({
     description?: string;
     instructions?: string[] | string;
     notes?: string;
+    ingredients?: Array<{ name: string; quantity?: string | number; amount?: string | number; unit?: string } | string>;
   }) => {
     setDisplayContent(translated);
     if (onContentUpdate) {
@@ -130,6 +131,7 @@ export default function MealCardActions({
               description: meal.description,
               instructions: meal.instructions,
               notes: meal.notes,
+              ingredients: meal.ingredients,
             }}
             onTranslate={handleTranslate}
           />

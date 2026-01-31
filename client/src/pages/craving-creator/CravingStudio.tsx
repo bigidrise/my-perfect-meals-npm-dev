@@ -31,6 +31,7 @@ import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { FlavorToggle } from "@/components/FlavorToggle";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -161,6 +162,9 @@ export default function CravingStudio() {
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  
+  // 🎨 FlavorToggle state (Personal = use palate prefs, Neutral = skip them)
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
 
   const handleSafetyOverride = (token: string) => {
     setOverrideToken(token);

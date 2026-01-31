@@ -23,6 +23,7 @@ import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
 
 import GeneratedMealCard from "@/components/meal/GeneratedMealCard";
 
@@ -178,6 +179,9 @@ export default function StudioWizard({ config }: StudioWizardProps) {
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(null);
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // 🎨 FlavorToggle state (Personal = use palate prefs, Neutral = skip them)
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
 
   // 🔐 SafetyGuard preflight system
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -416,6 +420,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
           servings: currentServings,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -665,6 +670,11 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                       disabled={isGenerating || safetyChecking}
                     />
                     <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
+                    <FlavorToggle
+                      flavorPersonal={flavorPersonal}
+                      onFlavorChange={setFlavorPersonal}
+                      disabled={isGenerating || safetyChecking}
+                    />
                   </div>
 
                   <button

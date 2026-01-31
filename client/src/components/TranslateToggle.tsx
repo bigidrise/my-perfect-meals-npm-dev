@@ -3,12 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Globe, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 
+interface IngredientObject {
+  name: string;
+  quantity?: string | number;
+  amount?: string | number;
+  unit?: string;
+}
+
 interface TranslatableContent {
   name: string;
   description?: string;
   instructions?: string[] | string;
   notes?: string;
-  ingredients?: Array<{ name: string; quantity?: string | number; unit?: string }> | string[];
+  ingredients?: Array<IngredientObject | string>;
 }
 
 interface TranslateToggleProps {
