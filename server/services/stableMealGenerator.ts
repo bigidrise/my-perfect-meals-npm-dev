@@ -20,6 +20,10 @@ import {
   detectHubTypeFromProfile,
   isValidHubType
 } from "./hubCoupling";
+import { buildPalateSection, PalatePreferences } from "./promptBuilder";
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -134,6 +138,11 @@ export type WeeklyMealReq = {
   medicalFlags: string[];             // ["type2_diabetes","low_gi",...]
   diversity?: { minUniqueProteins?: number; minUniqueVeg?: number };
   kidFriendly?: boolean;              // for craving creator kid meals
+  // Palate preferences for flavor customization
+  skipPalate?: boolean;               // true = neutral seasoning for meals made for others
+  palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
+  palateSeasoningIntensity?: "light" | "balanced" | "bold";
+  palateFlavorStyle?: "classic" | "herb" | "savory" | "bright";
 };
 type Skeleton = {
   name: string;
@@ -602,9 +611,14 @@ const InstructionsSchema = z.object({
   })).min(1)
 });
 
-async function instructBatch(items: Skeleton[]): Promise<Record<string,string[]>> {
+async function instructBatch(items: Skeleton[], palatePrefs?: PalatePreferences, skipPalate?: boolean): Promise<Record<string,string[]>> {
   try {
-    const sys = "You write short, precise cooking instructions ONLY. Return JSON { instructions: [{ name, steps[] }] }. Steps are imperative, max 8, no fluff.";
+    // Build palate section if preferences exist and not skipped
+    const palateGuidance = (!skipPalate && palatePrefs) 
+      ? `\n\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}` 
+      : "\n\nFLAVOR: Use light, neutral seasoning suitable for serving to guests or family.";
+    
+    const sys = `You write short, precise cooking instructions ONLY. Return JSON { instructions: [{ name, steps[] }] }. Steps are imperative, max 8, no fluff.${palateGuidance}`;
     const user = `Generate instructions for these meals: ${items.map(s => `${s.name}: ${s.ingredients.map(i => i.name).join(', ')}`).join('; ')}`;
     
     const response = await getOpenAI().chat.completions.create({
@@ -727,6 +741,46 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     if (glycemicSettings) {
       console.log(`🩸 Loaded glycemic settings: glucose=${glycemicSettings.bloodGlucose}, carbs=${glycemicSettings.preferredCarbs?.length || 0}`);
     }
+  }
+  
+  // 🎨 PALATE PREFERENCES: Load flavor preferences from user profile
+  let palatePrefs: PalatePreferences | undefined = undefined;
+  const skipPalate = userPrefs?.skipPalate === true;
+  
+  if (!skipPalate && userPrefs?.userId) {
+    // Check if palate preferences were passed directly
+    if (userPrefs.palateSpiceTolerance || userPrefs.palateSeasoningIntensity || userPrefs.palateFlavorStyle) {
+      palatePrefs = {
+        palateSpiceTolerance: userPrefs.palateSpiceTolerance,
+        palateSeasoningIntensity: userPrefs.palateSeasoningIntensity,
+        palateFlavorStyle: userPrefs.palateFlavorStyle,
+      };
+    } else {
+      // Fetch from database
+      try {
+        const [user] = await db.select({
+          palateSpiceTolerance: users.palateSpiceTolerance,
+          palateSeasoningIntensity: users.palateSeasoningIntensity,
+          palateFlavorStyle: users.palateFlavorStyle,
+        }).from(users).where(eq(users.id, userPrefs.userId)).limit(1);
+        
+        if (user) {
+          palatePrefs = {
+            palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
+            palateSeasoningIntensity: user.palateSeasoningIntensity as PalatePreferences['palateSeasoningIntensity'],
+            palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
+          };
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not load palate preferences:', err);
+      }
+    }
+    
+    if (palatePrefs) {
+      console.log(`🎨 Loaded palate preferences: spice=${palatePrefs.palateSpiceTolerance}, seasoning=${palatePrefs.palateSeasoningIntensity}, flavor=${palatePrefs.palateFlavorStyle}`);
+    }
+  } else if (skipPalate) {
+    console.log(`🎨 Palate preferences skipped - using neutral seasoning for shared meal`);
   }
   
   // 🩺 HUB COUPLING: Get medical context for diabetic/GLP-1 users
@@ -1339,8 +1393,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   
   const medicalBadges = medicalBadgesFor(selected, userPrefs?.medicalFlags || []);
   
-  // Generate instructions for single meal
-  const instructionsMap = await instructBatch([selected]);
+  // Generate instructions for single meal with palate preferences
+  const instructionsMap = await instructBatch([selected], palatePrefs, skipPalate);
   
   // Create more descriptive meal description
   const mainIngredients = selected.ingredients.slice(0, 3).map(i => i.name).join(', ');

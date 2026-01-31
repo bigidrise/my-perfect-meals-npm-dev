@@ -51,6 +51,7 @@ import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
@@ -337,6 +338,9 @@ export default function CravingCreator() {
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   
+  // Flavor preference toggle - Personal = use user's palate, Neutral = for others
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
+  
   // 🔐 SafetyGuard preflight system
   const {
     checking: safetyChecking,
@@ -417,6 +421,7 @@ export default function CravingCreator() {
           servings: servings,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -843,6 +848,19 @@ export default function CravingCreator() {
                       disabled={isGenerating || safetyChecking}
                     />
                     <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
+                  </div>
+                  
+                  {/* Flavor Preference Section */}
+                  <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/60 block mb-2">Flavor Preference</span>
+                    <FlavorToggle
+                      flavorPersonal={flavorPersonal}
+                      onFlavorChange={setFlavorPersonal}
+                      disabled={isGenerating}
+                    />
+                    <p className="text-xs text-white/40 mt-1">
+                      {flavorPersonal ? "Using your palate preferences" : "Neutral seasoning for others"}
+                    </p>
                   </div>
 
                   {isGenerating ? (

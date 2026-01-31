@@ -31,6 +31,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
@@ -166,6 +167,9 @@ export default function DessertCreator() {
   // Safety PIN integration
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  
+  // Flavor preference toggle - Personal = use user's palate, Neutral = for others
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
   
   // SafetyGuard preflight hook
   const {
@@ -308,6 +312,7 @@ export default function DessertCreator() {
           userId: userId,
           safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -626,6 +631,19 @@ export default function DessertCreator() {
                   disabled={isGenerating || safetyChecking}
                 />
                 <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
+              </div>
+              
+              {/* Flavor Preference Section */}
+              <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                <span className="text-xs text-white/60 block mb-2">Flavor Preference</span>
+                <FlavorToggle
+                  flavorPersonal={flavorPersonal}
+                  onFlavorChange={setFlavorPersonal}
+                  disabled={isGenerating}
+                />
+                <p className="text-xs text-white/40 mt-1">
+                  {flavorPersonal ? "Using your palate preferences" : "Neutral seasoning for others"}
+                </p>
               </div>
 
               {(isGenerating || safetyChecking) ? (

@@ -10,6 +10,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
+import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -94,6 +95,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       userId,
       safetyMode,
       overrideToken,
+      skipPalate,
     } = req.body ?? {};
 
     if (isDev) console.log("[DESSERT] Request params:", { dessertCategory, flavorFamily, servingSize, cakeStyle, cakeType });
@@ -132,6 +134,32 @@ dessertCreatorRouter.post("/", async (req, res) => {
           suggestion: safetyCheck.suggestion
         });
       }
+    }
+
+    // 🎨 PALATE PREFERENCES: Load flavor preferences for seasoning/flavor guidance
+    let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
+    if (!skipPalate && userId && userId !== "1") {
+      try {
+        const [user] = await db.select({
+          palateSpiceTolerance: users.palateSpiceTolerance,
+          palateSeasoningIntensity: users.palateSeasoningIntensity,
+          palateFlavorStyle: users.palateFlavorStyle,
+        }).from(users).where(eq(users.id, userId)).limit(1);
+        
+        if (user && (user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
+          const palatePrefs: PalatePreferences = {
+            palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
+            palateSeasoningIntensity: user.palateSeasoningIntensity as PalatePreferences['palateSeasoningIntensity'],
+            palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
+          };
+          palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
+          console.log(`🎨 [DESSERT] Loaded palate preferences for user`);
+        }
+      } catch (err) {
+        console.log("[DESSERT] Could not fetch palate preferences:", err);
+      }
+    } else if (skipPalate) {
+      console.log(`🎨 [DESSERT] Palate preferences skipped - using neutral flavoring for shared dessert`);
     }
 
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
@@ -239,6 +267,7 @@ GENERATION RULES:
 6. imageUrl should be a short descriptive image prompt (no quotes).
 7. Apply all dietary requirements strictly (e.g., if "gluten-free" is specified, use NO gluten ingredients).
 ${dessertCategory === "cake" ? `8. For CAKES: Include "perSliceNutrition" with nutrition per 1 oz slice, and "totalSlices" with the number of slices.` : ""}
+${palateGuidance}
 
 🚨 U.S. MEASUREMENT RULES (CRITICAL):
 - Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
