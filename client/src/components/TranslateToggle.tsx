@@ -8,6 +8,7 @@ interface TranslatableContent {
   description?: string;
   instructions?: string[] | string;
   notes?: string;
+  ingredients?: Array<{ name: string; quantity?: string | number; unit?: string }> | string[];
 }
 
 interface TranslateToggleProps {
@@ -24,6 +25,7 @@ function hashContent(content: TranslatableContent): string {
     description: content.description || "",
     instructions: content.instructions || "",
     notes: content.notes || "",
+    ingredients: content.ingredients || [],
   });
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -76,6 +78,10 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
     setIsLoading(true);
 
     try {
+      const ingredientNames = content.ingredients?.map((ing) => 
+        typeof ing === "string" ? ing : ing.name
+      ) || [];
+      
       const response = await fetch(apiUrl("/api/translate"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,6 +93,7 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
               ? content.instructions.join("\n---\n") 
               : (content.instructions || ""),
             notes: content.notes || "",
+            ingredientNames: ingredientNames.join("\n"),
           },
           targetLanguage: targetLang,
         }),
@@ -98,6 +105,19 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
 
       const data = await response.json();
       
+      // Parse translated ingredient names back into the original structure
+      let translatedIngredients = content.ingredients;
+      if (data.ingredientNames && content.ingredients) {
+        const translatedNames = data.ingredientNames.split("\n");
+        translatedIngredients = content.ingredients.map((ing, idx) => {
+          const translatedName = translatedNames[idx] || (typeof ing === "string" ? ing : ing.name);
+          if (typeof ing === "string") {
+            return translatedName;
+          }
+          return { ...ing, name: translatedName };
+        });
+      }
+      
       const translated: TranslatableContent = {
         name: data.name || content.name,
         description: data.description || content.description,
@@ -107,6 +127,7 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
               : data.instructions.split("\n---\n"))
           : content.instructions,
         notes: data.notes || content.notes,
+        ingredients: translatedIngredients,
       };
 
       translationCache.set(cacheKey, translated);

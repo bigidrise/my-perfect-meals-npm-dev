@@ -1159,6 +1159,7 @@ export default function CravingCreator() {
                               name: meal.name,
                               description: meal.description,
                               instructions: meal.instructions,
+                              ingredients: meal.ingredients,
                             }}
                             onTranslate={(translated) => {
                               setGeneratedMeals((prev) =>
@@ -1171,6 +1172,7 @@ export default function CravingCreator() {
                                         instructions: typeof translated.instructions === "string"
                                           ? translated.instructions
                                           : m.instructions,
+                                        ingredients: (translated.ingredients as StructuredIngredient[]) || m.ingredients,
                                       }
                                     : m
                                 )

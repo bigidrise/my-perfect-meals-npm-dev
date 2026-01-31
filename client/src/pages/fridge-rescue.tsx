@@ -1048,6 +1048,7 @@ const FridgeRescuePage = () => {
                               name: meal.name,
                               description: meal.description,
                               instructions: meal.instructions,
+                              ingredients: meal.ingredients,
                             }}
                             onTranslate={(translated) => {
                               setMeals((prev) =>
@@ -1060,6 +1061,7 @@ const FridgeRescuePage = () => {
                                         instructions: typeof translated.instructions === "string"
                                           ? translated.instructions
                                           : m.instructions,
+                                        ingredients: (translated.ingredients as StructuredIngredient[]) || m.ingredients,
                                       }
                                     : m
                                 )

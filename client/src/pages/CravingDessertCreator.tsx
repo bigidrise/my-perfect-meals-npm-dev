@@ -856,6 +856,7 @@ export default function DessertCreator() {
                           name: generatedDessert.name,
                           description: generatedDessert.description,
                           instructions: generatedDessert.instructions,
+                          ingredients: generatedDessert.ingredients,
                         }}
                         onTranslate={(translated) => {
                           setGeneratedDessert((prev: any) =>
@@ -867,6 +868,7 @@ export default function DessertCreator() {
                                   instructions: typeof translated.instructions === "string"
                                     ? translated.instructions
                                     : prev.instructions,
+                                  ingredients: translated.ingredients || prev.ingredients,
                                 }
                               : prev
                           );

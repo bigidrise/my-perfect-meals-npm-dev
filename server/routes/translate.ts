@@ -48,8 +48,9 @@ Only translate text - do not change numbers, measurements, or formatting.
 Content to translate:
 ${JSON.stringify(content, null, 2)}
 
-Return ONLY valid JSON with translated values for these keys: name, description, instructions, notes.
-If a field is empty, return it as empty.`;
+Return ONLY valid JSON with translated values for these keys: name, description, instructions, notes, ingredientNames.
+If a field is empty, return it as empty.
+For ingredientNames, keep each ingredient on its own line (separated by newlines).`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
