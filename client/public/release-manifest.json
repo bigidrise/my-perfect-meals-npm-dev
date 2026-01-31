@@ -1,11 +1,10 @@
 {
-  "releaseId": "1.2.19",
+  "releaseId": "1.2.20",
   "publishedAt": "2026-01-31",
   "changes": [
-    "New Palate Preferences - customize spice tolerance, seasoning intensity, and flavor style",
-    "Flavor preferences collected during onboarding and editable in Edit Profile",
-    "AI meal generation now respects your flavor preferences without affecting macros",
-    "Added Palate Preferences guide to App Library explaining why and how to customize flavor",
-    "Removed weight from onboarding - enter it later in Macro Calculator or Biometrics"
+    "Flavor Preference Toggle added to Craving Creator, Dessert Creator, and Fridge Rescue",
+    "Toggle between Personal (your palate preferences) and Neutral (for cooking for others)",
+    "AI meal generation respects flavor toggle - neutral seasoning when making meals for family/guests",
+    "Backend integration ensures skipPalate flows through all three creator features"
   ]
 }

@@ -685,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
-      const { fridgeItems, userId = "demo-user", servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken } = req.body;
+      const { fridgeItems, userId = "demo-user", servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -753,8 +753,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("[FRIDGE] valid request, items:", fridgeItems.length, "items:", fridgeItems);
 
-      // Fetch user health conditions from database for medical badge generation
+      // Fetch user health conditions and palate preferences from database
       let userHealthConditions: string[] = [];
+      let palatePrefs: { palateSpiceTolerance?: string; palateSeasoningIntensity?: string; palateFlavorStyle?: string } | undefined = undefined;
       if (userId && userId !== "demo-user") {
         try {
           const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -762,8 +763,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userHealthConditions = dbUser.healthConditions;
             console.log("[FRIDGE] User health conditions loaded:", userHealthConditions.length, "conditions");
           }
+          // Load palate preferences for flavor customization (only if not skipPalate)
+          if (!skipPalate && dbUser && (dbUser.palateSpiceTolerance || dbUser.palateSeasoningIntensity || dbUser.palateFlavorStyle)) {
+            palatePrefs = {
+              palateSpiceTolerance: dbUser.palateSpiceTolerance || undefined,
+              palateSeasoningIntensity: dbUser.palateSeasoningIntensity || undefined,
+              palateFlavorStyle: dbUser.palateFlavorStyle || undefined,
+            };
+            console.log("[FRIDGE] Loaded palate preferences for user");
+          } else if (skipPalate) {
+            console.log("[FRIDGE] Palate preferences skipped - using neutral seasoning for shared meal");
+          }
         } catch (err) {
-          console.log("[FRIDGE] Could not fetch user health conditions:", err);
+          console.log("[FRIDGE] Could not fetch user data:", err);
         }
       }
 
@@ -771,7 +783,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
         user: { healthConditions: userHealthConditions },
-        macroTargets 
+        macroTargets,
+        skipPalate,
+        palatePrefs: palatePrefs as any
       });
 
       // Record metrics - fridge rescue is AI-required

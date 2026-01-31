@@ -2,7 +2,13 @@
 import { MealGenerationRequest, UserOnboardingProfile } from "./mealEngineService";
 import { UnitPrefs } from "./validators";
 
-function buildPalateSection(profile: UserOnboardingProfile): string {
+export interface PalatePreferences {
+  palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
+  palateSeasoningIntensity?: "light" | "balanced" | "bold";
+  palateFlavorStyle?: "classic" | "herb" | "savory" | "bright";
+}
+
+export function buildPalateSection(profile: PalatePreferences): string {
   const spice = profile.palateSpiceTolerance || "mild";
   const seasoning = profile.palateSeasoningIntensity || "balanced";
   const flavor = profile.palateFlavorStyle || "classic";

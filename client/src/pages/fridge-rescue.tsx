@@ -48,6 +48,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
@@ -164,6 +165,9 @@ const FridgeRescuePage = () => {
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  
+  // Flavor preference toggle - Personal = use user's palate, Neutral = for others
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
   
   // 🔐 SafetyGuard preflight system
   const {
@@ -354,6 +358,7 @@ const FridgeRescuePage = () => {
           userId: userId,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -514,6 +519,7 @@ const FridgeRescuePage = () => {
           .filter((i) => i),
         goal: selectedGoal,
         userId: userId,
+        skipPalate: !flavorPersonal,
       }),
     });
     const data = await resp.json();
@@ -546,6 +552,7 @@ const FridgeRescuePage = () => {
           ingredients: ingredients.trim(),
           goal: undefined, // You can add selectedGoal if needed
           userId: userId,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -726,6 +733,19 @@ const FridgeRescuePage = () => {
                     disabled={isLoading || safetyChecking}
                   />
                   <GlucoseGuardToggle disabled={isLoading || safetyChecking} />
+                </div>
+                
+                {/* Flavor Preference Section */}
+                <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                  <span className="text-xs text-white/60 block mb-2">Flavor Preference</span>
+                  <FlavorToggle
+                    flavorPersonal={flavorPersonal}
+                    onFlavorChange={setFlavorPersonal}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-white/40 mt-1">
+                    {flavorPersonal ? "Using your palate preferences" : "Neutral seasoning for others"}
+                  </p>
                 </div>
 
                 <button
