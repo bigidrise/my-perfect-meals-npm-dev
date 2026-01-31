@@ -31,6 +31,7 @@ import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { FlavorToggle } from "@/components/FlavorToggle";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -161,6 +162,9 @@ export default function CravingStudio() {
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  
+  // 🎨 FlavorToggle state (Personal = use palate prefs, Neutral = skip them)
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
 
   const handleSafetyOverride = (token: string) => {
     setOverrideToken(token);
@@ -353,6 +357,7 @@ export default function CravingStudio() {
           servings,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -754,6 +759,15 @@ export default function CravingStudio() {
                       className="mb-4"
                     />
                   )}
+
+                  {/* Flavor Toggle */}
+                  <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                    <FlavorToggle
+                      flavorPersonal={flavorPersonal}
+                      onFlavorChange={setFlavorPersonal}
+                      disabled={isGenerating || safetyChecking}
+                    />
+                  </div>
 
                   <button
                     className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition disabled:opacity-50"

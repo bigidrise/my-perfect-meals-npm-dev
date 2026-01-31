@@ -3,11 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Globe, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 
+interface IngredientObject {
+  name: string;
+  quantity?: string | number;
+  amount?: string | number;
+  unit?: string;
+}
+
 interface TranslatableContent {
   name: string;
   description?: string;
   instructions?: string[] | string;
   notes?: string;
+  ingredients?: Array<IngredientObject | string>;
 }
 
 interface TranslateToggleProps {
@@ -24,6 +32,7 @@ function hashContent(content: TranslatableContent): string {
     description: content.description || "",
     instructions: content.instructions || "",
     notes: content.notes || "",
+    ingredients: content.ingredients || [],
   });
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -51,11 +60,14 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
   const translateContent = useCallback(async () => {
     const targetLang = getDeviceLanguage();
     
+    // Debug: Show detected language
+    console.log("[TranslateToggle] Detected language:", targetLang, "navigator.language:", navigator.language);
+    
     if (targetLang === "en") {
       const event = new CustomEvent("show-toast", {
         detail: {
           title: "Already in English",
-          description: "Content is already in your device language.",
+          description: `Detected: ${navigator.language}. Content is already in your device language.`,
         },
       });
       window.dispatchEvent(event);
@@ -73,6 +85,10 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
     setIsLoading(true);
 
     try {
+      const ingredientNames = content.ingredients?.map((ing) => 
+        typeof ing === "string" ? ing : ing.name
+      ) || [];
+      
       const response = await fetch(apiUrl("/api/translate"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,6 +100,7 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
               ? content.instructions.join("\n---\n") 
               : (content.instructions || ""),
             notes: content.notes || "",
+            ingredientNames: ingredientNames.join("\n"),
           },
           targetLanguage: targetLang,
         }),
@@ -95,6 +112,19 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
 
       const data = await response.json();
       
+      // Parse translated ingredient names back into the original structure
+      let translatedIngredients = content.ingredients;
+      if (data.ingredientNames && content.ingredients) {
+        const translatedNames = data.ingredientNames.split("\n");
+        translatedIngredients = content.ingredients.map((ing, idx) => {
+          const translatedName = translatedNames[idx] || (typeof ing === "string" ? ing : ing.name);
+          if (typeof ing === "string") {
+            return translatedName;
+          }
+          return { ...ing, name: translatedName };
+        });
+      }
+      
       const translated: TranslatableContent = {
         name: data.name || content.name,
         description: data.description || content.description,
@@ -104,6 +134,7 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
               : data.instructions.split("\n---\n"))
           : content.instructions,
         notes: data.notes || content.notes,
+        ingredients: translatedIngredients,
       };
 
       translationCache.set(cacheKey, translated);
@@ -133,15 +164,17 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
     }
   };
 
+  const handleToggle = () => {
+    if (isLoading) return;
+    console.log("[TranslateToggle] Button pressed!");
+    toggleTranslation();
+  };
+
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      className={`text-xs bg-white/10 border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all duration-200 ${className || ""}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        toggleTranslation();
-      }}
+    <button
+      type="button"
+      className={`inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30 active:scale-95 transition-all duration-200 relative cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none ${className || ""}`}
+      onClick={handleToggle}
       disabled={isLoading}
     >
       {isLoading ? (
@@ -150,6 +183,6 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
         <Globe className="h-4 w-4 mr-1" />
       )}
       {isTranslated ? "Original" : "Translate"}
-    </Button>
+    </button>
   );
 }

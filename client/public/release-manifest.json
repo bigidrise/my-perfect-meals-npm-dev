@@ -1,10 +1,9 @@
 {
-  "releaseId": "1.2.20",
+  "releaseId": "1.2.22",
   "publishedAt": "2026-01-31",
   "changes": [
-    "Flavor Preference Toggle added to Craving Creator, Dessert Creator, and Fridge Rescue",
-    "Toggle between Personal (your palate preferences) and Neutral (for cooking for others)",
-    "AI meal generation respects flavor toggle - neutral seasoning when making meals for family/guests",
-    "Backend integration ensures skipPalate flows through all three creator features"
+    "Baseline Macros System: All meal generators now include 25g protein, 25g starchy carbs, and 50g fibrous carbs as default targets",
+    "Updated App Library with 'How Meal Generation Works' documentation explaining baseline macros",
+    "Fixed Translation toggle button responsiveness on production iOS devices"
   ]
 }

@@ -856,8 +856,23 @@ export default function DessertCreator() {
                           name: generatedDessert.name,
                           description: generatedDessert.description,
                           instructions: generatedDessert.instructions,
+                          ingredients: generatedDessert.ingredients,
                         }}
-                        onTranslate={() => {}}
+                        onTranslate={(translated) => {
+                          setGeneratedDessert((prev: any) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  name: translated.name,
+                                  description: translated.description || prev.description,
+                                  instructions: typeof translated.instructions === "string"
+                                    ? translated.instructions
+                                    : prev.instructions,
+                                  ingredients: translated.ingredients || prev.ingredients,
+                                }
+                              : prev
+                          );
+                        }}
                       />
                     </div>
 

@@ -1159,8 +1159,25 @@ export default function CravingCreator() {
                               name: meal.name,
                               description: meal.description,
                               instructions: meal.instructions,
+                              ingredients: meal.ingredients,
                             }}
-                            onTranslate={() => {}}
+                            onTranslate={(translated) => {
+                              setGeneratedMeals((prev) =>
+                                prev.map((m) =>
+                                  m.id === meal.id
+                                    ? {
+                                        ...m,
+                                        name: translated.name,
+                                        description: translated.description || m.description,
+                                        instructions: typeof translated.instructions === "string"
+                                          ? translated.instructions
+                                          : m.instructions,
+                                        ingredients: (translated.ingredients as StructuredIngredient[]) || m.ingredients,
+                                      }
+                                    : m
+                                )
+                              );
+                            }}
                           />
                         </div>
 

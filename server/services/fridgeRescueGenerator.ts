@@ -4,6 +4,7 @@ import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
 import { buildPalateSection, PalatePreferences } from './promptBuilder';
+import { BASELINE_MACROS } from './guardrails/baselineMacros';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -261,6 +262,13 @@ TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridge
 ${macroTargetingText}
 ${palateGuidance}
 
+BASELINE MACRO REQUIREMENTS (MANDATORY):
+Every meal must meet these minimum targets:
+- Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
+- Starchy Carbs: ${BASELINE_MACROS.starchyCarbs}g (rice, potatoes, quinoa, bread, oats, pasta)
+- Fibrous Carbs: ${BASELINE_MACROS.fibrousCarbs}g (vegetables, leafy greens, broccoli, peppers, tomatoes)
+${macroTargets ? 'NOTE: The user has specified CUSTOM macro targets above which override these baselines.' : 'These are the baseline minimums for balanced, nutritious meals.'}
+
 RULES:
 - Use ONLY the ingredients provided - do not add any others
 - Create actual meal names (not just ingredient lists)
@@ -268,7 +276,7 @@ RULES:
 - Provide realistic cooking instructions
 - Include basic nutritional estimates
 - Make each meal distinctly different from the others
-${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macro targets specified above within ±5g tolerance' : ''}
+${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macro targets specified above within ±5g tolerance' : '- Ensure each meal meets the BASELINE MACRO REQUIREMENTS above'}
 
 ${medicalConditionsText}
 
