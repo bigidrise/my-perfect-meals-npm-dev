@@ -40,7 +40,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create healthier versions of the foods you crave — and add them directly to your meal plan.",
     spokenText:
-      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today’s plan. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it.",
+      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today's plan. If you're diabetic, GlucoseGuard adjusts your meal based on your latest glucose reading. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it.",
     autoClose: true,
     guestDescription:
       "We redesign cravings. Stay satisfied, stay on plan — without giving up what you love.",
@@ -54,7 +54,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create healthier desserts — from everyday cravings to special-occasion treats — without restriction or guilt.",
     spokenText:
-      "Dessert Creator is where cravings don’t get judged — they get redesigned. Start by choosing the kind of dessert you want, then pick a flavor direction and how many people you’re serving. Add any dietary preferences if needed, then tap Create. I’ll build you a dessert that actually feels like a dessert — one you can enjoy. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it.",
+      "Dessert Creator is where cravings don’t get judged — they get redesigned. Start by choosing the kind of dessert you want, then pick a flavor direction and how many people you’re serving. Add any dietary preferences if needed, then tap Create. I’ll build you a dessert that actually feels like a dessert — one you can enjoy. If you're diabetic, GlucoseGuard adjusts the dessert based on your latest glucose reading. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it.",
     autoClose: true,
   },
 
@@ -84,7 +84,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Turn the ingredients you already have into real meals — and add them directly to today’s plan.",
     spokenText:
-      "Fridge Rescue is built for real life. If you want, you can type what you have. Or you can go hands-free — tap the Chef and just tell me what's in your fridge. I'll ask a couple of quick questions if needed, then turn what you already have into real meals you can actually eat. Each meal comes with ingredients, instructions, and nutrition. If you like one, you can add it directly to today's plan, log the macros, or send ingredients to your shopping list. Pro tip — you can go hands-free here. Tap the Chef and just talk.",
+      "Fridge Rescue is built for real life. If you want, you can type what you have. Or you can go hands-free — tap the Chef and just tell me what's in your fridge. I'll ask a couple of quick questions if needed, then turn what you already have into real meals you can actually eat. Each meal comes with ingredients, instructions, and nutrition. If you like one, you can add it directly to today's plan, log the macros, or send ingredients to your shopping list. If you're diabetic, GlucoseGuard adjusts meals based on your latest glucose reading. Pro tip — you can go hands-free here. Tap the Chef and just talk.",
     autoClose: true,
     guestDescription:
       "Life happens. We adapt. Use what you have and turn it into something real.",
