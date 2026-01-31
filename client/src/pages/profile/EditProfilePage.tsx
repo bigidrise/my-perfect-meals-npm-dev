@@ -26,6 +26,10 @@ type ActivityLevel =
   | "extremely_active";
 type FitnessGoal = "weight_loss" | "muscle_gain" | "maintenance" | "endurance";
 
+type SpiceTolerance = "none" | "mild" | "medium" | "hot";
+type SeasoningIntensity = "light" | "balanced" | "bold";
+type FlavorStyle = "classic" | "herb" | "savory" | "bright";
+
 type EditProfilePayload = {
   firstName?: string;
   lastName?: string;
@@ -34,6 +38,9 @@ type EditProfilePayload = {
   fitnessGoal?: FitnessGoal;
   dietaryRestrictions?: string[];
   allergies?: string[];
+  palateSpiceTolerance?: SpiceTolerance;
+  palateSeasoningIntensity?: SeasoningIntensity;
+  palateFlavorStyle?: FlavorStyle;
 };
 
 function StepShell({
@@ -120,6 +127,9 @@ export default function EditProfilePage() {
         ? u.dietaryRestrictions
         : [],
       allergies: Array.isArray(u?.allergies) ? u.allergies : [],
+      palateSpiceTolerance: (u?.palateSpiceTolerance || "mild") as SpiceTolerance,
+      palateSeasoningIntensity: (u?.palateSeasoningIntensity || "balanced") as SeasoningIntensity,
+      palateFlavorStyle: (u?.palateFlavorStyle || "classic") as FlavorStyle,
     };
   }, [user]);
 
@@ -546,6 +556,70 @@ export default function EditProfilePage() {
                 <SafetyPinSettings />
               </div>
 
+              {/* Palate Preferences Section */}
+              <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🍽️</span>
+                  <span className="text-amber-200 font-semibold text-sm">Flavor Preferences</span>
+                </div>
+                <p className="text-white/60 text-xs mb-4">
+                  Adjust how your meals are seasoned without affecting nutrition.
+                </p>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-xs flex items-center gap-1">
+                      <span>🌶️</span> Spice Tolerance
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {(["none", "mild", "medium", "hot"] as const).map((level) => (
+                        <PillButton
+                          key={level}
+                          active={form.palateSpiceTolerance === level}
+                          onClick={() => setForm((p) => ({ ...p, palateSpiceTolerance: level }))}
+                        >
+                          {level === "none" ? "None" : level === "mild" ? "Mild" : level === "medium" ? "Medium" : "Hot"}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-xs flex items-center gap-1">
+                      <span>🧂</span> Seasoning Intensity
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {(["light", "balanced", "bold"] as const).map((level) => (
+                        <PillButton
+                          key={level}
+                          active={form.palateSeasoningIntensity === level}
+                          onClick={() => setForm((p) => ({ ...p, palateSeasoningIntensity: level }))}
+                        >
+                          {level === "light" ? "Light" : level === "balanced" ? "Balanced" : "Bold"}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-xs flex items-center gap-1">
+                      <span>🌿</span> Flavor Style
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {(["classic", "herb", "savory", "bright"] as const).map((style) => (
+                        <PillButton
+                          key={style}
+                          active={form.palateFlavorStyle === style}
+                          onClick={() => setForm((p) => ({ ...p, palateFlavorStyle: style }))}
+                        >
+                          {style === "classic" ? "Classic" : style === "herb" ? "Herb-forward" : style === "savory" ? "Savory" : "Bright & Fresh"}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
@@ -594,6 +668,9 @@ export default function EditProfilePage() {
                 </p>
                 <p className="text-white/80 text-xs">
                   Allergies: {allergiesText.trim() || "None"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Flavor: {form.palateSpiceTolerance === "none" ? "No spice" : form.palateSpiceTolerance?.charAt(0).toUpperCase() + form.palateSpiceTolerance?.slice(1)} spice, {form.palateSeasoningIntensity} seasoning
                 </p>
               </div>
 

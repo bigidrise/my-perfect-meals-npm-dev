@@ -293,6 +293,9 @@ export default function OnboardingStandalone() {
               preferredLowGICarbs: data.preferredLowGICarbs,
               preferredMidGICarbs: data.preferredMidGICarbs,
               preferredHighGICarbs: data.preferredHighGICarbs,
+              palateSpiceTolerance: data.palateSpiceTolerance,
+              palateSeasoningIntensity: data.palateSeasoningIntensity,
+              palateFlavorStyle: data.palateFlavorStyle,
               activeBuilder: selectedBuilder, // Save selected builder
             },
             userId: user?.id, // Pass userId to sync to Edit Profile
