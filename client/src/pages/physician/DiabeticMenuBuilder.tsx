@@ -1159,22 +1159,10 @@ export default function DiabeticMenuBuilder() {
     [board, weekStartISO, planningMode, activeDayISO],
   );
 
-  // Week navigation handlers
-  const gotoWeek = useCallback(
-    async (targetISO: string) => {
-      setLoading(true);
-      try {
-        const { weekStartISO: ws, week } = await getWeekBoardByDate(targetISO);
-        setWeekStartISO(ws);
-        setBoard(week);
-      } catch (error) {
-        console.error("Failed to load week:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setLoading, setWeekStartISO, setBoard],
-  );
+  // Week navigation handlers - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
+  const gotoWeek = useCallback((targetISO: string) => {
+    setWeekStartISO(targetISO);
+  }, []);
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
