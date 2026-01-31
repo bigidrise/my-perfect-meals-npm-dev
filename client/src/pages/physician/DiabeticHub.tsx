@@ -455,6 +455,9 @@ export default function DiabeticHub() {
                 <div className="text-white/80 text-base mt-2">
                   Target: {targetMin}-{targetMax} mg/dL
                 </div>
+                <div className="text-white/60 text-xs mt-3 pt-3 border-t border-white/10">
+                  GlucoseGuard™ uses this reading to adjust meals automatically
+                </div>
               </div>
             </div>
           </section>
