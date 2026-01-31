@@ -142,6 +142,41 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "glucoseguard",
+    title: "GlucoseGuard™ — Blood Sugar Awareness",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What Is GlucoseGuard?",
+          text: "GlucoseGuard is a nutrition awareness system designed to help reduce blood-sugar spikes while building meals, cravings, and meal plans. It works quietly in the background to guide food choices using balanced macros, fiber, and portion awareness.",
+        },
+        {
+          heading: "How GlucoseGuard Works",
+          list: [
+            "Reads your latest glucose log and adjusts meal generation to match your current state",
+            "When glucose is low, meals include more carbs to help stabilize",
+            "When glucose is elevated, meals go lower carb to help bring you back into range",
+            "Evaluates carb quality, fiber, and portion size during meal creation",
+            "Encourages balanced combinations of protein, fats, and carbohydrates",
+          ],
+        },
+        {
+          heading: "What It Does Not Do",
+          list: [
+            "Does not diagnose, treat, or manage diabetes",
+            "Does not monitor blood glucose or adjust medications",
+            "Does not replace medical care or professional advice",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Many people want meals that are easier on blood sugar without giving up foods they enjoy. GlucoseGuard adds structure at the moment meals are created, helping users make steadier choices without fear-based restrictions.",
+        },
+      ],
+    },
+  },
+  {
     id: "cravings",
     title: "How Cravings Are Handled",
     icon: Heart,
