@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Globe, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -164,41 +164,17 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
     }
   };
 
-  const touchedRef = useRef(false);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (touchedRef.current) {
-      touchedRef.current = false;
-      return;
-    }
+  const handleToggle = () => {
     if (isLoading) return;
-    console.log("[TranslateToggle] Click activated!");
-    toggleTranslation();
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    touchedRef.current = true;
-    if (isLoading) return;
-    console.log("[TranslateToggle] Touch activated!");
+    console.log("[TranslateToggle] Button pressed!");
     toggleTranslation();
   };
 
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all duration-200 relative z-20 cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none ${className || ""}`}
-      style={{ 
-        touchAction: "manipulation",
-        WebkitTapHighlightColor: "transparent",
-        WebkitTouchCallout: "none",
-        WebkitUserSelect: "none",
-      }}
-      onClick={handleClick}
-      onTouchEnd={handleTouchEnd}
+      className={`inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30 active:scale-95 transition-all duration-200 relative cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none ${className || ""}`}
+      onClick={handleToggle}
       disabled={isLoading}
     >
       {isLoading ? (
