@@ -1303,14 +1303,9 @@ export default function WeeklyMealBoard() {
   );
 
   // Week navigation handlers (hook manages loading state automatically)
-  const gotoWeek = useCallback(async (targetISO: string) => {
-    try {
-      const { weekStartISO: ws, week } = await getWeekBoardByDate(targetISO);
-      setWeekStartISO(ws);
-      setBoard(week);
-    } catch (error) {
-      console.error("Failed to load week:", error);
-    }
+  // Just update weekStartISO - the useWeeklyBoard hook handles fetching with cache fallback
+  const gotoWeek = useCallback((targetISO: string) => {
+    setWeekStartISO(targetISO);
   }, []);
 
   // CHICAGO CALENDAR FIX v1.0: Use noon UTC anchor helpers for week navigation

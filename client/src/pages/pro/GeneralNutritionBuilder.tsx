@@ -806,15 +806,9 @@ export default function WeeklyMealBoard() {
     }
   }, [board, weekStartISO, planningMode, activeDayISO]);
 
-  // Week navigation handlers (hook manages loading state automatically)
-  const gotoWeek = useCallback(async (targetISO: string) => {
-    try {
-      const { weekStartISO: ws, week } = await getWeekBoardByDate(targetISO);
-      setWeekStartISO(ws);
-      setBoard(week);
-    } catch (error) {
-      console.error("Failed to load week:", error);
-    }
+  // Week navigation handlers - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
+  const gotoWeek = useCallback((targetISO: string) => {
+    setWeekStartISO(targetISO);
   }, []);
 
   const onPrevWeek = useCallback(() => {
