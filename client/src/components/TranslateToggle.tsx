@@ -138,11 +138,20 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
 
   return (
     <Button
+      type="button"
       size="sm"
       variant="outline"
-      className={`text-xs bg-white/10 border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all duration-200 ${className || ""}`}
+      className={`text-xs bg-white/10 border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all duration-200 relative z-10 touch-manipulation ${className || ""}`}
       onClick={(e) => {
+        e.preventDefault();
         e.stopPropagation();
+        console.log("[TranslateToggle] Button clicked!");
+        toggleTranslation();
+      }}
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("[TranslateToggle] Button touched!");
         toggleTranslation();
       }}
       disabled={isLoading}
