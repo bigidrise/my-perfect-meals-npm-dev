@@ -224,7 +224,6 @@ export default function OnboardingStandalone() {
           data.birthdayDay !== "" &&
           data.gender !== "" &&
           data.height > 0 &&
-          data.weight > 0 &&
           data.activityLevel !== "" &&
           data.primaryGoal !== "" &&
           (data.primaryGoal !== "custom" || data.customGoal.trim() !== "")
@@ -507,19 +506,6 @@ export default function OnboardingStandalone() {
           allowMetricToggle={true}
           label="Height *"
         />
-
-        <div>
-          <Label className={showValidation && data.weight === 0 ? "text-red-400" : ""}>
-            Weight (lbs) *
-          </Label>
-          <Input
-            type="number"
-            value={data.weight === 0 ? "" : data.weight}
-            onChange={(e) => updateData({ weight: parseInt(e.target.value) || 0 })}
-            placeholder="Your weight"
-            className={`text-white bg-black/40 border-white/20 ${showValidation && data.weight === 0 ? "border-red-500 border-2" : ""}`}
-          />
-        </div>
 
         <div>
           <Label className={showValidation && !data.activityLevel ? "text-red-400" : ""}>
