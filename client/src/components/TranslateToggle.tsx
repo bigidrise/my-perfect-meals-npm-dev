@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Globe, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -164,11 +164,26 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
     }
   };
 
-  const handleActivation = (e: React.MouseEvent | React.TouchEvent) => {
+  const touchedRef = useRef(false);
+
+  const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (touchedRef.current) {
+      touchedRef.current = false;
+      return;
+    }
     if (isLoading) return;
-    console.log("[TranslateToggle] Activated!");
+    console.log("[TranslateToggle] Click activated!");
+    toggleTranslation();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    touchedRef.current = true;
+    if (isLoading) return;
+    console.log("[TranslateToggle] Touch activated!");
     toggleTranslation();
   };
 
@@ -182,11 +197,8 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
         WebkitTouchCallout: "none",
         WebkitUserSelect: "none",
       }}
-      onClick={handleActivation}
-      onTouchStart={(e) => {
-        e.stopPropagation();
-      }}
-      onTouchEnd={handleActivation}
+      onClick={handleClick}
+      onTouchEnd={handleTouchEnd}
       disabled={isLoading}
     >
       {isLoading ? (
