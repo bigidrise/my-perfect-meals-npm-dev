@@ -164,24 +164,29 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
     }
   };
 
+  const handleActivation = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isLoading) return;
+    console.log("[TranslateToggle] Activated!");
+    toggleTranslation();
+  };
+
   return (
-    <Button
+    <button
       type="button"
-      size="sm"
-      variant="outline"
-      className={`text-xs bg-white/10 border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all duration-200 relative z-10 touch-manipulation ${className || ""}`}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("[TranslateToggle] Button clicked!");
-        toggleTranslation();
+      className={`inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all duration-200 relative z-20 cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none ${className || ""}`}
+      style={{ 
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
       }}
-      onTouchEnd={(e) => {
-        e.preventDefault();
+      onClick={handleActivation}
+      onTouchStart={(e) => {
         e.stopPropagation();
-        console.log("[TranslateToggle] Button touched!");
-        toggleTranslation();
       }}
+      onTouchEnd={handleActivation}
       disabled={isLoading}
     >
       {isLoading ? (
@@ -190,6 +195,6 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
         <Globe className="h-4 w-4 mr-1" />
       )}
       {isTranslated ? "Original" : "Translate"}
-    </Button>
+    </button>
   );
 }
