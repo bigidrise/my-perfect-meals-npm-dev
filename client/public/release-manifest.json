@@ -4,6 +4,7 @@
   "changes": [
     "New Palate Preferences - customize spice tolerance, seasoning intensity, and flavor style",
     "Flavor preferences collected during onboarding and editable in Edit Profile",
-    "AI meal generation now respects your flavor preferences without affecting macros"
+    "AI meal generation now respects your flavor preferences without affecting macros",
+    "Removed weight from onboarding - enter it later in Macro Calculator or Biometrics"
   ]
 }
