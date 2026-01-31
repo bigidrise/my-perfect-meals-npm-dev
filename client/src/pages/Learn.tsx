@@ -177,6 +177,40 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "palate-preferences",
+    title: "Palate Preferences — Flavor Customization",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "What Are Palate Preferences?",
+          text: "By default, AI-generated meals are lightly seasoned to be safe for most palates. But everyone's taste is different. Palate Preferences let you tell the AI exactly how you like your food flavored — without affecting your macros.",
+        },
+        {
+          heading: "What You Can Customize",
+          list: [
+            "Spice Tolerance — from no heat at all to bring-on-the-fire",
+            "Seasoning Intensity — light and subtle to bold and pronounced",
+            "Flavor Style — classic comfort, herb-forward, savory umami, or bright and fresh",
+          ],
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Set your preferences during onboarding or update them anytime in Edit Profile",
+            "The AI reads your palate profile when generating every meal",
+            "Your macros stay exactly the same — only the flavor changes",
+            "No more bland meals if you love bold seasoning",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Nutrition apps often produce generic, underseasoned meals. Palate Preferences fix that by making flavor personal. If you want garlic, herbs, and heat — you'll get it. If you prefer mild and classic — that's what you'll see.",
+        },
+      ],
+    },
+  },
+  {
     id: "cravings",
     title: "How Cravings Are Handled",
     icon: Heart,

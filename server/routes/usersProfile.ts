@@ -17,6 +17,9 @@ const UpdateProfileSchema = z.object({
   fitnessGoal: z.string().max(40).optional(),
   dietaryRestrictions: z.array(z.string()).optional(),
   allergies: z.array(z.string()).optional(),
+  palateSpiceTolerance: z.enum(["none", "mild", "medium", "hot"]).optional(),
+  palateSeasoningIntensity: z.enum(["light", "balanced", "bold"]).optional(),
+  palateFlavorStyle: z.enum(["classic", "herb", "savory", "bright"]).optional(),
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -49,6 +52,9 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.fitnessGoal !== undefined) updateData.fitnessGoal = patch.fitnessGoal;
     if (patch.dietaryRestrictions !== undefined) updateData.dietaryRestrictions = patch.dietaryRestrictions;
     if (patch.allergies !== undefined) updateData.allergies = patch.allergies;
+    if (patch.palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = patch.palateSpiceTolerance;
+    if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;
+    if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
 
     await db
       .update(users)

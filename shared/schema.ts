@@ -303,6 +303,10 @@ export const users = pgTable("users", {
   // MPM SafetyGuard PIN System
   safetyPinHash: text("safety_pin_hash"), // bcrypt hash of 4-6 digit Safety PIN
   safetyPinSetAt: timestamp("safety_pin_set_at", { withTimezone: true }), // when PIN was created/changed
+  // Palate Profile - flavor preferences for meal seasoning (does not affect macros)
+  palateSpiceTolerance: text("palate_spice_tolerance").$type<"none"|"mild"|"medium"|"hot">().default("mild"),
+  palateSeasoningIntensity: text("palate_seasoning_intensity").$type<"light"|"balanced"|"bold">().default("balanced"),
+  palateFlavorStyle: text("palate_flavor_style").$type<"classic"|"herb"|"savory"|"bright">().default("classic"),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),

@@ -31,6 +31,10 @@ export async function mergeStepIntoPreferences(userId: string, stepKey: string, 
       if (Array.isArray(data?.preferredLowGICarbs)) update.preferredLowGICarbs = data.preferredLowGICarbs;
       if (Array.isArray(data?.preferredMidGICarbs)) update.preferredMidGICarbs = data.preferredMidGICarbs;
       if (Array.isArray(data?.preferredHighGICarbs)) update.preferredHighGICarbs = data.preferredHighGICarbs;
+      // Palate preferences (flavor, does not affect macros)
+      if (data?.palateSpiceTolerance) update.palateSpiceTolerance = data.palateSpiceTolerance;
+      if (data?.palateSeasoningIntensity) update.palateSeasoningIntensity = data.palateSeasoningIntensity;
+      if (data?.palateFlavorStyle) update.palateFlavorStyle = data.palateFlavorStyle;
       // CRITICAL: Mark onboarding as complete and set active builder
       update.onboardingCompletedAt = new Date();
       if (data?.activeBuilder) {
