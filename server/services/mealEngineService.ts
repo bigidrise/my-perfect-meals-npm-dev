@@ -37,6 +37,11 @@ export interface UserOnboardingProfile {
 
   // Image policy
   allowImageGen?: boolean;
+
+  // Palate preferences (flavor, not macros)
+  palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
+  palateSeasoningIntensity?: "light" | "balanced" | "bold";
+  palateFlavorStyle?: "classic" | "herb" | "savory" | "bright";
 }
 
 export interface MealGenerationRequest {
@@ -154,6 +159,9 @@ async function fetchOnboardingProfile(
     bannedSweeteners: [], // Not in current schema
     bodyType: (p?.bodyType as any) ?? "mesomorph",
     allowImageGen: true, // Not in current schema, default to true
+    palateSpiceTolerance: (p?.palateSpiceTolerance as any) || "mild",
+    palateSeasoningIntensity: (p?.palateSeasoningIntensity as any) || "balanced",
+    palateFlavorStyle: (p?.palateFlavorStyle as any) || "classic",
   };
 }
 

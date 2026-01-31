@@ -548,7 +548,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Learn how the app works, understand nutrition basics, and explore Copilot walkthroughs.",
     spokenText:
-      "Welcome to the App Library. This is your go-to resource for understanding how My Perfect Meals works and the nutrition science behind it. You'll find informative articles on topics like fiber and vegetables, meal planning basics, and the difference between tracking calories versus macros. There's also an interactive food comparison tool that shows you how fat content changes how much food you get per hundred calories. The Copilot Walkthroughs section explains how to use each feature — just tap any topic to read more. This is where the app teaches you the why, not just the how.",
+      "Welcome to the App Library. This is your go-to resource for understanding how My Perfect Meals works and the nutrition science behind it. You'll find informative articles on topics like fiber and vegetables, meal planning basics, and the difference between tracking calories versus macros. There's also an interactive food comparison tool that shows you how fat content changes how much food you get per hundred calories. The Copilot Walkthroughs section explains how to use each feature — just tap any topic to read more. And now with Palate Preferences, you can customize how your meals are seasoned — spice tolerance, seasoning intensity, and flavor style — without affecting your macros. This is where the app teaches you the why, not just the how.",
     autoClose: true,
   },
 
