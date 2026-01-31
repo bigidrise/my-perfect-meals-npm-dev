@@ -51,11 +51,14 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
   const translateContent = useCallback(async () => {
     const targetLang = getDeviceLanguage();
     
+    // Debug: Show detected language
+    console.log("[TranslateToggle] Detected language:", targetLang, "navigator.language:", navigator.language);
+    
     if (targetLang === "en") {
       const event = new CustomEvent("show-toast", {
         detail: {
           title: "Already in English",
-          description: "Content is already in your device language.",
+          description: `Detected: ${navigator.language}. Content is already in your device language.`,
         },
       });
       window.dispatchEvent(event);
