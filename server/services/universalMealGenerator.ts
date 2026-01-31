@@ -5,6 +5,7 @@ import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
+import { BASELINE_MACROS } from "./guardrails/baselineMacros";
 
 let openai: OpenAI | null = null;
 
@@ -86,7 +87,37 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
       messages: [
         {
           role: "system",
-          content: "You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds). Format your response as:\n\nMeal Name: [name]\nDescription: [one sentence description]\n\nIngredients:\n- 6 oz tilapia fillet\n- 1/2 cup brown rice\n- 1 tbsp olive oil\n- 1 cup steamed broccoli\n\nInstructions:\n1. [step one]\n2. [step two]\n3. [step three]\n\nNutrition:\nCalories: 450\nProtein: 35g\nCarbs: 40g\nFat: 12g"
+          content: `You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
+
+BASELINE MACRO REQUIREMENTS (MANDATORY):
+Every meal must meet these minimum targets:
+- Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
+- Starchy Carbs: ${BASELINE_MACROS.starchyCarbs}g (rice, potatoes, quinoa, bread, oats, pasta)
+- Fibrous Carbs: ${BASELINE_MACROS.fibrousCarbs}g (vegetables, leafy greens, broccoli, peppers, tomatoes)
+
+These are baseline minimums for balanced, nutritious meals. If the user requests MORE, honor that request.
+
+Format your response as:
+
+Meal Name: [name]
+Description: [one sentence description]
+
+Ingredients:
+- 6 oz tilapia fillet
+- 1/2 cup brown rice
+- 1 tbsp olive oil
+- 1 cup steamed broccoli
+
+Instructions:
+1. [step one]
+2. [step two]
+3. [step three]
+
+Nutrition:
+Calories: 450
+Protein: 35g
+Carbs: 40g
+Fat: 12g`
         },
         {
           role: "user",

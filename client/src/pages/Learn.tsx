@@ -74,6 +74,30 @@ const libraryTopics: LibraryTopic[] = [
           text: "Every meal is generated in real-time using GPT-4, tailored to your exact macro targets, dietary restrictions, and preferences.",
         },
         {
+          heading: "Baseline Macros Per Meal",
+          text: "Unless you specify otherwise, every generated meal starts with a balanced baseline:",
+          list: [
+            "25g Protein — to support muscle and satiety",
+            "25g Starchy Carbs — for energy and fuel",
+            "50g Fibrous Carbs — for fiber, vitamins, and volume",
+          ],
+        },
+        {
+          heading: "Where This Applies",
+          list: [
+            "Weekly Meal Builder",
+            "Anti-Inflammatory Meal Builder",
+            "General Nutrition Meal Builder",
+            "Diabetic Meal Builder",
+            "Chef's Kitchen Studio",
+            "Fridge Rescue & Fridge Rescue Studio",
+          ],
+        },
+        {
+          heading: "Want More?",
+          text: "This baseline ensures balanced meals by default. If you want higher protein, more carbs, or different ratios — just ask when creating your meal. The AI will adjust accordingly.",
+        },
+        {
           heading: "The Process",
           list: [
             "You set your protein, carbs, and fat targets",

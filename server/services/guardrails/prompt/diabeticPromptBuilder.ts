@@ -6,6 +6,7 @@
  */
 
 import { diabeticRules } from "../rules/diabeticRules";
+import { BASELINE_MACROS_PROMPT, BASELINE_MACROS_SNACK_PROMPT } from '../baselineMacros';
 
 export function buildDiabeticPromptConditions(): string {
   const blockedList = diabeticRules.blockedIngredients.slice(0, 30).join(", ");
@@ -36,6 +37,8 @@ MANDATORY SUBSTITUTIONS:
 PREFERRED INGREDIENTS (Prioritize these):
 ${preferredList}
 
+${BASELINE_MACROS_PROMPT}
+
 MACRO BALANCE FOR DIABETICS:
 - Moderate protein (lean meats, fish, eggs)
 - High fiber (non-starchy vegetables, legumes)
@@ -59,6 +62,8 @@ export function buildDiabeticSnackPromptConditions(): string {
   return `
 CRITICAL DIABETIC SNACK REQUIREMENTS:
 This snack is for a person with diabetes. Strict medical guidelines apply:
+
+${BASELINE_MACROS_SNACK_PROMPT}
 
 SNACK MUST BE:
 - LOW CARB (under 15g net carbs preferred)

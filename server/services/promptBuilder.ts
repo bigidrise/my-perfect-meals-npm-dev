@@ -1,6 +1,7 @@
 // server/services/promptBuilder.ts
 import { MealGenerationRequest, UserOnboardingProfile } from "./mealEngineService";
 import { UnitPrefs } from "./validators";
+import { BASELINE_MACROS_PROMPT } from "./guardrails/baselineMacros";
 
 export interface PalatePreferences {
   palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
@@ -76,6 +77,8 @@ ABSOLUTE RULES:
 - If user has diabetes (T1 or T2), use low/medium GI carbs, balance carbs with protein/fiber, avoid added sugars.
 - Respect diet type (${diet}) and ingredient bans.
 - Use straightforward, kitchen-ready instructions only. No fluff, no tips, no equipment essays.${mediterraneanRules}
+
+${BASELINE_MACROS_PROMPT}
 
 🚨 MEAL TYPE APPROPRIATENESS RULES (CRITICAL - NEVER VIOLATE):
 - BREAKFAST: Appropriate foods include eggs, oatmeal, toast, pancakes, yogurt, smoothies, cereal, fruit bowls, breakfast sandwiches. NEVER assign heavy dinner foods like steak, casseroles, or pasta dishes to breakfast.
