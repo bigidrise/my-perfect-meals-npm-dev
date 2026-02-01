@@ -1,8 +1,8 @@
 {
-  "releaseId": "1.2.24",
+  "releaseId": "1.2.25",
   "publishedAt": "2026-02-01",
   "changes": [
-    "Compact iOS headers - content now starts tighter below safe area (MyFitnessPal style)",
-    "Fixed double padding on 16 key pages for a more native feel"
+    "Fixed bottom padding on Craving Studio to prevent content from being cut off",
+    "Applied compact headers to StudioWizard component"
   ]
 }
