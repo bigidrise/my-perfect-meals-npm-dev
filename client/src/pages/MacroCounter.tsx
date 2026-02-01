@@ -631,7 +631,7 @@ export default function MacroCounter() {
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-8 py-3 flex items-center gap-3">
+          <div className="px-8 pb-3 flex items-center gap-3">
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
               <span>Macro Calculator</span>
             </h1>

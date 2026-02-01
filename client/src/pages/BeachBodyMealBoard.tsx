@@ -1172,7 +1172,7 @@ export default function BeachBodyMealBoard() {
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-2">
+        <div className="px-4 pb-3 flex items-center gap-2">
           <Button
             onClick={() => setLocation("/planner")}
             className="bg-black/10 hover:bg-black/10 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1 px-3 h-10 flex-shrink-0"

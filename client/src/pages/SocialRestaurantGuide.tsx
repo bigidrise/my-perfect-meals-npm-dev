@@ -546,7 +546,7 @@ export default function RestaurantGuidePage() {
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
+          <div className="px-4 pb-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
               onClick={() => setLocation("/social-hub")}

@@ -149,7 +149,7 @@ export default function DashboardNew() {
         className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 h-16 flex items-center justify-center">
+        <div className="px-4 pb-3 h-14 flex items-center justify-center">
           <h1 className="text-md font-bold text-white">MPM</h1>
         </div>
       </div>
