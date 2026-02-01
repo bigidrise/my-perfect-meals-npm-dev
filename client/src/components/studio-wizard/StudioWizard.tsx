@@ -522,7 +522,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className={`min-h-screen bg-gradient-to-br ${branding.gradientFrom} ${branding.gradientVia} ${branding.gradientTo} pb-safe-nav`}
+      className={`min-h-screen bg-gradient-to-br ${branding.gradientFrom} ${branding.gradientVia} ${branding.gradientTo} pb-40`}
     >
       <div
         className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
