@@ -49,7 +49,9 @@ a,
   touch-action: manipulation;
 }
 
-/* Force opacity to stay solid on press - prevents "button goes clear" */
+/* CRITICAL: Force opacity to stay solid on press - prevents "button goes clear"
+   This safeguard catches any active:opacity classes that slip through.
+   DO NOT use active:opacity-XX classes anywhere in the app - use active:scale instead */
 button:active,
 a:active,
 [role="button"]:active {
