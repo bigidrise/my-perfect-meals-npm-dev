@@ -41,14 +41,47 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Disable hover effects on touch devices to prevent flickering */
+/* iOS Button Flash Fix - Prevents color flickering on touch devices */
 @media (hover: none) {
+  /* Disable hover effects that cause flickering */
   button:hover,
   a:hover,
   [role="button"]:hover {
-    background-color: inherit !important;
-    opacity: inherit !important;
-    transform: none !important;
+    background-color: unset;
+    opacity: unset;
+    transform: none;
+  }
+  
+  /* Prevent active state from sticking after touch */
+  button:active,
+  a:active,
+  [role="button"]:active {
+    transition: none !important;
+  }
+  
+  /* Clear focus state immediately after touch to prevent color persistence */
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible),
+  [role="button"]:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: unset;
+  }
+}
+
+/* iOS-specific: Force buttons to not retain visual states after touch */
+@supports (-webkit-touch-callout: none) {
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+  }
+  
+  /* Prevent iOS "sticky" hover states */
+  button:hover:not(:active),
+  a:hover:not(:active),
+  [role="button"]:hover:not(:active) {
+    transition-delay: 0s !important;
   }
 }
 
