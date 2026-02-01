@@ -289,10 +289,10 @@ export default function EditProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24">
       <div
-        className="fixed left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-2">
+        <div className="px-4 pb-3 flex items-center gap-2">
           <button
             onClick={() => setLocation("/dashboard")}
             className="flex-shrink-0 flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"

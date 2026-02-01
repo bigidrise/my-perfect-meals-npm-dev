@@ -1,9 +1,8 @@
 {
-  "releaseId": "1.2.23",
+  "releaseId": "1.2.24",
   "publishedAt": "2026-02-01",
   "changes": [
-    "Fixed iOS button 'ghost transparency' - buttons no longer fade when tapped",
-    "Improved Studio Wizard bottom padding so buttons stay visible above navigation",
-    "Added global safeguard preventing button opacity flickering on touch devices"
+    "Compact iOS headers - content now starts tighter below safe area (MyFitnessPal style)",
+    "Fixed double padding on 16 key pages for a more native feel"
   ]
 }
