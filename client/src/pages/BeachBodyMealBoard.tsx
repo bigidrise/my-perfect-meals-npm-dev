@@ -1170,7 +1170,7 @@ export default function BeachBodyMealBoard() {
       {/* Universal Safe-Area Header Bar */}
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2">
           <Button

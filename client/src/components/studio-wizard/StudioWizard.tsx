@@ -525,8 +525,8 @@ export default function StudioWizard({ config }: StudioWizardProps) {
       className={`min-h-screen bg-gradient-to-br ${branding.gradientFrom} ${branding.gradientVia} ${branding.gradientTo} pb-40`}
     >
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
           <button
