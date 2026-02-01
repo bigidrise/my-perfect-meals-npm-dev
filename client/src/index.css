@@ -41,15 +41,36 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Disable hover effects on touch devices to prevent flickering */
-@media (hover: none) {
-  button:hover,
-  a:hover,
-  [role="button"]:hover {
-    background-color: inherit !important;
-    opacity: inherit !important;
-    transform: none !important;
-  }
+/* iOS Button Flash Fix - Prevents "ghost transparency" on touch */
+button,
+a,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* CRITICAL: Force opacity to stay solid on press - prevents "button goes clear"
+   This safeguard catches any active:opacity classes that slip through.
+   DO NOT use active:opacity-XX classes anywhere in the app - use active:scale instead */
+button:active,
+a:active,
+[role="button"]:active {
+  opacity: 1 !important;
+  transform: scale(0.98);
+}
+
+/* Remove focus outline on touch (keep for keyboard) */
+button:focus,
+a:focus,
+[role="button"]:focus {
+  outline: none;
+}
+
+/* Keyboard-only focus ring */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 /* iOS scroll momentum without revealing white background */
