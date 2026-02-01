@@ -885,7 +885,7 @@ export default function CravingCreator() {
                       data-wt="cc-generate-button"
                       onClick={() => handleGenerateMeal()}
                       disabled={isGenerating || safetyChecking}
-                      className="w-full bg-lime-600 hover:bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       {safetyChecking ? "Checking Safety..." : "Create My Craving"}
                     </GlassButton>
