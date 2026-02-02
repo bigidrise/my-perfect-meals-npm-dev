@@ -2,7 +2,7 @@
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Capacitor } from '@capacitor/core';
 
-export type MealBuilderType = "weekly" | "diabetic" | "glp1" | "anti_inflammatory";
+export type MealBuilderType = "weekly" | "diabetic" | "glp1" | "anti_inflammatory" | "beach_body" | "general_nutrition" | "performance_competition";
 
 // APP STORE REVIEW: Demo credentials for Apple reviewers
 // These are prefilled in the login form on native builds for convenience

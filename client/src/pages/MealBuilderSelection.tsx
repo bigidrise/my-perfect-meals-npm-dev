@@ -12,6 +12,9 @@ import {
   MessageCircle,
   AlertTriangle,
   RefreshCw,
+  Trophy,
+  Dumbbell,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PillButton } from "@/components/ui/pill-button";
@@ -67,6 +70,30 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Flame className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
+  {
+    id: "beach_body",
+    title: "Beach Body Builder",
+    description:
+      "Contest prep and leaning out. Designed for rapid, visible change.",
+    icon: <Trophy className="w-8 h-8" />,
+    color: "from-black via-zinc-950 to-black",
+  },
+  {
+    id: "general_nutrition",
+    title: "General Nutrition Builder",
+    description:
+      "Professional-grade nutrition with coach support. Requires trainer unlock.",
+    icon: <Utensils className="w-8 h-8" />,
+    color: "from-black via-zinc-950 to-black",
+  },
+  {
+    id: "performance_competition",
+    title: "Performance Builder",
+    description:
+      "Elite athlete meal planning for competition prep. Requires trainer unlock.",
+    icon: <Dumbbell className="w-8 h-8" />,
+    color: "from-black via-zinc-950 to-black",
+  },
 ];
 
 export default function MealBuilderSelection() {
@@ -80,6 +107,18 @@ export default function MealBuilderSelection() {
   const [loadingStatus, setLoadingStatus] = useState(true);
 
   const isProCareClient = user?.isProCare && user?.role !== "admin";
+  const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
+  
+  // Pro builders require trainer unlock
+  const PRO_BUILDERS = ["general_nutrition", "performance_competition"];
+  
+  const isProBuilderUnlocked = (builderId: string): boolean => {
+    if (!PRO_BUILDERS.includes(builderId)) return true; // Not a pro builder
+    if (isAdmin) return true; // Admins have full access
+    // User has access if trainer assigned this as their activeBoard
+    return user?.activeBoard === builderId;
+  };
+  
   const availableBuilders =
     isProCareClient && user?.activeBoard
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
@@ -346,46 +385,60 @@ export default function MealBuilderSelection() {
 
           {/* Available builders - only show if NOT in locked state */}
           {!(isProCareClient && !user?.activeBoard) &&
-            availableBuilders.map((option) => (
+            availableBuilders.map((option) => {
+              const isUnlocked = isProBuilderUnlocked(option.id);
+              const isProBuilder = PRO_BUILDERS.includes(option.id);
+              
+              return (
               <div
                 key={option.id}
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
-                  selected === option.id
+                  !isUnlocked
+                    ? "border-zinc-700 bg-black/20 opacity-60"
+                    : selected === option.id
                     ? "border-emerald-500/50 bg-white/10"
                     : "border-white/20 bg-black/30"
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} text-white flex-shrink-0`}
+                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} ${isUnlocked ? "text-white" : "text-zinc-500"} flex-shrink-0`}
                   >
                     {option.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-semibold truncate">{option.title}</h3>
+                        <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        {!isUnlocked && isProBuilder && (
+                          <Lock className="w-4 h-4 text-zinc-500" />
+                        )}
                         {((user?.isProCare ? user?.activeBoard : user?.selectedMealBuilder) || user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
                             Current
                           </span>
                         )}
                       </div>
-                      <PillButton
-                        active={selected === option.id}
-                        onClick={() => setSelected(option.id)}
-                        className="flex-shrink-0"
-                      >
-                        {selected === option.id ? "On" : "Off"}
-                      </PillButton>
+                      {isUnlocked ? (
+                        <PillButton
+                          active={selected === option.id}
+                          onClick={() => setSelected(option.id)}
+                          className="flex-shrink-0"
+                        >
+                          {selected === option.id ? "On" : "Off"}
+                        </PillButton>
+                      ) : (
+                        <span className="text-xs text-zinc-500 italic">Trainer unlock required</span>
+                      )}
                     </div>
-                    <p className="text-white/70 text-sm mt-1">
-                      {option.description}
+                    <p className={`text-sm mt-1 ${!isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
+                      {!isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
                     </p>
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
         </div>
 
         {/* Copilot guidance hint */}
