@@ -203,6 +203,8 @@ export default function EditProfilePage() {
       weekly: "Weekly Meal Board",
       diabetic: "Diabetic Builder",
       glp1: "GLP-1 Builder",
+      general_nutrition: "General Nutrition Builder",
+      performance_competition: "Performance Builder",
       anti_inflammatory: "Anti-Inflammatory",
       "anti-inflammatory": "Anti-Inflammatory",
       beach_body: "Beach Body",

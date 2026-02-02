@@ -2056,9 +2056,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "selectedMealBuilder is required" });
       }
       
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body"];
+      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body", "general_nutrition", "performance_competition"];
       if (!validBuilders.includes(selectedMealBuilder)) {
         return res.status(400).json({ error: "Invalid meal builder selection" });
+      }
+      
+      // Pro builders require trainer unlock - users cannot self-select these
+      const proBuilders = ["general_nutrition", "performance_competition"];
+      if (proBuilders.includes(selectedMealBuilder)) {
+        // Check if this user has been assigned this builder by a trainer
+        const [userData] = await db.select({ activeBoard: users.activeBoard }).from(users).where(eq(users.id, userId)).limit(1);
+        if (!userData || userData.activeBoard !== selectedMealBuilder) {
+          return res.status(403).json({ error: "This builder requires trainer/coach unlock. Contact your trainer to enable access." });
+        }
       }
       
       const result = await attemptBuilderSwitch(userId, selectedMealBuilder);
@@ -2079,6 +2089,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating meal builder:", error);
       res.status(500).json({ error: "Failed to update meal builder" });
+    }
+  });
+
+  // ===== Pro Builder Assignment (Trainer/Coach Only) =====
+  // Allows coaches/admins to assign pro builders to clients
+  app.post("/api/pro/assign-builder", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const trainerId = authReq.authUser.id;
+      const { clientId, builder } = req.body;
+      
+      if (!clientId || !builder) {
+        return res.status(400).json({ error: "clientId and builder are required" });
+      }
+      
+      // Validate the builder is a valid pro builder
+      const validProBuilders = ["general_nutrition", "performance_competition"];
+      if (!validProBuilders.includes(builder)) {
+        return res.status(400).json({ error: "Invalid pro builder. Must be general_nutrition or performance_competition" });
+      }
+      
+      // Verify the trainer has coach/admin role
+      const [trainer] = await db.select({ role: users.role }).from(users).where(eq(users.id, trainerId)).limit(1);
+      if (!trainer || !["admin", "coach"].includes(trainer.role || "")) {
+        return res.status(403).json({ error: "Only coaches and admins can assign pro builders" });
+      }
+      
+      // Update the client's activeBoard
+      const [updatedClient] = await db.update(users)
+        .set({ activeBoard: builder })
+        .where(eq(users.id, clientId))
+        .returning({ id: users.id, activeBoard: users.activeBoard });
+      
+      if (!updatedClient) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      console.log(`[Pro Builder] Trainer ${trainerId} assigned ${builder} to client ${clientId}`);
+      
+      res.json({
+        success: true,
+        clientId: updatedClient.id,
+        assignedBuilder: updatedClient.activeBoard,
+      });
+    } catch (error: any) {
+      console.error("Error assigning pro builder:", error);
+      res.status(500).json({ error: "Failed to assign pro builder" });
     }
   });
 

@@ -19,6 +19,8 @@ import {
   Shield,
   Eye,
   EyeOff,
+  Utensils,
+  Dumbbell,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -79,6 +81,24 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     bestFor: ["Competition prep", "Rapid fat loss", "Physique goals"],
     goalCategories: ["performance"],
     planBadge: "Ultimate Plan",
+  },
+  {
+    id: "general_nutrition",
+    title: "General Nutrition Builder",
+    description: "Professional-grade nutrition with coach support and custom protocols.",
+    icon: <Utensils className="w-6 h-6" />,
+    bestFor: ["Coach-guided nutrition", "Custom meal plans", "Professional support"],
+    goalCategories: ["pro_coaching"],
+    planBadge: "Pro Plan (Trainer Unlock)",
+  },
+  {
+    id: "performance_competition",
+    title: "Performance & Competition Builder",
+    description: "Elite athlete meal planning for competition prep and peak performance.",
+    icon: <Dumbbell className="w-6 h-6" />,
+    bestFor: ["Elite athletes", "Competition prep", "Peak performance"],
+    goalCategories: ["pro_performance"],
+    planBadge: "Pro Plan (Trainer Unlock)",
   },
 ];
 

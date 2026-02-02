@@ -93,18 +93,54 @@ export default function TrainerClientDashboard() {
     });
   };
 
-  const handleBuilderAssignment = (builder: BuilderType) => {
-    setAssignedBuilder(builder);
-    if (client) {
+  const handleBuilderAssignment = async (builder: BuilderType) => {
+    if (!client?.userId) {
+      toast({
+        title: "Cannot Assign",
+        description: "This client doesn't have a linked user account yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const apiBuilderName = builder === "general" ? "general_nutrition" : "performance_competition";
+    
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch("/api/pro/assign-builder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { "x-auth-token": token }),
+        },
+        body: JSON.stringify({
+          clientId: client.userId,
+          builder: apiBuilderName,
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to assign builder");
+      }
+      
+      setAssignedBuilder(builder);
       proStore.upsertClient({
         ...client,
         assignedBuilder: builder,
       });
+      
+      toast({
+        title: "Builder Assigned",
+        description: `${builder === "general" ? "General Nutrition" : "Performance & Competition"} builder assigned to ${client?.name}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Assignment Failed",
+        description: error.message || "Could not assign builder to client.",
+        variant: "destructive",
+      });
     }
-    toast({
-      title: "Builder Assigned",
-      description: `${builder === "general" ? "General Nutrition" : "Performance & Competition"} builder assigned to ${client?.name}.`,
-    });
   };
 
   return (

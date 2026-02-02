@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Activity, Pill, Trophy, Lock } from "lucide-react";
+import { Calendar, Activity, Pill, Trophy, Lock, Dumbbell, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface PlannerFeature {
@@ -68,6 +68,24 @@ export default function Planner() {
       route: "/beach-body-meal-board",
       testId: "card-competition-beachbody",
       builderId: "beach_body",
+    },
+    {
+      title: "General Nutrition Builder",
+      description:
+        "Professional-grade nutrition planning with coach support and custom protocols",
+      icon: Utensils,
+      route: "/pro/general-nutrition-builder",
+      testId: "card-general-nutrition",
+      builderId: "general_nutrition",
+    },
+    {
+      title: "Performance & Competition Builder",
+      description:
+        "Elite athlete meal planning for competition prep, peak performance and recovery",
+      icon: Dumbbell,
+      route: "/pro/performance-competition-builder",
+      testId: "card-performance-competition",
+      builderId: "performance_competition",
     },
   ];
 

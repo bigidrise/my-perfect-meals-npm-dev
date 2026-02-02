@@ -22,6 +22,7 @@ export type ClientProfile = {
   archived?: boolean;
   workspace?: WorkspaceType;
   assignedBuilder?: BuilderType;
+  userId?: number; // Links to database user for pro builder assignment
 };
 
 export type StarchStrategy = "one" | "flex";
