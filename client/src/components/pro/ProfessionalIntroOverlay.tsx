@@ -179,7 +179,7 @@ export function ProfessionalIntroOverlay({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl overflow-y-auto"
+        className="fixed inset-0 z-[100] bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] overflow-y-auto"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="min-h-full flex flex-col">
