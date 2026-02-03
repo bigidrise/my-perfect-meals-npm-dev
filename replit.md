@@ -34,6 +34,7 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Hub Coupling Framework v1.0**: A modular plugin architecture (`server/services/hubCoupling/`) for health "hubs" to inject context into AI meal generation.
 - **ProCare Clinical Advisory System v1.0**: Provides clinical macro adjustment suggestions.
 - **Role-Based Access Control v1.0**: Three-tier access control (`admin`, `coach`, `client`) for Pro Care features.
+- **ProCare Workspace Branding v1.0**: Two distinct professional workspaces: **Physicians Clinic** (medical oversight, guardrails, clinical nutrition) and **Trainer Studio** (coaching, personalization, performance meal planning). Pro builders (General Nutrition, Performance/Competition) require trainer assignment via `/api/pro/assign-builder` endpoint.
 - **Starch Meal Strategy v1.0**: A behavioral coaching system for carb management.
 - **Extended Onboarding System v1.0**: A multi-step wizard for builder selection during signup.
 - **Meal Card Share + Translate System v1.0**: Replaces copy function with native share and GPT-4o-mini powered translation.

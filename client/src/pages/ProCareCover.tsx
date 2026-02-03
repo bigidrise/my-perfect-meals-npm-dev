@@ -22,15 +22,15 @@ export default function ProCareCover() {
 
     const proCareFeatures: ProCareFeature[] = [
       {
-        title: "Physician Portal",
-        description: "Clinical nutrition tools and medical-focused meal builders",
+        title: "Physicians Clinic",
+        description: "Medical oversight, guardrails, and clinical nutrition tools",
         icon: Users,
         route: "/care-team/physician",
         testId: "card-procare-physician",
       },
       {
-        title: "Trainer Portal",
-        description: "Coaching, performance, and lifestyle nutrition tools",
+        title: "Trainers Studio",
+        description: "Coaching, personalization, and performance meal planning",
         icon: Users,
         route: "/care-team/trainer",
         testId: "card-procare-trainer",

@@ -254,7 +254,7 @@ export default function CareTeamPage() {
         <div className="px-4 py-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-orange-500 flex-shrink-0" />
           <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-            Trainer Care Team
+            Trainer Studio
           </h1>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
@@ -443,7 +443,7 @@ export default function CareTeamPage() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Care Team Guide"
+        title="Trainer Studio Guide"
         steps={CARE_TEAM_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
