@@ -31,11 +31,10 @@ const STORAGE_KEYS = {
 const CONTENT = {
   trainer: {
     badge: "Professional Workspace",
-    badgeColor: "bg-amber-500/20 border-amber-500/30 text-amber-300",
+    badgeColor: "bg-orange-500/20 border-orange-500/30 text-orange-300",
     title: "Welcome to Your Coaching Studio",
     subtitle:
       "This is your professional environment inside My Perfect Meals for personalized nutrition guidance and client meal planning.",
-    accentColor: "amber",
     purpose: {
       title: "What This Workspace Is For",
       items: [
@@ -84,16 +83,15 @@ const CONTENT = {
     ],
     disclaimer: undefined as string | undefined,
     buttonColor:
-      "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
-    buttonShadow: "shadow-amber-500/20",
+      "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
+    buttonShadow: "shadow-orange-500/20",
   },
   physician: {
     badge: "Clinical Workspace",
-    badgeColor: "bg-teal-500/20 border-teal-500/30 text-teal-300",
+    badgeColor: "bg-orange-500/20 border-orange-500/30 text-orange-300",
     title: "Welcome to Your Clinical Nutrition Workspace",
     subtitle:
       "This is your professional environment inside My Perfect Meals for medical-grade nutrition oversight and safety-guarded meal planning.",
-    accentColor: "teal",
     purpose: {
       title: "What This Workspace Is For",
       items: [
@@ -143,8 +141,8 @@ const CONTENT = {
       "Patient nutrition activity log",
     ],
     buttonColor:
-      "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600",
-    buttonShadow: "shadow-teal-500/20",
+      "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
+    buttonShadow: "shadow-orange-500/20",
   },
 };
 
@@ -232,16 +230,8 @@ export function ProfessionalIntroOverlay({
                     key={idx}
                     className="flex items-start gap-3 p-3 rounded-lg bg-white/5"
                   >
-                    <div
-                      className={`p-1.5 rounded-lg ${
-                        type === "trainer" ? "bg-amber-500/20" : "bg-teal-500/20"
-                      }`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${
-                          type === "trainer" ? "text-amber-400" : "text-teal-400"
-                        }`}
-                      />
+                    <div className="p-1.5 rounded-lg bg-orange-500/20">
+                      <item.icon className="h-4 w-4 text-orange-400" />
                     </div>
                     <div>
                       <h3 className="font-medium text-white text-sm">
@@ -295,13 +285,7 @@ export function ProfessionalIntroOverlay({
               <ol className="space-y-2">
                 {content.quickStart.map((step, idx) => (
                   <li key={idx} className="flex items-center gap-3 text-sm">
-                    <span
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        type === "trainer"
-                          ? "bg-amber-500/20 text-amber-400"
-                          : "bg-teal-500/20 text-teal-400"
-                      }`}
-                    >
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-orange-500/20 text-orange-400">
                       {idx + 1}
                     </span>
                     <span className="text-white/80">{step}</span>
