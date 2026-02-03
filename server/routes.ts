@@ -68,6 +68,7 @@ import biometricsRoutes from "./routes/biometricsRoutes";
 import builderPlansRoutes from "./routes/builderPlans";
 import careTeamRoutes from "./routes/careTeamRoutes";
 import procareRoutes from "./routes/procareRoutes";
+import studioRoutes from "./routes/studioRoutes";
 import onboardingProgressRoutes from "./routes/onboardingProgress";
 import foundersRoutes from "./routes/foundersRoutes";
 import physicianReportsRoutes from "./routes/physicianReports";
@@ -5689,6 +5690,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   app.use("/api/care-team", careTeamRoutes);
   app.use("/api/pro", procareRoutes);
+  app.use("/api/studios", studioRoutes);
   app.use("/api/founders", foundersRoutes);
   app.use("/api/physician-reports", physicianReportsRoutes);
   app.use("/api/users", usersProfileRouter);

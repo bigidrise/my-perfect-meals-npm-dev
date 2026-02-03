@@ -38,6 +38,17 @@ export { generatedMealsCache } from "../server/db/schema/generatedMeals";
 export { studioTypeEnum, mealLibraryItems, mealLibraryUsage, mealGenerationJobs } from "../server/db/schema/mealLibrary";
 export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGenerationJob } from "../server/db/schema/mealLibrary";
 
+export { 
+  professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
+  studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog 
+} from "../server/db/schema/studio";
+export type { 
+  Studio, InsertStudio, StudioBilling, InsertStudioBilling, 
+  StudioMembership, InsertStudioMembership, StudioInvite, InsertStudioInvite,
+  ClientSubscription, InsertClientSubscription, ClientNote, InsertClientNote,
+  ClientActivityLog, InsertClientActivityLog 
+} from "../server/db/schema/studio";
+
 /**
  * Games table
  * - id: e.g. "nutrition-trivia", "macro-quiz"
