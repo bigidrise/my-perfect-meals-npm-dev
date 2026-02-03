@@ -35,6 +35,7 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **ProCare Clinical Advisory System v1.0**: Provides clinical macro adjustment suggestions.
 - **Role-Based Access Control v1.0**: Three-tier access control (`admin`, `coach`, `client`) for Pro Care features.
 - **ProCare Workspace Branding v1.0**: Two distinct professional workspaces: **Physicians Clinic** (medical oversight, guardrails, clinical nutrition) and **Trainer Studio** (coaching, personalization, performance meal planning). Pro builders (General Nutrition, Performance/Competition) require trainer assignment via `/api/pro/assign-builder` endpoint.
+- **Professional Intro Overlay v1.0**: Front-end only intro overlay (like Chef's Kitchen) shown once per workspace on first entry. Uses `ProfessionalIntroOverlay` component with role-specific content (trainer/physician). Stored in localStorage (`mpm_hide_trainer_studio_intro`, `mpm_hide_physician_clinic_intro`). Includes: welcome hero, purpose explanation, "What This Is NOT" disclaimers (HIPAA-safe), quick start guide, tools list, and "Never show again" toggle. No backend, no routes, purely instructional.
 - **Starch Meal Strategy v1.0**: A behavioral coaching system for carb management.
 - **Extended Onboarding System v1.0**: A multi-step wizard for builder selection during signup.
 - **Meal Card Share + Translate System v1.0**: Replaces copy function with native share and GPT-4o-mini powered translation.
