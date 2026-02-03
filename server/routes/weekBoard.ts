@@ -3,6 +3,7 @@ import { getWeekStartISO, isValidISODate } from '../utils/week';
 import { buildShoppingList } from '../services/shopping-list/list-builder';
 import { resolveUserId, getWeekBoard, upsertWeekBoard, AuthenticationRequiredError } from '../data/weekBoardsRepo';
 import { processMealImageForSave } from '../services/imageLifecycle';
+import { logActivityFireAndForget } from '../services/activityLog';
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -549,6 +550,15 @@ export default function weekBoardRoutes(app: Express) {
       };
       
       await upsertWeekBoard(userId, weekStartISO, saved);
+
+      logActivityFireAndForget(
+        userId,
+        userId,
+        "board_updated",
+        "weekly_board",
+        `week-${weekStartISO}`,
+        { weekStartISO, imagesProcessed, imagesPending }
+      );
       
       return res.json({ 
         weekStartISO, 

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
 import { eq, and, desc } from "drizzle-orm";
+import { logActivityFireAndForget } from "../services/activityLog";
 
 const router = Router();
 
@@ -30,6 +31,15 @@ router.get("/users/:userId/boards/:program/current", async (req, res) => {
         startDate,
         days: Number(days)
       }).returning();
+
+      logActivityFireAndForget(
+        userId,
+        userId,
+        "board_created",
+        "meal_board",
+        board.id,
+        { program, startDate: startDate.toISOString(), days: Number(days) }
+      );
     }
 
     const items = await db.select().from(mealBoardItems)
@@ -175,6 +185,15 @@ router.post("/boards/:boardId/commit", async (req, res) => {
 
     // TODO: Wire to existing shopping list and food logs services
     console.log("Board commit:", { scope, totals, itemCount: selectedItems.length });
+
+    logActivityFireAndForget(
+      board.userId,
+      board.userId,
+      "board_updated",
+      "meal_board",
+      board.id,
+      { action: "commit", scope, totals, itemCount: selectedItems.length }
+    );
 
     res.json({
       ok: true,

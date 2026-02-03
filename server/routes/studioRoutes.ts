@@ -2,10 +2,11 @@ import { Router } from "express";
 import { db } from "../db";
 import { 
   studios, studioBilling, studioMemberships, studioInvites, 
-  clientNotes, clientActivityLog 
+  clientNotes, clientActivityLog
 } from "../db/schema/studio";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
 
 const router = Router();
 
@@ -14,36 +15,6 @@ function getUserId(req: any): string {
   const headerUserId = req.headers["x-user-id"] as string;
   if (headerUserId) return headerUserId;
   return "00000000-0000-0000-0000-000000000001";
-}
-
-type ActivityAction = 
-  | "membership_created" | "membership_activated" | "membership_paused"
-  | "builder_assigned" | "board_created" | "board_updated" | "board_deleted"
-  | "program_updated" | "macros_updated" | "settings_changed"
-  | "invite_sent" | "invite_accepted" | "note_added";
-
-async function logClientActivity(
-  studioId: string,
-  clientUserId: string,
-  actorUserId: string,
-  action: ActivityAction,
-  entityType?: string,
-  entityId?: string,
-  metadata?: Record<string, any>
-) {
-  try {
-    await db.insert(clientActivityLog).values({
-      studioId,
-      clientUserId,
-      actorUserId,
-      action,
-      entityType,
-      entityId,
-      metadata: metadata || {},
-    });
-  } catch (error) {
-    console.error("Failed to log activity:", error);
-  }
 }
 
 router.get("/my-studio", async (req, res) => {
@@ -497,5 +468,4 @@ router.get("/my-membership", async (req, res) => {
   }
 });
 
-export { logClientActivity };
 export default router;
