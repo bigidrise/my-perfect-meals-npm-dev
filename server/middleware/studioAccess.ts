@@ -113,3 +113,29 @@ export function getStudioInfo(req: Request): { studioId: string; studioName: str
     coachUserId: req.studioMembership.studioOwnerUserId || "",
   };
 }
+
+export function enforceBuilderFromParam(paramName: string = "program") {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.studioMembership) {
+      return next();
+    }
+
+    const { assignedBuilder } = req.studioMembership;
+    const requestedBuilder = req.params[paramName];
+    
+    if (!assignedBuilder) {
+      return res.status(403).json({ 
+        error: "No meal builder has been assigned to you yet. Please contact your coach." 
+      });
+    }
+
+    if (requestedBuilder && requestedBuilder !== assignedBuilder) {
+      return res.status(403).json({ 
+        error: `You are assigned to the ${assignedBuilder} builder. Please use that instead.`,
+        assignedBuilder 
+      });
+    }
+
+    next();
+  };
+}

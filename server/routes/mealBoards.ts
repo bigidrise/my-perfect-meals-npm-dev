@@ -5,11 +5,13 @@ import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
 import { eq, and, desc } from "drizzle-orm";
 import { logActivityFireAndForget } from "../services/activityLog";
+import { enforceBuilderFromParam } from "../middleware/studioAccess";
 
 const router = Router();
 
 // Get or create current board for user/program
-router.get("/users/:userId/boards/:program/current", async (req, res) => {
+// Studio clients can only access their assigned builder
+router.get("/users/:userId/boards/:program/current", enforceBuilderFromParam("program"), async (req, res) => {
   try {
     const { userId, program } = req.params;
     const { days = "7", start } = req.query as { days?: string; start?: string };

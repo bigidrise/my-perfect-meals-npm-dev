@@ -81,6 +81,7 @@ import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for 
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
 import lockedDaysRouter from "./routes/lockedDays";
 import usersProfileRouter from "./routes/usersProfile";
+import { loadStudioMembership } from "./middleware/studioAccess";
 
 // Helper function to determine features by subscription plan
 function getFeaturesByPlan(plan: string) {
@@ -350,6 +351,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
+
+  // Load studio membership for all API routes (non-blocking - just attaches membership info to req)
+  app.use("/api", loadStudioMembership);
 
   // Mount auth session and alcohol log
   app.use(authSessionRouter);
