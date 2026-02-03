@@ -2,8 +2,12 @@ import { Router } from "express";
 import { db } from "../db";
 import { diabetesProfile, glucoseLogs } from "../../shared/schema";
 import { eq } from "drizzle-orm";
+import { enforceAssignedBuilder } from "../middleware/studioAccess";
 
 export const diabetesRouter = Router();
+
+// Studio clients must be assigned to the Diabetic builder to access these routes
+diabetesRouter.use(enforceAssignedBuilder(["diabetic"]));
 
 // Get profile
 // GET /api/diabetes/profile?userId=xxx

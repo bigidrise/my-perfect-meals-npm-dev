@@ -4,8 +4,12 @@ import { sql } from "drizzle-orm";
 import { GLP1GuardrailsZ, DEFAULT_GLP1_GUARDRAILS } from "../../shared/glp1-schema";
 import { glp1AuditLog } from "../db/schema";
 import crypto from "crypto";
+import { enforceAssignedBuilder } from "../middleware/studioAccess";
 
 const router = Router();
+
+// Studio clients must be assigned to the GLP-1 builder to access these routes
+router.use(enforceAssignedBuilder(["glp1"]));
 
 // GET /api/glp1/profile
 router.get("/profile", async (req, res) => {
