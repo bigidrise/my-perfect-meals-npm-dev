@@ -383,16 +383,18 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
             <button
               onClick={handlePhotoTap}
               disabled={isUploadingPhoto}
-              className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg flex items-center justify-center group ring-2 ring-orange-500/30"
+              className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg group ring-2 ring-orange-500/30"
             >
               {profilePhotoUrl ? (
                 <img
                   src={profilePhotoUrl}
                   alt={userName}
-                  className="w-full h-full object-cover object-center"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (
-                <User className="h-9 w-9 text-white/70" />
+                <div className="w-full h-full flex items-center justify-center">
+                  <User className="h-9 w-9 text-white/70" />
+                </div>
               )}
               {isUploadingPhoto ? (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
