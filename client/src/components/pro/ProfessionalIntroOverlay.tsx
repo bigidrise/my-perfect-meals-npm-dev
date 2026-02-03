@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Target,
   Dumbbell,
@@ -152,6 +153,7 @@ export function ProfessionalIntroOverlay({
   onEnter,
 }: ProfessionalIntroOverlayProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   const content = CONTENT[type];
   const storageKey = STORAGE_KEYS[type];
@@ -164,7 +166,9 @@ export function ProfessionalIntroOverlay({
   }, [storageKey]);
 
   const handleEnter = () => {
-    localStorage.setItem(storageKey, "true");
+    if (dontShowAgain) {
+      localStorage.setItem(storageKey, "true");
+    }
     setIsVisible(false);
     onEnter();
   };
@@ -340,6 +344,17 @@ export function ProfessionalIntroOverlay({
                 Enter Workspace
                 <ChevronRight className="h-5 w-5 ml-2" />
               </Button>
+
+              <label className="flex items-center justify-center gap-2 cursor-pointer py-2">
+                <Checkbox
+                  checked={dontShowAgain}
+                  onCheckedChange={(checked) => setDontShowAgain(checked as boolean)}
+                  className="border-white/30 data-[state=checked]:bg-white/20 data-[state=checked]:border-white/40"
+                />
+                <span className="text-sm text-white/60">
+                  Don't show this again
+                </span>
+              </label>
             </motion.div>
           </div>
         </div>
