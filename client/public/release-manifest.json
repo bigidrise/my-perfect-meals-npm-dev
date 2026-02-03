@@ -1,10 +1,10 @@
 {
-  "releaseId": "1.2.27",
+  "releaseId": "1.2.28",
   "publishedAt": "2026-02-03",
   "changes": [
-    "Added centralized activity logging service for ProCare Studios",
-    "Automatic activity tracking for meal board and weekly board actions",
-    "Single-lane enforcement: studio clients can only access assigned builder",
-    "Builder-specific access controls for GLP-1 and Diabetic routes"
+    "ProCare Workspace Branding: Renamed to Physicians Clinic and Trainer Studio",
+    "Professional Intro Overlay: Welcome screens for trainers and physicians on first entry",
+    "Detailed workspace guides with purpose, quick start, and tools overview",
+    "Optional 'Don't show again' for returning professionals"
   ]
 }
