@@ -56,6 +56,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
         "Coffee",
         "Spice",
         "Peanut Butter",
+        "Apple",
       ],
       summaryPrefix: "Flavor",
       otherEnabled: true,
