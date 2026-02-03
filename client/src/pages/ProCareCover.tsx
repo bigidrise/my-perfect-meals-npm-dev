@@ -29,7 +29,7 @@ export default function ProCareCover() {
         testId: "card-procare-physician",
       },
       {
-        title: "Trainer Studio",
+        title: "Trainers Studio",
         description: "Coaching, personalization, and performance meal planning",
         icon: Users,
         route: "/care-team/trainer",
