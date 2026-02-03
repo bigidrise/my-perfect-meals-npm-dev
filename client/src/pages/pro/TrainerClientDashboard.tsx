@@ -23,9 +23,9 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
-    title: "Trainer Workspace",
+    title: "Trainer Studio",
     description:
-      "This is your client control center. You'll set macros, assign meal builders, and guide nutrition strategy here.",
+      "Welcome to your coaching studio. Set macros, assign meal builders, and guide nutrition strategy here.",
   },
   {
     icon: "2",
@@ -164,7 +164,7 @@ export default function TrainerClientDashboard() {
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
-              Trainer Dashboard
+              Trainer Studio
             </h1>
           </div>
           <QuickTourButton onClick={quickTour.openTour} />
@@ -480,7 +480,7 @@ export default function TrainerClientDashboard() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Trainer Dashboard Guide"
+        title="Trainer Studio Guide"
         steps={TRAINER_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
