@@ -1,8 +1,8 @@
 {
-  "releaseId": "1.2.25",
-  "publishedAt": "2026-02-01",
+  "releaseId": "1.2.26",
+  "publishedAt": "2026-02-03",
   "changes": [
-    "Fixed bottom padding on Craving Studio to prevent content from being cut off",
-    "Applied compact headers to StudioWizard component"
+    "Added centralized activity logging service for ProCare Studios",
+    "Automatic activity tracking for meal board and weekly board actions"
   ]
 }
