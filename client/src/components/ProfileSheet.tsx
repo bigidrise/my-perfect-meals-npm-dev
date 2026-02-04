@@ -452,7 +452,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="w-full bg-orange-700/90 hover:bg-orange-800 border-orange-600 text-white hover:text-white mb-3"
+            className="w-full bg-orange-700/90 border-orange-600 text-white hover:text-white mb-3"
             data-testid="button-logout"
           >
             <LogOut className="h-4 w-4 mr-2" />

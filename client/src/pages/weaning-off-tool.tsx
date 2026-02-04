@@ -400,7 +400,7 @@ const WeaningOffTool = () => {
                       </Button>
                       <Button
                         onClick={() => recordCheckIn("skip")}
-                        className="bg-gray-500/20 border border-gray-500/50 text-sm text-white hover:bg-gray-500/30"
+                        className="bg-black/40 border border-white/20 text-sm text-white"
                         data-testid="button-skip-week"
                       >
                         Skip

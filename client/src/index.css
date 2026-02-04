@@ -318,35 +318,35 @@ body::-webkit-scrollbar {
   display: none; /* Chrome/Safari/iOS */
 }
 
-/* RULE 3: Kill hover effects on touch devices (phones/tablets) */
+/* ============================================
+   RULE 3: KILL ALL HOVER EFFECTS ON TOUCH/iOS
+   This is a mobile-first app - hover causes iOS flashes
+   NEVER use hover: classes on buttons in this app!
+   ============================================ */
 @media (hover: none), (pointer: coarse) {
-  /* Neutralize common Tailwind hover utilities that cause flashing */
-  .hover\:bg-black\/40:hover,
-  .hover\:bg-black\/50:hover,
-  .hover\:bg-black\/60:hover,
-  .hover\:bg-white\/10:hover,
-  .hover\:bg-white\/20:hover,
-  .hover\:bg-white\/30:hover,
-  .hover\:opacity-80:hover,
-  .hover\:opacity-90:hover,
-  .hover\:opacity-100:hover,
-  .hover\:shadow-lg:hover,
-  .hover\:shadow-xl:hover,
-  .hover\:scale-105:hover,
-  .hover\:scale-\[1\.02\]:hover,
-  .hover\:border-white\/30:hover,
-  .hover\:border-white\/40:hover {
+  /* NUCLEAR OPTION: Kill ALL hover state changes on touch devices */
+  *:hover {
+    background-color: inherit !important;
+    background: inherit !important;
+    border-color: inherit !important;
+    color: inherit !important;
+    opacity: inherit !important;
     transform: none !important;
     filter: none !important;
-    opacity: inherit !important;
     box-shadow: inherit !important;
-    background-color: inherit !important;
-    border-color: inherit !important;
+    outline: inherit !important;
+    text-decoration: inherit !important;
   }
 
-  /* Big hammer: prevent all hover-triggered paint changes */
-  *:hover {
-    filter: none !important;
+  /* Explicitly kill all common Tailwind hover utilities */
+  [class*="hover\:"]:hover {
+    background-color: inherit !important;
+    background: inherit !important;
+    border-color: inherit !important;
+    color: inherit !important;
+    opacity: inherit !important;
+    transform: none !important;
+    box-shadow: inherit !important;
   }
 
   /* Glass cards should not animate on touch */
@@ -356,16 +356,18 @@ body::-webkit-scrollbar {
     transform: none !important;
   }
 
-  /* Buttons should not transform/scale on hover for touch */
+  /* Buttons: no hover, only active:scale for tactile feedback */
   button:hover,
   [role="button"]:hover,
-  .btn:hover {
-    transform: none !important;
-  }
-
-  /* Prevent text color changes on hover for touch devices */
-  .hover\:text-white:hover {
+  .btn:hover,
+  a:hover {
+    background-color: inherit !important;
+    background: inherit !important;
+    border-color: inherit !important;
     color: inherit !important;
+    opacity: inherit !important;
+    transform: none !important;
+    box-shadow: inherit !important;
   }
 }
 
