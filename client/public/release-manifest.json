@@ -1,10 +1,9 @@
 {
-  "releaseId": "1.2.28",
-  "publishedAt": "2026-02-03",
+  "releaseId": "1.2.29",
+  "publishedAt": "2026-02-04",
   "changes": [
-    "ProCare Workspace Branding: Renamed to Physicians Clinic and Trainer Studio",
-    "Professional Intro Overlay: Welcome screens for trainers and physicians on first entry",
-    "Detailed workspace guides with purpose, quick start, and tools overview",
-    "Optional 'Don't show again' for returning professionals"
+    "Text Size Accessibility: Choose your preferred text size (Standard, Large, or XL)",
+    "New Text Size selector in Profile Sheet with A, A+, A++ buttons",
+    "Font preference syncs across devices when logged in"
   ]
 }
