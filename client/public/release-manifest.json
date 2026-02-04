@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.29",
+  "releaseId": "1.2.30",
   "publishedAt": "2026-02-04",
   "changes": [
-    "Text Size Accessibility: Choose your preferred text size (Standard, Large, or XL)",
-    "New Text Size selector in Profile Sheet with A, A+, A++ buttons",
-    "Font preference syncs across devices when logged in"
+    "Audio narration added to Professional Intro overlays (Trainer Studio & Physicians Clinic)",
+    "New Listen button with Chef guide for professional workspace introductions",
+    "Chef logo now appears in Pro Tip cards instead of emoji"
   ]
 }

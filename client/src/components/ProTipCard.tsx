@@ -59,7 +59,17 @@ export const ProTipCard: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl">👨🏿‍🍳</span>
+            <div
+              className="rounded-full overflow-hidden"
+              style={{
+                width: 36,
+                height: 36,
+                backgroundImage: "url(/icons/chef.png?v=2026c)",
+                backgroundSize: "130%",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+              }}
+            />
             <PillButton
               onClick={handleToggle}
               active={isPlaying}

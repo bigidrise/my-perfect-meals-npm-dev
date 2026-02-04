@@ -642,7 +642,7 @@ export default function DiabeticHub() {
 
             <button
               onClick={() => setLocation("/diabetic-menu-builder")}
-              className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-900 to-lime-900 hover:from-lime-500 hover:to-lime-500 text-white font-semibold transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 relative overflow-hidden"
+              className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-600 to-lime-600 text-white font-semibold transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
               <span className="relative z-10"> Diabetic Meal Builder </span>
