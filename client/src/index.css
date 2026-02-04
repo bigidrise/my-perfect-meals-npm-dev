@@ -33,6 +33,11 @@ html.font-size-xl {
   font-size: 20px;
 }
 
+/* Fixed-size container - immune to font scaling (for bottom nav, etc) */
+.font-size-fixed {
+  font-size: 16px !important;
+}
+
 /* iOS Viewport Wobble Fix - Prevents horizontal shift on navigation */
 html, body {
   width: 100dvw;
