@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.30",
+  "releaseId": "1.2.31",
   "publishedAt": "2026-02-04",
   "changes": [
-    "Audio narration added to Professional Intro overlays (Trainer Studio & Physicians Clinic)",
-    "New Listen button with Chef guide for professional workspace introductions",
-    "Chef logo now appears in Pro Tip cards instead of emoji"
+    "ProCare badges added to General Nutrition and Performance builders",
+    "Skip button styling fixed on Weaning Tool",
+    "Global iOS hover-flash fix applied to all buttons"
   ]
 }
