@@ -139,10 +139,10 @@ export default function BottomNav() {
                       height: "64px",
                       flexShrink: 0,
                     }}
-                    className={`touch-manipulation transition-opacity duration-300 ${
+                    className={`touch-manipulation ${
                       active
-                        ? "text-orange-500 opacity-100"
-                        : "text-gray-400 opacity-60 hover:opacity-100"
+                        ? "text-orange-500"
+                        : "text-gray-400 opacity-70"
                     }`}
                     data-testid={`nav-${item.id}`}
                   >
@@ -185,10 +185,10 @@ export default function BottomNav() {
                       height: "64px",
                       flexShrink: 0,
                     }}
-                    className={`touch-manipulation transition-opacity duration-300 ${
+                    className={`touch-manipulation ${
                       active
-                        ? "text-orange-500 opacity-100"
-                        : "text-gray-400 opacity-60 hover:opacity-100"
+                        ? "text-orange-500"
+                        : "text-gray-400 opacity-70"
                     }`}
                     data-testid={`nav-${item.id}`}
                   >
