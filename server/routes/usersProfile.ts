@@ -20,6 +20,7 @@ const UpdateProfileSchema = z.object({
   palateSpiceTolerance: z.enum(["none", "mild", "medium", "hot"]).optional(),
   palateSeasoningIntensity: z.enum(["light", "balanced", "bold"]).optional(),
   palateFlavorStyle: z.enum(["classic", "herb", "savory", "bright"]).optional(),
+  fontSizePreference: z.enum(["standard", "large", "xl"]).optional(),
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -55,6 +56,7 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = patch.palateSpiceTolerance;
     if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;
     if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
+    if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
 
     await db
       .update(users)

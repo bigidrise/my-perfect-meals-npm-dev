@@ -62,6 +62,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           fitnessGoal: userData.fitnessGoal || null,
           allergies: userData.allergies || [],
           dietaryRestrictions: userData.dietaryRestrictions || [],
+          fontSizePreference: userData.fontSizePreference || "standard",
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));

@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import AppRouter from "@/components/AppRouter";
 import Router from "@/components/Router";
 import { AvatarSelector } from "@/components/AvatarSelector";
@@ -130,6 +131,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <FontSizeProvider>
             <AudioProvider>
               <VoiceProvider>
                 <ScrollManager />
@@ -148,6 +150,7 @@ export default function App() {
               </CopilotSystem>
               </VoiceProvider>
             </AudioProvider>
+            </FontSizeProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

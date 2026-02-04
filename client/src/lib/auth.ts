@@ -75,6 +75,8 @@ export interface User {
   fitnessGoal?: string | null;
   allergies?: string[];
   dietaryRestrictions?: string[];
+  // Display preferences
+  fontSizePreference?: "standard" | "large" | "xl";
 }
 
 export function getAuthToken(): string | null {
