@@ -324,29 +324,9 @@ body::-webkit-scrollbar {
    NEVER use hover: classes on buttons in this app!
    ============================================ */
 @media (hover: none), (pointer: coarse) {
-  /* NUCLEAR OPTION: Kill ALL hover state changes on touch devices */
+  /* Disable hover state transitions completely on touch devices */
   *:hover {
-    background-color: inherit !important;
-    background: inherit !important;
-    border-color: inherit !important;
-    color: inherit !important;
-    opacity: inherit !important;
-    transform: none !important;
-    filter: none !important;
-    box-shadow: inherit !important;
-    outline: inherit !important;
-    text-decoration: inherit !important;
-  }
-
-  /* Explicitly kill all common Tailwind hover utilities */
-  [class*="hover\:"]:hover {
-    background-color: inherit !important;
-    background: inherit !important;
-    border-color: inherit !important;
-    color: inherit !important;
-    opacity: inherit !important;
-    transform: none !important;
-    box-shadow: inherit !important;
+    transition: none !important;
   }
 
   /* Glass cards should not animate on touch */
@@ -356,18 +336,12 @@ body::-webkit-scrollbar {
     transform: none !important;
   }
 
-  /* Buttons: no hover, only active:scale for tactile feedback */
-  button:hover,
-  [role="button"]:hover,
-  .btn:hover,
-  a:hover {
-    background-color: inherit !important;
-    background: inherit !important;
-    border-color: inherit !important;
-    color: inherit !important;
-    opacity: inherit !important;
-    transform: none !important;
-    box-shadow: inherit !important;
+  /* Buttons: no hover changes, only active:scale for tactile feedback */
+  button,
+  [role="button"],
+  .btn,
+  a {
+    transition: none !important;
   }
 }
 
