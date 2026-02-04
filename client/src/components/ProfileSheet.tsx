@@ -382,83 +382,21 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         {/* User Info Section */}
         <div className="mt-6 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
           <div className="flex items-center gap-3">
-            <button
-              onClick={handlePhotoTap}
-              disabled={isUploadingPhoto}
-              className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg group ring-2 ring-orange-500/30"
+            <div
+              className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg ring-2 ring-orange-500/30"
             >
-              {profilePhotoUrl ? (
-                <img
-                  src={profilePhotoUrl}
-                  alt={userName}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <User className="h-9 w-9 text-white/70" />
-                </div>
-              )}
-              {isUploadingPhoto ? (
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 text-white animate-spin" />
-                </div>
-              ) : (
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="h-6 w-6 text-white" />
-                </div>
-              )}
-              <div className="absolute -bottom-0.5 -right-0.5 p-1.5 rounded-full bg-orange-500 border border-black/40">
-                <Camera className="h-3 w-3 text-white" />
+              <div className="w-full h-full flex items-center justify-center">
+                <User className="h-9 w-9 text-white/70" />
               </div>
-            </button>
+            </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold truncate">{userName}</h3>
               {userEmail && (
                 <p className="text-white/70 text-sm truncate">{userEmail}</p>
               )}
-              <p className="text-orange-300/70 text-xs mt-0.5">
-                Tap photo to change
-              </p>
             </div>
           </div>
         </div>
-
-        {/* Photo Options Action Sheet (iOS native) */}
-        {showPhotoOptions && (
-          <div
-            className="fixed inset-0 z-50 bg-black/60"
-            onClick={() => setShowPhotoOptions(false)}
-          >
-            <div
-              className="absolute bottom-0 left-0 right-0 bg-neutral-900 rounded-t-2xl p-4 pb-8 space-y-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-center text-white/60 text-sm mb-3">
-                Update Profile Photo
-              </p>
-              <button
-                onClick={() => handleCapacitorPhoto(CameraSource.Camera)}
-                className="w-full py-3 rounded-xl bg-white/10 text-white font-medium flex items-center justify-center gap-2 active:bg-white/20"
-              >
-                <Camera className="h-5 w-5" />
-                Take Photo
-              </button>
-              <button
-                onClick={() => handleCapacitorPhoto(CameraSource.Photos)}
-                className="w-full py-3 rounded-xl bg-white/10 text-white font-medium flex items-center justify-center gap-2 active:bg-white/20"
-              >
-                <ImageIcon className="h-5 w-5" />
-                Choose from Library
-              </button>
-              <button
-                onClick={() => setShowPhotoOptions(false)}
-                className="w-full py-3 rounded-xl bg-white/5 text-white/70 font-medium mt-2 active:bg-white/10"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Meal Reminders */}
         <div className="mt-4">

@@ -189,11 +189,16 @@ export default function Planner() {
                     >
                       <CardContent className="p-3">
                         <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Icon className={`h-4 w-4 flex-shrink-0 ${unlocked ? "text-orange-500" : "text-zinc-500"}`} />
                             <h3 className={`text-sm font-semibold ${unlocked ? "text-white" : "text-zinc-400"}`}>
                               {feature.title}
                             </h3>
+                            {feature.builderId === "beach_body" && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30">
+                                Ultimate
+                              </span>
+                            )}
                             {!unlocked && (
                               <Lock className="h-3 w-3 text-zinc-500 ml-auto" />
                             )}
