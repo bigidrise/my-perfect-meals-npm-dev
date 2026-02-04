@@ -5,7 +5,9 @@ import { eq, and, gte, desc } from "drizzle-orm";
 const SWITCH_LIMIT = 3;
 const WINDOW_MONTHS = 12;
 
-// FEATURE FLAG: Set to true to enforce builder switch limits
+// FEATURE FLAG: Set to true to enforce builder switch limits (for regular users only)
+// When false: unlimited switches, no tracking for everyone
+// When true: 3 switches per year for regular users, admins/testers always unlimited
 const ENFORCE_SWITCH_LIMITS = false;
 
 export interface BuilderSwitchStatus {
@@ -26,7 +28,47 @@ function getWindowStartDate(): Date {
   return now;
 }
 
+// Check if user is admin/tester - they NEVER have switch limits
+async function isAdminOrTester(userId: string): Promise<boolean> {
+  const [user] = await db.select({
+    role: users.role,
+    isTester: users.isTester,
+    entitlements: users.entitlements,
+  }).from(users).where(eq(users.id, userId)).limit(1);
+  
+  if (!user) return false;
+  
+  return (
+    user.role === "admin" ||
+    user.isTester === true ||
+    (user.entitlements || []).includes("FULL_ACCESS")
+  );
+}
+
+// Return unlimited status - used for admins and when limits are off
+function getUnlimitedStatus(): BuilderSwitchStatus {
+  return {
+    switchesUsed: 0,
+    switchesRemaining: 999,
+    canSwitch: true,
+    nextSwitchAvailable: null,
+    recentSwitches: [],
+  };
+}
+
 export async function getBuilderSwitchStatus(userId: string): Promise<BuilderSwitchStatus> {
+  // When limits aren't enforced, everyone gets unlimited
+  if (!ENFORCE_SWITCH_LIMITS) {
+    return getUnlimitedStatus();
+  }
+  
+  // Admins/testers always get unlimited, even when limits are enforced
+  const isAdmin = await isAdminOrTester(userId);
+  if (isAdmin) {
+    return getUnlimitedStatus();
+  }
+  
+  // For regular users when limits are enforced, check their history
   const windowStart = getWindowStartDate();
   
   const switches = await db
@@ -76,40 +118,47 @@ export async function attemptBuilderSwitch(
   
   const currentBuilder = user.selectedMealBuilder;
   
+  // Same builder - just return success, no action needed
   if (currentBuilder === newBuilder) {
     const status = await getBuilderSwitchStatus(userId);
     return {
-      success: false,
-      error: "You're already using this meal builder.",
+      success: true,
       status,
     };
   }
   
-  const status = await getBuilderSwitchStatus(userId);
+  // Check if admin/tester - they ALWAYS can switch, no limits ever
+  const isAdmin = await isAdminOrTester(userId);
   
-  // Only enforce limits if the feature flag is enabled
-  if (ENFORCE_SWITCH_LIMITS && !status.canSwitch) {
-    const nextDate = status.nextSwitchAvailable
-      ? status.nextSwitchAvailable.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })
-      : "later this year";
+  // Only check limits for non-admin users when ENFORCE_SWITCH_LIMITS is true
+  if (ENFORCE_SWITCH_LIMITS && !isAdmin) {
+    const status = await getBuilderSwitchStatus(userId);
     
-    return {
-      success: false,
-      error: `You've used all ${SWITCH_LIMIT} builder switches for this year. Your next switch will be available on ${nextDate}.`,
-      status,
-    };
+    if (!status.canSwitch) {
+      const nextDate = status.nextSwitchAvailable
+        ? status.nextSwitchAvailable.toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "later this year";
+      
+      return {
+        success: false,
+        error: `You've used all ${SWITCH_LIMIT} builder switches for this year. Your next switch will be available on ${nextDate}.`,
+        status,
+      };
+    }
+    
+    // Only track history when limits are enforced (for non-admins)
+    await db.insert(builderSwitchHistory).values({
+      userId,
+      fromBuilder: currentBuilder,
+      toBuilder: newBuilder,
+    });
   }
   
-  await db.insert(builderSwitchHistory).values({
-    userId,
-    fromBuilder: currentBuilder,
-    toBuilder: newBuilder,
-  });
-  
+  // Update the user's selected builder
   await db
     .update(users)
     .set({ selectedMealBuilder: newBuilder })
