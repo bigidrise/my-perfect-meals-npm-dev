@@ -114,11 +114,14 @@ export default function BottomNav() {
         </div>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[var(--safe-bottom)] font-size-fixed">
-        <div className="max-w-screen-xl mx-auto px-4">
-          <div className="relative h-16 grid grid-cols-[1fr_auto_1fr] items-center">
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl font-size-fixed"
+        style={{ paddingBottom: "var(--safe-bottom)", fontSize: "16px" }}
+      >
+        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 16px" }}>
+          <div style={{ position: "relative", height: "64px", display: "grid", gridTemplateColumns: "1fr 56px 1fr", alignItems: "center" }}>
             {/* LEFT ITEMS */}
-            <div className="flex items-center justify-start">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", flexWrap: "nowrap" }}>
               {leftItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
@@ -127,8 +130,16 @@ export default function BottomNav() {
                   <button
                     key={item.id}
                     onClick={() => handleNavClick(item.path)}
-                    style={{ flexDirection: "column" }}
-                    className={`flex items-center justify-center px-4 h-full touch-manipulation transition-opacity duration-300 ${
+                    style={{ 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      padding: "0 16px",
+                      height: "64px",
+                      flexShrink: 0,
+                    }}
+                    className={`touch-manipulation transition-opacity duration-300 ${
                       active
                         ? "text-orange-500 opacity-100"
                         : "text-gray-400 opacity-60 hover:opacity-100"
@@ -140,10 +151,11 @@ export default function BottomNav() {
                         <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
                       )}
                       <Icon
-                        className={`relative h-4 w-4 ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
+                        style={{ width: "16px", height: "16px" }}
+                        className={`relative ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
                       />
                     </div>
-                    <span className="text-[11px] mt-0.5 font-medium">
+                    <span style={{ fontSize: "11px", marginTop: "2px", fontWeight: 500 }}>
                       {item.label}
                     </span>
                   </button>
@@ -152,10 +164,10 @@ export default function BottomNav() {
             </div>
 
             {/* CENTER SPACER - Maintains grid spacing for Chef button area */}
-            <div className="w-14" aria-hidden="true" />
+            <div style={{ width: "56px" }} aria-hidden="true" />
 
             {/* RIGHT ITEMS */}
-            <div className="flex items-center justify-end">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
               {rightItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
@@ -164,8 +176,16 @@ export default function BottomNav() {
                   <button
                     key={item.id}
                     onClick={() => handleNavClick(item.path)}
-                    style={{ flexDirection: "column" }}
-                    className={`flex items-center justify-center px-4 h-full touch-manipulation transition-opacity duration-300 ${
+                    style={{ 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      padding: "0 16px",
+                      height: "64px",
+                      flexShrink: 0,
+                    }}
+                    className={`touch-manipulation transition-opacity duration-300 ${
                       active
                         ? "text-orange-500 opacity-100"
                         : "text-gray-400 opacity-60 hover:opacity-100"
@@ -177,10 +197,11 @@ export default function BottomNav() {
                         <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
                       )}
                       <Icon
-                        className={`relative h-4 w-4 ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
+                        style={{ width: "16px", height: "16px" }}
+                        className={`relative ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
                       />
                     </div>
-                    <span className="text-[11px] mt-0.5 font-medium">
+                    <span style={{ fontSize: "11px", marginTop: "2px", fontWeight: 500 }}>
                       {item.label}
                     </span>
                   </button>
