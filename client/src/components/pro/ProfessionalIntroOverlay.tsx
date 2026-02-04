@@ -1,7 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PillButton } from "@/components/ui/pill-button";
+import { ttsService } from "@/lib/tts";
+import {
+  TRAINER_INTRO_SCRIPT,
+  PHYSICIAN_INTRO_SCRIPT,
+} from "@/components/copilot/scripts/professionalIntroScripts";
 import {
   Target,
   Dumbbell,
@@ -152,9 +158,50 @@ export function ProfessionalIntroOverlay({
 }: ProfessionalIntroOverlayProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const content = CONTENT[type];
   const storageKey = STORAGE_KEYS[type];
+  const script = type === "trainer" ? TRAINER_INTRO_SCRIPT : PHYSICIAN_INTRO_SCRIPT;
+
+  const handleListenToggle = useCallback(async () => {
+    if (isPlaying) {
+      ttsService.stop();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlaying(false);
+      return;
+    }
+
+    setIsPlaying(true);
+
+    try {
+      const result = await ttsService.speak(script, {
+        onStart: () => setIsPlaying(true),
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
+
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(result.audioUrl!);
+        };
+        await audio.play();
+      }
+    } catch {
+      setIsPlaying(false);
+    }
+  }, [isPlaying, script]);
 
   useEffect(() => {
     const shouldHide = localStorage.getItem(storageKey) === "true";
@@ -164,6 +211,14 @@ export function ProfessionalIntroOverlay({
   }, [storageKey]);
 
   const handleEnter = () => {
+    if (isPlaying) {
+      ttsService.stop();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlaying(false);
+    }
     if (dontShowAgain) {
       localStorage.setItem(storageKey, "true");
     }
@@ -213,6 +268,24 @@ export function ProfessionalIntroOverlay({
               <p className="text-white/60 text-base max-w-lg mx-auto">
                 {content.subtitle}
               </p>
+
+              {/* Listen Button */}
+              <div className="flex flex-col items-center gap-1.5 mt-5">
+                <div
+                  className="rounded-full overflow-hidden"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    backgroundImage: "url(/icons/chef.png?v=2026c)",
+                    backgroundSize: "130%",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                  }}
+                />
+                <PillButton onClick={handleListenToggle} active={isPlaying}>
+                  {isPlaying ? "Stop" : "Listen"}
+                </PillButton>
+              </div>
             </motion.div>
 
             <motion.div
