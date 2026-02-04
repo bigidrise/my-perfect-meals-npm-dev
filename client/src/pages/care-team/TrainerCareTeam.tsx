@@ -568,29 +568,29 @@ function MemberCard({
   setLocation: (path: string) => void;
 }) {
   return (
-    <GlassCard className="overflow-hidden">
+    <GlassCard className="overflow-hidden max-w-xl">
       <CardHeader className="p-4 pb-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-white min-w-0 break-words flex-1">
             {member.name ?? "Unnamed Pro"}
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {statusBadge(member.status)}
           </div>
         </div>
         {member.email && (
-          <CardDescription className="text-white/70 mt-1">
+          <CardDescription className="text-white/70 mt-1 break-words">
             {member.email}
           </CardDescription>
         )}
       </CardHeader>
 
       <GlassCardContent className="p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2">
           {member.status === "active" && (
             <Button
               onClick={() => setLocation("/pro/clients")}
-              className="bg-lime-600 hover:bg-lime-600 text-white"
+              className="w-full bg-lime-600 hover:bg-lime-600 text-white"
               data-testid="button-open-pro-portal"
             >
               <ClipboardEdit className="h-4 w-4 mr-2" />
@@ -600,7 +600,7 @@ function MemberCard({
           {member.status === "pending" && onApprove && (
             <Button
               onClick={onApprove}
-              className="bg-orange-600/20 hover:bg-orange-600/20 text-white"
+              className="w-full bg-orange-600/20 hover:bg-orange-600/20 text-white"
               data-testid="button-approve-member"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -611,7 +611,7 @@ function MemberCard({
             <Button
               onClick={onRevoke}
               variant="destructive"
-              className="bg-red-600 hover:bg-red-700"
+              className="w-full bg-red-600 hover:bg-red-700"
               data-testid="button-revoke-member"
             >
               <XCircle className="h-4 w-4 mr-2" />
