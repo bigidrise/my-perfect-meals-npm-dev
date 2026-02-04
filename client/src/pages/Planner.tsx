@@ -195,8 +195,13 @@ export default function Planner() {
                               {feature.title}
                             </h3>
                             {feature.builderId === "beach_body" && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30">
+                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30 flex-shrink-0">
                                 Ultimate
+                              </span>
+                            )}
+                            {(feature.builderId === "general_nutrition" || feature.builderId === "performance_competition") && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
+                                ProCare
                               </span>
                             )}
                             {!unlocked && (
