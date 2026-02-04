@@ -267,7 +267,7 @@ export default function Profile() {
                     <img
                       src={profilePhotoUrl}
                       alt={userName}
-                      className="w-full h-full object-cover object-center"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

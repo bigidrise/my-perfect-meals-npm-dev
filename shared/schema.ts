@@ -318,6 +318,8 @@ export const users = pgTable("users", {
   palateSpiceTolerance: text("palate_spice_tolerance").$type<"none"|"mild"|"medium"|"hot">().default("mild"),
   palateSeasoningIntensity: text("palate_seasoning_intensity").$type<"light"|"balanced"|"bold">().default("balanced"),
   palateFlavorStyle: text("palate_flavor_style").$type<"classic"|"herb"|"savory"|"bright">().default("classic"),
+  // Display Preferences - accessibility settings
+  fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),

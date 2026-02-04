@@ -48,6 +48,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
       voiceScript: "and what's the flavor going to be?",
       inputType: "buttons",
       buttonOptions: [
+        "No Preference",
         "Chocolate",
         "Vanilla",
         "Fruit",
@@ -56,6 +57,7 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
         "Coffee",
         "Spice",
         "Peanut Butter",
+        "Apple",
       ],
       summaryPrefix: "Flavor",
       otherEnabled: true,
@@ -152,28 +154,32 @@ const DESSERT_STUDIO_CONFIG: StudioConfig = {
 
     // Determine the actual dessert type to create
     let dessertType = category;
+    const hasFlavorPreference = flavor && flavor !== "No Preference";
+    const flavorText = hasFlavorPreference ? ` ${flavor.toLowerCase()}` : "";
     
     // If "Surprise Me" is selected, pick a classic dessert type based on style
     if (category === "Surprise Me") {
       if (style === "Celebration / Birthday" || style === "Wedding") {
         dessertType = "Cake";
-        parts.push(`Create a classic ${flavor.toLowerCase()} celebration cake.`);
+        parts.push(`Create a classic${flavorText} celebration cake.`);
       } else if (style === "Bakery-Style") {
         dessertType = "Cookies or Brownies";
-        parts.push(`Create a classic bakery-style ${flavor.toLowerCase()} dessert like cookies, brownies, or bars.`);
+        parts.push(`Create a classic bakery-style${flavorText} dessert like cookies, brownies, or bars.`);
       } else if (style === "Simple & Light") {
         dessertType = "Light Dessert";
-        parts.push(`Create a simple, light ${flavor.toLowerCase()} dessert like a mousse, pudding, or fruit-based treat.`);
+        parts.push(`Create a simple, light${flavorText} dessert like a mousse, pudding, or fruit-based treat.`);
       } else if (style === "Rich & Indulgent") {
         dessertType = "Rich Dessert";
-        parts.push(`Create a rich, indulgent ${flavor.toLowerCase()} dessert like a layered cake, cheesecake, or brownie sundae.`);
+        parts.push(`Create a rich, indulgent${flavorText} dessert like a layered cake, cheesecake, or brownie sundae.`);
       } else {
-        parts.push(`Create a classic ${flavor.toLowerCase()} dessert. Choose from: cake, pie, cookies, brownies, or bars.`);
+        parts.push(`Create a classic${flavorText} dessert. Choose from: cake, pie, cookies, brownies, or bars.`);
       }
     } else {
       // Specific category selected
       parts.push(`Dessert type: ${category}`);
-      parts.push(`Flavor: ${flavor}`);
+      if (hasFlavorPreference) {
+        parts.push(`Flavor: ${flavor}`);
+      }
       parts.push(`Style: ${style}`);
     }
 

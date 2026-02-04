@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFontSize } from "@/contexts/FontSizeContext";
 import { useToast } from "@/hooks/use-toast";
 import IOSMealReminders from "@/components/ios/IOSMealReminders";
 import { Capacitor } from "@capacitor/core";
@@ -55,6 +56,7 @@ interface ProfileSheetProps {
 export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
   const { user, setUser, refreshUser } = useAuth();
+  const { fontSize, setFontSize } = useFontSize();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -383,16 +385,18 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
             <button
               onClick={handlePhotoTap}
               disabled={isUploadingPhoto}
-              className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg flex items-center justify-center group ring-2 ring-orange-500/30"
+              className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg group ring-2 ring-orange-500/30"
             >
               {profilePhotoUrl ? (
                 <img
                   src={profilePhotoUrl}
                   alt={userName}
-                  className="w-full h-full object-cover object-center"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (
-                <User className="h-9 w-9 text-white/70" />
+                <div className="w-full h-full flex items-center justify-center">
+                  <User className="h-9 w-9 text-white/70" />
+                </div>
               )}
               {isUploadingPhoto ? (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -483,6 +487,26 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
               </button>
             );
           })}
+        </div>
+
+        {/* Font Size Selector */}
+        <div className="mt-4 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
+          <p className="text-sm text-white/70 mb-3">Text Size</p>
+          <div className="flex gap-2">
+            {(["standard", "large", "xl"] as const).map((size) => (
+              <button
+                key={size}
+                onClick={() => setFontSize(size)}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  fontSize === size
+                    ? "bg-orange-500 text-white"
+                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+              >
+                {size === "standard" ? "A" : size === "large" ? "A+" : "A++"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mt-6 pt-6 border-t border-white/10">

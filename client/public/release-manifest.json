@@ -1,10 +1,9 @@
 {
-  "releaseId": "1.2.27",
-  "publishedAt": "2026-02-03",
+  "releaseId": "1.2.29",
+  "publishedAt": "2026-02-04",
   "changes": [
-    "Added centralized activity logging service for ProCare Studios",
-    "Automatic activity tracking for meal board and weekly board actions",
-    "Single-lane enforcement: studio clients can only access assigned builder",
-    "Builder-specific access controls for GLP-1 and Diabetic routes"
+    "Text Size Accessibility: Choose your preferred text size (Standard, Large, or XL)",
+    "New Text Size selector in Profile Sheet with A, A+, A++ buttons",
+    "Font preference syncs across devices when logged in"
   ]
 }

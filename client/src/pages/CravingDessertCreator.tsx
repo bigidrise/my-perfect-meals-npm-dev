@@ -52,6 +52,7 @@ const DESSERT_CATEGORIES = [
 ];
 
 const FLAVOR_FAMILIES = [
+  { value: "no-preference", label: "No Preference" },
   { value: "apple", label: "Apple" },
   { value: "strawberry", label: "Strawberry" },
   { value: "blueberry", label: "Blueberry" },
