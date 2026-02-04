@@ -408,10 +408,15 @@ export default function MealBuilderSelection() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
                         {!isUnlocked && isProBuilder && (
                           <Lock className="w-4 h-4 text-zinc-500" />
+                        )}
+                        {option.id === "beach_body" && (
+                          <span className="text-xs px-2 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30">
+                            Ultimate
+                          </span>
                         )}
                         {((user?.isProCare ? user?.activeBoard : user?.selectedMealBuilder) || user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
