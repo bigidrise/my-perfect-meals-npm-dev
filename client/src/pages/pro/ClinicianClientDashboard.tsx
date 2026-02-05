@@ -4,10 +4,12 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { proStore } from "@/lib/proData";
+import { apiUrl } from "@/lib/resolveApiBase";
 import {
   ArrowLeft,
   Stethoscope,
   AlertCircle,
+  Ruler,
 } from "lucide-react";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -49,9 +51,35 @@ export default function ClinicianClientDashboard() {
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
 
+  interface BodyCompEntry {
+    id: number;
+    currentBodyFatPct: string;
+    goalBodyFatPct: string | null;
+    scanMethod: string;
+    source: string;
+    recordedAt: string;
+  }
+  const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
+  const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
+
   useEffect(() => {
     const c = proStore.getClient(clientId);
     if (c) setClient(c);
+  }, [clientId]);
+
+  useEffect(() => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.userId;
+    if (!uid) return;
+    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.entry) {
+          setBodyComp(data.entry);
+          setBodyCompSource(data.source);
+        }
+      })
+      .catch(() => {});
   }, [clientId]);
 
   return (
@@ -109,6 +137,46 @@ export default function ClinicianClientDashboard() {
                 follow-up scheduling, and medical oversight is being developed.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/5 border border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Ruler className="h-5 w-5" /> Body Composition
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {bodyComp ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Body Fat</div>
+                    <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
+                  </div>
+                  {bodyComp.goalBodyFatPct && (
+                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                      <div className="text-xs text-white/60">Goal</div>
+                      <div className="text-lg font-bold text-blue-400">{parseFloat(bodyComp.goalBodyFatPct).toFixed(1)}%</div>
+                    </div>
+                  )}
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Scan Method</div>
+                    <div className="text-sm font-medium text-white">{bodyComp.scanMethod}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>Last scan: {new Date(bodyComp.recordedAt).toLocaleDateString()}</span>
+                  {bodyCompSource && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                      recorded by {bodyCompSource}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-white/50 text-sm">No body composition data recorded for this patient yet.</p>
+            )}
           </CardContent>
         </Card>
 

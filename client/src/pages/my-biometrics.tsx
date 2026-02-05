@@ -37,6 +37,7 @@ import {
   Target,
   ArrowLeft,
   Info,
+  Ruler,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -75,6 +76,7 @@ import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
+import { getCurrentUser } from "@/lib/auth";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -841,6 +843,42 @@ export default function MyBiometrics() {
   const [weightView, setWeightView] = useState<"7" | "1" | "3" | "6" | "12">(
     "12",
   );
+
+  // ------- BODY COMPOSITION (database) -------
+  interface BodyCompEntry {
+    id: number;
+    currentBodyFatPct: string;
+    goalBodyFatPct: string | null;
+    scanMethod: string;
+    source: string;
+    recordedAt: string;
+  }
+  const [bodyCompLatest, setBodyCompLatest] = useState<BodyCompEntry | null>(null);
+  const [bodyCompHistory, setBodyCompHistory] = useState<BodyCompEntry[]>([]);
+  const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (!currentUser?.id) return;
+    const uid = currentUser.id;
+
+    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.entry) {
+          setBodyCompLatest(data.entry);
+          setBodyCompSource(data.source);
+        }
+      })
+      .catch(() => {});
+
+    fetch(apiUrl(`/api/users/${uid}/body-composition/history`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.items) setBodyCompHistory(data.items);
+      })
+      .catch(() => {});
+  }, []);
 
   // ------- BODY / WEIGHT (local) -------
   // SAFE: Start with defaults, load from storage in useEffect
@@ -1989,6 +2027,75 @@ export default function MyBiometrics() {
               )}
               {whr && <Summary label="Waist/Height" value={whr} />}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* BODY COMPOSITION */}
+        <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-white text-xl flex items-center gap-2">
+              <Ruler className="h-5 w-5" /> Body Composition
+            </CardTitle>
+            <Button
+              size="sm"
+              onClick={() => setLocation("/biometrics/body-composition")}
+              className="bg-white/10 border border-white/20 text-white text-xs"
+            >
+              Full History
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {bodyCompLatest ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Body Fat</div>
+                    <div className="text-lg font-bold text-white">{parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%</div>
+                  </div>
+                  {bodyCompLatest.goalBodyFatPct && (
+                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                      <div className="text-xs text-white/60">Goal</div>
+                      <div className="text-lg font-bold text-lime-400">{parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%</div>
+                    </div>
+                  )}
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Method</div>
+                    <div className="text-sm font-medium text-white">{bodyCompLatest.scanMethod}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>Last scan: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
+                  {bodyCompSource && bodyCompSource !== "client" && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                      {bodyCompSource}
+                    </span>
+                  )}
+                </div>
+                {bodyCompHistory.length > 1 && (
+                  <div className="pt-2 space-y-2">
+                    <div className="text-xs text-white/50 font-medium">Recent History</div>
+                    {bodyCompHistory.slice(0, 5).map((entry) => (
+                      <div key={entry.id} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg bg-black/20 border border-white/5">
+                        <span className="text-white/70">{new Date(entry.recordedAt).toLocaleDateString()}</span>
+                        <span className="text-white font-medium">{parseFloat(entry.currentBodyFatPct).toFixed(1)}%</span>
+                        <span className="text-white/50 text-xs">{entry.scanMethod}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <Ruler className="h-8 w-8 text-white/30 mx-auto mb-2" />
+                <p className="text-white/60 text-sm mb-3">No body composition data yet</p>
+                <Button
+                  onClick={() => setLocation("/biometrics/body-composition")}
+                  className="bg-green-600 text-white text-sm rounded-xl"
+                >
+                  Add First Measurement
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
