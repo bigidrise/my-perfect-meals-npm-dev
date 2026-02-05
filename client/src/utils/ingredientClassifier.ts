@@ -9,6 +9,22 @@ import {
   PANTRY_STAPLES
 } from '@/data/ingredientCategories';
 
+export const STARCHY_KEYWORDS = [
+  // Grains & Starches - actual carb-dense starches only
+  'rice', 'pasta', 'noodle', 'bread', 'toast', 'bagel', 'bun', 'croissant',
+  'oat', 'oatmeal', 'cereal', 'granola', 'wheat', 'barley', 'quinoa',
+  'couscous', 'bulgur', 'farro', 'millet', 'polenta', 'grits', 'cornmeal',
+  // Potatoes & Tubers
+  'potato', 'potatoes', 'sweet potato', 'yam', 'tater', 'hash brown', 'fries', 'french fries',
+  // Legumes (starchy)
+  'lentil', 'lentils', 'chickpea', 'chickpeas', 'black bean', 'kidney bean',
+  'pinto bean', 'navy bean', 'cannellini',
+  // Corn & Starchy Vegetables
+  'corn', 'tortilla', 'popcorn',
+  // Note: Removed sweeteners (honey, sugar) and cooking methods (fried, breaded)
+  // Those don't count toward starchy carb budget
+];
+
 export interface ClassifiedIngredient {
   name: string;
   normalizedName: string;
@@ -75,4 +91,43 @@ export function classifyIngredient(name: string): ClassifiedIngredient {
 
 export function classifyIngredients(names: string[]): ClassifiedIngredient[] {
   return names.map(classifyIngredient);
+}
+
+export interface StarchDetectionResult {
+  hasStarchy: boolean;
+  matchedTerms: string[];
+}
+
+export function detectStarchyIngredients(input: string | string[]): StarchDetectionResult {
+  const inputs = Array.isArray(input) ? input : [input];
+  const matchedTerms: string[] = [];
+  
+  for (const text of inputs) {
+    const normalized = text.toLowerCase().trim();
+    const words = normalized.split(/[\s,;.!?]+/).filter(Boolean);
+    
+    for (const keyword of STARCHY_KEYWORDS) {
+      const keywordParts = keyword.split(' ');
+      
+      if (keywordParts.length === 1) {
+        if (words.includes(keyword)) {
+          if (!matchedTerms.includes(keyword)) {
+            matchedTerms.push(keyword);
+          }
+        }
+      } else {
+        const pattern = new RegExp(`\\b${keyword.replace(/\s+/g, '\\s+')}\\b`, 'i');
+        if (pattern.test(normalized)) {
+          if (!matchedTerms.includes(keyword)) {
+            matchedTerms.push(keyword);
+          }
+        }
+      }
+    }
+  }
+  
+  return {
+    hasStarchy: matchedTerms.length > 0,
+    matchedTerms,
+  };
 }

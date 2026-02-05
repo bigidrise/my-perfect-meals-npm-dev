@@ -318,17 +318,13 @@ export default function WeeklyMealBoard() {
         markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
-        // Calm, non-alarming message - will retry automatically
-        toast({
-          title: "Saving...",
-          description: "We'll retry automatically.",
-          duration: 3000,
-        });
+        // Silent retry - no toast during decision-making flows
+        // Save will auto-retry on next user action
       } finally {
         setSaving(false);
       }
     },
-    [saveToHook, toast, clearDraft, markClean],
+    [saveToHook, clearDraft, markClean],
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
