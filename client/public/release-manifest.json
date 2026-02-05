@@ -2,10 +2,10 @@
   "releaseId": "1.2.36",
   "publishedAt": "2026-02-05",
   "changes": [
-    "Starch Guard now uses science-based classification",
-    "Only blocks HIGH GI starches: potato, rice, bread, pasta",
-    "ALLOWS moderate GI carbs: corn, beans, sweet potato, oats",
-    "Choose your own fibrous carb substitute or let Chef pick",
-    "Glucose monitoring moved to Diabetic Hub only"
+    "Starch Guard now has its own card in App Library",
+    "Science-based classification: only HIGH GI starches blocked",
+    "ALLOWS corn, beans, sweet potato, oats (moderate GI)",
+    "Choose your own fibrous carb or let Chef pick",
+    "GlucoseGuard clarified as Diabetic Hub only"
   ]
 }

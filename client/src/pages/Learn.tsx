@@ -166,24 +166,77 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "starchguard",
+    title: "Starch Guard — Weight Management",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "What Is Starch Guard?",
+          text: "Starch Guard is a weight management system that limits high-glycemic carbs — the starches that spike insulin and cause weight gain. It's not about diabetes or blood sugar monitoring. It's about controlling the specific carbs that affect your weight.",
+        },
+        {
+          heading: "The Science",
+          text: "Not all carbs are equal. High-glycemic starches hit your bloodstream fast, causing an insulin spike that signals your body to store fat. Fibrous carbs with lower glycemic index are absorbed slowly, giving steady energy without the fat-storage signal.",
+        },
+        {
+          heading: "What Starch Guard BLOCKS",
+          list: [
+            "White potatoes, fries, hash browns (GI 80-90)",
+            "White rice, jasmine rice, basmati (GI 70-90)",
+            "Bread, bagels, pasta, noodles (GI 70-85)",
+            "Pancakes, waffles, refined flour products",
+          ],
+        },
+        {
+          heading: "What Starch Guard ALLOWS",
+          list: [
+            "Corn — moderate GI with fiber, won't spike like rice",
+            "Sweet potato — high fiber slows absorption",
+            "Beans, lentils, chickpeas — low GI, high protein + fiber",
+            "Oats, quinoa, brown rice — fiber offsets the starch",
+          ],
+        },
+        {
+          heading: "How It Works",
+          text: "You get 1-2 starch meals per day (based on your strategy). When you've used your allocation and request something with potato, rice, or pasta, Starch Guard intercepts before the meal is generated.",
+        },
+        {
+          heading: "Your Two Choices",
+          list: [
+            "Pick Your Own — tell us what fibrous carb you want instead (broccoli, asparagus, etc.)",
+            "Chef's Choice — let Chef substitute with a delicious fibrous vegetable",
+          ],
+        },
+        {
+          heading: "Why It Matters",
+          text: "You can eat copious amounts of protein and vegetables and control your weight. But you cannot control your weight without controlling these specific starches. One or two starch meals a day, then fibrous carbs the rest. That's the strategy.",
+        },
+      ],
+    },
+  },
+  {
     id: "glucoseguard",
-    title: "GlucoseGuard™ — Blood Sugar Awareness",
+    title: "GlucoseGuard™ — Diabetic Meal Adjustment",
     icon: Heart,
     content: {
       sections: [
         {
           heading: "What Is GlucoseGuard?",
-          text: "GlucoseGuard is a nutrition awareness system designed to help reduce blood-sugar spikes while building meals, cravings, and meal plans. It works quietly in the background to guide food choices using balanced macros, fiber, and portion awareness.",
+          text: "GlucoseGuard is for diabetics only. It reads your actual blood glucose level (mg/dL) from the Diabetic Hub and adjusts meal generation based on your current glucose state.",
         },
         {
           heading: "How GlucoseGuard Works",
           list: [
-            "Reads your latest glucose log and adjusts meal generation to match your current state",
+            "Reads your latest glucose log from the Diabetic Hub",
             "When glucose is low, meals include more carbs to help stabilize",
             "When glucose is elevated, meals go lower carb to help bring you back into range",
-            "Evaluates carb quality, fiber, and portion size during meal creation",
-            "Encourages balanced combinations of protein, fats, and carbohydrates",
+            "Only appears in the Diabetic Hub and Diabetic Meal Builder",
           ],
+        },
+        {
+          heading: "This Is Different From Starch Guard",
+          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about real-time glucose monitoring for diabetics. Most users don't need GlucoseGuard — they need Starch Guard.",
         },
         {
           heading: "What It Does Not Do",
@@ -192,10 +245,6 @@ const libraryTopics: LibraryTopic[] = [
             "Does not monitor blood glucose or adjust medications",
             "Does not replace medical care or professional advice",
           ],
-        },
-        {
-          heading: "Why It Exists",
-          text: "Many people want meals that are easier on blood sugar without giving up foods they enjoy. GlucoseGuard adds structure at the moment meals are created, helping users make steadier choices without fear-based restrictions.",
         },
       ],
     },
@@ -220,23 +269,16 @@ const libraryTopics: LibraryTopic[] = [
           ],
         },
         {
-          heading: "Starch Guard — Proactive Protection",
-          text: "When you've used up your starchy carb budget for the day and try to order something with potatoes, rice, pasta, or other starches, Starch Guard steps in before the meal is generated.",
-        },
-        {
-          heading: "Your Two Options",
-          list: [
-            "Order Something Else — clears your request and suggests non-starchy alternatives like meat, fish, or veggies",
-            "Let Chef Pick — proceeds with the meal, but Chef automatically swaps starches for fibrous vegetables",
-          ],
-        },
-        {
           heading: "What You'll See",
           list: [
             "Protein, Starchy Carbs, and Fiber remaining for the day",
             "Helpful coaching when you're running low or covered",
             "Forward-looking guidance — no judgment, just awareness",
           ],
+        },
+        {
+          heading: "Works With Starch Guard",
+          text: "When your starchy carb budget is exhausted, Starch Guard steps in to help you substitute with fibrous carbs. See the Starch Guard section for details.",
         },
         {
           heading: "Why It Exists",
