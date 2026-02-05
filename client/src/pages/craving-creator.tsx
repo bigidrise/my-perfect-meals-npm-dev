@@ -54,6 +54,8 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
+import { StarchGuardIntercept, StarchSubstitutionNotice } from "@/components/StarchGuardIntercept";
 
 interface StructuredIngredient {
   name: string;
@@ -353,6 +355,19 @@ export default function CravingCreator() {
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
   
+  // 🥔 StarchGuard preflight system (Phase 3 Nutrition Budget Engine)
+  const {
+    alert: starchAlert,
+    decision: starchDecision,
+    checkStarch,
+    clearAlert: clearStarchAlert,
+    setDecision: setStarchDecision,
+    isBlocked: starchBlocked,
+  } = useStarchGuardPrecheck();
+  
+  // Track substituted terms for post-generation notice
+  const [substitutedStarchTerms, setSubstitutedStarchTerms] = useState<string[]>([]);
+  
   // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
   
@@ -395,6 +410,23 @@ export default function CravingCreator() {
         // Banner will show automatically via safetyAlert state
         return;
       }
+    }
+    
+    // 🥔 Starch Guard preflight check - blocks if starchy + budget exhausted
+    if (!skipPreflight && starchDecision !== 'let_chef_pick') {
+      const starchOk = checkStarch(cravingInput);
+      if (!starchOk) {
+        // Intercept will show - user must choose before proceeding
+        return;
+      }
+    }
+    
+    // Track if Chef is substituting starches (for post-generation notice)
+    const chefSubstituting = starchDecision === 'let_chef_pick' && starchAlert.matchedTerms.length > 0;
+    if (chefSubstituting) {
+      setSubstitutedStarchTerms(starchAlert.matchedTerms);
+    } else {
+      setSubstitutedStarchTerms([]);
     }
 
     console.log("✅ Starting generation with:", {
@@ -838,6 +870,26 @@ export default function CravingCreator() {
                     onDismiss={clearSafetyAlert}
                     onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                   />
+                  
+                  {/* StarchGuard Intercept (Phase 3 Nutrition Budget Engine) */}
+                  <StarchGuardIntercept
+                    alert={starchAlert}
+                    onDecision={(decision) => {
+                      if (decision === 'order_something_else') {
+                        clearStarchAlert();
+                        setCravingInput('');
+                        toast({
+                          title: "Try a different ingredient",
+                          description: "Choose something without starches like meat, fish, or veggies.",
+                          duration: 4000,
+                        });
+                      } else if (decision === 'let_chef_pick') {
+                        setStarchDecision(decision);
+                        handleGenerateMeal(true);
+                      }
+                    }}
+                    className="mt-3"
+                  />
 
                   {/* Meal Safety Section */}
                   <div className="mt-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
@@ -917,6 +969,8 @@ export default function CravingCreator() {
                             setGeneratedMeals([]);
                             clearCravingCache();
                             setCravingInput("");
+                            setSubstitutedStarchTerms([]);
+                            clearStarchAlert();
                           }}
                           className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
                           data-testid="button-create-new"
@@ -924,6 +978,14 @@ export default function CravingCreator() {
                           Create New
                         </button>
                       </div>
+                      
+                      {/* Starch Substitution Notice (when Chef picked alternatives) */}
+                      {substitutedStarchTerms.length > 0 && (
+                        <StarchSubstitutionNotice 
+                          originalTerms={substitutedStarchTerms} 
+                          className="mb-4"
+                        />
+                      )}
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
