@@ -40,6 +40,7 @@ export default function BodyCompositionPro() {
   const [waist, setWaist] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [history, setHistory] = useState<BodyFatEntry[]>([]);
+  const [historyRange, setHistoryRange] = useState<"1M" | "3M" | "6M" | "12M" | "ALL">("12M");
   const [latestEntry, setLatestEntry] = useState<BodyFatEntry | null>(null);
   const [latestSource, setLatestSource] = useState<Source | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,6 +126,16 @@ export default function BodyCompositionPro() {
     return { kg, cm, m, bmi, fatMassKg, leanMassKg, ffmi, whtr };
   }, [units, weight, height, bodyFatPct, waist]);
 
+  const filteredHistory = useMemo(() => {
+    if (historyRange === "ALL") return history;
+    
+    const now = new Date();
+    const months = historyRange === "1M" ? 1 : historyRange === "3M" ? 3 : historyRange === "6M" ? 6 : 12;
+    const cutoff = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
+    
+    return history.filter((entry) => new Date(entry.recordedAt) >= cutoff);
+  }, [history, historyRange]);
+
   const save = async () => {
     if (!userId) {
       toast({
@@ -202,9 +213,9 @@ export default function BodyCompositionPro() {
     >
       <div className="fixed top-4 left-4 z-50">
         <Button
-          onClick={() => setLocation("/my-biometrics")}
+          onClick={() => setLocation("/macro-calculator")}
           className="bg-black/10 blur-none border border-white/20 text-white hover:bg-black/20 rounded-2xl w-10 h-10 p-0"
-          aria-label="Back to Biometrics"
+          aria-label="Back to Macro Calculator"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -465,13 +476,32 @@ export default function BodyCompositionPro() {
               <CardDescription className="text-white/80">
                 Your recorded body composition measurements
               </CardDescription>
+              <div className="flex flex-wrap gap-2 pt-3">
+                {(["1M", "3M", "6M", "12M", "ALL"] as const).map((range) => (
+                  <Button
+                    key={range}
+                    size="sm"
+                    variant={historyRange === range ? "default" : "outline"}
+                    onClick={() => setHistoryRange(range)}
+                    className={historyRange === range 
+                      ? "bg-orange-500 text-white border-orange-500" 
+                      : "bg-transparent text-white/70 border-white/20"}
+                  >
+                    {range === "ALL" ? "All" : range}
+                  </Button>
+                ))}
+              </div>
             </CardHeader>
             <CardContent className="relative z-10 space-y-3">
               {isLoading ? (
                 <div className="text-white/60 text-sm">Loading...</div>
+              ) : filteredHistory.length === 0 ? (
+                <div className="text-white/60 text-sm text-center py-4">
+                  No measurements in this time range
+                </div>
               ) : (
                 <>
-                  {history.slice(0, 5).map((entry) => (
+                  {filteredHistory.map((entry) => (
                     <div key={entry.id} className="p-4 rounded-xl bg-black/25 border border-white/10">
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-white font-semibold">
@@ -506,11 +536,9 @@ export default function BodyCompositionPro() {
                       </div>
                     </div>
                   ))}
-                  {history.length > 5 && (
-                    <div className="text-center text-white/60 text-sm pt-2">
-                      Showing 5 most recent entries (total: {history.length})
-                    </div>
-                  )}
+                  <div className="text-center text-white/60 text-sm pt-2">
+                    Showing {filteredHistory.length} of {history.length} total entries
+                  </div>
                 </>
               )}
             </CardContent>
