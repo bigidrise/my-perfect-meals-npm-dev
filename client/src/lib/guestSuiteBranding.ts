@@ -110,7 +110,7 @@ export const GUEST_SUITE_BRANDING = {
       lockedDescription: "Build your first meal to unlock",
     },
     chefsKitchen: {
-      label: "Chef's Kitchen",
+      label: "Chef's Kitchen Studio",
       description: "Step-by-step guided cooking with voice instructions — your personal sous chef",
       lockedDescription: "Complete the flow to unlock",
     },
