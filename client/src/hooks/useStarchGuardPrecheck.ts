@@ -39,8 +39,15 @@ export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
   const checkStarch = useCallback((input: string | string[]): boolean => {
     setChecking(true);
     
+    console.log('🥔 [StarchGuard] checkStarch called with:', input);
+    console.log('🥔 [StarchGuard] budget.hasStarchyFibrousTargets:', budget.hasStarchyFibrousTargets);
+    console.log('🥔 [StarchGuard] budget.status.starchyCarbs:', budget.status.starchyCarbs);
+    console.log('🥔 [StarchGuard] budget.targets.starchyCarbs_g:', budget.targets.starchyCarbs_g);
+    console.log('🥔 [StarchGuard] budget.consumed.starchyCarbs:', budget.consumed.starchyCarbs);
+    
     try {
       if (!budget.hasStarchyFibrousTargets) {
+        console.log('🥔 [StarchGuard] SKIP: No starchy/fibrous targets set');
         setAlert(EMPTY_STARCH_ALERT);
         return true;
       }
@@ -48,6 +55,7 @@ export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
       const starchyStatus = budget.status.starchyCarbs;
       
       if (starchyStatus !== 'exhausted' && starchyStatus !== 'over') {
+        console.log('🥔 [StarchGuard] SKIP: starchyStatus is', starchyStatus, '(not exhausted/over)');
         setAlert(EMPTY_STARCH_ALERT);
         return true;
       }
