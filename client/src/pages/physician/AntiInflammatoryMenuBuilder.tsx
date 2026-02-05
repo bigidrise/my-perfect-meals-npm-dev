@@ -103,6 +103,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -1364,6 +1365,7 @@ export default function AntiInflammatoryMenuBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
+        <NutritionBudgetBanner className="mb-2" />
         <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
             {/* ROW 1: Week Dates (centered) */}

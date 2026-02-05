@@ -201,6 +201,40 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "nutrition-budget",
+    title: "Nutrition Budget — Daily Tracking",
+    icon: Calculator,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Nutrition Budget?",
+          text: "The Nutrition Budget is a real-time tracking system that shows how much of your daily nutrition targets you've used — and what's left. It focuses on the three nutrients that matter most: Protein, Starchy Carbs, and Fibrous Carbs.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Your targets come from the Macro Calculator — one authoritative source",
+            "As you add meals throughout the day, the budget updates automatically",
+            "A banner at the top of each meal builder shows what's remaining",
+            "When a nutrient is covered, you'll see a checkmark and gentle coaching",
+          ],
+        },
+        {
+          heading: "What You'll See",
+          list: [
+            "Protein, Starchy Carbs, and Fiber remaining for the day",
+            "Helpful coaching when you're running low or covered",
+            "Forward-looking guidance — no judgment, just awareness",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Most apps only tell you what you ate. The Nutrition Budget tells you what to eat next. It's coaching in real-time, helping you make smarter choices as your day unfolds.",
+        },
+      ],
+    },
+  },
+  {
     id: "palate-preferences",
     title: "Palate Preferences — Flavor Customization",
     icon: Utensils,

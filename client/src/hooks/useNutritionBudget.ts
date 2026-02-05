@@ -3,6 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { getResolvedTargets } from "@/lib/macroResolver";
 
+export type NutrientStatus = 'good' | 'low' | 'exhausted' | 'over';
+
 export interface NutritionBudget {
   targets: {
     calories: number;
@@ -28,6 +30,11 @@ export interface NutritionBudget {
     starchyCarbs: number;
     fibrousCarbs: number;
   };
+  status: {
+    protein: NutrientStatus;
+    starchyCarbs: NutrientStatus;
+    fibrousCarbs: NutrientStatus;
+  };
   hasTargets: boolean;
   hasStarchyFibrousTargets: boolean;
   isOverBudget: {
@@ -38,6 +45,7 @@ export interface NutritionBudget {
     starchyCarbs: boolean;
     fibrousCarbs: boolean;
   };
+  needsCoaching: boolean;
 }
 
 export function useNutritionBudget(): NutritionBudget {
@@ -89,13 +97,34 @@ export function useNutritionBudget(): NutritionBudget {
       fibrousCarbs: consumed.fibrousCarbs > targets.fibrousCarbs_g && targets.fibrousCarbs_g > 0,
     };
 
+    const getStatus = (consumed: number, target: number): NutrientStatus => {
+      if (target === 0) return 'good';
+      const percentUsed = (consumed / target) * 100;
+      if (consumed > target) return 'over';
+      if (percentUsed >= 100) return 'exhausted';
+      if (percentUsed >= 80) return 'low';
+      return 'good';
+    };
+
+    const status = {
+      protein: getStatus(consumed.protein, targets.protein_g),
+      starchyCarbs: getStatus(consumed.starchyCarbs, targets.starchyCarbs_g),
+      fibrousCarbs: getStatus(consumed.fibrousCarbs, targets.fibrousCarbs_g),
+    };
+
+    const needsCoaching = status.protein !== 'good' || 
+                          status.starchyCarbs !== 'good' || 
+                          status.fibrousCarbs !== 'good';
+
     return {
       targets,
       consumed,
       remaining,
+      status,
       hasTargets,
       hasStarchyFibrousTargets,
       isOverBudget,
+      needsCoaching,
     };
   }, [user?.id, todayMacros]);
 }
