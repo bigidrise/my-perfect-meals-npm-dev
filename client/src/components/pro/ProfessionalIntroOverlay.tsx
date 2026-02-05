@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { PillButton } from "@/components/ui/pill-button";
 import { ttsService } from "@/lib/tts";
 import {
@@ -402,15 +401,14 @@ export function ProfessionalIntroOverlay({
                 <ChevronRight className="h-5 w-5 ml-2" />
               </Button>
 
-              <label className="flex items-center justify-center gap-2 cursor-pointer py-2">
-                <Checkbox
+              <label className="flex items-center justify-center gap-2 cursor-pointer py-2 text-sm text-white/60 select-none">
+                <input
+                  type="checkbox"
                   checked={dontShowAgain}
-                  onCheckedChange={(checked) => setDontShowAgain(checked as boolean)}
-                  className="border-white/30 data-[state=checked]:bg-white/20 data-[state=checked]:border-white/40"
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
                 />
-                <span className="text-sm text-white/60">
-                  Don't show this again
-                </span>
+                Don't show this again
               </label>
             </motion.div>
           </div>
