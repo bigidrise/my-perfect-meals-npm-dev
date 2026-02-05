@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useChefVoice } from "@/lib/useChefVoice";
@@ -14,10 +13,11 @@ import {
   ChevronUp,
   Info,
   AlertTriangle,
-  ExternalLink,
+  Plus,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import BodyCompositionSheet from "./BodyCompositionSheet";
 
 interface BodyFatEntry {
   id: number;
@@ -38,8 +38,8 @@ interface BodyCompositionSectionProps {
 export default function BodyCompositionSection({
   builderType,
 }: BodyCompositionSectionProps) {
-  const [, setLocation] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [latestEntry, setLatestEntry] = useState<BodyFatEntry | null>(null);
   const [latestSource, setLatestSource] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,9 +93,13 @@ export default function BodyCompositionSection({
     }
   };
 
-  const goToBiometrics = () => {
+  const openSheet = () => {
     stop();
-    setLocation("/biometrics/body-composition");
+    setSheetOpen(true);
+  };
+
+  const handleSheetSaved = () => {
+    loadLatest();
   };
 
   const sourceLabel = (s: string) => {
@@ -221,12 +225,12 @@ export default function BodyCompositionSection({
                 </div>
 
                 <Button
-                  onClick={goToBiometrics}
+                  onClick={openSheet}
                   variant="outline"
                   className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Update Body Composition
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Entry
                 </Button>
               </>
             ) : (
@@ -254,7 +258,7 @@ export default function BodyCompositionSection({
                 </div>
 
                 <Button
-                  onClick={goToBiometrics}
+                  onClick={openSheet}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Scale className="h-4 w-4 mr-2" />
@@ -265,6 +269,12 @@ export default function BodyCompositionSection({
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+
+      <BodyCompositionSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onSaved={handleSheetSaved}
+      />
     </Card>
   );
 }

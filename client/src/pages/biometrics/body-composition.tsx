@@ -406,9 +406,7 @@ export default function BodyCompositionPro() {
               <Button
                 onClick={save}
                 disabled={isSaving || !bodyFatPct}
-                className="relative isolate rounded-xl px-4 py-2
-                bg-white/5 backdrop-blur-2xl border border-white/10
-                           text-white shadow-md hover:bg-black/50 transition-colors disabled:opacity-50"
+                className="rounded-xl px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md transition-colors disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save"}
               </Button>
