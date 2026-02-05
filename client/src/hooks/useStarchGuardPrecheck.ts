@@ -1,16 +1,14 @@
-import { useState, useCallback, useMemo } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { useState, useCallback } from "react";
+import { useNutritionBudget, NutrientStatus } from "@/hooks/useNutritionBudget";
 import { detectStarchyIngredients } from "@/utils/ingredientClassifier";
-import { getDayStarchStatus } from "@/utils/starchMealClassifier";
-
-export type NutrientStatus = 'good' | 'low' | 'exhausted' | 'over';
 
 export interface StarchGuardAlertState {
   show: boolean;
   matchedTerms: string[];
   starchyStatus: NutrientStatus;
   message: string;
+  consumed: number;
+  target: number;
 }
 
 export const EMPTY_STARCH_ALERT: StarchGuardAlertState = {
@@ -18,6 +16,8 @@ export const EMPTY_STARCH_ALERT: StarchGuardAlertState = {
   matchedTerms: [],
   starchyStatus: 'good',
   message: '',
+  consumed: 0,
+  target: 0,
 };
 
 export type StarchGuardDecision = 'pending' | 'order_something_else' | 'let_chef_pick';
@@ -31,46 +31,10 @@ interface UseStarchGuardPrecheckResult {
   setDecision: (decision: StarchGuardDecision) => void;
   isBlocked: boolean;
   canProceed: boolean;
-}
-
-function getTodayMealsFromDraft(): any[] {
-  try {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('mpm_board_draft_'));
-    if (keys.length === 0) return [];
-    
-    const today = new Date();
-    const todayISO = today.toISOString().split('T')[0];
-    
-    for (const key of keys) {
-      if (key.endsWith('_meta')) continue;
-      
-      const draft = localStorage.getItem(key);
-      if (!draft) continue;
-      
-      const board = JSON.parse(draft);
-      if (!board.days) continue;
-      
-      const dayData = board.days[todayISO];
-      if (!dayData) continue;
-      
-      const meals = [
-        ...(dayData.breakfast || []),
-        ...(dayData.lunch || []),
-        ...(dayData.dinner || []),
-        ...(dayData.snacks || []),
-      ];
-      
-      if (meals.length > 0) {
-        console.log('🥔 [StarchGuard] Found', meals.length, 'meals for today from draft');
-        return meals;
-      }
-    }
-    
-    return [];
-  } catch (e) {
-    console.warn('🥔 [StarchGuard] Error reading draft:', e);
-    return [];
-  }
+  starchStatus: NutrientStatus;
+  starchyConsumed: number;
+  starchyTarget: number;
+  hasStarchyTargets: boolean;
 }
 
 export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
@@ -78,56 +42,57 @@ export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
   const [alert, setAlert] = useState<StarchGuardAlertState>(EMPTY_STARCH_ALERT);
   const [decision, setDecisionState] = useState<StarchGuardDecision>('pending');
   
-  const { user } = useAuth();
+  const budget = useNutritionBudget();
   
-  const starchConfig = useMemo(() => {
-    const resolved = getResolvedTargets(user?.id);
-    const strategy = resolved.starchStrategy || 'one';
-    const maxSlots = strategy === 'flex' ? 2 : 1;
-    return { strategy, maxSlots };
-  }, [user?.id]);
+  const starchyConsumed = budget.consumed.starchyCarbs;
+  const starchyTarget = budget.targets.starchyCarbs_g;
+  const starchStatus = budget.status.starchyCarbs;
+  const hasStarchyTargets = budget.hasStarchyFibrousTargets && starchyTarget > 0;
 
   const checkStarch = useCallback((input: string | string[]): boolean => {
     setChecking(true);
     
-    console.log('🥔 [StarchGuard] checkStarch called with:', input);
+    console.log('🥔 [StarchGuard] checkStarch called');
+    console.log('🥔 [StarchGuard] Input:', input);
+    console.log('🥔 [StarchGuard] Starchy consumed:', starchyConsumed, 'g');
+    console.log('🥔 [StarchGuard] Starchy target:', starchyTarget, 'g');
+    console.log('🥔 [StarchGuard] Starchy status:', starchStatus);
+    console.log('🥔 [StarchGuard] Has starchy targets:', hasStarchyTargets);
     
     try {
-      const todayMeals = getTodayMealsFromDraft();
-      const slotStatus = getDayStarchStatus(todayMeals, starchConfig.maxSlots);
-      
-      console.log('🥔 [StarchGuard] Slot status:', {
-        isUsed: slotStatus.isUsed,
-        starchMealCount: slotStatus.starchMealCount,
-        slotsRemaining: slotStatus.slotsRemaining,
-        maxSlots: slotStatus.maxSlots,
-      });
-      
-      if (!slotStatus.isUsed) {
-        console.log('🥔 [StarchGuard] ALLOW: Starch slots still available');
+      if (!hasStarchyTargets) {
+        console.log('🥔 [StarchGuard] SKIP: No starchy carb targets set');
+        setAlert(EMPTY_STARCH_ALERT);
+        return true;
+      }
+
+      if (starchStatus !== 'exhausted' && starchStatus !== 'over') {
+        console.log('🥔 [StarchGuard] ALLOW: Starchy status is', starchStatus, '(still have room)');
         setAlert(EMPTY_STARCH_ALERT);
         return true;
       }
 
       const detection = detectStarchyIngredients(input);
-      console.log('🥔 [StarchGuard] Detection:', detection);
+      console.log('🥔 [StarchGuard] Detection result:', detection);
       
       if (!detection.hasStarchy) {
-        console.log('🥔 [StarchGuard] ALLOW: No starchy ingredients detected');
+        console.log('🥔 [StarchGuard] ALLOW: No starchy ingredients detected in request');
         setAlert(EMPTY_STARCH_ALERT);
         return true;
       }
 
       const termsList = detection.matchedTerms.slice(0, 3).join(', ');
-      const message = `Your starch meal${starchConfig.maxSlots > 1 ? 's are' : ' is'} covered for today. You requested ${termsList}, but you've already used your allocation.`;
+      const message = `You've reached your daily starchy carb limit (${Math.round(starchyConsumed)}g of ${starchyTarget}g). You requested "${termsList}" which contains starchy carbs.`;
       
-      console.log('🥔 [StarchGuard] BLOCK: Starch slots exhausted and starchy request detected');
+      console.log('🥔 [StarchGuard] BLOCK: Starchy carbs at limit and starchy food requested');
       
       setAlert({
         show: true,
         matchedTerms: detection.matchedTerms,
-        starchyStatus: 'exhausted',
+        starchyStatus: starchStatus,
         message,
+        consumed: starchyConsumed,
+        target: starchyTarget,
       });
       
       setDecisionState('pending');
@@ -135,7 +100,7 @@ export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
     } finally {
       setChecking(false);
     }
-  }, [starchConfig.maxSlots]);
+  }, [starchyConsumed, starchyTarget, starchStatus, hasStarchyTargets]);
 
   const clearAlert = useCallback(() => {
     setAlert(EMPTY_STARCH_ALERT);
@@ -161,5 +126,9 @@ export function useStarchGuardPrecheck(): UseStarchGuardPrecheckResult {
     setDecision,
     isBlocked,
     canProceed,
+    starchStatus,
+    starchyConsumed,
+    starchyTarget,
+    hasStarchyTargets,
   };
 }

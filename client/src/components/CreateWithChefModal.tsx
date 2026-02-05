@@ -23,6 +23,7 @@ import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface CreateWithChefModalProps {
@@ -71,6 +72,16 @@ export function CreateWithChefModal({
     hasActiveOverride
   } = useSafetyGuardPrecheck();
   
+  const {
+    alert: starchAlert,
+    checkStarch,
+    clearAlert: clearStarchAlert,
+    setDecision: setStarchDecision,
+    starchyConsumed,
+    starchyTarget,
+    hasStarchyTargets,
+  } = useStarchGuardPrecheck();
+  
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
@@ -91,9 +102,10 @@ export function CreateWithChefModal({
       setDescription("");
       setSafetyEnabled(true);
       clearSafetyAlert();
+      clearStarchAlert();
       cancel();
     }
-  }, [open, cancel, clearSafetyAlert]);
+  }, [open, cancel, clearSafetyAlert, clearStarchAlert]);
 
   const executeGeneration = async () => {
     const meal = await generateMeal(
@@ -164,6 +176,13 @@ export function CreateWithChefModal({
       return;
     }
 
+    // STARCH GUARD CHECK - runs first, blocks if starchy carbs at limit
+    const starchOk = checkStarch(description.trim());
+    if (!starchOk) {
+      // Starch guard triggered - modal will show options
+      return;
+    }
+
     if (hasActiveOverride || !safetyEnabled) {
       await executeGeneration();
       return;
@@ -208,11 +227,17 @@ export function CreateWithChefModal({
             <Input
               placeholder={getPlaceholder()}
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                // Clear starch alert when user changes input
+                if (starchAlert.show) {
+                  clearStarchAlert();
+                }
+              }}
               disabled={isProcessing}
               className="bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-orange-400/50"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !isProcessing) {
+                if (e.key === "Enter" && !isProcessing && !starchAlert.show) {
                   handleGenerate();
                 }
               }}
@@ -222,6 +247,57 @@ export function CreateWithChefModal({
               personalized meal for you
             </p>
           </div>
+
+          {/* STARCH GUARD INTERCEPT - Blocks starchy requests when at limit */}
+          {starchAlert.show && (
+            <div className="rounded-lg border p-4 bg-orange-950/60 border-orange-500/50">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-orange-500/20 text-2xl">
+                  🥔
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-orange-400 mb-1">
+                    Starchy Carbs at Daily Limit
+                  </h4>
+                  
+                  <p className="text-orange-200/90 text-sm mb-3">
+                    You've reached your daily starchy carb limit ({Math.round(starchyConsumed)}g of {starchyTarget}g).
+                  </p>
+                  
+                  {starchAlert.matchedTerms.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-white/60 text-xs mb-1.5">You requested:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {starchAlert.matchedTerms.map((term, i) => (
+                          <span 
+                            key={i}
+                            className="px-2 py-0.5 bg-orange-500/20 text-orange-300 text-xs rounded-full border border-orange-500/30"
+                          >
+                            {term}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <p className="text-white/80 text-sm mb-3">
+                    Try ordering something with <span className="text-green-400 font-medium">fibrous carbs</span> instead, like leafy greens, broccoli, or cauliflower.
+                  </p>
+                  
+                  <Button
+                    onClick={() => {
+                      setDescription("");
+                      clearStarchAlert();
+                    }}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Order Something Else
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* SafetyGuard Preflight Banner - Black/Yellow Alert */}
           <SafetyGuardBanner
@@ -241,7 +317,7 @@ export function CreateWithChefModal({
             </div>
           )}
 
-          {error && !safetyAlert.show && <p className="text-sm text-amber-400">{error}</p>}
+          {error && !safetyAlert.show && !starchAlert.show && <p className="text-sm text-amber-400">{error}</p>}
 
           {/* Meal Safety Section */}
           <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
@@ -254,11 +330,23 @@ export function CreateWithChefModal({
             <GlucoseGuardToggle disabled={isProcessing} />
           </div>
 
+          {/* Starch Budget Info - show when user has targets */}
+          {hasStarchyTargets && !starchAlert.show && (
+            <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/60">Daily Starchy Carbs:</span>
+                <span className={`font-medium ${starchyConsumed >= starchyTarget ? 'text-orange-400' : 'text-green-400'}`}>
+                  {Math.round(starchyConsumed)}g / {starchyTarget}g
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <Button
               className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
               onClick={handleGenerate}
-              disabled={isProcessing || !description.trim()}
+              disabled={isProcessing || !description.trim() || starchAlert.show}
             >
               {isProcessing ? (
                 <>
