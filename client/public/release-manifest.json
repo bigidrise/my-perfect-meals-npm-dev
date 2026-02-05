@@ -1,10 +1,11 @@
 {
-  "releaseId": "1.2.35",
+  "releaseId": "1.2.37",
   "publishedAt": "2026-02-05",
   "changes": [
-    "Starch Guard explained in App Library",
-    "Copilot now mentions Starch Guard in Craving Creator",
-    "Starch Guard - blocks starchy meals when budget is exhausted",
-    "Two options: 'Order Something Else' or 'Let Chef Pick'"
+    "Starch Guard explanation added to all 7 meal builder copilots",
+    "Dashboard copilot now explains Starch Guard system",
+    "Removed GlucoseGuard mentions from non-diabetic features",
+    "Science-based HIGH GI blocking: potatoes, rice, bread, pasta",
+    "ALLOWS moderate GI with fiber: corn, beans, sweet potato, oats"
   ]
 }

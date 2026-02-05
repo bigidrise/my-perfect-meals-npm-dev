@@ -30,7 +30,6 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
-import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
@@ -624,14 +623,13 @@ export default function DessertCreator() {
               />
 
               {/* Meal Safety Section */}
-              <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+              <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                <span className="text-xs text-white/60 block mb-2">Allergy Safety</span>
                 <SafetyGuardToggle
                   safetyEnabled={safetyEnabled}
                   onSafetyChange={handleSafetyOverride}
                   disabled={isGenerating || safetyChecking}
                 />
-                <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
               </div>
               
               {/* Flavor Preference Section */}

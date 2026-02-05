@@ -50,7 +50,6 @@ import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
-import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
@@ -389,6 +388,13 @@ export default function CravingCreator() {
       handleGenerateMeal(true); // true = skip preflight (already have override)
     }
   }, [pendingGeneration, overrideToken, isGenerating]);
+  
+  // 🥔 Real-time Starch Guard check - triggers immediately as user types starchy ingredients
+  useEffect(() => {
+    if (cravingInput.trim().length >= 3 && starchDecision === 'pending') {
+      checkStarch(cravingInput);
+    }
+  }, [cravingInput, starchDecision, checkStarch]);
 
   const handleGenerateMeal = async (skipPreflight = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
@@ -892,14 +898,13 @@ export default function CravingCreator() {
                   />
 
                   {/* Meal Safety Section */}
-                  <div className="mt-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                    <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                  <div className="mt-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/60 block mb-2">Allergy Safety</span>
                     <SafetyGuardToggle
                       safetyEnabled={safetyEnabled}
                       onSafetyChange={handleSafetyOverride}
                       disabled={isGenerating || safetyChecking}
                     />
-                    <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
                   </div>
                   
                   {/* Flavor Preference Section */}
@@ -936,7 +941,7 @@ export default function CravingCreator() {
                       data-testid="cravingcreator-create-button"
                       data-wt="cc-generate-button"
                       onClick={() => handleGenerateMeal()}
-                      disabled={isGenerating || safetyChecking}
+                      disabled={isGenerating || safetyChecking || starchBlocked}
                       className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       {safetyChecking ? "Checking Safety..." : "Create My Craving"}
