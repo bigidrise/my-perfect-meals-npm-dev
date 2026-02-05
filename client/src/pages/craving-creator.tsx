@@ -389,6 +389,13 @@ export default function CravingCreator() {
       handleGenerateMeal(true); // true = skip preflight (already have override)
     }
   }, [pendingGeneration, overrideToken, isGenerating]);
+  
+  // 🥔 Real-time Starch Guard check - triggers immediately as user types starchy ingredients
+  useEffect(() => {
+    if (cravingInput.trim().length >= 3 && starchDecision === 'pending') {
+      checkStarch(cravingInput);
+    }
+  }, [cravingInput, starchDecision, checkStarch]);
 
   const handleGenerateMeal = async (skipPreflight = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
@@ -936,7 +943,7 @@ export default function CravingCreator() {
                       data-testid="cravingcreator-create-button"
                       data-wt="cc-generate-button"
                       onClick={() => handleGenerateMeal()}
-                      disabled={isGenerating || safetyChecking}
+                      disabled={isGenerating || safetyChecking || starchBlocked}
                       className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       {safetyChecking ? "Checking Safety..." : "Create My Craving"}
