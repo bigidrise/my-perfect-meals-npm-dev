@@ -1,11 +1,11 @@
 {
-  "releaseId": "1.2.36",
+  "releaseId": "1.2.37",
   "publishedAt": "2026-02-05",
   "changes": [
-    "Starch Guard now has its own card in App Library",
-    "Science-based classification: only HIGH GI starches blocked",
-    "ALLOWS corn, beans, sweet potato, oats (moderate GI)",
-    "Choose your own fibrous carb or let Chef pick",
-    "GlucoseGuard clarified as Diabetic Hub only"
+    "Starch Guard explanation added to all 7 meal builder copilots",
+    "Dashboard copilot now explains Starch Guard system",
+    "Removed GlucoseGuard mentions from non-diabetic features",
+    "Science-based HIGH GI blocking: potatoes, rice, bread, pasta",
+    "ALLOWS moderate GI with fiber: corn, beans, sweet potato, oats"
   ]
 }
