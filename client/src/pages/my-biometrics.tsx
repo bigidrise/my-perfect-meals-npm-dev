@@ -74,6 +74,7 @@ import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
+import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -471,14 +472,41 @@ export default function MyBiometrics() {
     return () => clearTimeout(t);
   }, [qv]);
 
-  const fillFromQuickView = () => {
+  const addFromQuickView = () => {
     if (!qv) return;
-    setP(String(qv.protein));
-    setC(String(qv.carbs));
-    setF(String(qv.fat));
-    setK(String(qv.calories));
-    setSc(String(qv.starchyCarbs ?? 0));
-    setFc(String(qv.fibrousCarbs ?? 0));
+    
+    const P = qv.protein;
+    const C = qv.carbs;
+    const F = qv.fat;
+    const K = qv.calories;
+    const SC = qv.starchyCarbs ?? 0;
+    const FC = qv.fibrousCarbs ?? 0;
+
+    setMacroRows((prev) => {
+      const idx = prev.findIndex((r) => r.day === today);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
+          kcal: next[idx].kcal + K,
+          protein: next[idx].protein + P,
+          carbs: next[idx].carbs + C,
+          fat: next[idx].fat + F,
+          starchyCarbs: (next[idx].starchyCarbs ?? 0) + SC,
+          fibrousCarbs: (next[idx].fibrousCarbs ?? 0) + FC,
+        };
+        return next;
+      }
+      return [{ day: today, kcal: K, protein: P, carbs: C, fat: F, starchyCarbs: SC, fibrousCarbs: FC }, ...prev];
+    });
+
+    toast({
+      title: "Added to Today",
+      description: `${P}g protein, ${C}g carbs, ${F}g fat logged.`,
+    });
+
+    clearQuickView();
+    setQv(null);
   };
 
   const dismissQuickView = () => {
@@ -721,6 +749,7 @@ export default function MyBiometrics() {
 
   // Paste support (works with labels or just numbers: "30 40 10 370")
   const [openPaste, setOpenPaste] = useState(false);
+  const [openDescribe, setOpenDescribe] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [showBiometricsInfoModal, setShowBiometricsInfoModal] = useState(false);
   const [showTodaysMacrosInfoModal, setShowTodaysMacrosInfoModal] =
@@ -1531,6 +1560,14 @@ export default function MyBiometrics() {
               📸 MacroScan
             </Button>
 
+            <Button
+              onClick={() => setOpenDescribe(true)}
+              className="w-full bg-amber-600/80 hover:bg-amber-600 text-md text-white mb-3"
+              data-testid="button-just-describe"
+            >
+              ✏️ Just Describe It
+            </Button>
+
             {/* Quick View Panel (display only, no auto-logging) */}
             {qv && (
               <div className="rounded-2xl border border-white/20 p-3 mb-3 bg-black/20 backdrop-blur-sm">
@@ -1549,11 +1586,11 @@ export default function MyBiometrics() {
                 </div>
                 <div className="flex gap-2 mb-2">
                   <Button
-                    onClick={fillFromQuickView}
-                    className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
-                    data-testid="button-fill-inputs"
+                    onClick={addFromQuickView}
+                    className="px-3 py-1 rounded-lg border border-lime-500/30 bg-lime-600/20 text-lime-300 hover:bg-lime-600/30 text-sm"
+                    data-testid="button-add-to-today"
                   >
-                    Fill Inputs
+                    Add to Today
                   </Button>
                   <Button
                     onClick={dismissQuickView}
@@ -1564,8 +1601,7 @@ export default function MyBiometrics() {
                   </Button>
                 </div>
                 <div className="text-[11px] text-white/60">
-                  Tip: Review or edit your numbers below, then press <b>Add</b>{" "}
-                  to log for today.
+                  Tip: Review the values above, then tap <b>Add to Today</b> to log.
                 </div>
               </div>
             )}
@@ -2036,6 +2072,42 @@ export default function MyBiometrics() {
         steps={biometricsTourSteps}
         title="How to Use Biometrics"
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+
+      <JustDescribeItModal
+        open={openDescribe}
+        onClose={() => setOpenDescribe(false)}
+        onAdd={(macros) => {
+          setMacroRows((prev) => {
+            const idx = prev.findIndex((r) => r.day === today);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = {
+                ...next[idx],
+                kcal: next[idx].kcal + macros.calories,
+                protein: next[idx].protein + macros.protein,
+                carbs: next[idx].carbs + macros.carbs,
+                fat: next[idx].fat + macros.fat,
+                starchyCarbs: (next[idx].starchyCarbs ?? 0) + macros.starchyCarbs,
+                fibrousCarbs: (next[idx].fibrousCarbs ?? 0) + macros.fibrousCarbs,
+              };
+              return next;
+            }
+            return [{
+              day: today,
+              kcal: macros.calories,
+              protein: macros.protein,
+              carbs: macros.carbs,
+              fat: macros.fat,
+              starchyCarbs: macros.starchyCarbs,
+              fibrousCarbs: macros.fibrousCarbs,
+            }, ...prev];
+          });
+          toast({
+            title: "Added to Today",
+            description: `${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat logged.`,
+          });
+        }}
       />
     </motion.div>
   );

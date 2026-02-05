@@ -1,10 +1,10 @@
 {
-  "releaseId": "1.2.32",
+  "releaseId": "1.2.33",
   "publishedAt": "2026-02-05",
   "changes": [
-    "Nutrition Budget Engine Phase 2 rolled out to all meal builders",
-    "Supportive coaching language - no red colors, no judgment",
-    "Nutrition Budget topic added to App Library",
-    "Don't show again checkboxes restyled across all guides"
+    "Just Describe It - log food by describing what you ate",
+    "Quick View now logs directly with one tap",
+    "Nutrition Budget mentioned on Home Copilot",
+    "Checkbox styling unified across all guides"
   ]
 }
