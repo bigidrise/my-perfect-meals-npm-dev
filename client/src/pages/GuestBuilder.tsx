@@ -429,7 +429,7 @@ export default function GuestBuilder() {
                   <div className="absolute inset-0 z-10 bg-black/45 backdrop-blur-[1.5px] pointer-events-none" />
                 )}
                 {action.isSignature && action.signatureBadge && (
-                  <div className={`absolute top-2 right-2 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black ${
+                  <div className={`absolute top-1.5 right-1.5 z-20 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black ${
                     action.feature === "craving-creator" ? "via-pink-600" : "via-orange-600"
                   } to-black rounded-full border ${
                     action.feature === "craving-creator" ? "border-pink-400/30" : "border-orange-400/30"
@@ -437,7 +437,7 @@ export default function GuestBuilder() {
                     <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
                       action.feature === "craving-creator" ? "bg-pink-400" : "bg-orange-400"
                     }`}></div>
-                    <span className="text-white font-semibold text-[9px]">
+                    <span className="text-white font-semibold text-[8px] tracking-wide">
                       {action.signatureBadge}
                     </span>
                   </div>
