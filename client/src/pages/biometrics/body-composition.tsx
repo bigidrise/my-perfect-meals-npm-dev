@@ -4,21 +4,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Scale, Ruler, Calendar as CalIcon } from "lucide-react";
+import { ArrowLeft, Scale, Ruler, Calendar as CalIcon, Info, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getCurrentUser } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 type Method = "DEXA" | "BodPod" | "Calipers" | "Smart Scale" | "Other";
 type Units = "imperial" | "metric";
+type Source = "client" | "trainer" | "physician";
 
-type SavedEntry = {
-  date: string;
-  method: Method;
-  units: Units;
-  weight: string;
-  height: string;
-  bodyFatPct: string;
-  waist: string;
-};
+interface BodyFatEntry {
+  id: number;
+  userId: string;
+  currentBodyFatPct: string;
+  goalBodyFatPct: string | null;
+  scanMethod: Method;
+  source: Source;
+  createdById: string | null;
+  notes: string | null;
+  recordedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function BodyCompositionPro() {
   const [, setLocation] = useLocation();
@@ -29,35 +36,62 @@ export default function BodyCompositionPro() {
   const [weight, setWeight] = useState<string>("");
   const [height, setHeight] = useState<string>("");
   const [bodyFatPct, setBodyFatPct] = useState<string>("");
+  const [goalBodyFatPct, setGoalBodyFatPct] = useState<string>("");
   const [waist, setWaist] = useState<string>("");
-  const [history, setHistory] = useState<SavedEntry[]>([]);
+  const [notes, setNotes] = useState<string>("");
+  const [history, setHistory] = useState<BodyFatEntry[]>([]);
+  const [latestEntry, setLatestEntry] = useState<BodyFatEntry | null>(null);
+  const [latestSource, setLatestSource] = useState<Source | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const user = getCurrentUser();
+  const userId = user?.id;
 
   useEffect(() => {
     document.title = "Body Composition | My Perfect Meals";
-    loadHistory();
-    const saved = localStorage.getItem("biometrics.bodyComp");
-    if (saved) {
-      try {
-        const j = JSON.parse(saved);
-        setUnits(j.units ?? "imperial");
-        setMethod(j.method ?? "DEXA");
-        setDate(j.date ?? "");
-        setWeight(j.weight ?? "");
-        setHeight(j.height ?? "");
-        setBodyFatPct(j.bodyFatPct ?? "");
-        setWaist(j.waist ?? "");
-      } catch {}
+    if (userId) {
+      loadLatest();
+      loadHistory();
     }
-  }, []);
+    setDate(new Date().toISOString().split("T")[0]);
+  }, [userId]);
 
-  const loadHistory = () => {
+  const loadLatest = async () => {
+    if (!userId) return;
     try {
-      const saved = localStorage.getItem("biometrics.bodyComp.history");
-      if (saved) {
-        const entries: SavedEntry[] = JSON.parse(saved);
-        setHistory(entries.sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.entry) {
+          setLatestEntry(data.entry);
+          setLatestSource(data.source);
+          setBodyFatPct(data.entry.currentBodyFatPct);
+          if (data.entry.goalBodyFatPct) {
+            setGoalBodyFatPct(data.entry.goalBodyFatPct);
+          }
+          setMethod(data.entry.scanMethod);
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.error("Error loading latest body composition:", err);
+    }
+  };
+
+  const loadHistory = async () => {
+    if (!userId) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/history`));
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.items || []);
+      }
+    } catch (err) {
+      console.error("Error loading body composition history:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toNumber = (v: string) => (v ? Number(v) : NaN);
@@ -91,22 +125,75 @@ export default function BodyCompositionPro() {
     return { kg, cm, m, bmi, fatMassKg, leanMassKg, ffmi, whtr };
   }, [units, weight, height, bodyFatPct, waist]);
 
-  const save = () => {
-    const payload = { units, method, date, weight, height, bodyFatPct, waist };
-    localStorage.setItem("biometrics.bodyComp", JSON.stringify(payload));
-    
-    const entry: SavedEntry = { ...payload };
-    const existingHistory = localStorage.getItem("biometrics.bodyComp.history");
-    const historyList: SavedEntry[] = existingHistory ? JSON.parse(existingHistory) : [];
-    historyList.push(entry);
-    localStorage.setItem("biometrics.bodyComp.history", JSON.stringify(historyList));
-    loadHistory();
-    
-    toast({
-      title: "✅ Data Saved",
-      description: "Your body composition measurements have been saved successfully.",
-    });
+  const save = async () => {
+    if (!userId) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to save your body composition data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const bf = toNumber(bodyFatPct);
+    if (!isFinite(bf) || bf < 1 || bf > 70) {
+      toast({
+        title: "Invalid body fat",
+        description: "Body fat percentage must be between 1% and 70%.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const payload = {
+        currentBodyFatPct: bf,
+        goalBodyFatPct: goalBodyFatPct ? toNumber(goalBodyFatPct) : null,
+        scanMethod: method,
+        source: "client" as Source,
+        notes: notes || null,
+        recordedAt: date ? new Date(date).toISOString() : new Date().toISOString(),
+      };
+
+      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save");
+      }
+
+      toast({
+        title: "Data Saved",
+        description: "Your body composition measurements have been saved successfully.",
+      });
+
+      loadLatest();
+      loadHistory();
+    } catch (err) {
+      console.error("Error saving body composition:", err);
+      toast({
+        title: "Save failed",
+        description: "Could not save your body composition data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const sourceLabel = (s: Source) => {
+    switch (s) {
+      case "trainer": return "Trainer Override";
+      case "physician": return "Physician Entry";
+      default: return "Self-Reported";
+    }
+  };
+
+  const hasOverride = latestSource === "trainer" || latestSource === "physician";
 
   return (
     <div
@@ -128,11 +215,53 @@ export default function BodyCompositionPro() {
           bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl">
           <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
                            bg-gradient-to-r from-white/10 via-transparent to-white/5" />
-          <h1 className="relative z-10 text-2xl md:text-2xl font-bold">Body Composition (Pro)</h1>
+          <h1 className="relative z-10 text-2xl md:text-2xl font-bold">Body Composition</h1>
           <p className="relative z-10 mt-2 text-white/85 text-md">
-            Record results from DEXA, BodPod, calipers, or smart scales. We'll compute the rest.
+            Record results from DEXA, BodPod, calipers, or smart scales. We'll track your progress.
           </p>
         </div>
+
+        {hasOverride && latestEntry && (
+          <Card className="relative isolate bg-amber-900/30 backdrop-blur-2xl border border-amber-400/30 shadow-xl rounded-2xl">
+            <CardContent className="relative z-10 p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="text-amber-200 font-semibold">
+                  {sourceLabel(latestSource!)} Active
+                </div>
+                <p className="text-white/80 text-sm mt-1">
+                  Your {latestSource === "trainer" ? "trainer" : "physician"} has set your body fat to {latestEntry.currentBodyFatPct}%.
+                  This value takes precedence and is used for meal planning adjustments.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {latestEntry && (
+          <Card className="relative isolate bg-green-900/20 backdrop-blur-2xl border border-green-400/20 shadow-xl rounded-2xl">
+            <CardHeader className="relative z-10 pb-2">
+              <CardTitle className="text-white flex items-center gap-2 text-lg">
+                <Info className="h-5 w-5 text-green-400" /> Current Body Fat
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative z-10 pt-0">
+              <div className="flex items-center gap-4">
+                <div className="text-4xl font-bold text-white">{latestEntry.currentBodyFatPct}%</div>
+                <div className="text-sm text-white/70">
+                  <div>Method: {latestEntry.scanMethod}</div>
+                  <div>Source: {sourceLabel(latestEntry.source)}</div>
+                  <div>Recorded: {new Date(latestEntry.recordedAt).toLocaleDateString()}</div>
+                </div>
+              </div>
+              {latestEntry.goalBodyFatPct && (
+                <div className="mt-3 text-white/80 text-sm">
+                  Goal: {latestEntry.goalBodyFatPct}%
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="relative isolate bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-2xl">
           <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
@@ -229,6 +358,17 @@ export default function BodyCompositionPro() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm text-white/85">Goal Body Fat % (optional)</label>
+              <Input
+                inputMode="decimal"
+                value={goalBodyFatPct}
+                onChange={(e) => setGoalBodyFatPct(e.target.value)}
+                className="bg-black/30 border-white/10 text-white"
+                placeholder="e.g., 12"
+              />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm text-white/85">
                 Waist ({units === "imperial" ? "in" : "cm"}) (optional)
               </label>
@@ -241,14 +381,25 @@ export default function BodyCompositionPro() {
               />
             </div>
 
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-sm text-white/85">Notes (optional)</label>
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="bg-black/30 border-white/10 text-white"
+                placeholder="e.g., Fasted morning scan"
+              />
+            </div>
+
             <div className="md:col-span-2 flex flex-wrap gap-3 pt-2">
               <Button
                 onClick={save}
+                disabled={isSaving || !bodyFatPct}
                 className="relative isolate rounded-xl px-4 py-2
                 bg-white/5 backdrop-blur-2xl border border-white/10
-                           text-white shadow-md hover:bg-black/50 transition-colors"
+                           text-white shadow-md hover:bg-black/50 transition-colors disabled:opacity-50"
               >
-                Save
+                {isSaving ? "Saving..." : "Save"}
               </Button>
             </div>
           </CardContent>
@@ -310,44 +461,57 @@ export default function BodyCompositionPro() {
             <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
                              bg-gradient-to-br from-white/10 via-transparent to-white/5" />
             <CardHeader className="relative z-10">
-              <CardTitle className="text-white">Saved History</CardTitle>
+              <CardTitle className="text-white">Measurement History</CardTitle>
               <CardDescription className="text-white/80">
                 Your recorded body composition measurements
               </CardDescription>
             </CardHeader>
             <CardContent className="relative z-10 space-y-3">
-              {history.slice(0, 5).map((entry, idx) => (
-                <div key={idx} className="p-4 rounded-xl bg-black/25 border border-white/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-white font-semibold">{entry.date || "No date"}</div>
-                    <div className="text-white/60 text-sm">{entry.method}</div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                    <div>
-                      <div className="text-white/60">Weight</div>
-                      <div className="text-white">{entry.weight} {entry.units === "imperial" ? "lb" : "kg"}</div>
-                    </div>
-                    <div>
-                      <div className="text-white/60">Height</div>
-                      <div className="text-white">{entry.height} {entry.units === "imperial" ? "in" : "cm"}</div>
-                    </div>
-                    <div>
-                      <div className="text-white/60">Body Fat</div>
-                      <div className="text-white">{entry.bodyFatPct}%</div>
-                    </div>
-                    {entry.waist && (
-                      <div>
-                        <div className="text-white/60">Waist</div>
-                        <div className="text-white">{entry.waist} {entry.units === "imperial" ? "in" : "cm"}</div>
+              {isLoading ? (
+                <div className="text-white/60 text-sm">Loading...</div>
+              ) : (
+                <>
+                  {history.slice(0, 5).map((entry) => (
+                    <div key={entry.id} className="p-4 rounded-xl bg-black/25 border border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-white font-semibold">
+                          {new Date(entry.recordedAt).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white/60 text-sm">{entry.scanMethod}</span>
+                          {entry.source !== "client" && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                              {entry.source}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {history.length > 5 && (
-                <div className="text-center text-white/60 text-sm pt-2">
-                  Showing 5 most recent entries (total: {history.length})
-                </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <div className="text-white/60">Body Fat</div>
+                          <div className="text-white font-medium">{entry.currentBodyFatPct}%</div>
+                        </div>
+                        {entry.goalBodyFatPct && (
+                          <div>
+                            <div className="text-white/60">Goal</div>
+                            <div className="text-white">{entry.goalBodyFatPct}%</div>
+                          </div>
+                        )}
+                        {entry.notes && (
+                          <div className="col-span-2 sm:col-span-1">
+                            <div className="text-white/60">Notes</div>
+                            <div className="text-white/80 truncate">{entry.notes}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {history.length > 5 && (
+                    <div className="text-center text-white/60 text-sm pt-2">
+                      Showing 5 most recent entries (total: {history.length})
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
