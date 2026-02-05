@@ -9,20 +9,46 @@ import {
   PANTRY_STAPLES
 } from '@/data/ingredientCategories';
 
+/**
+ * HIGH-GLYCEMIC STARCHES ONLY
+ * 
+ * These are the starches that spike insulin and cause weight gain.
+ * Real nutrition people know the difference:
+ * 
+ * BLOCK: White potato, white rice, refined bread/pasta (GI 70-90+)
+ * ALLOW: Corn, beans, sweet potato, oats, quinoa (GI 20-55, high fiber)
+ * 
+ * The goal is insulin/glucose management for weight control.
+ */
 export const STARCHY_KEYWORDS = [
-  // Grains & Starches - actual carb-dense starches only
-  'rice', 'pasta', 'noodle', 'bread', 'toast', 'bagel', 'bun', 'croissant',
-  'oat', 'oatmeal', 'cereal', 'granola', 'wheat', 'barley', 'quinoa',
-  'couscous', 'bulgur', 'farro', 'millet', 'polenta', 'grits', 'cornmeal',
-  // Potatoes & Tubers
-  'potato', 'potatoes', 'sweet potato', 'yam', 'tater', 'hash brown', 'fries', 'french fries',
-  // Legumes (starchy)
-  'lentil', 'lentils', 'chickpea', 'chickpeas', 'black bean', 'kidney bean',
-  'pinto bean', 'navy bean', 'cannellini',
-  // Corn & Starchy Vegetables
-  'corn', 'tortilla', 'popcorn',
-  // Note: Removed sweeteners (honey, sugar) and cooking methods (fried, breaded)
-  // Those don't count toward starchy carb budget
+  // White potato products (HIGH GI ~80-90) - THE #1 PROBLEM
+  'potato', 'potatoes', 'tater', 'hash brown', 'hashbrown',
+  'french fries', 'fries', 'mashed potato', 'baked potato',
+  
+  // White rice (HIGH GI ~70-90)
+  'rice', // generic rice assumed white (brown rice handled separately)
+  
+  // Refined wheat/flour products (HIGH GI ~70-85)
+  'bread', 'toast', 'bagel', 'bun', 'roll', 'croissant', 'biscuit',
+  'pasta', 'spaghetti', 'noodle', 'noodles', 'macaroni', 'penne', 'fettuccine', 'linguine',
+  'pancake', 'waffle', 'crepe',
+  
+  // Refined grains (HIGH GI)
+  'couscous', 'polenta', 'grits',
+];
+
+// These OVERRIDE the starchy keywords - they're safe
+export const ALLOWED_CARBS = [
+  // Sweet potato (Moderate GI, high fiber)
+  'sweet potato', 'yam',
+  // Brown/wild rice (Lower GI due to fiber)
+  'brown rice', 'wild rice',
+  // Corn (Moderate GI, high fiber - won't spike like rice/potato)
+  'corn',
+  // Legumes (LOW GI 20-40, high protein + fiber)
+  'bean', 'beans', 'lentil', 'chickpea', 'pea', 'edamame',
+  // Whole grains (Moderate GI, fiber)
+  'oat', 'oatmeal', 'quinoa', 'barley', 'bulgur', 'farro', 'millet',
 ];
 
 export interface ClassifiedIngredient {
@@ -106,21 +132,59 @@ export function detectStarchyIngredients(input: string | string[]): StarchDetect
     const normalized = text.toLowerCase().trim();
     const words = normalized.split(/[\s,;.!?]+/).filter(Boolean);
     
+    // First check if any ALLOWED carbs are present - these override starchy detection
+    // e.g., "sweet potato" should NOT trigger "potato" match
+    // e.g., "brown rice" should NOT trigger "rice" match
+    // e.g., "corn" should never be blocked
+    let hasAllowedCarb = false;
+    for (const allowed of ALLOWED_CARBS) {
+      const allowedParts = allowed.split(' ');
+      if (allowedParts.length === 1) {
+        if (words.includes(allowed)) {
+          hasAllowedCarb = true;
+        }
+      } else {
+        if (normalized.includes(allowed)) {
+          hasAllowedCarb = true;
+        }
+      }
+    }
+    
+    // If user mentions an allowed carb alongside a starchy one, 
+    // we need smarter matching. Check each starchy keyword.
     for (const keyword of STARCHY_KEYWORDS) {
       const keywordParts = keyword.split(' ');
+      let foundMatch = false;
       
       if (keywordParts.length === 1) {
         if (words.includes(keyword)) {
-          if (!matchedTerms.includes(keyword)) {
-            matchedTerms.push(keyword);
-          }
+          foundMatch = true;
         }
       } else {
         const pattern = new RegExp(`\\b${keyword.replace(/\s+/g, '\\s+')}\\b`, 'i');
         if (pattern.test(normalized)) {
-          if (!matchedTerms.includes(keyword)) {
-            matchedTerms.push(keyword);
+          foundMatch = true;
+        }
+      }
+      
+      if (foundMatch) {
+        // Check if this specific match is overridden by an allowed carb
+        // e.g., "rice" is overridden if "brown rice" or "wild rice" is present
+        // e.g., "potato" is overridden if "sweet potato" is present
+        let isOverridden = false;
+        
+        for (const allowed of ALLOWED_CARBS) {
+          // If the allowed carb contains this keyword, check if user used the allowed version
+          if (allowed.includes(keyword)) {
+            if (normalized.includes(allowed)) {
+              isOverridden = true;
+              break;
+            }
           }
+        }
+        
+        if (!isOverridden && !matchedTerms.includes(keyword)) {
+          matchedTerms.push(keyword);
         }
       }
     }
