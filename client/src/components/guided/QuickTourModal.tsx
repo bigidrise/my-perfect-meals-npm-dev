@@ -6,7 +6,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
@@ -79,15 +78,14 @@ export function QuickTourModal({
 
         <div className="flex flex-col gap-3 pt-2 border-t border-white/10">
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-white/60 select-none">
+              <input
+                type="checkbox"
                 checked={dontShowAgain}
-                onCheckedChange={(checked) =>
-                  setDontShowAgain(checked as boolean)
-                }
-                className="border-white/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+                className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
               />
-              <span className="text-xs text-white/60">Don't show again</span>
+              Don't show again
             </label>
 
             <Button
