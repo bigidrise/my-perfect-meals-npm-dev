@@ -409,28 +409,35 @@ export default function GuestBuilder() {
           {PHASE_2_BUTTONS.map((action) => {
             const unlocked = isFeatureUnlocked(action.feature);
             const isRevealed = action.id === "biometrics" && biometricsRevealed;
-            const isSignatureCard = action.isSignature;
-            const isChefsKitchen = action.id === "chefs-kitchen";
-            const isCravingCreator = action.id === "craving";
+            const isChefsKitchen = action.feature === "chefs-kitchen";
+            const isCravingCreator = action.feature === "craving-creator";
+            const isSignatureCard = isChefsKitchen || isCravingCreator;
+
+            const getCardStyle = () => {
+              if (unlocked) {
+                if (isChefsKitchen) return "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-zinc-900/40 border-amber-500/40 ring-1 ring-amber-500/20";
+                if (isCravingCreator) return "bg-gradient-to-br from-pink-900/30 via-purple-900/20 to-zinc-900/40 border-pink-500/40 ring-1 ring-pink-500/20";
+                if (isRevealed) return "bg-lime-900/20 border-lime-500/30 ring-1 ring-lime-500/20";
+                return "bg-zinc-900/40 border-white/10";
+              }
+              if (isChefsKitchen) return "bg-zinc-900/30 border-amber-500/20 opacity-70";
+              if (isCravingCreator) return "bg-zinc-900/30 border-pink-500/20 opacity-70";
+              return "bg-zinc-900/20 border-white/5 opacity-60";
+            };
+
+            const getIconStyle = () => {
+              if (unlocked) {
+                if (isChefsKitchen) return "bg-amber-500/20 shadow-inner shadow-amber-500/10";
+                if (isCravingCreator) return "bg-pink-500/20 shadow-inner shadow-pink-500/10";
+                if (isRevealed) return "bg-lime-500/20";
+              }
+              return "bg-white/10";
+            };
             
             return (
               <Card
                 key={action.id}
-                className={`border transition-all cursor-pointer relative overflow-hidden ${
-                  isChefsKitchen && unlocked
-                    ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-zinc-900/40 border-amber-500/40 hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-500/10 ring-1 ring-amber-500/20"
-                    : isCravingCreator && unlocked
-                      ? "bg-gradient-to-br from-pink-900/30 via-purple-900/20 to-zinc-900/40 border-pink-500/40 hover:border-pink-400/60 hover:shadow-lg hover:shadow-pink-500/10 ring-1 ring-pink-500/20"
-                      : unlocked 
-                        ? isRevealed
-                          ? "bg-lime-900/20 border-lime-500/30 hover:border-lime-400/50 hover:bg-lime-800/30 ring-1 ring-lime-500/20"
-                          : "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
-                        : isChefsKitchen
-                          ? "bg-zinc-900/30 border-amber-500/20 opacity-70"
-                          : isCravingCreator
-                            ? "bg-zinc-900/30 border-pink-500/20 opacity-70"
-                            : "bg-zinc-900/20 border-white/5 opacity-60"
-                }`}
+                className={`border transition-all cursor-pointer relative overflow-hidden ${getCardStyle()}`}
                 onClick={() => handleActionClick(action)}
               >
                 {isChefsKitchen && (
@@ -451,15 +458,7 @@ export default function GuestBuilder() {
                 )}
                 <CardContent className="p-4 flex items-center gap-4">
                   <div
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                      isChefsKitchen && unlocked 
-                        ? "bg-amber-500/20 shadow-inner shadow-amber-500/10" 
-                        : isCravingCreator && unlocked
-                          ? "bg-pink-500/20 shadow-inner shadow-pink-500/10"
-                          : isRevealed 
-                            ? "bg-lime-500/20" 
-                            : "bg-white/10"
-                    } ${unlocked ? action.iconColor : "text-white/40"}`}
+                    className={`w-14 h-14 rounded-xl flex items-center justify-center ${getIconStyle()} ${unlocked ? action.iconColor : "text-white/40"}`}
                   >
                     {unlocked ? action.icon : <Lock className="h-6 w-6" />}
                   </div>
