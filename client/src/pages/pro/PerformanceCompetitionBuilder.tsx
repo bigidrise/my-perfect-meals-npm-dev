@@ -85,6 +85,7 @@ import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
+import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { setMacroTargets } from "@/lib/dailyLimits";
@@ -174,6 +175,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const quickTour = useQuickTour("performance-competition-builder");
+  
+  // Body fat-based starch slot adjustment (includes +1 bonus if below goal for performance builders)
+  const bodyFatAdjustment = useBodyFatStarchAdjustment("performance_competition");
 
   // Route params
   const [, athleteParams] = useRoute("/athlete-meal-board/:clientId");
@@ -1246,6 +1250,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
                   />
                 </div>
               )}

@@ -76,6 +76,7 @@ import mealFinderRouter from "./routes/mealFinder";
 import { registerAdminSql } from "./adminSql";
 import glp1ShotsRoutes from "./routes/glp1Shots"; // Added import for glp1ShotsRoutes
 import glp1Routes from "./routes/glp1"; // GLP-1 profile routes
+import bodyCompositionRoutes from "./routes/bodyComposition"; // Body fat tracking
 import { diabetesRouter } from "./routes/diabetes"; // Diabetes profile and glucose logging
 import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for stripeCheckoutRouter
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
@@ -5687,6 +5688,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // Mount diabetes routes (glucose logging, profile)
   app.use("/api/diabetes", diabetesRouter);
+
+  // Mount body composition routes (body fat tracking)
+  app.use("/api", bodyCompositionRoutes);
 
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;

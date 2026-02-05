@@ -60,6 +60,7 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Nutrition Budget Engine v1.0 (Phase 1 + Phase 2)**: Global macro-aware system tracking daily nutrition limits, primarily focusing on Protein, Starchy Carbs, and Fibrous Carbs, with read-only awareness and soft coaching warnings.
 - **Just Describe It v1.0**: AI-powered macro estimation for real-world eating, allowing users to describe food in plain language for macro logging.
 - **Quick View Direct Add v1.0**: Streamlined macro logging flow, allowing direct logging from Quick View with a single tap.
+- **Body Composition Tracking System v1.0**: Database-first body fat percentage tracking with scan method support (DEXA, BodPod, Calipers, Smart Scale, Other). Integrates with Macro Calculator and affects starch allocation in Beach Body and Performance/Competition builders. Formula: BF% ≥ goal+5% reduces starch slots by 1, within ±3% no change, below goal +1 slot (Performance only). Strict precedence: trainer override > physician > client entries regardless of recency.
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.

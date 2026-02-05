@@ -39,6 +39,7 @@ import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
@@ -177,6 +178,9 @@ export default function BeachBodyMealBoard() {
   const { toast } = useToast();
   const quickTour = useQuickTour("beach-body-meal-board");
   const { user } = useAuth();
+  
+  // Body fat-based starch slot adjustment
+  const bodyFatAdjustment = useBodyFatStarchAdjustment("beach_body");
 
   // Get current user ID
   const getCurrentUserId = () => {
@@ -1296,6 +1300,7 @@ export default function BeachBodyMealBoard() {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
                   />
                 </div>
               )}
