@@ -157,6 +157,8 @@ const PHASE_2_BUTTONS: ActionButton[] = [
     iconColor: "text-pink-400",
     route: "/craving-creator",
     feature: "craving-creator",
+    isSignature: true,
+    signatureBadge: "Powered by Emotion AI™",
   },
   {
     id: "chefs-kitchen",
@@ -167,6 +169,8 @@ const PHASE_2_BUTTONS: ActionButton[] = [
     iconColor: "text-amber-400",
     route: "/lifestyle/chefs-kitchen",
     feature: "chefs-kitchen",
+    isSignature: true,
+    signatureBadge: "Powered by Emotion AI™",
   },
 ];
 
@@ -424,6 +428,20 @@ export default function GuestBuilder() {
                 {!unlocked && (
                   <div className="absolute inset-0 z-10 bg-black/45 backdrop-blur-[1.5px] pointer-events-none" />
                 )}
+                {action.isSignature && action.signatureBadge && (
+                  <div className={`absolute top-2 right-2 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black ${
+                    action.feature === "craving-creator" ? "via-pink-600" : "via-orange-600"
+                  } to-black rounded-full border ${
+                    action.feature === "craving-creator" ? "border-pink-400/30" : "border-orange-400/30"
+                  } shadow-lg`}>
+                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                      action.feature === "craving-creator" ? "bg-pink-400" : "bg-orange-400"
+                    }`}></div>
+                    <span className="text-white font-semibold text-[9px]">
+                      {action.signatureBadge}
+                    </span>
+                  </div>
+                )}
                 <CardContent className="p-4 flex items-center gap-4">
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center ${
@@ -435,7 +453,7 @@ export default function GuestBuilder() {
                   <div className="flex-1">
                     <div className={`font-semibold ${unlocked ? "text-white" : "text-white/50"}`}>
                       {action.label}
-                      {action.isPreview && unlocked && (
+                      {action.isPreview && unlocked && !action.isSignature && (
                         <span className="text-xs text-amber-400/80 ml-2">Preview</span>
                       )}
                       {!unlocked && (
