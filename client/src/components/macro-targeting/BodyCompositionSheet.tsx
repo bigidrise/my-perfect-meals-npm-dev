@@ -90,15 +90,12 @@ export default function BodyCompositionSheet({
     try {
       const goal = toNumber(goalBodyFatPct);
       const payload: Record<string, unknown> = {
-        currentBodyFatPct: bf.toString(),
+        currentBodyFatPct: bf,
+        goalBodyFatPct: isFinite(goal) && goal >= 1 && goal <= 70 ? goal : undefined,
         scanMethod: method,
         source: "client",
         recordedAt: date ? new Date(date).toISOString() : new Date().toISOString(),
       };
-
-      if (isFinite(goal) && goal >= 1 && goal <= 70) {
-        payload.goalBodyFatPct = goal.toString();
-      }
 
       const res = await fetch(apiUrl(`/api/users/${userId}/body-composition`), {
         method: "POST",
