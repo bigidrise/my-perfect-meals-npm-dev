@@ -7,36 +7,28 @@ interface NutritionBudgetBannerProps {
 
 const getStatusText = (status: NutrientStatus, remaining: number, nutrientLabel: string) => {
   const shortName = nutrientLabel.replace(' target', '').toLowerCase();
-  switch (status) {
-    case 'over':
-      return `You've used your ${shortName}`;
-    case 'exhausted':
-      return `${shortName} used up`;
-    case 'low':
-      return `${Math.round(remaining)}g left`;
-    default:
-      return `${Math.round(remaining)}g left`;
+  const isComplete = status === 'exhausted' || status === 'over';
+  if (isComplete) {
+    return `${shortName} covered`;
   }
+  return `${Math.round(remaining)}g left`;
 };
 
 const getCoachingMessage = (status: { protein: NutrientStatus; starchyCarbs: NutrientStatus; fibrousCarbs: NutrientStatus }) => {
   if (status.starchyCarbs === 'over' || status.starchyCarbs === 'exhausted') {
-    return "Your body will feel better finishing the day with fiber-rich options.";
+    return "Finish the day with fiber-rich options — your body will thank you.";
   }
   if (status.protein === 'over' || status.protein === 'exhausted') {
-    return "You've hit your protein goal for today. Great job!";
+    return "Your protein is well covered for today.";
   }
-  if (status.fibrousCarbs === 'over') {
-    return "Excellent fiber intake today!";
+  if (status.fibrousCarbs === 'over' || status.fibrousCarbs === 'exhausted') {
+    return "Your fiber intake is well covered today.";
   }
   if (status.starchyCarbs === 'low') {
     return "Consider saving your remaining starchy carbs for later.";
   }
   if (status.protein === 'low') {
     return "Protein-forward options will help you hit your target.";
-  }
-  if (status.fibrousCarbs === 'low' || status.fibrousCarbs === 'exhausted') {
-    return "Try adding more vegetables to reach your fiber goal.";
   }
   return null;
 };
@@ -122,17 +114,9 @@ function NutrientItem({ icon: Icon, label, remaining, status, baseColor }: Nutri
   const isComplete = status === 'exhausted' || status === 'over';
   const baseClasses = baseColorClasses[baseColor];
   
-  const bgColor = status === 'over' ? 'bg-rose-500/20' : 
-                  status === 'exhausted' ? 'bg-amber-500/20' : 
-                  baseClasses.bg;
-  
-  const iconColor = status === 'over' ? 'text-rose-400' : 
-                    status === 'exhausted' ? 'text-amber-400' : 
-                    baseClasses.icon;
-  
-  const textColor = status === 'over' ? 'text-rose-300' : 
-                    status === 'exhausted' ? 'text-amber-300' : 
-                    'text-white';
+  const bgColor = isComplete ? 'bg-gray-500/20' : baseClasses.bg;
+  const iconColor = isComplete ? 'text-gray-400' : baseClasses.icon;
+  const textColor = isComplete ? 'text-gray-300' : 'text-white';
 
   return (
     <div className="flex items-center gap-2">
