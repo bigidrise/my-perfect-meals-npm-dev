@@ -1,10 +1,10 @@
 {
-  "releaseId": "1.2.33",
+  "releaseId": "1.2.34",
   "publishedAt": "2026-02-05",
   "changes": [
-    "Just Describe It - log food by describing what you ate",
-    "Quick View now logs directly with one tap",
-    "Nutrition Budget mentioned on Home Copilot",
-    "Checkbox styling unified across all guides"
+    "Starch Guard - blocks starchy meals when budget is exhausted",
+    "Two options: 'Order Something Else' or 'Let Chef Pick'",
+    "Chef auto-substitutes starches with fibrous veggies",
+    "Silent save retries during meal generation"
   ]
 }
