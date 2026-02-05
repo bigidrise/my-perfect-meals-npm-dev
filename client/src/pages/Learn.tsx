@@ -220,6 +220,17 @@ const libraryTopics: LibraryTopic[] = [
           ],
         },
         {
+          heading: "Starch Guard — Proactive Protection",
+          text: "When you've used up your starchy carb budget for the day and try to order something with potatoes, rice, pasta, or other starches, Starch Guard steps in before the meal is generated.",
+        },
+        {
+          heading: "Your Two Options",
+          list: [
+            "Order Something Else — clears your request and suggests non-starchy alternatives like meat, fish, or veggies",
+            "Let Chef Pick — proceeds with the meal, but Chef automatically swaps starches for fibrous vegetables",
+          ],
+        },
+        {
           heading: "What You'll See",
           list: [
             "Protein, Starchy Carbs, and Fiber remaining for the day",
