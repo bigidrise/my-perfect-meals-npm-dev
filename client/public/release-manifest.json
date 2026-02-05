@@ -1,9 +1,10 @@
 {
-  "releaseId": "1.2.31",
-  "publishedAt": "2026-02-04",
+  "releaseId": "1.2.32",
+  "publishedAt": "2026-02-05",
   "changes": [
-    "ProCare badges added to General Nutrition and Performance builders",
-    "Skip button styling fixed on Weaning Tool",
-    "Global iOS hover-flash fix applied to all buttons"
+    "Nutrition Budget Engine Phase 2 rolled out to all meal builders",
+    "Supportive coaching language - no red colors, no judgment",
+    "Nutrition Budget topic added to App Library",
+    "Don't show again checkboxes restyled across all guides"
   ]
 }
