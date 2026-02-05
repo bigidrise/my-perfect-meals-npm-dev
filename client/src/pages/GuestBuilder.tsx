@@ -360,13 +360,16 @@ export default function GuestBuilder() {
             return (
               <Card
                 key={action.id}
-                className={`border transition-all cursor-pointer ${
+                className={`border transition-all cursor-pointer relative overflow-hidden ${
                   unlocked 
-                    ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40" 
-                    : "bg-zinc-900/20 border-white/5 opacity-60"
+                    ? "bg-zinc-900/40 border-white/10" 
+                    : "bg-zinc-900/40 border-white/5"
                 }`}
                 onClick={() => handleActionClick(action)}
               >
+                {!unlocked && (
+                  <div className="absolute inset-0 z-10 bg-black/45 backdrop-blur-[1.5px] pointer-events-none" />
+                )}
                 <CardContent className="p-4 flex items-center gap-4">
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 ${
@@ -420,9 +423,9 @@ export default function GuestBuilder() {
                 if (isRevealed) return "bg-lime-900/20 border-lime-500/30 ring-1 ring-lime-500/20";
                 return "bg-zinc-900/40 border-white/10";
               }
-              if (isChefsKitchen) return "bg-zinc-900/30 border-amber-500/20 opacity-70";
-              if (isCravingCreator) return "bg-zinc-900/30 border-pink-500/20 opacity-70";
-              return "bg-zinc-900/20 border-white/5 opacity-60";
+              if (isChefsKitchen) return "bg-zinc-900/40 border-amber-500/30";
+              if (isCravingCreator) return "bg-zinc-900/40 border-pink-500/30";
+              return "bg-zinc-900/40 border-white/5";
             };
 
             const getIconStyle = () => {
@@ -440,6 +443,9 @@ export default function GuestBuilder() {
                 className={`border transition-all cursor-pointer relative overflow-hidden ${getCardStyle()}`}
                 onClick={() => handleActionClick(action)}
               >
+                {!unlocked && (
+                  <div className="absolute inset-0 z-10 bg-black/45 backdrop-blur-[1.5px] pointer-events-none" />
+                )}
                 {isChefsKitchen && (
                   <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg">
                     <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
