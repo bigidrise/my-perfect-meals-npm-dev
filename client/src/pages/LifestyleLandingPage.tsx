@@ -206,6 +206,15 @@ export default function LifestyleLandingPage() {
                       </>
                     )}
 
+                    {isCravingCreator && (
+                      <div className="absolute top-2 right-2 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-black via-purple-600 to-black rounded-full border border-purple-400/30 shadow-lg z-10">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                        <span className="text-white font-bold text-[10px] tracking-wide">
+                          Powered by Emotion AI™
+                        </span>
+                      </div>
+                    )}
+
                     <CardContent className="p-3">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
