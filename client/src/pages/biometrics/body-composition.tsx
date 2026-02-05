@@ -258,7 +258,7 @@ export default function BodyCompositionPro() {
             </CardHeader>
             <CardContent className="relative z-10 pt-0">
               <div className="flex items-center gap-4">
-                <div className="text-4xl font-bold text-white">{latestEntry.currentBodyFatPct}%</div>
+                <div className="text-2xl font-bold text-white">{latestEntry.currentBodyFatPct}%</div>
                 <div className="text-sm text-white/70">
                   <div>Method: {latestEntry.scanMethod}</div>
                   <div>Source: {sourceLabel(latestEntry.source)}</div>
