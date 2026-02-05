@@ -111,6 +111,7 @@ import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisi
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -1550,6 +1551,9 @@ export default function WeeklyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
+        <NutritionBudgetBanner className="mb-2" />
+
         <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">
             {/* ROW 1: Week Navigation */}
