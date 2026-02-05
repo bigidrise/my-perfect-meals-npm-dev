@@ -85,6 +85,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
+import BodyCompositionSection from "@/components/macro-targeting/BodyCompositionSection";
 import { MacroDeltas } from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
@@ -2115,6 +2116,9 @@ export default function MacroCounter() {
                   }}
                 />
               )}
+
+              {/* Body Composition - affects starchy carb allocation */}
+              {results && <BodyCompositionSection />}
 
               {/* Results - Only show when activity is selected */}
               {results && (
