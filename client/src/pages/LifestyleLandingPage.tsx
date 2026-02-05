@@ -191,9 +191,9 @@ export default function LifestyleLandingPage() {
                     {/* Badges */}
                     {isChefsKitchen && (
                       <>
-                        <div className="absolute top-2 right-2 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                          <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" />
-                          <span className="text-white font-bold text-[10px] tracking-wide">
+                        <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
+                          <span className="text-white font-semibold text-[8px] tracking-wide">
                             Powered by Emotion AI™
                           </span>
                         </div>
@@ -207,9 +207,9 @@ export default function LifestyleLandingPage() {
                     )}
 
                     {isCravingCreator && (
-                      <div className="absolute top-2 right-2 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-black via-purple-600 to-black rounded-full border border-purple-400/30 shadow-lg z-10">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-                        <span className="text-white font-bold text-[10px] tracking-wide">
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-purple-600 to-black rounded-full border border-purple-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
+                        <span className="text-white font-semibold text-[8px] tracking-wide">
                           Powered by Emotion AI™
                         </span>
                       </div>
