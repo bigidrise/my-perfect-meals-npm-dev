@@ -1,11 +1,12 @@
 {
-  "releaseId": "1.2.37",
+  "releaseId": "1.2.38",
   "publishedAt": "2026-02-05",
   "changes": [
-    "Starch Guard explanation added to all 7 meal builder copilots",
-    "Dashboard copilot now explains Starch Guard system",
-    "Removed GlucoseGuard mentions from non-diabetic features",
-    "Science-based HIGH GI blocking: potatoes, rice, bread, pasta",
-    "ALLOWS moderate GI with fiber: corn, beans, sweet potato, oats"
+    "Body Composition Tracking System: record body fat % from DEXA, BodPod, Calipers, Smart Scale",
+    "Body composition auto-adjusts starchy carb allocation for Beach Body & Performance builders",
+    "Body composition card added to My Biometrics with full history view",
+    "Trainers and Physicians can now see client body composition in their dashboards",
+    "Copilot guides updated for Biometrics and Macro Calculator with body composition info",
+    "Precedence system: trainer override > physician > client entries"
   ]
 }
