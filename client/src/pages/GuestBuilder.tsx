@@ -360,13 +360,16 @@ export default function GuestBuilder() {
             return (
               <Card
                 key={action.id}
-                className={`border transition-all cursor-pointer ${
+                className={`border transition-all cursor-pointer relative overflow-hidden ${
                   unlocked 
-                    ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40" 
-                    : "bg-zinc-900/20 border-white/5 opacity-60"
+                    ? "bg-zinc-900/40 border-white/10" 
+                    : "bg-zinc-900/40 border-white/5"
                 }`}
                 onClick={() => handleActionClick(action)}
               >
+                {!unlocked && (
+                  <div className="absolute inset-0 z-10 bg-black/45 backdrop-blur-[1.5px] pointer-events-none" />
+                )}
                 <CardContent className="p-4 flex items-center gap-4">
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 ${
@@ -409,42 +412,32 @@ export default function GuestBuilder() {
           {PHASE_2_BUTTONS.map((action) => {
             const unlocked = isFeatureUnlocked(action.feature);
             const isRevealed = action.id === "biometrics" && biometricsRevealed;
-            const isSignatureCard = action.isSignature;
-            const isChefsKitchen = action.id === "chefs-kitchen";
-            const isCravingCreator = action.id === "craving";
             
             return (
               <Card
                 key={action.id}
                 className={`border transition-all cursor-pointer relative overflow-hidden ${
-                  isChefsKitchen && unlocked
-                    ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-zinc-900/40 border-amber-500/40 hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-500/10 ring-1 ring-amber-500/20"
-                    : isCravingCreator && unlocked
-                      ? "bg-gradient-to-br from-pink-900/30 via-purple-900/20 to-zinc-900/40 border-pink-500/40 hover:border-pink-400/60 hover:shadow-lg hover:shadow-pink-500/10 ring-1 ring-pink-500/20"
-                      : unlocked 
-                        ? isRevealed
-                          ? "bg-lime-900/20 border-lime-500/30 hover:border-lime-400/50 hover:bg-lime-800/30 ring-1 ring-lime-500/20"
-                          : "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-800/40"
-                        : isChefsKitchen
-                          ? "bg-zinc-900/30 border-amber-500/20 opacity-70"
-                          : isCravingCreator
-                            ? "bg-zinc-900/30 border-pink-500/20 opacity-70"
-                            : "bg-zinc-900/20 border-white/5 opacity-60"
+                  unlocked
+                    ? isRevealed
+                      ? "bg-lime-900/20 border-lime-500/30 ring-1 ring-lime-500/20"
+                      : "bg-zinc-900/40 border-white/10"
+                    : "bg-zinc-900/40 border-white/5"
                 }`}
                 onClick={() => handleActionClick(action)}
               >
-                {isChefsKitchen && (
-                  <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg">
-                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
-                    <span className="text-white font-semibold text-[9px]">
-                      {action.signatureBadge}
-                    </span>
-                  </div>
+                {!unlocked && (
+                  <div className="absolute inset-0 z-10 bg-black/45 backdrop-blur-[1.5px] pointer-events-none" />
                 )}
-                {isCravingCreator && (
-                  <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg">
-                    <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>
-                    <span className="text-white font-semibold text-[9px]">
+                {action.isSignature && action.signatureBadge && (
+                  <div className={`absolute top-1.5 right-1.5 z-20 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black ${
+                    action.feature === "craving-creator" ? "via-pink-600" : "via-orange-600"
+                  } to-black rounded-full border ${
+                    action.feature === "craving-creator" ? "border-pink-400/30" : "border-orange-400/30"
+                  } shadow-lg`}>
+                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                      action.feature === "craving-creator" ? "bg-pink-400" : "bg-orange-400"
+                    }`}></div>
+                    <span className="text-white font-semibold text-[8px] tracking-wide">
                       {action.signatureBadge}
                     </span>
                   </div>
@@ -452,13 +445,7 @@ export default function GuestBuilder() {
                 <CardContent className="p-4 flex items-center gap-4">
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                      isChefsKitchen && unlocked 
-                        ? "bg-amber-500/20 shadow-inner shadow-amber-500/10" 
-                        : isCravingCreator && unlocked
-                          ? "bg-pink-500/20 shadow-inner shadow-pink-500/10"
-                          : isRevealed 
-                            ? "bg-lime-500/20" 
-                            : "bg-white/10"
+                      isRevealed && unlocked ? "bg-lime-500/20" : "bg-white/10"
                     } ${unlocked ? action.iconColor : "text-white/40"}`}
                   >
                     {unlocked ? action.icon : <Lock className="h-6 w-6" />}
@@ -466,7 +453,7 @@ export default function GuestBuilder() {
                   <div className="flex-1">
                     <div className={`font-semibold ${unlocked ? "text-white" : "text-white/50"}`}>
                       {action.label}
-                      {action.isPreview && unlocked && !isSignatureCard && (
+                      {action.isPreview && unlocked && !action.isSignature && (
                         <span className="text-xs text-amber-400/80 ml-2">Preview</span>
                       )}
                       {!unlocked && (

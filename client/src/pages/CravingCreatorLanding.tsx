@@ -141,9 +141,9 @@ export default function CravingCreatorLanding() {
                   >
                 {isEmotionAI && (
 
-                      <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
                         <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>
-                        <span className="text-white font-semibold text-[9px]">
+                        <span className="text-white font-semibold text-[8px] tracking-wide">
                           Powered by Emotion AI™
                         </span>
                       </div>

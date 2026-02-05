@@ -214,7 +214,7 @@ export default function Welcome() {
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
             <Sparkles className="h-5 w-5" />
-            Use Our Guest Suite - No Signup
+            Use Our Guest Experience - No Signup
           </Button>
 
           {/* Sign In / Create Account - Combined auth button */}

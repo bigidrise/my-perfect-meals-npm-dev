@@ -31,7 +31,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     guestDescription:
       "This is where food turns into numbers, and numbers turn into feedback. Your personal progress lens.",
     guestSpokenText:
-      "This is your Biometrics page — and this is where food turns into data. Most people eat without ever knowing what’s actually working. Here, you’ll see exactly how your meals add up — protein, carbs, fat, calories — all in one place. You can scan packaged food labels, log meals you’ve built, and watch your weekly and monthly trends unfold. This isn’t just tracking — it’s feedback. It’s the difference between hoping your plan works, and actually knowing it does. For subscribers, this page becomes your personal progress lens — weight trends, water intake, macro consistency over time. It’s where the system closes the loop. You’ve made it through your first full loop of the Guest Suite — nicely done. Head back to the Guest Suite now, and you’ll find Fridge Rescue and Craving Creator unlocked and waiting for you. Those are free to explore, so go play with them. I’ll be here when you’re ready.",
+      "This is your Biometrics page — and this is where food turns into data. Most people eat without ever knowing what’s actually working. Here, you’ll see exactly how your meals add up — protein, carbs, fat, calories — all in one place. You can scan packaged food labels, log meals you’ve built, and watch your weekly and monthly trends unfold. This isn’t just tracking — it’s feedback. It’s the difference between hoping your plan works, and actually knowing it does. For subscribers, this page becomes your personal progress lens — weight trends, water intake, macro consistency over time. It’s where the system closes the loop. You’ve made it through your first full loop of the Guest Experience — nicely done. Head back to the Guest Experience now, and you’ll find Fridge Rescue and Craving Creator unlocked and waiting for you. Those are free to explore, so go play with them. I’ll be here when you’re ready.",
   },
 
   "/craving-creator": {
@@ -288,7 +288,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create, manage, and check off items for your grocery trips and everyday shopping.",
     spokenText:
-      "The Master Shopping List helps you organize everything you need in one place. You can add items by barcode, voice, or bulk entry, group them by aisle, and exclude pantry staples. Use Add Other Items for non food needs like household, personal care, pets, or pharmacy items, then check things off as you shop, or send your list to a delivery service. If you’re exploring as a guest, this is where you see how meals turn into real shopping, and when you’re ready, head back to the Guest Suite to keep exploring, or try Fridge Rescue and Craving Creator.",
+      "The Master Shopping List helps you organize everything you need in one place. You can add items by barcode, voice, or bulk entry, group them by aisle, and exclude pantry staples. Use Add Other Items for non food needs like household, personal care, pets, or pharmacy items, then check things off as you shop, or send your list to a delivery service. If you’re exploring as a guest, this is where you see how meals turn into real shopping, and when you’re ready, head back to the Guest Experience to keep exploring, or try Fridge Rescue and Craving Creator.",
     autoClose: true,
     guestDescription:
       "Planning turns into action here. This is real-world execution — shopping made simple.",
@@ -573,11 +573,11 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/guest-builder": {
     pageId: "guest-builder",
-    title: "MPM Guest Suite",
+    title: "MPM Guest Experience",
     description:
       "Try our AI-powered meal planning tools — no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
     spokenText:
-      "Hey, welcome to the My Perfect Meals Guest Suite — I’m really glad you’re here. Before we start, let me introduce myself. I’m Chef Copilot, your personal guide inside this app. You’ll find me in the bottom navigation bar — look for the Chef button in the center of the bottom navigation. Anytime you’re on any page and want to know what it does, or how to use it, just tap the Chef button, then hit Listen, and I’ll explain exactly what you’re looking at and what to do next. If you turn Auto on inside the Copilot panel, I’ll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You’re always in control. Now, let’s talk about what you’re here to do. This is a guided preview of how the app works, and I’ll walk you through it step by step, so you actually get the full experience instead of guessing where to start. As a guest, you’ll begin with the Macro Calculator to set your personal numbers — that’s the foundation for everything else in the app. You may notice that some features, like the Weekly Meal Builder, Fridge Rescue, and Craving Creator, aren’t fully open yet — and that’s intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Remember, I’m always here in the bottom navigation bar under Guide if you need me. Let’s start by setting your macros, and take it from there.",
+      "Hey, welcome to the My Perfect Meals Guest Experience — I’m really glad you’re here. Before we start, let me introduce myself. I’m Chef Copilot, your personal guide inside this app. You’ll find me in the bottom navigation bar — look for the Chef button in the center of the bottom navigation. Anytime you’re on any page and want to know what it does, or how to use it, just tap the Chef button, then hit Listen, and I’ll explain exactly what you’re looking at and what to do next. If you turn Auto on inside the Copilot panel, I’ll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You’re always in control. Now, let’s talk about what you’re here to do. This is a guided preview of how the app works, and I’ll walk you through it step by step, so you actually get the full experience instead of guessing where to start. As a guest, you’ll begin with the Macro Calculator to set your personal numbers — that’s the foundation for everything else in the app. You may notice that some features, like the Weekly Meal Builder, Fridge Rescue, and Craving Creator, aren’t fully open yet — and that’s intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Remember, I’m always here in the bottom navigation bar under Guide if you need me. Let’s start by setting your macros, and take it from there.",
     autoClose: false,
   },
   "/lifestyle/chefs-kitchen": {
@@ -618,7 +618,7 @@ export function getPageExplanation(pathname: string): PageExplanation | null {
  * This returns a modified explanation with guestSpokenText and guestDescription
  * replacing the default text when available.
  *
- * IMPORTANT: Guest Suite = Guided, Coach-Led Marketing Experience
+ * IMPORTANT: Guest Experience = Guided, Coach-Led Marketing Experience
  * - Copilot is the voice, coaching philosophy, and closer
  * - Guest copilots teach, coach, and sell the value in real time
  * - Tone = calm, confident, coach-led (not tooltip-y)
