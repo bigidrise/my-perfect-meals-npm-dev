@@ -3,7 +3,7 @@ import { db } from '../db';
 import { biometricPayloadSchema, biometricSample, biometricSource } from '../../shared/biometricsSchema';
 import { normalizeWeightToKg, normalizeWaistToCm, calculateDailySummaries, filterAllowedBiometrics } from '../services/biometricsService';
 import { and, eq, gte, lte, desc } from 'drizzle-orm';
-import { openai } from '../utils/openaiSafe';
+import { openai, chatJson } from '../utils/openaiSafe';
 
 const router = express.Router();
 
@@ -469,6 +469,75 @@ Be realistic with portion sizes shown. If you cannot identify food, return zeros
     res.status(500).json({ 
       error: 'Failed to analyze photo', 
       detail: error?.message 
+    });
+  }
+});
+
+// Estimate macros from natural language description
+router.post('/estimate-macros', async (req, res) => {
+  try {
+    const { description } = req.body;
+    
+    if (!description || typeof description !== 'string' || !description.trim()) {
+      return res.status(400).json({ error: 'Description is required' });
+    }
+
+    const systemPrompt = `You are a nutrition estimation assistant. Given a description of food, estimate the macronutrients.
+
+IMPORTANT RULES:
+1. Provide reasonable estimates based on typical serving sizes
+2. If portion size is mentioned, adjust accordingly
+3. For branded items (like Cinnabon), use known nutritional data if available
+4. Be conservative with estimates - it's better to slightly underestimate than overestimate
+5. Separate carbs into starchy (bread, rice, pasta, potatoes, sugary items) and fibrous (vegetables, salads)
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "protein": <number in grams>,
+  "carbs": <number in grams, total>,
+  "starchyCarbs": <number in grams, starchy portion>,
+  "fibrousCarbs": <number in grams, fibrous portion>,
+  "fat": <number in grams>,
+  "calories": <number>
+}`;
+
+    const result = await chatJson({
+      system: systemPrompt,
+      user: `Estimate the macros for: "${description.trim()}"`,
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+    });
+
+    // Validate and sanitize the response
+    const macros = {
+      protein: Math.max(0, Math.round(Number(result.protein) || 0)),
+      carbs: Math.max(0, Math.round(Number(result.carbs) || 0)),
+      starchyCarbs: Math.max(0, Math.round(Number(result.starchyCarbs) || 0)),
+      fibrousCarbs: Math.max(0, Math.round(Number(result.fibrousCarbs) || 0)),
+      fat: Math.max(0, Math.round(Number(result.fat) || 0)),
+      calories: Math.max(0, Math.round(Number(result.calories) || 0)),
+    };
+
+    // Ensure starchy + fibrous doesn't exceed total carbs
+    if (macros.starchyCarbs + macros.fibrousCarbs > macros.carbs) {
+      const ratio = macros.carbs / (macros.starchyCarbs + macros.fibrousCarbs);
+      macros.starchyCarbs = Math.round(macros.starchyCarbs * ratio);
+      macros.fibrousCarbs = Math.round(macros.fibrousCarbs * ratio);
+    }
+
+    res.json(macros);
+  } catch (error: any) {
+    console.error('Macro estimation error:', error);
+    
+    // Return fallback values if AI fails
+    res.json({
+      protein: 15,
+      carbs: 30,
+      starchyCarbs: 25,
+      fibrousCarbs: 5,
+      fat: 10,
+      calories: 270,
+      fallback: true,
     });
   }
 });
