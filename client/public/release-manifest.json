@@ -1,10 +1,11 @@
 {
-  "releaseId": "1.2.35",
+  "releaseId": "1.2.36",
   "publishedAt": "2026-02-05",
   "changes": [
-    "Starch Guard explained in App Library",
-    "Copilot now mentions Starch Guard in Craving Creator",
-    "Starch Guard - blocks starchy meals when budget is exhausted",
-    "Two options: 'Order Something Else' or 'Let Chef Pick'"
+    "Starch Guard now uses science-based classification",
+    "Only blocks HIGH GI starches: potato, rice, bread, pasta",
+    "ALLOWS moderate GI carbs: corn, beans, sweet potato, oats",
+    "Choose your own fibrous carb substitute or let Chef pick",
+    "Glucose monitoring moved to Diabetic Hub only"
   ]
 }
