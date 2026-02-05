@@ -573,7 +573,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/guest-builder": {
     pageId: "guest-builder",
-    title: "MPM Guest Suite",
+    title: "MPM Guest Experience",
     description:
       "Try our AI-powered meal planning tools — no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
     spokenText:

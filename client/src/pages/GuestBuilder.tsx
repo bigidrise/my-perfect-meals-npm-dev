@@ -13,11 +13,9 @@ import {
   Calculator,
   Calendar,
   Refrigerator,
-  Heart,
   Home,
   BarChart3,
   ShoppingCart,
-  ChefHat,
   Pill,
   Stethoscope,
   Leaf,
@@ -147,30 +145,6 @@ const PHASE_2_BUTTONS: ActionButton[] = [
     route: "/fridge-rescue",
     feature: "fridge-rescue",
     isPreview: true,
-  },
-  {
-    id: "craving",
-    label: GUEST_SUITE_BRANDING.features.cravingCreator.label,
-    description: GUEST_SUITE_BRANDING.features.cravingCreator.description,
-    lockedDescription: GUEST_SUITE_BRANDING.features.cravingCreator.lockedDescription,
-    icon: <Heart className="h-6 w-6" />,
-    iconColor: "text-pink-400",
-    route: "/craving-creator",
-    feature: "craving-creator",
-    isSignature: true,
-    signatureBadge: "Powered by Emotion AI™",
-  },
-  {
-    id: "chefs-kitchen",
-    label: GUEST_SUITE_BRANDING.features.chefsKitchen.label,
-    description: GUEST_SUITE_BRANDING.features.chefsKitchen.description,
-    lockedDescription: GUEST_SUITE_BRANDING.features.chefsKitchen.lockedDescription,
-    icon: <ChefHat className="h-6 w-6" />,
-    iconColor: "text-amber-400",
-    route: "/lifestyle/chefs-kitchen",
-    feature: "chefs-kitchen",
-    isSignature: true,
-    signatureBadge: "Powered by Emotion AI™",
   },
 ];
 
@@ -412,66 +386,34 @@ export default function GuestBuilder() {
           {PHASE_2_BUTTONS.map((action) => {
             const unlocked = isFeatureUnlocked(action.feature);
             const isRevealed = action.id === "biometrics" && biometricsRevealed;
-            const isChefsKitchen = action.feature === "chefs-kitchen";
-            const isCravingCreator = action.feature === "craving-creator";
-            const isSignatureCard = isChefsKitchen || isCravingCreator;
-
-            const getCardStyle = () => {
-              if (unlocked) {
-                if (isChefsKitchen) return "bg-gradient-to-br from-amber-800/50 via-orange-800/40 to-zinc-900/60 border-amber-500/50 ring-1 ring-amber-400/30";
-                if (isCravingCreator) return "bg-gradient-to-br from-pink-800/50 via-purple-800/40 to-zinc-900/60 border-pink-500/50 ring-1 ring-pink-400/30";
-                if (isRevealed) return "bg-lime-900/20 border-lime-500/30 ring-1 ring-lime-500/20";
-                return "bg-zinc-900/40 border-white/10";
-              }
-              if (isChefsKitchen) return "bg-zinc-900/40 border-amber-500/30";
-              if (isCravingCreator) return "bg-zinc-900/40 border-pink-500/30";
-              return "bg-zinc-900/40 border-white/5";
-            };
-
-            const getIconStyle = () => {
-              if (unlocked) {
-                if (isChefsKitchen) return "bg-amber-500/30 shadow-inner shadow-amber-500/20";
-                if (isCravingCreator) return "bg-pink-500/30 shadow-inner shadow-pink-500/20";
-                if (isRevealed) return "bg-lime-500/20";
-              }
-              return "bg-white/10";
-            };
             
             return (
               <Card
                 key={action.id}
-                className={`border transition-all cursor-pointer relative overflow-hidden ${getCardStyle()}`}
+                className={`border transition-all cursor-pointer relative overflow-hidden ${
+                  unlocked
+                    ? isRevealed
+                      ? "bg-lime-900/20 border-lime-500/30 ring-1 ring-lime-500/20"
+                      : "bg-zinc-900/40 border-white/10"
+                    : "bg-zinc-900/40 border-white/5"
+                }`}
                 onClick={() => handleActionClick(action)}
               >
                 {!unlocked && (
                   <div className="absolute inset-0 z-10 bg-black/45 backdrop-blur-[1.5px] pointer-events-none" />
                 )}
-                {isChefsKitchen && (
-                  <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg">
-                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
-                    <span className="text-white font-semibold text-[9px]">
-                      {action.signatureBadge}
-                    </span>
-                  </div>
-                )}
-                {isCravingCreator && (
-                  <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg">
-                    <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>
-                    <span className="text-white font-semibold text-[9px]">
-                      {action.signatureBadge}
-                    </span>
-                  </div>
-                )}
                 <CardContent className="p-4 flex items-center gap-4">
                   <div
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center ${getIconStyle()} ${unlocked ? action.iconColor : "text-white/40"}`}
+                    className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                      isRevealed && unlocked ? "bg-lime-500/20" : "bg-white/10"
+                    } ${unlocked ? action.iconColor : "text-white/40"}`}
                   >
                     {unlocked ? action.icon : <Lock className="h-6 w-6" />}
                   </div>
                   <div className="flex-1">
                     <div className={`font-semibold ${unlocked ? "text-white" : "text-white/50"}`}>
                       {action.label}
-                      {action.isPreview && unlocked && !isSignatureCard && (
+                      {action.isPreview && unlocked && (
                         <span className="text-xs text-amber-400/80 ml-2">Preview</span>
                       )}
                       {!unlocked && (
