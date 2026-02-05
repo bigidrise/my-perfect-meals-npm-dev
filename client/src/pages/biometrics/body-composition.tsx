@@ -210,7 +210,7 @@ export default function BodyCompositionPro() {
         </Button>
       </div>
 
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6 pb-24">
         <div className="mt-16 relative isolate text-center rounded-2xl px-6 py-6
           bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl">
           <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
