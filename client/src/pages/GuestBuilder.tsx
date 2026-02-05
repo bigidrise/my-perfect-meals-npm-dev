@@ -415,8 +415,8 @@ export default function GuestBuilder() {
 
             const getCardStyle = () => {
               if (unlocked) {
-                if (isChefsKitchen) return "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-zinc-900/40 border-amber-500/40 ring-1 ring-amber-500/20";
-                if (isCravingCreator) return "bg-gradient-to-br from-pink-900/30 via-purple-900/20 to-zinc-900/40 border-pink-500/40 ring-1 ring-pink-500/20";
+                if (isChefsKitchen) return "bg-gradient-to-br from-amber-800/50 via-orange-800/40 to-zinc-900/60 border-amber-500/50 ring-1 ring-amber-400/30";
+                if (isCravingCreator) return "bg-gradient-to-br from-pink-800/50 via-purple-800/40 to-zinc-900/60 border-pink-500/50 ring-1 ring-pink-400/30";
                 if (isRevealed) return "bg-lime-900/20 border-lime-500/30 ring-1 ring-lime-500/20";
                 return "bg-zinc-900/40 border-white/10";
               }
@@ -427,8 +427,8 @@ export default function GuestBuilder() {
 
             const getIconStyle = () => {
               if (unlocked) {
-                if (isChefsKitchen) return "bg-amber-500/20 shadow-inner shadow-amber-500/10";
-                if (isCravingCreator) return "bg-pink-500/20 shadow-inner shadow-pink-500/10";
+                if (isChefsKitchen) return "bg-amber-500/30 shadow-inner shadow-amber-500/20";
+                if (isCravingCreator) return "bg-pink-500/30 shadow-inner shadow-pink-500/20";
                 if (isRevealed) return "bg-lime-500/20";
               }
               return "bg-white/10";
