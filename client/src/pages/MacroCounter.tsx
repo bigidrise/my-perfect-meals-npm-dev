@@ -503,6 +503,12 @@ export default function MacroCounter() {
       description:
         "Try to eat your starchy carbs earlier in the day. It's harder to get quality REM sleep when your body is busy metabolizing sugars. Front-load your carbs and sleep better.",
     },
+    {
+      icon: "📐",
+      title: "Body Composition",
+      description:
+        "If you have a body fat scan (DEXA, BodPod, etc.), you can record it here. Your body composition data is used by Beach Body and Performance builders to fine-tune your starchy carb allocation based on how close you are to your goal.",
+    },
   ];
 
   const quickTour = useQuickTour("macro-calculator");

@@ -167,6 +167,12 @@ export default function MyBiometrics() {
       description:
         "Log your daily water intake at the bottom of the page to support hydration and recovery.",
     },
+    {
+      icon: "📐",
+      title: "Body Composition Tracking",
+      description:
+        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Beach Body and Performance builders.",
+    },
   ];
 
   const quickTour = useQuickTour("my-biometrics");
