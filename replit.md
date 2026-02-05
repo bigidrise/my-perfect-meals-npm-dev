@@ -19,55 +19,52 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **iOS Viewport Architecture**: Uses a fixed shell with `100dvh` and a single scroll container for optimal iOS WKWebView performance.
 - **Scientific Transparency**: Nutritional calculations are supported by citations via the `MedicalSourcesInfo` component.
 - **iOS App Store Compliance**: Adheres to Apple guidelines for payments (StoreKit 2) and medical citations.
-- **Modal UI Patterns (Preferred)**: Always use consistent modal patterns for user interactions:
-  - **Coming Soon Modal**: Use `GatedRoute` component with black glass button styling for gated features. Button text should be "Go Back" and navigate to previous page (not home).
-  - **Delete Confirmation Modal**: Use consistent delete confirmation dialogs before destructive actions.
-  - **Allergy Alert Modal**: Use for safety-critical allergen warnings with clear, prominent styling.
-  - All modals should use: dark glassmorphic backgrounds, white text, black glass buttons with white text and border-white/20 borders.
+- **Modal UI Patterns**: Consistent dark glassmorphic modals for various interactions (Coming Soon, Delete Confirmation, Allergy Alert).
 
 **Technical Implementations:**
 - **Monorepo Structure**: Frontend and backend code are co-located.
-- **Database**: PostgreSQL with Drizzle ORM, employing automatic migrations and a shared schema.
-- **AI Stability Architecture**: Includes route-aware health monitoring for AI-dependent routes.
+- **Database**: PostgreSQL with Drizzle ORM, automatic migrations, and shared schema.
+- **AI Stability Architecture**: Route-aware health monitoring for AI-dependent routes.
 - **Meal Visual Alignment System v1**: Ensures AI-generated meals have accurately matched DALL-E 3 images, stored on S3.
-- **Nutrition Schema v1.1**: Updated `UnifiedMeal` interface for detailed carb tracking (`starchyCarbs`, `fibrousCarbs`).
-- **Carb Enforcement System v1.0**: `server/utils/carbClassifier.ts` derives ingredient-based carb information post-parsing.
-- **Hub Coupling Framework v1.0**: A modular plugin architecture (`server/services/hubCoupling/`) for health "hubs" to inject context into AI meal generation.
+- **Nutrition Schema v1.1**: Updated `UnifiedMeal` interface for detailed carb tracking.
+- **Carb Enforcement System v1.0**: Derives ingredient-based carb information post-parsing.
+- **Hub Coupling Framework v1.0**: Modular plugin architecture for health "hubs" to inject context into AI meal generation.
 - **ProCare Clinical Advisory System v1.0**: Provides clinical macro adjustment suggestions.
 - **Role-Based Access Control v1.0**: Three-tier access control (`admin`, `coach`, `client`) for Pro Care features.
-- **ProCare Workspace Branding v1.0**: Two distinct professional workspaces: **Physicians Clinic** (medical oversight, guardrails, clinical nutrition) and **Trainer Studio** (coaching, personalization, performance meal planning). Pro builders (General Nutrition, Performance/Competition) require trainer assignment via `/api/pro/assign-builder` endpoint.
-- **Professional Intro Overlay v1.0**: Front-end only intro overlay (like Chef's Kitchen) shown once per workspace on first entry. Uses `ProfessionalIntroOverlay` component with role-specific content (trainer/physician). Stored in localStorage (`mpm_hide_trainer_studio_intro`, `mpm_hide_physician_clinic_intro`). Includes: welcome hero, purpose explanation, "What This Is NOT" disclaimers (HIPAA-safe), quick start guide, tools list, and "Never show again" toggle. No backend, no routes, purely instructional.
-- **Starch Meal Strategy v1.0**: A behavioral coaching system for carb management.
-- **Extended Onboarding System v1.0**: A multi-step wizard for builder selection during signup.
+- **ProCare Workspace Branding v1.0**: Two distinct professional workspaces: Physicians Clinic and Trainer Studio, with builder assignment.
+- **Professional Intro Overlay v1.0**: Front-end only introductory overlay shown once per workspace on first entry, stored in localStorage.
+- **Starch Meal Strategy v1.0**: Behavioral coaching system for carb management.
+- **Extended Onboarding System v1.0**: Multi-step wizard for builder selection during signup.
 - **Meal Card Share + Translate System v1.0**: Replaces copy function with native share and GPT-4o-mini powered translation.
-- **Local Meal Reminders v1.0**: Device-local notification system using `@capacitor/local-notifications`.
+- **Local Meal Reminders v1.0**: Device-local notification system.
 - **Guest Suite Guided Unlock Flow v1.2**: Progressively unlocks features for unauthenticated users with trial limits.
 - **Pro Tip Audio Card v1.0**: Global instructional audio feature on Meal Builder pages.
-- **Prepare with Chef System v1.0**: Global guided cooking mode accessible from any meal card, reusing existing UI.
+- **Prepare with Chef System v1.0**: Global guided cooking mode accessible from any meal card.
 - **Profile Photo Upload**: Allows users to upload profile photos to object storage.
-- **Builder Switch Limit System v1.2**: Infrastructure to limit builder switches. Feature flag `ENFORCE_SWITCH_LIMITS` in `server/services/builderSwitchService.ts` (currently `false` = unlimited, no tracking). At launch: set to `true` to enforce 3 switches/year limit for regular users only. **Admins/testers are NEVER restricted** - they always have unlimited switches even when limits are enforced. When `ENFORCE_SWITCH_LIMITS=false`: no history tracking, 999 switches available. Future monetization: $29.99 "Unlimited Builder Switching" add-on to bypass limit.
-- **Draft Persistence System v2.0**: Prevents data loss using content-based hashing, localStorage persistence, and dirty flag protection across multiple meal builders.
-- **What's New System v3.0**: An enhanced release notification system with expandable changelog. Uses `release-manifest.json` (with `changes[]` array), `WhatsNewBanner.tsx` component, and `useReleaseNotice` hook. Users can tap to see actual update details before refreshing.
-- **Guided Macro Calculator v1.0**: A step-by-step walkthrough for the Macro Calculator page with Chef voice narration, supporting 13 guided steps.
-- **StudioWizard System v1.0**: A shared component (`client/src/components/studio-wizard/StudioWizard.tsx`) for creating guided "Powered by Emotion AI" experiences, used by Craving, Dessert, and Fridge Rescue Studios.
-- **Craving Studio v1.0, Dessert Studio v1.0, Fridge Rescue Studio v1.0**: Guided step-by-step creation experiences with Chef voice narration for cravings, desserts, and ingredient-based meals.
-- **Two-Feature Creator Pattern v1.0**: All creator pages offer both "Create with Chef" (guided studio) and "Quick Create" (form-based) modes.
+- **Builder Switch Limit System v1.2**: Infrastructure to limit builder switches, configurable by a feature flag.
+- **Draft Persistence System v2.0**: Prevents data loss using content-based hashing and localStorage.
+- **What's New System v3.0**: Enhanced release notification system with expandable changelog.
+- **Guided Macro Calculator v1.0**: Step-by-step walkthrough for the Macro Calculator page with Chef voice narration.
+- **StudioWizard System v1.0**: Shared component for guided "Powered by Emotion AI" experiences (Craving, Dessert, Fridge Rescue Studios).
+- **Craving Studio v1.0, Dessert Studio v1.0, Fridge Rescue Studio v1.0**: Guided creation experiences with Chef voice narration.
+- **Two-Feature Creator Pattern v1.0**: All creator pages offer "Create with Chef" (guided studio) and "Quick Create" (form-based) modes.
 - **Create with Chef Branding v1.0**: Consistent amber/orange branding with "Powered by Emotion AI™" badges for guided creation entry points.
-- **Profile Single Source of Truth (SSOT) Architecture**: Onboarding, Edit Profile, and Meal Builders all read/write from the same `users` table for unified data flow.
-- **MPM SafetyGuard v1.2**: A two-layer food safety system with authenticated override capabilities, compliant with Apple App Store guidelines. Features include a Safety PIN system, multiple safety modes (STRICT, CUSTOM, CUSTOM_AUTHENTICATED), one-time override tokens, audit logging, pre-generation blocking, post-generation validation, and extensive allergen taxonomy. Now includes **PIN-protected allergy editing** in Edit Profile - users must verify their Safety PIN before modifying allergies to prevent accidental changes to critical safety data.
-- **SafetyGuard Unified Alert System v1.0**: Provides consistent preflight checking and yellow banner alerts across all meal generators, utilizing a dedicated preflight API and a reusable `SafetyGuardBanner` component.
-- **GlucoseGuard™ System v1.0**: Diabetic meal protection that automatically adjusts meal generation based on real-time glucose state. Uses `GlucoseGuardToggle.tsx` (amber pill button) and `GlucoseGuardBanner.tsx` (status alerts). Integrates with Diabetic Hub Coupling (`server/services/hubCoupling/hubModules/diabetic.ts`) to inject glucose-based guidance into AI prompts. Color scheme: amber (elevated/high), rose (low), teal (in-range). **Deployed to creative features** (Craving Creator, Dessert Creator, Fridge Rescue, Studios, Create with Chef, Snack Creator) + Diabetic Meal Builder. Other meal builders (Weekly, GLP-1, Anti-Inflammatory, Beach Body) show SafetyGuard only since diabetics use the Diabetic Builder.
-- **Meal Generation Facade v1.0**: Architectural pivot from live AI generation to precompiled recipe library (LibraryEngine) to solve cross-origin/CORS issues in production iOS environments. Uses 3 database tables (`meal_library_items`, `meal_library_usage`, `meal_generation_jobs`), feature flag engine selection (`STUDIO_ENGINE_CRAVING|FRIDGE|DESSERT`), and multi-layer scoring (craving tags, emotion tags, novelty penalty, quality score). Endpoint: `POST /api/studio/generate`. Seed script: `server/scripts/seedMealLibrary.ts`.
-- **Palate Preferences System v1.0**: User flavor customization for meal seasoning without affecting macros. Three preferences: `palateSpiceTolerance` (none/mild/medium/hot), `palateSeasoningIntensity` (light/balanced/bold), `palateFlavorStyle` (classic/herb/savory/bright). Collected in onboarding Step 3, editable in Edit Profile Step 3, injected into AI meal generation prompts via `buildPalateSection()` in `server/services/promptBuilder.ts`.
-- **Font Size Preference System v1.0**: Accessibility feature allowing users to choose text size (Standard/Large/XL). Uses CSS custom property `--font-scale` with root classes (`font-size-standard`, `font-size-large`, `font-size-xl`) applied to `<html>`. Stored in `users.fontSizePreference` column + localStorage fallback. UI selector in ProfileSheet with "A", "A+", "A++" buttons. Provider: `FontSizeContext.tsx`, API: `PUT /api/users/profile`.
-- **Nutrition Budget Engine v1.0 (Phase 1 + Phase 2)**: Global macro-aware system that tracks daily nutrition limits across ALL meal builders. Once user saves biometrics/macros, that becomes the authoritative source. **Primary focus on THREE nutrients**: Protein, Starchy Carbs, Fibrous Carbs. Calories and fats exist in backend but are de-emphasized in UI. Phase 1 provides read-only awareness with `NutritionBudgetBanner` component showing remaining balance. Uses `useNutritionBudget` hook that consolidates targets from `macroResolver.ts` + consumed values from `useTodayMacros`. Falls back to `carbDirective.starchyCapG` and `carbDirective.fibrousFloorG` when explicit targets aren't set. **Phase 2 adds soft coaching warnings** with `NutrientStatus` type (good/low/exhausted/over), status-aware colors (neutral gray for exhausted/over — no red/judgment), CheckCircle icons for completed nutrients, and friendly coaching messages (no guilt, positive copy like "Your protein is well covered for today!"). Status thresholds: 80%+ = low, 100% = exhausted, >100% = over. Future: Phase 3 adds hard constraints + AI prompt awareness.
-- **Just Describe It v1.0**: AI-powered macro estimation for real-world eating. Located on Biometrics page below MacroScan. User describes food in plain language (e.g., "Two scoops vanilla ice cream", "A large Cinnabon"), AI estimates macros including starchy/fibrous carb breakdown. Features: text input modal, portion adjusters (smaller/typical/larger with 0.75x/1.0x/1.25x multipliers), review before logging, confirmation toast. Backend: `POST /api/biometrics/estimate-macros` uses GPT-4o-mini. Component: `JustDescribeItModal.tsx`. Designed for logging unplanned/real-world food without needing nutrition labels.
-- **Quick View Direct Add v1.0**: Streamlined macro logging flow. Changed "Fill Inputs" button to "Add to Today" — now logs macros directly from Quick View with one tap instead of requiring form filling + Add button. Shows confirmation toast with logged values.
+- **Profile Single Source of Truth (SSOT) Architecture**: Unified data flow for user profile information across onboarding, editing, and meal builders.
+- **MPM SafetyGuard v1.2**: Two-layer food safety system with authenticated override capabilities, PIN protection for allergy editing, and audit logging.
+- **SafetyGuard Unified Alert System v1.0**: Provides consistent preflight checking and yellow banner alerts across all meal generators.
+- **GlucoseGuard™ System v1.0**: (Diabetic Hub ONLY) Real-time blood glucose monitoring and meal adjustment based on current glucose state.
+- **Starch Guard v1.0**: (Weight Management System for EVERYONE) Limits high-glycemic carbs based on a science-based classification, offering user choices for substitutes.
+- **Meal Generation Facade v1.0**: Architectural pivot to a precompiled recipe library (LibraryEngine) for live meal generation to solve cross-origin issues.
+- **Palate Preferences System v1.0**: User flavor customization for meal seasoning without affecting macros, collected during onboarding and editable in profile.
+- **Font Size Preference System v1.0**: Accessibility feature allowing users to choose text size (Standard/Large/XL) via CSS custom properties.
+- **Nutrition Budget Engine v1.0 (Phase 1 + Phase 2)**: Global macro-aware system tracking daily nutrition limits, primarily focusing on Protein, Starchy Carbs, and Fibrous Carbs, with read-only awareness and soft coaching warnings.
+- **Just Describe It v1.0**: AI-powered macro estimation for real-world eating, allowing users to describe food in plain language for macro logging.
+- **Quick View Direct Add v1.0**: Streamlined macro logging flow, allowing direct logging from Quick View with a single tap.
 
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
 - **Amazon S3**: For permanent storage of generated meal images.
 - **Stripe**: For web payment processing.
-- **Apple StoreKit 2**: For iOS in-app purchases via `@squareetlabs/capacitor-subscriptions`.
+- **Apple StoreKit 2**: For iOS in-app purchases.
 - **Twilio**: For SMS notifications.
 - **SendGrid**: For email services.

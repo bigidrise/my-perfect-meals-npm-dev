@@ -20,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
-import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { detectStarchyIngredients } from "@/utils/ingredientClassifier";
@@ -419,14 +418,13 @@ export function CreateWithChefModal({
               {error && !safetyAlert.show && <p className="text-sm text-amber-400">{error}</p>}
 
               {/* Meal Safety Section */}
-              <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+              <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                <span className="text-xs text-white/60 block mb-2">Allergy Safety</span>
                 <SafetyGuardToggle
                   safetyEnabled={safetyEnabled}
                   onSafetyChange={handleSafetyOverride}
                   disabled={isProcessing}
                 />
-                <GlucoseGuardToggle disabled={isProcessing} />
               </div>
 
               {/* Starch Budget Info - show when starch context available */}

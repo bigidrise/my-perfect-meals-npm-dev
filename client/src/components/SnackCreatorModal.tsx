@@ -17,7 +17,6 @@ import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsa
 import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
-import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface SnackCreatorModalProps {
@@ -214,14 +213,13 @@ export function SnackCreatorModal({
           {error && !alert.show && <p className="text-sm text-amber-400">{error}</p>}
 
           {/* Meal Safety Section */}
-          <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-            <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+          <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+            <span className="text-xs text-white/60 block mb-2">Allergy Safety</span>
             <SafetyGuardToggle
               safetyEnabled={safetyEnabled}
               onSafetyChange={handleSafetyOverride}
               disabled={isProcessing}
             />
-            <GlucoseGuardToggle disabled={isProcessing} />
           </div>
 
           <div className="flex gap-3 pt-2">
