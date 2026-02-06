@@ -145,25 +145,31 @@ export default function ProCareWelcome() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-32">
-        {/* Header */}
+        {/* Back button */}
         <div className="pt-6 pb-2">
           <button
             onClick={() => setLocation("/welcome")}
-            className="flex items-center gap-1 text-white/60 text-sm mb-4 active:scale-[0.98]"
+            className="flex items-center gap-1 text-white/60 text-sm mb-2 active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
+        </div>
 
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-900/40 to-blue-800/40 rounded-2xl border border-blue-400/30 mb-4">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-              <span className="text-white font-semibold text-sm">ProCare Professional</span>
-            </div>
-
-            <h1 className="text-2xl font-bold mb-2">Welcome, Professional</h1>
-            <p className="text-white/60 text-sm max-w-sm mx-auto">
-              Before you create your account, understand how My Perfect Meals works <span className="italic">with</span> you — not instead of you.
+        {/* Chef Hero Section */}
+        <div className="flex items-start gap-2 mb-6 -mt-1">
+          <img
+            src="/assets/ProCareChef.png"
+            alt="Chef"
+            className="w-36 h-auto shrink-0 -ml-2 -mb-2"
+          />
+          <div className="flex-1 pt-4">
+            <h1 className="text-2xl font-bold mb-2 italic">Welcome, Professional</h1>
+            <p className="text-white/60 text-sm leading-relaxed">
+              Before you create an account, understand how My Perfect Meals works <span className="italic">with</span> you, not instead of you.
+            </p>
+            <p className="text-green-400/80 text-xs mt-3 font-medium">
+              Ask about our affiliate program for 25% commission.
             </p>
           </div>
         </div>
