@@ -1,11 +1,10 @@
 {
-  "releaseId": "1.2.39",
-  "publishedAt": "2026-02-05",
+  "releaseId": "1.2.40",
+  "publishedAt": "2026-02-06",
   "changes": [
-    "Guest Suite rebranded to Guest Experience throughout the app",
-    "Standardized all Emotion AI badges to smaller, consistent size globally",
-    "Chef's Kitchen card renamed to Chef's Kitchen Studio",
-    "Craving Creator and Chef's Kitchen added as signature features in Guest Experience",
-    "Improved locked card styling with blur overlay instead of opacity"
+    "GlucoseGuard and SafetyGuard added to Craving Studio for full meal safety coverage",
+    "Seasoning preferences (FlavorToggle) added to Chef's Kitchen",
+    "Unified starch classification across client and server using shared keywords",
+    "GlucoseGuard restored to all meal generators — diabetics protected everywhere"
   ]
 }
