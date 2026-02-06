@@ -177,7 +177,7 @@ const libraryTopics: LibraryTopic[] = [
         },
         {
           heading: "The Science",
-          text: "Not all carbs are equal. High-glycemic starches hit your bloodstream fast, causing an insulin spike that signals your body to store fat. Fibrous carbs with lower glycemic index are absorbed slowly, giving steady energy without the fat-storage signal.",
+          text: "Not all carbs are equal. High-glycemic starches hit your bloodstream fast, causing an insulin spike that signals your body to store fat. Fibrous carbs with lower glycemic index are absorbed slowly, giving steady energy without the fat-storage signal.\n\nThis is why the app focuses more on starch than sodium. Sodium can cause temporary water weight that resolves quickly. Starches and sugars trigger insulin, and repeated insulin spikes are what drive long-term fat gain. Controlling starch intake protects insulin exposure while still allowing variety, enjoyment, and flexibility in food choices.",
         },
         {
           heading: "What Starch Guard BLOCKS",
