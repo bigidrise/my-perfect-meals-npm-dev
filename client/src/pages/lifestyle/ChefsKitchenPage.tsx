@@ -36,6 +36,8 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -377,6 +379,9 @@ export default function ChefsKitchenPage() {
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
+  
+  // 🎨 FlavorToggle state (Personal = use palate prefs, Neutral = skip them)
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
 
   // 🔐 SafetyGuard preflight system
   const {
@@ -735,6 +740,7 @@ export default function ChefsKitchenPage() {
           servings: voiceServings,
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -936,6 +942,7 @@ export default function ChefsKitchenPage() {
           servings: servings,
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
@@ -1379,11 +1386,21 @@ export default function ChefsKitchenPage() {
                         }
                       />
 
-                      {/* Safety Guard Toggle - right before generate button */}
-                      <div className="mb-3 flex justify-end">
+                      {/* Meal Safety - GlucoseGuard + SafetyGuard */}
+                      <div className="mb-3 flex justify-end space-y-2">
+                        <GlucoseGuardToggle />
                         <SafetyGuardToggle
                           safetyEnabled={safetyEnabled}
                           onSafetyChange={handleSafetyOverride}
+                          disabled={isGeneratingMeal || safetyChecking}
+                        />
+                      </div>
+
+                      {/* Flavor Preference */}
+                      <div className="mb-3 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                        <FlavorToggle
+                          flavorPersonal={flavorPersonal}
+                          onFlavorChange={setFlavorPersonal}
                           disabled={isGeneratingMeal || safetyChecking}
                         />
                       </div>

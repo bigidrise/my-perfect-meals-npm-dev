@@ -13,6 +13,7 @@
 
 import { generateImage } from './imageService';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
+import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 import { createIngredientSignature, hashSignature } from './ingredientSignature';
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
@@ -742,6 +743,18 @@ export async function generateFromDescriptionUnified(
   starchContext?: StarchContext
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+  
+  // Auto-detect starchy foods in user's description and force starch if found
+  // Uses shared STARCHY_KEYWORDS — same list the client uses for the indicator
+  // The starch coaching system should NEVER override explicit user requests
+  if (starchContext && !starchContext.forceStarch && !starchContext.forceFiberBased) {
+    const descLower = description.toLowerCase();
+    const userRequestedStarch = STARCHY_KEYWORDS.some(kw => descLower.includes(kw));
+    if (userRequestedStarch) {
+      starchContext = { ...starchContext, forceStarch: true };
+      console.log(`🥔 [StarchOverride] User explicitly requested starchy food in "${description}" — forcing starch inclusion`);
+    }
+  }
   
   // Get starch placement decision
   const starchPlacement = determineStarchPlacement(validMealType, starchContext);
