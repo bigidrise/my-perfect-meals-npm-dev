@@ -743,6 +743,27 @@ export async function generateFromDescriptionUnified(
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
+  // Auto-detect starchy foods in user's description and force starch if found
+  // The starch coaching system should NEVER override explicit user requests
+  if (starchContext && !starchContext.forceStarch && !starchContext.forceFiberBased) {
+    const descLower = description.toLowerCase();
+    const starchyKeywords = [
+      'oatmeal', 'oats', 'rice', 'pasta', 'potato', 'potatoes', 'hash brown', 'hashbrown',
+      'bread', 'toast', 'noodle', 'noodles', 'tortilla', 'wrap', 'bagel', 'pancake', 'waffle',
+      'cereal', 'granola', 'quinoa', 'couscous', 'grits', 'polenta', 'corn',
+      'bean', 'beans', 'lentil', 'lentils', 'chickpea', 'hummus',
+      'sweet potato', 'yam', 'fries', 'mashed potato', 'baked potato',
+      'macaroni', 'spaghetti', 'penne', 'fettuccine', 'lasagna', 'ramen',
+      'sandwich', 'burger', 'bun', 'roll', 'biscuit', 'muffin', 'croissant',
+      'pizza', 'flatbread', 'pita', 'cracker',
+    ];
+    const userRequestedStarch = starchyKeywords.some(kw => descLower.includes(kw));
+    if (userRequestedStarch) {
+      starchContext = { ...starchContext, forceStarch: true };
+      console.log(`🥔 [StarchOverride] User explicitly requested starchy food in "${description}" — forcing starch inclusion`);
+    }
+  }
+  
   // Get starch placement decision
   const starchPlacement = determineStarchPlacement(validMealType, starchContext);
   const starchGuidance = buildStarchGuidance(validMealType, starchContext);
