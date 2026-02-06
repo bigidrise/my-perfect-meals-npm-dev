@@ -25,6 +25,14 @@ export default function ProCareCover() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    if (isAdmin) return;
+    if (user.role !== "coach") {
+      setLocation("/dashboard");
+    }
+  }, [user, isAdmin, setLocation]);
+
   const proCareFeatures: ProCareFeature[] = [
     {
       title: "Physicians Clinic",

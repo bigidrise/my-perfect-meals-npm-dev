@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
@@ -10,9 +10,11 @@ import {
   getGuestSuitePage,
 } from "@/lib/guestSuiteNavigator";
 import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
+  const { user } = useAuth();
   const { open, close, isOpen, setLastResponse } = useCopilot();
 
   const handleNavClick = useCallback(
@@ -64,32 +66,41 @@ export default function BottomNav() {
     }
   }, [isOpen, open, close, location, normalizePath, setLastResponse]);
 
-  const navItems = [
-    {
-      id: "home",
-      label: "Home",
-      icon: Home,
-      path: "/dashboard",
-    },
-    {
-      id: "planner",
-      label: "Planner",
-      icon: CalendarDays,
-      path: "/planner",
-    },
-    {
-      id: "lifestyle",
-      label: "Lifestyle",
-      icon: Sparkles,
-      path: "/lifestyle",
-    },
-    {
-      id: "procare",
-      label: "ProCare",
-      icon: Crown,
-      path: "/procare-cover",
-    },
-  ];
+  const showProCare = user?.role === "coach" || user?.role === "admin";
+
+  const navItems = useMemo(() => {
+    const items = [
+      {
+        id: "home",
+        label: "Home",
+        icon: Home,
+        path: "/dashboard",
+      },
+      {
+        id: "planner",
+        label: "Planner",
+        icon: CalendarDays,
+        path: "/planner",
+      },
+      {
+        id: "lifestyle",
+        label: "Lifestyle",
+        icon: Sparkles,
+        path: "/lifestyle",
+      },
+    ];
+
+    if (showProCare) {
+      items.push({
+        id: "procare",
+        label: "ProCare",
+        icon: Crown,
+        path: "/procare-cover",
+      });
+    }
+
+    return items;
+  }, [showProCare]);
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {

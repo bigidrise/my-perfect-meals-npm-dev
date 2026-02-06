@@ -40,6 +40,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
 import { ProfessionalIntroOverlay } from "@/components/pro/ProfessionalIntroOverlay";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
@@ -95,7 +96,17 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 
 export default function CareTeamPage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const quickTour = useQuickTour("care-team");
+
+  useEffect(() => {
+    if (!user) return;
+    const isAdmin = user.role === "admin";
+    const isTrainer = user.professionalRole === "trainer";
+    if (!isAdmin && !isTrainer) {
+      setLocation("/procare-cover");
+    }
+  }, [user, setLocation]);
 
   // UI state
   const [members, setMembers] = useState<CareMember[]>([]);

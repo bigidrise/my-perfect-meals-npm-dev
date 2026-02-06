@@ -28,6 +28,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
 import { ProfessionalIntroOverlay } from "@/components/pro/ProfessionalIntroOverlay";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* -------------------------------- TOUR -------------------------------- */
 
@@ -88,7 +89,17 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 
 export default function PhysicianCareTeamPage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const quickTour = useQuickTour("care-team-physician");
+
+  useEffect(() => {
+    if (!user) return;
+    const isAdmin = user.role === "admin";
+    const isPhysician = user.professionalRole === "physician";
+    if (!isAdmin && !isPhysician) {
+      setLocation("/procare-cover");
+    }
+  }, [user, setLocation]);
 
   const [members, setMembers] = useState<CareMember[]>([]);
   const [loading, setLoading] = useState(false);
