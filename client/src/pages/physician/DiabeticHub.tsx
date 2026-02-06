@@ -32,6 +32,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { PillButton } from "@/components/ui/pill-button";
+import { GlucoseGuardExplainerModal } from "@/components/GlucoseGuardExplainerModal";
 
 const DIABETIC_TOUR_STEPS: TourStep[] = [
   {
@@ -90,6 +92,7 @@ export default function DiabeticHub() {
   const [giCap, setGiCap] = useState("55");
   const [mealFrequency, setMealFrequency] = useState("4");
   const [selectedPreset, setSelectedPreset] = useState<string>("");
+  const [showGlucoseExplainer, setShowGlucoseExplainer] = useState(false);
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -455,8 +458,18 @@ export default function DiabeticHub() {
                 <div className="text-white/80 text-base mt-2">
                   Target: {targetMin}-{targetMax} mg/dL
                 </div>
-                <div className="text-white/60 text-xs mt-3 pt-3 border-t border-white/10">
-                  GlucoseGuard™ uses this reading to adjust meals automatically
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60 text-xs">
+                      GlucoseGuard™ adjusts meals to this reading
+                    </span>
+                    <PillButton
+                      onClick={() => setShowGlucoseExplainer(true)}
+                      variant="amber"
+                    >
+                      How It Works
+                    </PillButton>
+                  </div>
                 </div>
               </div>
             </div>
@@ -657,6 +670,12 @@ export default function DiabeticHub() {
           title="How to Use Diabetic Hub"
           steps={DIABETIC_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+        />
+
+        {/* GlucoseGuard Explainer Modal */}
+        <GlucoseGuardExplainerModal
+          isOpen={showGlucoseExplainer}
+          onClose={() => setShowGlucoseExplainer(false)}
         />
       </div>
     </>

@@ -390,17 +390,11 @@ export const CopilotSheet: React.FC = () => {
                           transition-all duration-150 ease-out whitespace-nowrap
                           ${isGuidedModeEnabled
                             ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-                            : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
+                            : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] border border-amber-400/40"
                           }
                         `}
                       >
                         {isGuidedModeEnabled ? "On" : "Off"}
-                      </button>
-                      <button
-                        onClick={close}
-                        className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
-                      >
-                        ✕
                       </button>
                     </div>
                   </div>

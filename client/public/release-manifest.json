@@ -1,10 +1,11 @@
 {
-  "releaseId": "1.2.40",
+  "releaseId": "1.2.41",
   "publishedAt": "2026-02-06",
   "changes": [
-    "GlucoseGuard and SafetyGuard added to Craving Studio for full meal safety coverage",
-    "Seasoning preferences (FlavorToggle) added to Chef's Kitchen",
-    "Unified starch classification across client and server using shared keywords",
-    "GlucoseGuard restored to all meal generators — diabetics protected everywhere"
+    "GlucoseGuard Explainer — 'How It Works' button in Blood Sugar Tracker explains how your glucose reading controls each meal",
+    "Chef voice narration for GlucoseGuard education with full glucose-level breakdown",
+    "All pill buttons now flash so you know they're tappable",
+    "Copilot close button removed — tap Auto or touch the screen to dismiss",
+    "Clinical threshold consistency: all glucose bands aligned to 80–130 mg/dL pre-meal target"
   ]
 }

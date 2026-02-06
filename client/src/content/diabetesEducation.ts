@@ -182,6 +182,37 @@ The goal isn't to eliminate carbs—it's to choose quality sources, control port
       'Harvard T.H. Chan School of Public Health. Carbohydrates and Blood Sugar.',
     ],
   },
+  glucoseBasedMealGeneration: {
+    title: 'How GlucoseGuard™ builds your meals',
+    content: `Every meal My Perfect Meals generates for you is built around one number: your most recent blood glucose reading. Not an average. Not a default. Your actual last reading.
+
+**How it works:**
+
+Your reading determines the carbohydrate strategy for your next meal:
+
+• **High (> 180 mg/dL):** Under 15g net carbs. Only low-glycemic vegetables. No refined carbs. Higher protein and fiber to help bring levels down safely.
+
+• **Elevated (130–180 mg/dL):** 15–25g carbs. Emphasis on protein and fiber-rich foods. Complex carbs only — nothing that spikes fast.
+
+• **In Range (80–130 mg/dL):** 20–35g balanced carbs. Moderate, quality complex carbohydrates to maintain your good control.
+
+• **Lower-Normal (70–80 mg/dL):** 25–35g carbs. Balanced carbohydrate sources to keep your levels stable without dropping further.
+
+• **Low (< 70 mg/dL):** 30–45g carbs. Adequate carbohydrates including faster-acting sources to help stabilize blood sugar safely.
+
+**Why this matters:**
+
+The same meal can be appropriate at 95 mg/dL, inappropriate at 180 mg/dL, and potentially dangerous at 65 mg/dL. That's why every reading matters.
+
+**Best practice:** Log your blood glucose before generating a meal. That's how you get the most accurate, personalized result from GlucoseGuard™.
+
+If you haven't logged a new reading, we use your last known value and tell you we're doing so. We never guess or assume.`,
+    sources: [
+      'American Diabetes Association (ADA). Standards of Care in Diabetes—2024, Section 6: Glycemic Targets.',
+      'ADA Nutrition Consensus Report, 2019.',
+      'CDC. Manage Blood Sugar / Monitoring Blood Sugar.',
+    ],
+  },
 } as const;
 
 // ========================================
