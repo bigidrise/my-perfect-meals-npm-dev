@@ -97,11 +97,11 @@ Speaking of guardrails — think of them as defaults, not restrictions. They pre
 
 Here's where the real value lives. When you're not present — when social pressure is high, when structure tends to break down — My Perfect Meals keeps your plan intact. You set the track. The app keeps the client on it.
 
-Your professional account also includes full personal access. Use all the meal builders for your own nutrition. Experience exactly what your clients experience. One account — professional tools and personal use.
+Your professional account also includes full personal access. Use all the meal builders for your own nutrition. Experience exactly what your clients experience. One account — professional tools and personal use. You'll notice that as we set this up, I'll also walk you through your own personal profile. That's intentional. When you use My Perfect Meals for yourself, you experience exactly what your clients experience.
 
 And here's something you'll want to know about: the Professional Affiliate Program. When you sign up, you'll receive your own unique product code. Share that code with your clients, your followers, your community — anyone who could benefit from the app. For every subscription that signs up using your code, you earn twenty-five percent — paid directly to your bank account. No caps, no limits. The more people you help, the more you earn.
 
-When you're ready, tap Continue to tell us about your professional background.`;
+When you're ready, choose your professional role below to get started.`;
 
 export default function ProCareWelcome() {
   const [, setLocation] = useLocation();
@@ -144,7 +144,7 @@ export default function ProCareWelcome() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-32">
+      <div className="flex-1 overflow-y-auto px-4 pb-44">
         {/* Back button */}
         <div className="pt-6 pb-2">
           <button
@@ -232,15 +232,30 @@ export default function ProCareWelcome() {
         </div>
       </div>
 
-      {/* Fixed Bottom CTA */}
+      {/* Fixed Bottom CTA — Role Binding Buttons */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-        <Button
-          onClick={() => setLocation("/procare-identity")}
-          className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
-        >
-          Continue
-          <ArrowRight className="w-5 h-5" />
-        </Button>
+        <div className="space-y-3">
+          <Button
+            onClick={() => {
+              localStorage.setItem("procare_role", "trainer");
+              setLocation("/procare-identity");
+            }}
+            className="w-full h-14 text-md font-semibold rounded-2xl bg-black border border-white/20 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            I'm a Trainer or Coach
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+          <Button
+            onClick={() => {
+              localStorage.setItem("procare_role", "physician");
+              setLocation("/procare-identity");
+            }}
+            className="w-full h-14 text-md font-semibold rounded-2xl bg-blue-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            I'm a Physician or Healthcare Provider
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
     </div>
   );
