@@ -18,6 +18,7 @@ import {
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
   MACRO_CALC_STARCH,
+  MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
   MACRO_CALC_DONE,
 } from "@/components/copilot/scripts/macroCalculatorScripts";
@@ -70,6 +71,7 @@ type GuidedStep =
   | "metabolic"
   | "results"
   | "starch"
+  | "bodyComposition"
   | "save"
   | "done";
 import { useToast } from "@/hooks/use-toast";
@@ -365,6 +367,7 @@ export default function MacroCounter() {
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
       starch: MACRO_CALC_STARCH,
+      bodyComposition: MACRO_CALC_BODY_COMPOSITION,
       save: MACRO_CALC_SAVE,
       done: MACRO_CALC_DONE,
     }),
@@ -452,6 +455,7 @@ export default function MacroCounter() {
       "metabolic",
       "results",
       "starch",
+      "bodyComposition",
       "save",
       "done",
     ];
@@ -505,9 +509,9 @@ export default function MacroCounter() {
     },
     {
       icon: "📐",
-      title: "Body Composition",
+      title: "Body Composition (Optional)",
       description:
-        "If you have a body fat scan (DEXA, BodPod, etc.), you can record it here. Your body composition data is used by Beach Body and Performance builders to fine-tune your starchy carb allocation based on how close you are to your goal.",
+        "This step is completely optional — most people skip it. If you've had your body fat professionally measured (DEXA, BodPod, calipers, or smart scale), you can enter it here to fine-tune your starchy carb allocation. If you haven't, just skip it — your macros will still work great without it.",
     },
   ];
 
@@ -1436,7 +1440,7 @@ export default function MacroCounter() {
                           <PillButton
                             onClick={() => {
                               setStarchStrategy("one");
-                              advanceGuided("save");
+                              advanceGuided("bodyComposition");
                             }}
                             active={starchStrategy === "one"}
                           >
@@ -1462,7 +1466,7 @@ export default function MacroCounter() {
                           <PillButton
                             onClick={() => {
                               setStarchStrategy("flex");
-                              advanceGuided("save");
+                              advanceGuided("bodyComposition");
                             }}
                             active={starchStrategy === "flex"}
                           >
@@ -1479,7 +1483,63 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 13: Final Save */}
+            {/* GUIDED STEP 13: Body Composition (Optional) */}
+            {guidedStep === "bodyComposition" && (
+              <motion.div
+                key="guided-body-composition"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Scale className="h-5 w-5 text-blue-400" />
+                      <h3 className="text-lg font-semibold text-white">
+                        Body Composition
+                      </h3>
+                      <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
+                        Optional
+                      </span>
+                    </div>
+
+                    <p className="text-white/80 text-sm leading-relaxed">
+                      If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Beach Body and Performance builders.
+                    </p>
+
+                    <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-blue-200/90">
+                          Most people don't have this number — and that's perfectly fine. Your macros work great without it. This is only for people who actively track their body composition.
+                        </p>
+                      </div>
+                    </div>
+
+                    <BodyCompositionSection />
+
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        onClick={() => advanceGuided("save")}
+                        variant="outline"
+                        className="flex-1 py-4 bg-white/5 border-white/20 text-white text-base font-semibold rounded-xl"
+                      >
+                        Skip
+                      </Button>
+                      <Button
+                        onClick={() => advanceGuided("save")}
+                        className="flex-1 py-4 bg-blue-600 text-white text-base font-semibold rounded-xl"
+                      >
+                        Continue
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 14: Final Save */}
             {guidedStep === "save" && results && (
               <motion.div
                 key="guided-save"
