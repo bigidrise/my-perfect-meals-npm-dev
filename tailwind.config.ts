@@ -82,6 +82,16 @@ export default {
             height: "0",
           },
         },
+        "pill-flash": {
+          "0%, 100%": {
+            boxShadow: "0 0 6px 1px rgba(234, 179, 8, 0.25), 0 0 12px 3px rgba(234, 179, 8, 0.1)",
+            borderColor: "rgba(250, 204, 21, 0.5)",
+          },
+          "50%": {
+            boxShadow: "0 0 10px 3px rgba(234, 179, 8, 0.45), 0 0 20px 6px rgba(234, 179, 8, 0.2)",
+            borderColor: "rgba(250, 204, 21, 0.8)",
+          },
+        },
         "pulse-glow-green": {
           "0%, 100%": {
             boxShadow: "0 0 8px 2px rgba(52, 211, 153, 0.4), 0 0 16px 4px rgba(16, 185, 129, 0.2)",
@@ -106,6 +116,7 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pill-flash": "pill-flash 2.4s ease-in-out infinite",
         "pulse-glow-green": "pulse-glow-green 2s ease-in-out infinite",
         "pulse-glow-amber": "pulse-glow-amber 2s ease-in-out infinite",
       },
