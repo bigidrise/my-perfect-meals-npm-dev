@@ -84,12 +84,10 @@ export default {
         },
         "pill-pulse": {
           "0%, 100%": {
-            transform: "scale(1)",
             boxShadow: "0 0 4px 1px rgba(234, 179, 8, 0.2)",
             borderColor: "rgba(250, 204, 21, 0.4)",
           },
           "50%": {
-            transform: "scale(1.05)",
             boxShadow: "0 0 12px 4px rgba(234, 179, 8, 0.5), 0 0 20px 6px rgba(234, 179, 8, 0.25)",
             borderColor: "rgba(250, 204, 21, 0.9)",
           },
