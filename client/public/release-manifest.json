@@ -1,10 +1,10 @@
 {
-  "releaseId": "1.2.43",
+  "releaseId": "1.2.45",
   "publishedAt": "2026-02-06",
   "changes": [
-    "Body composition guided walkthrough added to Macro Calculator with Chef voice narration",
-    "Real-time starch impact preview shows how your body fat affects carb allocation",
-    "Starch formula precision fix — boundary cases now calculated correctly",
-    "Global voice 'double talk' fix — any tap or screen change stops voice immediately"
+    "Starch Guard rewritten to eliminate food morality language",
+    "No foods are labeled good or bad — context, portion, and frequency are what matter",
+    "Science section tightened for clinical and Apple review accuracy",
+    "New sections: What Starch Guard Manages, What Happens After Starch Is Covered"
   ]
 }
