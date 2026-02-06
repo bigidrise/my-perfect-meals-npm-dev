@@ -161,7 +161,7 @@ export default function ProCareWelcome() {
           <img
             src="/assets/ProCareChef.png"
             alt="Chef"
-            className="w-52 h-auto shrink-0 -ml-4 -mb-2"
+            className="w-[26rem] h-auto shrink-0 -ml-6 -mb-2"
           />
           <div className="flex-1 pt-4">
             <h1 className="text-2xl font-bold mb-2 italic">Welcome, Professional</h1>
