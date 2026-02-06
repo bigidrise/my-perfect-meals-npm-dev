@@ -18,6 +18,7 @@ import {
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
   MACRO_CALC_STARCH,
+  MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
   MACRO_CALC_DONE,
 } from "@/components/copilot/scripts/macroCalculatorScripts";
@@ -70,6 +71,7 @@ type GuidedStep =
   | "metabolic"
   | "results"
   | "starch"
+  | "bodyComposition"
   | "save"
   | "done";
 import { useToast } from "@/hooks/use-toast";
@@ -89,6 +91,8 @@ import BodyCompositionSection from "@/components/macro-targeting/BodyComposition
 import { MacroDeltas } from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
+import { getCurrentUser } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -252,6 +256,229 @@ const advance = (step: string) => {
   window.dispatchEvent(new CustomEvent("macro:nextStep", { detail: { step } }));
 };
 
+function BodyCompositionGuidedStep({
+  sex,
+  goal,
+  getStarchyCarbs: getStarch,
+  onSkip,
+  onContinue,
+}: {
+  sex: Sex;
+  goal: Goal;
+  getStarchyCarbs: (s: Sex, g: Goal) => number;
+  onSkip: () => void;
+  onContinue: () => void;
+}) {
+  const [bodyCompData, setBodyCompData] = useState<{
+    currentBF: number;
+    goalBF: number | null;
+  } | null>(null);
+
+  const userId = getCurrentUser()?.id;
+
+  useEffect(() => {
+    if (!userId) return;
+    const poll = async () => {
+      try {
+        const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.entry) {
+            setBodyCompData({
+              currentBF: parseFloat(data.entry.currentBodyFatPct),
+              goalBF: data.entry.goalBodyFatPct ? parseFloat(data.entry.goalBodyFatPct) : null,
+            });
+          }
+        }
+      } catch {}
+    };
+    poll();
+    const interval = setInterval(poll, 2000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  const baseStarch = getStarch(sex, goal);
+
+  const getStarchImpact = () => {
+    if (!bodyCompData || bodyCompData.goalBF === null) return null;
+    const { currentBF, goalBF } = bodyCompData;
+    if (isNaN(currentBF) || isNaN(goalBF)) return null;
+    const diff = currentBF - goalBF;
+
+    if (diff >= 5) {
+      return {
+        direction: "reduce" as const,
+        slots: -1,
+        label: "Reducing starchy carbs by 1 slot",
+        detail: `You're ${diff.toFixed(1)}% above your goal — we'll cut starchy carbs to help you lean out.`,
+        color: "amber",
+        newStarch: Math.max(0, baseStarch - 25),
+      };
+    } else if (diff >= -3 && diff < 5) {
+      return {
+        direction: "neutral" as const,
+        slots: 0,
+        label: "Standard starchy carb allocation",
+        detail: `You're within range of your goal — your starchy carbs stay at the standard level.`,
+        color: "green",
+        newStarch: baseStarch,
+      };
+    } else {
+      const isPerformance = goal === "gain";
+      return {
+        direction: "increase" as const,
+        slots: isPerformance ? 1 : 0,
+        label: isPerformance
+          ? "Adding 1 bonus starch slot for performance"
+          : "Standard starchy carb allocation",
+        detail: isPerformance
+          ? `You're ${Math.abs(diff).toFixed(1)}% below your goal — extra carbs to fuel your performance.`
+          : `You're below your goal body fat — starchy carbs stay standard for your current goal.`,
+        color: isPerformance ? "blue" : "green",
+        newStarch: isPerformance ? baseStarch + 25 : baseStarch,
+      };
+    }
+  };
+
+  const impact = getStarchImpact();
+
+  return (
+    <motion.div
+      key="guided-body-composition"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-4"
+    >
+      <Card className="bg-zinc-900/80 border border-white/30 text-white">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Scale className="h-5 w-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">
+              Body Composition
+            </h3>
+            <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
+              Optional
+            </span>
+          </div>
+
+          <p className="text-white/80 text-sm leading-relaxed">
+            If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Beach Body and Performance builders.
+          </p>
+
+          <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-200/90">
+                Most people don't have this number — and that's perfectly fine. Your macros work great without it. This is only for people who actively track their body composition.
+              </p>
+            </div>
+          </div>
+
+          <BodyCompositionSection />
+
+          {impact && bodyCompData && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-4 rounded-xl border ${
+                impact.color === "amber"
+                  ? "bg-amber-900/20 border-amber-500/30"
+                  : impact.color === "blue"
+                  ? "bg-blue-900/20 border-blue-500/30"
+                  : "bg-emerald-900/20 border-emerald-500/30"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className={`h-4 w-4 ${
+                  impact.color === "amber"
+                    ? "text-amber-400"
+                    : impact.color === "blue"
+                    ? "text-blue-400"
+                    : "text-emerald-400"
+                }`} />
+                <span className={`text-sm font-semibold ${
+                  impact.color === "amber"
+                    ? "text-amber-200"
+                    : impact.color === "blue"
+                    ? "text-blue-200"
+                    : "text-emerald-200"
+                }`}>
+                  Starch Impact Preview
+                </span>
+              </div>
+              <p className={`text-xs mb-3 ${
+                impact.color === "amber"
+                  ? "text-amber-200/80"
+                  : impact.color === "blue"
+                  ? "text-blue-200/80"
+                  : "text-emerald-200/80"
+              }`}>
+                {impact.detail}
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="text-center flex-1 p-2 bg-black/30 rounded-lg">
+                  <div className="text-xs text-white/50 mb-1">Current BF%</div>
+                  <div className="text-lg font-bold text-white">{bodyCompData.currentBF}%</div>
+                </div>
+                <div className="text-white/30">→</div>
+                <div className="text-center flex-1 p-2 bg-black/30 rounded-lg">
+                  <div className="text-xs text-white/50 mb-1">Goal BF%</div>
+                  <div className="text-lg font-bold text-white">{bodyCompData.goalBF}%</div>
+                </div>
+                <div className="text-white/30">→</div>
+                <div className="text-center flex-1 p-2 bg-black/30 rounded-lg">
+                  <div className="text-xs text-white/50 mb-1">Starchy Carbs</div>
+                  <div className={`text-lg font-bold ${
+                    impact.direction === "reduce"
+                      ? "text-amber-400"
+                      : impact.direction === "increase"
+                      ? "text-blue-400"
+                      : "text-emerald-400"
+                  }`}>
+                    {impact.newStarch}g
+                    {impact.direction === "reduce" && (
+                      <span className="text-xs ml-1">↓</span>
+                    )}
+                    {impact.direction === "increase" && (
+                      <span className="text-xs ml-1">↑</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className={`text-xs mt-2 font-medium ${
+                impact.color === "amber"
+                  ? "text-amber-300"
+                  : impact.color === "blue"
+                  ? "text-blue-300"
+                  : "text-emerald-300"
+              }`}>
+                {impact.label}
+              </p>
+            </motion.div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={onSkip}
+              variant="outline"
+              className="flex-1 py-4 bg-white/5 border-white/20 text-white text-base font-semibold rounded-xl"
+            >
+              Skip
+            </Button>
+            <Button
+              onClick={onContinue}
+              className="flex-1 py-4 bg-blue-600 text-white text-base font-semibold rounded-xl"
+            >
+              Continue
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 // Gender-based starchy carb logic
 const getStarchyCarbs = (sex: Sex, goal: Goal) => {
   if (sex === "female") {
@@ -365,6 +592,7 @@ export default function MacroCounter() {
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
       starch: MACRO_CALC_STARCH,
+      bodyComposition: MACRO_CALC_BODY_COMPOSITION,
       save: MACRO_CALC_SAVE,
       done: MACRO_CALC_DONE,
     }),
@@ -452,6 +680,7 @@ export default function MacroCounter() {
       "metabolic",
       "results",
       "starch",
+      "bodyComposition",
       "save",
       "done",
     ];
@@ -505,9 +734,9 @@ export default function MacroCounter() {
     },
     {
       icon: "📐",
-      title: "Body Composition",
+      title: "Body Composition (Optional)",
       description:
-        "If you have a body fat scan (DEXA, BodPod, etc.), you can record it here. Your body composition data is used by Beach Body and Performance builders to fine-tune your starchy carb allocation based on how close you are to your goal.",
+        "This step is completely optional — most people skip it. If you've had your body fat professionally measured (DEXA, BodPod, calipers, or smart scale), you can enter it here to fine-tune your starchy carb allocation. If you haven't, just skip it — your macros will still work great without it.",
     },
   ];
 
@@ -1436,7 +1665,7 @@ export default function MacroCounter() {
                           <PillButton
                             onClick={() => {
                               setStarchStrategy("one");
-                              advanceGuided("save");
+                              advanceGuided("bodyComposition");
                             }}
                             active={starchStrategy === "one"}
                           >
@@ -1462,7 +1691,7 @@ export default function MacroCounter() {
                           <PillButton
                             onClick={() => {
                               setStarchStrategy("flex");
-                              advanceGuided("save");
+                              advanceGuided("bodyComposition");
                             }}
                             active={starchStrategy === "flex"}
                           >
@@ -1479,7 +1708,18 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 13: Final Save */}
+            {/* GUIDED STEP 13: Body Composition (Optional) */}
+            {guidedStep === "bodyComposition" && (
+              <BodyCompositionGuidedStep
+                sex={sex}
+                goal={goal}
+                getStarchyCarbs={getStarchyCarbs}
+                onSkip={() => advanceGuided("save")}
+                onContinue={() => advanceGuided("save")}
+              />
+            )}
+
+            {/* GUIDED STEP 14: Final Save */}
             {guidedStep === "save" && results && (
               <motion.div
                 key="guided-save"

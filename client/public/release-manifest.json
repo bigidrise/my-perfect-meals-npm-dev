@@ -1,12 +1,10 @@
 {
-  "releaseId": "1.2.42",
+  "releaseId": "1.2.43",
   "publishedAt": "2026-02-06",
   "changes": [
-    "Meal generation fixed across all 7 builders — meals now appear instantly without waiting for server save",
-    "Diabetic and Anti-Inflammatory builders now properly save meals to server",
-    "Shopping bar repositioned to overlay bottom navigation correctly",
-    "Nutrition Budget Banner removed from Performance and General Nutrition boards (coach-controlled)",
-    "General Nutrition Builder added to dev navigation with standalone route",
-    "Pill animation no longer causes button overflow"
+    "Body composition guided walkthrough added to Macro Calculator with Chef voice narration",
+    "Real-time starch impact preview shows how your body fat affects carb allocation",
+    "Starch formula precision fix — boundary cases now calculated correctly",
+    "Global voice 'double talk' fix — any tap or screen change stops voice immediately"
   ]
 }
