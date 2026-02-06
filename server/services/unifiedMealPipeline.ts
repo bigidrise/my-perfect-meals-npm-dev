@@ -13,6 +13,7 @@
 
 import { generateImage } from './imageService';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
+import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 import { createIngredientSignature, hashSignature } from './ingredientSignature';
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
@@ -744,20 +745,11 @@ export async function generateFromDescriptionUnified(
   const validMealType = normalizeMealType(mealType);
   
   // Auto-detect starchy foods in user's description and force starch if found
+  // Uses shared STARCHY_KEYWORDS — same list the client uses for the indicator
   // The starch coaching system should NEVER override explicit user requests
   if (starchContext && !starchContext.forceStarch && !starchContext.forceFiberBased) {
     const descLower = description.toLowerCase();
-    const starchyKeywords = [
-      'oatmeal', 'oats', 'rice', 'pasta', 'potato', 'potatoes', 'hash brown', 'hashbrown',
-      'bread', 'toast', 'noodle', 'noodles', 'tortilla', 'wrap', 'bagel', 'pancake', 'waffle',
-      'cereal', 'granola', 'quinoa', 'couscous', 'grits', 'polenta', 'corn',
-      'bean', 'beans', 'lentil', 'lentils', 'chickpea', 'hummus',
-      'sweet potato', 'yam', 'fries', 'mashed potato', 'baked potato',
-      'macaroni', 'spaghetti', 'penne', 'fettuccine', 'lasagna', 'ramen',
-      'sandwich', 'burger', 'bun', 'roll', 'biscuit', 'muffin', 'croissant',
-      'pizza', 'flatbread', 'pita', 'cracker',
-    ];
-    const userRequestedStarch = starchyKeywords.some(kw => descLower.includes(kw));
+    const userRequestedStarch = STARCHY_KEYWORDS.some(kw => descLower.includes(kw));
     if (userRequestedStarch) {
       starchContext = { ...starchContext, forceStarch: true };
       console.log(`🥔 [StarchOverride] User explicitly requested starchy food in "${description}" — forcing starch inclusion`);
