@@ -79,6 +79,7 @@ export interface User {
   // Display preferences
   fontSizePreference?: "standard" | "large" | "xl";
   // ProCare Professional fields
+  professionalRole?: "trainer" | "physician" | null;
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
   credentialType?: string | null;
   credentialBody?: string | null;
@@ -125,6 +126,7 @@ export function getTrialDaysRemaining(user: User | null): number {
 
 // API-based authentication with database persistence
 export interface ProCareSignupData {
+  professionalRole: "trainer" | "physician";
   professionalCategory: "certified" | "experienced" | "non_certified";
   credentialType?: string;
   credentialBody?: string;
@@ -136,14 +138,16 @@ export interface ProCareSignupData {
 }
 
 export function getProCareSignupData(): ProCareSignupData | null {
+  const role = localStorage.getItem("procare_role") as ProCareSignupData["professionalRole"] | null;
   const category = localStorage.getItem("procare_category") as ProCareSignupData["professionalCategory"] | null;
   const attestationText = localStorage.getItem("procare_attestation_text");
   const attestedAt = localStorage.getItem("procare_attested_at");
   const entryPath = localStorage.getItem("procare_entry_path");
 
-  if (!category || !attestationText || !attestedAt || !entryPath) return null;
+  if (!role || !category || !attestationText || !attestedAt || !entryPath) return null;
 
   return {
+    professionalRole: role,
     professionalCategory: category,
     credentialType: localStorage.getItem("procare_credential_type") || undefined,
     credentialBody: localStorage.getItem("procare_credential_body") || undefined,
@@ -157,7 +161,7 @@ export function getProCareSignupData(): ProCareSignupData | null {
 
 export function clearProCareSignupData() {
   const keys = [
-    "procare_category", "procare_credential_type", "procare_credential_body",
+    "procare_role", "procare_category", "procare_credential_type", "procare_credential_body",
     "procare_credential_number", "procare_credential_year", "procare_attestation_text",
     "procare_attestation_version", "procare_attested_at", "procare_entry_path",
   ];

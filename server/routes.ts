@@ -1825,6 +1825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName || null,
         nickname: user.nickname || null,
+        professionalRole: user.professionalRole || null,
         professionalCategory: user.professionalCategory || null,
         credentialType: user.credentialType || null,
         credentialBody: user.credentialBody || null,

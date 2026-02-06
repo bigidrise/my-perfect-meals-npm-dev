@@ -61,7 +61,11 @@ router.post("/api/auth/signup", async (req, res) => {
     };
 
     if (procare && procare.professionalCategory) {
+      const validRoles = ["trainer", "physician"];
       const validCategories = ["certified", "experienced", "non_certified"];
+      if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
+        return res.status(400).json({ error: "Professional role (trainer or physician) is required" });
+      }
       if (!validCategories.includes(procare.professionalCategory)) {
         return res.status(400).json({ error: "Invalid professional category" });
       }
@@ -69,6 +73,7 @@ router.post("/api/auth/signup", async (req, res) => {
         return res.status(400).json({ error: "Attestation is required for professional accounts" });
       }
       userValues.role = "coach";
+      userValues.professionalRole = procare.professionalRole;
       userValues.professionalCategory = procare.professionalCategory;
       userValues.procareEntryPath = procare.procareEntryPath || procare.professionalCategory;
       userValues.attestationText = procare.attestationText;

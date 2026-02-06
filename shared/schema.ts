@@ -322,6 +322,7 @@ export const users = pgTable("users", {
   // Display Preferences - accessibility settings
   fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
   // ProCare Professional Onboarding - Phase 1
+  professionalRole: text("professional_role").$type<"trainer"|"physician">(),
   professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),
   credentialType: text("credential_type"), // e.g. "Personal Trainer", "Physician", "Dietitian"
   credentialBody: text("credential_body"), // e.g. "NASM", "ACE", license state
