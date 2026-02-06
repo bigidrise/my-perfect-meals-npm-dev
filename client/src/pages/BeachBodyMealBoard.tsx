@@ -927,19 +927,16 @@ export default function BeachBodyMealBoard() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
+        setBoard(updatedBoard);
+        toast({
+          title: "AI Meal Added!",
+          description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
+        });
+
         try {
           await saveBoard(updatedBoard);
-          toast({
-            title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
-          });
         } catch (error) {
-          console.error("Failed to save AI meal:", error);
-          toast({
-            title: "Failed to save",
-            description: "Please try again",
-            variant: "destructive",
-          });
+          console.error("Failed to save AI meal to server:", error);
         }
       }
     },
