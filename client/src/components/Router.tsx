@@ -417,6 +417,10 @@ export default function Router() {
           component={PerformanceCompetitionBuilderStandalone}
         />
         <Route
+          path="/pro/general-nutrition-builder"
+          component={GeneralNutritionBuilder}
+        />
+        <Route
           path="/pro/clients/:id/general-nutrition-builder"
           component={GeneralNutritionBuilder}
         />

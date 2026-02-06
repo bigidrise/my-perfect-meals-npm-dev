@@ -104,7 +104,6 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
-import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -770,19 +769,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
+        setBoard(updatedBoard);
+        toast({
+          title: "AI Meal Added!",
+          description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
+        });
+
         try {
           await saveBoard(updatedBoard);
-          toast({
-            title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
-          });
         } catch (error) {
-          console.error("Failed to save AI meal:", error);
-          toast({
-            title: "Failed to save",
-            description: "Please try again",
-            variant: "destructive",
-          });
+          console.error("Failed to save AI meal to server:", error);
         }
       }
     },
@@ -1142,7 +1138,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         className="px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
-        <NutritionBudgetBanner className="mb-2" />
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">

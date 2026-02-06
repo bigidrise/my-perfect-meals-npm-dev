@@ -216,7 +216,7 @@ export default function BeachBodyMealBoard() {
 
   React.useEffect(() => {
     if (hookBoard) {
-      setBoard(hookBoard);
+      setBoard(hookBoard as any);
       setLoading(hookLoading);
     }
   }, [hookBoard, hookLoading]);
@@ -323,6 +323,9 @@ export default function BeachBodyMealBoard() {
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
+
+  const [aiMealSlot, setAiMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -890,7 +893,11 @@ export default function BeachBodyMealBoard() {
         title: generatedMeal.name,
         description: generatedMeal.description,
         ingredients: generatedMeal.ingredients || [],
-        instructions: generatedMeal.instructions || "",
+        instructions: Array.isArray(generatedMeal.instructions)
+          ? generatedMeal.instructions
+          : generatedMeal.instructions
+            ? [generatedMeal.instructions]
+            : [],
         servings: 1,
         imageUrl: generatedMeal.imageUrl,
         cookingTime: generatedMeal.cookingTime,
@@ -920,19 +927,16 @@ export default function BeachBodyMealBoard() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
+        setBoard(updatedBoard);
+        toast({
+          title: "AI Meal Added!",
+          description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
+        });
+
         try {
           await saveBoard(updatedBoard);
-          toast({
-            title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
-          });
         } catch (error) {
-          console.error("Failed to save AI meal:", error);
-          toast({
-            title: "Failed to save",
-            description: "Please try again",
-            variant: "destructive",
-          });
+          console.error("Failed to save AI meal to server:", error);
         }
       }
     },
@@ -2210,7 +2214,7 @@ export default function BeachBodyMealBoard() {
               const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
               return (
-                <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
+                <div className="fixed bottom-0 left-0 right-0 z-[45] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
                   <div className="container mx-auto px-4 py-3">
                     <div className="flex flex-col gap-2">
                       <div className="text-white text-sm font-semibold">
