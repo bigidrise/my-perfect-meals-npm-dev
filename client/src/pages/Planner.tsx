@@ -72,7 +72,7 @@ export default function Planner() {
     {
       title: "General Nutrition Builder",
       description:
-        "Professional-grade nutrition planning with coach support and custom protocols",
+        "Coach guided professional-grade nutrition planning and custom protocols",
       icon: Utensils,
       route: "/pro/general-nutrition-builder",
       testId: "card-general-nutrition",
@@ -81,7 +81,7 @@ export default function Planner() {
     {
       title: "Performance & Competition Builder",
       description:
-        "Elite athlete meal planning for competition prep, peak performance and recovery",
+        "Coach guided elite athlete meal planning for competition prep, peak performance and recovery",
       icon: Dumbbell,
       route: "/pro/performance-competition-builder",
       testId: "card-performance-competition",
