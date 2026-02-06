@@ -4,6 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useLocation } from 'wouter';
 import { voiceManager, VoiceStatus, SpeakResult } from './VoiceManager';
 
 interface VoiceContextValue {
@@ -23,10 +24,25 @@ interface VoiceProviderProps {
 
 export function VoiceProvider({ children }: VoiceProviderProps) {
   const [status, setStatus] = useState<VoiceStatus>(voiceManager.getStatus());
+  const [location] = useLocation();
 
   useEffect(() => {
     return voiceManager.subscribe(setStatus);
   }, []);
+
+  useEffect(() => {
+    const stopVoice = () => voiceManager.stop();
+    document.addEventListener('pointerdown', stopVoice, true);
+    document.addEventListener('keydown', stopVoice, true);
+    return () => {
+      document.removeEventListener('pointerdown', stopVoice, true);
+      document.removeEventListener('keydown', stopVoice, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    voiceManager.stop();
+  }, [location]);
 
   const enableVoice = useCallback(async () => {
     return voiceManager.preload();
