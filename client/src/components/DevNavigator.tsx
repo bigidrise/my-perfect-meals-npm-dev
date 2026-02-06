@@ -17,6 +17,7 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/glp1-meal-builder", label: "GLP-1 Builder" },
       { path: "/anti-inflammatory-menu-builder", label: "Anti-Inflammatory Builder" },
       { path: "/performance-competition-builder", label: "Performance Builder" },
+      { path: "/pro/general-nutrition-builder", label: "General Nutrition Builder" },
       { path: "/select-builder", label: "Builder Selection Page" },
     ],
   },
