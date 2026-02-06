@@ -396,12 +396,12 @@ export const CopilotSheet: React.FC = () => {
                       >
                         {isGuidedModeEnabled ? "On" : "Off"}
                       </button>
-                      <button
-                        onClick={close}
-                        className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70 active:bg-white/10"
+                      <span
+                        className="rounded-full px-2 py-1 text-xs text-transparent pointer-events-none select-none"
+                        aria-hidden="true"
                       >
                         ✕
-                      </button>
+                      </span>
                     </div>
                   </div>
                 </div>
