@@ -1,10 +1,7 @@
 {
-  "releaseId": "1.2.43",
+  "releaseId": "1.2.44",
   "publishedAt": "2026-02-06",
   "changes": [
-    "Body composition guided walkthrough added to Macro Calculator with Chef voice narration",
-    "Real-time starch impact preview shows how your body fat affects carb allocation",
-    "Starch formula precision fix — boundary cases now calculated correctly",
-    "Global voice 'double talk' fix — any tap or screen change stops voice immediately"
+    "App Library updated — Starch Guard science section now explains why starch matters more than sodium for long-term fat loss"
   ]
 }
