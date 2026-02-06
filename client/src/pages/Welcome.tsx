@@ -148,17 +148,13 @@ export default function Welcome() {
   };
 
   const signIn = () => {
-    // Clear Apple Review flag to ensure normal auth flow
     localStorage.removeItem("appleReviewFullAccess");
-    // Route to auth page for sign-in
-    setLocation("/auth");
+    setLocation("/consumer-welcome");
   };
 
   const createAccount = () => {
-    // Clear Apple Review flag to ensure normal auth flow
     localStorage.removeItem("appleReviewFullAccess");
-    // Route to auth page for account creation
-    setLocation("/auth");
+    setLocation("/consumer-welcome");
   };
 
   const exploreAsGuest = () => {
