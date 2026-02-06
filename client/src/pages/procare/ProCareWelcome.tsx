@@ -144,7 +144,7 @@ export default function ProCareWelcome() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-44">
+      <div className="flex-1 overflow-y-auto px-4 pb-32">
         {/* Back button */}
         <div className="pt-6 pb-2">
           <button
@@ -232,30 +232,15 @@ export default function ProCareWelcome() {
         </div>
       </div>
 
-      {/* Fixed Bottom CTA — Role Binding Buttons */}
+      {/* Fixed Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-        <div className="space-y-3">
-          <Button
-            onClick={() => {
-              localStorage.setItem("procare_role", "trainer");
-              setLocation("/procare-identity");
-            }}
-            className="w-full h-14 text-md font-semibold rounded-2xl bg-black border border-white/20 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
-          >
-            I'm a Trainer or Coach
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-          <Button
-            onClick={() => {
-              localStorage.setItem("procare_role", "physician");
-              setLocation("/procare-identity");
-            }}
-            className="w-full h-14 text-md font-semibold rounded-2xl bg-blue-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
-          >
-            I'm a Physician or Healthcare Provider
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-        </div>
+        <Button
+          onClick={() => setLocation("/procare-identity")}
+          className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+        >
+          Continue
+          <ArrowRight className="w-5 h-5" />
+        </Button>
       </div>
     </div>
   );

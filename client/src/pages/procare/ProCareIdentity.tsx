@@ -12,6 +12,7 @@ import {
   Check,
 } from "lucide-react";
 
+type ProfessionalRole = "trainer" | "physician" | null;
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
 const CREDENTIAL_BODIES = [
@@ -76,6 +77,9 @@ const OPTIONS: IdentityOption[] = [
 
 export default function ProCareIdentity() {
   const [, setLocation] = useLocation();
+  const [role, setRole] = useState<ProfessionalRole>(
+    (localStorage.getItem("procare_role") as ProfessionalRole) || null
+  );
   const [selected, setSelected] = useState<ProfessionalCategory | null>(null);
   const [credentialType, setCredentialType] = useState("");
   const [credentialBody, setCredentialBody] = useState("");
@@ -99,13 +103,14 @@ export default function ProCareIdentity() {
     return () => document.removeEventListener("mousedown", handleTap);
   }, [showTypeDropdown, showBodyDropdown]);
 
-  const canContinue = selected !== null && (
+  const canContinue = role !== null && selected !== null && (
     selected !== "certified" || (credentialType.trim() && credentialBody.trim())
   );
 
   const handleContinue = () => {
-    if (!canContinue || !selected) return;
+    if (!canContinue || !selected || !role) return;
 
+    localStorage.setItem("procare_role", role);
     localStorage.setItem("procare_category", selected);
     if (selected === "certified") {
       localStorage.setItem("procare_credential_type", credentialType.trim());
@@ -141,15 +146,49 @@ export default function ProCareIdentity() {
               <span className="text-white font-semibold text-sm">ProCare Professional</span>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">How Do You Identify Professionally?</h1>
+            <h1 className="text-2xl font-bold mb-2">Professional Identity</h1>
             <p className="text-white/60 text-sm max-w-sm mx-auto">
-              Select the option that best describes your current professional status. All paths are welcome.
+              Tell us about your professional role and credentials.
             </p>
           </div>
         </div>
 
-        {/* Identity Options */}
-        <div className="space-y-3 mb-6">
+        {/* Role Selection — Trainer or Physician */}
+        <div className="mb-6">
+          <p className="text-xs text-white/50 uppercase tracking-wider mb-3 px-1">Your Professional Role</p>
+          <div className="space-y-3">
+            <button
+              onClick={() => setRole("trainer")}
+              className={`w-full h-14 text-md font-semibold rounded-2xl border text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] ${
+                role === "trainer"
+                  ? "bg-zinc-900 border-white/40 ring-1 ring-white/20"
+                  : "bg-black border-white/20"
+              }`}
+            >
+              I'm a Trainer or Coach
+              {role === "trainer" && <Check className="w-5 h-5 text-emerald-400" />}
+            </button>
+            <button
+              onClick={() => setRole("physician")}
+              className={`w-full h-14 text-md font-semibold rounded-2xl text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] ${
+                role === "physician"
+                  ? "bg-blue-700 ring-1 ring-blue-300/30"
+                  : "bg-blue-600"
+              }`}
+            >
+              I'm a Physician or Healthcare Provider
+              {role === "physician" && <Check className="w-5 h-5 text-white" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Credential Category */}
+        {role && (
+          <p className="text-xs text-white/50 uppercase tracking-wider mb-3 px-1">Your Credential Status</p>
+        )}
+
+        {/* Identity Options — shown after role selection */}
+        {role && <div className="space-y-3 mb-6">
           {OPTIONS.map((option) => {
             const isSelected = selected === option.id;
             return (
@@ -175,10 +214,10 @@ export default function ProCareIdentity() {
               </button>
             );
           })}
-        </div>
+        </div>}
 
         {/* Credential Entry (only for certified) */}
-        {selected === "certified" && (
+        {role && selected === "certified" && (
           <div className="space-y-4 p-4 rounded-xl border border-emerald-400/20 bg-emerald-900/10">
             <h3 className="text-sm font-semibold text-emerald-400 mb-2">Credential Information</h3>
 
