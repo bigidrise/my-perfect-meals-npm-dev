@@ -157,21 +157,19 @@ export default function ProCareWelcome() {
         </div>
 
         {/* Chef Hero Section */}
-        <div className="flex items-start gap-2 mb-6 -mt-1">
+        <div className="flex flex-col items-center mb-4 -mt-2">
           <img
             src="/assets/ProCareChef.png"
             alt="Chef"
-            className="w-[26rem] h-auto shrink-0 -ml-6 -mb-2"
+            className="w-[26rem] h-auto -mb-3"
           />
-          <div className="flex-1 pt-4">
-            <h1 className="text-2xl font-bold mb-2 italic">Welcome, Professional</h1>
-            <p className="text-white/60 text-sm leading-relaxed">
-              Before you create an account, understand how My Perfect Meals works <span className="italic">with</span> you, not instead of you.
-            </p>
-            <p className="text-green-400/80 text-xs mt-3 font-medium">
-              Ask about our affiliate program for 25% commission.
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold italic mt-0">Welcome, Professional</h1>
+          <p className="text-white/60 text-sm leading-relaxed text-center mt-1 max-w-xs">
+            Before you create an account, understand how My Perfect Meals works <span className="italic">with</span> you, not instead of you.
+          </p>
+          <p className="text-green-400/80 text-xs mt-2 font-medium">
+            Ask about our affiliate program for 25% commission.
+          </p>
         </div>
 
         {/* Copilot Audio Button */}
