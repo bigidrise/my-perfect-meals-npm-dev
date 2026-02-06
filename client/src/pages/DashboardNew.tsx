@@ -76,8 +76,8 @@ export default function DashboardNew() {
     }
   }, [openCopilot]);
 
-  // Use the authenticated user's first name for greeting (not username/email-derived name)
-  const firstName = user?.firstName || user?.name?.split(" ")[0] || "there";
+  // Greeting priority: nickname > firstName > username-derived name > fallback
+  const firstName = user?.nickname || user?.firstName || user?.name?.split(" ")[0] || "there";
 
   const features: FeatureCard[] = [
     {

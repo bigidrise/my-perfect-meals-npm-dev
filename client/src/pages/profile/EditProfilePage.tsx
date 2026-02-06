@@ -120,6 +120,7 @@ export default function EditProfilePage() {
     return {
       firstName: u?.firstName || u?.name?.split(" ")[0] || "",
       lastName: u?.lastName || u?.name?.split(" ").slice(1).join(" ") || "",
+      nickname: u?.nickname || "",
       email: u?.email || "",
       activityLevel: (u?.activityLevel || "moderately_active") as ActivityLevel,
       fitnessGoal: (u?.fitnessGoal || "maintenance") as FitnessGoal,
@@ -378,6 +379,19 @@ export default function EditProfilePage() {
                     placeholder="Last name"
                   />
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <label className="text-white/70 text-xs">Preferred Name / Nickname</label>
+                <input
+                  value={form.nickname || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, nickname: e.target.value }))
+                  }
+                  className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
+                  placeholder="What should we call you?"
+                />
+                <p className="text-white/40 text-[10px] mt-1">If set, this name will be used throughout the app instead of your first name</p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
@@ -656,6 +670,11 @@ export default function EditProfilePage() {
                 <p className="text-white/80 text-xs">
                   Name: {form.firstName || "—"} {form.lastName || ""}
                 </p>
+                {form.nickname?.trim() && (
+                  <p className="text-white/80 text-xs">
+                    Preferred Name: {form.nickname}
+                  </p>
+                )}
                 <p className="text-white/80 text-xs">
                   Goal: {form.fitnessGoal ? GOAL_LABELS[form.fitnessGoal] : "—"}
                 </p>

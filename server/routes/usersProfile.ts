@@ -10,6 +10,7 @@ const router = Router();
 const UpdateProfileSchema = z.object({
   firstName: z.string().min(1).max(120).optional(),
   lastName: z.string().max(120).optional(),
+  nickname: z.string().max(60).optional().nullable(),
   age: z.number().int().min(0).max(120).nullable().optional(),
   height: z.number().int().min(0).max(300).nullable().optional(),
   weight: z.number().int().min(0).max(500).nullable().optional(),
@@ -46,6 +47,7 @@ router.put("/profile", requireAuth, async (req, res) => {
 
     if (patch.firstName !== undefined) updateData.firstName = patch.firstName;
     if (patch.lastName !== undefined) updateData.lastName = patch.lastName;
+    if (patch.nickname !== undefined) updateData.nickname = patch.nickname;
     if (patch.age !== undefined) updateData.age = patch.age;
     if (patch.height !== undefined) updateData.height = patch.height;
     if (patch.weight !== undefined) updateData.weight = patch.weight;

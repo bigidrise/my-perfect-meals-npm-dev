@@ -55,6 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Profile data from onboarding (used by Edit Profile)
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,
+          nickname: userData.nickname || null,
           age: userData.age || null,
           height: userData.height || null,
           weight: userData.weight || null,

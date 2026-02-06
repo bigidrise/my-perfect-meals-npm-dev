@@ -238,6 +238,7 @@ export const users = pgTable("users", {
   plan: text("plan").notNull().default("basic"),
   firstName: text("first_name"),
   lastName: text("last_name"),
+  nickname: text("nickname"),
   age: integer("age"),
   height: integer("height"), // in cm
   weight: integer("weight"), // in kg

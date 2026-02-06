@@ -68,6 +68,7 @@ export interface User {
   // Profile data from onboarding (used by Edit Profile)
   firstName?: string | null;
   lastName?: string | null;
+  nickname?: string | null;
   age?: number | null;
   height?: number | null;
   weight?: number | null;
