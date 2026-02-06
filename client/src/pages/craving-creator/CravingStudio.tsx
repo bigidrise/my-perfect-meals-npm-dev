@@ -30,6 +30,8 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { FlavorToggle } from "@/components/FlavorToggle";
 
@@ -162,13 +164,18 @@ export default function CravingStudio() {
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
   
   // 🎨 FlavorToggle state (Personal = use palate prefs, Neutral = skip them)
   const [flavorPersonal, setFlavorPersonal] = useState(true);
 
-  const handleSafetyOverride = (token: string) => {
-    setOverrideToken(token);
-    setPendingGeneration(true);
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      clearSafetyAlert();
+      setPendingGeneration(true);
+    }
   };
 
   // Auto-generate after override token is set
@@ -755,10 +762,21 @@ export default function CravingStudio() {
                       alert={safetyAlert}
                       mealRequest={buildCravingPrompt()}
                       onDismiss={clearSafetyAlert}
-                      onOverrideSuccess={handleSafetyOverride}
+                      onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                       className="mb-4"
                     />
                   )}
+
+                  {/* Meal Safety Section */}
+                  <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
+                    <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                    <SafetyGuardToggle
+                      safetyEnabled={safetyEnabled}
+                      onSafetyChange={handleSafetyOverride}
+                      disabled={isGenerating || safetyChecking}
+                    />
+                    <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
+                  </div>
 
                   {/* Flavor Toggle */}
                   <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
