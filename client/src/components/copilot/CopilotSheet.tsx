@@ -353,7 +353,7 @@ export const CopilotSheet: React.FC = () => {
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
           >
             <div className="mx-auto mb-2 w-full max-w-xl px-3">
-              <div className="rounded-3xl border border-white/12 bg-gradient-to-br from-slate-950/95 via-black/95 to-slate-900/90 backdrop-blur-2xl shadow-2xl shadow-black/60 overflow-visible">
+              <div className="rounded-3xl border border-white/12 bg-gradient-to-br from-slate-950/95 via-black/95 to-slate-900/90 backdrop-blur-2xl shadow-2xl shadow-black/60">
                 {/* Handle */}
                 <div className="flex justify-center pt-3">
                   <div className="h-1 w-10 rounded-full bg-white/15" />
@@ -395,6 +395,12 @@ export const CopilotSheet: React.FC = () => {
                         `}
                       >
                         {isGuidedModeEnabled ? "On" : "Off"}
+                      </button>
+                      <button
+                        onClick={close}
+                        className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70 active:bg-white/10"
+                      >
+                        ✕
                       </button>
                     </div>
                   </div>
