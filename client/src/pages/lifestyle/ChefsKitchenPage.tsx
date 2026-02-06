@@ -36,6 +36,7 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1379,8 +1380,9 @@ export default function ChefsKitchenPage() {
                         }
                       />
 
-                      {/* Safety Guard Toggle - right before generate button */}
-                      <div className="mb-3 flex justify-end">
+                      {/* Meal Safety - GlucoseGuard + SafetyGuard */}
+                      <div className="mb-3 flex justify-end space-y-2">
+                        <GlucoseGuardToggle />
                         <SafetyGuardToggle
                           safetyEnabled={safetyEnabled}
                           onSafetyChange={handleSafetyOverride}
