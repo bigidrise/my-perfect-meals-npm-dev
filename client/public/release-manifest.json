@@ -1,7 +1,10 @@
 {
-  "releaseId": "1.2.44",
+  "releaseId": "1.2.45",
   "publishedAt": "2026-02-06",
   "changes": [
-    "App Library updated — Starch Guard science section now explains why starch matters more than sodium for long-term fat loss"
+    "Starch Guard rewritten to eliminate food morality language",
+    "No foods are labeled good or bad — context, portion, and frequency are what matter",
+    "Science section tightened for clinical and Apple review accuracy",
+    "New sections: What Starch Guard Manages, What Happens After Starch Is Covered"
   ]
 }
