@@ -25,7 +25,7 @@ function isTesterEmail(email: string): boolean {
  */
 router.post("/api/auth/signup", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, procare } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
@@ -50,15 +50,37 @@ router.post("/api/auth/signup", async (req, res) => {
     // Check if email is in tester allowlist
     const isTester = isTesterEmail(email);
 
-    // Create user in database with auth token
-    const [newUser] = await db.insert(users).values({
+    // Build user values with optional ProCare professional fields
+    const userValues: any = {
       email,
-      username: email.split("@")[0], // Use email prefix as username
+      username: email.split("@")[0],
       password: hashedPassword,
       authToken,
       authTokenCreatedAt: new Date(),
       isTester,
-    }).returning();
+    };
+
+    if (procare && procare.professionalCategory) {
+      const validCategories = ["certified", "experienced", "non_certified"];
+      if (!validCategories.includes(procare.professionalCategory)) {
+        return res.status(400).json({ error: "Invalid professional category" });
+      }
+      if (!procare.attestationText || !procare.attestedAt) {
+        return res.status(400).json({ error: "Attestation is required for professional accounts" });
+      }
+      userValues.role = "coach";
+      userValues.professionalCategory = procare.professionalCategory;
+      userValues.procareEntryPath = procare.procareEntryPath || procare.professionalCategory;
+      userValues.attestationText = procare.attestationText;
+      userValues.attestedAt = new Date(procare.attestedAt);
+      if (procare.credentialType) userValues.credentialType = procare.credentialType;
+      if (procare.credentialBody) userValues.credentialBody = procare.credentialBody;
+      if (procare.credentialNumber) userValues.credentialNumber = procare.credentialNumber;
+      if (procare.credentialYear) userValues.credentialYear = procare.credentialYear;
+    }
+
+    // Create user in database with auth token
+    const [newUser] = await db.insert(users).values(userValues).returning();
 
   // Set session cookie for mobile compatibility (guard for prod where session may be undefined)
   if (req.session) {

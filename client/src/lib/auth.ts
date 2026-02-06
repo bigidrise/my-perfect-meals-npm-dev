@@ -78,6 +78,15 @@ export interface User {
   dietaryRestrictions?: string[];
   // Display preferences
   fontSizePreference?: "standard" | "large" | "xl";
+  // ProCare Professional fields
+  professionalCategory?: "certified" | "experienced" | "non_certified" | null;
+  credentialType?: string | null;
+  credentialBody?: string | null;
+  credentialNumber?: string | null;
+  credentialYear?: string | null;
+  attestationText?: string | null;
+  procareEntryPath?: string | null;
+  attestedAt?: string | null;
 }
 
 export function getAuthToken(): string | null {
@@ -115,7 +124,47 @@ export function getTrialDaysRemaining(user: User | null): number {
 }
 
 // API-based authentication with database persistence
-export async function signUp(email: string, password: string): Promise<User> {
+export interface ProCareSignupData {
+  professionalCategory: "certified" | "experienced" | "non_certified";
+  credentialType?: string;
+  credentialBody?: string;
+  credentialNumber?: string;
+  credentialYear?: string;
+  attestationText: string;
+  attestedAt: string;
+  procareEntryPath: string;
+}
+
+export function getProCareSignupData(): ProCareSignupData | null {
+  const category = localStorage.getItem("procare_category") as ProCareSignupData["professionalCategory"] | null;
+  const attestationText = localStorage.getItem("procare_attestation_text");
+  const attestedAt = localStorage.getItem("procare_attested_at");
+  const entryPath = localStorage.getItem("procare_entry_path");
+
+  if (!category || !attestationText || !attestedAt || !entryPath) return null;
+
+  return {
+    professionalCategory: category,
+    credentialType: localStorage.getItem("procare_credential_type") || undefined,
+    credentialBody: localStorage.getItem("procare_credential_body") || undefined,
+    credentialNumber: localStorage.getItem("procare_credential_number") || undefined,
+    credentialYear: localStorage.getItem("procare_credential_year") || undefined,
+    attestationText,
+    attestedAt,
+    procareEntryPath: entryPath,
+  };
+}
+
+export function clearProCareSignupData() {
+  const keys = [
+    "procare_category", "procare_credential_type", "procare_credential_body",
+    "procare_credential_number", "procare_credential_year", "procare_attestation_text",
+    "procare_attestation_version", "procare_attested_at", "procare_entry_path",
+  ];
+  keys.forEach((k) => localStorage.removeItem(k));
+}
+
+export async function signUp(email: string, password: string, procareData?: ProCareSignupData | null): Promise<User> {
   if (password.length < 6) {
     throw new Error("Password must be at least 6 characters");
   }
@@ -138,7 +187,7 @@ export async function signUp(email: string, password: string): Promise<User> {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, ...(procareData ? { procare: procareData } : {}) }),
     });
 
     if (!response.ok) {

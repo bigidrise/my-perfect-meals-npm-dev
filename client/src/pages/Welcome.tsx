@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles, LogIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, LogIn, Stethoscope } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
 import { startGuestSession, endGuestSession } from "@/lib/guestMode";
 
@@ -233,6 +233,18 @@ export default function Welcome() {
             </Button>
           </div>
 
+          {/* Professional Entry - ProCare */}
+          <Button
+            data-testid="button-professional"
+            onClick={() => setLocation("/procare-welcome")}
+            className="w-full h-14 text-md font-medium rounded-2xl
+            bg-gradient-to-r from-black via-blue-700 to-black
+                     text-white shadow-lg border border-blue-400/30
+                     transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <Stethoscope className="h-5 w-5" />
+            I'm a Coach or Healthcare Professional
+          </Button>
 
           {/* Full Access - Apple Review Bypass */}
           

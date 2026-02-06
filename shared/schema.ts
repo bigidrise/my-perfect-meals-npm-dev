@@ -321,6 +321,15 @@ export const users = pgTable("users", {
   palateFlavorStyle: text("palate_flavor_style").$type<"classic"|"herb"|"savory"|"bright">().default("classic"),
   // Display Preferences - accessibility settings
   fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
+  // ProCare Professional Onboarding - Phase 1
+  professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),
+  credentialType: text("credential_type"), // e.g. "Personal Trainer", "Physician", "Dietitian"
+  credentialBody: text("credential_body"), // e.g. "NASM", "ACE", license state
+  credentialNumber: text("credential_number"), // optional license/cert number
+  credentialYear: text("credential_year"), // year obtained
+  attestationText: text("attestation_text"), // version of attestation they agreed to
+  attestedAt: timestamp("attested_at", { withTimezone: true }), // when attestation was accepted
+  procareEntryPath: text("procare_entry_path").$type<"certified"|"experienced"|"non_certified">(), // which path they chose
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
