@@ -22,6 +22,7 @@ import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { setupNotificationListeners } from "@/services/mealReminderService";
 import DevBadge from "./components/DevBadge";
+import DevNavigator from "./components/DevNavigator";
 import { Capacitor } from "@capacitor/core";
 import { WhatsNewBanner } from "@/components/WhatsNewBanner";
 import { VoiceProvider } from "@/voice/VoiceProvider";
@@ -128,6 +129,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <DevBadge />
+      <DevNavigator />
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
