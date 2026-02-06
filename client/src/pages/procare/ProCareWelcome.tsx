@@ -79,7 +79,7 @@ const SECTIONS = [
     points: [
       "Sign up and receive your own unique product code",
       "Share your code with clients, followers, and your community",
-      "Earn 30% of every subscription that signs up using your code",
+      "Earn 25% of every subscription that signs up using your code",
       "Commissions paid directly to your bank account — no caps, no limits",
     ],
   },
@@ -99,7 +99,7 @@ Here's where the real value lives. When you're not present — when social press
 
 Your professional account also includes full personal access. Use all the meal builders for your own nutrition. Experience exactly what your clients experience. One account — professional tools and personal use.
 
-And here's something you'll want to know about: the Professional Affiliate Program. When you sign up, you'll receive your own unique product code. Share that code with your clients, your followers, your community — anyone who could benefit from the app. For every subscription that signs up using your code, you earn thirty percent — paid directly to your bank account. No caps, no limits. The more people you help, the more you earn.
+And here's something you'll want to know about: the Professional Affiliate Program. When you sign up, you'll receive your own unique product code. Share that code with your clients, your followers, your community — anyone who could benefit from the app. For every subscription that signs up using your code, you earn twenty-five percent — paid directly to your bank account. No caps, no limits. The more people you help, the more you earn.
 
 When you're ready, tap Continue to tell us about your professional background.`;
 
