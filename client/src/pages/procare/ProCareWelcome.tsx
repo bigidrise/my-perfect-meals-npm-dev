@@ -12,6 +12,7 @@ import {
   Sliders,
   User,
   ChevronDown,
+  HandCoins,
 } from "lucide-react";
 import { voiceManager } from "@/voice/VoiceManager";
 
@@ -71,6 +72,17 @@ const SECTIONS = [
       "See the app through your client's eyes",
     ],
   },
+  {
+    id: "affiliate",
+    icon: <HandCoins className="w-6 h-6 text-green-400" />,
+    title: "Professional Affiliate Program",
+    points: [
+      "Sign up and receive your own unique product code",
+      "Share your code with clients, followers, and your community",
+      "Earn 30% of every subscription that signs up using your code",
+      "Commissions paid directly to your bank account — no caps, no limits",
+    ],
+  },
 ];
 
 const COPILOT_SCRIPT = `Welcome to My Perfect Meals for Professionals.
@@ -85,7 +97,9 @@ Speaking of guardrails — think of them as defaults, not restrictions. They pre
 
 Here's where the real value lives. When you're not present — when social pressure is high, when structure tends to break down — My Perfect Meals keeps your plan intact. You set the track. The app keeps the client on it.
 
-And one more thing: your professional account includes full personal access. Use all the meal builders for your own nutrition. Experience exactly what your clients experience. One account — professional tools and personal use.
+Your professional account also includes full personal access. Use all the meal builders for your own nutrition. Experience exactly what your clients experience. One account — professional tools and personal use.
+
+And here's something you'll want to know about: the Professional Affiliate Program. When you sign up, you'll receive your own unique product code. Share that code with your clients, your followers, your community — anyone who could benefit from the app. For every subscription that signs up using your code, you earn thirty percent — paid directly to your bank account. No caps, no limits. The more people you help, the more you earn.
 
 When you're ready, tap Continue to tell us about your professional background.`;
 
