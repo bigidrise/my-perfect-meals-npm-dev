@@ -360,8 +360,8 @@ export const CopilotSheet: React.FC = () => {
                 </div>
 
                 {/* Header - Compact with Close button */}
-                <div className="px-4 pt-3 pb-2 overflow-visible">
-                  <div className="flex items-center justify-between overflow-visible">
+                <div className="px-4 pt-3 pb-2">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <ChefCapIcon size={56} />
                       <div className="flex flex-col">
@@ -376,7 +376,8 @@ export const CopilotSheet: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0 overflow-visible">
+                    <div className="flex items-center gap-2">
+                      {/* Autoplay Toggle - Static AUTO label, ON/OFF does the work */}
                       <span className="text-[9px] text-emerald-400/80 drop-shadow-[0_0_3px_rgba(52,211,153,0.3)]">Auto</span>
                       <button
                         onClick={toggleGuidedMode}
@@ -384,7 +385,7 @@ export const CopilotSheet: React.FC = () => {
                         aria-label={`Autoplay ${isGuidedModeEnabled ? "on" : "off"}`}
                         className={`
                           !min-h-0 !min-w-0 inline-flex items-center justify-center
-                          px-3 py-[2px] min-w-[32px] rounded-full
+                          px-3 py-px min-w-[32px] rounded-full
                           text-[7px] font-semibold uppercase tracking-wide
                           transition-all duration-150 ease-out whitespace-nowrap
                           ${isGuidedModeEnabled
