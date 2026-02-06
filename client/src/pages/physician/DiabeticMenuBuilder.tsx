@@ -902,6 +902,15 @@ export default function DiabeticMenuBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
+
+        try {
+          await saveBoard(updatedBoard);
+          clearAIMealsCache();
+          window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
+          window.dispatchEvent(new Event("macros:updated"));
+        } catch (error) {
+          console.error("Failed to save AI meal to server:", error);
+        }
       }
 
       toast({
@@ -909,7 +918,7 @@ export default function DiabeticMenuBuilder() {
         description: `${generatedMeal.name} saved to your ${slot}`,
       });
     },
-    [board, activeDayISO, toast],
+    [board, activeDayISO, toast, saveBoard, weekStartISO],
   );
 
   const profile = useOnboardingProfile();
