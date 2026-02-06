@@ -78,9 +78,7 @@ export default function ProCareIdentity() {
   const [, setLocation] = useLocation();
   const [selected, setSelected] = useState<ProfessionalCategory | null>(null);
   const [credentialType, setCredentialType] = useState("");
-  const [customCredentialType, setCustomCredentialType] = useState("");
   const [credentialBody, setCredentialBody] = useState("");
-  const [customCredentialBody, setCustomCredentialBody] = useState("");
   const [credentialNumber, setCredentialNumber] = useState("");
   const [credentialYear, setCredentialYear] = useState("");
   const [showBodyDropdown, setShowBodyDropdown] = useState(false);
@@ -101,11 +99,8 @@ export default function ProCareIdentity() {
     return () => document.removeEventListener("mousedown", handleTap);
   }, [showTypeDropdown, showBodyDropdown]);
 
-  const resolvedType = credentialType === "Other" ? customCredentialType : credentialType;
-  const resolvedBody = credentialBody === "Other" ? customCredentialBody : credentialBody;
-
   const canContinue = selected !== null && (
-    selected !== "certified" || (resolvedType && resolvedBody)
+    selected !== "certified" || (credentialType.trim() && credentialBody.trim())
   );
 
   const handleContinue = () => {
@@ -113,8 +108,8 @@ export default function ProCareIdentity() {
 
     localStorage.setItem("procare_category", selected);
     if (selected === "certified") {
-      localStorage.setItem("procare_credential_type", resolvedType);
-      localStorage.setItem("procare_credential_body", resolvedBody);
+      localStorage.setItem("procare_credential_type", credentialType.trim());
+      localStorage.setItem("procare_credential_body", credentialBody.trim());
       if (credentialNumber) localStorage.setItem("procare_credential_number", credentialNumber);
       if (credentialYear) localStorage.setItem("procare_credential_year", credentialYear);
     } else {
@@ -187,24 +182,31 @@ export default function ProCareIdentity() {
           <div className="space-y-4 p-4 rounded-xl border border-emerald-400/20 bg-emerald-900/10">
             <h3 className="text-sm font-semibold text-emerald-400 mb-2">Credential Information</h3>
 
-            {/* Professional Role Dropdown + Other Input */}
+            {/* Professional Role — text input with suggestions */}
             <div className="relative" ref={typeDropdownRef}>
               <label className="text-xs text-white/50 mb-1 block">Professional Role *</label>
-              <button
-                onClick={() => { setShowTypeDropdown(!showTypeDropdown); setShowBodyDropdown(false); }}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-white/20 bg-white/5 text-sm active:scale-[0.98]"
-              >
-                <span className={credentialType ? "text-white" : "text-white/40"}>
-                  {credentialType || "Select your role"}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${showTypeDropdown ? "rotate-180" : ""}`} />
-              </button>
+              <div className="relative">
+                <Input
+                  value={credentialType}
+                  onChange={(e) => { setCredentialType(e.target.value); setShowTypeDropdown(false); }}
+                  onFocus={() => { setShowTypeDropdown(true); setShowBodyDropdown(false); }}
+                  placeholder="Type or select your role"
+                  className="bg-white/5 border-white/20 text-white placeholder:text-white/30 pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setShowTypeDropdown(!showTypeDropdown); setShowBodyDropdown(false); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 active:scale-[0.95]"
+                >
+                  <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${showTypeDropdown ? "rotate-180" : ""}`} />
+                </button>
+              </div>
               {showTypeDropdown && (
                 <div className="absolute z-20 mt-1 w-full rounded-lg border border-white/20 bg-zinc-900 shadow-xl max-h-48 overflow-y-auto">
-                  {CREDENTIAL_TYPES.map((type) => (
+                  {CREDENTIAL_TYPES.filter(t => !credentialType || t.toLowerCase().includes(credentialType.toLowerCase())).map((type) => (
                     <button
                       key={type}
-                      onClick={() => { setCredentialType(type); setShowTypeDropdown(false); if (type !== "Other") setCustomCredentialType(""); }}
+                      onClick={() => { setCredentialType(type); setShowTypeDropdown(false); }}
                       className={`w-full text-left px-3 py-2.5 text-sm border-b border-white/5 last:border-0 active:bg-white/10 ${credentialType === type ? "text-emerald-400 bg-white/5" : "text-white/80"}`}
                     >
                       {type}
@@ -213,37 +215,32 @@ export default function ProCareIdentity() {
                 </div>
               )}
             </div>
-            {credentialType === "Other" && (
-              <div>
-                <label className="text-xs text-white/50 mb-1 block">Enter Your Professional Role *</label>
-                <Input
-                  value={customCredentialType}
-                  onChange={(e) => setCustomCredentialType(e.target.value)}
-                  placeholder="e.g. Sports Nutritionist, Health Coach"
-                  className="bg-white/5 border-white/20 text-white placeholder:text-white/30"
-                  autoFocus
-                />
-              </div>
-            )}
 
-            {/* Certification Body Dropdown + Other Input */}
+            {/* Certification Body — text input with suggestions */}
             <div className="relative" ref={bodyDropdownRef}>
               <label className="text-xs text-white/50 mb-1 block">Certification Body / License State *</label>
-              <button
-                onClick={() => { setShowBodyDropdown(!showBodyDropdown); setShowTypeDropdown(false); }}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-white/20 bg-white/5 text-sm active:scale-[0.98]"
-              >
-                <span className={credentialBody ? "text-white" : "text-white/40"}>
-                  {credentialBody || "Select certification body"}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${showBodyDropdown ? "rotate-180" : ""}`} />
-              </button>
+              <div className="relative">
+                <Input
+                  value={credentialBody}
+                  onChange={(e) => { setCredentialBody(e.target.value); setShowBodyDropdown(false); }}
+                  onFocus={() => { setShowBodyDropdown(true); setShowTypeDropdown(false); }}
+                  placeholder="Type or select certification body"
+                  className="bg-white/5 border-white/20 text-white placeholder:text-white/30 pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setShowBodyDropdown(!showBodyDropdown); setShowTypeDropdown(false); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 active:scale-[0.95]"
+                >
+                  <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${showBodyDropdown ? "rotate-180" : ""}`} />
+                </button>
+              </div>
               {showBodyDropdown && (
                 <div className="absolute z-20 mt-1 w-full rounded-lg border border-white/20 bg-zinc-900 shadow-xl max-h-48 overflow-y-auto">
-                  {CREDENTIAL_BODIES.map((body) => (
+                  {CREDENTIAL_BODIES.filter(b => !credentialBody || b.toLowerCase().includes(credentialBody.toLowerCase())).map((body) => (
                     <button
                       key={body}
-                      onClick={() => { setCredentialBody(body); setShowBodyDropdown(false); if (body !== "Other") setCustomCredentialBody(""); }}
+                      onClick={() => { setCredentialBody(body); setShowBodyDropdown(false); }}
                       className={`w-full text-left px-3 py-2.5 text-sm border-b border-white/5 last:border-0 active:bg-white/10 ${credentialBody === body ? "text-emerald-400 bg-white/5" : "text-white/80"}`}
                     >
                       {body}
@@ -252,18 +249,6 @@ export default function ProCareIdentity() {
                 </div>
               )}
             </div>
-            {credentialBody === "Other" && (
-              <div>
-                <label className="text-xs text-white/50 mb-1 block">Enter Your Certification Body *</label>
-                <Input
-                  value={customCredentialBody}
-                  onChange={(e) => setCustomCredentialBody(e.target.value)}
-                  placeholder="e.g. NESTA, Precision Nutrition, State of CA"
-                  className="bg-white/5 border-white/20 text-white placeholder:text-white/30"
-                  autoFocus
-                />
-              </div>
-            )}
 
             {/* License / Certification Date */}
             <div>
