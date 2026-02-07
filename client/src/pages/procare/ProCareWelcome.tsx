@@ -148,7 +148,7 @@ export default function ProCareWelcome() {
     <div className="min-h-screen bg-black text-white flex flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-32">
         {/* Back button */}
-        <div className="pt-6 pb-2">
+        <div className="pt-10 pb-2">
           <button
             onClick={() => setLocation("/welcome")}
             className="flex items-center gap-1 text-white/60 text-sm mb-2 active:scale-[0.98]"
