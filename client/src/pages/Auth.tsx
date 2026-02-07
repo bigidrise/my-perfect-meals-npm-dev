@@ -67,7 +67,7 @@ export default function Auth() {
   if (showWorkspaceChooser) {
     return (
       <WorkspaceChooser
-        onChoose={(choice) => {
+        onChoose={(choice: "personal" | "workspace") => {
           localStorage.setItem("coachMode", "self");
           if (choice === "workspace") {
             setLocation("/procare-cover");
