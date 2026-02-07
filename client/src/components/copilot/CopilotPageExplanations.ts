@@ -7,7 +7,7 @@ export interface PageExplanation {
   // Guest-specific marketing copy - used when in guest mode for onboarding/sales
   guestSpokenText?: string;
   guestDescription?: string;
-}
+} 
 
 export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/dashboard": {
@@ -398,7 +398,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your professional portal for managing clients and accessing their care dashboards.",
     spokenText:
-      "The Pro Portal is where you manage your client relationships and keep an organized history of everyone you work with. Each client you add becomes a secure record in your workspace, allowing you to track engagement over time, archive past relationships, and quickly reopen active ones whenever needed. To add a client, simply enter their name, and once added, you can open their portal to access your professional dashboard and continue guiding their nutrition plan using the tools available to your role. Your professional access and dashboards are already set based on your onboarding, so everything you see here is aligned with how you work.",
+      "The Pro Portal is where you manage your clients and care relationships. To add a new client, enter their name, then select your profession from the dropdown. Your profession determines which dashboard you’ll use — trainers go to the Trainer Dashboard with performance and competition builders, while clinical roles like doctors, nurse practitioners, physician assistants, dietitians, nutritionists, and registered nurses go to the Clinician Dashboard with diabetic, GLP-1, and anti-inflammatory builders. Once you’ve selected your profession and added the client, tap Open to access your professional dashboard, where you’ll set targets, apply protocols, and guide their nutrition plan.",
     autoClose: true,
   },
 
@@ -455,7 +455,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/profile/edit-step-4": {
     pageId: "edit-profile-step-4",
     title: "Edit Profile — Review & Save",
-    description: "Review your changes and save your updated profile.",
+    description:
+      "Review your changes and save your updated profile.",
     spokenText:
       "This is your final review. Take a moment to double-check everything — your name, goals, activity level, dietary restrictions, and allergies. When you're ready, save your changes and they'll take effect immediately across the app.",
     autoClose: true,
