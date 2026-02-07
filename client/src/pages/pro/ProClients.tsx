@@ -8,94 +8,106 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { proStore, ClientProfile, ProRole } from "@/lib/proData";
+import { proStore, ClientProfile, ProRole, WorkspaceType } from "@/lib/proData";
 import { Plus, User2, ArrowRight, ArrowLeft, Archive, RotateCcw } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 
-export default function ProClients(){
+interface ProClientsProps {
+  workspace?: WorkspaceType;
+}
+
+export default function ProClients({ workspace }: ProClientsProps = {}) {
+  const resolvedWorkspace = workspace || "trainer";
+  const isPhysician = resolvedWorkspace === "clinician";
+
   const [, setLocation] = useLocation();
   const [clients, setClients] = useState<ClientProfile[]>(() => proStore.listClients());
   const [showArchived, setShowArchived] = useState(false);
-  const [name,setName] = useState(""); 
-  const [email,setEmail]=useState("");
-  const [role] = useState<ProRole>("trainer");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  const defaultRole: ProRole = isPhysician ? "doctor" : "trainer";
 
   const add = () => {
     if (!name.trim()) return;
-    const c: ClientProfile = { id: crypto.randomUUID(), name: name.trim(), email: email.trim() || undefined, role };
-    const next = [c, ...clients]; setClients(next); proStore.saveClients(next);
-    setName(""); setEmail("");
+    const c: ClientProfile = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      email: email.trim() || undefined,
+      role: defaultRole,
+      workspace: resolvedWorkspace,
+    };
+    const next = [c, ...clients];
+    setClients(next);
+    proStore.saveClients(next);
+    setName("");
+    setEmail("");
   };
-  
+
   const archiveClient = (id: string) => {
     proStore.archiveClient(id);
     setClients([...proStore.listClients()]);
   };
-  
+
   const restoreClient = (id: string) => {
     proStore.restoreClient(id);
     setClients([...proStore.listClients()]);
   };
-  
-  const deleteClient = (id: string, name: string) => {
+
+  const deleteClient = (id: string, _name: string) => {
     proStore.deleteClient(id);
     setClients([...proStore.listClients()]);
   };
-  
-  const go = (id:string)=> {
-    setLocation(`/pro/clients/${id}`);
+
+  const go = (id: string) => {
+    setLocation(`/pro/clients/${id}/${resolvedWorkspace}`);
   };
 
-  const quickTour = useQuickTour("pro-clients");
- 
+  const backPath = isPhysician ? "/care-team/physician" : "/care-team/trainer";
+  const portalTitle = isPhysician ? "Physicians Clinic Portal" : "Trainer Studio Portal";
+  const addLabel = isPhysician ? "Add Patient" : "Add Client";
+  const entityLabel = isPhysician ? "patient" : "client";
+
+  const quickTour = useQuickTour(`pro-clients-${resolvedWorkspace}`);
+
   const PRO_CLIENTS_TOUR_STEPS: TourStep[] = [
     {
       icon: "1",
-      title: "Add a Client",
-      description:
-        "Enter your client’s name and email to add them to your care team.",
+      title: `Add a ${isPhysician ? "Patient" : "Client"}`,
+      description: `Enter your ${entityLabel}'s name and email to add them to your ${isPhysician ? "clinic" : "studio"}.`,
     },
     {
       icon: "2",
-      title: "Open Client",
-      description:
-        "Click Open to access the client workspace and begin setting macros or plans.",
+      title: `Open ${isPhysician ? "Patient" : "Client"}`,
+      description: `Click Open to access the ${entityLabel} workspace and begin setting macros or plans.`,
     },
     {
       icon: "3",
-      title: "Archived Clients",
-      description:
-        "Archived clients are hidden from your active list but can be restored anytime.",
+      title: `Archived ${isPhysician ? "Patients" : "Clients"}`,
+      description: `Archived ${entityLabel}s are hidden from your active list but can be restored anytime.`,
     },
   ];
 
-
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
       className="min-h-screen text-white bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
-      {/* Universal Safe-Area Header */}
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3">
-          {/* Back Button */}
           <button
-            onClick={() => setLocation("/care-team")}
-            className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
+            onClick={() => setLocation(backPath)}
+            className="flex items-center gap-2 text-white transition-all duration-200 p-2 rounded-lg active:scale-[0.98]"
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-
-          {/* Title */}
-          <h1 className="text-lg font-bold text-white">Pro Portal</h1>
-
-          {/* Guide Button */}
+          <h1 className="text-lg font-bold text-white">{portalTitle}</h1>
           <div className="ml-auto flex items-center gap-2">
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
@@ -106,29 +118,32 @@ export default function ProClients(){
         className="max-w-5xl mx-auto px-4 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-
         <Card className="bg-white/5 border border-white/20">
-          <CardHeader><CardTitle className="text-white">Add Client</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-white">{addLabel}</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input placeholder="Name" className="bg-black/30 border-white/30 text-white" value={name} onChange={e=>setName(e.target.value)} />
-              <Input placeholder="Email (optional)" className="bg-black/30 border-white/30 text-white" value={email} onChange={e=>setEmail(e.target.value)} />
-              {false && <Select value={role} onValueChange={() => {}}>
+              <Input placeholder="Name" className="bg-black/30 border-white/30 text-white" value={name} onChange={e => setName(e.target.value)} />
+              <Input placeholder="Email (optional)" className="bg-black/30 border-white/30 text-white" value={email} onChange={e => setEmail(e.target.value)} />
+              {false && <Select value={defaultRole} onValueChange={() => {}}>
                 <SelectTrigger className="bg-black/30 border-white/30 text-white">
                   <SelectValue placeholder="Professional Role" />
                 </SelectTrigger>
                 <SelectContent className="bg-black/95 border-white/20">
-                  <SelectItem value="trainer" className="text-white hover:bg-white/10">Trainer</SelectItem>
-                  <SelectItem value="doctor" className="text-white hover:bg-white/10">Doctor</SelectItem>
-                  <SelectItem value="np" className="text-white hover:bg-white/10">Nurse Practitioner</SelectItem>
-                  <SelectItem value="rn" className="text-white hover:bg-white/10">RN</SelectItem>
-                  <SelectItem value="pa" className="text-white hover:bg-white/10">PA</SelectItem>
-                  <SelectItem value="nutritionist" className="text-white hover:bg-white/10">Nutritionist</SelectItem>
-                  <SelectItem value="dietitian" className="text-white hover:bg-white/10">Dietitian</SelectItem>
+                  <SelectItem value="trainer" className="text-white">Trainer</SelectItem>
+                  <SelectItem value="doctor" className="text-white">Doctor</SelectItem>
+                  <SelectItem value="np" className="text-white">Nurse Practitioner</SelectItem>
+                  <SelectItem value="rn" className="text-white">RN</SelectItem>
+                  <SelectItem value="pa" className="text-white">PA</SelectItem>
+                  <SelectItem value="nutritionist" className="text-white">Nutritionist</SelectItem>
+                  <SelectItem value="dietitian" className="text-white">Dietitian</SelectItem>
                 </SelectContent>
               </Select>}
             </div>
-            <Button onClick={add} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"><Plus className="h-4 w-4 mr-1" />Add Client</Button>
+            <Button onClick={add} className="w-full bg-white/10 border border-white/20 text-white active:scale-[0.98]">
+              <Plus className="h-4 w-4 mr-1" />{addLabel}
+            </Button>
           </CardContent>
         </Card>
 
@@ -137,20 +152,22 @@ export default function ProClients(){
             onClick={() => setShowArchived(!showArchived)}
             variant="outline"
             size="sm"
-            className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+            className="bg-white/5 border-white/20 text-white"
           >
-            {showArchived ? "Show Active Clients" : "Show Archived Clients"}
+            {showArchived ? `Show Active ${isPhysician ? "Patients" : "Clients"}` : `Show Archived ${isPhysician ? "Patients" : "Clients"}`}
           </Button>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          {clients.filter(c => showArchived ? c.archived : !c.archived).length===0 ? (
-            <div className="text-white">{showArchived ? "No archived clients." : "No active clients yet. Add one above."}</div>
-          ) : clients.filter(c => showArchived ? c.archived : !c.archived).map(c=>(
+          {clients.filter(c => showArchived ? c.archived : !c.archived).length === 0 ? (
+            <div className="text-white">{showArchived ? `No archived ${entityLabel}s.` : `No active ${entityLabel}s yet. Add one above.`}</div>
+          ) : clients.filter(c => showArchived ? c.archived : !c.archived).map(c => (
             <Card key={c.id} className="bg-white/5 border border-white/20" data-testid="pro-client-row">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center"><User2 className="h-5 w-5 text-white" /></div>
+                  <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
+                    <User2 className="h-5 w-5 text-white" />
+                  </div>
                   <div>
                     <div className="font-semibold text-white">{c.name}</div>
                     {c.email && <div className="text-white text-sm">{c.email}</div>}
@@ -170,7 +187,7 @@ export default function ProClients(){
                         onClick={() => restoreClient(c.id)}
                         variant="outline"
                         size="sm"
-                        className="bg-green-600/20 border-green-500/30 text-green-300 hover:bg-green-600/30"
+                        className="bg-green-600/20 border-green-500/30 text-green-300"
                         data-testid={`button-restore-client-${c.id}`}
                       >
                         <RotateCcw className="h-4 w-4 mr-1" />
@@ -191,13 +208,13 @@ export default function ProClients(){
                         onClick={() => archiveClient(c.id)}
                         variant="outline"
                         size="sm"
-                        className="bg-orange-600/20 border-orange-500/30 text-orange-300 hover:bg-orange-600/30"
+                        className="bg-orange-600/20 border-orange-500/30 text-orange-300"
                         data-testid={`button-archive-client-${c.id}`}
                       >
                         <Archive className="h-4 w-4 mr-1" />
                         Archive
                       </Button>
-                      <Button onClick={()=>go(c.id)} className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="button-open-client">
+                      <Button onClick={() => go(c.id)} className="bg-purple-600 text-white active:scale-[0.98]" data-testid="button-open-client">
                         Open <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
                     </>
@@ -212,7 +229,7 @@ export default function ProClients(){
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Pro Clients Guide"
+        title={`${portalTitle} Guide`}
         steps={PRO_CLIENTS_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

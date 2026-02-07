@@ -317,7 +317,7 @@ export default function PhysicianCareTeamPage() {
 
           <div className="mt-3 flex flex-col gap-2">
             <Button
-              onClick={() => setLocation("/pro/clients")}
+              onClick={() => setLocation("/pro/physician-clients")}
               className="w-full bg-lime-600 hover:bg-lime-600 text-white"
               data-testid="button-open-pro-portal"
             >

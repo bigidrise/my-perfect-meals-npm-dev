@@ -74,7 +74,7 @@ export default function ProPortal() {
                 Professional features coming soon.
               </p>
               <Button
-                onClick={() => setLocation("/pro/clients")}
+                onClick={() => setLocation("/pro/physician-clients")}
                 className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
               >
                 View Clients

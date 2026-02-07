@@ -4,9 +4,16 @@ import { User2, LogOut } from "lucide-react";
 
 export function ProClientBanner() {
   const { client, isProCareMode } = useProClient();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   if (!isProCareMode || !client) return null;
+
+  const isPhysicianWorkspace = location.includes("/clinician") ||
+    location.includes("/diabetic-builder") ||
+    location.includes("/glp1-builder") ||
+    location.includes("/anti-inflammatory-builder");
+
+  const exitPath = isPhysicianWorkspace ? "/pro/physician-clients" : "/pro/clients";
 
   return (
     <div className="bg-amber-600/90 backdrop-blur-sm border-b border-amber-400/30 px-4 py-2 flex items-center justify-between gap-2">
@@ -17,11 +24,11 @@ export function ProClientBanner() {
         </span>
       </div>
       <button
-        onClick={() => setLocation("/pro/clients")}
+        onClick={() => setLocation(exitPath)}
         className="flex items-center gap-1 text-xs text-white/90 bg-black/20 rounded-lg px-2.5 py-1.5 flex-shrink-0 active:scale-[0.98] transition-transform"
       >
         <LogOut className="h-3.5 w-3.5" />
-        <span>Exit Client</span>
+        <span>Exit {isPhysicianWorkspace ? "Patient" : "Client"}</span>
       </button>
     </div>
   );
