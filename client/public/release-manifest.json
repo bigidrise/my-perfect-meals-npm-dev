@@ -1,10 +1,12 @@
 {
-  "releaseId": "1.2.45",
+  "releaseId": "1.2.46",
   "publishedAt": "2026-02-06",
   "changes": [
-    "Starch Guard rewritten to eliminate food morality language",
-    "No foods are labeled good or bad — context, portion, and frequency are what matter",
-    "Science section tightened for clinical and Apple review accuracy",
-    "New sections: What Starch Guard Manages, What Happens After Starch Is Covered"
+    "Role-based access control for ProCare workspaces",
+    "Trainers see full Trainer Studio, Physicians see full Physicians Clinic",
+    "ProCare tab hidden from regular consumer accounts for clean client experience",
+    "Direct URL protection prevents bypassing workspace locks",
+    "Admin bypass ensures owner always has full access",
+    "No paywalls — every role gets the complete experience"
   ]
 }

@@ -2,7 +2,8 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trophy, Users, Crown,} from "lucide-react";
+import { Users, Crown, Lock, Stethoscope, Dumbbell } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProCareFeature {
   title: string;
@@ -10,42 +11,63 @@ interface ProCareFeature {
   icon: any;
   route: string;
   testId: string;
+  roleKey: "physician" | "trainer" | null;
 }
 
 export default function ProCareCover() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const userRole = user?.professionalRole || null;
 
   useEffect(() => {
     document.title = "ProCare | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-    const proCareFeatures: ProCareFeature[] = [
-      {
-        title: "Physicians Clinic",
-        description: "Medical oversight, guardrails, and clinical nutrition tools",
-        icon: Users,
-        route: "/care-team/physician",
-        testId: "card-procare-physician",
-      },
-      {
-        title: "Trainers Studio",
-        description: "Coaching, personalization, and performance meal planning",
-        icon: Users,
-        route: "/care-team/trainer",
-        testId: "card-procare-trainer",
-      },
+  useEffect(() => {
+    if (!user) return;
+    if (isAdmin) return;
+    if (user.role !== "coach") {
+      setLocation("/dashboard");
+    }
+  }, [user, isAdmin, setLocation]);
+
+  const proCareFeatures: ProCareFeature[] = [
+    {
+      title: "Physicians Clinic",
+      description: "Medical oversight, guardrails, and clinical nutrition tools",
+      icon: Stethoscope,
+      route: "/care-team/physician",
+      testId: "card-procare-physician",
+      roleKey: "physician",
+    },
+    {
+      title: "Trainers Studio",
+      description: "Coaching, personalization, and performance meal planning",
+      icon: Dumbbell,
+      route: "/care-team/trainer",
+      testId: "card-procare-trainer",
+      roleKey: "trainer",
+    },
     {
       title: "Supplement Hub",
       description: "Evidence-based supplement guidance and trusted partners",
       icon: Crown,
       route: "/supplement-hub",
       testId: "card-supplement-hub",
+      roleKey: null,
     },
   ];
 
-  const handleCardClick = (route: string) => {
-    setLocation(route);
+  const isFeatureLocked = (feature: ProCareFeature) => {
+    if (isAdmin) return false;
+    return feature.roleKey !== null && userRole !== null && feature.roleKey !== userRole;
+  };
+
+  const handleCardClick = (feature: ProCareFeature) => {
+    if (isFeatureLocked(feature)) return;
+    setLocation(feature.route);
   };
 
   return (
@@ -96,23 +118,35 @@ export default function ProCareCover() {
           <div className="flex flex-col gap-3">
             {proCareFeatures.map((feature) => {
               const Icon = feature.icon;
+              const isLocked = isFeatureLocked(feature);
+              const lockedLabel = feature.roleKey === "physician"
+                ? "Physician ProCare is available to licensed physicians."
+                : "Trainer ProCare is available to certified trainers and coaches.";
+
               return (
                 <Card
                   key={feature.testId}
-                  className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl shadow-md"
-                  onClick={() => handleCardClick(feature.route)}
+                  className={`transition-all duration-300 rounded-xl shadow-md relative overflow-hidden ${
+                    isLocked
+                      ? "bg-black/20 backdrop-blur-lg border border-white/5 opacity-60 cursor-default"
+                      : "cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10"
+                  }`}
+                  onClick={() => handleCardClick(feature)}
                   data-testid={feature.testId}
                 >
                   <CardContent className="p-3">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                        <h3 className="text-sm font-semibold text-white">
+                        <Icon className={`h-4 w-4 flex-shrink-0 ${isLocked ? "text-white/30" : "text-orange-500"}`} />
+                        <h3 className={`text-sm font-semibold flex-1 ${isLocked ? "text-white/40" : "text-white"}`}>
                           {feature.title}
                         </h3>
+                        {isLocked && (
+                          <Lock className="h-4 w-4 text-white/40 shrink-0" />
+                        )}
                       </div>
-                      <p className="text-xs text-white/80 ml-6">
-                        {feature.description}
+                      <p className={`text-xs ml-6 ${isLocked ? "text-white/30" : "text-white/80"}`}>
+                        {isLocked ? lockedLabel : feature.description}
                       </p>
                     </div>
                   </CardContent>

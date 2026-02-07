@@ -1824,6 +1824,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: user.username,
         firstName: user.firstName,
         lastName: user.lastName || null,
+        nickname: user.nickname || null,
+        professionalRole: user.professionalRole || null,
+        professionalCategory: user.professionalCategory || null,
+        credentialType: user.credentialType || null,
+        credentialBody: user.credentialBody || null,
+        credentialNumber: user.credentialNumber || null,
+        credentialYear: user.credentialYear || null,
+        attestationText: user.attestationText || null,
+        procareEntryPath: user.procareEntryPath || null,
+        attestedAt: user.attestedAt?.toISOString() || null,
         entitlements: user.entitlements || [],
         planLookupKey: user.planLookupKey,
         trialStartedAt: user.trialStartedAt,
@@ -1866,6 +1876,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const {
         firstName,
         lastName,
+        nickname,
         email,
         age,
         height,
@@ -1883,6 +1894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateData: any = {};
       if (firstName !== undefined) updateData.firstName = firstName;
       if (lastName !== undefined) updateData.lastName = lastName;
+      if (nickname !== undefined) updateData.nickname = nickname;
       if (email !== undefined && email.trim()) updateData.email = email.trim();
       // Keep display name in sync with firstName/lastName
       if (firstName !== undefined || lastName !== undefined) {

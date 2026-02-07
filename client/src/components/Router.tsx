@@ -46,6 +46,10 @@ import MealBuilderSelection from "@/pages/MealBuilderSelection";
 import CheckoutSuccess from "@/pages/CheckoutSuccess";
 import FamilyInfoPage from "@/pages/FamilyInfoPage";
 import AdminModerationPage from "@/pages/admin-moderation";
+import ConsumerWelcome from "@/pages/ConsumerWelcome";
+import ProCareWelcome from "@/pages/procare/ProCareWelcome";
+import ProCareIdentity from "@/pages/procare/ProCareIdentity";
+import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
 
 // Additional component imports
@@ -178,6 +182,10 @@ export default function Router() {
     "/onboarding-legacy",
     "/pricing",
     "/checkout/success",
+    "/consumer-welcome",
+    "/procare-welcome",
+    "/procare-identity",
+    "/procare-attestation",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -203,6 +211,10 @@ export default function Router() {
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
+        <Route path="/consumer-welcome" component={ConsumerWelcome} />
+        <Route path="/procare-welcome" component={ProCareWelcome} />
+        <Route path="/procare-identity" component={ProCareIdentity} />
+        <Route path="/procare-attestation" component={ProCareAttestation} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route
           path="/onboarding"
