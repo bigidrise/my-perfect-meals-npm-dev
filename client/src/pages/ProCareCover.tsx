@@ -26,12 +26,8 @@ export default function ProCareCover() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    if (isAdmin) return;
-    if (user.role !== "coach") {
-      setLocation("/dashboard");
-    }
-  }, [user, isAdmin, setLocation]);
+    /* All users can access the ProCare landing page — locking happens on individual features inside */
+  }, []);
 
   const proCareFeatures: ProCareFeature[] = [
     {
@@ -62,7 +58,8 @@ export default function ProCareCover() {
 
   const isFeatureLocked = (feature: ProCareFeature) => {
     if (isAdmin) return false;
-    return feature.roleKey !== null && userRole !== null && feature.roleKey !== userRole;
+    if (feature.roleKey === null) return false;
+    return feature.roleKey !== userRole;
   };
 
   const handleCardClick = (feature: ProCareFeature) => {
