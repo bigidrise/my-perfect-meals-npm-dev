@@ -1,12 +1,10 @@
 {
-  "releaseId": "1.2.46",
-  "publishedAt": "2026-02-06",
+  "releaseId": "1.2.47",
+  "publishedAt": "2026-02-07",
   "changes": [
-    "Role-based access control for ProCare workspaces",
-    "Trainers see full Trainer Studio, Physicians see full Physicians Clinic",
-    "ProCare tab hidden from regular consumer accounts for clean client experience",
-    "Direct URL protection prevents bypassing workspace locks",
-    "Admin bypass ensures owner always has full access",
-    "No paywalls — every role gets the complete experience"
+    "Fixed Sign In / Create Account button not responding on Welcome screen",
+    "Consumer welcome intro page now accessible without authentication",
+    "Physician portal routes correctly to Physicians Clinic workspace",
+    "Separate portals for physicians and trainers with correct routing"
   ]
 }
