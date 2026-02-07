@@ -66,10 +66,8 @@ export default function BottomNav() {
     }
   }, [isOpen, open, close, location, normalizePath, setLastResponse]);
 
-  const showProCare = user?.role === "coach" || user?.role === "admin" || user?.professionalRole === "trainer" || user?.professionalRole === "physician";
-
   const navItems = useMemo(() => {
-    const items = [
+    return [
       {
         id: "home",
         label: "Home",
@@ -88,19 +86,14 @@ export default function BottomNav() {
         icon: Sparkles,
         path: "/lifestyle",
       },
-    ];
-
-    if (showProCare) {
-      items.push({
+      {
         id: "procare",
         label: "ProCare",
         icon: Crown,
         path: "/procare-cover",
-      });
-    }
-
-    return items;
-  }, [showProCare]);
+      },
+    ];
+  }, []);
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
