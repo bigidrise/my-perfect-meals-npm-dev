@@ -253,6 +253,12 @@ export async function login(email: string, password: string): Promise<User> {
       id: userData.id,
       email: userData.email,
       name: userData.username,
+      isProCare: userData.isProCare || false,
+      professionalRole: userData.professionalRole || null,
+      role: userData.role || "client",
+      selectedMealBuilder: userData.selectedMealBuilder || null,
+      activeBoard: userData.activeBoard || null,
+      onboardingCompletedAt: userData.onboardingCompletedAt || null,
     };
 
     // Save to localStorage for offline access
@@ -260,7 +266,7 @@ export async function login(email: string, password: string): Promise<User> {
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
-    console.log("✅ User logged in:", user.email, "ID:", user.id);
+    console.log("✅ User logged in:", user.email, "ID:", user.id, "isProCare:", user.isProCare, "role:", user.professionalRole);
 
     return user;
   } catch (error: any) {

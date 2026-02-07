@@ -170,6 +170,12 @@ router.post("/api/auth/login", async (req, res) => {
       email: user.email,
       username: user.username,
       authToken,
+      isProCare: user.isProCare || false,
+      professionalRole: user.professionalRole || null,
+      role: user.role || "client",
+      selectedMealBuilder: user.selectedMealBuilder || null,
+      activeBoard: user.activeBoard || null,
+      onboardingCompletedAt: user.onboardingCompletedAt || null,
     });
   } catch (error: any) {
     console.error("Login error:", error);
