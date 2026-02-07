@@ -203,7 +203,7 @@ export default function ConsumerWelcome() {
           onClick={() => setLocation("/auth")}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          Continue
+          Skip / Continue
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
