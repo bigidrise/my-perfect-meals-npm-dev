@@ -4,17 +4,19 @@ import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp, getProCareSignupData, clearProCareSignupData } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
+import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const { setUser } = useAuth();
+  const { setUser, refreshUser } = useAuth();
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
-  const [mode, setMode] = useState<"signup" | "login">(isProCare ? "signup" : "signup");
+  const [mode, setMode] = useState<"signup" | "login">(isProCare ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,16 +36,47 @@ export default function Auth() {
       
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mpm.hasSeenWelcome", "true");
-      
-      const coachMode = localStorage.getItem("coachMode");
-      if (coachMode) {
-        setLocation("/dashboard");
+
+      const fullUser = await refreshUser();
+      const isProfessional = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
+
+      if (isProfessional && mode === "login") {
+        const savedPreference = localStorage.getItem("mpm_workspace_preference");
+        if (savedPreference === "workspace") {
+          localStorage.setItem("coachMode", "self");
+          setLocation("/procare-cover");
+        } else if (savedPreference === "personal") {
+          localStorage.setItem("coachMode", "self");
+          setLocation("/dashboard");
+        } else {
+          setShowWorkspaceChooser(true);
+        }
       } else {
-        setLocation("/");
+        const coachMode = localStorage.getItem("coachMode");
+        if (coachMode) {
+          setLocation("/dashboard");
+        } else {
+          setLocation("/");
+        }
       }
     } catch (e: any) {
       setErr(e?.message || "Authentication failed.");
     }
+  }
+
+  if (showWorkspaceChooser) {
+    return (
+      <WorkspaceChooser
+        onChoose={(choice) => {
+          localStorage.setItem("coachMode", "self");
+          if (choice === "workspace") {
+            setLocation("/procare-cover");
+          } else {
+            setLocation("/dashboard");
+          }
+        }}
+      />
+    );
   }
 
   return (

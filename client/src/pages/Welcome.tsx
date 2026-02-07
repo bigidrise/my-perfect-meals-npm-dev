@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles, LogIn, Stethoscope } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, LogIn } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
 import { startGuestSession, endGuestSession } from "@/lib/guestMode";
 
@@ -196,52 +196,33 @@ export default function Welcome() {
           </div>
         </div>
 
-        {/* Buttons - Clean 3-button layout */}
+        {/* Buttons - Clean 2-button layout */}
         <div className="w-full max-w-sm space-y-4">
-          {/* Guest Mode - Marketing Experience */}
+          {/* Sign In / Create Account - Primary CTA */}
+          <Button
+            data-testid="button-signin"
+            onClick={signIn}
+            className="w-full h-14 text-md font-medium rounded-2xl
+            bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
+                     text-white shadow-lg
+                     transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <LogIn className="h-5 w-5" />
+            Sign In / Create Account
+          </Button>
+
+          {/* Visit App - Guest Experience */}
           <Button
             data-testid="button-explore-guest"
             onClick={exploreAsGuest}
             className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-lime-600 to-black hover:to-lime-600
+            bg-gradient-to-r from-black via-lime-600 to-black
                      text-white shadow-lg border border-lime-400/30
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
             <Sparkles className="h-5 w-5" />
-            Use Our Guest Experience - No Signup
+            Visit App
           </Button>
-
-          {/* Sign In / Create Account - Combined auth button */}
-          <div className="relative">
-
-            <Button
-              data-testid="button-signin"
-              onClick={signIn}
-              className="w-full h-14 text-md font-medium rounded-2xl
-              bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
-                       text-white shadow-lg
-                       transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <LogIn className="h-5 w-5" />
-              Sign In / Create Account
-            </Button>
-          </div>
-
-          {/* Professional Entry - ProCare */}
-          <Button
-            data-testid="button-professional"
-            onClick={() => setLocation("/procare-welcome")}
-            className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-blue-700 to-black
-                     text-white shadow-lg border border-blue-400/30
-                     transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <Stethoscope className="h-5 w-5" />
-            I'm a Coach or Healthcare Professional
-          </Button>
-
-          {/* Full Access - Apple Review Bypass */}
-          
         </div>
       </div>
     );

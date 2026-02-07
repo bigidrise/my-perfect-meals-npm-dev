@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Crown, Lock, Stethoscope, Dumbbell } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProCareFeature {
@@ -79,9 +79,16 @@ export default function ProCareCover() {
         className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-          <div className="px-8 py-3 flex items-center gap-3">
+          <div className="px-6 py-3 flex items-center gap-3">
           <Crown className="h-6 w-6 text-orange-500" />
-          <h1 className="text-lg font-bold text-white">ProCare</h1>
+          <h1 className="text-lg font-bold text-white flex-1">ProCare</h1>
+          <button
+            onClick={() => setLocation("/dashboard")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 active:scale-[0.98] transition-transform"
+          >
+            <LogOut className="h-3.5 w-3.5 text-white/70" />
+            <span className="text-xs text-white/70 font-medium">Exit</span>
+          </button>
         </div>
       </div>
 
@@ -114,17 +121,17 @@ export default function ProCareCover() {
           {/* Getting Started Guidance */}
           <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
             <p className="text-orange-300 text-sm font-semibold mb-1">
-              Getting Started
+              Your Workspace
             </p>
             <p className="text-white/70 text-xs leading-relaxed">
-              The entire app is yours to use — meal builders, nutrition tools, and more.
-              To manage your clients, tap the <span className="text-orange-400 font-medium">ProCare</span> tab
-              in the bottom navigator anytime. Your workspace
+              This is your professional workspace
               {userRole === "trainer"
-                ? " (Trainers Studio)"
+                ? " — Trainers Studio"
                 : userRole === "physician"
-                ? " (Physicians Clinic)"
-                : ""} will be ready for you there.
+                ? " — Physicians Clinic"
+                : ""}. Manage clients and build plans here. Tap <span className="text-orange-400 font-medium">Exit</span> in the top
+              right to return to your personal space anytime. You can always come back via
+              the <span className="text-orange-400 font-medium">ProCare</span> tab below.
             </p>
           </div>
 
