@@ -18,13 +18,13 @@ export default function ProClients(){
   const [showArchived, setShowArchived] = useState(false);
   const [name,setName] = useState(""); 
   const [email,setEmail]=useState("");
-  const [role, setRole] = useState<ProRole>("trainer");
+  const [role] = useState<ProRole>("trainer");
 
   const add = () => {
     if (!name.trim()) return;
     const c: ClientProfile = { id: crypto.randomUUID(), name: name.trim(), email: email.trim() || undefined, role };
     const next = [c, ...clients]; setClients(next); proStore.saveClients(next);
-    setName(""); setEmail(""); setRole("trainer");
+    setName(""); setEmail("");
   };
   
   const archiveClient = (id: string) => {
@@ -53,22 +53,16 @@ export default function ProClients(){
       icon: "1",
       title: "Add a Client",
       description:
-        "Enter your client’s name, email, and professional role to invite them into your care team.",
+        "Enter your client’s name and email to add them to your care team.",
     },
     {
       icon: "2",
-      title: "Professional Role",
-      description:
-        "Choose whether you’re working with this client as a trainer or clinician. This affects what tools you’ll use later.",
-    },
-    {
-      icon: "3",
       title: "Open Client",
       description:
         "Click Open to access the client workspace and begin setting macros or plans.",
     },
     {
-      icon: "4",
+      icon: "3",
       title: "Archived Clients",
       description:
         "Archived clients are hidden from your active list but can be restored anytime.",
@@ -116,10 +110,10 @@ export default function ProClients(){
         <Card className="bg-white/5 border border-white/20">
           <CardHeader><CardTitle className="text-white">Add Client</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input placeholder="Name" className="bg-black/30 border-white/30 text-white" value={name} onChange={e=>setName(e.target.value)} />
               <Input placeholder="Email (optional)" className="bg-black/30 border-white/30 text-white" value={email} onChange={e=>setEmail(e.target.value)} />
-              <Select value={role} onValueChange={(v) => setRole(v as ProRole)}>
+              {false && <Select value={role} onValueChange={() => {}}>
                 <SelectTrigger className="bg-black/30 border-white/30 text-white">
                   <SelectValue placeholder="Professional Role" />
                 </SelectTrigger>
@@ -132,7 +126,7 @@ export default function ProClients(){
                   <SelectItem value="nutritionist" className="text-white hover:bg-white/10">Nutritionist</SelectItem>
                   <SelectItem value="dietitian" className="text-white hover:bg-white/10">Dietitian</SelectItem>
                 </SelectContent>
-              </Select>
+              </Select>}
             </div>
             <Button onClick={add} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"><Plus className="h-4 w-4 mr-1" />Add Client</Button>
           </CardContent>
