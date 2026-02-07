@@ -1,14 +1,15 @@
 import { getWeekStartFromDate } from "@/utils/midnight";
-import { apiUrl } from "@/lib/resolveApiBase";
-import { getDayLists, setDayLists, cloneDayLists, type WeekBoard } from "@/lib/boardApi";
+import { setDayLists, cloneDayLists, type WeekBoard, type WeekLists } from "@/lib/boardApi";
+import { apiJSON } from "@/lib/api";
 
 const TZ = "America/Chicago";
 
 export interface CrossWeekDuplicateResult {
   currentWeekBoard: WeekBoard | null;
-  currentWeekDates: string[];
+  currentWeekDayCount: number;
   otherWeeksSaved: number;
   totalDays: number;
+  errors: string[];
 }
 
 export async function duplicateAcrossWeeks({
@@ -17,7 +18,7 @@ export async function duplicateAcrossWeeks({
   currentBoard,
   currentWeekStartISO,
 }: {
-  sourceLists: ReturnType<typeof getDayLists>;
+  sourceLists: WeekLists;
   targetDates: string[];
   currentBoard: WeekBoard;
   currentWeekStartISO: string;
@@ -31,8 +32,9 @@ export async function duplicateAcrossWeeks({
   }
 
   let updatedCurrentBoard: WeekBoard | null = null;
-  const currentWeekDates: string[] = [];
+  let currentWeekDayCount = 0;
   let otherWeeksSaved = 0;
+  const errors: string[] = [];
 
   const currentDates = datesByWeek.get(currentWeekStartISO);
   if (currentDates && currentDates.length > 0) {
@@ -42,60 +44,43 @@ export async function duplicateAcrossWeeks({
       board = setDayLists(board, dateISO, cloned);
     }
     updatedCurrentBoard = board;
-    currentWeekDates.push(...currentDates);
+    currentWeekDayCount = currentDates.length;
   }
 
   const otherWeeks = Array.from(datesByWeek.entries()).filter(
     ([weekStart]) => weekStart !== currentWeekStartISO
   );
 
-  const otherWeekPromises = otherWeeks.map(async ([weekStart, dates]) => {
-    const fetchUrl = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`);
-    const res = await fetch(fetchUrl, { credentials: "include" });
-    let remoteBoard: WeekBoard;
+  for (const [weekStart, dates] of otherWeeks) {
+    try {
+      const response = await apiJSON<{ week: WeekBoard }>(
+        `/api/weekly-board?week=${encodeURIComponent(weekStart)}`,
+        { method: "GET" }
+      );
+      let remoteBoard: WeekBoard = response.week;
 
-    if (res.ok) {
-      const json = await res.json();
-      remoteBoard = json.week;
-    } else {
-      remoteBoard = {
-        id: `week-${weekStart}`,
-        version: 1,
-        lists: { breakfast: [], lunch: [], dinner: [], snacks: [] },
-        meta: {
-          createdAt: new Date().toISOString(),
-          lastUpdatedAt: new Date().toISOString(),
-        },
-      } as WeekBoard;
+      for (const dateISO of dates) {
+        const cloned = cloneDayLists(sourceLists);
+        remoteBoard = setDayLists(remoteBoard, dateISO, cloned);
+      }
+
+      await apiJSON(
+        `/api/weekly-board?week=${encodeURIComponent(weekStart)}`,
+        { method: "PUT", json: { week: remoteBoard } }
+      );
+
+      otherWeeksSaved += dates.length;
+    } catch (err: any) {
+      console.error(`Cross-week duplicate failed for week ${weekStart}:`, err);
+      errors.push(`Week of ${weekStart}: ${err.message || "Unknown error"}`);
     }
-
-    for (const dateISO of dates) {
-      const cloned = cloneDayLists(sourceLists);
-      remoteBoard = setDayLists(remoteBoard, dateISO, cloned);
-    }
-
-    const saveUrl = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`);
-    const saveRes = await fetch(saveUrl, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ week: remoteBoard }),
-    });
-
-    if (!saveRes.ok) {
-      throw new Error(`Failed to save week ${weekStart}: HTTP ${saveRes.status}`);
-    }
-
-    return dates.length;
-  });
-
-  const results = await Promise.all(otherWeekPromises);
-  otherWeeksSaved = results.reduce((a, b) => a + b, 0);
+  }
 
   return {
     currentWeekBoard: updatedCurrentBoard,
-    currentWeekDates,
+    currentWeekDayCount,
     otherWeeksSaved,
     totalDays: targetDates.length,
+    errors,
   };
 }

@@ -545,7 +545,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     async (targetDates: string[]) => {
       if (!board || !activeDayISO) return;
 
-      const sourceLists = getDayLists(board, activeDayISO);
+      const sourceLists = { ...getDayLists(board, activeDayISO) };
 
       try {
         const result = await duplicateAcrossWeeks({
@@ -560,18 +560,18 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           await saveBoard(result.currentWeekBoard);
         }
 
-        const weekCount = result.otherWeeksSaved > 0 ? " across multiple weeks" : "";
-        toast({
-          title: "Day duplicated",
-          description: `Copied to ${result.totalDays} day(s)${weekCount}`,
-        });
+        if (result.errors.length > 0) {
+          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
+          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+        } else if (result.otherWeeksSaved > 0) {
+          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+        } else {
+          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+        }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
+        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
