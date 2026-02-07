@@ -32,7 +32,7 @@ export function DuplicateDayModal({
   availableDates 
 }: DuplicateDayModalProps) {
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [weeksToShow, setWeeksToShow] = useState(1);
+  const [weeksToShow, setWeeksToShow] = useState(0);
 
   const todayISO = useMemo(() => getTodayISOSafe(TZ), []);
 
@@ -126,14 +126,14 @@ export function DuplicateDayModal({
     if (selectedDates.length > 0) {
       onConfirm(selectedDates);
       setSelectedDates([]);
-      setWeeksToShow(1);
+      setWeeksToShow(0);
       onClose();
     }
   };
 
   const handleClose = () => {
     setSelectedDates([]);
-    setWeeksToShow(1);
+    setWeeksToShow(0);
     onClose();
   };
 
