@@ -1,10 +1,9 @@
 {
-  "releaseId": "1.2.47",
+  "releaseId": "1.2.48",
   "publishedAt": "2026-02-07",
   "changes": [
-    "Fixed Sign In / Create Account button not responding on Welcome screen",
-    "Consumer welcome intro page now accessible without authentication",
-    "Physician portal routes correctly to Physicians Clinic workspace",
-    "Separate portals for physicians and trainers with correct routing"
+    "Fixed duplicate day not showing on screen across all 7 meal boards",
+    "Duplicated meals now appear instantly without needing to navigate away",
+    "Each duplicated day gets unique meal IDs preventing data conflicts"
   ]
 }
