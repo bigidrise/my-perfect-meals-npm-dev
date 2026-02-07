@@ -181,7 +181,7 @@ export default function ProCareWelcome() {
         <div className="mb-6">
           <button
             onClick={toggleCopilot}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border border-blue-400/20 active:scale-[0.98] transition-transform"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border border-blue-400/20 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-blue" : ""}`}
           >
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-blue-500/20 border border-blue-400/30"}`}
