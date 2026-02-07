@@ -111,6 +111,23 @@ export default function ProCareCover() {
             </div>
           </div>
 
+          {/* Getting Started Guidance */}
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+            <p className="text-orange-300 text-sm font-semibold mb-1">
+              Getting Started
+            </p>
+            <p className="text-white/70 text-xs leading-relaxed">
+              The entire app is yours to use — meal builders, nutrition tools, and more.
+              To manage your clients, tap the <span className="text-orange-400 font-medium">ProCare</span> tab
+              in the bottom navigator anytime. Your workspace
+              {userRole === "trainer"
+                ? " (Trainers Studio)"
+                : userRole === "physician"
+                ? " (Physicians Clinic)"
+                : ""} will be ready for you there.
+            </p>
+          </div>
+
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
             {proCareFeatures.map((feature) => {
