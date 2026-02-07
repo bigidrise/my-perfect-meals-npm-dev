@@ -617,12 +617,14 @@ export default function AntiInflammatoryMenuBuilder() {
       }
 
       const sourceLists = getDayLists(board, activeDayISO);
-      const clonedLists = cloneDayLists(sourceLists);
 
       let updatedBoard = board;
       targetDates.forEach((dateISO) => {
+        const clonedLists = cloneDayLists(sourceLists);
         updatedBoard = setDayLists(updatedBoard, dateISO, clonedLists);
       });
+
+      setBoard(updatedBoard);
 
       try {
         await saveBoard(updatedBoard);
