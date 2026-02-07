@@ -21,6 +21,7 @@ import {
   putWeekBoard,
   getWeekBoardByDate,
 } from "@/lib/boardApi";
+import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AthleteMealPickerDrawer } from "@/components/pickers/AthleteMealPickerDrawer";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
@@ -675,7 +676,6 @@ export default function BeachBodyMealBoard() {
     async (targetDates: string[]) => {
       if (!board || !activeDayISO) return;
 
-      // Guard: Check if any TARGET date is locked before allowing edits
       const lockedTarget = targetDates.find((d) => isDayLocked(d, user?.id));
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
@@ -685,19 +685,23 @@ export default function BeachBodyMealBoard() {
 
       const sourceLists = getDayLists(board, activeDayISO);
 
-      let updatedBoard = board;
-      targetDates.forEach((dateISO) => {
-        const clonedLists = cloneDayLists(sourceLists);
-        updatedBoard = setDayLists(updatedBoard, dateISO, clonedLists);
-      });
-
-      setBoard(updatedBoard);
-
       try {
-        await saveBoard(updatedBoard);
+        const result = await duplicateAcrossWeeks({
+          sourceLists,
+          targetDates,
+          currentBoard: board,
+          currentWeekStartISO: weekStartISO,
+        });
+
+        if (result.currentWeekBoard) {
+          setBoard(result.currentWeekBoard);
+          await saveBoard(result.currentWeekBoard);
+        }
+
+        const weekCount = result.otherWeeksSaved > 0 ? " across multiple weeks" : "";
         toast({
           title: "Day duplicated",
-          description: `Copied to ${targetDates.length} day(s)`,
+          description: `Copied to ${result.totalDays} day(s)${weekCount}`,
         });
       } catch (error) {
         console.error("Failed to duplicate day:", error);
@@ -708,7 +712,7 @@ export default function BeachBodyMealBoard() {
         });
       }
     },
-    [board, activeDayISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
   const handleDuplicateWeek = useCallback(
