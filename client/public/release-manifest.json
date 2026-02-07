@@ -1,11 +1,10 @@
 {
-  "releaseId": "1.2.49",
+  "releaseId": "1.2.50",
   "publishedAt": "2026-02-07",
   "changes": [
-    "Duplicate day now works forward across multiple weeks",
-    "Only shows future dates when duplicating (no past days)",
-    "Add Another Week button lets you duplicate up to 4 weeks ahead",
-    "Select entire weeks at once with week header checkboxes",
-    "Works on all 7 meal builders"
+    "ProCare signup now fully activates trainer and physician accounts",
+    "Added Getting Started guidance on ProCare intro page",
+    "Chef voice intro now explains how to find ProCare in the bottom navigator",
+    "Role locking enforced: trainers see Trainers Studio, physicians see Physicians Clinic"
   ]
 }
