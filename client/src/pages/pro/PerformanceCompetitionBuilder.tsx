@@ -103,6 +103,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
@@ -1131,12 +1132,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             </div>
           )}
         </div>
+        {mode === "procare" && <ProClientBanner />}
       </div>
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
         className="px-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '10rem' : '8rem'})` }}
       >
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">

@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { ProClientBanner } from "@/components/pro/ProClientBanner";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -197,11 +198,12 @@ export default function TrainerClientDashboard() {
           </div>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
+        <ProClientBanner />
       </div>
 
       <div
         className="max-w-5xl mx-auto px-4 space-y-6 pb-16"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
           <p className="text-white/90 mt-3 text-lg">

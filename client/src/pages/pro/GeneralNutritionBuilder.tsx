@@ -74,6 +74,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { ProClientBanner } from "@/components/pro/ProClientBanner";
 
 const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Build Client Meals", description: "Tap the + button on any meal card to add personalized recipes for your client." },
@@ -134,7 +135,7 @@ export default function WeeklyMealBoard() {
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
-  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard("1", weekStartISO);
+  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard(clientId, weekStartISO);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -1028,12 +1029,13 @@ export default function WeeklyMealBoard() {
             </div>
           )}
         </div>
+        {isProCareMode && <ProClientBanner />}
       </div>
 
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isProCareMode ? '10rem' : '8rem'})` }}
       >
       <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
         <div className="px-4 py-4 flex flex-col gap-3">
