@@ -1,10 +1,11 @@
 {
-  "releaseId": "1.2.50",
+  "releaseId": "1.2.51",
   "publishedAt": "2026-02-07",
   "changes": [
-    "ProCare signup now fully activates trainer and physician accounts",
-    "Added Getting Started guidance on ProCare intro page",
-    "Chef voice intro now explains how to find ProCare in the bottom navigator",
-    "Role locking enforced: trainers see Trainers Studio, physicians see Physicians Clinic"
+    "Simplified welcome screen to two clean buttons: Sign In and Visit App",
+    "Professionals now choose Personal Space or Workspace after login",
+    "Added 'Always start here' preference so pros skip the chooser next time",
+    "Exit button added to ProCare workspace header for quick return to personal space",
+    "Auth page now defaults to Sign In mode instead of Create Account"
   ]
 }

@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   loading: boolean;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,10 +21,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<User | null> => {
     const token = getAuthToken();
     if (!token) {
-      return;
+      return null;
     }
 
     try {
@@ -62,6 +62,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           credentialNumber: userData.credentialNumber || null,
           credentialYear: userData.credentialYear || null,
           attestationText: userData.attestationText || null,
+          professionalRole: userData.professionalRole || null,
           procareEntryPath: userData.procareEntryPath || null,
           attestedAt: userData.attestedAt || null,
           age: userData.age || null,
@@ -75,9 +76,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
+        return updatedUser;
       }
+      return null;
     } catch (error) {
       console.error("Failed to refresh user:", error);
+      return null;
     }
   }, []);
 
