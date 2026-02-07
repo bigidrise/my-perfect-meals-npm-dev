@@ -158,9 +158,7 @@ export default function Welcome() {
   };
 
   const exploreAsGuest = () => {
-    // Clear Apple Review flag to ensure normal guest flow
     localStorage.removeItem("appleReviewFullAccess");
-    // Start guest session and route to guest builder
     startGuestSession();
     setLocation("/guest-builder");
   };
