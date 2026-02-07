@@ -73,7 +73,9 @@ When you're ready, tap Continue to create your account. Let's get you set up.`;
 
 export default function ConsumerWelcome() {
   const [, setLocation] = useLocation();
-  const [expandedSection, setExpandedSection] = useState<string | null>("smart");
+  const [expandedSection, setExpandedSection] = useState<string | null>(
+    "smart",
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const voiceRef = useRef<boolean>(false);
 
@@ -131,7 +133,9 @@ export default function ConsumerWelcome() {
             alt="Chef"
             className="w-[26rem] h-auto -mb-3"
           />
-          <h1 className="text-2xl font-bold italic mt-0">Welcome to My Perfect Meals</h1>
+          <h1 className="text-2xl font-bold italic mt-0">
+            Welcome to My Perfect Meals
+          </h1>
           <p className="text-white/60 text-sm leading-relaxed text-center mt-1 max-w-xs">
             Meals built around your goals, your preferences, and your life.
           </p>
@@ -143,12 +147,20 @@ export default function ConsumerWelcome() {
             onClick={toggleCopilot}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20 active:scale-[0.98] transition-transform"
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}>
-              {isPlaying ? <Pause className="w-5 h-5 text-red-400" /> : <Play className="w-5 h-5 text-orange-400 ml-0.5" />}
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}
+            >
+              {isPlaying ? (
+                <Pause className="w-5 h-5 text-red-400" />
+              ) : (
+                <Play className="w-5 h-5 text-orange-400 ml-0.5" />
+              )}
             </div>
             <div className="text-left flex-1">
               <p className="text-sm font-medium text-white">
-                {isPlaying ? "Listening to Chef..." : "Meet Chef — Hear What We're About"}
+                {isPlaying
+                  ? "Listening to Chef..."
+                  : "Meet Chef — Hear What We're About"}
               </p>
               <p className="text-xs text-white/50">
                 {isPlaying ? "Tap to stop" : "A quick intro from our Copilot"}
@@ -171,8 +183,12 @@ export default function ConsumerWelcome() {
                   className="w-full flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-transform"
                 >
                   {section.icon}
-                  <span className="text-sm font-semibold flex-1 text-left">{section.title}</span>
-                  <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  <span className="text-sm font-semibold flex-1 text-left">
+                    {section.title}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                  />
                 </button>
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-2">
@@ -192,7 +208,8 @@ export default function ConsumerWelcome() {
         {/* Philosophy Statement */}
         <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-orange-900/20 to-amber-900/20 border border-orange-400/10">
           <p className="text-sm text-white/60 italic text-center">
-            "No food guilt. No guesswork. Just real meals, built for your real life."
+            "No food guilt. No guesswork. Just real meals, built for your real
+            life."
           </p>
         </div>
       </div>
