@@ -52,20 +52,6 @@ export default function Welcome() {
   // ROUTE SAFETY — update if your paths differ
   const LOGIN_ROUTE = "/auth";
 
-  useEffect(() => {
-    console.log("🟢 WELCOME PAGE MOUNTED");
-    const handler = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as HTMLElement;
-      console.log("🟡 CLICK/TAP on:", target.tagName, target.className?.substring?.(0, 50), "type:", e.type);
-    };
-    document.addEventListener("click", handler, true);
-    document.addEventListener("touchstart", handler, true);
-    return () => {
-      document.removeEventListener("click", handler, true);
-      document.removeEventListener("touchstart", handler, true);
-    };
-  }, []);
-
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
@@ -162,19 +148,16 @@ export default function Welcome() {
   };
 
   const signIn = () => {
-    console.log("🔴 SIGN IN BUTTON CLICKED");
     localStorage.removeItem("appleReviewFullAccess");
     setLocation("/consumer-welcome");
   };
 
   const createAccount = () => {
-    console.log("🔴 CREATE ACCOUNT BUTTON CLICKED");
     localStorage.removeItem("appleReviewFullAccess");
     setLocation("/consumer-welcome");
   };
 
   const exploreAsGuest = () => {
-    console.log("🔴 GUEST BUTTON CLICKED");
     localStorage.removeItem("appleReviewFullAccess");
     startGuestSession();
     setLocation("/guest-builder");
