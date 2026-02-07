@@ -65,16 +65,25 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "ProCare & Trainer",
+    title: "ProCare Landing",
     routes: [
       { path: "/procare-cover", label: "ProCare Cover" },
-      { path: "/pro-portal", label: "Pro Portal" },
-      { path: "/pro/physician", label: "Physician Portal" },
-      { path: "/pro/clients", label: "Pro Clients" },
-      { path: "/care-team", label: "Care Team" },
+    ],
+  },
+  {
+    title: "Physician Section",
+    routes: [
       { path: "/care-team/physician", label: "Physician Care Team" },
+      { path: "/pro/physician", label: "Physician ProPortal" },
+      { path: "/pro/clients", label: "Physician Dashboard (Clients)" },
+    ],
+  },
+  {
+    title: "Trainer Section",
+    routes: [
       { path: "/care-team/trainer", label: "Trainer Care Team" },
-      { path: "/pro-client-dashboard", label: "Pro Client Dashboard" },
+      { path: "/pro-portal", label: "Trainer ProPortal" },
+      { path: "/pro/clients", label: "Trainer Dashboard (Clients)" },
     ],
   },
   {
