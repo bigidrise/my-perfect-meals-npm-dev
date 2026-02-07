@@ -47,6 +47,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (!user) return false; // No user = not authenticated
     if (user.role === "admin") return false;
     if (user.id.startsWith("guest-")) return false;
+    if (user.professionalRole === "trainer" || user.professionalRole === "physician") return false;
     if (user.onboardingCompletedAt) return false;
     // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
     const hasActiveBoard = user.isProCare 
@@ -63,7 +64,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-attestation", "/consumer-welcome"];
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-attestation", "/consumer-welcome", "/procare-cover"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
     // Don't make routing decisions while auth is loading - wait for user state
