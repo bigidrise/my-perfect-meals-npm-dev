@@ -75,15 +75,15 @@ const NAV_SECTIONS: NavSection[] = [
     routes: [
       { path: "/care-team/physician", label: "Physician Care Team" },
       { path: "/pro/physician", label: "Physician ProPortal" },
-      { path: "/pro/clients", label: "Physician Dashboard (Clients)" },
+      { path: "/pro/clients/demo-physician/clinician", label: "Physician Dashboard" },
     ],
   },
   {
     title: "Trainer Section",
     routes: [
       { path: "/care-team/trainer", label: "Trainer Care Team" },
-      { path: "/pro-portal", label: "Trainer ProPortal" },
-      { path: "/pro/clients", label: "Trainer Dashboard (Clients)" },
+      { path: "/pro/clients", label: "Trainer ProPortal" },
+      { path: "/pro/clients/demo-trainer/trainer", label: "Trainer Dashboard" },
     ],
   },
   {
