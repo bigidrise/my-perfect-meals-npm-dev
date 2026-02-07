@@ -149,12 +149,12 @@ export default function Welcome() {
 
   const signIn = () => {
     localStorage.removeItem("appleReviewFullAccess");
-    setLocation("/consumer-welcome");
+    setLocation("/auth");
   };
 
   const createAccount = () => {
     localStorage.removeItem("appleReviewFullAccess");
-    setLocation("/consumer-welcome");
+    setLocation("/auth");
   };
 
   const exploreAsGuest = () => {
