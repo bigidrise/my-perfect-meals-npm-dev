@@ -145,7 +145,7 @@ export default function ConsumerWelcome() {
         <div className="mb-6">
           <button
             onClick={toggleCopilot}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20 active:scale-[0.98] transition-transform"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-orange" : ""}`}
           >
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}
