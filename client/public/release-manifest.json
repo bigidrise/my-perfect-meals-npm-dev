@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.52",
+  "releaseId": "1.2.53",
   "publishedAt": "2026-02-07",
   "changes": [
-    "New two-step Sign In modal: choose Sign In or Create Account, then Regular or Professional",
-    "Returning users with active session now skip welcome and go straight to dashboard",
-    "iOS-optimized modal with scroll lock, backdrop close, and back navigation"
+    "Fixed: Professional login now correctly shows workspace chooser on all URLs",
+    "Trainers and physicians skip regular onboarding — no more 'select a builder' redirect",
+    "ProCare workspace routing works consistently across dev and published URLs"
   ]
 }
