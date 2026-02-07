@@ -1,5 +1,7 @@
 export const TRAINER_INTRO_SCRIPT = `Welcome to your Coaching Studio inside My Perfect Meals. This is your professional workspace for personalized nutrition guidance and client meal planning.
 
+Before we dive in, here's something important. The entire app is yours to use — all the meal builders, nutrition tools, everything. But when you're ready to manage your clients, just tap the ProCare tab in the bottom navigator. That's where your Trainers Studio lives, and it'll be ready for you anytime.
+
 Here's what this workspace is for. First, Macro Strategy — set precise macro targets tailored to each client's body composition goals. Second, Performance Coaching — guide athletes through competition prep, bulking, cutting, and maintenance phases. Third, Builder Assignment — assign specialized meal builders to unlock pro-level meal planning for your clients. And fourth, Client Management — track client progress and provide ongoing nutritional guidance.
 
 A few important notes. This is not a medical record system. It's not diagnostic software. And it's not meant to replace your professional judgment.
@@ -9,6 +11,8 @@ Here's how to get started. First, invite clients into your studio. Then set thei
 Inside you'll find tools for macro and calorie targets, builder assignment, client activity history, and nutrition adjustment tools. Tap Enter Workspace when you're ready to begin.`;
 
 export const PHYSICIAN_INTRO_SCRIPT = `Welcome to your Clinical Nutrition Workspace inside My Perfect Meals. This is your professional environment for medical-grade nutrition oversight and safety-guarded meal planning.
+
+Before we dive in, here's something important. The entire app is yours to use — all the meal builders, nutrition tools, everything. But when you're ready to manage your patients, just tap the ProCare tab in the bottom navigator. That's where your Physicians Clinic lives, and it'll be ready for you anytime.
 
 Here's what this workspace is for. First, Nutrition Oversight — review and approve nutrition plans with clinical considerations. Second, Condition-Specific Tools — connect with diabetic, cardiac, and renal nutrition hubs. Third, SafetyGuard Configuration — set allergen restrictions and dietary guardrails for each patient. And fourth, Clinical Nutrition Support — evidence-based dietary guidance for metabolic conditions.
 

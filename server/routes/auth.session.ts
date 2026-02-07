@@ -73,11 +73,17 @@ router.post("/api/auth/signup", async (req, res) => {
         return res.status(400).json({ error: "Attestation is required for professional accounts" });
       }
       userValues.role = "coach";
+      userValues.isProCare = true;
       userValues.professionalRole = procare.professionalRole;
       userValues.professionalCategory = procare.professionalCategory;
       userValues.procareEntryPath = procare.procareEntryPath || procare.professionalCategory;
       userValues.attestationText = procare.attestationText;
       userValues.attestedAt = new Date(procare.attestedAt);
+      userValues.plan = "procare";
+      userValues.subscriptionPlan = "procare";
+      userValues.subscriptionStatus = "active";
+      userValues.planLookupKey = "mpm_procare_monthly";
+      userValues.entitlements = ["procare", "care_team", "lab_metrics"];
       if (procare.credentialType) userValues.credentialType = procare.credentialType;
       if (procare.credentialBody) userValues.credentialBody = procare.credentialBody;
       if (procare.credentialNumber) userValues.credentialNumber = procare.credentialNumber;
