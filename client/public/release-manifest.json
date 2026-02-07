@@ -1,11 +1,9 @@
 {
-  "releaseId": "1.2.51",
+  "releaseId": "1.2.52",
   "publishedAt": "2026-02-07",
   "changes": [
-    "Simplified welcome screen to two clean buttons: Sign In and Visit App",
-    "Professionals now choose Personal Space or Workspace after login",
-    "Added 'Always start here' preference so pros skip the chooser next time",
-    "Exit button added to ProCare workspace header for quick return to personal space",
-    "Auth page now defaults to Sign In mode instead of Create Account"
+    "New two-step Sign In modal: choose Sign In or Create Account, then Regular or Professional",
+    "Returning users with active session now skip welcome and go straight to dashboard",
+    "iOS-optimized modal with scroll lock, backdrop close, and back navigation"
   ]
 }
