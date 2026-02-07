@@ -25,6 +25,7 @@ import {
   setDayLists,
   cloneDayLists,
 } from "@/lib/boardApi";
+import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
@@ -618,19 +619,23 @@ export default function AntiInflammatoryMenuBuilder() {
 
       const sourceLists = getDayLists(board, activeDayISO);
 
-      let updatedBoard = board;
-      targetDates.forEach((dateISO) => {
-        const clonedLists = cloneDayLists(sourceLists);
-        updatedBoard = setDayLists(updatedBoard, dateISO, clonedLists);
-      });
-
-      setBoard(updatedBoard);
-
       try {
-        await saveBoard(updatedBoard);
+        const result = await duplicateAcrossWeeks({
+          sourceLists,
+          targetDates,
+          currentBoard: board,
+          currentWeekStartISO: weekStartISO,
+        });
+
+        if (result.currentWeekBoard) {
+          setBoard(result.currentWeekBoard);
+          await saveBoard(result.currentWeekBoard);
+        }
+
+        const weekCount = result.otherWeeksSaved > 0 ? " across multiple weeks" : "";
         toast({
           title: "Day duplicated",
-          description: `Copied to ${targetDates.length} day(s)`,
+          description: `Copied to ${result.totalDays} day(s)${weekCount}`,
         });
       } catch (error) {
         console.error("Failed to duplicate day:", error);
@@ -641,7 +646,7 @@ export default function AntiInflammatoryMenuBuilder() {
         });
       }
     },
-    [board, activeDayISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
   // Duplicate week handler
