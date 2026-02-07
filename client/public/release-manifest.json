@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.53",
+  "releaseId": "1.2.54",
   "publishedAt": "2026-02-07",
   "changes": [
-    "Fixed: Professional login now correctly shows workspace chooser on all URLs",
-    "Trainers and physicians skip regular onboarding — no more 'select a builder' redirect",
-    "ProCare workspace routing works consistently across dev and published URLs"
+    "Fixed: Login now returns professional status directly — no more missed trainer detection",
+    "Trainers see workspace chooser consistently on all URLs and production",
+    "Regular users go straight to dashboard after login without extra steps"
   ]
 }

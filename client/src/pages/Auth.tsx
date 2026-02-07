@@ -37,8 +37,11 @@ export default function Auth() {
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mpm.hasSeenWelcome", "true");
 
+      // Use login response data first (immediate), then enrich with refreshUser
+      const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
       const fullUser = await refreshUser();
-      const isProfessional = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
+      const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
+      const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
 
       if (isProfessional && mode === "login") {
         const savedPreference = localStorage.getItem("mpm_workspace_preference");
@@ -52,12 +55,10 @@ export default function Auth() {
           setShowWorkspaceChooser(true);
         }
       } else {
-        const coachMode = localStorage.getItem("coachMode");
-        if (coachMode) {
-          setLocation("/dashboard");
-        } else {
-          setLocation("/");
+        if (!localStorage.getItem("coachMode")) {
+          localStorage.setItem("coachMode", "self");
         }
+        setLocation("/dashboard");
       }
     } catch (e: any) {
       setErr(e?.message || "Authentication failed.");
