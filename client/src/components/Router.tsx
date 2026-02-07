@@ -93,6 +93,7 @@ import PhysicianPortal from "@/pages/pro/PhysicianPortal";
 import ProCareCover from "@/pages/ProCareCover";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
+import ProClientsPhysician from "@/pages/pro/ProClientsPhysician";
 import ProClientDashboard from "@/pages/pro/ProClientDashboard";
 import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
 import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
@@ -394,6 +395,10 @@ export default function Router() {
         <Route
           path="/pro/clients"
           component={withPageErrorBoundary(ProClients, "Pro Clients")}
+        />
+        <Route
+          path="/pro/physician-clients"
+          component={withPageErrorBoundary(ProClientsPhysician, "Physician Clients")}
         />
         <Route path="/pro/clients/:id" component={ProClientDashboard} />
         <Route

@@ -105,7 +105,9 @@ When you're ready, choose your professional role below to get started.`;
 
 export default function ProCareWelcome() {
   const [, setLocation] = useLocation();
-  const [expandedSection, setExpandedSection] = useState<string | null>("respect");
+  const [expandedSection, setExpandedSection] = useState<string | null>(
+    "respect",
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const voiceRef = useRef<boolean>(false);
 
@@ -163,9 +165,12 @@ export default function ProCareWelcome() {
             alt="Chef"
             className="w-[26rem] h-auto -mb-3"
           />
-          <h1 className="text-2xl font-bold italic mt-0">Welcome, Professional</h1>
+          <h1 className="text-2xl font-bold italic mt-0">
+            Welcome, Professional
+          </h1>
           <p className="text-white/60 text-sm leading-relaxed text-center mt-1 max-w-xs">
-            Before you create an account, understand how My Perfect Meals works <span className="italic">with</span> you, not instead of you.
+            Before you create an account, understand how My Perfect Meals works{" "}
+            <span className="italic">with</span> you, not instead of you.
           </p>
           <p className="text-green-400/80 text-xs mt-2 font-medium">
             Ask about our affiliate program for 25% commission.
@@ -178,15 +183,25 @@ export default function ProCareWelcome() {
             onClick={toggleCopilot}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border border-blue-400/20 active:scale-[0.98] transition-transform"
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-blue-500/20 border border-blue-400/30"}`}>
-              {isPlaying ? <Pause className="w-5 h-5 text-red-400" /> : <Play className="w-5 h-5 text-blue-400 ml-0.5" />}
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-blue-500/20 border border-blue-400/30"}`}
+            >
+              {isPlaying ? (
+                <Pause className="w-5 h-5 text-red-400" />
+              ) : (
+                <Play className="w-5 h-5 text-blue-400 ml-0.5" />
+              )}
             </div>
             <div className="text-left flex-1">
               <p className="text-sm font-medium text-white">
-                {isPlaying ? "Listening to Professional Overview..." : "Listen to Professional Overview"}
+                {isPlaying
+                  ? "Listening to Professional Overview..."
+                  : "Listen to Professional Overview"}
               </p>
               <p className="text-xs text-white/50">
-                {isPlaying ? "Tap to stop" : "Hear everything explained by our Copilot"}
+                {isPlaying
+                  ? "Tap to stop"
+                  : "Hear everything explained by our Copilot"}
               </p>
             </div>
           </button>
@@ -206,8 +221,12 @@ export default function ProCareWelcome() {
                   className="w-full flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-transform"
                 >
                   {section.icon}
-                  <span className="text-sm font-semibold flex-1 text-left">{section.title}</span>
-                  <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  <span className="text-sm font-semibold flex-1 text-left">
+                    {section.title}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                  />
                 </button>
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-2">
@@ -227,7 +246,8 @@ export default function ProCareWelcome() {
         {/* Philosophy Statement */}
         <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-400/10">
           <p className="text-sm text-white/60 italic text-center">
-            "My Perfect Meals is not a coaching system. It is a compliance system that works for the coach."
+            "My Perfect Meals is not a coaching system. It is a compliance
+            system that works for the coach."
           </p>
         </div>
       </div>
@@ -238,7 +258,7 @@ export default function ProCareWelcome() {
           onClick={() => setLocation("/procare-identity")}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          Continue
+          Skip / Continue
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
