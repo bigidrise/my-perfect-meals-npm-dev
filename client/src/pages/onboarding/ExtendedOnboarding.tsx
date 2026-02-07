@@ -600,7 +600,7 @@ export default function ExtendedOnboarding() {
         <Button
           variant="ghost"
           onClick={handleSkipSafetyPin}
-          className="w-full text-white/60 hover:text-white"
+          className="w-full bg-black border border-white/20 text-white/60 hover:text-white hover:bg-white/10"
         >
           Skip for now
         </Button>
