@@ -188,8 +188,9 @@ export function DuplicateDayModal({
                   >
                     <Checkbox
                       checked={weekAllSelected ? true : weekSomeSelected ? "indeterminate" : false}
-                      onCheckedChange={() => handleToggleWeek(group.dates)}
-                      className="border-white/30 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                      onCheckedChange={() => {}}
+                      onClick={(e) => e.stopPropagation()}
+                      className="border-white/30 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 pointer-events-none"
                     />
                     <span className="text-sm font-semibold text-blue-300">
                       {group.label}

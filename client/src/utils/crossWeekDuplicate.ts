@@ -1,6 +1,6 @@
 import { getWeekStartFromDate } from "@/utils/midnight";
-import { apiUrl } from "@/lib/resolveApiBase";
-import { getDayLists, setDayLists, cloneDayLists, type WeekBoard } from "@/lib/boardApi";
+import { getDayLists, setDayLists, cloneDayLists, type WeekBoard, type WeekLists } from "@/lib/boardApi";
+import { apiJSON } from "@/lib/api";
 
 const TZ = "America/Chicago";
 
@@ -50,41 +50,20 @@ export async function duplicateAcrossWeeks({
   );
 
   const otherWeekPromises = otherWeeks.map(async ([weekStart, dates]) => {
-    const fetchUrl = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`);
-    const res = await fetch(fetchUrl, { credentials: "include" });
-    let remoteBoard: WeekBoard;
-
-    if (res.ok) {
-      const json = await res.json();
-      remoteBoard = json.week;
-    } else {
-      remoteBoard = {
-        id: `week-${weekStart}`,
-        version: 1,
-        lists: { breakfast: [], lunch: [], dinner: [], snacks: [] },
-        meta: {
-          createdAt: new Date().toISOString(),
-          lastUpdatedAt: new Date().toISOString(),
-        },
-      } as WeekBoard;
-    }
+    const response = await apiJSON<{ week: WeekBoard }>(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`, {
+      method: "GET",
+    });
+    let remoteBoard: WeekBoard = response.week;
 
     for (const dateISO of dates) {
       const cloned = cloneDayLists(sourceLists);
       remoteBoard = setDayLists(remoteBoard, dateISO, cloned);
     }
 
-    const saveUrl = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`);
-    const saveRes = await fetch(saveUrl, {
+    await apiJSON(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ week: remoteBoard }),
+      json: { week: remoteBoard },
     });
-
-    if (!saveRes.ok) {
-      throw new Error(`Failed to save week ${weekStart}: HTTP ${saveRes.status}`);
-    }
 
     return dates.length;
   });
