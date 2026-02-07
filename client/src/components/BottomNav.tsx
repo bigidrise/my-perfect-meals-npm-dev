@@ -66,7 +66,7 @@ export default function BottomNav() {
     }
   }, [isOpen, open, close, location, normalizePath, setLastResponse]);
 
-  const showProCare = user?.role === "coach" || user?.role === "admin";
+  const showProCare = user?.role === "coach" || user?.role === "admin" || user?.professionalRole === "trainer" || user?.professionalRole === "physician";
 
   const navItems = useMemo(() => {
     const items = [
