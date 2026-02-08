@@ -1,9 +1,12 @@
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, CheckCircle2, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -22,11 +25,9 @@ export default function ProCareCover() {
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
 
-  const [showCodeInput, setShowCodeInput] = useState(false);
   const [accessCode, setAccessCode] = useState("");
-  const [codeError, setCodeError] = useState<string | null>(null);
-  const [codeLoading, setCodeLoading] = useState(false);
-  const [codeSuccess, setCodeSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "ProCare | My Perfect Meals";
@@ -75,29 +76,24 @@ export default function ProCareCover() {
     setLocation(feature.route);
   };
 
-  async function submitAccessCode() {
-    const trimmed = accessCode.trim();
-    if (!trimmed) {
-      setCodeError("Please enter the access code from your email.");
+  async function connectWithCode() {
+    setError(null);
+    if (!accessCode.trim()) {
+      setError("Enter an access code.");
       return;
     }
-    setCodeError(null);
-    setCodeLoading(true);
     try {
-      const response = await apiRequest("/api/care-team/connect", {
+      setLoading(true);
+      await apiRequest("/api/care-team/connect", {
         method: "POST",
-        body: JSON.stringify({ code: trimmed }),
+        body: JSON.stringify({ code: accessCode }),
       });
-      setCodeSuccess(response?.studio?.studioName
-        ? `Connected to ${response.studio.studioName}!`
-        : "Successfully connected with your coach!"
-      );
       setAccessCode("");
-      setShowCodeInput(false);
+      alert(`✅ Successfully connected with access code!`);
     } catch (e: any) {
-      setCodeError(e?.message ?? "Invalid or expired access code. Please check and try again.");
+      setError(e?.message ?? "Invalid or expired access code.");
     } finally {
-      setCodeLoading(false);
+      setLoading(false);
     }
   }
 
@@ -210,101 +206,45 @@ export default function ProCareCover() {
               );
             })}
 
-            {/* 2. Connect with Coach — access code entry, always visible */}
-            <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/20 rounded-xl shadow-md transition-all duration-300"
-              onClick={() => {
-                if (!showCodeInput && !codeSuccess) setShowCodeInput(true);
-              }}
-              data-testid="card-connect-coach"
-            >
-              <CardContent className="p-3">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <KeyRound className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                    <h3 className="text-sm font-semibold flex-1 text-white">
-                      Enter Coach Access Code
-                    </h3>
-                  </div>
-                  <p className="text-xs ml-6 text-white/80">
-                    Got a code from your coach? Enter it here to connect.
-                  </p>
+            {/* 2. Connect with Access Code — exact working card from TrainerCareTeam */}
+            <GlassCard className="border-2 border-orange-500/40">
+              <GlassCardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5 text-orange-500" />
+                  <h2 className="text-xl font-bold text-white">
+                    Connect with Access Code
+                  </h2>
                 </div>
-
-                <AnimatePresence>
-                  {showCodeInput && !codeSuccess && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                        <Input
-                          value={accessCode}
-                          onChange={(e) => {
-                            setAccessCode(e.target.value.toUpperCase());
-                            setCodeError(null);
-                          }}
-                          placeholder="Enter code (e.g. MP-XXXX-XXX)"
-                          className="bg-black/40 border-white/20 text-white placeholder:text-white/40 text-sm"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") submitAccessCode();
-                          }}
-                          disabled={codeLoading}
-                          autoFocus
-                        />
-                        {codeError && (
-                          <p className="text-red-400 text-xs">{codeError}</p>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={submitAccessCode}
-                            disabled={codeLoading}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
-                          >
-                            {codeLoading ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              "Connect"
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowCodeInput(false);
-                              setAccessCode("");
-                              setCodeError(null);
-                            }}
-                            className="py-2 px-3 rounded-lg bg-white/10 text-white/70 text-xs font-medium active:scale-[0.98] transition-transform"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <AnimatePresence>
-                  {codeSuccess && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                        <p className="text-emerald-300 text-xs font-medium">{codeSuccess}</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </CardContent>
-            </Card>
+                <p className="text-sm text-white/70">
+                  If your professional gave you a code, enter it here to link
+                  instantly.
+                </p>
+                <div>
+                  <Label className="text-white/80">Access Code</Label>
+                  <Input
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    placeholder="e.g. MP-9ZX4-QL"
+                    className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
+                    data-testid="input-careteam-code"
+                  />
+                </div>
+                {error && (
+                  <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
+                    {error}
+                  </div>
+                )}
+                <Button
+                  disabled={loading}
+                  onClick={connectWithCode}
+                  className="w-full bg-lime-600 hover:bg-lime-600 text-white"
+                  data-testid="button-submit-code"
+                >
+                  <ClipboardEdit className="h-4 w-4 mr-2" />
+                  Link with Code
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
 
             {/* 3. Other features (Supplement Hub, etc.) */}
             {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {
