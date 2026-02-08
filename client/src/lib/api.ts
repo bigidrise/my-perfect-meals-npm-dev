@@ -1,6 +1,7 @@
 // client/src/lib/api.ts
 import { getDeviceId } from "@/utils/deviceId";
 import { Capacitor } from '@capacitor/core';
+import { getAuthHeaders } from "@/lib/auth";
 
 type Json = Record<string, any>;
 
@@ -98,6 +99,7 @@ export async function apiJSON<T = any>(
       headers: {
         "Content-Type": json ? "application/json" : (headers as any)?.["Content-Type"] ?? "application/json",
         "X-Device-Id": deviceId,
+        ...getAuthHeaders(),
         ...(headers || {}),
       },
       ...rest,

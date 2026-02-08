@@ -5754,10 +5754,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
   }
 
-  app.post("/api/saved-meals/toggle", async (req, res) => {
+  app.post("/api/saved-meals/toggle", requireAuth, async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
-      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       const { title, sourceType, mealData } = req.body;
       if (!title || !mealData) return res.status(400).json({ error: "title and mealData required" });
@@ -5789,10 +5788,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.get("/api/saved-meals", async (req, res) => {
+  app.get("/api/saved-meals", requireAuth, async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
-      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       const rows = await db.select().from(savedMealsTable)
         .where(eq(savedMealsTable.userId, String(userId)))
@@ -5805,10 +5803,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.get("/api/saved-meals/check", async (req, res) => {
+  app.get("/api/saved-meals/check", requireAuth, async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
-      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
         .from(savedMealsTable)
@@ -5821,10 +5818,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.delete("/api/saved-meals/:id", async (req, res) => {
+  app.delete("/api/saved-meals/:id", requireAuth, async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
-      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       await db.delete(savedMealsTable).where(
         and(eq(savedMealsTable.id, req.params.id), eq(savedMealsTable.userId, String(userId)))

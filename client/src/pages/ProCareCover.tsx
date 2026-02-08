@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2 } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -171,6 +171,25 @@ export default function ProCareCover() {
               the <span className="text-orange-400 font-medium">ProCare</span> tab below.
             </p>
           </div>
+
+          {/* Saved Meals / Favorites */}
+          <Card
+            className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+            onClick={() => setLocation("/saved-meals")}
+            data-testid="card-saved-meals"
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/20">
+                  <Heart className="h-5 w-5 text-red-400" fill="currentColor" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-white">Favorites</h3>
+                  <p className="text-xs text-white/70">Your saved meals — tap to view and reuse</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
