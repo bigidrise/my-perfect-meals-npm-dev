@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.55",
+  "releaseId": "1.2.56",
   "publishedAt": "2026-02-08",
   "changes": [
-    "New: Client invites now auto-unlock — sign up or log in with an invited email and you're instantly linked to your trainer's workspace",
-    "Fixed: Studio membership info is always returned on login, not just on first accept",
-    "Improved: Multiple pending invites handled cleanly with transaction safety"
+    "New: Connect with Access Code card now lives on the ProCare landing page — always accessible for clients to link with their coach",
+    "Improved: Access code entry removed from locked Trainer Studio and Physician Clinic pages — no more dead ends for clients",
+    "Fixed: Access code connection uses proven working logic for reliable coach linking"
   ]
 }
