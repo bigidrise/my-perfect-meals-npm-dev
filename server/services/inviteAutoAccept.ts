@@ -1,9 +1,9 @@
 import { db } from "../db";
-import { studioInvites, studioMemberships, studios, studioBilling } from "../db/schema/studio";
+import { studioInvites, studioMemberships, studios } from "../db/schema/studio";
 import { careInvite, careTeamMember } from "../db/schema/careTeam";
-import { users } from "@shared/schema";
 import { eq, and, isNull, gt, desc } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
+import { ensureStudioForTrainer } from "./studioBridge";
 
 export interface StudioMembershipInfo {
   studioId: string;
@@ -45,56 +45,6 @@ export async function lookupExistingMembership(
     };
   } catch (error) {
     console.error("❌ [StudioMembership] Error looking up membership:", error);
-    return null;
-  }
-}
-
-async function ensureStudioForTrainer(trainerUserId: string): Promise<{ studioId: string; studioName: string; studioType: string } | null> {
-  try {
-    const [existingStudio] = await db
-      .select()
-      .from(studios)
-      .where(eq(studios.ownerUserId, trainerUserId));
-
-    if (existingStudio) {
-      return { studioId: existingStudio.id, studioName: existingStudio.name, studioType: existingStudio.type };
-    }
-
-    const [trainer] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, trainerUserId));
-
-    if (!trainer) return null;
-
-    const isPhysician = trainer.professionalRole === "physician";
-    const studioType = isPhysician ? "clinic" : "studio";
-    const studioName = isPhysician
-      ? `${trainer.firstName || trainer.username || "Dr."}'s Clinic`
-      : `${trainer.firstName || trainer.username || "Coach"}'s Studio`;
-
-    const [newStudio] = await db
-      .insert(studios)
-      .values({
-        ownerUserId: trainerUserId,
-        name: studioName,
-        type: studioType,
-        contactEmail: trainer.email,
-        status: "active",
-      })
-      .returning();
-
-    await db.insert(studioBilling).values({
-      studioId: newStudio.id,
-      planCode: isPhysician ? "clinic_69" : "studio_59",
-      status: "trialing",
-    });
-
-    console.log(`🏗️ [InviteAutoAccept] Auto-created ${studioType} "${studioName}" for trainer ${trainerUserId}`);
-
-    return { studioId: newStudio.id, studioName: newStudio.name, studioType: newStudio.type };
-  } catch (error) {
-    console.error("❌ [InviteAutoAccept] Error ensuring studio for trainer:", error);
     return null;
   }
 }

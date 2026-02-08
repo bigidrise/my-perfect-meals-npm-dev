@@ -5,6 +5,7 @@ import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
+import { bridgeToStudio } from "../services/studioBridge";
 
 const router = Router();
 
@@ -152,7 +153,10 @@ router.post("/connect", async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      return res.json({ member: updatedMember });
+      const trainerUserId = invite.userId;
+      const bridge = await bridgeToStudio(trainerUserId, userId, "care_team_connect_code");
+      
+      return res.json({ member: updatedMember, studio: bridge });
     }
 
     const [accessCode] = await db
@@ -181,7 +185,9 @@ router.post("/connect", async (req, res) => {
         })
         .returning();
 
-      return res.json({ member: newMember });
+      const bridge = await bridgeToStudio(accessCode.proUserId, userId, "care_team_access_code");
+
+      return res.json({ member: newMember, studio: bridge });
     }
 
     return res.status(404).json({ error: "Invalid code" });
