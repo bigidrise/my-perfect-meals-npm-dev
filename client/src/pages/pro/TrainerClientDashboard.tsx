@@ -16,6 +16,7 @@ import {
   Dumbbell,
   Check,
   Ruler,
+  LayoutGrid,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -518,6 +519,26 @@ export default function TrainerClientDashboard() {
           </CardContent>
         </Card>
 
+        <Card className="bg-white/5 border border-amber-500/30">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5 text-amber-400" /> Client Meal Board
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-white/70 text-sm">
+              View and edit {client?.name || "your client"}'s weekly meal plan directly.
+            </p>
+            <Button
+              onClick={() => setLocation(`/pro/clients/${clientId}/board/smart`)}
+              className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              View Meal Board
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card className="bg-white/5 border border-white/20">
           <CardContent className="p-6 space-y-3">
             <h2 className="text-lg font-bold text-white mb-2">Meal Builders</h2>
@@ -529,7 +550,7 @@ export default function TrainerClientDashboard() {
                   `/pro/clients/${clientId}/general-nutrition-builder`,
                 );
               }}
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               General Nutrition Builder
             </Button>
@@ -539,7 +560,7 @@ export default function TrainerClientDashboard() {
                   `/pro/clients/${clientId}/performance-competition-builder`,
                 )
               }
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               Performance & Competition Builder
             </Button>

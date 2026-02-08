@@ -5729,6 +5729,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;
   app.use("/api", mealBoardsRoutes);
 
+  // Pro shared board routes (coach/physician ↔ client board access)
+  const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
+  app.use("/api/pro/board", proBoardRoutes);
+
   app.use("/api/care-team", careTeamRoutes);
   app.use("/api/pro", procareRoutes);
   app.use("/api/studios", studioRoutes);

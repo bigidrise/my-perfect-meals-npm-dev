@@ -97,6 +97,7 @@ import ProClientsPhysician from "@/pages/pro/ProClientsPhysician";
 import ProClientDashboard from "@/pages/pro/ProClientDashboard";
 import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
 import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
+import ProBoardViewer from "@/pages/pro/ProBoardViewer";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
 
 // Physician Hub Pages
@@ -422,6 +423,13 @@ export default function Router() {
           component={withPageErrorBoundary(
             ClinicianClientDashboard,
             "Clinician Dashboard",
+          )}
+        />
+        <Route
+          path="/pro/clients/:clientId/board/:program"
+          component={withPageErrorBoundary(
+            ProBoardViewer,
+            "Pro Board Viewer",
           )}
         />
         <Route

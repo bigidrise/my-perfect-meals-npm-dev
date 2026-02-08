@@ -17,6 +17,7 @@ import {
   Target,
   Check,
   Calendar,
+  LayoutGrid,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -477,6 +478,26 @@ export default function ClinicianClientDashboard() {
             ) : (
               <p className="text-white/50 text-sm">No body composition data recorded for this patient yet.</p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/5 border border-amber-500/30">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5 text-amber-400" /> Patient Meal Board
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-white/70 text-sm">
+              View and edit {client?.name || "your patient"}'s weekly meal plan directly.
+            </p>
+            <Button
+              onClick={() => setLocation(`/pro/clients/${clientId}/board/smart`)}
+              className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              View Meal Board
+            </Button>
           </CardContent>
         </Card>
 

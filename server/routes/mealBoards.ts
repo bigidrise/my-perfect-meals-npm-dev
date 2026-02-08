@@ -72,6 +72,15 @@ router.post("/boards/:boardId/items", async (req, res) => {
       ingredients: ingredients || []
     }).returning();
 
+    const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
+    if (board) {
+      await db.update(mealBoards).set({
+        lastUpdatedByUserId: board.userId,
+        lastUpdatedByRole: "client",
+        updatedAt: new Date(),
+      }).where(eq(mealBoards.id, boardId));
+    }
+
     res.json(item);
   } catch (error) {
     console.error("Error adding board item:", error);
@@ -82,9 +91,19 @@ router.post("/boards/:boardId/items", async (req, res) => {
 // Delete item from board
 router.delete("/boards/:boardId/items/:itemId", async (req, res) => {
   try {
-    const { itemId } = req.params;
+    const { boardId, itemId } = req.params;
 
     await db.delete(mealBoardItems).where(eq(mealBoardItems.id, itemId));
+
+    const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
+    if (board) {
+      await db.update(mealBoards).set({
+        lastUpdatedByUserId: board.userId,
+        lastUpdatedByRole: "client",
+        updatedAt: new Date(),
+      }).where(eq(mealBoards.id, boardId));
+    }
+
     res.json({ ok: true });
   } catch (error) {
     console.error("Error deleting board item:", error);
@@ -133,6 +152,12 @@ router.post("/boards/:boardId/repeat-day", async (req, res) => {
     if (clones.length) {
       await db.insert(mealBoardItems).values(clones);
     }
+
+    await db.update(mealBoards).set({
+      lastUpdatedByUserId: board.userId,
+      lastUpdatedByRole: "client",
+      updatedAt: new Date(),
+    }).where(eq(mealBoards.id, boardId));
 
     res.json({ ok: true });
   } catch (error) {
