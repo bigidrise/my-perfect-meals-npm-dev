@@ -212,7 +212,7 @@ export default function ProCareCover() {
 
             {/* 2. Connect with Coach — access code entry, always visible */}
             <Card
-              className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-emerald-900/40 to-teal-900/40 backdrop-blur-lg border border-emerald-500/20 rounded-xl shadow-md transition-all duration-300"
+              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/20 rounded-xl shadow-md transition-all duration-300"
               onClick={() => {
                 if (!showCodeInput && !codeSuccess) setShowCodeInput(true);
               }}
@@ -221,7 +221,7 @@ export default function ProCareCover() {
               <CardContent className="p-3">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <KeyRound className="h-4 w-4 flex-shrink-0 text-emerald-400" />
+                    <KeyRound className="h-4 w-4 flex-shrink-0 text-orange-500" />
                     <h3 className="text-sm font-semibold flex-1 text-white">
                       Enter Coach Access Code
                     </h3>
@@ -241,7 +241,7 @@ export default function ProCareCover() {
                       className="overflow-hidden"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="mt-3 pt-3 border-t border-emerald-500/20 space-y-2">
+                      <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
                         <Input
                           value={accessCode}
                           onChange={(e) => {
@@ -296,7 +296,7 @@ export default function ProCareCover() {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-3 pt-3 border-t border-emerald-500/20 flex items-center gap-2">
+                      <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                         <p className="text-emerald-300 text-xs font-medium">{codeSuccess}</p>
                       </div>
