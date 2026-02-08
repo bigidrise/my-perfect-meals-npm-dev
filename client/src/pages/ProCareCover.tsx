@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -19,6 +19,11 @@ interface ProCareFeature {
   roleKey: "physician" | "trainer" | null;
 }
 
+type ConnectedResult = {
+  member: any;
+  studio: { studioId: string; studioName: string; membershipId: string } | null;
+};
+
 export default function ProCareCover() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -28,6 +33,7 @@ export default function ProCareCover() {
   const [accessCode, setAccessCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectedResult, setConnectedResult] = useState<ConnectedResult | null>(null);
 
   useEffect(() => {
     document.title = "ProCare | My Perfect Meals";
@@ -78,18 +84,19 @@ export default function ProCareCover() {
 
   async function connectWithCode() {
     setError(null);
+    setConnectedResult(null);
     if (!accessCode.trim()) {
       setError("Enter an access code.");
       return;
     }
     try {
       setLoading(true);
-      await apiRequest("/api/care-team/connect", {
+      const response = await apiRequest("/api/care-team/connect", {
         method: "POST",
         body: JSON.stringify({ code: accessCode }),
       });
       setAccessCode("");
-      alert(`✅ Successfully connected with access code!`);
+      setConnectedResult(response);
     } catch (e: any) {
       setError(e?.message ?? "Invalid or expired access code.");
     } finally {
@@ -245,6 +252,33 @@ export default function ProCareCover() {
                 </Button>
               </GlassCardContent>
             </GlassCard>
+
+            {/* Connected Success Card */}
+            {connectedResult && (
+              <GlassCard className="border-2 border-green-500/40">
+                <GlassCardContent className="p-6 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-400" />
+                    <h2 className="text-lg font-bold text-white">
+                      Connected!
+                    </h2>
+                  </div>
+                  {connectedResult.studio && (
+                    <p className="text-sm text-white/80">
+                      You are now linked to <span className="text-green-300 font-semibold">{connectedResult.studio.studioName}</span>. Your trainer can now manage your meal plan.
+                    </p>
+                  )}
+                  {!connectedResult.studio && (
+                    <p className="text-sm text-white/80">
+                      You are now linked to your professional. They can manage your meal plan.
+                    </p>
+                  )}
+                  <p className="text-xs text-white/60">
+                    Your trainer will assign your meal builder. Check back on your dashboard to see updates.
+                  </p>
+                </GlassCardContent>
+              </GlassCard>
+            )}
 
             {/* 3. Other features (Supplement Hub, etc.) */}
             {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {
