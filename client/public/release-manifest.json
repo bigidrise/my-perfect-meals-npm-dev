@@ -1,9 +1,10 @@
 {
-  "releaseId": "1.2.59",
+  "releaseId": "1.2.60",
   "publishedAt": "2026-02-08",
   "changes": [
-    "New: 'More' tab — ProCare, Saved Meals, and Supplements now live under one clean entry point",
-    "Improved: Bottom navigation reorganized for a simpler, more intuitive layout",
-    "Improved: Copilot and Chef voice scripts updated to reflect the new navigation"
+    "New: Shared Meal Boards — trainers and physicians can now view and edit your weekly Meal Board directly, with full change tracking",
+    "New: ProCare documentation added to App Library — learn how to connect with your coach or physician",
+    "Improved: Professional intro scripts, quick tours, and copilot guidance all updated with Shared Meal Board details",
+    "Improved: Consistent terminology and change-tracking language across all ProCare touchpoints"
   ]
 }
