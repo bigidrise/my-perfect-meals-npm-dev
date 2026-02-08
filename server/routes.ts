@@ -7,6 +7,7 @@ import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems } from "@shared/schema";
+import { studioMemberships, studios } from "./db/schema/studio";
 import { db } from "./db";
 import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -1818,6 +1819,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
+      let studioMembershipData = null;
+      const [membership] = await db
+        .select()
+        .from(studioMemberships)
+        .where(eq(studioMemberships.clientUserId, userId));
+      
+      if (membership) {
+        const [studio] = await db
+          .select()
+          .from(studios)
+          .where(eq(studios.id, membership.studioId));
+        
+        studioMembershipData = {
+          studioId: membership.studioId,
+          studioName: studio?.name || null,
+          studioType: studio?.type || null,
+          membershipId: membership.id,
+          ownerUserId: studio?.ownerUserId || null,
+          status: membership.status,
+          assignedBuilder: membership.assignedBuilder,
+        };
+      }
+
       res.json({
         id: user.id,
         email: user.email,
@@ -1841,24 +1865,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
         profilePhotoUrl: user.profilePhotoUrl || null,
-        // Role-based access control
         role: user.role || "client",
         isProCare: user.isProCare || false,
         activeBoard: user.activeBoard || null,
-        // Onboarding completion - CRITICAL for enforcing onboarding gate
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() || null,
-        // Onboarding/Profile data - CRITICAL for Edit Profile page
         age: user.age || null,
         height: user.height || null,
         weight: user.weight || null,
         activityLevel: user.activityLevel || null,
         fitnessGoal: user.fitnessGoal || null,
-        // Allergy and dietary data - CRITICAL for safety systems
         allergies: user.allergies || [],
         dietaryRestrictions: user.dietaryRestrictions || [],
         healthConditions: user.healthConditions || [],
         dislikedFoods: user.dislikedFoods || [],
         likedFoods: user.likedFoods || [],
+        studioMembership: studioMembershipData,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
