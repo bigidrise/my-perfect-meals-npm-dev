@@ -1,11 +1,9 @@
 {
-  "releaseId": "1.2.58",
+  "releaseId": "1.2.59",
   "publishedAt": "2026-02-08",
   "changes": [
-    "New: Saved Meals — tap the heart icon on any generated meal to save it to your favorites",
-    "New: Saved Meals page — view all your favorites in a clean list, tap to expand full details",
-    "New: Add to Macros, Share, Translate, and Prepare with Chef all work from saved meals",
-    "New: Trainers now have follow-up scheduling — schedule 4, 8, or 12 week check-ins from client dashboards",
-    "Improved: Trainer Studio and Physicians Clinic now have fully matching capabilities"
+    "New: 'More' tab — ProCare, Saved Meals, and Supplements now live under one clean entry point",
+    "Improved: Bottom navigation reorganized for a simpler, more intuitive layout",
+    "Improved: Copilot and Chef voice scripts updated to reflect the new navigation"
   ]
 }
