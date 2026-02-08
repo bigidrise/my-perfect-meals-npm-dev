@@ -67,17 +67,26 @@ export default function SavedMeals() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white pb-24">
-      <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
-        <div className="flex items-center gap-3 mb-2">
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white pb-24 flex flex-col">
+      <div
+        className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => setLocation("/dashboard")} className="p-2 rounded-lg bg-white/10 active:scale-[0.98]">
             <ArrowLeft className="h-5 w-5 text-white" />
           </button>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-xl font-bold flex items-center gap-2 flex-1">
             <Heart className="h-6 w-6 text-red-500" fill="currentColor" />
             Saved Meals
           </h1>
         </div>
+      </div>
+
+      <div
+        className="max-w-lg mx-auto px-4 space-y-4 w-full"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+      >
 
         {isLoading && (
           <div className="flex justify-center py-12">
