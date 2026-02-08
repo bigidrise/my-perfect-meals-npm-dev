@@ -98,6 +98,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
+import FavoriteButton from "@/components/FavoriteButton";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -970,6 +971,11 @@ export default function CravingCreator() {
                           <h3 className="text-xl font-bold text-white">
                             {meal.name}
                           </h3>
+                          <FavoriteButton
+                            title={meal.name}
+                            sourceType="craving-creator"
+                            mealData={meal}
+                          />
                         </div>
                         <button
                           onClick={() => {
@@ -979,7 +985,7 @@ export default function CravingCreator() {
                             setSubstitutedStarchTerms([]);
                             clearStarchAlert();
                           }}
-                          className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                           data-testid="button-create-new"
                         >
                           Create New

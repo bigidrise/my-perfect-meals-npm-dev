@@ -34,6 +34,7 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -683,13 +684,18 @@ export default function DessertCreator() {
                       <h3 className="text-xl font-bold text-white">
                         {generatedDessert.name}
                       </h3>
+                      <FavoriteButton
+                        title={generatedDessert.name}
+                        sourceType="dessert-creator"
+                        mealData={generatedDessert}
+                      />
                     </div>
                     <button
                       onClick={() => {
                         setGeneratedDessert(null);
                         localStorage.removeItem("mpm_dessert_creator_result");
                       }}
-                      className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                      className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                     >
                       Create New
                     </button>

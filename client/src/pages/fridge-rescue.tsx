@@ -51,6 +51,7 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -820,9 +821,16 @@ const FridgeRescuePage = () => {
                     </div>
 
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg text-white">
-                        {meal.name}
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg text-white">
+                          {meal.name}
+                        </CardTitle>
+                        <FavoriteButton
+                          title={meal.name}
+                          sourceType="fridge-rescue"
+                          mealData={meal}
+                        />
+                      </div>
                       <CardDescription className="text-sm text-white/80">
                         {meal.description}
                       </CardDescription>

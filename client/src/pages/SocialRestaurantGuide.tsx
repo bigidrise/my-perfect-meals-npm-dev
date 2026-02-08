@@ -67,6 +67,7 @@ import {
   RESTAURANT_GUIDE_GENERATING,
 } from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
+import FavoriteButton from "@/components/FavoriteButton";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -960,9 +961,17 @@ export default function RestaurantGuidePage() {
                           <div className="md:col-span-2 p-4">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex flex-col gap-1">
-                                <h3 className="text-lg font-semibold text-white">
-                                  {meal.name || meal.meal}
-                                </h3>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-lg font-semibold text-white">
+                                    {meal.name || meal.meal}
+                                  </h3>
+                                  <FavoriteButton
+                                    title={meal.name || meal.meal}
+                                    sourceType="restaurant-guide"
+                                    mealData={meal}
+                                    size={18}
+                                  />
+                                </div>
                                 {/* Starch Classification Badge */}
                                 {(() => {
                                   const starchClass = classifyMeal({
