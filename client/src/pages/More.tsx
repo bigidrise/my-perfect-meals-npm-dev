@@ -24,7 +24,7 @@ type ConnectedResult = {
   studio: { studioId: string; studioName: string; membershipId: string } | null;
 };
 
-export default function ProCareCover() {
+export default function MorePage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -36,7 +36,7 @@ export default function ProCareCover() {
   const [connectedResult, setConnectedResult] = useState<ConnectedResult | null>(null);
 
   useEffect(() => {
-    document.title = "ProCare | My Perfect Meals";
+    document.title = "More | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -118,7 +118,7 @@ export default function ProCareCover() {
       >
           <div className="px-6 py-3 flex items-center gap-3">
           <Crown className="h-6 w-6 text-orange-500" />
-          <h1 className="text-lg font-bold text-white flex-1">ProCare</h1>
+          <h1 className="text-lg font-bold text-white flex-1">More</h1>
           <button
             onClick={() => setLocation("/dashboard")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 active:scale-[0.98] transition-transform"
@@ -168,7 +168,7 @@ export default function ProCareCover() {
                 ? " — Physicians Clinic"
                 : ""}. Manage clients and build plans here. Tap <span className="text-orange-400 font-medium">Exit</span> in the top
               right to return to your personal space anytime. You can always come back via
-              the <span className="text-orange-400 font-medium">ProCare</span> tab below.
+              the <span className="text-orange-400 font-medium">More</span> tab below.
             </p>
           </div>
 

@@ -65,9 +65,9 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "ProCare Landing",
+    title: "More",
     routes: [
-      { path: "/procare-cover", label: "ProCare Cover" },
+      { path: "/more", label: "More" },
     ],
   },
   {

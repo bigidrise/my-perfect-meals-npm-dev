@@ -87,10 +87,10 @@ export default function BottomNav() {
         path: "/lifestyle",
       },
       {
-        id: "procare",
-        label: "ProCare",
+        id: "more",
+        label: "More",
         icon: Crown,
-        path: "/procare-cover",
+        path: "/more",
       },
     ];
   }, []);

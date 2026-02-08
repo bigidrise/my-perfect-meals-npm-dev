@@ -65,7 +65,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-attestation", "/consumer-welcome", "/procare-cover"];
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-attestation", "/consumer-welcome", "/more"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
     // Don't make routing decisions while auth is loading - wait for user state

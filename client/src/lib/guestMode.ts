@@ -728,7 +728,7 @@ export const GUEST_ALLOWED_ROUTES = [
 export const ACCOUNT_REQUIRED_ROUTES = [
   "/dashboard",
   "/shopping-list",
-  "/procare-cover",
+  "/more",
   "/care-team",
   "/pro-portal",
   "/diabetic-hub",

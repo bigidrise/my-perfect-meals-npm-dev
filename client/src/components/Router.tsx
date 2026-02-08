@@ -90,7 +90,7 @@ import CareTeam from "@/pages/CareTeam";
 import PhysicianCareTeam from "@/pages/care-team/PhysicianCareTeam";
 import TrainerCareTeam from "@/pages/care-team/TrainerCareTeam";
 import PhysicianPortal from "@/pages/pro/PhysicianPortal";
-import ProCareCover from "@/pages/ProCareCover";
+import MorePage from "@/pages/More";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
 import ProClientsPhysician from "@/pages/pro/ProClientsPhysician";
@@ -374,8 +374,8 @@ export default function Router() {
         />
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
         <Route
-          path="/procare-cover"
-          component={withPageErrorBoundary(ProCareCover, "ProCare Cover")}
+          path="/more"
+          component={withPageErrorBoundary(MorePage, "More")}
         />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route

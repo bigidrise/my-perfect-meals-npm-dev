@@ -48,7 +48,7 @@ export default function Auth() {
         const savedPreference = localStorage.getItem("mpm_workspace_preference");
         if (savedPreference === "workspace") {
           localStorage.setItem("coachMode", "self");
-          setLocation("/procare-cover");
+          setLocation("/more");
         } else if (savedPreference === "personal") {
           localStorage.setItem("coachMode", "self");
           setLocation("/dashboard");
@@ -75,7 +75,7 @@ export default function Auth() {
         onChoose={(choice: "personal" | "workspace") => {
           localStorage.setItem("coachMode", "self");
           if (choice === "workspace") {
-            setLocation("/procare-cover");
+            setLocation("/more");
           } else {
             setLocation("/dashboard");
           }

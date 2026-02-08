@@ -1100,7 +1100,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             <button
               onClick={() =>
                 setLocation(
-                  mode === "athlete" ? "/procare-cover" : "/dashboard",
+                  mode === "athlete" ? "/more" : "/dashboard",
                 )
               }
               className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg text-md font-medium flex-shrink-0"

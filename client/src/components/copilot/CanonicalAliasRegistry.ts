@@ -375,9 +375,9 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
   PRO_CARE: {
     id: "PRO_CARE",
     legacyId: "pro-care",
-    primaryRoute: "/procare-cover",
+    primaryRoute: "/more",
     isHub: false,
-    keywords: ["pro care", "professional care", "doctor care", "procare", "medical care", "professional help", "doctor"]
+    keywords: ["pro care", "professional care", "doctor care", "procare", "medical care", "professional help", "doctor", "more"]
   }
 };
 

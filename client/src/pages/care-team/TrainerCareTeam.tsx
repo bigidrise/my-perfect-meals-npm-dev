@@ -104,7 +104,7 @@ export default function CareTeamPage() {
     const isAdmin = user.role === "admin";
     const isTrainer = user.professionalRole === "trainer";
     if (!isAdmin && !isTrainer) {
-      setLocation("/procare-cover");
+      setLocation("/more");
     }
   }, [user, setLocation]);
 

@@ -97,7 +97,7 @@ export default function PhysicianCareTeamPage() {
     const isAdmin = user.role === "admin";
     const isPhysician = user.professionalRole === "physician";
     if (!isAdmin && !isPhysician) {
-      setLocation("/procare-cover");
+      setLocation("/more");
     }
   }, [user, setLocation]);
 

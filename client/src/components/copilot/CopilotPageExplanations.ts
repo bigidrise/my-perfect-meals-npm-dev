@@ -259,13 +259,13 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/procare-cover": {
-    pageId: "procare-cover",
-    title: "Procare",
+  "/more": {
+    pageId: "more",
+    title: "More",
     description:
-      "Your professional support center for supplements and expert-guided nutrition tools.",
+      "Your hub for favorites, supplements, and expert-guided nutrition tools.",
     spokenText:
-      "ProCare is your professional support center. From here, you can access the Supplement Hub for health and performance support, or connect with your trainer or physician using the ProCare tools for personalized guidance. Choose the option you need and I’ll walk you through it.",
+      "This is your More page — your hub for everything extra. From here, you can access your saved favorites, the Supplement Hub for health and performance support, or connect with your trainer or physician for personalized guidance. Choose the option you need and I’ll walk you through it.",
     autoClose: true,
   },
 
