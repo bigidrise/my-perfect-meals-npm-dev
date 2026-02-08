@@ -1,9 +1,14 @@
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ProCareFeature {
   title: string;
@@ -19,6 +24,10 @@ export default function ProCareCover() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
+
+  const [accessCode, setAccessCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "ProCare | My Perfect Meals";
@@ -66,6 +75,27 @@ export default function ProCareCover() {
     if (isFeatureLocked(feature)) return;
     setLocation(feature.route);
   };
+
+  async function connectWithCode() {
+    setError(null);
+    if (!accessCode.trim()) {
+      setError("Enter an access code.");
+      return;
+    }
+    try {
+      setLoading(true);
+      await apiRequest("/api/care-team/connect", {
+        method: "POST",
+        body: JSON.stringify({ code: accessCode }),
+      });
+      setAccessCode("");
+      alert(`✅ Successfully connected with access code!`);
+    } catch (e: any) {
+      setError(e?.message ?? "Invalid or expired access code.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <motion.div 
@@ -137,7 +167,8 @@ export default function ProCareCover() {
 
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
-            {proCareFeatures.map((feature) => {
+            {/* 1. Professional Studios (locked for non-pros) */}
+            {proCareFeatures.filter(f => f.roleKey !== null).map((feature) => {
               const Icon = feature.icon;
               const isLocked = isFeatureLocked(feature);
               const lockedLabel = feature.roleKey === "physician"
@@ -168,6 +199,73 @@ export default function ProCareCover() {
                       </div>
                       <p className={`text-xs ml-6 ${isLocked ? "text-white/30" : "text-white/80"}`}>
                         {isLocked ? lockedLabel : feature.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* 2. Connect with Access Code — exact working card from TrainerCareTeam */}
+            <GlassCard className="border-2 border-orange-500/40">
+              <GlassCardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5 text-orange-500" />
+                  <h2 className="text-xl font-bold text-white">
+                    Connect with Access Code
+                  </h2>
+                </div>
+                <p className="text-sm text-white/70">
+                  If your professional gave you a code, enter it here to link
+                  instantly.
+                </p>
+                <div>
+                  <Label className="text-white/80">Access Code</Label>
+                  <Input
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    placeholder="e.g. MP-9ZX4-QL"
+                    className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
+                    data-testid="input-careteam-code"
+                  />
+                </div>
+                {error && (
+                  <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
+                    {error}
+                  </div>
+                )}
+                <Button
+                  disabled={loading}
+                  onClick={connectWithCode}
+                  className="w-full bg-lime-600 hover:bg-lime-600 text-white"
+                  data-testid="button-submit-code"
+                >
+                  <ClipboardEdit className="h-4 w-4 mr-2" />
+                  Link with Code
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
+
+            {/* 3. Other features (Supplement Hub, etc.) */}
+            {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <Card
+                  key={feature.testId}
+                  className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+                  onClick={() => handleCardClick(feature)}
+                  data-testid={feature.testId}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                        <h3 className="text-sm font-semibold flex-1 text-white">
+                          {feature.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs ml-6 text-white/80">
+                        {feature.description}
                       </p>
                     </div>
                   </CardContent>

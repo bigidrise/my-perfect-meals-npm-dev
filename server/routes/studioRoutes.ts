@@ -4,22 +4,35 @@ import {
   studios, studioBilling, studioMemberships, studioInvites, 
   clientNotes, clientActivityLog
 } from "../db/schema/studio";
+import { users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
 
 const router = Router();
 
-function getUserId(req: any): string {
+async function getUserId(req: any): Promise<string | null> {
   if (req.session?.userId) return req.session.userId as string;
+
+  const authToken = req.headers["x-auth-token"] as string;
+  if (authToken) {
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.authToken, authToken))
+      .limit(1);
+    if (user) return user.id;
+  }
+
   const headerUserId = req.headers["x-user-id"] as string;
   if (headerUserId) return headerUserId;
-  return "00000000-0000-0000-0000-000000000001";
+  return null;
 }
 
 router.get("/my-studio", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const [studio] = await db
       .select()
       .from(studios)
@@ -43,7 +56,8 @@ router.get("/my-studio", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { name, type, contactEmail, contactPhone } = req.body;
 
     if (!name) {
@@ -86,7 +100,8 @@ router.post("/", async (req, res) => {
 
 router.patch("/:studioId", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId } = req.params;
     const { name, logoUrl, themeColor, contactEmail, contactPhone } = req.body;
 
@@ -121,7 +136,8 @@ router.patch("/:studioId", async (req, res) => {
 
 router.get("/:studioId/clients", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId } = req.params;
 
     const [studio] = await db
@@ -147,7 +163,8 @@ router.get("/:studioId/clients", async (req, res) => {
 
 router.post("/:studioId/invite", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId } = req.params;
     const { email } = req.body;
 
@@ -197,7 +214,8 @@ router.post("/:studioId/invite", async (req, res) => {
 
 router.post("/connect", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { code } = req.body;
 
     if (!code) {
@@ -279,7 +297,8 @@ router.post("/connect", async (req, res) => {
 
 router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId, clientUserId } = req.params;
     const { assignedBuilder, activeBoardId } = req.body;
 
@@ -330,7 +349,8 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
 
 router.get("/:studioId/clients/:clientUserId/notes", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId, clientUserId } = req.params;
 
     const [studio] = await db
@@ -362,7 +382,8 @@ router.get("/:studioId/clients/:clientUserId/notes", async (req, res) => {
 
 router.post("/:studioId/clients/:clientUserId/notes", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId, clientUserId } = req.params;
     const { noteType, title, body, sessionDate, tags, visibility } = req.body;
 
@@ -413,7 +434,8 @@ router.post("/:studioId/clients/:clientUserId/notes", async (req, res) => {
 
 router.get("/:studioId/clients/:clientUserId/activity", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId, clientUserId } = req.params;
 
     const [studio] = await db
@@ -445,7 +467,8 @@ router.get("/:studioId/clients/:clientUserId/activity", async (req, res) => {
 
 router.get("/my-membership", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const [membership] = await db
       .select()

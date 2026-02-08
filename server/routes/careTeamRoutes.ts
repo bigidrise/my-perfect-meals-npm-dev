@@ -1,22 +1,36 @@
 import { Router } from "express";
 import { db } from "../db";
 import { careTeamMember, careInvite, careAccessCode } from "../db/schema/careTeam";
+import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
+import { bridgeToStudio } from "../services/studioBridge";
 
 const router = Router();
 
-function getUserId(req: any): string {
+async function getUserId(req: any): Promise<string | null> {
   if (req.session?.userId) return req.session.userId as string;
+
+  const authToken = req.headers["x-auth-token"] as string;
+  if (authToken) {
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.authToken, authToken))
+      .limit(1);
+    if (user) return user.id;
+  }
+
   const headerUserId = req.headers["x-user-id"] as string;
   if (headerUserId) return headerUserId;
-  return "00000000-0000-0000-0000-000000000001";
+  return null;
 }
 
 router.get("/", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const members = await db
       .select()
@@ -32,7 +46,8 @@ router.get("/", async (req, res) => {
 
 router.post("/invite", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { email: rawEmail, role, permissions } = req.body;
     if (!rawEmail || !role || !permissions) {
@@ -91,7 +106,8 @@ router.post("/invite", async (req, res) => {
 
 router.post("/connect", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { code } = req.body;
     if (!code) {
@@ -137,7 +153,10 @@ router.post("/connect", async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      return res.json({ member: updatedMember });
+      const trainerUserId = invite.userId;
+      const bridge = await bridgeToStudio(trainerUserId, userId, "care_team_connect_code");
+      
+      return res.json({ member: updatedMember, studio: bridge });
     }
 
     const [accessCode] = await db
@@ -166,7 +185,9 @@ router.post("/connect", async (req, res) => {
         })
         .returning();
 
-      return res.json({ member: newMember });
+      const bridge = await bridgeToStudio(accessCode.proUserId, userId, "care_team_access_code");
+
+      return res.json({ member: newMember, studio: bridge });
     }
 
     return res.status(404).json({ error: "Invalid code" });
@@ -178,7 +199,8 @@ router.post("/connect", async (req, res) => {
 
 router.post("/:id/approve", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { id } = req.params;
 
@@ -207,7 +229,8 @@ router.post("/:id/approve", async (req, res) => {
 
 router.post("/:id/revoke", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { id } = req.params;
 
