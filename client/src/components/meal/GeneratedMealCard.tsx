@@ -9,6 +9,7 @@ import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPer
 import { setQuickView } from "@/lib/macrosQuickView";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import FavoriteButton from "@/components/FavoriteButton";
 
 export interface GeneratedMealData {
   id: string;
@@ -155,10 +156,16 @@ export default function GeneratedMealCard({
           <h3 className="text-xl font-bold text-white">
             {mealToShow.name}
           </h3>
+          <FavoriteButton
+            title={generatedMeal.name}
+            sourceType={source || "meal-builder"}
+            mealData={generatedMeal}
+            size={22}
+          />
         </div>
         <button
           onClick={onRestart}
-          className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
         >
           Create New
         </button>

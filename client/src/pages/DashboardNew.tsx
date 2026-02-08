@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Flame,
   Camera,
+  Heart,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -95,6 +96,14 @@ export default function DashboardNew() {
       route: "/my-biometrics",
       size: "large",
       testId: "biometrics", // Updated testId for tour
+    },
+    {
+      title: "Saved Meals",
+      description: "Your favorites",
+      icon: Heart,
+      route: "/saved-meals",
+      size: "small",
+      testId: "card-saved-meals",
     },
     {
       title: "Get Inspiration",

@@ -5745,5 +5745,97 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Mount Stripe checkout router with correct prefix
   app.use("/api/stripe", stripeCheckoutRouter);
 
+  // ── Saved Meals / Favorites ──────────────────────────────────────
+  const { savedMeals: savedMealsTable } = await import("@shared/schema");
+  const crypto = await import("crypto");
+
+  function mealSignature(title: string, sourceType: string, macros?: { calories?: number; protein?: number; carbs?: number; fat?: number }): string {
+    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}`;
+    return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
+  }
+
+  app.post("/api/saved-meals/toggle", async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const { title, sourceType, mealData } = req.body;
+      if (!title || !mealData) return res.status(400).json({ error: "title and mealData required" });
+
+      const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
+      const hash = mealSignature(title, sourceType || "unknown", macros);
+
+      const existing = await db.select().from(savedMealsTable).where(
+        and(eq(savedMealsTable.userId, String(userId)), eq(savedMealsTable.signatureHash, hash))
+      ).limit(1);
+
+      if (existing.length > 0) {
+        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, existing[0].id));
+        return res.json({ saved: false, id: null });
+      }
+
+      const [row] = await db.insert(savedMealsTable).values({
+        userId: String(userId),
+        title: title.trim(),
+        sourceType: sourceType || "unknown",
+        signatureHash: hash,
+        mealData,
+      }).returning();
+
+      return res.json({ saved: true, id: row.id });
+    } catch (error) {
+      console.error("Error toggling saved meal:", error);
+      res.status(500).json({ error: "Failed to toggle saved meal" });
+    }
+  });
+
+  app.get("/api/saved-meals", async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const rows = await db.select().from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)))
+        .orderBy(desc(savedMealsTable.createdAt));
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error listing saved meals:", error);
+      res.status(500).json({ error: "Failed to list saved meals" });
+    }
+  });
+
+  app.get("/api/saved-meals/check", async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)));
+
+      res.json(rows.map(r => `${r.title.trim().toLowerCase()}|${r.sourceType}`));
+    } catch (error) {
+      console.error("Error checking saved meals:", error);
+      res.status(500).json({ error: "Failed to check saved meals" });
+    }
+  });
+
+  app.delete("/api/saved-meals/:id", async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId || req.headers["x-user-id"] as string;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      await db.delete(savedMealsTable).where(
+        and(eq(savedMealsTable.id, req.params.id), eq(savedMealsTable.userId, String(userId)))
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting saved meal:", error);
+      res.status(500).json({ error: "Failed to delete saved meal" });
+    }
+  });
+
   return httpServer;
 }

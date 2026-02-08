@@ -63,6 +63,8 @@ The application is a monorepo built with React + Vite (TypeScript) for the front
 - **Quick View Direct Add v1.0**: Streamlined macro logging flow, allowing direct logging from Quick View with a single tap.
 - **Body Composition Tracking System v1.0**: Database-first body fat percentage tracking with scan method support (DEXA, BodPod, Calipers, Smart Scale, Other). Integrates with Macro Calculator and affects starch allocation in Beach Body and Performance/Competition builders. Formula: BF% ≥ goal+5% reduces starch slots by 1, within ±3% no change, below goal +1 slot (Performance only). Strict precedence: trainer override > physician > client entries regardless of recency.
 
+- **Saved Meals / Favorites System v1.0**: Database-backed favorites with `saved_meals` table (PostgreSQL). Heart button on GeneratedMealCard for one-tap save/unsave. Saved Meals page (`/saved-meals`) with collapsed title list that expands to show full meal details, macros, ingredients, instructions. Actions include Add to Macros, Remove, Share, Translate, Prepare with Chef. Accessible from Dashboard. Lightweight save model: stores meal JSON snapshot + source type for source-agnostic rendering.
+
 ## External Dependencies
 - **OpenAI API**: For AI-powered meal generation and DALL-E 3 image creation.
 - **Amazon S3**: For permanent storage of generated meal images.

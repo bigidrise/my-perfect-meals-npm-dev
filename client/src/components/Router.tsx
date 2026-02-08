@@ -118,6 +118,7 @@ import CravingStudio from "@/pages/craving-creator/CravingStudio";
 import DessertStudio from "@/pages/dessert-creator/DessertStudio";
 import FridgeRescueStudio from "@/pages/fridge-rescue/FridgeRescueStudio";
 import EditProfilePage from "@/pages/profile/EditProfilePage";
+import SavedMeals from "@/pages/SavedMeals";
 
 // Alcohol Hub pages
 import AlcoholHubLanding from "@/pages/AlcoholHubLanding";
@@ -241,6 +242,7 @@ export default function Router() {
         <Route path="/terms" component={TermsOfService} />
         {/* Profile Edit Page */}
         <Route path="/profile" component={EditProfilePage} />
+        <Route path="/saved-meals" component={SavedMeals} />
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />

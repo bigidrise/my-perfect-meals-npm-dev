@@ -1,9 +1,11 @@
 {
-  "releaseId": "1.2.56",
+  "releaseId": "1.2.58",
   "publishedAt": "2026-02-08",
   "changes": [
-    "New: Connect with Access Code card now lives on the ProCare landing page — always accessible for clients to link with their coach",
-    "Improved: Access code entry removed from locked Trainer Studio and Physician Clinic pages — no more dead ends for clients",
-    "Fixed: Access code connection uses proven working logic for reliable coach linking"
+    "New: Saved Meals — tap the heart icon on any generated meal to save it to your favorites",
+    "New: Saved Meals page — view all your favorites in a clean list, tap to expand full details",
+    "New: Add to Macros, Share, Translate, and Prepare with Chef all work from saved meals",
+    "New: Trainers now have follow-up scheduling — schedule 4, 8, or 12 week check-ins from client dashboards",
+    "Improved: Trainer Studio and Physicians Clinic now have fully matching capabilities"
   ]
 }

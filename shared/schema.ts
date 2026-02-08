@@ -35,6 +35,7 @@ export { mealBoards, mealBoardItems } from "../server/db/schema/mealBoards";
 export { careTeamMember, careInvite, careAccessCode } from "../server/db/schema/careTeam";
 export { builderPlans } from "../server/db/schema/builderPlans";
 export { generatedMealsCache } from "../server/db/schema/generatedMeals";
+export { savedMeals } from "../server/db/schema/savedMeals";
 export { studioTypeEnum, mealLibraryItems, mealLibraryUsage, mealGenerationJobs } from "../server/db/schema/mealLibrary";
 export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGenerationJob } from "../server/db/schema/mealLibrary";
 
