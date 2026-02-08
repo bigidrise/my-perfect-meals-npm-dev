@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
-import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems } from "@shared/schema";
+import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { db } from "./db";
 import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
@@ -5750,7 +5750,6 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/stripe", stripeCheckoutRouter);
 
   // ── Saved Meals / Favorites ──────────────────────────────────────
-  const { savedMeals: savedMealsTable } = await import("@shared/schema");
   const crypto = await import("crypto");
 
   function mealSignature(title: string, sourceType: string, macros?: { calories?: number; protein?: number; carbs?: number; fat?: number }): string {

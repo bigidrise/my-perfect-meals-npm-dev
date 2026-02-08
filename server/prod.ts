@@ -125,7 +125,7 @@ async function initializeApp() {
       }
       
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token');
       
       if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
