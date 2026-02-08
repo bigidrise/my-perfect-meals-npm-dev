@@ -1,9 +1,9 @@
 {
-  "releaseId": "1.2.54",
-  "publishedAt": "2026-02-07",
+  "releaseId": "1.2.55",
+  "publishedAt": "2026-02-08",
   "changes": [
-    "Fixed: Login now returns professional status directly — no more missed trainer detection",
-    "Trainers see workspace chooser consistently on all URLs and production",
-    "Regular users go straight to dashboard after login without extra steps"
+    "New: Client invites now auto-unlock — sign up or log in with an invited email and you're instantly linked to your trainer's workspace",
+    "Fixed: Studio membership info is always returned on login, not just on first accept",
+    "Improved: Multiple pending invites handled cleanly with transaction safety"
   ]
 }

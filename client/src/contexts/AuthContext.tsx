@@ -73,6 +73,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           allergies: userData.allergies || [],
           dietaryRestrictions: userData.dietaryRestrictions || [],
           fontSizePreference: userData.fontSizePreference || "standard",
+          studioMembership: userData.studioMembership || null,
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
@@ -94,11 +95,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const appleReviewFullAccess = localStorage.getItem("appleReviewFullAccess") === "true";
     
     if (token && currentUser && !currentUser.id.startsWith("guest-")) {
-      // User has valid auth token - set authenticated state
       setUser(currentUser);
-      setLoading(false);
-      // Refresh user data from server
-      refreshUser();
+      refreshUser().then((freshUser) => {
+        if (freshUser) {
+          console.log("✅ [AuthContext] refreshUser complete — professionalRole:", freshUser.professionalRole, "isProCare:", freshUser.isProCare);
+        }
+      }).catch(() => {}).finally(() => {
+        setLoading(false);
+      });
     } else if (appleReviewFullAccess) {
       // Apple Review Full Access mode - create a demo user with FULL admin access
       // Must match Welcome.tsx demo user exactly to prevent state mismatch on reload

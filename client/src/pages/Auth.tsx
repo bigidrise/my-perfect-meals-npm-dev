@@ -37,11 +37,12 @@ export default function Auth() {
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mpm.hasSeenWelcome", "true");
 
-      // Use login response data first (immediate), then enrich with refreshUser
       const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
       const fullUser = await refreshUser();
       const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
       const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
+
+      const hasStudioMembership = u?.studioMembership || fullUser?.studioMembership;
 
       if (isProfessional && mode === "login") {
         const savedPreference = localStorage.getItem("mpm_workspace_preference");
@@ -54,6 +55,9 @@ export default function Auth() {
         } else {
           setShowWorkspaceChooser(true);
         }
+      } else if (hasStudioMembership && mode === "login") {
+        localStorage.setItem("coachMode", "self");
+        setLocation("/dashboard");
       } else {
         if (!localStorage.getItem("coachMode")) {
           localStorage.setItem("coachMode", "self");

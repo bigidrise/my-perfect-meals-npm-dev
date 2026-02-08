@@ -48,6 +48,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (user.role === "admin") return false;
     if (user.id.startsWith("guest-")) return false;
     if (user.professionalRole === "trainer" || user.professionalRole === "physician") return false;
+    if (user.studioMembership) return false;
     if (user.onboardingCompletedAt) return false;
     // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
     const hasActiveBoard = user.isProCare 

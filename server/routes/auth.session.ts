@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/inviteAutoAccept";
 
 const router = Router();
 
@@ -100,13 +101,19 @@ router.post("/api/auth/signup", async (req, res) => {
 
   console.log("✅ Created new user:", newUser.email, "ID:", newUser.id);
 
+    const inviteResult = await autoAcceptPendingInvites(newUser.id, newUser.email);
 
-    // Return user data with auth token (without password)
+    const membership = inviteResult.membership || await lookupExistingMembership(newUser.id);
+
     res.json({
       id: newUser.id,
       email: newUser.email,
       username: newUser.username,
       authToken,
+      isProCare: newUser.isProCare || false,
+      professionalRole: newUser.professionalRole || null,
+      role: newUser.role || "client",
+      ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
     console.error("Signup error:", error);
@@ -164,7 +171,10 @@ router.post("/api/auth/login", async (req, res) => {
 
     console.log("✅ User logged in:", user.email, "ID:", user.id);
 
-    // Return user data with auth token (without password)
+    const inviteResult = await autoAcceptPendingInvites(user.id, user.email);
+
+    const membership = inviteResult.membership || await lookupExistingMembership(user.id);
+
     res.json({
       id: user.id,
       email: user.email,
@@ -176,6 +186,7 @@ router.post("/api/auth/login", async (req, res) => {
       selectedMealBuilder: user.selectedMealBuilder || null,
       activeBoard: user.activeBoard || null,
       onboardingCompletedAt: user.onboardingCompletedAt || null,
+      ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
     console.error("Login error:", error);

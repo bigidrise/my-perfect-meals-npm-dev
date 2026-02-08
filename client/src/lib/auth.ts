@@ -88,6 +88,15 @@ export interface User {
   attestationText?: string | null;
   procareEntryPath?: string | null;
   attestedAt?: string | null;
+  studioMembership?: {
+    studioId: string;
+    studioName: string | null;
+    studioType: string | null;
+    membershipId: string;
+    ownerUserId: string | null;
+    status?: string;
+    assignedBuilder?: string | null;
+  } | null;
 }
 
 export function getAuthToken(): string | null {
@@ -259,14 +268,14 @@ export async function login(email: string, password: string): Promise<User> {
       selectedMealBuilder: userData.selectedMealBuilder || null,
       activeBoard: userData.activeBoard || null,
       onboardingCompletedAt: userData.onboardingCompletedAt || null,
+      studioMembership: userData.studioMembership || null,
     };
 
-    // Save to localStorage for offline access
     localStorage.setItem("mpm_current_user", JSON.stringify(user));
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
-    console.log("✅ User logged in:", user.email, "ID:", user.id, "isProCare:", user.isProCare, "role:", user.professionalRole);
+    console.log("✅ User logged in:", user.email, "ID:", user.id, "isProCare:", user.isProCare, "role:", user.professionalRole, "studioMembership:", !!user.studioMembership);
 
     return user;
   } catch (error: any) {
