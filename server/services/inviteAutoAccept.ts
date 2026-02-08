@@ -1,5 +1,7 @@
 import { db } from "../db";
-import { studioInvites, studioMemberships, studios } from "../db/schema/studio";
+import { studioInvites, studioMemberships, studios, studioBilling } from "../db/schema/studio";
+import { careInvite, careTeamMember } from "../db/schema/careTeam";
+import { users } from "@shared/schema";
 import { eq, and, isNull, gt, desc } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
 
@@ -47,6 +49,56 @@ export async function lookupExistingMembership(
   }
 }
 
+async function ensureStudioForTrainer(trainerUserId: string): Promise<{ studioId: string; studioName: string; studioType: string } | null> {
+  try {
+    const [existingStudio] = await db
+      .select()
+      .from(studios)
+      .where(eq(studios.ownerUserId, trainerUserId));
+
+    if (existingStudio) {
+      return { studioId: existingStudio.id, studioName: existingStudio.name, studioType: existingStudio.type };
+    }
+
+    const [trainer] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, trainerUserId));
+
+    if (!trainer) return null;
+
+    const isPhysician = trainer.professionalRole === "physician";
+    const studioType = isPhysician ? "clinic" : "studio";
+    const studioName = isPhysician
+      ? `${trainer.firstName || trainer.username || "Dr."}'s Clinic`
+      : `${trainer.firstName || trainer.username || "Coach"}'s Studio`;
+
+    const [newStudio] = await db
+      .insert(studios)
+      .values({
+        ownerUserId: trainerUserId,
+        name: studioName,
+        type: studioType,
+        contactEmail: trainer.email,
+        status: "active",
+      })
+      .returning();
+
+    await db.insert(studioBilling).values({
+      studioId: newStudio.id,
+      planCode: isPhysician ? "clinic_69" : "studio_59",
+      status: "trialing",
+    });
+
+    console.log(`🏗️ [InviteAutoAccept] Auto-created ${studioType} "${studioName}" for trainer ${trainerUserId}`);
+
+    return { studioId: newStudio.id, studioName: newStudio.name, studioType: newStudio.type };
+  } catch (error) {
+    console.error("❌ [InviteAutoAccept] Error ensuring studio for trainer:", error);
+    return null;
+  }
+}
+
 export async function autoAcceptPendingInvites(
   userId: string,
   email: string
@@ -54,7 +106,100 @@ export async function autoAcceptPendingInvites(
   try {
     const normalizedEmail = email.toLowerCase().trim();
 
-    const pendingInvites = await db
+    const existingMembership = await lookupExistingMembership(userId);
+    if (existingMembership) {
+      console.log(`⚠️ [InviteAutoAccept] User ${email} already has a studio membership`);
+      return { accepted: false, membership: existingMembership };
+    }
+
+    const pendingCareInvites = await db
+      .select()
+      .from(careInvite)
+      .where(
+        and(
+          eq(careInvite.email, normalizedEmail),
+          eq(careInvite.accepted, false),
+          gt(careInvite.expiresAt, new Date())
+        )
+      )
+      .orderBy(desc(careInvite.createdAt));
+
+    if (pendingCareInvites.length > 0) {
+      const invite = pendingCareInvites[0];
+      const trainerUserId = invite.userId;
+
+      const studioInfo = await ensureStudioForTrainer(trainerUserId);
+      if (!studioInfo) {
+        console.error(`❌ [InviteAutoAccept] Could not create/find studio for trainer ${trainerUserId}`);
+        return { accepted: false };
+      }
+
+      const result = await db.transaction(async (tx) => {
+        const [membership] = await tx
+          .insert(studioMemberships)
+          .values({
+            studioId: studioInfo.studioId,
+            clientUserId: userId,
+            status: "active",
+            joinedAt: new Date(),
+          })
+          .returning();
+
+        for (const ci of pendingCareInvites) {
+          await tx
+            .update(careInvite)
+            .set({ accepted: true })
+            .where(eq(careInvite.id, ci.id));
+        }
+
+        await tx
+          .update(careTeamMember)
+          .set({ proUserId: userId, status: "active", updatedAt: new Date() })
+          .where(
+            and(
+              eq(careTeamMember.userId, trainerUserId),
+              eq(careTeamMember.email, normalizedEmail)
+            )
+          );
+
+        return membership;
+      });
+
+      await logClientActivity(
+        studioInfo.studioId,
+        userId,
+        userId,
+        "invite_accepted",
+        "membership",
+        result.id,
+        { email: normalizedEmail, autoAccepted: true, studioName: studioInfo.studioName, source: "care_team_invite" }
+      );
+
+      await logClientActivity(
+        studioInfo.studioId,
+        userId,
+        trainerUserId,
+        "membership_created",
+        "membership",
+        result.id,
+        { autoAccepted: true, source: "care_team_invite" }
+      );
+
+      console.log(`✅ [InviteAutoAccept] Auto-accepted care team invite for ${email} → studio "${studioInfo.studioName}"`);
+
+      return {
+        accepted: true,
+        membership: {
+          studioId: studioInfo.studioId,
+          studioName: studioInfo.studioName,
+          studioType: studioInfo.studioType,
+          membershipId: result.id,
+          ownerUserId: trainerUserId,
+        },
+      };
+    }
+
+    const pendingStudioInvites = await db
       .select()
       .from(studioInvites)
       .where(
@@ -66,84 +211,50 @@ export async function autoAcceptPendingInvites(
       )
       .orderBy(desc(studioInvites.createdAt));
 
-    if (pendingInvites.length === 0) {
-      return { accepted: false };
-    }
+    if (pendingStudioInvites.length > 0) {
+      const invite = pendingStudioInvites[0];
 
-    const existingMembership = await lookupExistingMembership(userId);
-    if (existingMembership) {
-      console.log(`⚠️ [InviteAutoAccept] User ${email} already has a studio membership, skipping auto-accept`);
-      return { accepted: false, membership: existingMembership };
-    }
+      const result = await db.transaction(async (tx) => {
+        const [membership] = await tx
+          .insert(studioMemberships)
+          .values({
+            studioId: invite.studioId,
+            clientUserId: userId,
+            status: "active",
+            joinedAt: new Date(),
+          })
+          .returning();
 
-    const invite = pendingInvites[0];
-
-    const result = await db.transaction(async (tx) => {
-      const [membership] = await tx
-        .insert(studioMemberships)
-        .values({
-          studioId: invite.studioId,
-          clientUserId: userId,
-          status: "active",
-          joinedAt: new Date(),
-        })
-        .returning();
-
-      await tx
-        .update(studioInvites)
-        .set({ acceptedAt: new Date() })
-        .where(eq(studioInvites.id, invite.id));
-
-      if (pendingInvites.length > 1) {
-        for (const extra of pendingInvites.slice(1)) {
+        for (const si of pendingStudioInvites) {
           await tx
             .update(studioInvites)
             .set({ acceptedAt: new Date() })
-            .where(eq(studioInvites.id, extra.id));
+            .where(eq(studioInvites.id, si.id));
         }
-        console.log(`ℹ️ [InviteAutoAccept] Marked ${pendingInvites.length - 1} additional invites as accepted for ${email}`);
-      }
 
-      return membership;
-    });
+        return membership;
+      });
 
-    const [studio] = await db
-      .select()
-      .from(studios)
-      .where(eq(studios.id, invite.studioId));
+      const [studio] = await db
+        .select()
+        .from(studios)
+        .where(eq(studios.id, invite.studioId));
 
-    await logClientActivity(
-      invite.studioId,
-      userId,
-      userId,
-      "invite_accepted",
-      "membership",
-      result.id,
-      { email: normalizedEmail, autoAccepted: true, studioName: studio?.name }
-    );
+      console.log(`✅ [InviteAutoAccept] Auto-accepted studio invite for ${email} → studio "${studio?.name}"`);
 
-    await logClientActivity(
-      invite.studioId,
-      userId,
-      studio?.ownerUserId || userId,
-      "membership_created",
-      "membership",
-      result.id,
-      { autoAccepted: true }
-    );
+      return {
+        accepted: true,
+        membership: {
+          studioId: invite.studioId,
+          studioName: studio?.name,
+          studioType: studio?.type,
+          membershipId: result.id,
+          ownerUserId: studio?.ownerUserId,
+        },
+      };
+    }
 
-    console.log(`✅ [InviteAutoAccept] Auto-accepted invite for ${email} → studio "${studio?.name}" (${invite.studioId})`);
-
-    return {
-      accepted: true,
-      membership: {
-        studioId: invite.studioId,
-        studioName: studio?.name,
-        studioType: studio?.type,
-        membershipId: result.id,
-        ownerUserId: studio?.ownerUserId,
-      },
-    };
+    return { accepted: false };
   } catch (error) {
     console.error("❌ [InviteAutoAccept] Error auto-accepting invite:", error);
     return { accepted: false };
