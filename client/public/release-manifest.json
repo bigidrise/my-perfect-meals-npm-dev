@@ -1,10 +1,8 @@
 {
-  "releaseId": "1.2.60",
+  "releaseId": "1.2.61",
   "publishedAt": "2026-02-08",
   "changes": [
-    "New: Shared Meal Boards — trainers and physicians can now view and edit your weekly Meal Board directly, with full change tracking",
-    "New: ProCare documentation added to App Library — learn how to connect with your coach or physician",
-    "Improved: Professional intro scripts, quick tours, and copilot guidance all updated with Shared Meal Board details",
-    "Improved: Consistent terminology and change-tracking language across all ProCare touchpoints"
+    "Fixed: Saved Meals now works in production — database sync resolved",
+    "Improved: iOS safe area banner added to Saved Meals page for notch/Dynamic Island support"
   ]
 }
