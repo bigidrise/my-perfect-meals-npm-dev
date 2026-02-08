@@ -169,105 +169,10 @@ export default function ProCareCover() {
             </p>
           </div>
 
-          {/* Connect with Coach Card — always visible to all users */}
-          <Card
-            className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-emerald-900/40 to-teal-900/40 backdrop-blur-lg border border-emerald-500/20 rounded-xl shadow-md transition-all duration-300"
-            onClick={() => {
-              if (!showCodeInput && !codeSuccess) setShowCodeInput(true);
-            }}
-            data-testid="card-connect-coach"
-          >
-            <CardContent className="p-3">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 flex-shrink-0 text-emerald-400" />
-                  <h3 className="text-sm font-semibold flex-1 text-white">
-                    Connect with a Coach
-                  </h3>
-                </div>
-                <p className="text-xs ml-6 text-white/80">
-                  Have an access code from your trainer or physician? Enter it here.
-                </p>
-              </div>
-
-              <AnimatePresence>
-                {showCodeInput && !codeSuccess && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="mt-3 pt-3 border-t border-emerald-500/20 space-y-2">
-                      <Input
-                        value={accessCode}
-                        onChange={(e) => {
-                          setAccessCode(e.target.value.toUpperCase());
-                          setCodeError(null);
-                        }}
-                        placeholder="Enter code (e.g. MP-XXXX-XXX)"
-                        className="bg-black/40 border-white/20 text-white placeholder:text-white/40 text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") submitAccessCode();
-                        }}
-                        disabled={codeLoading}
-                        autoFocus
-                      />
-                      {codeError && (
-                        <p className="text-red-400 text-xs">{codeError}</p>
-                      )}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={submitAccessCode}
-                          disabled={codeLoading}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
-                        >
-                          {codeLoading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            "Connect"
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowCodeInput(false);
-                            setAccessCode("");
-                            setCodeError(null);
-                          }}
-                          className="py-2 px-3 rounded-lg bg-white/10 text-white/70 text-xs font-medium active:scale-[0.98] transition-transform"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <AnimatePresence>
-                {codeSuccess && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-3 pt-3 border-t border-emerald-500/20 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                      <p className="text-emerald-300 text-xs font-medium">{codeSuccess}</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </CardContent>
-          </Card>
-
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
-            {proCareFeatures.map((feature) => {
+            {/* 1. Professional Studios (locked for non-pros) */}
+            {proCareFeatures.filter(f => f.roleKey !== null).map((feature) => {
               const Icon = feature.icon;
               const isLocked = isFeatureLocked(feature);
               const lockedLabel = feature.roleKey === "physician"
@@ -298,6 +203,129 @@ export default function ProCareCover() {
                       </div>
                       <p className={`text-xs ml-6 ${isLocked ? "text-white/30" : "text-white/80"}`}>
                         {isLocked ? lockedLabel : feature.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* 2. Connect with Coach — access code entry, always visible */}
+            <Card
+              className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-emerald-900/40 to-teal-900/40 backdrop-blur-lg border border-emerald-500/20 rounded-xl shadow-md transition-all duration-300"
+              onClick={() => {
+                if (!showCodeInput && !codeSuccess) setShowCodeInput(true);
+              }}
+              data-testid="card-connect-coach"
+            >
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 flex-shrink-0 text-emerald-400" />
+                    <h3 className="text-sm font-semibold flex-1 text-white">
+                      Enter Coach Access Code
+                    </h3>
+                  </div>
+                  <p className="text-xs ml-6 text-white/80">
+                    Got a code from your coach? Enter it here to connect.
+                  </p>
+                </div>
+
+                <AnimatePresence>
+                  {showCodeInput && !codeSuccess && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="mt-3 pt-3 border-t border-emerald-500/20 space-y-2">
+                        <Input
+                          value={accessCode}
+                          onChange={(e) => {
+                            setAccessCode(e.target.value.toUpperCase());
+                            setCodeError(null);
+                          }}
+                          placeholder="Enter code (e.g. MP-XXXX-XXX)"
+                          className="bg-black/40 border-white/20 text-white placeholder:text-white/40 text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") submitAccessCode();
+                          }}
+                          disabled={codeLoading}
+                          autoFocus
+                        />
+                        {codeError && (
+                          <p className="text-red-400 text-xs">{codeError}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={submitAccessCode}
+                            disabled={codeLoading}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
+                          >
+                            {codeLoading ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              "Connect"
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowCodeInput(false);
+                              setAccessCode("");
+                              setCodeError(null);
+                            }}
+                            className="py-2 px-3 rounded-lg bg-white/10 text-white/70 text-xs font-medium active:scale-[0.98] transition-transform"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {codeSuccess && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 pt-3 border-t border-emerald-500/20 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                        <p className="text-emerald-300 text-xs font-medium">{codeSuccess}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+
+            {/* 3. Other features (Supplement Hub, etc.) */}
+            {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <Card
+                  key={feature.testId}
+                  className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+                  onClick={() => handleCardClick(feature)}
+                  data-testid={feature.testId}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                        <h3 className="text-sm font-semibold flex-1 text-white">
+                          {feature.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs ml-6 text-white/80">
+                        {feature.description}
                       </p>
                     </div>
                   </CardContent>
