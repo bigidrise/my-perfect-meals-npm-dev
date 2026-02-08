@@ -166,7 +166,7 @@ export default function MorePage() {
                 ? " — Trainers Studio"
                 : userRole === "physician"
                 ? " — Physicians Clinic"
-                : ""}. Manage clients and build plans here. Tap <span className="text-orange-400 font-medium">Exit</span> in the top
+                : ""}. Manage clients, build plans, and access Shared Meal Boards here. Your <span className="text-orange-400 font-medium">Favorites</span> are saved below. Tap <span className="text-orange-400 font-medium">Exit</span> in the top
               right to return to your personal space anytime. You can always come back via
               the <span className="text-orange-400 font-medium">More</span> tab below.
             </p>

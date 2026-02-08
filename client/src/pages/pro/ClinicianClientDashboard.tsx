@@ -52,6 +52,12 @@ const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
   {
     icon: "5",
+    title: "Patient Meal Board",
+    description:
+      "View and edit your patient's weekly meal plan directly. Add meals, remove items, or repeat a day across the week. Every change is tracked so the patient knows who updated their plan.",
+  },
+  {
+    icon: "6",
     title: "Medical Hubs",
     description:
       "Access condition-specific meal builders like Diabetic, GLP-1, and Anti-Inflammatory to guide patient nutrition safely.",

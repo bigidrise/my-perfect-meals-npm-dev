@@ -38,10 +38,16 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
       "Set protein, carbs, and fats for your client. These targets drive every meal they see in the app.",
   },
   {
-    icon: "🥔",
+    icon: "3",
     title: "Starch Game Plan",
     description:
       "Choose how starchy carbs are distributed. One Starch Meal concentrates all starch into one meal for appetite control. Flex Split divides across two meals. Fibrous carbs are always unlimited!",
+  },
+  {
+    icon: "4",
+    title: "Client Meal Board",
+    description:
+      "View and edit your client's weekly meal plan directly. Add meals, remove items, or repeat a day across the week. Every change is tracked so the client knows who updated their plan.",
   },
   {
     icon: "5",

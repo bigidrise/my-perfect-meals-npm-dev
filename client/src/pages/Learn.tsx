@@ -18,6 +18,7 @@ import {
   Heart,
   FileText,
   Zap,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -393,6 +394,72 @@ const libraryTopics: LibraryTopic[] = [
         {
           heading: "The Philosophy",
           text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
+        },
+      ],
+    },
+  },
+  {
+    id: "procare",
+    title: "ProCare — Professional Coaching & Medical Oversight",
+    icon: Users,
+    content: {
+      sections: [
+        {
+          heading: "What Is ProCare?",
+          text: "ProCare connects you with certified trainers and licensed physicians right inside My Perfect Meals. Your professional gets their own workspace to set your nutrition targets, assign meal builders, and guide your meal plan — all without leaving the app. Think of it as having a coach in your pocket who can see your plan and adjust it in real time.",
+        },
+        {
+          heading: "For Trainers & Coaches",
+          text: "Trainers work inside the Trainers Studio — a dedicated workspace where they manage clients one by one.",
+          list: [
+            "Set precise macro targets (protein, carbs, fat) tailored to your goals",
+            "Choose your Starch Game Plan — One Starch Meal or Flex Split",
+            "Assign a meal builder — General Nutrition or Performance & Competition",
+            "View and edit your weekly meal board directly",
+            "Track body composition and adjust strategy over time",
+          ],
+        },
+        {
+          heading: "For Physicians & Clinicians",
+          text: "Physicians work inside the Physicians Clinic — a clinical workspace designed for medical-grade nutrition oversight.",
+          list: [
+            "Access specialized medical hubs — Diabetic, GLP-1, and Anti-Inflammatory builders",
+            "Set clinical macro targets and medical directives",
+            "Configure SafetyGuard allergen restrictions and dietary guardrails",
+            "View and edit your weekly meal board directly",
+            "Provide clinical context notes and advisory guidance",
+          ],
+        },
+        {
+          heading: "Shared Meal Boards",
+          text: "When you connect with a trainer or physician, they can view and edit your Meal Board directly. There is one shared board per client — you own it, and your professional is an authorized editor. Every change is tracked so you always know who updated your plan last. Your professional can add meals, remove items, and repeat days — all within the permissions you set.",
+        },
+        {
+          heading: "How to Connect",
+          list: [
+            "Go to the More tab in the bottom navigation",
+            "Your trainer or physician gives you an access code (e.g. MP-9ZX4-QL)",
+            "Enter the code on the More page to link instantly",
+            "Or your professional can invite you by email",
+            "Once connected, they appear on your active Care Team",
+          ],
+        },
+        {
+          heading: "Permissions You Control",
+          text: "You decide exactly what your professional can see and do. You can update or revoke permissions at any time from your Care Team page.",
+          list: [
+            "Can View Macros — let them see your nutrition numbers",
+            "Can Add Meals — let them add meals to your board",
+            "Can Edit Plan — full control to modify your Meal Board",
+          ],
+        },
+        {
+          heading: "Favorites / Saved Meals",
+          text: "Any meal you love can be saved with a single tap using the heart button. Your saved favorites live on the More page and can be reused anytime — add them back to your macros, share them, translate them, or cook them with the guided Prepare with Chef feature.",
+        },
+        {
+          heading: "Tell Your Trainer or Doctor",
+          text: "ProCare works best when your professional knows about it. Share the app with your trainer, physician, dietitian, or nutritionist — they can sign up, connect with you using an access code, and start managing your nutrition plan from their own professional workspace inside the app.",
         },
       ],
     },

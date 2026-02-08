@@ -67,6 +67,12 @@ const CONTENT = {
           description:
             "Track client progress and provide ongoing nutritional guidance.",
         },
+        {
+          icon: Target,
+          title: "Shared Meal Boards",
+          description:
+            "View and edit your client's Meal Board directly. Changes are tracked so the client always knows who updated their plan.",
+        },
       ],
     },
     notFor: [
@@ -78,11 +84,13 @@ const CONTENT = {
       "Invite clients into your studio",
       "Set nutrition targets",
       "Assign a meal builder",
+      "View and edit their Meal Board",
       "Guide, review, and adjust over time",
     ],
     tools: [
       "Macro & calorie targets",
       "Builder assignment",
+      "Shared meal boards",
       "Client activity history",
       "Nutrition adjustment tools",
     ],
@@ -124,6 +132,12 @@ const CONTENT = {
           description:
             "Evidence-based dietary guidance for metabolic conditions.",
         },
+        {
+          icon: Activity,
+          title: "Shared Meal Boards",
+          description:
+            "View and edit your patient's Meal Board directly. Changes are tracked so the patient always knows who updated their plan.",
+        },
       ],
     },
     notFor: [
@@ -137,11 +151,13 @@ const CONTENT = {
       "Review patient nutrition context",
       "Select appropriate nutrition hubs",
       "Apply safety guardrails",
+      "View and edit their Meal Board",
       "Monitor nutrition adherence",
     ],
     tools: [
       "Condition-specific nutrition hubs",
       "Guardrails configuration",
+      "Shared meal boards",
       "Clinical nutrition builders",
       "Patient nutrition activity log",
     ],

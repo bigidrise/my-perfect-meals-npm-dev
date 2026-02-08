@@ -263,9 +263,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "more",
     title: "More",
     description:
-      "Your hub for favorites, supplements, and expert-guided nutrition tools.",
+      "Your hub for favorites, shared meal boards, supplements, and expert-guided nutrition tools.",
     spokenText:
-      "This is your More page — your hub for everything extra. From here, you can access your saved favorites, the Supplement Hub for health and performance support, or connect with your trainer or physician for personalized guidance. Choose the option you need and I’ll walk you through it.",
+      "This is your More page — your hub for everything extra. From here, you can access your saved favorites — meals you’ve hearted throughout the app — the Supplement Hub for health and performance support, or connect with your trainer or physician for personalized guidance. If you’re connected to a coach or physician through ProCare, they can view and edit your Meal Board directly from their workspace. Every change is tracked so you always know who updated your plan. You control the permissions — what they can see and what they can change. Choose the option you need and I’ll walk you through it.",
     autoClose: true,
   },
 
@@ -388,7 +388,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Connect with trainers, physicians, or coaches to build and manage your personal care team.",
     spokenText:
-      "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone else’s team using an access code. Once connected, you’ll appear on each other’s active care team, making it easy to collaborate, share progress, and manage support in one place. You can update or manage your care team at any time, so choose the option that fits what you want to do and get started.",
+      "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone else’s team using an access code. Once connected, you’ll appear on each other’s active care team, making it easy to collaborate, share progress, and manage support in one place. When you’re connected to a professional, they can view and edit your weekly Meal Board directly — based on the permissions you set. You control what they can see and change, and you can update or revoke access at any time. Choose the option that fits what you want to do and get started.",
     autoClose: true,
   },
 
@@ -418,7 +418,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Set macro targets, choose the Starch Game Plan, assign meal builders, and guide performance nutrition for your client.",
     spokenText:
-      "Welcome to the Trainer Dashboard. This is your client control center, where you set everything that drives their nutrition. Start with macro targets — protein, starchy carbs, fibrous carbs, and fat. Then choose the Starch Game Plan. One Starch Meal concentrates all starchy carbs into a single meal for appetite control and fat loss. Flex Split divides starchy carbs across two meals for more flexibility. Remember, fibrous carbs like vegetables are always unlimited. When you’re ready, assign a meal builder — General Nutrition for balanced everyday meals, or Performance and Competition for athletes and high-output clients. Finally, use the builder shortcuts to jump directly into meal generation for your client.",
+      "Welcome to the Trainer Dashboard. This is your client control center, where you set everything that drives their nutrition. Start with macro targets — protein, starchy carbs, fibrous carbs, and fat. Then choose the Starch Game Plan. One Starch Meal concentrates all starchy carbs into a single meal for appetite control and fat loss. Flex Split divides starchy carbs across two meals for more flexibility. Remember, fibrous carbs like vegetables are always unlimited. You can also view and edit your client’s weekly Meal Board directly — add meals, remove items, or repeat a day’s meals across the week. Every change is tracked so the client always knows who updated their plan. When you’re ready, assign a meal builder — General Nutrition for balanced everyday meals, or Performance and Competition for athletes and high-output clients. Finally, use the builder shortcuts to jump directly into meal generation for your client.",
     autoClose: true,
   },
 
@@ -509,6 +509,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Build balanced, everyday meals for your client using flexible nutrition guardrails. The starch indicator shows daily starch meal status — green means slots available, orange means they're covered for the day.",
     spokenText:
       "Welcome to the ProCare General Nutrition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the AI Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Pay attention to the starch indicator — green means starch slots available, orange means they're covered for today. Remember, fibrous carbs like vegetables are unlimited and should be encouraged, while starchy carbs are managed using the Starch Game Plan set in the Trainer Dashboard — either One Starch Meal or Flex Split. As you build, focus on protein and carbs — those drive energy, recovery, and nutritional balance. When you’re finished, tap Save Day to Biometrics to lock everything in.",
+    autoClose: true,
+  },
+
+  "/pro/clients/:clientId/board/:program": {
+    pageId: "pro-board-viewer",
+    title: "Shared Meal Board",
+    description:
+      "View and edit your client's or patient's Shared Meal Board. Changes are permission-controlled and tracked by who made them.",
+    spokenText:
+      "This is the Shared Meal Board. You're viewing your client's or patient's Meal Board directly. Use the day tabs to navigate between days, and you'll see meals organized by slot — breakfast, lunch, dinner, and snacks. If you have edit permissions, you can remove meals or copy an entire day's plan across the whole week. Every change you make is saved directly to their board and tracked — they'll always know who updated their plan last. The amber banner at the top confirms you're editing their board, not your own. Your access level depends on the permissions the client has granted you.",
     autoClose: true,
   },
 
