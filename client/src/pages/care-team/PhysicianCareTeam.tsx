@@ -264,6 +264,8 @@ export default function PhysicianCareTeamPage() {
             </GlassCardContent>
           </GlassCard>
 
+          {/* Connect with Access Code — hidden: clients use ProCare landing page instead */}
+          {false && (
           <GlassCard className="border-2 border-orange-500/40">
             <GlassCardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2">
@@ -288,6 +290,7 @@ export default function PhysicianCareTeamPage() {
               </Button>
             </GlassCardContent>
           </GlassCard>
+          )}
         </div>
 
         {error && (
