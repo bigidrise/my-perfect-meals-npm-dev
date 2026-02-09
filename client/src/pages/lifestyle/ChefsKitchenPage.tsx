@@ -70,6 +70,7 @@ import {
   KITCHEN_FINISHED,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import FavoriteButton from "@/components/FavoriteButton";
 
 type KitchenMode = "entry" | "studio" | "prepare";
 
@@ -1457,10 +1458,15 @@ export default function ChefsKitchenPage() {
                           <h3 className="text-xl font-bold text-white">
                             {mealToShow.name}
                           </h3>
+                          <FavoriteButton
+                            title={generatedMeal.name}
+                            sourceType="chefs-kitchen"
+                            mealData={generatedMeal}
+                          />
                         </div>
                         <button
                           onClick={restartKitchenStudio}
-                          className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                         >
                           Create New
                         </button>

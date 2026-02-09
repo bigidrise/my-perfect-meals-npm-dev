@@ -20,7 +20,10 @@ import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import { apiUrl } from "@/lib/resolveApiBase";
 
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
-import MealCardActions from "@/components/MealCardActions";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
+import FavoriteButton from "@/components/FavoriteButton";
+import { setQuickView } from "@/lib/macrosQuickView";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import {
   generateMedicalBadges,
@@ -845,10 +848,15 @@ export default function CravingStudio() {
                       <h3 className="text-xl font-bold text-white">
                         {mealToShow.name}
                       </h3>
+                      <FavoriteButton
+                        title={generatedMeal.name}
+                        sourceType="craving-studio"
+                        mealData={generatedMeal}
+                      />
                     </div>
                     <button
                       onClick={restartStudio}
-                      className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                      className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                     >
                       Create New
                     </button>
@@ -909,32 +917,72 @@ export default function CravingStudio() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <AddToMealPlanButton meal={generatedMeal} />
-                    <MealCardActions
-                      meal={{
-                        name: generatedMeal.name,
-                        description: generatedMeal.description,
-                        ingredients: generatedMeal.ingredients.map((ing) => ({
-                          name: ing.name,
-                          amount: String(ing.amount ?? ing.quantity ?? ""),
-                          unit: ing.unit,
-                        })),
-                        instructions: generatedMeal.instructions,
-                        nutrition: generatedMeal.nutrition,
-                      }}
-                      onContentUpdate={(updated) => {
-                        setDisplayMeal({
-                          ...generatedMeal,
-                          name: updated.name || generatedMeal.name,
-                          description:
-                            updated.description || generatedMeal.description,
-                          instructions:
-                            updated.instructions || generatedMeal.instructions,
+                  {/* Standardized 3-Row Button Layout */}
+                  <div className="space-y-2">
+                    {/* Row 1: Add to Macros (full width) */}
+                    <button
+                      onClick={() => {
+                        setQuickView({
+                          protein: Math.round(generatedMeal.protein || 0),
+                          carbs: Math.round(generatedMeal.carbs || 0),
+                          starchyCarbs: 0,
+                          fibrousCarbs: 0,
+                          fat: Math.round(generatedMeal.fat || 0),
+                          calories: Math.round(generatedMeal.calories || 0),
+                          dateISO: new Date().toISOString().slice(0, 10),
+                          mealSlot: "snacks",
                         });
+                        setLocation("/biometrics?from=craving-studio&view=macros");
                       }}
-                    />
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-800 to-black text-white font-semibold text-sm transition border border-white/30 active:scale-[0.98]"
+                    >
+                      Add to Macros
+                    </button>
+
+                    {/* Row 2: Add to Plan + Translate (50/50) */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <AddToMealPlanButton meal={generatedMeal} />
+                      <TranslateToggle
+                        content={{
+                          name: generatedMeal.name,
+                          description: generatedMeal.description,
+                          instructions: generatedMeal.instructions,
+                        }}
+                        onTranslate={(updated) => {
+                          setDisplayMeal({
+                            ...generatedMeal,
+                            name: updated.name || generatedMeal.name,
+                            description:
+                              updated.description || generatedMeal.description,
+                            instructions:
+                              updated.instructions || generatedMeal.instructions,
+                          });
+                        }}
+                      />
+                    </div>
+
+                    {/* Row 3: Prepare with Chef + Share (50/50) */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={goToChefsKitchenPrepare}
+                        className="flex-1 py-2 rounded-xl bg-lime-600 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                      >
+                        Cook w/ Chef
+                      </button>
+                      <ShareRecipeButton
+                        recipe={{
+                          name: generatedMeal.name,
+                          description: generatedMeal.description,
+                          nutrition: generatedMeal.nutrition,
+                          ingredients: generatedMeal.ingredients.map((ing) => ({
+                            name: ing.name,
+                            amount: String(ing.amount ?? ing.quantity ?? ""),
+                            unit: ing.unit,
+                          })),
+                        }}
+                        className="flex-1"
+                      />
+                    </div>
                   </div>
 
                   {/* Medical Badges */}
