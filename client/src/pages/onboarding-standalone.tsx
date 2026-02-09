@@ -359,8 +359,8 @@ export default function OnboardingStandalone() {
       localStorage.removeItem("coachMode");
       localStorage.setItem("showWelcomeGate", "true");
 
-      // Go straight to the Macro Counter — this is where everything begins
-      setLocation("/macro-counter");
+      // Navigate to root — AppRouter will show the Welcome Gate (Copilot vs solo choice)
+      setLocation("/");
     } else {
       setCurrentStep((prev) => prev + 1);
       setTimeout(() => scrollToTop(), 0);
