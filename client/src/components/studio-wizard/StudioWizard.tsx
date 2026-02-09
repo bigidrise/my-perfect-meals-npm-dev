@@ -678,7 +678,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
                   </div>
 
                   <button
-                    className={`w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition disabled:opacity-50`}
+                    className={`w-full py-3 rounded-xl bg-lime-600 text-white font-semibold text-sm transition disabled:opacity-50`}
                     onClick={() => generateMeal()}
                     disabled={safetyChecking}
                     data-testid="button-generate-meal"
