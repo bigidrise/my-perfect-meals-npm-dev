@@ -15,7 +15,7 @@ import ComingSoon from "@/pages/ComingSoon";
 import Planner from "@/pages/Planner";
 import WeeklyMealBoard from "@/pages/WeeklyMealBoard";
 import BeachBodyMealBoard from "@/pages/BeachBodyMealBoard";
-import MacroCounter from "@/pages/MacroCounter";
+import MacroCounter from "@/pages/MacroCalculator";
 // DELETED: AdultBeverageHubPage
 import LifestyleLandingPage from "@/pages/LifestyleLandingPage"; // Renamed from EmotionAIHub
 import HealthyKidsMeals from "@/pages/HealthyKidsMeals";
