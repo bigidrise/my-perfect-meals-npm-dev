@@ -70,7 +70,7 @@ const FRIDGE_RESCUE_STUDIO_CONFIG: StudioConfig = {
    * Fired before moving to Hunger Level
    */
   afterStepScripts: {
-    0: "Okay — now that we know what’s in your refrigerator, you can continue here manually, or switch to hands-free.",
+    0: "",
   },
 
   scripts: {
