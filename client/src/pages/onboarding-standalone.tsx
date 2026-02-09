@@ -359,8 +359,8 @@ export default function OnboardingStandalone() {
       localStorage.removeItem("coachMode");
       localStorage.setItem("showWelcomeGate", "true");
 
-      // Proceed to Extended Onboarding (builder selection)
-      setLocation("/onboarding/extended");
+      // Go straight to the Macro Calculator — this is where everything begins
+      setLocation("/macro-calculator");
     } else {
       setCurrentStep((prev) => prev + 1);
       setTimeout(() => scrollToTop(), 0);
@@ -1053,7 +1053,7 @@ export default function OnboardingStandalone() {
           >
             {currentStep === TOTAL_STEPS ? (
               <>
-                Get Started <Check className="h-4 w-4 ml-2" />
+                Go to Macro Calculator <ArrowRight className="h-4 w-4 ml-2" />
               </>
             ) : (
               <>
