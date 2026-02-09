@@ -44,7 +44,9 @@ export default function Auth() {
 
       const hasStudioMembership = u?.studioMembership || fullUser?.studioMembership;
 
-      if (isProfessional && mode === "login") {
+      if (mode === "signup" && !isProfessional) {
+        setLocation("/onboarding/extended");
+      } else if (isProfessional && mode === "login") {
         const savedPreference = localStorage.getItem("mpm_workspace_preference");
         if (savedPreference === "workspace") {
           localStorage.setItem("coachMode", "self");
@@ -55,6 +57,8 @@ export default function Auth() {
         } else {
           setShowWorkspaceChooser(true);
         }
+      } else if (isProfessional && mode === "signup") {
+        setShowWorkspaceChooser(true);
       } else if (hasStudioMembership && mode === "login") {
         localStorage.setItem("coachMode", "self");
         setLocation("/dashboard");
