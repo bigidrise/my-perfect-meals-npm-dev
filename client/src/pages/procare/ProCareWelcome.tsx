@@ -258,7 +258,7 @@ export default function ProCareWelcome() {
           onClick={() => setLocation("/procare-identity")}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          Skip / Continue
+          Continue
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>

@@ -217,10 +217,10 @@ export default function ConsumerWelcome() {
       {/* Fixed Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
         <Button
-          onClick={() => setLocation("/auth")}
+          onClick={() => setLocation("/auth?mode=signup")}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          Skip / Continue
+          Continue
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>

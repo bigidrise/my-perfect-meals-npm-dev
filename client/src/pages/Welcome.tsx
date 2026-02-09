@@ -365,12 +365,12 @@ export default function Welcome() {
             data-testid="button-signin"
             onClick={openModal}
             className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
+            bg-gradient-to-r from-black to-black rounded-2xl border border-orange-400/30
                      text-white shadow-lg
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
             <LogIn className="h-5 w-5" />
-            Sign In
+            Sign In / Create Account
           </Button>
 
           <Button

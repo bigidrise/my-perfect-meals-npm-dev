@@ -11,7 +11,10 @@ export default function Auth() {
   const search = useSearch();
   const { setUser, refreshUser } = useAuth();
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
-  const [mode, setMode] = useState<"signup" | "login">(isProCare ? "signup" : "login");
+  const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
+  const [mode, setMode] = useState<"signup" | "login">(
+    isProCare ? "signup" : urlMode === "signup" ? "signup" : "login"
+  );
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -44,6 +47,8 @@ export default function Auth() {
 
       const hasStudioMembership = u?.studioMembership || fullUser?.studioMembership;
 
+      const onboardingDone = fullUser?.onboardingCompletedAt;
+
       if (mode === "signup" && !isProfessional) {
         setLocation("/onboarding/extended");
       } else if (isProfessional && mode === "login") {
@@ -59,6 +64,8 @@ export default function Auth() {
         }
       } else if (isProfessional && mode === "signup") {
         setShowWorkspaceChooser(true);
+      } else if (!onboardingDone && !isProfessional) {
+        setLocation("/onboarding/extended");
       } else if (hasStudioMembership && mode === "login") {
         localStorage.setItem("coachMode", "self");
         setLocation("/dashboard");
@@ -108,13 +115,15 @@ export default function Auth() {
 
         <h1 className="relative z-10 text-2xl font-bold mb-1">
           {mode === "signup"
-            ? isProCare ? "Create Professional Account" : "Create your account"
-            : "Welcome back"}
+            ? isProCare ? "Create Professional Account" : "Create Your Account"
+            : "Welcome Back"}
         </h1>
         <p className="relative z-10 text-sm text-white/85 mb-6">
           {mode === "signup" && isProCare
             ? "Your professional credentials have been recorded."
-            : "Use email + password. OAuth can come later."}
+            : mode === "signup"
+            ? "Enter your email and a password to get started."
+            : "Sign in with your email and password."}
         </p>
 
         <form onSubmit={onSubmit} className="relative z-10">
@@ -178,7 +187,7 @@ export default function Auth() {
             <span className="absolute inset-0 -z-0 pointer-events-none rounded-xl
                              bg-gradient-to-r from-white/10 via-transparent to-transparent" />
             <span className="relative z-10">
-              {mode === "signup" ? "Sign Up" : "Log In"}
+              {mode === "signup" ? "Create Account" : "Sign In"}
             </span>
           </button>
         </form>

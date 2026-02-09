@@ -40,21 +40,17 @@ export default function AppRouter({ children }: AppRouterProps) {
   }, []);
 
   // Determine if user needs onboarding - returns null while loading (unknown state)
+  // CRITICAL: onboardingCompletedAt is THE sole gate. activeBoard/selectedMealBuilder
+  // may be pre-assigned by coaches before the user creates their account.
   const needsOnboarding = useMemo(() => {
-    // Apple Review mode ALWAYS bypasses onboarding
     if (isAppleReviewMode) return false;
-    if (loading) return null; // Unknown while loading - don't make decisions yet
-    if (!user) return false; // No user = not authenticated
+    if (loading) return null;
+    if (!user) return false;
     if (user.role === "admin") return false;
     if (user.id.startsWith("guest-")) return false;
     if (user.professionalRole === "trainer" || user.professionalRole === "physician") return false;
     if (user.studioMembership) return false;
-    if (user.onboardingCompletedAt) return false;
-    // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
-    const hasActiveBoard = user.isProCare 
-      ? (user.activeBoard || user.selectedMealBuilder)
-      : (user.selectedMealBuilder || user.activeBoard);
-    return !hasActiveBoard;
+    return !user.onboardingCompletedAt;
   }, [user, loading, isAppleReviewMode]);
 
   useEffect(() => {
