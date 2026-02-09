@@ -699,14 +699,7 @@ export default function OnboardingStandalone() {
           )}
         </div>
 
-        <div className="pt-4 border-t border-white/10">
-          <Button 
-            onClick={handleSaveStep2} 
-            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-semibold"
-          >
-            <Check className="h-4 w-4 mr-2" /> Save Medical & Dietary Info
-          </Button>
-        </div>
+
       </CardContent>
     </Card>
   );
