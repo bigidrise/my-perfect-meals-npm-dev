@@ -49,7 +49,7 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
   return (
     <button
       onClick={handleToggle}
-      className={`p-1.5 rounded-full transition-colors ${saved ? "text-red-500" : "text-white/50"} active:scale-[0.98] ${className}`}
+      className={`p-1.5 rounded-full transition-colors border-2 border-red-500 ${saved ? "text-red-500 bg-red-500/20" : "text-white/70 bg-black/30"} active:scale-[0.98] ${className}`}
       aria-label={saved ? "Remove from favorites" : "Save to favorites"}
     >
       <Heart style={{ width: size, height: size }} fill={saved ? "currentColor" : "none"} />
