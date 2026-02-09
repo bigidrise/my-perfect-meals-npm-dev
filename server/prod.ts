@@ -1,6 +1,7 @@
 // CRITICAL: Start server FIRST, import everything else AFTER
 // This ensures health checks pass even if other imports crash
 import express from "express";
+import session from "express-session";
 import path from "path";
 import { fileURLToPath } from 'url';
 
@@ -93,6 +94,18 @@ async function initializeApp() {
       console.warn("⚠️ [INIT] Missing env vars:", envValidation.missing.join(', '));
     }
     
+    // Safe column migrations (adds missing columns without altering types)
+    console.log("📋 [INIT] Running safe column migrations...");
+    try {
+      const { db: database } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
+      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
+      console.log("✅ [INIT] Column migrations complete");
+    } catch (migErr) {
+      console.warn("⚠️ [INIT] Column migration warning:", migErr);
+    }
+
     // Import middleware
     console.log("📋 [INIT] Loading middleware...");
     const { requestId } = await import("./middleware/requestId");
@@ -135,6 +148,18 @@ async function initializeApp() {
 
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
+
+    app.use(session({
+      secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: true,
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: 'none' as const,
+      }
+    }));
 
     // Cache control for macros
     app.use((req, res, next) => {

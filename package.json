@@ -15,7 +15,7 @@
     "build:client": "cd client && vite build",
     "build:server": "esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap",
     "build": "npm run build:client && npm run build:server",
-    "prestart": "npm run db:push",
+    "prestart": "echo 'Column migrations handled by server startup'",
     "start": "NODE_ENV=production node dist/prod.js",
     "preserve": "npm run db:push",
     "serve": "NODE_ENV=production tsx server/prod.ts",
