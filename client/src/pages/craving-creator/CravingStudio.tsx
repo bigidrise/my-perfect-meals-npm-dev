@@ -1066,7 +1066,7 @@ export default function CravingStudio() {
                   {/* Final CTA → Chef’s Kitchen */}
                   <button
                     onClick={goToChefsKitchenPrepare}
-                    className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
+                    className="w-full py-3 rounded-xl bg-lime-600 text-white font-semibold text-sm transition active:scale-[0.98]"
                     data-testid="button-enter-chefs-kitchen"
                   >
                     Enter Chef&apos;s Kitchen

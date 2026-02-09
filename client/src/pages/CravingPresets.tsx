@@ -19,6 +19,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const SERVING_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
@@ -281,14 +282,31 @@ export default function CravingPresetsPage() {
             >
               <CardContent className="p-6 pb-32">
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-3xl font-bold text-white">
-                    {selected.name}
-                  </h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-3xl font-bold text-white">
+                      {selected.name}
+                    </h2>
+                    <FavoriteButton
+                      title={selected.name}
+                      sourceType="craving-premade"
+                      mealData={{
+                        name: selected.name,
+                        description: selected.summary,
+                        imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
+                        calories: selected.macros?.calories || 0,
+                        protein: selected.macros?.protein || 0,
+                        carbs: selected.macros?.carbs || 0,
+                        fat: selected.macros?.fat || 0,
+                        ingredients: selected.ingredients,
+                        instructions: selected.instructions,
+                      }}
+                    />
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedMeal(null)}
-                    className="text-orange-300 hover:text-white"
+                    className="text-orange-300 active:scale-[0.98]"
                   >
                     ✕
                   </Button>
