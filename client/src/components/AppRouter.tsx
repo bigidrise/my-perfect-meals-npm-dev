@@ -70,8 +70,8 @@ export default function AppRouter({ children }: AppRouterProps) {
     }
 
     if (isAuthenticated && needsOnboarding === true && !isPublicRoute) {
-      console.log("🚨 [AppRouter] User needs onboarding - forcing redirect to /onboarding/extended");
-      setLocation("/onboarding/extended");
+      console.log("🚨 [AppRouter] User needs onboarding - forcing redirect to /onboarding");
+      setLocation("/onboarding");
       return;
     }
 
@@ -93,7 +93,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       }
 
       if (needsOnboarding === true) {
-        setLocation("/onboarding/extended");
+        setLocation("/onboarding");
         return;
       }
 
