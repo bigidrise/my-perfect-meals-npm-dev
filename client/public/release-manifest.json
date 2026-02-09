@@ -1,9 +1,11 @@
 {
-  "releaseId": "1.2.62",
-  "publishedAt": "2026-02-08",
+  "releaseId": "1.2.63",
+  "publishedAt": "2026-02-09",
   "changes": [
-    "Fixed: Saved Meals / Favorites now works on published URLs — build pipeline was missing the saved meals code",
-    "Fixed: Auth token header now properly allowed in production CORS config",
+    "Fixed: New accounts now go through full onboarding instead of skipping to dashboard",
+    "Fixed: Production auth sessions restored — all authenticated features work on published URL",
+    "Fixed: Macro tracking columns added automatically on server startup",
+    "Improved: Favorites heart button now has red border for better visibility",
     "Improved: iOS safe area banner on Saved Meals page"
   ]
 }
