@@ -359,8 +359,8 @@ export default function OnboardingStandalone() {
       localStorage.removeItem("coachMode");
       localStorage.setItem("showWelcomeGate", "true");
 
-      // Navigate to root — AppRouter will show the Welcome Gate (Copilot vs solo choice)
-      setLocation("/");
+      // Go straight to the WelcomeGate — this is where everything begins
+      setLocation("/welcome-gate");
     } else {
       setCurrentStep((prev) => prev + 1);
       setTimeout(() => scrollToTop(), 0);
@@ -1042,11 +1042,11 @@ export default function OnboardingStandalone() {
           )}
           <Button
             onClick={handleNext}
-            className={`${currentStep === 1 ? "w-full" : "flex-1"} h-12 bg-lime-600 hover:bg-lime-700`}
+            className={`${currentStep === 1 ? "w-full" : "flex-1"} h-12 bg-lime-600 hover:bg-lime-600`}
           >
             {currentStep === TOTAL_STEPS ? (
               <>
-                First Step - Macro Calculator <ArrowRight className="h-4 w-4 ml-2" />
+                Save <ArrowRight className="h-4 w-4 ml-2" />
               </>
             ) : (
               <>

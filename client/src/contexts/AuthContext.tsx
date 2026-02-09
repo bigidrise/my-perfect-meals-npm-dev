@@ -99,8 +99,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       refreshUser().then((freshUser) => {
         if (freshUser) {
           console.log("✅ [AuthContext] refreshUser complete — professionalRole:", freshUser.professionalRole, "isProCare:", freshUser.isProCare);
+        } else {
+          console.log("⚠️ [AuthContext] refreshUser returned null (user deleted or token expired) — clearing auth state");
+          setUser(null);
+          localStorage.removeItem("mpm_current_user");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("authToken");
         }
-      }).catch(() => {}).finally(() => {
+      }).catch(() => {
+        setUser(null);
+        localStorage.removeItem("mpm_current_user");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("authToken");
+      }).finally(() => {
         setLoading(false);
       });
     } else if (appleReviewFullAccess) {
