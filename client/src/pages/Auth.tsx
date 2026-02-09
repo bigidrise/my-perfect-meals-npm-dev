@@ -50,7 +50,7 @@ export default function Auth() {
       const onboardingDone = fullUser?.onboardingCompletedAt;
 
       if (mode === "signup" && !isProfessional) {
-        setLocation("/onboarding/extended");
+        setLocation("/onboarding");
       } else if (isProfessional && mode === "login") {
         const savedPreference = localStorage.getItem("mpm_workspace_preference");
         if (savedPreference === "workspace") {
@@ -65,7 +65,7 @@ export default function Auth() {
       } else if (isProfessional && mode === "signup") {
         setShowWorkspaceChooser(true);
       } else if (!onboardingDone && !isProfessional) {
-        setLocation("/onboarding/extended");
+        setLocation("/onboarding");
       } else if (hasStudioMembership && mode === "login") {
         localStorage.setItem("coachMode", "self");
         setLocation("/dashboard");

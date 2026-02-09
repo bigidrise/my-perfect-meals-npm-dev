@@ -359,8 +359,8 @@ export default function OnboardingStandalone() {
       localStorage.removeItem("coachMode");
       localStorage.setItem("showWelcomeGate", "true");
 
-      // Enter the app (home/dashboard/root)
-      setLocation("/");
+      // Proceed to Extended Onboarding (builder selection)
+      setLocation("/onboarding/extended");
     } else {
       setCurrentStep((prev) => prev + 1);
       setTimeout(() => scrollToTop(), 0);
