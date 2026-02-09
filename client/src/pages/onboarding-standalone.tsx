@@ -1046,7 +1046,7 @@ export default function OnboardingStandalone() {
           >
             {currentStep === TOTAL_STEPS ? (
               <>
-                Go to Macro Counter <ArrowRight className="h-4 w-4 ml-2" />
+                First Step - Macro Calculator <ArrowRight className="h-4 w-4 ml-2" />
               </>
             ) : (
               <>
