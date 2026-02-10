@@ -114,10 +114,13 @@ router.post("/connect", async (req, res) => {
       return res.status(400).json({ error: "Missing code" });
     }
 
+    const trimmedCode = String(code).trim();
+    console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}" (original: "${code}")`);
+
     const [invite] = await db
       .select()
       .from(careInvite)
-      .where(eq(careInvite.inviteCode, code));
+      .where(eq(careInvite.inviteCode, trimmedCode));
 
     if (invite) {
       if (new Date() > invite.expiresAt) {
@@ -159,13 +162,13 @@ router.post("/connect", async (req, res) => {
       return res.json({ member: updatedMember, studio: bridge });
     }
 
-    const [accessCode] = await db
+    const [accessCodeRow] = await db
       .select()
       .from(careAccessCode)
-      .where(eq(careAccessCode.code, code));
+      .where(eq(careAccessCode.code, trimmedCode));
 
-    if (accessCode) {
-      if (new Date() > accessCode.expiresAt) {
+    if (accessCodeRow) {
+      if (new Date() > accessCodeRow.expiresAt) {
         return res.status(400).json({ error: "Code expired" });
       }
 
@@ -173,8 +176,8 @@ router.post("/connect", async (req, res) => {
         .insert(careTeamMember)
         .values({
           userId,
-          proUserId: accessCode.proUserId,
-          name: `Linked-${code.slice(-4)}`,
+          proUserId: accessCodeRow.proUserId,
+          name: `Linked-${trimmedCode.slice(-4)}`,
           role: "other",
           status: "active",
           permissions: {
@@ -185,11 +188,12 @@ router.post("/connect", async (req, res) => {
         })
         .returning();
 
-      const bridge = await bridgeToStudio(accessCode.proUserId, userId, "care_team_access_code");
+      const bridge = await bridgeToStudio(accessCodeRow.proUserId, userId, "care_team_access_code");
 
       return res.json({ member: newMember, studio: bridge });
     }
 
+    console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found in careInvite or careAccessCode tables`);
     return res.status(404).json({ error: "Invalid code" });
   } catch (error) {
     console.error("❌ Error connecting with code:", error);
