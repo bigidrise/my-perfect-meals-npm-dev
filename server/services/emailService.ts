@@ -106,7 +106,7 @@ export async function sendCareTeamInvite({
     return null;
   }
 
-  const roleLabel = role === 'physician' ? 'physician' : 'trainer';
+  const roleLabel = ['doctor', 'physician', 'pa', 'np', 'rn'].includes(role) ? 'physician' : role === 'dietitian' ? 'dietitian' : role === 'nutritionist' ? 'nutritionist' : 'trainer';
 
   try {
     const { data, error } = await resend.emails.send({
