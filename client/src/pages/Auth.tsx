@@ -52,16 +52,8 @@ export default function Auth() {
       if (mode === "signup" && !isProfessional) {
         setLocation("/onboarding");
       } else if (isProfessional && mode === "login") {
-        const savedPreference = localStorage.getItem("mpm_workspace_preference");
-        if (savedPreference === "workspace") {
-          localStorage.setItem("coachMode", "self");
-          setLocation("/more");
-        } else if (savedPreference === "personal") {
-          localStorage.setItem("coachMode", "self");
-          setLocation("/dashboard");
-        } else {
-          setShowWorkspaceChooser(true);
-        }
+        localStorage.removeItem("mpm_workspace_preference");
+        setShowWorkspaceChooser(true);
       } else if (isProfessional && mode === "signup") {
         setShowWorkspaceChooser(true);
       } else if (!onboardingDone && !isProfessional) {
