@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Briefcase, Crown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,16 +9,14 @@ interface WorkspaceChooserProps {
 
 export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
   const { user } = useAuth();
-  const [rememberChoice, setRememberChoice] = useState(false);
+
+  localStorage.removeItem("mpm_workspace_preference");
 
   const workspaceName = user?.professionalRole === "physician"
     ? "Physicians Clinic"
     : "Trainers Studio";
 
   const handleChoice = (choice: "personal" | "workspace") => {
-    if (rememberChoice) {
-      localStorage.setItem("mpm_workspace_preference", choice);
-    }
     onChoose(choice);
   };
 
@@ -76,15 +74,13 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
             </div>
           </button>
 
-          <label className="flex items-center justify-center gap-2 cursor-pointer py-2 text-sm text-white/50 select-none">
+          {false && <label className="flex items-center justify-center gap-2 cursor-pointer py-2 text-sm text-white/50 select-none">
             <input
               type="checkbox"
-              checked={rememberChoice}
-              onChange={(e) => setRememberChoice(e.target.checked)}
               className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
             />
             Always start here
-          </label>
+          </label>}
         </motion.div>
       </motion.div>
     </AnimatePresence>
