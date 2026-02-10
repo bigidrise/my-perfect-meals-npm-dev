@@ -265,7 +265,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your hub for favorites, shared meal boards, supplements, and expert-guided nutrition tools.",
     spokenText:
-      "This is your More page — your hub for everything extra. From here, you can access your saved favorites — meals you’ve hearted throughout the app — the Supplement Hub for health and performance support, or connect with your trainer or physician for personalized guidance. If you’re connected to a coach or physician through ProCare, they can view and edit your Meal Board directly from their workspace. Every change is tracked so you always know who updated your plan. You control the permissions — what they can see and what they can change. Choose the option you need and I’ll walk you through it.",
+      "This is your More page — your hub for everything extra. From here, you can access your saved favorites, explore the Supplement Hub for health and performance support, and manage your ProCare connections. If you’re connected to a trainer or doctor, they will be able to view or update your Meal Board directly from their workspace, depending on their role and the access you’ve been given. Every update is tracked, so you always know when changes are made and who made them, while you continue using the app normally with full visibility into your plan.",
     autoClose: true,
   },
 
