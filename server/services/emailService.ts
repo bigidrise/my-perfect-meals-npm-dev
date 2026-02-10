@@ -106,11 +106,13 @@ export async function sendCareTeamInvite({
     return null;
   }
 
+  const roleLabel = role === 'physician' ? 'physician' : 'trainer';
+
   try {
     const { data, error } = await resend.emails.send({
       from: EMAIL_FROM,
       to: [to],
-      subject: `${patientName} invited you to join their Care Team`,
+      subject: `You've been invited to connect with your ${roleLabel} on My Perfect Meals`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -121,11 +123,17 @@ export async function sendCareTeamInvite({
             <h2 style="color: #111827; font-size: 22px; margin-top: 0;">You've been invited!</h2>
             
             <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-              <strong>${patientName}</strong> has invited you to join their Care Team as their <strong>${role}</strong>.
+              Your ${roleLabel} has invited you to connect your My Perfect Meals account. This connection allows your ${roleLabel} to:
             </p>
             
+            <ul style="color: #374151; font-size: 15px; line-height: 1.8; padding-left: 20px;">
+              <li>Assign meal builders tailored to your goals</li>
+              <li>Create personalized nutrition plans</li>
+              <li>Support you through the ProCare system</li>
+            </ul>
+            
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-bottom: 8px;">
-              <strong>Your invitation code:</strong>
+              <strong>Your access code:</strong>
             </p>
             
             <div style="background: #f3f4f6; border: 2px solid #6d28d9; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
@@ -136,16 +144,16 @@ export async function sendCareTeamInvite({
             
             <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0; border-radius: 4px;">
               <p style="color: #1e40af; font-size: 14px; margin: 0; line-height: 1.6;">
-                <strong>To accept this invitation:</strong><br>
+                <strong>To connect:</strong><br>
                 1. Log into My Perfect Meals<br>
-                2. Go to the Care Team page<br>
-                3. Enter the code above in "Connect with Access Code"<br>
-                4. Click "Link with Code"
+                2. Go to the <strong>More</strong> tab<br>
+                3. Enter the access code under <strong>Connect with Access Code</strong><br>
+                4. Tap <strong>Connect</strong>
               </p>
             </div>
             
             <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
-              This invitation will expire in 7 days. If you have any questions, please contact ${patientName} directly.
+              This invitation expires in 7 days. If you received this by mistake, you can safely ignore it.
             </p>
             
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
