@@ -149,12 +149,37 @@ router.get("/:studioId/clients", async (req, res) => {
       return res.status(404).json({ error: "Studio not found" });
     }
 
-    const members = await db
-      .select()
+    const rows = await db
+      .select({
+        membershipId: studioMemberships.id,
+        clientUserId: studioMemberships.clientUserId,
+        status: studioMemberships.status,
+        assignedBuilder: studioMemberships.assignedBuilder,
+        activeBoardId: studioMemberships.activeBoardId,
+        joinedAt: studioMemberships.joinedAt,
+        userName: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+      })
       .from(studioMemberships)
+      .leftJoin(users, eq(users.id, studioMemberships.clientUserId))
       .where(eq(studioMemberships.studioId, studioId));
 
-    res.json({ clients: members });
+    const clients = rows.map(r => ({
+      id: r.membershipId,
+      clientUserId: r.clientUserId,
+      status: r.status,
+      assignedBuilder: r.assignedBuilder,
+      activeBoardId: r.activeBoardId,
+      joinedAt: r.joinedAt,
+      name: r.firstName && r.lastName
+        ? `${r.firstName} ${r.lastName}`
+        : r.firstName || r.userName || r.email?.split("@")[0] || `Client`,
+      email: r.email,
+    }));
+
+    res.json({ clients });
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({ error: "Failed to fetch clients" });

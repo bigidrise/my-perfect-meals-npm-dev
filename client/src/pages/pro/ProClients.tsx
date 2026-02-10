@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { proStore, ClientProfile, ProRole, WorkspaceType } from "@/lib/proData";
-import { Plus, User2, ArrowRight, ArrowLeft, Archive, RotateCcw } from "lucide-react";
+import { proStore, ClientProfile, ProRole, WorkspaceType, BuilderType } from "@/lib/proData";
+import { Plus, User2, ArrowRight, ArrowLeft, Archive, RotateCcw, LinkIcon } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 
 interface ProClientsProps {
@@ -25,8 +25,67 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const [showArchived, setShowArchived] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [dbSynced, setDbSynced] = useState(false);
 
   const defaultRole: ProRole = isPhysician ? "doctor" : "trainer";
+
+  useEffect(() => {
+    syncDbClients();
+  }, []);
+
+  async function syncDbClients() {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const headers: Record<string, string> = {};
+      if (token) headers["x-auth-token"] = token;
+
+      const studioRes = await fetch("/api/studios/my-studio", { headers });
+      if (!studioRes.ok) return;
+      const { studio } = await studioRes.json();
+      if (!studio) return;
+
+      const clientsRes = await fetch(`/api/studios/${studio.id}/clients`, { headers });
+      if (!clientsRes.ok) return;
+      const { clients: dbClients } = await clientsRes.json();
+      if (!dbClients || dbClients.length === 0) return;
+
+      const localClients = proStore.listClients();
+
+      for (const dbClient of dbClients) {
+        const builderMap: Record<string, BuilderType> = {
+          general_nutrition: "general",
+          performance_competition: "performance",
+        };
+
+        const existing = localClients.find(
+          (lc) => lc.clientUserId === dbClient.clientUserId || lc.email === dbClient.email
+        );
+
+        const profile: ClientProfile = {
+          id: existing?.id || dbClient.id,
+          name: existing?.name || dbClient.name || `Client`,
+          email: dbClient.email || existing?.email,
+          role: existing?.role || defaultRole,
+          workspace: resolvedWorkspace,
+          userId: dbClient.clientUserId,
+          clientUserId: dbClient.clientUserId,
+          studioId: studio.id,
+          assignedBuilder: dbClient.assignedBuilder ? builderMap[dbClient.assignedBuilder] || undefined : existing?.assignedBuilder,
+          activeBoardId: dbClient.activeBoardId || existing?.activeBoardId,
+          dbBacked: true,
+          archived: existing?.archived,
+          notes: existing?.notes,
+        };
+
+        proStore.upsertClient(profile);
+      }
+
+      setClients([...proStore.listClients()]);
+      setDbSynced(true);
+    } catch (err) {
+      console.warn("Could not sync DB clients:", err);
+    }
+  }
 
   const add = () => {
     if (!name.trim()) return;
@@ -172,6 +231,12 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                     <div className="font-semibold text-white">{c.name}</div>
                     {c.email && <div className="text-white text-sm">{c.email}</div>}
                     <div className="flex gap-2 mt-1 flex-wrap">
+                      {c.dbBacked && (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30">
+                          <LinkIcon className="h-3 w-3" />
+                          Linked
+                        </div>
+                      )}
                       {c.role && (
                         <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
                           {c.role === "doctor" ? "Doctor" : c.role === "np" ? "Nurse Practitioner" : c.role === "rn" ? "RN" : c.role === "pa" ? "PA" : c.role === "nutritionist" ? "Nutritionist" : c.role === "dietitian" ? "Dietitian" : "Trainer"}

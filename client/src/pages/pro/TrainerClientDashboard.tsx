@@ -130,10 +130,13 @@ export default function TrainerClientDashboard() {
   };
 
   const handleBuilderAssignment = async (builder: BuilderType) => {
-    if (!client?.userId) {
+    const clientUid = client?.clientUserId || client?.userId;
+    const studioId = client?.studioId;
+    
+    if (!clientUid) {
       toast({
         title: "Cannot Assign",
-        description: "This client doesn't have a linked user account yet.",
+        description: "This client hasn't connected their account yet. They need to enter the access code first.",
         variant: "destructive",
       });
       return;
@@ -143,28 +146,44 @@ export default function TrainerClientDashboard() {
     
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch("/api/pro/assign-builder", {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["x-auth-token"] = token;
+
+      if (studioId) {
+        const studioRes = await fetch(`/api/studios/${studioId}/clients/${clientUid}/assign`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ assignedBuilder: apiBuilderName }),
+        });
+        if (!studioRes.ok) {
+          const data = await studioRes.json();
+          throw new Error(data.error || "Failed to assign builder");
+        }
+      }
+
+      const proRes = await fetch("/api/pro/assign-builder", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { "x-auth-token": token }),
-        },
+        headers,
         body: JSON.stringify({
-          clientId: client.userId,
+          clientId: clientUid,
           builder: apiBuilderName,
         }),
       });
       
-      if (!response.ok) {
-        const data = await response.json();
+      if (!proRes.ok) {
+        const data = await proRes.json();
         throw new Error(data.error || "Failed to assign builder");
       }
       
       setAssignedBuilder(builder);
-      proStore.upsertClient({
-        ...client,
-        assignedBuilder: builder,
-      });
+      if (client) {
+        proStore.upsertClient({
+          ...client,
+          assignedBuilder: builder,
+        });
+      }
       
       toast({
         title: "Builder Assigned",
@@ -536,7 +555,10 @@ export default function TrainerClientDashboard() {
               View and edit {client?.name || "your client"}'s weekly meal plan directly.
             </p>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/board/smart`)}
+              onClick={() => {
+                const boardUserId = client?.clientUserId || client?.userId || clientId;
+                setLocation(`/pro/clients/${boardUserId}/board/smart`);
+              }}
               className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <LayoutGrid className="h-4 w-4 mr-2" />

@@ -498,7 +498,10 @@ export default function ClinicianClientDashboard() {
               View and edit {client?.name || "your patient"}'s weekly meal plan directly.
             </p>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/board/smart`)}
+              onClick={() => {
+                const boardUserId = client?.clientUserId || client?.userId || clientId;
+                setLocation(`/pro/clients/${boardUserId}/board/smart`);
+              }}
               className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <LayoutGrid className="h-4 w-4 mr-2" />
