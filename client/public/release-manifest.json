@@ -1,11 +1,10 @@
 {
-  "releaseId": "1.2.63",
-  "publishedAt": "2026-02-09",
+  "releaseId": "1.2.64",
+  "publishedAt": "2026-02-10",
   "changes": [
-    "Fixed: New accounts now go through full onboarding instead of skipping to dashboard",
-    "Fixed: Production auth sessions restored — all authenticated features work on published URL",
-    "Fixed: Macro tracking columns added automatically on server startup",
-    "Improved: Favorites heart button now has red border for better visibility",
-    "Improved: iOS safe area banner on Saved Meals page"
+    "New: Database-backed client connections — trainers and physicians now see linked clients automatically",
+    "New: Shared meal boards — trainer and client both view and edit the same board in real time",
+    "Fixed: Builder assignment now uses verified database user IDs for reliable client linking",
+    "Fixed: Board navigation in Trainer Studio and Physician Clinic resolves correct client identity"
   ]
 }
