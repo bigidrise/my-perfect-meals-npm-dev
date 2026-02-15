@@ -119,7 +119,13 @@ export default function MorePage() {
           <div className="px-6 py-3 flex items-center gap-3">
           <Crown className="h-6 w-6 text-orange-500" />
           <h1 className="text-lg font-bold text-white flex-1">More</h1>
-          
+          <button
+            onClick={() => setLocation("/dashboard")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 active:scale-[0.98] transition-transform"
+          >
+            <LogOut className="h-3.5 w-3.5 text-white/70" />
+            <span className="text-xs text-white/70 font-medium">Exit</span>
+          </button>
         </div>
       </div>
 
@@ -149,7 +155,22 @@ export default function MorePage() {
             </div>
           </div>
 
-          
+          {/* Getting Started Guidance */}
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+            <p className="text-orange-300 text-sm font-semibold mb-1">
+              Your Workspace
+            </p>
+            <p className="text-white/70 text-xs leading-relaxed">
+              This is your professional workspace
+              {userRole === "trainer"
+                ? " — Trainers Studio"
+                : userRole === "physician"
+                ? " — Physicians Clinic"
+                : ""}. Manage clients, build plans, and access Shared Meal Boards here. Your <span className="text-orange-400 font-medium">Favorites</span> are saved below. Tap <span className="text-orange-400 font-medium">Exit</span> in the top
+              right to return to your personal space anytime. You can always come back via
+              the <span className="text-orange-400 font-medium">More</span> tab below.
+            </p>
+          </div>
 
           {/* Saved Meals / Favorites */}
           <Card
