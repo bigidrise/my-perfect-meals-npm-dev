@@ -399,9 +399,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         </div>
 
         {/* Meal Reminders */}
-        <div className="mt-4">
-          <IOSMealReminders />
-        </div>
+       
 
         {/* Menu Items */}
         <div className="mt-6 space-y-2">

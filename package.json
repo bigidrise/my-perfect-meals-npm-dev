@@ -14,7 +14,7 @@
     "dev:full": "pkill -f vite || true && pkill -f tsx || true && fuser -k 5000/tcp 5173/tcp || true && concurrently \"npm run dev\" \"cd client && npm run dev\"",
     "build:client": "cd client && vite build",
     "build:server": "esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap",
-    "build": "npm run build:client && npm run build:server",
+    "build": "npm run build:client",
     "prestart": "echo 'Column migrations handled by server startup'",
     "start": "NODE_ENV=production node dist/prod.js",
     "preserve": "npm run db:push",
