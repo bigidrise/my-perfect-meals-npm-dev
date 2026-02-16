@@ -32,7 +32,10 @@ import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useLogMacros } from "@/hooks/useLogMacros";
 import { useToast } from "@/hooks/use-toast";
-import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
+import {
+  isAllergyRelatedError,
+  formatAllergyAlertDescription,
+} from "@/utils/allergyAlert";
 import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
@@ -166,10 +169,10 @@ const FridgeRescuePage = () => {
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [showResults, setShowResults] = useState(false);
-  
+
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
-  
+
   // 🔐 SafetyGuard preflight system
   const {
     checking: safetyChecking,
@@ -181,10 +184,10 @@ const FridgeRescuePage = () => {
     overrideToken,
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
-  
+
   // 🔐 Pending request for SafetyGuard continuation bridge
   const [pendingGeneration, setPendingGeneration] = useState(false);
-  
+
   // Handle safety override continuation - auto-generate when override token received
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
@@ -195,7 +198,7 @@ const FridgeRescuePage = () => {
       setPendingGeneration(true);
     }
   };
-  
+
   // Effect: Auto-generate when override token is set and generation is pending
   useEffect(() => {
     if (pendingGeneration && overrideToken && !isLoading) {
@@ -203,16 +206,14 @@ const FridgeRescuePage = () => {
       handleGenerateMeals(true); // true = skip preflight (already have override)
     }
   }, [pendingGeneration, overrideToken, isLoading]);
-  
+
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
     [],
   );
-  const [expandedIngredients, setExpandedIngredients] = useState<string[]>(
-    [],
-  );
+  const [expandedIngredients, setExpandedIngredients] = useState<string[]>([]);
   const [isReplacing, setIsReplacing] = useState<{ [key: string]: boolean }>(
     {},
   );
@@ -365,7 +366,7 @@ const FridgeRescuePage = () => {
 
       const data = await response.json();
       console.log("🧊 Frontend received data:", data);
-      
+
       // Check for safety blocks/ambiguous - show banner instead of error
       if (data.safetyBlocked || data.safetyAmbiguous) {
         stopProgressTicker();
@@ -376,18 +377,20 @@ const FridgeRescuePage = () => {
           blockedCategories: [],
           ambiguousTerms: data.ambiguousTerms || [],
           message: data.error || "Allergy alert detected",
-          suggestion: data.suggestion
+          suggestion: data.suggestion,
         });
         setIsLoading(false);
         return; // Don't throw error, let banner handle it
       }
-      
+
       // Auto-reset safety state after successful generation
       setSafetyEnabled(true);
       clearSafetyAlert();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || data.error || "Failed to generate meal");
+        throw new Error(
+          data.message || data.error || "Failed to generate meal",
+        );
       }
 
       // Handle both response formats: {meals: [...]} or {meal: {...}}
@@ -485,7 +488,10 @@ const FridgeRescuePage = () => {
       protein: meal.protein || 0,
       carbs: meal.carbs || 0,
       fat: meal.fat || 0,
-      badges: meal.medicalBadges?.map((b: any) => typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)) || [],
+      badges:
+        meal.medicalBadges?.map((b: any) =>
+          typeof b === "string" ? b : b.badge || b.id || b.condition || b.label,
+        ) || [],
       ingredients: meal.ingredients || [],
       instructions:
         typeof meal.instructions === "string"
@@ -558,13 +564,15 @@ const FridgeRescuePage = () => {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         // Check if this is an allergy safety block
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
         }
-        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(
+          data.message || `HTTP ${response.status}: ${response.statusText}`,
+        );
       }
 
       if (data?.meals?.length > 0) {
@@ -647,11 +655,12 @@ const FridgeRescuePage = () => {
                   <div className="flex items-center gap-2">
                     <Refrigerator className="h-4 w-4 flex-shrink-0 text-orange-500" />
                     <h3 className="text-sm font-semibold text-white">
-                      Chef's Kitchen Studio
+                      Chef's Fridge Rescue Studio
                     </h3>
                   </div>
                   <p className="text-xs text-white/80 ml-6">
-                    Step-by-step guided meal creation from your ingredients with Chef voice assistance
+                    Step-by-step guided meal creation from your ingredients with
+                    Chef voice assistance
                   </p>
                 </div>
               </CardContent>
@@ -662,7 +671,7 @@ const FridgeRescuePage = () => {
             <div className="space-y-2">
               <div className="mb-4">
                 <h2 className="text-xl font-bold text-white">Quick Create</h2>
-              </div> 
+              </div>
 
               <div className="space-y-4">
                 <div className="space-y-3">
@@ -722,12 +731,16 @@ const FridgeRescuePage = () => {
                   alert={safetyAlert}
                   mealRequest={ingredients}
                   onDismiss={clearSafetyAlert}
-                  onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+                  onOverrideSuccess={(token) =>
+                    handleSafetyOverride(false, token)
+                  }
                 />
 
                 {/* Meal Safety Section */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                  <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                  <span className="text-xs text-white/60 block mb-2">
+                    Meal Safety
+                  </span>
                   <SafetyGuardToggle
                     safetyEnabled={safetyEnabled}
                     onSafetyChange={handleSafetyOverride}
@@ -735,17 +748,21 @@ const FridgeRescuePage = () => {
                   />
                   <GlucoseGuardToggle disabled={isLoading || safetyChecking} />
                 </div>
-                
+
                 {/* Flavor Preference Section */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-                  <span className="text-xs text-white/60 block mb-2">Flavor Preference</span>
+                  <span className="text-xs text-white/60 block mb-2">
+                    Flavor Preference
+                  </span>
                   <FlavorToggle
                     flavorPersonal={flavorPersonal}
                     onFlavorChange={setFlavorPersonal}
                     disabled={isLoading}
                   />
                   <p className="text-xs text-white/40 mt-1">
-                    {flavorPersonal ? "Using your palate preferences" : "Neutral seasoning for others"}
+                    {flavorPersonal
+                      ? "Using your palate preferences"
+                      : "Neutral seasoning for others"}
                   </p>
                 </div>
 
@@ -882,18 +899,20 @@ const FridgeRescuePage = () => {
                         </div>
                       </div>
 
-
                       {/* Medical Badges */}
                       <div className="flex items-center gap-2">
                         <HealthBadgesPopover
                           badges={
-                            meal.medicalBadges?.map(
-                              (b: any) =>
-                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label),
+                            meal.medicalBadges?.map((b: any) =>
+                              typeof b === "string"
+                                ? b
+                                : b.badge || b.id || b.condition || b.label,
                             ) || []
                           }
                         />
-                        <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                        <h3 className="font-semibold text-white text-sm">
+                          Medical Safety
+                        </h3>
                       </div>
 
                       {/* Ingredients */}
@@ -902,99 +921,144 @@ const FridgeRescuePage = () => {
                           Ingredients:
                         </h4>
                         <ul className="text-xs text-white/80 space-y-1">
-                          {meal.ingredients.slice(0, 4).map((ingredient: any, i: number) => {
-                            if (typeof ingredient === "string") {
+                          {meal.ingredients
+                            .slice(0, 4)
+                            .map((ingredient: any, i: number) => {
+                              if (typeof ingredient === "string") {
+                                return (
+                                  <li key={i} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>{ingredient}</span>
+                                  </li>
+                                );
+                              }
+
+                              const name = ingredient.item || ingredient.name;
+                              const amount =
+                                ingredient.amount || ingredient.quantity;
+                              const unit = ingredient.unit;
+
+                              // Priority 1: Use pre-formatted displayText from backend
+                              if (ingredient.displayText) {
+                                return (
+                                  <li key={i} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>{ingredient.displayText}</span>
+                                  </li>
+                                );
+                              }
+
+                              // Priority 2: Show amount + unit + name
+                              if (amount && unit) {
+                                return (
+                                  <li key={i} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>
+                                      {amount} {unit} {name}
+                                    </span>
+                                  </li>
+                                );
+                              }
+
+                              // Priority 3: Just show name
                               return (
                                 <li key={i} className="flex items-start">
                                   <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient}</span>
+                                  <span>{name}</span>
                                 </li>
                               );
-                            }
-
-                            const name = ingredient.item || ingredient.name;
-                            const amount = ingredient.amount || ingredient.quantity;
-                            const unit = ingredient.unit;
-
-                            // Priority 1: Use pre-formatted displayText from backend
-                            if (ingredient.displayText) {
-                              return (
-                                <li key={i} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient.displayText}</span>
-                                </li>
-                              );
-                            }
-
-                            // Priority 2: Show amount + unit + name
-                            if (amount && unit) {
-                              return (
-                                <li key={i} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{amount} {unit} {name}</span>
-                                </li>
-                              );
-                            }
-
-                            // Priority 3: Just show name
-                            return (
-                              <li key={i} className="flex items-start">
-                                <span className="text-green-400 mr-1">•</span>
-                                <span>{name}</span>
+                            })}
+                          {meal.ingredients.length > 4 &&
+                            !expandedIngredients.includes(meal.id) && (
+                              <li
+                                className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                                onClick={() =>
+                                  setExpandedIngredients((prev) => [
+                                    ...prev,
+                                    meal.id,
+                                  ])
+                                }
+                              >
+                                + {meal.ingredients.length - 4} more ingredients
                               </li>
-                            );
-                          })}
-                          {meal.ingredients.length > 4 && !expandedIngredients.includes(meal.id) && (
-                            <li 
-                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
-                              onClick={() => setExpandedIngredients(prev => [...prev, meal.id])}
-                            >
-                              + {meal.ingredients.length - 4} more ingredients
-                            </li>
-                          )}
-                          {expandedIngredients.includes(meal.id) && meal.ingredients.slice(4).map((ingredient: any, i: number) => {
-                            if (typeof ingredient === "string") {
-                              return (
-                                <li key={i + 4} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient}</span>
-                                </li>
-                              );
-                            }
-                            const name = ingredient.item || ingredient.name;
-                            const amount = ingredient.amount || ingredient.quantity;
-                            const unit = ingredient.unit;
-                            if (ingredient.displayText) {
-                              return (
-                                <li key={i + 4} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient.displayText}</span>
-                                </li>
-                              );
-                            }
-                            if (amount && unit) {
-                              return (
-                                <li key={i + 4} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{amount} {unit} {name}</span>
-                                </li>
-                              );
-                            }
-                            return (
-                              <li key={i + 4} className="flex items-start">
-                                <span className="text-green-400 mr-1">•</span>
-                                <span>{name}</span>
+                            )}
+                          {expandedIngredients.includes(meal.id) &&
+                            meal.ingredients
+                              .slice(4)
+                              .map((ingredient: any, i: number) => {
+                                if (typeof ingredient === "string") {
+                                  return (
+                                    <li
+                                      key={i + 4}
+                                      className="flex items-start"
+                                    >
+                                      <span className="text-green-400 mr-1">
+                                        •
+                                      </span>
+                                      <span>{ingredient}</span>
+                                    </li>
+                                  );
+                                }
+                                const name = ingredient.item || ingredient.name;
+                                const amount =
+                                  ingredient.amount || ingredient.quantity;
+                                const unit = ingredient.unit;
+                                if (ingredient.displayText) {
+                                  return (
+                                    <li
+                                      key={i + 4}
+                                      className="flex items-start"
+                                    >
+                                      <span className="text-green-400 mr-1">
+                                        •
+                                      </span>
+                                      <span>{ingredient.displayText}</span>
+                                    </li>
+                                  );
+                                }
+                                if (amount && unit) {
+                                  return (
+                                    <li
+                                      key={i + 4}
+                                      className="flex items-start"
+                                    >
+                                      <span className="text-green-400 mr-1">
+                                        •
+                                      </span>
+                                      <span>
+                                        {amount} {unit} {name}
+                                      </span>
+                                    </li>
+                                  );
+                                }
+                                return (
+                                  <li key={i + 4} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>{name}</span>
+                                  </li>
+                                );
+                              })}
+                          {expandedIngredients.includes(meal.id) &&
+                            meal.ingredients.length > 4 && (
+                              <li
+                                className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                                onClick={() =>
+                                  setExpandedIngredients((prev) =>
+                                    prev.filter((id) => id !== meal.id),
+                                  )
+                                }
+                              >
+                                Show less
                               </li>
-                            );
-                          })}
-                          {expandedIngredients.includes(meal.id) && meal.ingredients.length > 4 && (
-                            <li 
-                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
-                              onClick={() => setExpandedIngredients(prev => prev.filter(id => id !== meal.id))}
-                            >
-                              Show less
-                            </li>
-                          )}
+                            )}
                         </ul>
                       </div>
 
@@ -1065,14 +1129,20 @@ const FridgeRescuePage = () => {
                                     ? {
                                         ...m,
                                         name: translated.name,
-                                        description: translated.description || m.description,
-                                        instructions: typeof translated.instructions === "string"
-                                          ? translated.instructions
-                                          : m.instructions,
-                                        ingredients: (translated.ingredients as StructuredIngredient[]) || m.ingredients,
+                                        description:
+                                          translated.description ||
+                                          m.description,
+                                        instructions:
+                                          typeof translated.instructions ===
+                                          "string"
+                                            ? translated.instructions
+                                            : m.instructions,
+                                        ingredients:
+                                          (translated.ingredients as StructuredIngredient[]) ||
+                                          m.ingredients,
                                       }
-                                    : m
-                                )
+                                    : m,
+                                ),
                               );
                             }}
                           />
@@ -1092,24 +1162,38 @@ const FridgeRescuePage = () => {
                                 instructions: meal.instructions,
                                 imageUrl: meal.imageUrl,
                               };
-                              localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-                              localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_meal",
+                                JSON.stringify(mealData),
+                              );
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_external_prepare",
+                                "true",
+                              );
                               setLocation("/lifestyle/chefs-kitchen");
                             }}
                           >
-                            
                             Cook w/ Chef
                           </Button>
                           <ShareRecipeButton
                             recipe={{
                               name: meal.name,
                               description: meal.description,
-                              nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
-                              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
-                                name: typeof ing === "string" ? ing : ing.name,
-                                amount: typeof ing === "string" ? "" : ing.quantity,
-                                unit: typeof ing === "string" ? "" : ing.unit,
-                              })),
+                              nutrition: {
+                                calories: meal.calories,
+                                protein: meal.protein,
+                                carbs: meal.carbs,
+                                fat: meal.fat,
+                              },
+                              ingredients: (meal.ingredients ?? []).map(
+                                (ing: any) => ({
+                                  name:
+                                    typeof ing === "string" ? ing : ing.name,
+                                  amount:
+                                    typeof ing === "string" ? "" : ing.quantity,
+                                  unit: typeof ing === "string" ? "" : ing.unit,
+                                }),
+                              ),
                             }}
                             className="flex-1"
                           />
@@ -1130,7 +1214,6 @@ const FridgeRescuePage = () => {
           steps={FRIDGE_RESCUE_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
-
       </motion.div>
     </PhaseGate>
   );

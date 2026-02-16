@@ -17,7 +17,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Sparkles, ArrowLeft, Users, Brain, ChefHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { isAllergyRelatedError, formatAllergyAlertDescription } from "@/utils/allergyAlert";
+import {
+  isAllergyRelatedError,
+  formatAllergyAlertDescription,
+} from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
@@ -169,10 +172,10 @@ export default function DessertCreator() {
   // Safety PIN integration
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
-  
+
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
-  
+
   // SafetyGuard preflight hook
   const {
     checking: safetyChecking,
@@ -182,9 +185,9 @@ export default function DessertCreator() {
     setAlert: setSafetyAlert,
     setOverrideToken,
     overrideToken,
-    hasActiveOverride
+    hasActiveOverride,
   } = useSafetyGuardPrecheck();
-  
+
   // Handle safety override continuation - auto-generate when override token received
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
@@ -194,10 +197,15 @@ export default function DessertCreator() {
       setPendingGeneration(true);
     }
   };
-  
+
   // Effect: Auto-generate when override token is set and generation is pending
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGenerating && !safetyChecking) {
+    if (
+      pendingGeneration &&
+      overrideToken &&
+      !isGenerating &&
+      !safetyChecking
+    ) {
       setPendingGeneration(false);
       handleGenerateDessert(overrideToken);
     }
@@ -272,7 +280,8 @@ export default function DessertCreator() {
 
     // SafetyGuard preflight check if safety is enabled and no override
     if (safetyEnabled && !hasActiveOverride && !overrideToken) {
-      const requestDescription = `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
+      const requestDescription =
+        `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
       const isSafe = await checkSafety(requestDescription, "dessert-creator");
       if (!isSafe) {
         return; // Banner will show automatically
@@ -312,27 +321,28 @@ export default function DessertCreator() {
             ...(customDietary.trim() ? [customDietary.trim()] : []),
           ],
           userId: userId,
-          safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          safetyMode:
+            !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
         }),
       });
 
       console.log("🍨 [DESSERT] API response received:", res.status);
-      
+
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         console.error("🍨 Dessert Creator API Error:", res.status, errorBody);
-        
+
         if (errorBody?.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${errorBody.message}`);
         }
-        
+
         throw new Error(errorBody?.error || "Generation failed");
       }
 
       const data = await res.json();
-      
+
       // Check for safety blocks/ambiguous - show banner instead of error
       if (data.safetyBlocked || data.safetyAmbiguous) {
         stopProgressTicker();
@@ -348,7 +358,7 @@ export default function DessertCreator() {
         });
         return;
       }
-      
+
       // Auto-reset safety to ON after generation attempt
       setSafetyEnabled(true);
       clearSafetyAlert();
@@ -457,7 +467,7 @@ export default function DessertCreator() {
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 flex-shrink-0 text-orange-500" />
                     <h3 className="text-sm font-semibold text-white">
-                      Chef's Kitchen Studio
+                      Chef's Dessert Studio
                     </h3>
                   </div>
                   <p className="text-xs text-white/80 ml-6">
@@ -621,12 +631,16 @@ export default function DessertCreator() {
                 alert={safetyAlert}
                 mealRequest={`${dessertCategory} ${flavorFamily} ${specificDessert}`.trim()}
                 onDismiss={clearSafetyAlert}
-                onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+                onOverrideSuccess={(token) =>
+                  handleSafetyOverride(false, token)
+                }
               />
 
               {/* Meal Safety Section */}
               <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                <span className="text-xs text-white/60 block mb-2">
+                  Meal Safety
+                </span>
                 <SafetyGuardToggle
                   safetyEnabled={safetyEnabled}
                   onSafetyChange={handleSafetyOverride}
@@ -634,25 +648,31 @@ export default function DessertCreator() {
                 />
                 <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
               </div>
-              
+
               {/* Flavor Preference Section */}
               <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-                <span className="text-xs text-white/60 block mb-2">Flavor Preference</span>
+                <span className="text-xs text-white/60 block mb-2">
+                  Flavor Preference
+                </span>
                 <FlavorToggle
                   flavorPersonal={flavorPersonal}
                   onFlavorChange={setFlavorPersonal}
                   disabled={isGenerating}
                 />
                 <p className="text-xs text-white/40 mt-1">
-                  {flavorPersonal ? "Using your palate preferences" : "Neutral seasoning for others"}
+                  {flavorPersonal
+                    ? "Using your palate preferences"
+                    : "Neutral seasoning for others"}
                 </p>
               </div>
 
-              {(isGenerating || safetyChecking) ? (
+              {isGenerating || safetyChecking ? (
                 <div className="max-w-md mx-auto mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-white/80">
-                      {safetyChecking ? "Checking Safety Profile" : "AI Analysis Progress"}
+                      {safetyChecking
+                        ? "Checking Safety Profile"
+                        : "AI Analysis Progress"}
                     </span>
                     <span className="text-sm text-white/80">
                       {safetyChecking ? "..." : `${Math.round(progress)}%`}
@@ -871,13 +891,16 @@ export default function DessertCreator() {
                               ? {
                                   ...prev,
                                   name: translated.name,
-                                  description: translated.description || prev.description,
-                                  instructions: typeof translated.instructions === "string"
-                                    ? translated.instructions
-                                    : prev.instructions,
-                                  ingredients: translated.ingredients || prev.ingredients,
+                                  description:
+                                    translated.description || prev.description,
+                                  instructions:
+                                    typeof translated.instructions === "string"
+                                      ? translated.instructions
+                                      : prev.instructions,
+                                  ingredients:
+                                    translated.ingredients || prev.ingredients,
                                 }
-                              : prev
+                              : prev,
                           );
                         }}
                       />
@@ -949,7 +972,6 @@ export default function DessertCreator() {
           steps={DESSERT_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
-
       </motion.div>
     </PhaseGate>
   );
