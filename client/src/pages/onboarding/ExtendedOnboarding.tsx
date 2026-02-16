@@ -116,8 +116,9 @@ export default function ExtendedOnboarding() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   
-  // ProCare mode: coach assigns builder, user only sets macros/starch
-  const isProCareUser = user?.isProCare === true;
+  // ProCare mode: only actual clients (not professionals) get coach-assigned builder restrictions
+  const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const isProCareUser = user?.isProCare === true && !isProfessional;
   const hasCoachAssignedBuilder = isProCareUser && user?.activeBoard;
   const isAwaitingCoachAssignment = isProCareUser && !user?.activeBoard;
   
@@ -136,8 +137,7 @@ export default function ExtendedOnboarding() {
     document.title = "Choose Your Builder | My Perfect Meals";
     
     if (user?.selectedMealBuilder || user?.activeBoard) {
-      // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
-      const currentBuilder = user.isProCare 
+      const currentBuilder = isProCareUser
         ? (user.activeBoard || user.selectedMealBuilder)
         : (user.selectedMealBuilder || user.activeBoard);
       setSelectedBuilder(currentBuilder || null);

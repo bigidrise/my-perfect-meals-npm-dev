@@ -89,8 +89,10 @@ export default function Planner() {
     },
   ];
 
-  // For ProCare clients, activeBoard takes priority; for regular users, selectedMealBuilder
-  const userActiveBoard = user?.isProCare 
+  // For actual ProCare clients (not professionals), activeBoard takes priority
+  const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const isActualProCareClient = user?.isProCare && !isProfessional;
+  const userActiveBoard = isActualProCareClient
     ? (user?.activeBoard || user?.selectedMealBuilder)
     : (user?.selectedMealBuilder || user?.activeBoard);
   

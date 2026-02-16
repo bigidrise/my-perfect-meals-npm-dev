@@ -213,8 +213,9 @@ export default function EditProfilePage() {
   };
 
   const currentBuilderLabel = useMemo(() => {
-    // Use the correct field based on ProCare status
-    const builderType = user?.isProCare 
+    const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+    const isActualProCareClient = user?.isProCare && !isProfessional;
+    const builderType = isActualProCareClient
       ? (user?.activeBoard || user?.selectedMealBuilder)
       : (user?.selectedMealBuilder || user?.activeBoard);
     

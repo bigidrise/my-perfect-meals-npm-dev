@@ -88,10 +88,11 @@ export function getAssignedBuilderFromStorage(): AssignedBuilder {
     const userStr = localStorage.getItem("mpm_current_user");
     if (userStr) {
       const user = JSON.parse(userStr);
-      // For ProCare clients, use coach-assigned activeBoard
-      // For regular users, use their selectedMealBuilder (ignore stale activeBoard)
-      const isProCare = user.isProCare === true;
-      const builderType = isProCare 
+      // For actual ProCare clients (not professionals), use coach-assigned activeBoard
+      // For regular users and professionals, use their selectedMealBuilder
+      const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user.professionalRole || user.role || "");
+      const isActualProCareClient = user.isProCare === true && !isProfessional;
+      const builderType = isActualProCareClient
         ? (user.activeBoard || user.selectedMealBuilder)
         : (user.selectedMealBuilder || user.activeBoard);
       
