@@ -290,7 +290,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   };
 
   // Check if user is a Pro Care client (restricted from changing builder)
-  const isProCareClient = user?.isProCare && user?.role !== "admin";
+  const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
 
   const menuItems = [
     // ✅ NEW: Personal profile editing entry
