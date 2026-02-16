@@ -9,8 +9,6 @@ import { withGate } from "@/components/GatedRoute";
 import ABTestingDemo from "@/pages/ABTestingDemo";
 import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
-import StudioBottomNav from "@/components/pro/StudioBottomNav";
-
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
@@ -168,13 +166,13 @@ const PerformanceCompetitionBuilderProCare = (_props: any) => (
 export default function Router() {
   const [location] = useLocation();
 
-  // Fallback protection
+  // Add fallback protection
   if (!location) {
     return <DashboardNew />;
   }
 
-  // Routes that should NOT show any bottom nav (auth/onboarding only)
-  const hideNavRoutes = [
+  // Pages where BottomNav should NOT appear (pre-login/onboarding pages only)
+  const hideBottomNavRoutes = [
     "/",
     "/auth",
     "/welcome",
@@ -193,26 +191,13 @@ export default function Router() {
     "/procare-attestation",
   ];
 
-  // Studio / Clinic routes (use custom nav)
-  const studioRoutes = [
-    "/care-team",
-    "/pro-portal",
-    "/pro/clients",
-    "/pro/physician-clients",
-  ];
+  const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
 
-  const isHiddenRoute = hideNavRoutes.some(route =>
-    location.startsWith(route)
-  );
-
-  const isStudioRoute = studioRoutes.some(route =>
-    location.startsWith(route)
-  );
+  // The rest of the original routes are kept below.
 
   return (
     <>
       <ScrollRestorer />
-
       <Switch>
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
@@ -233,7 +218,6 @@ export default function Router() {
         <Route path="/procare-welcome" component={ProCareWelcome} />
         <Route path="/procare-identity" component={ProCareIdentity} />
         <Route path="/procare-attestation" component={ProCareAttestation} />
-
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route
           path="/onboarding"
@@ -241,10 +225,7 @@ export default function Router() {
         />
         <Route
           path="/onboarding-v2"
-          component={withPageErrorBoundary(
-            OnboardingStandalone,
-            "Onboarding V2",
-          )}
+          component={withPageErrorBoundary(OnboardingStandalone, "Onboarding V2")}
         />
         <Route
           path="/onboarding-legacy"
@@ -270,10 +251,7 @@ export default function Router() {
         <Route path="/kids-meals" component={KidsMealsHub} />
         <Route path="/toddler-meals" component={ToddlersMealsHub} />
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route
-          path="/lifestyle/chefs-kitchen"
-          component={withGate(ChefsKitchenPage, "chefsKitchen")}
-        />
+        <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
@@ -281,10 +259,7 @@ export default function Router() {
         {/* Socializing Hub Routes */}
         <Route path="/social-hub" component={SocializingHub} />
         <Route path="/social-hub/find" component={SocialFindMeals} />
-        <Route
-          path="/social-hub/restaurant-guide"
-          component={SocialRestaurantGuide}
-        />
+        <Route path="/social-hub/restaurant-guide" component={SocialRestaurantGuide} />
         {/* DELETED: SmartWeekBuilder, AdultBeverageHubPage routes */}
         <Route
           path="/macro-counter"
@@ -410,17 +385,11 @@ export default function Router() {
         />
         <Route
           path="/care-team/physician"
-          component={withPageErrorBoundary(
-            PhysicianCareTeam,
-            "Physician Care Team",
-          )}
+          component={withPageErrorBoundary(PhysicianCareTeam, "Physician Care Team")}
         />
         <Route
           path="/care-team/trainer"
-          component={withPageErrorBoundary(
-            TrainerCareTeam,
-            "Trainer Care Team",
-          )}
+          component={withPageErrorBoundary(TrainerCareTeam, "Trainer Care Team")}
         />
         <Route
           path="/pro-portal"
@@ -432,10 +401,7 @@ export default function Router() {
         />
         <Route
           path="/pro/physician-clients"
-          component={withPageErrorBoundary(
-            ProClientsPhysician,
-            "Physician Clients",
-          )}
+          component={withPageErrorBoundary(ProClientsPhysician, "Physician Clients")}
         />
         <Route path="/pro/clients/:id" component={ProClientDashboard} />
         <Route
@@ -461,7 +427,10 @@ export default function Router() {
         />
         <Route
           path="/pro/clients/:clientId/board/:program"
-          component={withPageErrorBoundary(ProBoardViewer, "Pro Board Viewer")}
+          component={withPageErrorBoundary(
+            ProBoardViewer,
+            "Pro Board Viewer",
+          )}
         />
         <Route
           path="/pro-client-dashboard"
@@ -544,14 +513,8 @@ export default function Router() {
         />
         {/* DELETED: /craving-hub route (old CravingHub moved to _quarantine - use /craving-creator-landing instead) */}
         <Route path="/craving-desserts" component={CravingDessertCreator} />
-        <Route
-          path="/craving-studio"
-          component={withGate(CravingStudio, "studioCreators")}
-        />
-        <Route
-          path="/dessert-studio"
-          component={withGate(DessertStudio, "studioCreators")}
-        />
+        <Route path="/craving-studio" component={withGate(CravingStudio, 'studioCreators')} />
+        <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
         <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
         <Route path="/craving-presets" component={CravingPresets} />
         {/* Alcohol Hub Routes */}
@@ -586,15 +549,10 @@ export default function Router() {
         />
         {/* 404 fallback */}
         <Route component={NotFound} />
-</Switch>
-
-{/* Bottom Navigation Logic */}
-{!isHiddenRoute && !isStudioRoute && <BottomNav />}
-
-{!isHiddenRoute && isStudioRoute && <StudioBottomNav />}
-
-</>
-);
+      </Switch>
+      {shouldShowBottomNav && <BottomNav />}
+    </>
+  );
 }
 
 
