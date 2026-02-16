@@ -9,6 +9,7 @@ import { withGate } from "@/components/GatedRoute";
 import ABTestingDemo from "@/pages/ABTestingDemo";
 import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
+import StudioBottomNav from "@/components/pro/StudioBottomNav";
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
@@ -192,6 +193,19 @@ export default function Router() {
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
+
+  const clinicRoutes = [
+    "/care-team",
+    "/pro-portal",
+    "/pro/clients",
+    "/pro/physician-clients",
+    "/pro/physician",
+    "/pro/general-nutrition-builder",
+  ];
+
+  const isClinicRoute = clinicRoutes.some(route =>
+    location.startsWith(route)
+  );
 
   // The rest of the original routes are kept below.
 
@@ -550,7 +564,8 @@ export default function Router() {
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
-      {shouldShowBottomNav && <BottomNav />}
+      {shouldShowBottomNav && !isClinicRoute && <BottomNav />}
+      {isClinicRoute && <StudioBottomNav />}
     </>
   );
 }
