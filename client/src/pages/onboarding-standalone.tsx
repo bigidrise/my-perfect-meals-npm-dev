@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { LOW_GI, MID_GI, HIGH_GI } from "@/types/glycemic";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, X, Check, Shield, Eye, EyeOff, Utensils, Heart, Pill, Flame, Dumbbell, UserCheck } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
@@ -125,22 +126,9 @@ const dietaryRestrictionOptions = [
   "Low-Carb", "Low-Fat", "Low-Sodium", "Halal", "Kosher"
 ];
 
-const lowGIOptions = [
-  "Berries", "Cherries", "Apples", "Pears", "Grapefruit",
-  "Leafy Greens", "Broccoli", "Cauliflower", "Zucchini", "Green Beans",
-  "Lentils", "Chickpeas", "Black Beans", "Quinoa", "Steel-cut Oats",
-  "Sweet Potato (small)", "Carrots", "Tomatoes", "Cucumber", "Peppers"
-];
-
-const midGIOptions = [
-  "Brown Rice", "Whole Wheat Pasta", "Whole Grain Bread", "Couscous",
-  "Pineapple", "Bananas", "Corn", "Sweet Potato (medium)", "Basmati Rice"
-];
-
-const highGIOptions = [
-  "White Rice", "White Bread", "Potatoes (baked)", "Watermelon",
-  "Dates", "Rice Cakes", "Instant Oatmeal"
-];
+const lowGIOptions = LOW_GI;
+const midGIOptions = MID_GI;
+const highGIOptions = HIGH_GI;
 
 export default function OnboardingStandalone() {
   const [, setLocation] = useLocation();
