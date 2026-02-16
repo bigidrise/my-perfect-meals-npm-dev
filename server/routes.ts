@@ -2637,6 +2637,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/glycemic-settings", async (req, res) => {
+    try {
+      const userId = req.body.userId || "1";
+      const settingsData = insertUserGlycemicSettingsSchema.parse({
+        ...req.body,
+        userId
+      });
+      const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Barcode API routes
   app.get("/api/barcode/:code", async (req, res) => {
     try {
