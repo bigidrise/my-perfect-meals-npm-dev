@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -20,30 +20,54 @@ const FONT_SIZE_CLASSES: Record<FontSize, string> = {
   xl: "font-size-xl",
 };
 
+const VALID_SIZES: FontSize[] = ["standard", "large", "xl"];
+
+function isValidFontSize(val: string | null | undefined): val is FontSize {
+  return typeof val === "string" && VALID_SIZES.includes(val as FontSize);
+}
+
+function applyFontSize(size: FontSize) {
+  const root = document.documentElement;
+  Object.values(FONT_SIZE_CLASSES).forEach((cls) => root.classList.remove(cls));
+  root.classList.add(FONT_SIZE_CLASSES[size]);
+}
+
+function getStoredSize(): FontSize {
+  try {
+    const stored = localStorage.getItem(FONT_SIZE_STORAGE_KEY);
+    return isValidFontSize(stored) ? stored : "standard";
+  } catch {
+    return "standard";
+  }
+}
+
+const initialSize = getStoredSize();
+applyFontSize(initialSize);
+
 interface FontSizeProviderProps {
   children: ReactNode;
 }
 
 export function FontSizeProvider({ children }: FontSizeProviderProps) {
   const { user } = useAuth();
-  const [fontSize, setFontSizeState] = useState<FontSize>("standard");
+  const [fontSize, setFontSizeState] = useState<FontSize>(initialSize);
+  const hasAppliedServerPref = useRef(false);
 
   useEffect(() => {
-    const savedSize = user?.fontSizePreference || localStorage.getItem(FONT_SIZE_STORAGE_KEY) as FontSize || "standard";
-    setFontSizeState(savedSize);
-    applyFontSize(savedSize);
+    const serverPref = user?.fontSizePreference;
+    if (isValidFontSize(serverPref) && !hasAppliedServerPref.current) {
+      hasAppliedServerPref.current = true;
+      setFontSizeState(serverPref);
+      applyFontSize(serverPref);
+      localStorage.setItem(FONT_SIZE_STORAGE_KEY, serverPref);
+    }
   }, [user?.fontSizePreference]);
-
-  const applyFontSize = (size: FontSize) => {
-    const root = document.documentElement;
-    Object.values(FONT_SIZE_CLASSES).forEach((cls) => root.classList.remove(cls));
-    root.classList.add(FONT_SIZE_CLASSES[size]);
-  };
 
   const setFontSize = useCallback(async (size: FontSize) => {
     setFontSizeState(size);
     applyFontSize(size);
     localStorage.setItem(FONT_SIZE_STORAGE_KEY, size);
+    hasAppliedServerPref.current = true;
 
     if (user) {
       try {
