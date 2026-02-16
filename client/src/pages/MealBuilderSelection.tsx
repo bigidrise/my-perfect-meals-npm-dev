@@ -106,7 +106,7 @@ export default function MealBuilderSelection() {
   const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  const isProCareClient = user?.isProCare && user?.role !== "admin";
+  const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
   
   // Pro builders require trainer unlock
