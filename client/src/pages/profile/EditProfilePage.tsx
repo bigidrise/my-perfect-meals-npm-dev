@@ -681,9 +681,24 @@ export default function EditProfilePage() {
           >
             <div className="space-y-4">
               <div className="rounded-xl border border-green-500/30 bg-green-950/20 p-3">
-                <p className="text-green-300 text-sm font-semibold mb-1 flex items-center gap-2">
-                  <span className="text-lg">🟢</span> Low Glycemic (Best for stable blood sugar)
-                </p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-green-300 text-sm font-semibold flex items-center gap-2">
+                    <span className="text-lg">🟢</span> Low Glycemic (Best for stable blood sugar)
+                  </p>
+                  <PillButton
+                    active={LOW_GI.every((f) => preferredCarbs.includes(f))}
+                    onClick={() => {
+                      const allSelected = LOW_GI.every((f) => preferredCarbs.includes(f));
+                      setPreferredCarbs((prev) =>
+                        allSelected
+                          ? prev.filter((f) => !LOW_GI.includes(f))
+                          : [...new Set([...prev, ...LOW_GI])]
+                      );
+                    }}
+                  >
+                    {LOW_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
+                  </PillButton>
+                </div>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {LOW_GI.map((food) => (
                     <PillButton
@@ -704,9 +719,24 @@ export default function EditProfilePage() {
               </div>
 
               <div className="rounded-xl border border-yellow-500/30 bg-yellow-950/20 p-3">
-                <p className="text-yellow-300 text-sm font-semibold mb-1 flex items-center gap-2">
-                  <span className="text-lg">🟡</span> Mid Glycemic (Moderate energy release)
-                </p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-yellow-300 text-sm font-semibold flex items-center gap-2">
+                    <span className="text-lg">🟡</span> Mid Glycemic (Moderate energy release)
+                  </p>
+                  <PillButton
+                    active={MID_GI.every((f) => preferredCarbs.includes(f))}
+                    onClick={() => {
+                      const allSelected = MID_GI.every((f) => preferredCarbs.includes(f));
+                      setPreferredCarbs((prev) =>
+                        allSelected
+                          ? prev.filter((f) => !MID_GI.includes(f))
+                          : [...new Set([...prev, ...MID_GI])]
+                      );
+                    }}
+                  >
+                    {MID_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
+                  </PillButton>
+                </div>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {MID_GI.map((food) => (
                     <PillButton
@@ -727,9 +757,24 @@ export default function EditProfilePage() {
               </div>
 
               <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-3">
-                <p className="text-red-300 text-sm font-semibold mb-1 flex items-center gap-2">
-                  <span className="text-lg">🔴</span> High Glycemic (Quick energy, use sparingly)
-                </p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-red-300 text-sm font-semibold flex items-center gap-2">
+                    <span className="text-lg">🔴</span> High Glycemic (Quick energy, use sparingly)
+                  </p>
+                  <PillButton
+                    active={HIGH_GI.every((f) => preferredCarbs.includes(f))}
+                    onClick={() => {
+                      const allSelected = HIGH_GI.every((f) => preferredCarbs.includes(f));
+                      setPreferredCarbs((prev) =>
+                        allSelected
+                          ? prev.filter((f) => !HIGH_GI.includes(f))
+                          : [...new Set([...prev, ...HIGH_GI])]
+                      );
+                    }}
+                  >
+                    {HIGH_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
+                  </PillButton>
+                </div>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {HIGH_GI.map((food) => (
                     <PillButton

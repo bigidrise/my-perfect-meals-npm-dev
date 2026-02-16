@@ -702,9 +702,22 @@ export default function OnboardingStandalone() {
       </CardHeader>
       <CardContent className="space-y-8 text-white pt-6">
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <span className="text-2xl">🟢</span> Low Glycemic Index Foods
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <span className="text-2xl">🟢</span> Low Glycemic Index Foods
+            </h3>
+            <PillButton
+              active={lowGIOptions.every((o) => data.preferredLowGICarbs.includes(o))}
+              onClick={() => {
+                const allSelected = lowGIOptions.every((o) => data.preferredLowGICarbs.includes(o));
+                updateData({
+                  preferredLowGICarbs: allSelected ? [] : [...lowGIOptions],
+                });
+              }}
+            >
+              {lowGIOptions.every((o) => data.preferredLowGICarbs.includes(o)) ? "Clear All" : "Select All"}
+            </PillButton>
+          </div>
           <p className="text-white/80 text-sm">Best for stable blood sugar</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {lowGIOptions.map((option) => (
@@ -722,9 +735,22 @@ export default function OnboardingStandalone() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <span className="text-2xl">🟡</span> Mid Glycemic Index Foods
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <span className="text-2xl">🟡</span> Mid Glycemic Index Foods
+            </h3>
+            <PillButton
+              active={midGIOptions.every((o) => data.preferredMidGICarbs.includes(o))}
+              onClick={() => {
+                const allSelected = midGIOptions.every((o) => data.preferredMidGICarbs.includes(o));
+                updateData({
+                  preferredMidGICarbs: allSelected ? [] : [...midGIOptions],
+                });
+              }}
+            >
+              {midGIOptions.every((o) => data.preferredMidGICarbs.includes(o)) ? "Clear All" : "Select All"}
+            </PillButton>
+          </div>
           <p className="text-white/80 text-sm">Moderate energy release</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {midGIOptions.map((option) => (
@@ -742,9 +768,22 @@ export default function OnboardingStandalone() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <span className="text-2xl">🔴</span> High Glycemic Index Foods
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <span className="text-2xl">🔴</span> High Glycemic Index Foods
+            </h3>
+            <PillButton
+              active={highGIOptions.every((o) => data.preferredHighGICarbs.includes(o))}
+              onClick={() => {
+                const allSelected = highGIOptions.every((o) => data.preferredHighGICarbs.includes(o));
+                updateData({
+                  preferredHighGICarbs: allSelected ? [] : [...highGIOptions],
+                });
+              }}
+            >
+              {highGIOptions.every((o) => data.preferredHighGICarbs.includes(o)) ? "Clear All" : "Select All"}
+            </PillButton>
+          </div>
           <p className="text-white/80 text-sm">Quick energy, use sparingly</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {highGIOptions.map((option) => (
