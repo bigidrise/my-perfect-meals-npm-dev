@@ -6,6 +6,8 @@ import { ArrowLeft, CheckCircle2, User, Utensils, Shield, Lock, Unlock } from "l
 import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
+import { LOW_GI, MID_GI, HIGH_GI } from "@/types/glycemic";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthToken } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
@@ -16,7 +18,7 @@ import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanation
 import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 import { isGuestMode } from "@/lib/guestMode";
 
-type StepId = 1 | 2 | 3 | 4;
+type StepId = 1 | 2 | 3 | 4 | 5;
 
 type ActivityLevel =
   | "sedentary"
@@ -147,6 +149,22 @@ export default function EditProfilePage() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
+
+  const {
+    data: glycemicData,
+    save: saveGlycemic,
+    isSaving: glycemicSaving,
+  } = useGlycemicSettings();
+
+  const [preferredCarbs, setPreferredCarbs] = useState<string[]>(
+    glycemicData.preferredCarbs || []
+  );
+
+  useEffect(() => {
+    if (glycemicData?.preferredCarbs) {
+      setPreferredCarbs(glycemicData.preferredCarbs);
+    }
+  }, [glycemicData]);
 
   useEffect(() => {
     document.title = "Edit Profile | My Perfect Meals";
@@ -335,7 +353,7 @@ export default function EditProfilePage() {
         </Card>
 
         <div className="flex items-center gap-2">
-          {[1, 2, 3, 4].map((n) => (
+          {[1, 2, 3, 4, 5].map((n) => (
             <div
               key={n}
               className={`h-2.5 w-2.5 rounded-full ${
@@ -347,7 +365,7 @@ export default function EditProfilePage() {
               }`}
             />
           ))}
-          <span className="text-white/60 text-xs ml-2">Step {step} of 4</span>
+          <span className="text-white/60 text-xs ml-2">Step {step} of 5</span>
         </div>
 
         {step === 1 && (
@@ -472,7 +490,7 @@ export default function EditProfilePage() {
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-white/5 border-white/20 text-white"
+                  className="w-1/2 bg-black text-white"
                   onClick={() => setStep(1)}
                 >
                   Back
@@ -639,7 +657,7 @@ export default function EditProfilePage() {
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-white/5 border-white/20 text-white"
+                  className="w-1/2 bg-black text-white"
                   onClick={() => setStep(2)}
                 >
                   Back
@@ -657,6 +675,107 @@ export default function EditProfilePage() {
         )}
 
         {step === 4 && (
+          <StepShell
+            title="Glycemic Preferences"
+            subtitle="Select which carbs you prefer — this personalizes your meal recommendations."
+          >
+            <div className="space-y-4">
+              <div className="rounded-xl border border-green-500/30 bg-green-950/20 p-3">
+                <p className="text-green-300 text-sm font-semibold mb-1 flex items-center gap-2">
+                  <span className="text-lg">🟢</span> Low Glycemic (Best for stable blood sugar)
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {LOW_GI.map((food) => (
+                    <PillButton
+                      key={food}
+                      active={preferredCarbs.includes(food)}
+                      onClick={() =>
+                        setPreferredCarbs((prev) =>
+                          prev.includes(food)
+                            ? prev.filter((f) => f !== food)
+                            : [...prev, food]
+                        )
+                      }
+                    >
+                      {food}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-yellow-500/30 bg-yellow-950/20 p-3">
+                <p className="text-yellow-300 text-sm font-semibold mb-1 flex items-center gap-2">
+                  <span className="text-lg">🟡</span> Mid Glycemic (Moderate energy release)
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {MID_GI.map((food) => (
+                    <PillButton
+                      key={food}
+                      active={preferredCarbs.includes(food)}
+                      onClick={() =>
+                        setPreferredCarbs((prev) =>
+                          prev.includes(food)
+                            ? prev.filter((f) => f !== food)
+                            : [...prev, food]
+                        )
+                      }
+                    >
+                      {food}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-3">
+                <p className="text-red-300 text-sm font-semibold mb-1 flex items-center gap-2">
+                  <span className="text-lg">🔴</span> High Glycemic (Quick energy, use sparingly)
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {HIGH_GI.map((food) => (
+                    <PillButton
+                      key={food}
+                      active={preferredCarbs.includes(food)}
+                      onClick={() =>
+                        setPreferredCarbs((prev) =>
+                          prev.includes(food)
+                            ? prev.filter((f) => f !== food)
+                            : [...prev, food]
+                        )
+                      }
+                    >
+                      {food}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="w-1/2 bg-black text-white"
+                  onClick={() => setStep(3)}
+                >
+                  Back
+                </Button>
+                <Button
+                  className="w-1/2 bg-lime-600 text-white"
+                  disabled={glycemicSaving}
+                  onClick={async () => {
+                    await saveGlycemic({
+                      ...glycemicData,
+                      preferredCarbs,
+                    });
+                    setStep(5);
+                  }}
+                >
+                  {glycemicSaving ? "Saving..." : "Continue"}
+                </Button>
+              </div>
+            </div>
+          </StepShell>
+        )}
+
+        {step === 5 && (
           <StepShell
             title="Review & save"
             subtitle="Double-check your info. Save when ready."
@@ -691,15 +810,18 @@ export default function EditProfilePage() {
                   Allergies: {allergiesText.trim() || "None"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Flavor: {form.palateSpiceTolerance === "none" ? "No spice" : form.palateSpiceTolerance?.charAt(0).toUpperCase() + form.palateSpiceTolerance?.slice(1)} spice, {form.palateSeasoningIntensity} seasoning
+                  Flavor: {form.palateSpiceTolerance === "none" ? "No spice" : (form.palateSpiceTolerance?.charAt(0).toUpperCase() ?? "") + (form.palateSpiceTolerance?.slice(1) ?? "")} spice, {form.palateSeasoningIntensity} seasoning
+                </p>
+                <p className="text-white/80 text-xs">
+                  Glycemic Carbs: {preferredCarbs.length > 0 ? preferredCarbs.join(", ") : "None selected"}
                 </p>
               </div>
 
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-white/5 border-white/20 text-white"
-                  onClick={() => setStep(3)}
+                  className="w-1/2 bg-black text-white"
+                  onClick={() => setStep(4)}
                   disabled={saving}
                 >
                   Back
