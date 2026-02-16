@@ -2,10 +2,16 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Users, LayoutDashboard, ArrowLeftRight } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function StudioBottomNav() {
   const [location, setLocation] = useLocation();
   const [showChooser, setShowChooser] = useState(false);
+  const { user } = useAuth();
+
+  const isPhysician = user?.professionalRole === "physician";
+  const careTeamRoute = isPhysician ? "/care-team/physician" : "/care-team/trainer";
+  const portalRoute = isPhysician ? "/pro/physician-clients" : "/pro/clients";
 
   const isActive = (path: string) => location.startsWith(path);
 
@@ -29,7 +35,7 @@ export default function StudioBottomNav() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <button
-              onClick={() => setLocation("/care-team/trainer")}
+              onClick={() => setLocation(careTeamRoute)}
               className={`flex flex-col items-center text-xs ${
                 isActive("/care-team") ? "text-orange-500" : "text-white/60"
               }`}
@@ -39,9 +45,9 @@ export default function StudioBottomNav() {
             </button>
 
             <button
-              onClick={() => setLocation("/pro/clients")}
+              onClick={() => setLocation(portalRoute)}
               className={`flex flex-col items-center text-xs ${
-                isActive("/pro-portal") ? "text-orange-500" : "text-white/60"
+                isActive("/pro") ? "text-orange-500" : "text-white/60"
               }`}
             >
               <LayoutDashboard className="h-4 w-4 mb-1" />

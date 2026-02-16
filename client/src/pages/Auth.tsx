@@ -9,7 +9,7 @@ import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 export default function Auth() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const { setUser, refreshUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
   const [mode, setMode] = useState<"signup" | "login">(
@@ -73,12 +73,14 @@ export default function Auth() {
   }
 
   if (showWorkspaceChooser) {
+    const isPhysician = user?.professionalRole === "physician";
+    const workspaceRoute = isPhysician ? "/care-team/physician" : "/care-team/trainer";
     return (
       <WorkspaceChooser
         onChoose={(choice: "personal" | "workspace") => {
           localStorage.setItem("coachMode", "self");
           if (choice === "workspace") {
-            setLocation("/more");
+            setLocation(workspaceRoute);
           } else {
             setLocation("/dashboard");
           }
