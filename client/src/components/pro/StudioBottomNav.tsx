@@ -29,7 +29,7 @@ export default function StudioBottomNav() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <button
-              onClick={() => setLocation("/care-team")}
+              onClick={() => setLocation("/care-team/trainer")}
               className={`flex flex-col items-center text-xs ${
                 isActive("/care-team") ? "text-orange-500" : "text-white/60"
               }`}
@@ -39,7 +39,7 @@ export default function StudioBottomNav() {
             </button>
 
             <button
-              onClick={() => setLocation("/pro-portal")}
+              onClick={() => setLocation("/pro/clients")}
               className={`flex flex-col items-center text-xs ${
                 isActive("/pro-portal") ? "text-orange-500" : "text-white/60"
               }`}
