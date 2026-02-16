@@ -325,33 +325,7 @@ export default function CareTeamPage() {
                 </div>
               </div>
 
-              {/* Permissions */}
-              <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
-                <div className="flex items-center gap-2 text-white/80">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span className="font-semibold">Permissions</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <PermToggle
-                    label="View Macros"
-                    checked={perms.canViewMacros}
-                    onChange={() => togglePerm("canViewMacros")}
-                  />
-                  <PermToggle
-                    label="Add Meals"
-                    checked={perms.canAddMeals}
-                    onChange={() => togglePerm("canAddMeals")}
-                  />
-                  <PermToggle
-                    label="Edit Plan"
-                    checked={perms.canEditPlan}
-                    onChange={() => togglePerm("canEditPlan")}
-                  />
-                </div>
-                <div className="text-xs text-white/60">
-                  💡 You can change these anytime per person.
-                </div>
-              </div>
+              
 
               <Button
                 disabled={loading}
