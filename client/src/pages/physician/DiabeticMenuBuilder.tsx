@@ -1584,14 +1584,14 @@ export default function DiabeticMenuBuilder() {
 
             {/* ROW 5: Bottom Actions (Delete All + Save) */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <Button
+              {false && <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => setShowDeleteAllConfirm(true)}
                 className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl"
               >
                 Delete All
-              </Button>
+              </Button>}
 
               <Button
                 onClick={handleSave}
