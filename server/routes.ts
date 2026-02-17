@@ -2104,7 +2104,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const proBuilders = ["general_nutrition", "performance_competition"];
       if (proBuilders.includes(selectedMealBuilder)) {
         // Check if this user has been assigned this builder by a trainer
-        const [userData] = await db.select({ activeBoard: users.activeBoard }).from(users).where(eq(users.id, userId)).limit(1);
+        const [userData] = await db
+        .select({ activeBoard: users.activeBoard, isProCare: users.isProCare })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+        // ProCare enforcement: client cannot override assigned board
+        if (userData?.isProCare && userData?.activeBoard) {
+          return res.status(403).json({
+            error: "Your meal builder is assigned by your coach. Contact your professional to request changes.",
+          });
+        } 
         if (!userData || userData.activeBoard !== selectedMealBuilder) {
           return res.status(403).json({ error: "This builder requires trainer/coach unlock. Contact your trainer to enable access." });
         }

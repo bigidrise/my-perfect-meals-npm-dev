@@ -79,9 +79,7 @@ export class AuthenticationRequiredError extends Error {
 const APPLE_REVIEW_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 export function resolveUserId(req: any): string {
-  // CRITICAL SECURITY: Require authenticated user - no fallback to shared identity
-  // This prevents cross-account data leakage where multiple users would share 'local-user' data
-  const userId = req.user?.id;
+  const userId = req.user?.id || req.session?.userId;
   if (userId) {
     return userId;
   }
