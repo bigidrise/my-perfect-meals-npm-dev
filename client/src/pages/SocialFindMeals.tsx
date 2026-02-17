@@ -46,6 +46,7 @@ import {
   FIND_MY_MEAL_GENERATING,
 } from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
+import FavoriteButton from "@/components/FavoriteButton";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (location) → generating → results
@@ -691,9 +692,28 @@ export default function MealFinder() {
                         </div>
 
                         <div className="mb-3">
-                          <h4 className="text-xl font-bold text-white mb-1">
-                            {result.meal.name}
-                          </h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-xl font-bold text-white">
+                              {result.meal.name}
+                            </h4>
+                            <FavoriteButton
+                              title={result.meal.name}
+                              sourceType="find-meals"
+                              mealData={{
+                                name: result.meal.name,
+                                description: result.meal.description,
+                                calories: result.meal.calories,
+                                protein: result.meal.protein,
+                                carbs: result.meal.carbs,
+                                fat: result.meal.fat,
+                                ingredients: result.meal.ingredients,
+                                restaurantName: result.restaurantName,
+                                address: result.address,
+                                modifications: result.meal.modifications,
+                              }}
+                              size={22}
+                            />
+                          </div>
                           {/* Starch Classification Badge */}
                           {(() => {
                             const starchClass = classifyMeal({
