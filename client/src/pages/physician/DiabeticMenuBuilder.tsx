@@ -1529,6 +1529,59 @@ export default function DiabeticMenuBuilder() {
                 </div>
               )}
 
+            <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+              <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
+                  <AlertDialogDescription className="text-zinc-400">
+                    Delete all meals from this board? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => {
+                      if (board) {
+                        const clearedBoard = {
+                          ...board,
+                          lists: {
+                            breakfast: [],
+                            lunch: [],
+                            dinner: [],
+                            snacks: [],
+                          },
+                          days: board.days
+                            ? Object.fromEntries(
+                                Object.keys(board.days).map((dateISO) => [
+                                  dateISO,
+                                  {
+                                    breakfast: [],
+                                    lunch: [],
+                                    dinner: [],
+                                    snacks: [],
+                                  },
+                                ]),
+                              )
+                            : undefined,
+                        };
+                        saveBoard(clearedBoard);
+                        clearAIMealsCache();
+                        toast({
+                          title: "All Meals Deleted",
+                          description: "Successfully cleared all meals from the board",
+                        });
+                      }
+                    }}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             {/* ROW 5: Bottom Actions (Delete All + Save) */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
               <Button
@@ -1539,59 +1592,6 @@ export default function DiabeticMenuBuilder() {
               >
                 Delete All
               </Button>
-              
-              <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
-                <AlertDialogContent className="bg-zinc-900 border-zinc-700">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
-                    <AlertDialogDescription className="text-zinc-400">
-                      Delete all meals from this board? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => {
-                        if (board) {
-                          const clearedBoard = {
-                            ...board,
-                            lists: {
-                              breakfast: [],
-                              lunch: [],
-                              dinner: [],
-                              snacks: [],
-                            },
-                            days: board.days
-                              ? Object.fromEntries(
-                                  Object.keys(board.days).map((dateISO) => [
-                                    dateISO,
-                                    {
-                                      breakfast: [],
-                                      lunch: [],
-                                      dinner: [],
-                                      snacks: [],
-                                    },
-                                  ]),
-                                )
-                              : undefined,
-                          };
-                          saveBoard(clearedBoard);
-                          clearAIMealsCache();
-                          toast({
-                            title: "All Meals Deleted",
-                            description: "Successfully cleared all meals from the board",
-                          });
-                        }
-                      }}
-                      className="bg-red-600 text-white hover:bg-red-700"
-                    >
-                      Delete All
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
 
               <Button
                 onClick={handleSave}
