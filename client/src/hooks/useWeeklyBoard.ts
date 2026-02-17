@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { WeekBoardResponseSchema, createEmptyWeekStructure, getMondayISO, type WeekBoardResponse, type WeekBoard } from "@/../../shared/schema/weeklyBoard";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 const CACHE_NS = "mpm.weeklyBoard";
 const FETCH_TIMEOUT_MS = 8000;
@@ -96,7 +97,7 @@ function loadWeeklyBoard({
       const url = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
       const res = await fetchWithRetry(url, { 
         credentials: "include",
-        headers: getAppleReviewHeaders(userId),
+        headers: { ...getAuthHeaders(), ...getAppleReviewHeaders(userId) },
       });
       
       if (!res.ok) {
@@ -140,6 +141,7 @@ async function saveWeeklyBoard({
     method: "PUT",
     headers: { 
       "Content-Type": "application/json",
+      ...getAuthHeaders(),
       ...getAppleReviewHeaders(userId),
     },
     credentials: "include",

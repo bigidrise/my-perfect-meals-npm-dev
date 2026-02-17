@@ -414,7 +414,7 @@ export default function weekBoardRoutes(app: Express) {
   // GET current week board (America/Chicago Monday)
   app.get("/api/week-boards/current-week", async (req: Request, res: Response) => {
     try {
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
       const weekStartISO = getWeekStartISO();
       let board = await getWeekBoard(userId, weekStartISO);
       if (!board) {
@@ -437,7 +437,7 @@ export default function weekBoardRoutes(app: Express) {
       return res.status(400).json({ error: 'Invalid weekStartISO format (YYYY-MM-DD)' });
     }
     try {
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
       let board = await getWeekBoard(userId, weekStartISO);
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
@@ -461,7 +461,7 @@ export default function weekBoardRoutes(app: Express) {
     }
 
     try {
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
       // Accept the same shape your current /api/week-board expects
       const incoming = normalizeBoard(req.body?.week ?? req.body);
       
@@ -499,7 +499,7 @@ export default function weekBoardRoutes(app: Express) {
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
     
     try {
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
       let board = await getWeekBoard(userId, weekStartISO);
       let source = "db";
       
@@ -529,7 +529,7 @@ export default function weekBoardRoutes(app: Express) {
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
     
     try {
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
       const incoming = normalizeBoard(req.body?.week ?? req.body);
       const opId = req.body?.opId; // Idempotent operation ID (for future use)
       
@@ -607,7 +607,7 @@ export default function weekBoardRoutes(app: Express) {
       // Normalize to Monday (UTC) so server always works with a canonical key
       const mondayISO = toMondayISO(weekStartISO);
 
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
       let board = await getWeekBoard(userId, mondayISO);
       if (!board) {
         board = getOrCreateWeek(mondayISO);
@@ -649,7 +649,7 @@ export default function weekBoardRoutes(app: Express) {
 
       // Determine the week this date belongs to
       const mondayISO = toMondayISO(dateISO);
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
 
       // Get or create the week board
       let board = await getWeekBoard(userId, mondayISO);
@@ -750,7 +750,7 @@ export default function weekBoardRoutes(app: Express) {
       // Normalize to Monday (UTC)
       const mondayISO = toMondayISO(weekStartISO);
 
-      const userId = resolveUserId(req);
+      const userId = await resolveUserId(req);
       let board = await getWeekBoard(userId, mondayISO);
       
       if (!board) {

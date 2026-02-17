@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { weekBoards } from '@shared/schema';
+import { weekBoards, users } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 // We'll add a local simple normalizer to avoid circular imports
@@ -78,14 +78,28 @@ export class AuthenticationRequiredError extends Error {
 // Apple Review mode user ID - hardcoded for App Store review testing
 const APPLE_REVIEW_USER_ID = '00000000-0000-0000-0000-000000000001';
 
-export function resolveUserId(req: any): string {
-  const userId = req.user?.id || req.session?.userId;
+export async function resolveUserId(req: any): Promise<string> {
+  const userId = req.authUser?.id || req.user?.id || req.session?.userId;
   if (userId) {
     return userId;
   }
+
+  const token = req.headers['x-auth-token'] as string | undefined;
+  if (token) {
+    try {
+      const [user] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.authToken, token))
+        .limit(1);
+      if (user) {
+        return user.id;
+      }
+    } catch (error) {
+      console.error('[WeekBoard Auth] Token lookup error:', error);
+    }
+  }
   
-  // Apple Review mode: Allow specific hardcoded user ID via header
-  // This enables App Store reviewers to test the app without real authentication
   const appleReviewHeader = req.headers['x-apple-review-user'];
   if (appleReviewHeader === APPLE_REVIEW_USER_ID) {
     console.log('[Auth] Apple Review mode active for weekly board');
