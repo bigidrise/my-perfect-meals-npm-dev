@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Activity, Pill, Trophy, Lock, Dumbbell, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthToken } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 interface PlannerFeature {
   title: string;
@@ -16,7 +18,7 @@ interface PlannerFeature {
 
 export default function Planner() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   useEffect(() => {
     document.title = "Planner | My Perfect Meals";
@@ -107,12 +109,30 @@ export default function Planner() {
     return builderId === userActiveBoard;
   };
 
-  const handleCardClick = (feature: PlannerFeature) => {
+  const handleCardClick = async (feature: PlannerFeature) => {
     if (needsOnboarding) {
       setLocation("/onboarding/extended?repair=1");
       return;
     }
     if (isBuilderUnlocked(feature.builderId)) {
+      if (feature.builderId !== userActiveBoard) {
+        const authToken = getAuthToken();
+        if (authToken) {
+          try {
+            await fetch(apiUrl("/api/user/meal-builder"), {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "x-auth-token": authToken,
+              },
+              body: JSON.stringify({ selectedMealBuilder: feature.builderId }),
+            });
+            await refreshUser();
+          } catch (err) {
+            console.error("Failed to update builder:", err);
+          }
+        }
+      }
       setLocation(feature.route);
     }
   };
@@ -204,6 +224,11 @@ export default function Planner() {
                             {(feature.builderId === "general_nutrition" || feature.builderId === "performance_competition") && (
                               <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
                                 ProCare
+                              </span>
+                            )}
+                            {unlocked && feature.builderId === userActiveBoard && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30 flex-shrink-0">
+                                Current
                               </span>
                             )}
                             {!unlocked && (
