@@ -405,6 +405,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`🎤 Generating TTS with Coach Idrise voice for: "${text.substring(0, 50)}..."`);
+      console.log(`🎤 Using voice ID: ${voiceId}, API key length: ${apiKey.length}`);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
 
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
         method: 'POST',
@@ -417,13 +421,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           text,
           model_id: "eleven_turbo_v2",
           voice_settings: {
-            stability: 0.30,           // 30% - natural variation
-            similarity_boost: 0.90,    // 90% - close to original voice
-            style: 0.40,               // 40% - expressive delivery
+            stability: 0.30,
+            similarity_boost: 0.90,
+            style: 0.40,
             use_speaker_boost: true
           }
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorText = await response.text();
