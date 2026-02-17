@@ -797,6 +797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
         user: { healthConditions: userHealthConditions },
+        servings,
         macroTargets,
         skipPalate,
         palatePrefs: palatePrefs as any

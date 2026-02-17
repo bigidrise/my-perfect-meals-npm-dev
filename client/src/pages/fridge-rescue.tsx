@@ -165,6 +165,7 @@ const FridgeRescuePage = () => {
   const [ingredients, setIngredients] = useState("");
   const [meals, setMeals] = useState<MealData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [servings, setServings] = useState(2);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -358,6 +359,7 @@ const FridgeRescuePage = () => {
             .map((i) => i.trim())
             .filter((i) => i),
           userId: userId,
+          servings,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
@@ -763,6 +765,35 @@ const FridgeRescuePage = () => {
                     {flavorPersonal
                       ? "Using your palate preferences"
                       : "Neutral seasoning for others"}
+                  </p>
+                </div>
+
+                {/* Serving Size Selector */}
+                <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                  <span className="text-xs text-white/60 block mb-2">
+                    Servings
+                  </span>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => setServings(n)}
+                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                          servings === n
+                            ? "bg-orange-500 text-white border border-orange-400 shadow-lg shadow-orange-500/30"
+                            : "bg-black/20 text-white/70 border border-white/10 hover:border-white/30"
+                        } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-white/40 mt-1">
+                    {servings === 1
+                      ? "Single serving"
+                      : `${servings} servings — great for ${servings <= 2 ? "a couple" : "the family"}`}
                   </p>
                 </div>
 
