@@ -118,13 +118,13 @@ interface FridgeRescueMeal {
 interface FridgeRescueRequest {
   fridgeItems: string[];
   user?: any;
+  servings?: number;
   macroTargets?: {
     protein_g?: number;
     fibrous_carbs_g?: number;
     starchy_carbs_g?: number;
     fat_g?: number;
   };
-  // Palate preferences for flavor customization
   skipPalate?: boolean;
   palatePrefs?: PalatePreferences;
 }
@@ -190,7 +190,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, macroTargets, skipPalate, palatePrefs } = request;
+  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs } = request;
   const userConditions = user?.healthConditions || [];
   
   // 🎨 PALATE PREFERENCES: Build flavor guidance section
@@ -259,6 +259,7 @@ This is for athlete meal planning - precision is critical for contest preparatio
   const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
 
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
+Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}
 ${palateGuidance}
 

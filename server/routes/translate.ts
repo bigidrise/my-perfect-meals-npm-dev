@@ -3,7 +3,13 @@ import OpenAI from "openai";
 
 const router = Router();
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 const languageNames: Record<string, string> = {
   es: "Spanish",
@@ -52,7 +58,7 @@ Return ONLY valid JSON with translated values for these keys: name, description,
 If a field is empty, return it as empty.
 For ingredientNames, keep each ingredient on its own line (separated by newlines).`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

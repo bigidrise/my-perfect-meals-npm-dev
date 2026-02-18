@@ -132,7 +132,7 @@ const highGIOptions = HIGH_GI;
 
 export default function OnboardingStandalone() {
   const [, setLocation] = useLocation();
-  const { user, refreshUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [showValidation, setShowValidation] = useState(false);
   const [customAllergyInput, setCustomAllergyInput] = useState("");
@@ -332,9 +332,27 @@ export default function OnboardingStandalone() {
           }
         }
         
-        // Refresh user data to get updated profile
+        // Update local user state immediately with onboardingCompletedAt
+        // This ensures the router won't redirect back to onboarding
+        if (user) {
+          const now = new Date().toISOString();
+          const updatedUser = { 
+            ...user, 
+            onboardingCompletedAt: now,
+            selectedMealBuilder: selectedBuilder as any,
+            activeBoard: selectedBuilder as any,
+            firstName: data.firstName || user.firstName,
+            lastName: data.lastName || user.lastName,
+            allergies: [...data.foodAllergies, ...data.customAllergies],
+            dietaryRestrictions: [...data.dietaryRestrictions, ...data.customDietaryRestrictions],
+          };
+          setUser(updatedUser);
+          localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
+        }
+
+        // Also refresh from server to get the full profile
         if (user?.id) {
-          await refreshUser?.();
+          refreshUser?.().catch(() => {});
         }
       
       localStorage.setItem("onboardingCompleted", "true");
