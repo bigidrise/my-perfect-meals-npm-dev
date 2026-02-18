@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 
 interface ProCareFeature {
   title: string;
@@ -34,6 +35,7 @@ export default function MorePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectedResult, setConnectedResult] = useState<ConnectedResult | null>(null);
+  const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
 
   useEffect(() => {
     document.title = "More | My Perfect Meals";
@@ -41,7 +43,6 @@ export default function MorePage() {
   }, []);
 
   useEffect(() => {
-    /* All users can access the ProCare landing page — locking happens on individual features inside */
   }, []);
 
   const proCareFeatures: ProCareFeature[] = [
@@ -151,6 +152,42 @@ export default function MorePage() {
 
           
 
+          {/* Switch to Workspace — only for professionals */}
+          {(userRole === "trainer" || userRole === "physician") && (
+            <Card
+              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+              onClick={() => setShowWorkspaceChooser(true)}
+              data-testid="card-switch-workspace"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-orange-500/20">
+                    <Briefcase className="h-5 w-5 text-orange-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-white">
+                      {userRole === "physician" ? "Switch to Physicians Clinic" : "Switch to Trainers Studio"}
+                    </h3>
+                    <p className="text-xs text-white/70">Enter your professional workspace</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Workspace Chooser Overlay */}
+          {showWorkspaceChooser && (
+            <WorkspaceChooser
+              onChoose={(choice: "personal" | "workspace") => {
+                setShowWorkspaceChooser(false);
+                if (choice === "workspace") {
+                  const workspaceRoute = userRole === "physician" ? "/care-team/physician" : "/care-team/trainer";
+                  setLocation(workspaceRoute);
+                }
+              }}
+            />
+          )}
+
           {/* Saved Meals / Favorites */}
           <Card
             className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
@@ -172,8 +209,8 @@ export default function MorePage() {
 
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
-            {/* 1. Professional Studios (locked for non-pros) */}
-            {proCareFeatures.filter(f => f.roleKey !== null).map((feature) => {
+            {/* 1. Professional Studios — HIDDEN: professionals must use workspace chooser to enter clinics */}
+            {false && proCareFeatures.filter(f => f.roleKey !== null).map((feature) => {
               const Icon = feature.icon;
               const isLocked = isFeatureLocked(feature);
               const lockedLabel = feature.roleKey === "physician"
