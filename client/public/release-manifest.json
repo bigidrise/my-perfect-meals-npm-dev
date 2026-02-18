@@ -1,10 +1,10 @@
 {
-  "releaseId": "1.2.64",
-  "publishedAt": "2026-02-10",
+  "releaseId": "1.2.65",
+  "publishedAt": "2026-02-18",
   "changes": [
-    "New: Database-backed client connections — trainers and physicians now see linked clients automatically",
-    "New: Shared meal boards — trainer and client both view and edit the same board in real time",
-    "Fixed: Builder assignment now uses verified database user IDs for reliable client linking",
-    "Fixed: Board navigation in Trainer Studio and Physician Clinic resolves correct client identity"
+    "New: Serving size selector on Fridge Rescue — choose 1 to 6 servings before generating",
+    "New: Favorite button on Find Meals Near Me — save restaurant meals to your favorites",
+    "New: Workspace switcher on More page — safely switch between personal and professional modes",
+    "Improved: Physician and Trainer clinic access now requires intentional workspace selection"
   ]
 }
