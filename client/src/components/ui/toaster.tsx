@@ -1,3 +1,4 @@
+import * as React from "react"
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -8,7 +9,25 @@ import {
   ToastViewport,
 } from "@/components/ui/toast"
 
-export function Toaster() {
+class ToasterErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch() {}
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
+function ToasterInner() {
   const { toasts } = useToast()
 
   return (
@@ -30,4 +49,12 @@ export function Toaster() {
       <ToastViewport />
     </ToastProvider>
   )
+}
+
+export function Toaster() {
+  return (
+    <ToasterErrorBoundary>
+      <ToasterInner />
+    </ToasterErrorBoundary>
+  );
 }

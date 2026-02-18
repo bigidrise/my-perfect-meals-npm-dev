@@ -1,6 +1,41 @@
 // server/services/promptBuilder.ts
 import { MealGenerationRequest, UserOnboardingProfile } from "./mealEngineService";
 import { UnitPrefs } from "./validators";
+import { BASELINE_MACROS_PROMPT } from "./guardrails/baselineMacros";
+
+export interface PalatePreferences {
+  palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
+  palateSeasoningIntensity?: "light" | "balanced" | "bold";
+  palateFlavorStyle?: "classic" | "herb" | "savory" | "bright";
+}
+
+export function buildPalateSection(profile: PalatePreferences): string {
+  const spice = profile.palateSpiceTolerance || "mild";
+  const seasoning = profile.palateSeasoningIntensity || "balanced";
+  const flavor = profile.palateFlavorStyle || "classic";
+
+  const spiceMap: Record<string, string> = {
+    none: "NO spicy ingredients - no chili, hot sauce, cayenne, jalapeno, or any heat",
+    mild: "mild spice only - light black pepper, minimal heat",
+    medium: "moderate spice welcome - can use cumin, paprika, mild chilies",
+    hot: "spicy foods preferred - include bold heat, chilies, hot sauce when appropriate",
+  };
+
+  const seasoningMap: Record<string, string> = {
+    light: "light seasoning - subtle flavors, minimal salt/spices",
+    balanced: "balanced seasoning - well-seasoned but not overpowering",
+    bold: "bold seasoning - rich, pronounced flavors, generous herbs/spices",
+  };
+
+  const flavorMap: Record<string, string> = {
+    classic: "classic comfort flavors - traditional preparations",
+    herb: "herb-forward - fresh herbs like basil, cilantro, parsley, dill",
+    savory: "savory umami-rich - garlic, soy, mushroom, roasted notes",
+    bright: "bright & fresh - citrus, vinegar, fresh vegetables, zesty",
+  };
+
+  return `Flavor preferences: ${spiceMap[spice]}. ${seasoningMap[seasoning]}. ${flavorMap[flavor]}.`;
+}
 
 export function buildMealPrompt(
   profile: UserOnboardingProfile,
@@ -43,6 +78,8 @@ ABSOLUTE RULES:
 - Respect diet type (${diet}) and ingredient bans.
 - Use straightforward, kitchen-ready instructions only. No fluff, no tips, no equipment essays.${mediterraneanRules}
 
+${BASELINE_MACROS_PROMPT}
+
 🚨 MEAL TYPE APPROPRIATENESS RULES (CRITICAL - NEVER VIOLATE):
 - BREAKFAST: Appropriate foods include eggs, oatmeal, toast, pancakes, yogurt, smoothies, cereal, fruit bowls, breakfast sandwiches. NEVER assign heavy dinner foods like steak, casseroles, or pasta dishes to breakfast.
 - LUNCH: Appropriate foods include sandwiches, salads, soups, wraps, grain bowls, light pasta dishes, burgers, lighter proteins.
@@ -56,8 +93,8 @@ ABSOLUTE RULES:
 - "Heavy Casserole" as BREAKFAST (this is dinner)
 - "Steak and Potatoes" as BREAKFAST (this is dinner)
 - "Heavy Casserole" as BREAKFAST (this is dinner)
-${req.source === "craving" && (req as any).cravingInput ? `
-🔥 CRITICAL CRAVING OVERRIDE: User specifically requested "${(req as any).cravingInput}". You MUST create this exact dish/recipe. Do NOT substitute with a different meal. This is their explicit craving request.` : ""}
+${(req as any).cravingInput ? `
+🔥 CRITICAL USER REQUEST: User specifically requested "${(req as any).cravingInput}". You MUST create this exact dish/recipe. Do NOT substitute with a different meal. This is their explicit request - honor it precisely.` : ""}
 
 OUTPUT FORMAT: a single JSON object with keys:
 {
@@ -110,6 +147,8 @@ DO NOT:
 - Do not omit measurement amounts - every ingredient needs exact quantities.
   `.trim();
 
+  const palateSection = buildPalateSection(profile);
+
   const user = `
 User: ${profile.name ?? profile.userId}
 Diet: ${diet}
@@ -120,6 +159,7 @@ Allergies: ${avoid.length ? avoid.join(", ") : "none"}
 Avoid ingredients: ${profile.avoidIngredients?.length ? profile.avoidIngredients.join(", ") : "none"}
 Sweeteners: allow ${profile.preferredSweeteners?.join(", ") || "standard options"}; ${bannedSweeteners}
 Body type: ${profile.bodyType ?? "n/a"}
+${palateSection}
 
 Source: ${req.source}
 Meal type: ${req.mealType || "any meal"}

@@ -6,16 +6,16 @@
 
 export const GUEST_SUITE_BRANDING = {
   // Primary branding
-  name: "MPM Guest Suite",
+  name: "MPM Guest Experience",
   shortName: "MPM",
   
   // Hero copy - From the Voice & Coaching Manifesto
-  heroTitle: "Welcome to the MPM Guest Suite",
+  heroTitle: "Welcome to the MPM Guest Experience",
   heroSubtitle: "This isn't a food app. It's a coach in your pocket — designed to help you eat well, enjoy food, and follow through.",
   heroDescription: "You get 4 meal days to experience what real nutrition coaching feels like. Plan complete days, cook them, live them.",
   
   // Header
-  headerTitle: "MPM Guest Suite",
+  headerTitle: "MPM Guest Experience",
   
   // Phase 1 - Guided Build
   phase1: {
@@ -29,7 +29,7 @@ export const GUEST_SUITE_BRANDING = {
   phase2: {
     sectionTitle: "You're Making Progress",
     biometricsRevealToast: "Nice work. Biometrics is now unlocked.",
-    backToSuiteButton: "Back to Guest Suite",
+    backToSuiteButton: "Back to Guest Experience",
     backToSuiteSubtext: "See your progress & explore more",
   },
   
@@ -110,7 +110,7 @@ export const GUEST_SUITE_BRANDING = {
       lockedDescription: "Build your first meal to unlock",
     },
     chefsKitchen: {
-      label: "Chef's Kitchen",
+      label: "Chef's Kitchen Studio",
       description: "Step-by-step guided cooking with voice instructions — your personal sous chef",
       lockedDescription: "Complete the flow to unlock",
     },

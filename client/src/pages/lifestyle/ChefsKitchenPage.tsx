@@ -18,14 +18,28 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
+import TalkToChefButton from "@/components/voice/TalkToChefButton";
+import VoiceModeOverlay from "@/components/voice/VoiceModeOverlay";
+import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { apiUrl } from "@/lib/resolveApiBase";
+import {
+  isAllergyRelatedError,
+  formatAllergyAlertDescription,
+} from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import MealCardActions from "@/components/MealCardActions";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import {
   generateMedicalBadges,
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { setQuickView } from "@/lib/macrosQuickView";
 import {
   extractTimerSeconds,
@@ -56,13 +70,14 @@ import {
   KITCHEN_FINISHED,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import FavoriteButton from "@/components/FavoriteButton";
 
 type KitchenMode = "entry" | "studio" | "prepare";
 
 // Normalize instructions to always be an array for Phase 2 step-by-step navigation
 function normalizeInstructions(raw: string | string[] | undefined): string[] {
   if (!raw) return [];
-  
+
   // If array, always try to split single-element arrays that might be paragraphs
   if (Array.isArray(raw)) {
     const filtered = raw.filter(Boolean);
@@ -76,28 +91,28 @@ function normalizeInstructions(raw: string | string[] | undefined): string[] {
     }
     return filtered;
   }
-  
+
   // Split paragraph into steps - try numbered steps first (inline or newline separated)
   // Pattern matches: "1. ", "1) ", "Step 1:", etc.
   const numberedInlinePattern = /\b(\d+[\.\):])\s+/g;
   const hasNumberedSteps = numberedInlinePattern.test(raw);
-  
+
   if (hasNumberedSteps) {
     // Split on numbered patterns like "1. " or "2) "
     return raw
       .split(/\b\d+[\.\):]\s+/)
-      .map(s => s.trim())
+      .map((s) => s.trim())
       .filter(Boolean)
-      .map(s => s.replace(/\.$/, '').trim() + '.');
+      .map((s) => s.replace(/\.$/, "").trim() + ".");
   }
-  
+
   // Fall back to sentence splitting (split on ". " followed by capital letter or end)
   const sentences = raw
     .split(/\.\s+(?=[A-Z])/)
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean)
-    .map(s => s.endsWith('.') ? s : s + '.');
-  
+    .map((s) => (s.endsWith(".") ? s : s + "."));
+
   return sentences.length > 0 ? sentences : [raw];
 }
 
@@ -111,7 +126,12 @@ function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
     const saved = localStorage.getItem("mpm_chefs_kitchen_meal");
 
     // 🔥 PRODUCTION DIAGNOSTIC - Remove after verification
-    console.log("🔥 CHEF KITCHEN INIT - externalPrepare:", externalPrepare, "hasMeal:", !!saved);
+    console.log(
+      "🔥 CHEF KITCHEN INIT - externalPrepare:",
+      externalPrepare,
+      "hasMeal:",
+      !!saved,
+    );
 
     if (externalPrepare === "true" && saved) {
       const parsed = JSON.parse(saved) as GeneratedMeal;
@@ -209,13 +229,22 @@ export default function ChefsKitchenPage() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Voice studio ref for stopping voice when editing steps
+  const voiceStopRef = useRef<(() => void) | null>(null);
+
+  // Stop voice if active (used when manually editing)
+  const stopVoiceIfActive = () => {
+    voiceStopRef.current?.();
+  };
+
   // Get equipment list based on cooking method
   const suggestedEquipment = cookMethod
     ? EQUIPMENT_BY_METHOD[cookMethod] || []
     : [];
 
-  // Edit handlers - unlock step and reset downstream
+  // Edit handlers - unlock step and reset downstream (also stop voice if active)
   const editStep1 = () => {
+    stopVoiceIfActive();
     setStep1Locked(false);
     setStep2Locked(false);
     setStep3Locked(false);
@@ -229,6 +258,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep2 = () => {
+    stopVoiceIfActive();
     setStep2Locked(false);
     setStep3Locked(false);
     setStep4Locked(false);
@@ -242,6 +272,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep3 = () => {
+    stopVoiceIfActive();
     setStep3Locked(false);
     setStep4Locked(false);
     setStep5Locked(false);
@@ -251,6 +282,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep4 = () => {
+    stopVoiceIfActive();
     setStep4Locked(false);
     setStep5Locked(false);
     setStep5Listened(false);
@@ -258,6 +290,7 @@ export default function ChefsKitchenPage() {
   };
 
   const editStep5 = () => {
+    stopVoiceIfActive();
     setStep5Locked(false);
     setStudioStep(5);
   };
@@ -344,6 +377,47 @@ export default function ChefsKitchenPage() {
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+
+  // Safety override integration - always starts ON, auto-resets after generation
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  
+  // 🎨 FlavorToggle state (Personal = use palate prefs, Neutral = skip them)
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
+
+  // 🔐 SafetyGuard preflight system
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setAlert: setSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
+
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+
+  // Handle safety override continuation - auto-generate when override token received
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      clearSafetyAlert(); // Clear banner on successful override
+      // Set pending flag - generation will auto-trigger
+      setPendingGeneration(true);
+    }
+  };
+
+  // Effect: Auto-generate when override token is set and generation is pending
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isGeneratingMeal) {
+      setPendingGeneration(false);
+      startOpenKitchen(true); // true = skip preflight (already have override)
+    }
+  }, [pendingGeneration, overrideToken, isGeneratingMeal]);
+
   // Initialize with external meal if coming from prepare mode
   const [generatedMeal, setGeneratedMeal] = useState<GeneratedMeal | null>(
     externalMeal,
@@ -401,6 +475,13 @@ export default function ChefsKitchenPage() {
     }
   }, [generatedMeal]);
 
+  // Auto-trigger voice for Step 5 (Chef's Setup)
+  useEffect(() => {
+    if (studioStep === 5 && !step5Listened && !step5Locked && !isPlaying) {
+      speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep5Listened(true));
+    }
+  }, [studioStep, step5Listened, step5Locked, isPlaying]);
+
   // Persist prep state
   useEffect(() => {
     if (mode === "prepare" && generatedMeal) {
@@ -445,6 +526,130 @@ export default function ChefsKitchenPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
+  // Voice Studio configuration for hands-free mode (4 input steps)
+  const KITCHEN_VOICE_STEP1 = "Alright — what are we making today?";
+  const KITCHEN_VOICE_STEP2 =
+    "Got it. How do you want to cook it? Stovetop, oven, air fryer, or something else?";
+  const KITCHEN_VOICE_STEP3 =
+    "Any specific ingredients you want, or anything you want to avoid?";
+  const KITCHEN_VOICE_STEP4 = "How many servings should I make?";
+
+  const voiceStudio = useVoiceStudio({
+    steps: [
+      {
+        voiceScript: KITCHEN_VOICE_STEP1,
+        setValue: setDishIdea,
+        setLocked: setStep1Locked,
+        setListened: setStep1Listened,
+      },
+      {
+        voiceScript: KITCHEN_VOICE_STEP2,
+        setValue: setCookMethod,
+        setLocked: setStep2Locked,
+        setListened: setStep2Listened,
+        parseValue: (transcript) => {
+          const lower = transcript.toLowerCase();
+          if (
+            lower.includes("stove") ||
+            lower.includes("pan") ||
+            lower.includes("skillet")
+          )
+            return "stovetop";
+          if (
+            lower.includes("oven") ||
+            lower.includes("bake") ||
+            lower.includes("roast")
+          )
+            return "oven";
+          if (lower.includes("air") || lower.includes("fryer"))
+            return "air fryer";
+          if (lower.includes("grill")) return "grill";
+          if (lower.includes("instant") || lower.includes("pressure"))
+            return "instant pot";
+          if (lower.includes("slow") || lower.includes("crock"))
+            return "slow cooker";
+          if (
+            lower.includes("no cook") ||
+            lower.includes("raw") ||
+            lower.includes("fresh")
+          )
+            return "no-cook";
+          return transcript;
+        },
+      },
+      {
+        voiceScript: KITCHEN_VOICE_STEP3,
+        setValue: setIngredientNotes,
+        setLocked: setStep3Locked,
+        setListened: setStep3Listened,
+      },
+      {
+        voiceScript: KITCHEN_VOICE_STEP4,
+        setValue: (val) => {
+          const num = parseInt(val.replace(/\D/g, ""), 10);
+          setServings(num > 0 && num <= 12 ? num : 2);
+        },
+        setLocked: setStep4Locked,
+        setListened: setStep4Listened,
+        parseValue: (transcript) => {
+          const words: Record<string, number> = {
+            one: 1,
+            two: 2,
+            three: 3,
+            four: 4,
+            five: 5,
+            six: 6,
+            seven: 7,
+            eight: 8,
+            nine: 9,
+            ten: 10,
+            eleven: 11,
+            twelve: 12,
+          };
+          const lower = transcript.toLowerCase();
+          for (const [word, num] of Object.entries(words)) {
+            if (lower.includes(word)) return String(num);
+          }
+          const match = transcript.match(/\d+/);
+          return match ? match[0] : "2";
+        },
+      },
+    ],
+    onAllStepsComplete: (collectedValues: string[]) => {
+      // Use collected values directly to avoid React state timing issues
+      // Values order: [dishIdea, cookMethod, ingredientNotes, servings] - 4 steps
+      const [voiceDish, voiceMethod, voiceIngredients, voiceServings] =
+        collectedValues;
+      console.log("🎤 Voice studio collected:", {
+        voiceDish,
+        voiceMethod,
+        voiceIngredients,
+        voiceServings,
+      });
+
+      // Skip step 5 (equipment) in hands-free mode - go directly to generation (step 6)
+      // This prevents the step 5 useEffect from triggering overlapping TTS
+      setStudioStep(6);
+      setStep5Listened(true); // Mark as listened to prevent auto-speak
+      setStep5Locked(true); // Lock to prevent interaction
+
+      // Use suggested equipment as default since we don't ask for it in voice mode
+      startOpenKitchenWithValues(
+        voiceDish,
+        voiceMethod,
+        voiceIngredients,
+        voiceServings,
+        suggestedEquipment.join(", "),
+      );
+    },
+    setStudioStep: (step) => setStudioStep(step as 1 | 2 | 3 | 4 | 5 | 6),
+  });
+
+  // Wire voiceStopRef to the voice studio
+  useEffect(() => {
+    voiceStopRef.current = voiceStudio.stopVoiceMode;
+  }, [voiceStudio.stopVoiceMode]);
+
   // Phase 2: Calm transition when entering first cooking step
   useEffect(() => {
     if (mode === "prepare" && prepStep === 1) {
@@ -466,7 +671,220 @@ export default function ChefsKitchenPage() {
     };
   }, []);
 
-  const startOpenKitchen = async () => {
+  // Core generation logic - accepts explicit values to avoid React state timing issues
+  const generateMealWithValues = async (
+    voiceDish: string,
+    voiceMethod: string,
+    voiceIngredients: string,
+    voiceServingsStr: string,
+    voiceEquipment: string,
+    skipPreflight = false,
+  ) => {
+    // Parse servings from voice input
+    const voiceServings =
+      parseInt(voiceServingsStr?.replace(/\D/g, ""), 10) || 2;
+
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const requestDescription =
+        `${voiceDish} ${voiceMethod} ${voiceIngredients}`.trim();
+      const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
+      if (!isSafe) {
+        return;
+      }
+    }
+
+    setIsGeneratingMeal(true);
+    setGenerationProgress(10);
+    setGenerationError(null);
+
+    // Note: Voice studio already speaks completion message, so skip TTS here to avoid overlap
+    progressIntervalRef.current = setInterval(() => {
+      setGenerationProgress((p) => {
+        if (p >= 90) return p;
+        return p + Math.floor(Math.random() * 8) + 4;
+      });
+    }, 700);
+
+    try {
+      const chefPromptParts = [
+        `Create with Chef: ${voiceDish}`,
+        `Cooking method: ${voiceMethod}`,
+      ];
+
+      if (voiceIngredients) {
+        chefPromptParts.push(`Preferences: ${voiceIngredients}`);
+      }
+
+      const equipmentContext = voiceEquipment || suggestedEquipment.join(", ");
+      if (equipmentContext) {
+        chefPromptParts.push(`Equipment available: ${equipmentContext}`);
+      }
+
+      const cravingPrompt = chefPromptParts.join(". ");
+
+      const fullUrl = apiUrl("/api/meals/craving-creator");
+      console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
+      console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
+        cravingInput: cravingPrompt,
+        targetMealType: "dinner",
+        servings: voiceServings,
+      });
+
+      const response = await fetch(fullUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          cravingInput: cravingPrompt,
+          targetMealType: "dinner",
+          servings: voiceServings,
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: overrideToken || undefined,
+          skipPalate: !flavorPersonal,
+        }),
+      });
+
+      console.log(
+        "🔥 CHEF KITCHEN API RESPONSE - Status:",
+        response.status,
+        response.statusText,
+      );
+
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("🔥 CHEF KITCHEN API ERROR - Body:", errorText);
+        throw new Error(
+          `Failed to generate meal: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      console.log("🍳 Chef's Kitchen API response:", data);
+
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Safety alert detected",
+          suggestion: data.suggestion,
+        });
+        return;
+      }
+
+      const meal = data.meal;
+
+      if (!meal) {
+        throw new Error("No meal data returned from API");
+      }
+
+      const srcNutrition = meal.nutrition || {};
+      const nutritionCalories = srcNutrition.calories ?? meal.calories ?? 0;
+      const nutritionProtein = srcNutrition.protein ?? meal.protein ?? 0;
+      const nutritionCarbs = srcNutrition.carbs ?? meal.carbs ?? 0;
+      const nutritionFat = srcNutrition.fat ?? meal.fat ?? 0;
+
+      const normalizedMeal: GeneratedMeal = {
+        id: meal.id || `chef-${Date.now()}`,
+        name: meal.name,
+        description: meal.description || "",
+        mealType: meal.mealType || "dinner",
+        ingredients: (meal.ingredients || []).map((ing: any) => ({
+          // Handle both 'item' (from meal-engine) and 'name' (from other APIs)
+          name: ing.name || ing.item || "",
+          quantity: ing.quantity || ing.displayText,
+          amount: ing.amount,
+          unit: ing.unit,
+          notes: ing.notes || "",
+        })),
+        instructions: normalizeInstructions(
+          meal.instructions || meal.preparationSteps,
+        ),
+        imageUrl: meal.imageUrl || null,
+        calories: nutritionCalories,
+        protein: nutritionProtein,
+        carbs: nutritionCarbs,
+        fat: nutritionFat,
+        nutrition: {
+          calories: nutritionCalories,
+          protein: nutritionProtein,
+          carbs: nutritionCarbs,
+          fat: nutritionFat,
+        },
+        medicalBadges: meal.medicalBadges || [],
+        flags: meal.flags || [],
+        servingSize: meal.servingSize,
+        servings: voiceServings,
+        reasoning: meal.reasoning,
+      };
+
+      console.log("✅ Chef's Kitchen normalized meal:", normalizedMeal);
+
+      setGeneratedMeal(normalizedMeal);
+      setGenerationProgress(100);
+      speak(KITCHEN_STUDIO_OPEN_COMPLETE);
+
+      setTimeout(() => {
+        setIsGeneratingMeal(false);
+      }, 500);
+    } catch (error: any) {
+      console.error("Chef's Kitchen generation error:", error);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
+      if (isAllergyRelatedError(error.message)) {
+        const allergyDescription = formatAllergyAlertDescription(error.message);
+        setGenerationError(`Safety Alert: ${allergyDescription}`);
+      } else {
+        setGenerationError(
+          error.message || "Failed to generate meal. Please try again.",
+        );
+      }
+      setIsGeneratingMeal(false);
+      setGenerationProgress(0);
+    }
+  };
+
+  // Wrapper for voice studio - uses passed values directly
+  const startOpenKitchenWithValues = (
+    voiceDish?: string,
+    voiceMethod?: string,
+    voiceIngredients?: string,
+    voiceServings?: string,
+    voiceEquipment?: string,
+  ) => {
+    generateMealWithValues(
+      voiceDish || "",
+      voiceMethod || "",
+      voiceIngredients || "",
+      voiceServings || "2",
+      voiceEquipment || "",
+      false,
+    );
+  };
+
+  const startOpenKitchen = async (skipPreflight = false) => {
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const requestDescription =
+        `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
+      const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
+    }
+
     setIsGeneratingMeal(true);
     setGenerationProgress(10);
     setGenerationError(null);
@@ -507,24 +925,33 @@ export default function ChefsKitchenPage() {
 
       const cravingPrompt = chefPromptParts.join(". ");
 
-      // Call Craving Creator endpoint (intent-first generation)
-      const fullUrl = apiUrl("/api/craving-creator/generate");
+      const fullUrl = apiUrl("/api/meals/craving-creator");
       console.log("🔥 CHEF KITCHEN API CALL - URL:", fullUrl);
-      console.log("🔥 CHEF KITCHEN API CALL - Payload:", { craving: cravingPrompt, mealType: "dinner", source: "chefs-kitchen", servings });
-      
+      console.log("🔥 CHEF KITCHEN API CALL - Payload:", {
+        cravingInput: cravingPrompt,
+        targetMealType: "dinner",
+        servings,
+      });
+
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          craving: cravingPrompt,
-          mealType: "dinner",
-          source: "chefs-kitchen",
+          cravingInput: cravingPrompt,
+          targetMealType: "dinner",
           servings: servings,
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: overrideToken || undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
-      console.log("🔥 CHEF KITCHEN API RESPONSE - Status:", response.status, response.statusText);
+      console.log(
+        "🔥 CHEF KITCHEN API RESPONSE - Status:",
+        response.status,
+        response.statusText,
+      );
 
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
@@ -533,11 +960,29 @@ export default function ChefsKitchenPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("🔥 CHEF KITCHEN API ERROR - Body:", errorText);
-        throw new Error(`Failed to generate meal: ${response.status} ${errorText}`);
+        throw new Error(
+          `Failed to generate meal: ${response.status} ${errorText}`,
+        );
       }
 
       const data = await response.json();
       console.log("🍳 Chef's Kitchen API response:", data);
+
+      // Check for safety blocks/ambiguous - show banner instead of error
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Safety alert detected",
+          suggestion: data.suggestion,
+        });
+        return;
+      }
 
       const meal = data.meal;
 
@@ -573,7 +1018,8 @@ export default function ChefsKitchenPage() {
                 };
               }
               return {
-                name: ing.name || "",
+                // Handle both 'item' (from meal-engine) and 'name' (from other APIs)
+                name: ing.name || ing.item || "",
                 quantity: ing.quantity,
                 amount: ing.amount ?? ing.grams, // FinalMeal uses 'amount', skeleton uses 'grams'
                 unit: ing.unit ?? "g",
@@ -581,7 +1027,9 @@ export default function ChefsKitchenPage() {
               };
             })
           : [],
-        instructions: normalizeInstructions(meal.cookingInstructions || meal.instructions),
+        instructions: normalizeInstructions(
+          meal.cookingInstructions || meal.instructions,
+        ),
         imageUrl: meal.imageUrl,
         // Flat nutrition fields for components that expect them
         calories: nutritionCalories,
@@ -621,7 +1069,13 @@ export default function ChefsKitchenPage() {
       setIsGeneratingMeal(false);
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong";
-      setGenerationError(`${errorMessage}. Please try again.`);
+      if (isAllergyRelatedError(errorMessage)) {
+        setGenerationError(
+          `⚠️ ALLERGY ALERT: ${formatAllergyAlertDescription(errorMessage)}`,
+        );
+      } else {
+        setGenerationError(`${errorMessage}. Please try again.`);
+      }
       console.error("🚨 Chef's Kitchen generation error:", error);
     }
   };
@@ -635,23 +1089,28 @@ export default function ChefsKitchenPage() {
     >
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
+        <div className="px-4 h-14 flex items-center gap-3">
           <button
             onClick={() => setLocation("/lifestyle")}
-            className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
+            className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
             data-testid="button-back-to-lifestyle"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
           </button>
 
-          <h1 className="text-lg font-bold text-white truncate min-w-0">
-            Chef&apos;s Kitchen{" "}
-            <span className="text-xl leading-none">👨🏿‍🍳</span>
+          <h1 className="text-lg font-bold text-white truncate">
+            Chef&apos;s Kitchen
           </h1>
+
+          <img
+            src="/icons/chef.png"
+            alt="Chef"
+            className="w-8 h-8 rounded-full ring-2 ring-white/10 shadow flex-shrink-0"
+            draggable={false}
+          />
 
           <div className="flex-grow" />
 
@@ -663,9 +1122,9 @@ export default function ChefsKitchenPage() {
       </div>
 
       <div
-        className="px-4 space-y-4"
+        className="px-4 space-y-4 pb-32"
         style={{
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 68px)",
         }}
       >
         {/* ENTRY MODE */}
@@ -704,7 +1163,7 @@ export default function ChefsKitchenPage() {
                 </div>
 
                 <button
-                  className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm active:scale-[0.98] transition"
+                  className="w-full py-3 rounded-xl bg-lime-600 text-white font-semibold text-sm active:scale-[0.98] transition"
                   data-testid="button-enter-kitchen-studio"
                   onClick={() => setMode("studio")}
                 >
@@ -776,11 +1235,11 @@ export default function ChefsKitchenPage() {
               />
             )}
 
-            {/* Step 3 - Preferences & Guardrails */}
+            {/* Step 3 - Preferences & Guardrails (Yes/No pattern) */}
             {studioStep >= 3 && (
               <KitchenStepCard
                 stepTitle="Step 3 · Preferences"
-                question="Anything to adjust — lower sugar, less salt, gluten-free, dairy-free? Quick or taking your time?"
+                question="Any dietary preference, low sugar, low sodium, gluten free, food allergies, or food to avoid?"
                 summaryText={
                   ingredientNotes
                     ? `Preferences: ${ingredientNotes}`
@@ -792,7 +1251,14 @@ export default function ChefsKitchenPage() {
                 isLocked={step3Locked}
                 isPlaying={isPlaying}
                 placeholder="e.g., low sugar, gluten-free, no dairy, quick 15 min meal..."
-                inputType="textarea"
+                inputType="yesno"
+                yesnoConfig={{
+                  noLabel: "No, I'm good",
+                  yesLabel: "Yes, add preferences",
+                  noValue: "None",
+                  yesPlaceholder:
+                    "e.g., low sugar, gluten-free, no dairy, quick 15 min meal...",
+                }}
                 onInputFocus={stopChef}
                 onListen={() => {
                   if (step3Listened || isPlaying) return;
@@ -842,15 +1308,14 @@ export default function ChefsKitchenPage() {
             {studioStep >= 5 && (
               <KitchenStepCard
                 stepTitle="Step 5 · Chef's Setup"
-                question="Do you have these, or are you missing anything?"
-                summaryText={`Kitchen setup: ${equipment || suggestedEquipment.join(", ")}`}
-                value={equipment}
+                question="Take a look — if we have everything we need, tap OK."
+                summaryText={`Kitchen setup: ${suggestedEquipment.join(", ") || "Ready"}`}
+                value={equipment || "Ready"}
                 setValue={setEquipment}
                 hasListened={step5Listened}
                 isLocked={step5Locked}
                 isPlaying={isPlaying}
-                placeholder="Yes, all set / I don't have a skillet but I have a pan..."
-                inputType="textarea"
+                inputType="none"
                 equipmentList={suggestedEquipment}
                 onInputFocus={stopChef}
                 onListen={() => {
@@ -858,12 +1323,15 @@ export default function ChefsKitchenPage() {
                   speak(KITCHEN_STUDIO_EQUIPMENT, () => setStep5Listened(true));
                 }}
                 onSubmit={() => {
+                  setEquipment("Ready");
                   setStep5Locked(true);
                   setStudioStep(6);
                   speak(KITCHEN_STUDIO_EQUIPMENT_CONFIRMED);
                 }}
                 onEdit={editStep5}
                 canEdit={studioStep < 6}
+                submitLabel="OK"
+                autoReady
               />
             )}
 
@@ -908,12 +1376,43 @@ export default function ChefsKitchenPage() {
                           <strong>Equipment:</strong> {equipment}
                         </p>
                       </div>
+
+                      {/* SafetyGuard Preflight Banner */}
+                      <SafetyGuardBanner
+                        alert={safetyAlert}
+                        mealRequest={`${dishIdea} ${cookMethod}`}
+                        onDismiss={clearSafetyAlert}
+                        onOverrideSuccess={(token) =>
+                          handleSafetyOverride(false, token)
+                        }
+                      />
+
+                      {/* Meal Safety - GlucoseGuard + SafetyGuard */}
+                      <div className="mb-3 flex justify-end space-y-2">
+                        <GlucoseGuardToggle />
+                        <SafetyGuardToggle
+                          safetyEnabled={safetyEnabled}
+                          onSafetyChange={handleSafetyOverride}
+                          disabled={isGeneratingMeal || safetyChecking}
+                        />
+                      </div>
+
+                      {/* Flavor Preference */}
+                      <div className="mb-3 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                        <FlavorToggle
+                          flavorPersonal={flavorPersonal}
+                          onFlavorChange={setFlavorPersonal}
+                          disabled={isGeneratingMeal || safetyChecking}
+                        />
+                      </div>
+
                       <button
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                        onClick={startOpenKitchen}
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
+                        onClick={() => startOpenKitchen()}
+                        disabled={safetyChecking}
                         data-testid="button-generate-meal"
                       >
-                        Create the plan
+                        {safetyChecking ? "Checking..." : "Create the Plan"}
                       </button>
                     </div>
                   )}
@@ -941,8 +1440,8 @@ export default function ChefsKitchenPage() {
                         {generationError}
                       </p>
                       <button
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm transition"
-                        onClick={startOpenKitchen}
+                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
+                        onClick={() => startOpenKitchen()}
                       >
                         Try Again
                       </button>
@@ -959,10 +1458,15 @@ export default function ChefsKitchenPage() {
                           <h3 className="text-xl font-bold text-white">
                             {mealToShow.name}
                           </h3>
+                          <FavoriteButton
+                            title={generatedMeal.name}
+                            sourceType="chefs-kitchen"
+                            mealData={generatedMeal}
+                          />
                         </div>
                         <button
                           onClick={restartKitchenStudio}
-                          className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                         >
                           Create New
                         </button>
@@ -1045,40 +1549,6 @@ export default function ChefsKitchenPage() {
                           </div>
                           <div className="text-xs text-white">Fat</div>
                         </div>
-                      </div>
-
-                      {/* Action Buttons Row */}
-                      <div className="flex gap-2">
-                        <AddToMealPlanButton meal={generatedMeal} />
-                        <MealCardActions
-                          meal={{
-                            name: generatedMeal.name,
-                            description: generatedMeal.description,
-                            ingredients: generatedMeal.ingredients.map(
-                              (ing) => ({
-                                name: ing.name,
-                                amount: String(
-                                  ing.amount ?? ing.quantity ?? "",
-                                ),
-                                unit: ing.unit,
-                              }),
-                            ),
-                            instructions: generatedMeal.instructions,
-                            nutrition: generatedMeal.nutrition,
-                          }}
-                          onContentUpdate={(updated) => {
-                            setDisplayMeal({
-                              ...generatedMeal,
-                              name: updated.name || generatedMeal.name,
-                              description:
-                                updated.description ||
-                                generatedMeal.description,
-                              instructions:
-                                updated.instructions ||
-                                generatedMeal.instructions,
-                            });
-                          }}
-                        />
                       </div>
 
                       {/* Medical Badges */}
@@ -1164,40 +1634,99 @@ export default function ChefsKitchenPage() {
                         </div>
                       )}
 
-                      {/* Add Your Macros */}
-                      <button
-                        onClick={() => {
-                          setQuickView({
-                            protein: Math.round(generatedMeal.protein || 0),
-                            carbs: Math.round(generatedMeal.carbs || 0),
-                            starchyCarbs: 0,
-                            fibrousCarbs: 0,
-                            fat: Math.round(generatedMeal.fat || 0),
-                            calories: Math.round(generatedMeal.calories || 0),
-                            dateISO: new Date().toISOString().slice(0, 10),
-                            mealSlot: "snacks",
-                          });
-                          setLocation(
-                            "/biometrics?from=chefs-kitchen&view=macros",
-                          );
-                        }}
-                        className="w-full py-3 rounded-xl bg-black hover:bg-black/80 text-white font-semibold text-sm transition"
-                      >
-                        Add Your Macros
-                      </button>
+                      {/* Standardized 3-Row Button Layout */}
+                      <div className="space-y-2">
+                        {/* Row 1: Add to Macros (full width) */}
+                        <button
+                          onClick={() => {
+                            setQuickView({
+                              protein: Math.round(generatedMeal.protein || 0),
+                              carbs: Math.round(generatedMeal.carbs || 0),
+                              starchyCarbs: 0,
+                              fibrousCarbs: 0,
+                              fat: Math.round(generatedMeal.fat || 0),
+                              calories: Math.round(generatedMeal.calories || 0),
+                              dateISO: new Date().toISOString().slice(0, 10),
+                              mealSlot: "snacks",
+                            });
+                            setLocation(
+                              "/biometrics?from=chefs-kitchen&view=macros",
+                            );
+                          }}
+                          className="w-full py-3 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white font-semibold text-sm transition border border-white/30"
+                        >
+                          Add to Macros
+                        </button>
 
-                      {/* Prepare This Meal - Entry to Phase Two */}
-                      <button
-                        onClick={() => {
-                          stopChef();
-                          setPrepStep(0);
-                          setMode("prepare");
-                        }}
-                        className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
-                        data-testid="button-prepare-meal"
-                      >
-                        Enter Chef's Kitchen
-                      </button>
+                        {/* Row 2: Add to Plan + Translate (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <AddToMealPlanButton meal={generatedMeal} />
+                          <TranslateToggle
+                            content={{
+                              name: generatedMeal.name,
+                              description: generatedMeal.description,
+                              instructions: generatedMeal.instructions,
+                            }}
+                            onTranslate={(updated) => {
+                              setDisplayMeal({
+                                ...generatedMeal,
+                                name: updated.name || generatedMeal.name,
+                                description:
+                                  updated.description ||
+                                  generatedMeal.description,
+                                instructions:
+                                  updated.instructions ||
+                                  generatedMeal.instructions,
+                              });
+                            }}
+                          />
+                        </div>
+
+                        {/* Row 3: Prepare with Chef + Share (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              stopChef();
+                              setPrepStep(0);
+                              setMode("prepare");
+                            }}
+                            className="flex-1 py-2 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
+                            data-testid="button-prepare-meal"
+                          >
+                            Cook w/ Chef
+                          </button>
+                          <ShareRecipeButton
+                            recipe={{
+                              name: generatedMeal.name,
+                              description: generatedMeal.description,
+                              nutrition: generatedMeal.nutrition,
+                              ingredients: generatedMeal.ingredients.map(
+                                (ing) => ({
+                                  name: ing.name,
+                                  amount: String(
+                                    ing.amount ?? ing.quantity ?? "",
+                                  ),
+                                  unit: ing.unit,
+                                }),
+                              ),
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
+
+                        {/* Start Cooking - Full width CTA matching studio pattern */}
+                        <button
+                          onClick={() => {
+                            stopChef();
+                            setPrepStep(0);
+                            setMode("prepare");
+                          }}
+                          className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm transition"
+                          data-testid="button-start-cooking"
+                        >
+                          Start Cooking
+                        </button>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -1270,13 +1799,12 @@ export default function ChefsKitchenPage() {
                       </div>
                     )}
 
-                    {/* Listen to Chef */}
+                    {/* Press to Start */}
                     <button
-                      className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                       onClick={() => speak(KITCHEN_COOK_SETUP)}
                     >
-                      <Volume2 className="h-4 w-4" />
-                      Listen to Chef
+                      👉 Press to Start
                     </button>
 
                     <button
@@ -1326,13 +1854,12 @@ export default function ChefsKitchenPage() {
                             </p>
                           </div>
 
-                          {/* Listen to Chef */}
+                          {/* Press to Start */}
                           <button
-                            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                             onClick={() => speak(KITCHEN_PLATING)}
                           >
-                            <Volume2 className="h-4 w-4" />
-                            Listen to Chef
+                            👉 Press to Start
                           </button>
 
                           <div className="flex gap-3">
@@ -1391,13 +1918,12 @@ export default function ChefsKitchenPage() {
                           </p>
                         </div>
 
-                        {/* Listen to Chef for this step */}
+                        {/* Press to Start for this step */}
                         <button
-                          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm hover:bg-black/50 transition"
+                          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                           onClick={() => speak(currentInstruction)}
                         >
-                          <Volume2 className="h-4 w-4" />
-                          Listen to Chef
+                          👉 Press to Start
                         </button>
 
                         {/* Timer Controls (if detected or running) */}
@@ -1528,6 +2054,31 @@ export default function ChefsKitchenPage() {
         )}
       </div>
 
+      {/* Hands-free Voice Mode - temporarily hidden until mobile experience improves */}
+      {/* <VoiceModeOverlay
+        isOpen={voiceStudio.isActive}
+        onClose={voiceStudio.stopVoiceMode}
+        voiceState={voiceStudio.voiceState}
+        currentStep={voiceStudio.currentVoiceStep}
+        totalSteps={6}
+        lastTranscript={voiceStudio.lastTranscript}
+        isPlaying={voiceStudio.isPlaying}
+        onStart={voiceStudio.startVoiceMode}
+      /> */}
+
+      {/* Talk to Chef floating button - temporarily hidden until mobile experience improves */}
+      {/* {mode === "studio" && studioStep < 6 && !isGeneratingMeal && (
+        <TalkToChefButton
+          voiceState={voiceStudio.voiceState}
+          currentStep={voiceStudio.currentVoiceStep}
+          totalSteps={6}
+          lastTranscript={voiceStudio.lastTranscript}
+          isPlaying={voiceStudio.isPlaying}
+          onStart={voiceStudio.startVoiceMode}
+          onStop={voiceStudio.stopVoiceMode}
+        />
+      )} */}
+
       {/* Shopping Aggregate Bar - appears after meal is generated */}
       {generatedMeal && generatedMeal.ingredients?.length > 0 && (
         <ShoppingAggregateBar
@@ -1538,7 +2089,6 @@ export default function ChefsKitchenPage() {
           }))}
           source="Chef's Kitchen"
           sourceSlug="chefs-kitchen"
-          
         />
       )}
     </motion.div>

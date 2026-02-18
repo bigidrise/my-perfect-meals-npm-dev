@@ -77,11 +77,36 @@ export function getAssignedBuilder(healthConditions?: string[]): AssignedBuilder
 
 /**
  * Get the assigned builder from localStorage - checks multiple sources
- * Priority: guestSelectedBuilder → user.activeBoard → user.selectedMealBuilder → onboarding profile
+ * Priority: 
+ *   - For ProCare clients: activeBoard (coach-assigned) takes priority
+ *   - For regular users: selectedMealBuilder (user-chosen) takes priority
+ *   - Fallback: guestSelectedBuilder → onboarding profile → weekly
  */
 export function getAssignedBuilderFromStorage(): AssignedBuilder {
   try {
-    // First, check guest-specific builder selection (set during extended onboarding)
+    // FIRST: Check authenticated user's builder
+    const userStr = localStorage.getItem("mpm_current_user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // For actual ProCare clients (not professionals), use coach-assigned activeBoard
+      // For regular users and professionals, use their selectedMealBuilder
+      const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user.professionalRole || user.role || "");
+      const isActualProCareClient = user.isProCare === true && !isProfessional;
+      const builderType = isActualProCareClient
+        ? (user.activeBoard || user.selectedMealBuilder)
+        : (user.selectedMealBuilder || user.activeBoard);
+      
+      if (builderType && BUILDER_MAP[builderType]) {
+        return BUILDER_MAP[builderType];
+      }
+      // Handle underscore variant (anti_inflammatory)
+      if (builderType === "anti_inflammatory") {
+        return BUILDER_MAP["anti-inflammatory"];
+      }
+    }
+
+    // Second, check guest-specific builder selection (set during extended onboarding)
+    // Only used if no authenticated user is present
     const guestBuilder = localStorage.getItem("guestSelectedBuilder");
     if (guestBuilder) {
       if (BUILDER_MAP[guestBuilder]) {
@@ -89,21 +114,6 @@ export function getAssignedBuilderFromStorage(): AssignedBuilder {
       }
       // Handle underscore variant (anti_inflammatory)
       if (guestBuilder === "anti_inflammatory") {
-        return BUILDER_MAP["anti-inflammatory"];
-      }
-    }
-
-    // Second, check the current user's selectedMealBuilder (set by AuthContext)
-    const userStr = localStorage.getItem("mpm_current_user");
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      // Check activeBoard first (ProCare assigned), then selectedMealBuilder
-      const builderType = user.activeBoard || user.selectedMealBuilder;
-      if (builderType && BUILDER_MAP[builderType]) {
-        return BUILDER_MAP[builderType];
-      }
-      // Handle underscore variant (anti_inflammatory)
-      if (builderType === "anti_inflammatory") {
         return BUILDER_MAP["anti-inflammatory"];
       }
     }

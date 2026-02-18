@@ -4,17 +4,19 @@ import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
 import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
 import { withPageErrorBoundary } from "@/components/PageErrorBoundary";
+import { withGate } from "@/components/GatedRoute";
 // import MealLogHistoryPage from "@/pages/MealLogHistoryPage"; // TEMPORARILY DISABLED - File missing
 import ABTestingDemo from "@/pages/ABTestingDemo";
 import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
+import StudioBottomNav from "@/components/pro/StudioBottomNav";
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
 import Planner from "@/pages/Planner";
 import WeeklyMealBoard from "@/pages/WeeklyMealBoard";
 import BeachBodyMealBoard from "@/pages/BeachBodyMealBoard";
-import MacroCounter from "@/pages/MacroCounter";
+import MacroCounter from "@/pages/MacroCalculator";
 // DELETED: AdultBeverageHubPage
 import LifestyleLandingPage from "@/pages/LifestyleLandingPage"; // Renamed from EmotionAIHub
 import HealthyKidsMeals from "@/pages/HealthyKidsMeals";
@@ -45,6 +47,10 @@ import MealBuilderSelection from "@/pages/MealBuilderSelection";
 import CheckoutSuccess from "@/pages/CheckoutSuccess";
 import FamilyInfoPage from "@/pages/FamilyInfoPage";
 import AdminModerationPage from "@/pages/admin-moderation";
+import ConsumerWelcome from "@/pages/ConsumerWelcome";
+import ProCareWelcome from "@/pages/procare/ProCareWelcome";
+import ProCareIdentity from "@/pages/procare/ProCareIdentity";
+import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
 
 // Additional component imports
@@ -85,12 +91,14 @@ import CareTeam from "@/pages/CareTeam";
 import PhysicianCareTeam from "@/pages/care-team/PhysicianCareTeam";
 import TrainerCareTeam from "@/pages/care-team/TrainerCareTeam";
 import PhysicianPortal from "@/pages/pro/PhysicianPortal";
-import ProCareCover from "@/pages/ProCareCover";
+import MorePage from "@/pages/More";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
+import ProClientsPhysician from "@/pages/pro/ProClientsPhysician";
 import ProClientDashboard from "@/pages/pro/ProClientDashboard";
 import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
 import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
+import ProBoardViewer from "@/pages/pro/ProBoardViewer";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
 
 // Physician Hub Pages
@@ -108,6 +116,11 @@ import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import CravingPresets from "@/pages/CravingPresets";
+import CravingStudio from "@/pages/craving-creator/CravingStudio";
+import DessertStudio from "@/pages/dessert-creator/DessertStudio";
+import FridgeRescueStudio from "@/pages/fridge-rescue/FridgeRescueStudio";
+import EditProfilePage from "@/pages/profile/EditProfilePage";
+import SavedMeals from "@/pages/SavedMeals";
 
 // Alcohol Hub pages
 import AlcoholHubLanding from "@/pages/AlcoholHubLanding";
@@ -173,9 +186,26 @@ export default function Router() {
     "/onboarding-legacy",
     "/pricing",
     "/checkout/success",
+    "/consumer-welcome",
+    "/procare-welcome",
+    "/procare-identity",
+    "/procare-attestation",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
+
+  const clinicRoutes = [
+    "/care-team",
+    "/pro-portal",
+    "/pro/clients",
+    "/pro/physician-clients",
+    "/pro/physician",
+    "/pro/general-nutrition-builder",
+  ];
+
+  const isClinicRoute = clinicRoutes.some(route =>
+    location.startsWith(route)
+  );
 
   // The rest of the original routes are kept below.
 
@@ -198,6 +228,10 @@ export default function Router() {
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
+        <Route path="/consumer-welcome" component={ConsumerWelcome} />
+        <Route path="/procare-welcome" component={ProCareWelcome} />
+        <Route path="/procare-identity" component={ProCareIdentity} />
+        <Route path="/procare-attestation" component={ProCareAttestation} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route
           path="/onboarding"
@@ -221,8 +255,9 @@ export default function Router() {
         <Route path="/privacy" component={PrivacySecurity} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
-        {/* Profile functionality in My Hub (ProfileSheet) - no separate /profile page needed */}
-        {/* Settings functionality now in My Hub (ProfileSheet) */}
+        {/* Profile Edit Page */}
+        <Route path="/profile" component={EditProfilePage} />
+        <Route path="/saved-meals" component={SavedMeals} />
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />
@@ -230,7 +265,7 @@ export default function Router() {
         <Route path="/kids-meals" component={KidsMealsHub} />
         <Route path="/toddler-meals" component={ToddlersMealsHub} />
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/chefs-kitchen" component={ChefsKitchenPage} />
+        <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
@@ -354,8 +389,8 @@ export default function Router() {
         />
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
         <Route
-          path="/procare-cover"
-          component={withPageErrorBoundary(ProCareCover, "ProCare Cover")}
+          path="/more"
+          component={withPageErrorBoundary(MorePage, "More")}
         />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route
@@ -377,6 +412,10 @@ export default function Router() {
         <Route
           path="/pro/clients"
           component={withPageErrorBoundary(ProClients, "Pro Clients")}
+        />
+        <Route
+          path="/pro/physician-clients"
+          component={withPageErrorBoundary(ProClientsPhysician, "Physician Clients")}
         />
         <Route path="/pro/clients/:id" component={ProClientDashboard} />
         <Route
@@ -401,6 +440,13 @@ export default function Router() {
           )}
         />
         <Route
+          path="/pro/clients/:clientId/board/:program"
+          component={withPageErrorBoundary(
+            ProBoardViewer,
+            "Pro Board Viewer",
+          )}
+        />
+        <Route
           path="/pro-client-dashboard"
           component={withPageErrorBoundary(
             ProClientDashboard,
@@ -410,6 +456,10 @@ export default function Router() {
         <Route
           path="/performance-competition-builder"
           component={PerformanceCompetitionBuilderStandalone}
+        />
+        <Route
+          path="/pro/general-nutrition-builder"
+          component={GeneralNutritionBuilder}
         />
         <Route
           path="/pro/clients/:id/general-nutrition-builder"
@@ -477,6 +527,9 @@ export default function Router() {
         />
         {/* DELETED: /craving-hub route (old CravingHub moved to _quarantine - use /craving-creator-landing instead) */}
         <Route path="/craving-desserts" component={CravingDessertCreator} />
+        <Route path="/craving-studio" component={withGate(CravingStudio, 'studioCreators')} />
+        <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
+        <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
         <Route path="/craving-presets" component={CravingPresets} />
         {/* Alcohol Hub Routes */}
         <Route path="/alcohol-hub" component={AlcoholHubLanding} />
@@ -511,7 +564,10 @@ export default function Router() {
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
-      {shouldShowBottomNav && <BottomNav />}
+      {shouldShowBottomNav && !isClinicRoute && <BottomNav />}
+      {isClinicRoute && <StudioBottomNav />}
     </>
   );
 }
+
+

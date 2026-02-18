@@ -32,6 +32,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { PillButton } from "@/components/ui/pill-button";
+import { GlucoseGuardExplainerModal } from "@/components/GlucoseGuardExplainerModal";
 
 const DIABETIC_TOUR_STEPS: TourStep[] = [
   {
@@ -90,6 +92,7 @@ export default function DiabeticHub() {
   const [giCap, setGiCap] = useState("55");
   const [mealFrequency, setMealFrequency] = useState("4");
   const [selectedPreset, setSelectedPreset] = useState<string>("");
+  const [showGlucoseExplainer, setShowGlucoseExplainer] = useState(false);
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -150,6 +153,12 @@ export default function DiabeticHub() {
     }
 
     try {
+      console.log("[GlucoseLog] Attempting to log:", {
+        userId,
+        valueMgdl: parseInt(glucoseReading),
+        context: glucoseContext,
+      });
+      
       await logMutation.mutateAsync({
         userId,
         valueMgdl: parseInt(glucoseReading),
@@ -158,8 +167,14 @@ export default function DiabeticHub() {
       });
       setGlucoseReading("");
       toast({ title: "Reading logged successfully" });
-    } catch (error) {
-      toast({ title: "Failed to log reading", variant: "destructive" });
+    } catch (error: any) {
+      console.error("[GlucoseLog] Failed to log reading:", error);
+      const errorMsg = error?.message || error?.body || "Unknown error";
+      toast({ 
+        title: "Failed to log reading", 
+        description: errorMsg.slice(0, 100),
+        variant: "destructive" 
+      });
     }
   };
 
@@ -190,10 +205,10 @@ export default function DiabeticHub() {
 
         {/* Universal Safe-Area Header */}
         <div
-          className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-          style={{ top: "env(safe-area-inset-top, 0px)" }}
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-4 py-3 flex items-center gap-3">
+          <div className="px-4 pb-3 flex items-center gap-3">
             <Activity className="h-6 w-6 text-orange-500" />
 
             {/* Title */}
@@ -443,6 +458,19 @@ export default function DiabeticHub() {
                 <div className="text-white/80 text-base mt-2">
                   Target: {targetMin}-{targetMax} mg/dL
                 </div>
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60 text-xs">
+                      GlucoseGuard™ adjusts meals to this reading
+                    </span>
+                    <PillButton
+                      onClick={() => setShowGlucoseExplainer(true)}
+                      variant="amber"
+                    >
+                      How It Works
+                    </PillButton>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -627,7 +655,7 @@ export default function DiabeticHub() {
 
             <button
               onClick={() => setLocation("/diabetic-menu-builder")}
-              className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-900 to-lime-900 hover:from-lime-500 hover:to-lime-500 text-white font-semibold transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 relative overflow-hidden"
+              className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-600 to-lime-600 text-white font-semibold transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
               <span className="relative z-10"> Diabetic Meal Builder </span>
@@ -642,6 +670,12 @@ export default function DiabeticHub() {
           title="How to Use Diabetic Hub"
           steps={DIABETIC_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+        />
+
+        {/* GlucoseGuard Explainer Modal */}
+        <GlucoseGuardExplainerModal
+          isOpen={showGlucoseExplainer}
+          onClose={() => setShowGlucoseExplainer(false)}
         />
       </div>
     </>

@@ -403,10 +403,10 @@ export default function ShoppingListMasterView() {
     >
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-8 py-3 flex items-center gap-3">
+        <div className="px-8 pb-3 flex items-center gap-3">
           {/* Guest Mode: Continue to Biometrics button (only during first loop - guided tour) */}
           {isGuestMode() && !hasCompletedFirstLoop() && (
             <Button
@@ -492,32 +492,31 @@ export default function ShoppingListMasterView() {
         </div>
         {/* Add Other Items Section */}
         <AddOtherItems />
-        {/* Walmart Card - Single Integration */}
-        <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5">
+        {/* Walmart Card - Coming Soon */}
+        <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5 opacity-70">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-lg font-semibold">Walmart Grocery</div>
-              <div className="text-xs inline-flex items-center gap-2 mt-1">
-                <span className="rounded-full px-2 py-0.5 bg-yellow-500/20 border border-yellow-300/40 text-yellow-200 text-[11px]">
-                  Live — Search on Walmart
-                </span>
-                <span className="text-white/60 text-[11px]">
-                  Full cart & delivery integration pending Walmart approval
+              <div className="text-lg font-semibold flex items-center gap-2">
+                Walmart Grocery
+                <span className="rounded-full px-2 py-0.5 bg-amber-500/30 border border-amber-400/50 text-amber-200 text-[10px] font-medium">
+                  Coming Soon
                 </span>
               </div>
-              <div className="text-xs text-white/70 mt-2 max-w-md">
-                Tap the button below to open your shopping list as a search on
-                Walmart.com. You can choose your preferred brands, add to cart,
-                and complete pickup or delivery inside Walmart.
+              <div className="text-xs text-white/60 mt-1">
+                Full cart & delivery integration pending Walmart approval
+              </div>
+              <div className="text-xs text-white/50 mt-2 max-w-md">
+                Soon you'll be able to send your shopping list directly to
+                Walmart for pickup or delivery.
               </div>
             </div>
 
             <Button
               data-testid="shopping-send-to-store"
-              onClick={handleShopAtWalmart}
-              className="rounded-xl px-4 py-2 border border-white/40 bg-blue-600/30 hover:bg-blue-600/40 text-white text-sm whitespace-nowrap"
+              disabled
+              className="rounded-xl px-4 py-2 border border-white/20 bg-zinc-700/50 text-white/50 text-sm whitespace-nowrap cursor-not-allowed"
             >
-              Shop this list on Walmart
+              Shop on Walmart
             </Button>
           </div>
         </div>

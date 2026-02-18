@@ -16,9 +16,15 @@ import {
   Check,
   ArrowRight,
   ArrowLeft,
+  Shield,
+  Eye,
+  EyeOff,
+  Utensils,
+  Dumbbell,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
-type OnboardingStep = "goals" | "builder";
+type OnboardingStep = "goals" | "builder" | "safety-pin";
 
 interface BuilderOption {
   id: string;
@@ -27,6 +33,7 @@ interface BuilderOption {
   icon: React.ReactNode;
   bestFor: string[];
   goalCategories: string[];
+  planBadge: string;
 }
 
 const BUILDER_OPTIONS: BuilderOption[] = [
@@ -37,6 +44,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Calendar className="w-6 h-6" />,
     bestFor: ["General wellness", "Family meals", "Variety seekers"],
     goalCategories: ["general", "weight_loss"],
+    planBadge: "Basic Plan",
   },
   {
     id: "diabetic",
@@ -45,6 +53,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Heart className="w-6 h-6" />,
     bestFor: ["Type 1 or Type 2 diabetes", "Blood sugar management", "Pre-diabetes"],
     goalCategories: ["diabetes"],
+    planBadge: "Basic Plan",
   },
   {
     id: "glp1",
@@ -53,6 +62,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Pill className="w-6 h-6" />,
     bestFor: ["GLP-1 medication users", "Appetite management", "High protein needs"],
     goalCategories: ["glp1"],
+    planBadge: "Basic Plan",
   },
   {
     id: "anti_inflammatory",
@@ -61,6 +71,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Flame className="w-6 h-6" />,
     bestFor: ["Autoimmune conditions", "Joint pain", "Chronic inflammation"],
     goalCategories: ["anti_inflammatory"],
+    planBadge: "Basic Plan",
   },
   {
     id: "beach_body",
@@ -69,6 +80,25 @@ const BUILDER_OPTIONS: BuilderOption[] = [
     icon: <Trophy className="w-6 h-6" />,
     bestFor: ["Competition prep", "Rapid fat loss", "Physique goals"],
     goalCategories: ["performance"],
+    planBadge: "Ultimate Plan",
+  },
+  {
+    id: "general_nutrition",
+    title: "General Nutrition Builder",
+    description: "Professional-grade nutrition with coach support and custom protocols.",
+    icon: <Utensils className="w-6 h-6" />,
+    bestFor: ["Coach-guided nutrition", "Custom meal plans", "Professional support"],
+    goalCategories: ["pro_coaching"],
+    planBadge: "Pro Plan (Trainer Unlock)",
+  },
+  {
+    id: "performance_competition",
+    title: "Performance & Competition Builder",
+    description: "Elite athlete meal planning for competition prep and peak performance.",
+    icon: <Dumbbell className="w-6 h-6" />,
+    bestFor: ["Elite athletes", "Competition prep", "Peak performance"],
+    goalCategories: ["pro_performance"],
+    planBadge: "Pro Plan (Trainer Unlock)",
   },
 ];
 
@@ -86,8 +116,9 @@ export default function ExtendedOnboarding() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   
-  // ProCare mode: coach assigns builder, user only sets macros/starch
-  const isProCareUser = user?.isProCare === true;
+  // ProCare mode: only actual clients (not professionals) get coach-assigned builder restrictions
+  const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const isProCareUser = user?.isProCare === true && !isProfessional;
   const hasCoachAssignedBuilder = isProCareUser && user?.activeBoard;
   const isAwaitingCoachAssignment = isProCareUser && !user?.activeBoard;
   
@@ -95,12 +126,21 @@ export default function ExtendedOnboarding() {
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [selectedBuilder, setSelectedBuilder] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  
+  // Safety PIN state
+  const [safetyPin, setSafetyPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Choose Your Builder | My Perfect Meals";
     
     if (user?.selectedMealBuilder || user?.activeBoard) {
-      setSelectedBuilder(user.activeBoard || user.selectedMealBuilder || null);
+      const currentBuilder = isProCareUser
+        ? (user.activeBoard || user.selectedMealBuilder)
+        : (user.selectedMealBuilder || user.activeBoard);
+      setSelectedBuilder(currentBuilder || null);
     }
     
     // ProCare with assignment: redirect to macro calculator directly
@@ -109,8 +149,8 @@ export default function ExtendedOnboarding() {
     }
   }, [user, hasCoachAssignedBuilder, setLocation]);
 
-  // Simple 2-step flow: Goals → Builder
-  const steps: OnboardingStep[] = ["goals", "builder"];
+  // 3-step flow: Goals → Builder → Safety PIN
+  const steps: OnboardingStep[] = ["goals", "builder", "safety-pin"];
   const currentStepIndex = steps.indexOf(currentStep);
 
   const getRecommendedBuilders = () => {
@@ -168,8 +208,8 @@ export default function ExtendedOnboarding() {
 
       await refreshUser();
 
-      // Go straight to Macro Calculator
-      setLocation("/macro-counter");
+      // Move to Safety PIN step
+      handleNext();
 
     } catch (error) {
       console.error(error);
@@ -181,6 +221,66 @@ export default function ExtendedOnboarding() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSafetyPinContinue = async () => {
+    setPinError(null);
+    
+    // Validate PIN format (exactly 4 digits)
+    if (!/^\d{4}$/.test(safetyPin)) {
+      setPinError("PIN must be exactly 4 digits");
+      return;
+    }
+    
+    if (safetyPin !== confirmPin) {
+      setPinError("PINs do not match");
+      return;
+    }
+    
+    setSaving(true);
+    
+    try {
+      const authToken = getAuthToken();
+      
+      if (!authToken) {
+        // Guest mode: skip PIN setup
+        setLocation("/macro-counter");
+        return;
+      }
+      
+      const response = await fetch(apiUrl("/api/safety-pin/set"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": authToken,
+        },
+        body: JSON.stringify({ pin: safetyPin }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to set Safety PIN");
+      }
+      
+      toast({
+        title: "Safety PIN Set",
+        description: "Your Safety PIN has been created successfully.",
+      });
+      
+      // Continue to Macro Calculator
+      setLocation("/macro-counter");
+      
+    } catch (error: any) {
+      console.error(error);
+      setPinError(error.message || "Could not set Safety PIN");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSkipSafetyPin = () => {
+    // Allow users to skip PIN setup (they can set it later in settings)
+    setLocation("/macro-counter");
   };
 
   const renderStepIndicator = () => (
@@ -295,6 +395,7 @@ export default function ExtendedOnboarding() {
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-white mb-2">Choose your Primary Builder</h2>
           <p className="text-white/70 text-sm">This is the only builder you'll be able to open in Planner.</p>
+          <p className="text-emerald-400/80 text-xs mt-2">You can always change your builder later in Settings.</p>
         </div>
 
         {recommended.length > 0 && (
@@ -316,7 +417,16 @@ export default function ExtendedOnboarding() {
                       {builder.icon}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-medium">{builder.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-white font-medium">{builder.title}</h3>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          builder.planBadge === "Ultimate Plan" 
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        }`}>
+                          {builder.planBadge}
+                        </span>
+                      </div>
                       <p className="text-white/60 text-xs mt-1">{builder.description}</p>
                     </div>
                     {selectedBuilder === builder.id && (
@@ -348,7 +458,16 @@ export default function ExtendedOnboarding() {
                       {builder.icon}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white/80 font-medium text-sm">{builder.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-white/80 font-medium text-sm">{builder.title}</h3>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          builder.planBadge === "Ultimate Plan" 
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        }`}>
+                          {builder.planBadge}
+                        </span>
+                      </div>
                     </div>
                     {selectedBuilder === builder.id && (
                       <Check className="w-5 h-5 text-orange-500" />
@@ -376,12 +495,127 @@ export default function ExtendedOnboarding() {
     );
   };
 
+  const renderSafetyPinStep = () => (
+    <div className="space-y-4">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+          <Shield className="w-8 h-8 text-green-400" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">MPM SafetyGuard</h2>
+        <p className="text-white/70 text-sm">
+          Two-layer allergy protection system
+        </p>
+      </div>
+
+      <Card className="border-white/10 bg-black/30">
+        <CardContent className="p-4 space-y-4">
+          <p className="text-white/70 text-sm leading-relaxed">
+            My Perfect Meals includes <span className="text-green-400 font-medium">MPM SafetyGuard</span>, 
+            a two-layer allergy protection system designed to help prevent meals that conflict with your food allergies.
+          </p>
+          
+          <p className="text-white/60 text-sm leading-relaxed">
+            SafetyGuard checks ingredients <strong className="text-white">before meals are created</strong> and{" "}
+            <strong className="text-white">after meals are generated</strong> to help reduce allergy risks.
+          </p>
+          
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-2">
+            <p className="text-amber-200 text-xs leading-relaxed">
+              Because allergies can be serious, SafetyGuard is <strong>always on by default</strong>. 
+              Create a 4-digit Safety PIN to protect against accidental or unauthorized changes.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">
+                Enter Safety PIN
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPin ? "text" : "password"}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder="4 digits"
+                  value={safetyPin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setSafetyPin(val);
+                    setPinError(null);
+                  }}
+                  className="bg-black/40 border-white/20 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPin(!showPin)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
+                >
+                  {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">
+                Confirm Safety PIN
+              </label>
+              <Input
+                type={showPin ? "text" : "password"}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                placeholder="Confirm 4-digit PIN"
+                value={confirmPin}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  setConfirmPin(val);
+                  setPinError(null);
+                }}
+                className="bg-black/40 border-white/20 text-white"
+              />
+            </div>
+
+            {pinError && (
+              <p className="text-red-400 text-sm">{pinError}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <p className="text-white/40 text-xs text-center">
+        You can change or remove this later in Profile Settings.
+      </p>
+
+      <div className="pt-4 space-y-3">
+        <Button
+          onClick={handleSafetyPinContinue}
+          disabled={saving || safetyPin.length < 4}
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          {saving ? "Setting PIN..." : "Create Safety PIN"}
+          {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
+        </Button>
+
+        <Button
+          variant="ghost"
+          onClick={handleSkipSafetyPin}
+          className="w-full bg-black border border-white/20 text-white/60 hover:text-white hover:bg-white/10"
+        >
+          Skip for now
+        </Button>
+      </div>
+    </div>
+  );
+
   const renderCurrentStep = () => {
     switch (currentStep) {
       case "goals":
         return renderGoalsStep();
       case "builder":
         return renderBuilderStep();
+      case "safety-pin":
+        return renderSafetyPinStep();
       default:
         return null;
     }
@@ -394,8 +628,8 @@ export default function ExtendedOnboarding() {
       className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white"
     >
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3">
           <h1 className="text-lg font-bold text-white text-center">

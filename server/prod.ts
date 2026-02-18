@@ -1,8 +1,11 @@
 // CRITICAL: Start server FIRST, import everything else AFTER
 // This ensures health checks pass even if other imports crash
 import express from "express";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import { fileURLToPath } from 'url';
+import pg from "pg";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,12 +22,11 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   console.error('🚨 UNCAUGHT EXCEPTION:', error);
-  // Don't exit - let health checks continue working
 });
 
 const app = express();
 
-// Trust proxy for correct IP handling
+// Trust proxy for correct IP handling (Cloud Run uses 1 proxy hop)
 app.set('trust proxy', 1);
 
 // Track initialization state
@@ -32,12 +34,12 @@ let isInitialized = false;
 let initError: Error | null = null;
 
 // CRITICAL: Health checks MUST respond IMMEDIATELY - no middleware, no delays
+// Cloud Run checks root path (/) for readiness
 app.get("/healthz", (_req, res) => {
   res.status(200).send("ok");
 });
 
 app.get("/", (_req, res, next) => {
-  // During initialization, respond with health check for Cloud Run
   if (!isInitialized) {
     return res.status(200).send("ok - server starting");
   }
@@ -57,7 +59,7 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-// START SERVER IMMEDIATELY
+// START SERVER IMMEDIATELY - health checks respond before any heavy init
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
@@ -93,6 +95,18 @@ async function initializeApp() {
       console.warn("⚠️ [INIT] Missing env vars:", envValidation.missing.join(', '));
     }
     
+    // Safe column migrations (adds missing columns without altering types)
+    console.log("📋 [INIT] Running safe column migrations...");
+    try {
+      const { db: database } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
+      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
+      console.log("✅ [INIT] Column migrations complete");
+    } catch (migErr) {
+      console.warn("⚠️ [INIT] Column migration warning:", migErr);
+    }
+
     // Import middleware
     console.log("📋 [INIT] Loading middleware...");
     const { requestId } = await import("./middleware/requestId");
@@ -118,14 +132,19 @@ async function initializeApp() {
         origin === 'ionic://localhost' ||
         origin === 'http://localhost'
       );
+      const isProductionOrigin = origin && (
+        origin === 'https://myperfectmeals.com' ||
+        origin === 'https://www.myperfectmeals.com' ||
+        origin.endsWith('.vercel.app')
+      );
 
-      if (!origin || isReplitOrigin || isCapacitorOrigin) {
+      if (!origin || isReplitOrigin || isCapacitorOrigin || isProductionOrigin) {
         res.header('Access-Control-Allow-Origin', origin || '*');
         res.header('Access-Control-Allow-Credentials', 'true');
       }
       
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token');
       
       if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
@@ -135,6 +154,46 @@ async function initializeApp() {
 
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
+
+    // PostgreSQL-backed session store (production-ready, no MemoryStore)
+    // Guarded: if DATABASE_URL is missing, fall back to MemoryStore with warning
+    const sessionConfig: session.SessionOptions = {
+      secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: true,
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: 'none' as const,
+      }
+    };
+
+    if (process.env.DATABASE_URL) {
+      try {
+        const PgSession = connectPgSimple(session);
+        const sessionPool = new pg.Pool({
+          connectionString: process.env.DATABASE_URL,
+          max: 5,
+          ssl: process.env.DATABASE_URL.includes('sslmode=require') 
+            ? { rejectUnauthorized: false } 
+            : undefined,
+        });
+        sessionConfig.store = new PgSession({
+          pool: sessionPool,
+          tableName: 'session',
+          createTableIfMissing: true,
+          pruneSessionInterval: 60 * 15,
+        });
+        console.log("✅ [INIT] PostgreSQL session store configured");
+      } catch (pgSessionErr) {
+        console.warn("⚠️ [INIT] Failed to create PG session store, using default:", pgSessionErr);
+      }
+    } else {
+      console.warn("⚠️ [INIT] DATABASE_URL not set, sessions will use default MemoryStore");
+    }
+
+    app.use(session(sessionConfig));
 
     // Cache control for macros
     app.use((req, res, next) => {
@@ -197,9 +256,20 @@ async function initializeApp() {
     console.log(`🎉 [INIT] Full initialization complete in ${Date.now() - startTime}ms`);
     console.log(`✅ [INIT] Server fully ready at: ${new Date().toISOString()}`);
 
+    // Background services - AFTER full initialization (non-blocking)
+    setTimeout(async () => {
+      try {
+        console.log("📋 [BG] Starting background services...");
+        const { initDailyReminderCron } = await import("./cron/dailyReminders");
+        initDailyReminderCron();
+        console.log("✅ [BG] Daily reminder cron started");
+      } catch (bgErr) {
+        console.warn("⚠️ [BG] Background service warning:", bgErr);
+      }
+    }, 5000);
+
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));
-    // Don't crash - server is still responding to health checks
   }
 }

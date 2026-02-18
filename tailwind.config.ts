@@ -82,10 +82,65 @@ export default {
             height: "0",
           },
         },
+        "pill-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 4px 1px rgba(234, 179, 8, 0.2)",
+            borderColor: "rgba(250, 204, 21, 0.4)",
+          },
+          "50%": {
+            boxShadow: "0 0 12px 4px rgba(234, 179, 8, 0.5), 0 0 20px 6px rgba(234, 179, 8, 0.25)",
+            borderColor: "rgba(250, 204, 21, 0.9)",
+          },
+        },
+        "pulse-glow-green": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px rgba(52, 211, 153, 0.4), 0 0 16px 4px rgba(16, 185, 129, 0.2)",
+            borderColor: "rgba(52, 211, 153, 0.7)",
+          },
+          "50%": {
+            boxShadow: "0 0 12px 4px rgba(52, 211, 153, 0.6), 0 0 24px 8px rgba(16, 185, 129, 0.3)",
+            borderColor: "rgba(110, 231, 183, 0.9)",
+          },
+        },
+        "pulse-glow-amber": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px rgba(245, 158, 11, 0.4), 0 0 16px 4px rgba(217, 119, 6, 0.2)",
+            borderColor: "rgba(245, 158, 11, 0.7)",
+          },
+          "50%": {
+            boxShadow: "0 0 12px 4px rgba(245, 158, 11, 0.6), 0 0 24px 8px rgba(217, 119, 6, 0.3)",
+            borderColor: "rgba(251, 191, 36, 0.9)",
+          },
+        },
+        "pulse-glow-orange": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px rgba(249, 115, 22, 0.3), 0 0 16px 4px rgba(234, 88, 12, 0.15)",
+            borderColor: "rgba(251, 146, 60, 0.5)",
+          },
+          "50%": {
+            boxShadow: "0 0 14px 5px rgba(249, 115, 22, 0.5), 0 0 28px 10px rgba(234, 88, 12, 0.25)",
+            borderColor: "rgba(251, 146, 60, 0.9)",
+          },
+        },
+        "pulse-glow-blue": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px rgba(59, 130, 246, 0.3), 0 0 16px 4px rgba(37, 99, 235, 0.15)",
+            borderColor: "rgba(96, 165, 250, 0.5)",
+          },
+          "50%": {
+            boxShadow: "0 0 14px 5px rgba(59, 130, 246, 0.5), 0 0 28px 10px rgba(37, 99, 235, 0.25)",
+            borderColor: "rgba(96, 165, 250, 0.9)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pill-pulse": "pill-pulse 2s ease-in-out infinite",
+        "pulse-glow-green": "pulse-glow-green 2s ease-in-out infinite",
+        "pulse-glow-amber": "pulse-glow-amber 2s ease-in-out infinite",
+        "pulse-glow-orange": "pulse-glow-orange 2s ease-in-out infinite",
+        "pulse-glow-blue": "pulse-glow-blue 2s ease-in-out infinite",
       },
     },
   },

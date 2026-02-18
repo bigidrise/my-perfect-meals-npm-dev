@@ -1,19 +1,36 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { apiUrl } from '@/lib/resolveApiBase';
+import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, ArrowLeft, CreditCard, Apple, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
+import {
+  Check,
+  ArrowLeft,
+  CreditCard,
+  Apple,
+  RefreshCw,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import AffiliateOnPricing from "@/components/AffiliateOnPricing";
 import { PLAN_SKUS, getPlansByGroup } from "@/data/planSkus";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
-import { isIosNativeShell, IOS_PAYMENT_MESSAGE, openAppleSubscriptions } from "@/lib/platform";
+import {
+  isIosNativeShell,
+  IOS_PAYMENT_MESSAGE,
+  openAppleSubscriptions,
+} from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchProducts, restorePurchases, purchaseProduct, type StoreKitProduct } from "@/lib/storekit";
+import {
+  fetchProducts,
+  restorePurchases,
+  purchaseProduct,
+  type StoreKitProduct,
+} from "@/lib/storekit";
 import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 
@@ -29,7 +46,9 @@ export default function PricingPage() {
   // Apple Guideline 3.1.1 - All purchases through Apple In-App Purchase
   const [iosProducts, setIosProducts] = useState<StoreKitProduct[]>([]);
   const [iosLoading, setIosLoading] = useState(true);
-  const [purchasingProduct, setPurchasingProduct] = useState<string | null>(null);
+  const [purchasingProduct, setPurchasingProduct] = useState<string | null>(
+    null,
+  );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
 
   useEffect(() => {
@@ -57,7 +76,8 @@ export default function PricingPage() {
       if (result.success) {
         toast({
           title: "Purchase Successful",
-          description: "Your subscription is now active. Enjoy premium features!",
+          description:
+            "Your subscription is now active. Enjoy premium features!",
         });
         setLocation("/dashboard");
       } else if (result.error !== "Purchase cancelled") {
@@ -82,7 +102,7 @@ export default function PricingPage() {
     setRestoringPurchases(true);
     try {
       const results = await restorePurchases();
-      const successful = results.filter(r => r.success);
+      const successful = results.filter((r) => r.success);
       if (successful.length > 0) {
         toast({
           title: "Purchases Restored",
@@ -117,12 +137,14 @@ export default function PricingPage() {
         className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-safe-nav"
       >
         <div
-          className="fixed left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
-          style={{ top: "env(safe-area-inset-top, 0px)" }}
+          className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-3">
             <Button
-              onClick={() => user ? setLocation("/dashboard") : setLocation("/welcome")}
+              onClick={() =>
+                user ? setLocation("/dashboard") : setLocation("/welcome")
+              }
               className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -139,64 +161,213 @@ export default function PricingPage() {
           {/* Current subscription status */}
           {hasSubscription && (
             <div className="bg-lime-500/20 border border-lime-500/30 rounded-xl p-4 mb-6 text-center">
-              <p className="text-lime-400 font-medium text-sm">Active Subscription</p>
+              <p className="text-lime-400 font-medium text-sm">
+                Active Subscription
+              </p>
               <p className="text-white text-lg font-bold mt-1">
-                {user.planLookupKey?.replace(/_/g, ' ').replace('mpm ', '').replace(' monthly', '')}
+                {user.planLookupKey
+                  ?.replace(/_/g, " ")
+                  .replace("mpm ", "")
+                  .replace(" monthly", "")}
               </p>
             </div>
           )}
 
-          {/* Subscription plans */}
+          {/* Subscription plans - Always show products to Apple reviewers */}
           {!hasSubscription && (
             <div className="space-y-4 mb-6">
-              <h2 className="text-xl font-bold text-center mb-4">Choose Your Plan</h2>
-              
+              <h2 className="text-xl font-bold text-center mb-4">
+                Choose Your Plan
+              </h2>
+
               {iosLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
                 </div>
-              ) : iosProducts.length === 0 ? (
-                <div className="bg-amber-500/20 border border-amber-500/30 rounded-xl p-4 text-center">
-                  <p className="text-amber-300 font-medium text-sm mb-2">Subscriptions temporarily unavailable</p>
-                  <p className="text-white/60 text-xs">Please try again later or check your internet connection.</p>
-                  <Button
-                    onClick={loadIosProducts}
-                    variant="outline"
-                    className="mt-3 text-white border-white/20 hover:bg-white/10"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Retry
-                  </Button>
-                </div>
               ) : (
                 IOS_PRODUCTS.map((product) => {
-                  const storeProduct = iosProducts.find(p => p.productId === product.productId);
-                  const displayPrice = storeProduct?.displayPrice || `$${product.price.toFixed(2)}/mo`;
+                  const storeProduct = iosProducts.find(
+                    (p) => p.productId === product.productId,
+                  );
+                  const displayPrice =
+                    storeProduct?.displayPrice ||
+                    `$${product.price.toFixed(2)}/mo`;
                   const isPurchasing = purchasingProduct === product.productId;
+                  const isPremium =
+                    product.internalSku === "mpm_premium_monthly";
 
                   return (
                     <div
                       key={product.productId}
-                      className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-5"
+                      className={`bg-black/40 backdrop-blur-lg border rounded-xl p-5 ${
+                        isPremium
+                          ? "border-orange-400/50 ring-1 ring-orange-400/30"
+                          : "border-white/15"
+                      }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="text-white font-bold text-lg">{product.label}</h3>
-                          <p className="text-white/60 text-sm">{displayPrice}</p>
+                          <h3 className="text-white font-bold text-lg">
+                            {product.label}
+                          </h3>
+                          <p className="text-white/60 text-sm">
+                            {displayPrice}
+                          </p>
                         </div>
-                        {product.internalSku === "mpm_premium_monthly" && (
-                          <Badge className="bg-orange-500/80 text-white text-xs">Popular</Badge>
+                        {isPremium && (
+                          <Badge className="bg-orange-500/80 text-white text-xs">
+                            Most Popular
+                          </Badge>
                         )}
                       </div>
+
+                      {/* Feature highlights per tier */}
+                      <ul className="text-white/70 text-xs space-y-1.5 mb-4">
+                        {product.internalSku === "mpm_basic_monthly" && (
+                          <>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Copilot Voice Guidance
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Multi-Language Voice Input & Translation
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Weekly
+                              Meal Board
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> GLP-1
+                              & Diabetic Support
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Anti-Inflammatory Builder
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Daily
+                              Macro Calculator
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Master
+                              Shopping Lists
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Biometrics Tracking
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Spirits & Alcohol Hub
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              SafetyGuard Allergy Protection
+                            </li>
+                          </>
+                        )}
+                        {product.internalSku === "mpm_premium_monthly" && (
+                          <>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Everything in Basic, plus:
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Chef's
+                              Kitchen Studio
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Craving Creator/ Studio
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Craving Presets
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />
+                              Dessert Creator/ Studio{" "}
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Fridge
+                              Rescue/ Studio
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Restaurant Guide
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Find
+                              Meals Near Me
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Spirits & Alcohol Hub
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Kids &
+                              Toddler Meals
+                            </li>
+                          </>
+                        )}
+                        {product.internalSku === "mpm_ultimate_monthly" && (
+                          <>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Everything in Premium, plus:
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Pro
+                              Care Team Access
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Beach
+                              Body Meal Builder
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Competition Prep Builder
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Lab
+                              Metrics Integration
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Priority Support
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" /> Coach
+                              Workspace
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <Check className="w-3 h-3 text-lime-400" />{" "}
+                              Clinical Advisory System
+                            </li>
+                          </>
+                        )}
+                      </ul>
+
                       <Button
                         onClick={() => handleIosPurchase(product)}
                         disabled={isPurchasing}
-                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                        className={`w-full ${
+                          isPremium
+                            ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold"
+                            : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                        }`}
                       >
                         {isPurchasing ? (
-                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                            Processing...
+                          </>
                         ) : (
-                          "Subscribe"
+                          <>
+                            <Apple className="w-4 h-4 mr-2" />
+                            Subscribe with Apple
+                          </>
                         )}
                       </Button>
                     </div>
@@ -211,11 +382,14 @@ export default function PricingPage() {
             <div className="w-14 h-14 mx-auto bg-white/10 rounded-full flex items-center justify-center">
               <Apple className="w-7 h-7 text-white" />
             </div>
-            
+
             <div className="space-y-2">
-              <h2 className="text-lg font-bold text-white">Manage Your Subscription</h2>
+              <h2 className="text-lg font-bold text-white">
+                Manage Your Subscription
+              </h2>
               <p className="text-white/70 text-sm leading-relaxed">
-                Subscriptions are managed securely through Apple. Tap below to view, upgrade, or cancel your subscription.
+                Subscriptions are managed securely through Apple. Tap below to
+                view, upgrade, or cancel your subscription.
               </p>
             </div>
 
@@ -235,9 +409,14 @@ export default function PricingPage() {
                 className="w-full text-white/60 hover:text-white hover:bg-white/5"
               >
                 {restoringPurchases ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Restoring...</>
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                    Restoring...
+                  </>
                 ) : (
-                  <><RefreshCw className="w-4 h-4 mr-2" /> Restore Purchases</>
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" /> Restore Purchases
+                  </>
                 )}
               </Button>
             )}
@@ -245,27 +424,35 @@ export default function PricingPage() {
 
           <div className="pt-6 space-y-3 text-center">
             <Button
-              onClick={() => user ? setLocation("/dashboard") : setLocation("/welcome")}
+              onClick={() =>
+                user ? setLocation("/dashboard") : setLocation("/welcome")
+              }
               variant="ghost"
               className="text-white/60 hover:text-white"
             >
               Continue to App
             </Button>
-            
+
             <p className="text-white/40 text-xs">
-              Need help? <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a>
+              Need help?{" "}
+              <a
+                href="mailto:support@myperfectmeals.com"
+                className="text-lime-400 underline"
+              >
+                support@myperfectmeals.com
+              </a>
             </p>
             <p className="text-white/40 text-xs">
-              <a 
-                href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" 
-                target="_blank" 
+              <a
+                href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/50 underline hover:text-white/70"
               >
                 Terms of Use (EULA)
               </a>
               {" · "}
-              <button 
+              <button
                 onClick={() => setLocation("/privacy-policy")}
                 className="text-white/50 underline hover:text-white/70"
               >
@@ -358,31 +545,38 @@ export default function PricingPage() {
 
   const legacyFeatures = {
     basic: [
+      "Copilot Voice Guidance",
+      "Multi-Language Voice Input & Translation",
       "Weekly Meal Builder",
       "GLP-1 Hub and Meal Builder",
       "Diabetic Hub and Meal Builder",
       "Anti-Inflammatory Meal Bulider",
       "Daily Macro Calculator",
       "Supplement Hub",
-      "Biometrics",
+      "Master Shopping List",
+      "Biometrics Tracking",
+      "MacroScan",
+      "Spirits & Alcohol Hub",
       "Daily Health Journal",
+      "SafeGuard Allergy Protection",
     ],
     premium: [
       "Everything in Basic",
-      "Chef’s Kitchen (create & customize meals)",
-      "Craving Creator (healthy versions of what you want)",
-      "Fridge Rescue (turn what you have into meals)",
-      "Restaurant & Eating Out Guide",
-      "Healthy Kids & Family Meals",
+      "Chef’s Kitchen Studio (create & customize meals)",
+      "Craving Presets (healthy AI created favorites)",
+      "Craving Creator plus Studio (healthy versions of your favorite cravings)",
+      "Dessert Creator plus Studio (healthy versions of your favorite desserts)",
+      "Fridge Rescue plus Studio (turn what you have into meals)",
+      "Restaurant Guide",
+      "Find Meals Near Me",
+      "Healthy Kids & Toddler Meals",
       "Spirits & Lifestyle Hub",
     ],
     ultimate: [
       "Everything in Premium",
-      "Care Team / Pro Access",
+      "Physicians Care Team / Pro Access",
+      "Trainers Care Team / Pro Access",
       "Beach Body / Hard Body Meal Builder",
-      "Lab Values (coming soon)",
-      "Medical Diet Hub (coming soon",
-      "Food Delivery (coming soon)",
     ],
   };
 
@@ -395,8 +589,8 @@ export default function PricingPage() {
     >
       {/* Fixed Black Glass Navigation Banner */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3">
           <Button
@@ -408,7 +602,6 @@ export default function PricingPage() {
             <span className="text-xs font-medium">Back</span>
           </Button>
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            
             Subscription
           </h1>
         </div>
@@ -419,277 +612,269 @@ export default function PricingPage() {
         className="max-w-6xl mx-auto px-4 text-white space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-                {/* Consumer Plans Grid */}
-                <div className="mb-8">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {consumerPlans.map((plan) => {
-                      const features =
-                        plan.sku === "mpm_basic_monthly"
-                          ? legacyFeatures.basic
-                          : plan.sku === "mpm_premium_monthly"
-                            ? legacyFeatures.premium
-                            : legacyFeatures.ultimate;
+        {/* Consumer Plans Grid */}
+        <div className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {consumerPlans.map((plan) => {
+              const features =
+                plan.sku === "mpm_basic_monthly"
+                  ? legacyFeatures.basic
+                  : plan.sku === "mpm_premium_monthly"
+                    ? legacyFeatures.premium
+                    : legacyFeatures.ultimate;
 
-                      return (
-                          <Card
-                            key={plan.sku}
-                            className={`relative h-full bg-black/30 backdrop-blur-lg text-white shadow-xl ${
-                              plan.sku === "mpm_premium_monthly"
-                                ? "border-2 border-orange-400/60 ring-2 ring-orange-400/40"
-                                : "border border-white/15"
-                            }`}
-                            data-testid={`plan-card-${plan.sku}`}
-                          >
-                            
-                          {plan.badge && (
-                            <Badge className="absolute top-3 right-3 bg-purple-600/80 text-white backdrop-blur-sm border border-white/10">
-                              {plan.badge}
-                            </Badge>
-                          )}
+              return (
+                <Card
+                  key={plan.sku}
+                  className={`relative h-full bg-black/30 backdrop-blur-lg text-white shadow-xl ${
+                    plan.sku === "mpm_premium_monthly"
+                      ? "border-2 border-orange-400/60 ring-2 ring-orange-400/40"
+                      : "border border-white/15"
+                  }`}
+                  data-testid={`plan-card-${plan.sku}`}
+                >
+                  {plan.badge && (
+                    <Badge className="absolute top-3 right-3 bg-purple-600/80 text-white backdrop-blur-sm border border-white/10">
+                      {plan.badge}
+                    </Badge>
+                  )}
 
-                          <CardHeader className="pb-4">
-                            <div className="space-y-2">
-                              <h3 className="text-xl font-bold">
-                                {plan.label}
-                              </h3>
-                              <p className="text-sm text-white/80">
-                                {plan.blurb}
-                              </p>
-                              <p className="text-lg font-semibold">
-                                ${plan.price.toFixed(2)} / month
-                              </p>
-                            </div>
-                          </CardHeader>
+                  <CardHeader className="pb-4">
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold">{plan.label}</h3>
+                      <p className="text-sm text-white/80">{plan.blurb}</p>
+                      <p className="text-lg font-semibold">
+                        ${plan.price.toFixed(2)} / month
+                      </p>
+                    </div>
+                  </CardHeader>
 
-                          <Separator className="bg-white/10" />
+                  <Separator className="bg-white/10" />
 
-                          <CardContent className="pt-6">
-                            <div className="space-y-3">
-                              {features.map((label, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-start gap-2"
-                                >
-                                  <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                                  <span className="text-sm text-white">
-                                    {label}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-
-                          <Separator className="bg-white/10" />
-
-                          <div className="p-6">
-                            <Button
-                              className={`w-full ${
-                                plan.badge
-                                  ? "bg-white/10 hover:bg-white/15 border border-white/20 text-white"
-                                  : "bg-white/5 hover:bg-white/10 border border-white/20 text-white"
-                              }`}
-                              size="lg"
-                              onClick={() => handleSelectPlan(plan.sku)}
-                              disabled={user?.planLookupKey === plan.sku}
-                              data-testid={`button-select-${plan.sku}`}
-                            >
-                              {getButtonText(plan.sku)}
-                            </Button>
-                          </div>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Family Plans Section */}
-                <div className="mb-12">
-                  <h2 className="text-xl font-bold mb-6 text-center">
-                    Family Plans
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {familyPlans.map((plan) => (
-                      <Card
-                        key={plan.sku}
-                        className="relative h-full bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl"
-                        data-testid={`plan-card-${plan.sku}`}
-                      >
-                        {plan.badge && (
-                          <Badge className="absolute top-3 right-3 bg-blue-600/80 text-white backdrop-blur-sm border border-white/10">
-                            {plan.badge}
-                          </Badge>
-                        )}
-
-                        <CardHeader className="pb-4">
-                          <div className="space-y-2">
-                            <h3 className="text-xl font-bold">{plan.label}</h3>
-                            <p className="text-sm text-white/80">
-                              {plan.blurb}
-                            </p>
-                            <p className="text-lg font-semibold">
-                              ${plan.price.toFixed(2)} / month
-                            </p>
-                            {plan.seats && (
-                              <p className="text-xs text-white/60">
-                                Includes up to {plan.seats} profiles
-                              </p>
-                            )}
-                          </div>
-                        </CardHeader>
-
-                        <Separator className="bg-white/10" />
-
-                        <CardContent className="pt-6">
-                          <div className="space-y-3">
-                            {plan.features?.map((label, idx) => (
-                              <div key={idx} className="flex items-start gap-2">
-                                <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm text-white">
-                                  {label}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-
-                        <Separator className="bg-white/10" />
-
-                        <div className="p-6">
-                          <Button
-                            className="w-full bg-white/5 hover:bg-white/10 border border-white/20 text-white"
-                            size="lg"
-                            onClick={() => handleSelectPlan(plan.sku)}
-                            disabled={user?.planLookupKey === plan.sku}
-                            data-testid={`button-select-${plan.sku}`}
-                          >
-                            {getButtonText(plan.sku)}
-                          </Button>
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      {features.map((label, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-white">{label}</span>
                         </div>
-                      </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+
+                  <Separator className="bg-white/10" />
+
+                  <div className="p-6">
+                    <Button
+                      className={`w-full ${
+                        plan.badge
+                          ? "bg-white/10 hover:bg-white/15 border border-white/20 text-white"
+                          : "bg-white/5 hover:bg-white/10 border border-white/20 text-white"
+                      }`}
+                      size="lg"
+                      onClick={() => handleSelectPlan(plan.sku)}
+                      disabled={user?.planLookupKey === plan.sku}
+                      data-testid={`button-select-${plan.sku}`}
+                    >
+                      {getButtonText(plan.sku)}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Family Plans Section */}
+        <div className="mb-12">
+          <h2 className="text-xl font-bold mb-6 text-center">Family Plans</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {familyPlans.map((plan) => (
+              <Card
+                key={plan.sku}
+                className="relative h-full bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl"
+                data-testid={`plan-card-${plan.sku}`}
+              >
+                {plan.badge && (
+                  <Badge className="absolute top-3 right-3 bg-blue-600/80 text-white backdrop-blur-sm border border-white/10">
+                    {plan.badge}
+                  </Badge>
+                )}
+
+                <CardHeader className="pb-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold">{plan.label}</h3>
+                    <p className="text-sm text-white/80">{plan.blurb}</p>
+                    <p className="text-lg font-semibold">
+                      ${plan.price.toFixed(2)} / month
+                    </p>
+                    {plan.seats && (
+                      <p className="text-xs text-white/60">
+                        Includes up to {plan.seats} profiles
+                      </p>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <Separator className="bg-white/10" />
+
+                <CardContent className="pt-6">
+                  <div className="space-y-3">
+                    {plan.features?.map((label, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-white">{label}</span>
+                      </div>
                     ))}
                   </div>
+                </CardContent>
+
+                <Separator className="bg-white/10" />
+
+                <div className="p-6">
+                  <Button
+                    className="w-full bg-white/5 hover:bg-white/10 border border-white/20 text-white"
+                    size="lg"
+                    onClick={() => handleSelectPlan(plan.sku)}
+                    disabled={user?.planLookupKey === plan.sku}
+                    data-testid={`button-select-${plan.sku}`}
+                  >
+                    {getButtonText(plan.sku)}
+                  </Button>
                 </div>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-                {/* Affiliate Panel */}
-                <div className="mb-12">
-                  <AffiliateOnPricing />
-                </div>
+        {/* Affiliate Panel */}
+        <div className="mb-12">
+          <AffiliateOnPricing />
+        </div>
 
-                {/* Apple App Store Compliance Section */}
-                <div className="mb-12 space-y-6">
-                  {/* Subscription Terms - Apple Required */}
-                  <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
-                    <p className="text-white/90 text-sm font-medium">
-                      7-Day Free Trial, then $9.99/month (Basic), $19.99/month (Premium), or $29.99/month (Ultimate)
-                    </p>
-                    <p className="text-white/60 text-xs leading-relaxed">
-                      Payment will be charged to your account at confirmation of purchase. 
-                      Subscription automatically renews unless canceled at least 24 hours before the end of the current period. 
-                      Your account will be charged for renewal within 24 hours prior to the end of the current period. 
-                      You can manage and cancel your subscription in your account settings.
-                    </p>
-                    <div className="flex justify-center gap-4 text-xs">
-                      <button 
-                        onClick={() => setLocation("/terms-of-service")}
-                        className="text-lime-400 underline hover:text-lime-300"
-                      >
-                        Terms of Service
-                      </button>
-                      <button 
-                        onClick={() => setLocation("/privacy-policy")}
-                        className="text-lime-400 underline hover:text-lime-300"
-                      >
-                        Privacy Policy
-                      </button>
-                    </div>
-                  </div>
+        {/* Apple App Store Compliance Section */}
+        <div className="mb-12 space-y-6">
+          {/* Subscription Terms - Apple Required */}
+          <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
+            <p className="text-white/90 text-sm font-medium">
+              7-Day Free Trial, then $9.99/month (Basic), $19.99/month
+              (Premium), or $29.99/month (Ultimate)
+            </p>
+            <p className="text-white/60 text-xs leading-relaxed">
+              Payment will be charged to your account at confirmation of
+              purchase. Subscription automatically renews unless canceled at
+              least 24 hours before the end of the current period. Your account
+              will be charged for renewal within 24 hours prior to the end of
+              the current period. You can manage and cancel your subscription in
+              your account settings.
+            </p>
+            <div className="flex justify-center gap-4 text-xs">
+              <button
+                onClick={() => setLocation("/terms-of-service")}
+                className="text-lime-400 underline hover:text-lime-300"
+              >
+                Terms of Service
+              </button>
+              <button
+                onClick={() => setLocation("/privacy-policy")}
+                className="text-lime-400 underline hover:text-lime-300"
+              >
+                Privacy Policy
+              </button>
+            </div>
+          </div>
 
-                  {/* Restore Purchases */}
-                  <div className="text-center">
-                    <button
-                      onClick={async () => {
-                        if (!user?.email) {
-                          toast({
-                            title: "Sign In Required",
-                            description: "Please sign in to restore your purchases.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        
-                        toast({
-                          title: "Checking Subscription...",
-                          description: "Looking up your account...",
-                        });
-                        
-                        try {
-                          const response = await fetch(apiUrl("/api/stripe/subscription-status"), {
-                            headers: {
-                              "x-auth-token": localStorage.getItem("authToken") || "",
-                            },
-                          });
-                          
-                          if (response.ok) {
-                            const data = await response.json();
-                            if (data.hasActiveSubscription) {
-                              toast({
-                                title: "Subscription Found!",
-                                description: `Your ${data.planName || "subscription"} is active. Refreshing...`,
-                              });
-                              window.location.reload();
-                            } else {
-                              toast({
-                                title: "No Active Subscription",
-                                description: "No active subscription found for your account.",
-                              });
-                            }
-                          } else {
-                            toast({
-                              title: "Subscription Restored",
-                              description: "If you have an active subscription, it has been synced to your account.",
-                            });
-                          }
-                        } catch (error) {
-                          toast({
-                            title: "Restore Complete",
-                            description: "Your subscription status has been refreshed.",
-                          });
-                        }
-                      }}
-                      className="text-white/60 text-sm underline hover:text-white/80 transition-colors"
-                    >
-                      Restore Purchases
-                    </button>
-                  </div>
+          {/* Restore Purchases */}
+          <div className="text-center">
+            <button
+              onClick={async () => {
+                if (!user?.email) {
+                  toast({
+                    title: "Sign In Required",
+                    description: "Please sign in to restore your purchases.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
 
-                  {/* Support Contact */}
-                  <p className="text-white/50 text-xs text-center">
-                    Need help? Contact us at{" "}
-                    <a 
-                      href="mailto:support@myperfectmeals.com" 
-                      className="text-lime-400 underline hover:text-lime-300"
-                    >
-                      support@myperfectmeals.com
-                    </a>
-                  </p>
-                  <p className="text-white/40 text-xs text-center mt-2">
-                    <a 
-                      href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-white/50 underline hover:text-white/70"
-                    >
-                      Terms of Use (EULA)
-                    </a>
-                    {" · "}
-                    <button 
-                      onClick={() => setLocation("/privacy-policy")}
-                      className="text-white/50 underline hover:text-white/70"
-                    >
-                      Privacy Policy
-                    </button>
-                  </p>
-                </div>
+                toast({
+                  title: "Checking Subscription...",
+                  description: "Looking up your account...",
+                });
+
+                try {
+                  const response = await fetch(
+                    apiUrl("/api/stripe/subscription-status"),
+                    {
+                      headers: {
+                        "x-auth-token": localStorage.getItem("authToken") || "",
+                      },
+                    },
+                  );
+
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.hasActiveSubscription) {
+                      toast({
+                        title: "Subscription Found!",
+                        description: `Your ${data.planName || "subscription"} is active. Refreshing...`,
+                      });
+                      window.location.reload();
+                    } else {
+                      toast({
+                        title: "No Active Subscription",
+                        description:
+                          "No active subscription found for your account.",
+                      });
+                    }
+                  } else {
+                    toast({
+                      title: "Subscription Restored",
+                      description:
+                        "If you have an active subscription, it has been synced to your account.",
+                    });
+                  }
+                } catch (error) {
+                  toast({
+                    title: "Restore Complete",
+                    description: "Your subscription status has been refreshed.",
+                  });
+                }
+              }}
+              className="text-white/60 text-sm underline hover:text-white/80 transition-colors"
+            >
+              Restore Purchases
+            </button>
+          </div>
+
+          {/* Support Contact */}
+          <p className="text-white/50 text-xs text-center">
+            Need help? Contact us at{" "}
+            <a
+              href="mailto:support@myperfectmeals.com"
+              className="text-lime-400 underline hover:text-lime-300"
+            >
+              support@myperfectmeals.com
+            </a>
+          </p>
+          <p className="text-white/40 text-xs text-center mt-2">
+            <a
+              href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/50 underline hover:text-white/70"
+            >
+              Terms of Use (EULA)
+            </a>
+            {" · "}
+            <button
+              onClick={() => setLocation("/privacy-policy")}
+              className="text-white/50 underline hover:text-white/70"
+            >
+              Privacy Policy
+            </button>
+          </p>
+        </div>
       </div>
     </motion.div>
   );

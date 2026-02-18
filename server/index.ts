@@ -92,13 +92,16 @@ import builderPlansRouter from "./routes/builderPlans";
 import passwordResetRouter from "./routes/password-reset";
 import iosVerifyRouter from "./routes/iosVerify";
 import translateRouter from "./routes/translate";
+import studioGeneratorRouter from "./routes/studioGenerator";
 
 const app = express();
 
-// CORS middleware for production (Vercel frontend)
+// CORS middleware for production (all frontend origins)
 app.use((req, res, next) => {
   const allowedOrigins = [
     'https://my-perfect-meals-frontend-clean.vercel.app',
+    'https://myperfectmeals.com',
+    'https://www.myperfectmeals.com',
     'http://localhost:5173', // for local dev
     'http://localhost:5000'  // for Replit dev
   ];
@@ -357,6 +360,9 @@ app.use("/api/avatar", avatarContextRoutes);
 app.use("/api/craving-creator", cravingCreatorRouter);  
 app.use("/api/meals/dessert-creator", dessertCreatorRouter);
 app.use("/api/holiday-feast", holidayFeastRouter);
+
+// Studio Generation Facade (LibraryEngine + QueueEngine)
+app.use("/api/studio", studioGeneratorRouter);
 app.use("/api/breakfast", breakfastRouter);
 app.use("/api/lunch", lunchRouter);
 app.use("/api/dinner", dinnerRouter);

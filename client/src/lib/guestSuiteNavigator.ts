@@ -156,7 +156,7 @@ export function getNavigationOverrideMessage(currentPage: GuestSuitePage): strin
     case "shopping-list":
       return "Next step: View your nutrition data in Biometrics";
     case "biometrics":
-      return "Return to Guest Suite to continue exploring";
+      return "Return to Guest Experience to continue exploring";
     default:
       return "";
   }
@@ -259,9 +259,9 @@ export function getGuestCTAText(currentPage: GuestSuitePage): string {
     case "shopping-list":
       return "Continue to Biometrics";
     case "biometrics":
-      return "Back to Guest Suite";
+      return "Back to Guest Experience";
     default:
-      return "Back to Guest Suite";
+      return "Back to Guest Experience";
   }
 }
 

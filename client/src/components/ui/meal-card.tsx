@@ -8,6 +8,7 @@ import MedicalInfoBubble from "@/components/MedicalInfoBubble";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
+import { isFeatureEnabled } from "@/lib/productionGates";
 
 interface MealCardProps {
   recipe?: Recipe;
@@ -261,7 +262,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
                 Mark as Eaten
               </Button>
             </div>
-            {hasInstructions && (
+            {hasInstructions && isFeatureEnabled('chefsKitchen') && (
               <div className="flex justify-center">
                 <Button 
                   size="sm" 
@@ -269,7 +270,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
                   onClick={handlePrepareWithChef}
                 >
                   <ChefHat className="h-3.5 w-3.5" />
-                  Prepare with Chef
+                  Cook w/ Chef
                 </Button>
               </div>
             )}

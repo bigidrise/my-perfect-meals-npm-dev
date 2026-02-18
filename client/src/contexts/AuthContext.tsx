@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   loading: boolean;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,10 +21,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<User | null> => {
     const token = getAuthToken();
     if (!token) {
-      return;
+      return null;
     }
 
     try {
@@ -50,12 +50,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
           role: userData.role || "client",
           isProCare: userData.isProCare || false,
           activeBoard: userData.activeBoard || null,
+          // Onboarding completion - CRITICAL for enforcing onboarding gate
+          onboardingCompletedAt: userData.onboardingCompletedAt || null,
+          // Profile data from onboarding (used by Edit Profile)
+          firstName: userData.firstName || null,
+          lastName: userData.lastName || null,
+          nickname: userData.nickname || null,
+          professionalCategory: userData.professionalCategory || null,
+          credentialType: userData.credentialType || null,
+          credentialBody: userData.credentialBody || null,
+          credentialNumber: userData.credentialNumber || null,
+          credentialYear: userData.credentialYear || null,
+          attestationText: userData.attestationText || null,
+          professionalRole: userData.professionalRole || null,
+          procareEntryPath: userData.procareEntryPath || null,
+          attestedAt: userData.attestedAt || null,
+          age: userData.age || null,
+          height: userData.height || null,
+          weight: userData.weight || null,
+          activityLevel: userData.activityLevel || null,
+          fitnessGoal: userData.fitnessGoal || null,
+          allergies: userData.allergies || [],
+          dietaryRestrictions: userData.dietaryRestrictions || [],
+          fontSizePreference: userData.fontSizePreference || "standard",
+          studioMembership: userData.studioMembership || null,
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
+        return updatedUser;
       }
+      return null;
     } catch (error) {
       console.error("Failed to refresh user:", error);
+      return null;
     }
   }, []);
 
@@ -68,13 +95,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const appleReviewFullAccess = localStorage.getItem("appleReviewFullAccess") === "true";
     
     if (token && currentUser && !currentUser.id.startsWith("guest-")) {
-      // User has valid auth token - set authenticated state
       setUser(currentUser);
-      setLoading(false);
-      // Refresh user data from server
-      refreshUser();
+      refreshUser().then((freshUser) => {
+        if (freshUser) {
+          console.log("✅ [AuthContext] refreshUser complete — professionalRole:", freshUser.professionalRole, "isProCare:", freshUser.isProCare);
+        } else {
+          console.log("⚠️ [AuthContext] refreshUser returned null (user deleted or token expired) — clearing auth state");
+          setUser(null);
+          localStorage.removeItem("mpm_current_user");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("authToken");
+        }
+      }).catch(() => {
+        setUser(null);
+        localStorage.removeItem("mpm_current_user");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("authToken");
+      }).finally(() => {
+        setLoading(false);
+      });
     } else if (appleReviewFullAccess) {
-      // Apple Review Full Access mode - create a demo user for full app exploration
+      // Apple Review Full Access mode - create a demo user with FULL admin access
+      // Must match Welcome.tsx demo user exactly to prevent state mismatch on reload
       const demoUser: User = {
         id: "00000000-0000-0000-0000-000000000001",
         email: "reviewer@apple.com",
@@ -86,9 +130,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         selectedMealBuilder: "weekly",
         isTester: true,
         profilePhotoUrl: null,
-        role: "client",
+        role: "admin", // Admin role for full access - matches Welcome.tsx
         isProCare: false,
         activeBoard: "weekly",
+        onboardingCompletedAt: new Date().toISOString(), // Skip onboarding - matches Welcome.tsx
       };
       setUser(demoUser);
       localStorage.setItem("mpm_current_user", JSON.stringify(demoUser));

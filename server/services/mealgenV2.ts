@@ -2,6 +2,14 @@
 // Centralized meal generation with mandatory onboarding integration
 import crypto from "crypto";
 import { storage } from "../storage";
+import { 
+  buildForbiddenIngredients, 
+  buildSafetyGuardrails, 
+  scanForViolations,
+  validateMealSafety,
+  logSafetyEnforcement,
+  UserSafetyProfile
+} from "./allergyGuardrails";
 
 // ---------- Public API ----------
 export type Onboarding = {
@@ -227,7 +235,7 @@ function normalizeMeal(raw: any): Meal {
     if (!universal.name || typeof universal.quantity !== 'number' || !universal.unit) {
       console.warn('⚠️ Invalid ingredient detected, applying fallback:', ing);
       return {
-        name: String(ing?.name || ing?.item || 'Unknown ingredient').trim(),
+        name: String(ing?.name || (ing as any)?.item || 'Unknown ingredient').trim(),
         amount: '1 portion'
       };
     }
@@ -541,19 +549,43 @@ export function enforceMeasuredIngredients(ings: Ingredient[]): Ingredient[] {
 }
 
 function violatesOnboarding(meal: Meal, ob: Onboarding): string | null {
+  // Build user safety profile from onboarding
+  const safetyProfile: UserSafetyProfile = {
+    allergies: ob.allergies || [],
+    dietaryRestrictions: ob.diet ? [ob.diet] : [],
+    avoidIngredients: ob.avoid || []
+  };
+  
+  // Add dietary restrictions based on flags
+  if (ob.noMeat) safetyProfile.dietaryRestrictions.push('vegetarian');
+  if (ob.noFish) safetyProfile.allergies.push('fish', 'shellfish');
+  if (ob.noDairy) safetyProfile.allergies.push('dairy');
+  if (ob.noEggs) safetyProfile.allergies.push('eggs');
+  
+  // Use comprehensive guardrails system
+  const forbiddenIngredients = buildForbiddenIngredients(safetyProfile);
+  
+  // Convert meal to format expected by scanner
+  const mealForScan = {
+    name: meal.name,
+    description: meal.description,
+    ingredients: meal.ingredients.map(i => ({ name: i.name })),
+    instructions: meal.instructions
+  };
+  
+  const violations = scanForViolations(mealForScan, forbiddenIngredients);
+  
+  if (violations.length > 0) {
+    console.log(`🚨 [ALLERGY SAFETY] Meal "${meal.name}" contains forbidden ingredients: ${violations.join(", ")}`);
+    return violations[0]; // Return first violation for regeneration
+  }
+  
+  // Legacy checks for noVeg and noFruit (not in allergen system)
   const names = (meal.ingredients || []).map(i => i.name.toLowerCase());
   const has = (re: RegExp) => names.some(n => re.test(n));
   
-  if (ob.noMeat && has(/\b(chicken|beef|pork|lamb|turkey|meat)\b/)) return "meat";
-  if (ob.noFish && has(/\b(salmon|tuna|shrimp|cod|fish|seafood)\b/)) return "fish";
-  if (ob.noDairy && has(/\b(milk|cheese|yogurt|butter|cream|dairy)\b/)) return "dairy";
-  if (ob.noEggs && has(/\begg(s)?\b/)) return "eggs";
   if (ob.noVeg && has(/\b(broccoli|spinach|kale|lettuce|pepper|cucumber|carrot|tomato|vegetable)\b/)) return "veg";
   if (ob.noFruit && has(/\b(apple|banana|berry|orange|grape|mango|fruit)\b/)) return "fruit";
-  
-  const anyIn = (list?: string[]) => list?.some(x => names.some(n => n.includes(x.toLowerCase())));
-  if (anyIn(ob.allergies)) return "allergy";
-  if (anyIn(ob.avoid)) return "avoid";
   
   return null;
 }

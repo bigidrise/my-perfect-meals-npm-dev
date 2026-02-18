@@ -6,6 +6,7 @@
  */
 
 import { antiInflammatoryRules } from '../rules/antiInflammatoryRules';
+import { BASELINE_MACROS_PROMPT, BASELINE_MACROS_SNACK_PROMPT } from '../baselineMacros';
 
 /**
  * Build anti-inflammatory prompt additions for meal generation
@@ -16,6 +17,8 @@ export function buildAntiInflammatoryPrompt(basePrompt: string): string {
   return `${guidance}
 
 ${basePrompt}
+
+${BASELINE_MACROS_PROMPT}
 
 CRITICAL RESTRICTIONS:
 - Do NOT include any of these blocked ingredients: ${antiInflammatoryRules.blockedIngredients.slice(0, 20).join(', ')}
@@ -32,6 +35,8 @@ export function buildAntiInflammatorySnackPrompt(basePrompt: string): string {
   return `${antiInflammatoryRules.promptGuidance}
 
 ${basePrompt}
+
+${BASELINE_MACROS_SNACK_PROMPT}
 
 SNACK-SPECIFIC ANTI-INFLAMMATORY RULES:
 - Focus on berries, nuts, seeds, and vegetables

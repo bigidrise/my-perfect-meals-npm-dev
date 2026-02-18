@@ -4,9 +4,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FontSizeProvider } from "@/contexts/FontSizeContext";
+import { ProClientProvider } from "@/contexts/ProClientContext";
 import AppRouter from "@/components/AppRouter";
 import Router from "@/components/Router";
-// Biometric imports moved to Router.tsx to prevent circular dependencies
 import { AvatarSelector } from "@/components/AvatarSelector";
 import { ChefVoiceAssistant } from "@/components/ChefVoiceAssistant";
 import { VoiceConcierge } from "@/components/VoiceConcierge";
@@ -14,23 +15,18 @@ import ScrollManager from "@/components/ScrollManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { loadRewardful } from "@/lib/rewardful";
 import { AudioProvider } from "@/audio/AudioProvider";
-import { useVersionCheck } from "@/hooks/useVersionCheck";
-import { UpdateBanner } from "@/components/UpdateBanner";
-import { ForcedUpdateModal } from "@/components/ForcedUpdateModal";
-import { updateApp } from "@/lib/updateApp";
 import { CopilotSystem } from "@/components/copilot/CopilotSystem";
 import type { CopilotAction } from "@/components/copilot/CopilotContext";
 import { setNavigationHandler, setModalHandler } from "@/components/copilot/CopilotCommandRegistry";
 import { useLocation } from "wouter";
-import { TourProvider } from "./contexts/TourContext";
-import { MobileVoiceHandler } from "./components/MobileVoiceHandler";
-import { OnboardingFooter } from "./components/OnboardingFooter";
-import { CopilotProvider } from "./components/copilot/CopilotContext";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { setupNotificationListeners } from "@/services/mealReminderService";
 import DevBadge from "./components/DevBadge";
+import DevNavigator from "./components/DevNavigator";
 import { Capacitor } from "@capacitor/core";
+import { WhatsNewBanner } from "@/components/WhatsNewBanner";
+import { VoiceProvider } from "@/voice/VoiceProvider";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -49,7 +45,6 @@ if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
 
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
-  const { versionState } = useVersionCheck();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -86,11 +81,6 @@ export default function App() {
     }
   }, []);
 
-  // Handle update action
-  const handleUpdate = () => {
-    updateApp();
-  };
-
   const handleCopilotAction = (action: CopilotAction) => {
     switch (action.type) {
       case "navigate":
@@ -112,13 +102,27 @@ export default function App() {
     }
   };
 
+  // Show branded loading shell until app is ready
+  // This prevents white flash / 404 during boot sequence
   if (!isAppReady) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white/80 text-sm">Loading My Perfect Meals...</p>
-        </div>
+      <div 
+        style={{
+          backgroundColor: "#000",
+          height: "100dvh",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column"
+        }}
+      >
+        <img 
+          src="/icons/chef.png?v=2026b" 
+          alt="Loading" 
+          style={{ width: "80px", height: "80px", marginBottom: "16px" }}
+        />
+        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>Loading...</p>
       </div>
     );
   }
@@ -126,23 +130,18 @@ export default function App() {
   return (
     <ErrorBoundary>
       <DevBadge />
+      <DevNavigator />
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <FontSizeProvider>
             <AudioProvider>
-              <ScrollManager />
+              <VoiceProvider>
+                <ScrollManager />
+                <WhatsNewBanner />
 
-              {/* Forced Update Modal (blocks app access if version too old) */}
-              {versionState?.forceUpdate && versionState.remoteInfo && (
-                <ForcedUpdateModal
-                  currentVersion={versionState.currentVersion}
-                  requiredVersion={versionState.remoteInfo.minSupported}
-                  onUpdate={handleUpdate}
-                />
-              )}
-
-              {/* Update Banner removed - focus event auto-reload handles updates */}
-              <CopilotSystem onAction={handleCopilotAction}>
+                <CopilotSystem onAction={handleCopilotAction}>
+                <ProClientProvider>
                 <RootViewport>
                   <AppRouter>
                     <Router />
@@ -152,8 +151,11 @@ export default function App() {
                 <ChefVoiceAssistant />
                 <VoiceConcierge />
                 <Toaster />
+              </ProClientProvider>
               </CopilotSystem>
+              </VoiceProvider>
             </AudioProvider>
+            </FontSizeProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

@@ -14,8 +14,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
+import { useAuth } from "@/contexts/AuthContext";
 const LS_KEY = (uid: string) => `sleep-sessions-v1:${uid}`;
 
 function parseLocalDateTime(value: string): Date | null {
@@ -95,16 +94,16 @@ async function tryGetSleepSummaryServer(userId: string, startUTC: string, endUTC
   throw new Error(typeof lastErr === "string" ? lastErr : "No sleep summary API");
 }
 
-function useSleepToday() {
+function useSleepToday(userId: string) {
   return useQuery({
-    queryKey: ["sleep", DEV_USER_ID, "today"],
+    queryKey: ["sleep", userId, "today"],
     queryFn: async () => {
       const { startUTC, endUTC } = localDayRangeAsUTCISO(new Date());
       try {
-        const json = await tryGetSleepSummaryServer(DEV_USER_ID, startUTC, endUTC);
+        const json = await tryGetSleepSummaryServer(userId, startUTC, endUTC);
         if (typeof json?.totalMinutes === "number") return { totalMinutes: json.totalMinutes };
       } catch {}
-      const sessions = readLocal(DEV_USER_ID);
+      const sessions = readLocal(userId);
       const total = sessions
         .filter(s => {
           const st = new Date(s.startTime).getTime();
@@ -117,9 +116,9 @@ function useSleepToday() {
   });
 }
 
-function useSleepHistory30() {
+function useSleepHistory30(userId: string) {
   return useQuery({
-    queryKey: ["sleep", DEV_USER_ID, "daily", 30],
+    queryKey: ["sleep", userId, "daily", 30],
     queryFn: async () => {
       const end = new Date();
       const start = new Date(); start.setDate(end.getDate() - 29);
@@ -127,11 +126,11 @@ function useSleepHistory30() {
       const { endUTC }   = localDayRangeAsUTCISO(end);
 
       try {
-        const json = await tryGetSleepSummaryServer(DEV_USER_ID, startUTC, endUTC, "day");
+        const json = await tryGetSleepSummaryServer(userId, startUTC, endUTC, "day");
         if (Array.isArray(json?.daily)) return { daily: json.daily };
       } catch {}
 
-      const sessions = readLocal(DEV_USER_ID);
+      const sessions = readLocal(userId);
       const map = new Map<string, number>();
       for (let i = 0; i < 30; i++) {
         const d = new Date(); d.setDate(end.getDate() - i);

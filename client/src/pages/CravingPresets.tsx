@@ -16,8 +16,10 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const SERVING_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
@@ -138,8 +140,8 @@ export default function CravingPresetsPage() {
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav">
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
           {/* Back Button */}
@@ -280,14 +282,31 @@ export default function CravingPresetsPage() {
             >
               <CardContent className="p-6 pb-32">
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-3xl font-bold text-white">
-                    {selected.name}
-                  </h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-3xl font-bold text-white">
+                      {selected.name}
+                    </h2>
+                    <FavoriteButton
+                      title={selected.name}
+                      sourceType="craving-premade"
+                      mealData={{
+                        name: selected.name,
+                        description: selected.summary,
+                        imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
+                        calories: selected.macros?.calories || 0,
+                        protein: selected.macros?.protein || 0,
+                        carbs: selected.macros?.carbs || 0,
+                        fat: selected.macros?.fat || 0,
+                        ingredients: selected.ingredients,
+                        instructions: selected.instructions,
+                      }}
+                    />
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedMeal(null)}
-                    className="text-orange-300 hover:text-white"
+                    className="text-orange-300 active:scale-[0.98]"
                   >
                     ✕
                   </Button>
@@ -305,112 +324,41 @@ export default function CravingPresetsPage() {
 
                 <p className="text-white/90 mb-4">{selected.summary}</p>
 
-                {/* Action Buttons - Add to Plan, Share, Add to Macros */}
-                <div className="flex flex-col gap-2 mb-4">
-                  <div className="flex gap-2">
-                    <AddToMealPlanButton
-                      meal={{
-                        id: selected.id,
-                        name: selected.name,
-                        description: selected.summary,
-                        imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
-                        ingredients: scaledIngs.map((ing) => ({
-                          name: ing.name,
-                          amount: formatQty(ing.quantity),
-                          unit: pluralize(ing.unit, ing.quantity) || "",
-                        })),
-                        instructions: selected.instructions,
-                        calories: selected.macros
-                          ? Math.round((selected.macros.calories * selectedServings) / selected.baseServings)
-                          : 0,
-                        protein: selected.macros
-                          ? Math.round((selected.macros.protein * selectedServings) / selected.baseServings)
-                          : 0,
-                        carbs: selected.macros
-                          ? Math.round((selected.macros.carbs * selectedServings) / selected.baseServings)
-                          : 0,
-                        fat: selected.macros
-                          ? Math.round((selected.macros.fat * selectedServings) / selected.baseServings)
-                          : 0,
-                        medicalBadges: selected.badges || [],
-                      }}
-                    />
-                    <MealCardActions
-                      meal={{
-                        name: selected.name,
-                        description: selected.summary,
-                        ingredients: scaledIngs.map((ing) => ({
-                          name: ing.name,
-                          amount: formatQty(ing.quantity),
-                          unit: pluralize(ing.unit, ing.quantity),
-                        })),
-                        instructions: selected.instructions,
-                        nutrition: selected.macros,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Health Badges */}
-                {selected.badges && selected.badges.length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="font-bold text-lg text-white mb-2">
-                      Health Benefits
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <HealthBadgesPopover badges={selected.badges} />
-                      <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                {/* Macros Grid */}
+                {selected.macros && (
+                  <div className="mb-4 grid grid-cols-4 gap-2 text-center">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                      <div className="text-lg font-bold text-white">
+                        {Math.round((selected.macros.calories * selectedServings) / selected.baseServings)}
+                      </div>
+                      <div className="text-xs text-white/70">Calories</div>
+                    </div>
+                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                      <div className="text-lg font-bold text-white">
+                        {Math.round((selected.macros.protein * selectedServings) / selected.baseServings)}g
+                      </div>
+                      <div className="text-xs text-white/70">Protein</div>
+                    </div>
+                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                      <div className="text-lg font-bold text-white">
+                        {Math.round((selected.macros.carbs * selectedServings) / selected.baseServings)}g
+                      </div>
+                      <div className="text-xs text-white/70">Carbs</div>
+                    </div>
+                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                      <div className="text-lg font-bold text-white">
+                        {Math.round((selected.macros.fat * selectedServings) / selected.baseServings)}g
+                      </div>
+                      <div className="text-xs text-white/70">Fat</div>
                     </div>
                   </div>
                 )}
 
-                {/* Macros */}
-                {selected.macros && (
-                  <div className="mb-4 p-4 bg-orange-600/20 border border-orange-400/40 rounded-lg">
-                    <h3 className="font-bold text-lg mb-2 text-white">
-                      Nutrition (per serving)
-                    </h3>
-                    <div className="grid grid-cols-4 gap-2 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-white">
-                          {Math.round(
-                            (selected.macros.calories * selectedServings) /
-                              selected.baseServings,
-                          )}
-                        </div>
-                        <div className="text-xs text-white/70">Calories</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-white">
-                          {Math.round(
-                            (selected.macros.protein * selectedServings) /
-                              selected.baseServings,
-                          )}
-                          g
-                        </div>
-                        <div className="text-xs text-white/70">Protein</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-white">
-                          {Math.round(
-                            (selected.macros.carbs * selectedServings) /
-                              selected.baseServings,
-                          )}
-                          g
-                        </div>
-                        <div className="text-xs text-white/70">Carbs</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-white">
-                          {Math.round(
-                            (selected.macros.fat * selectedServings) /
-                              selected.baseServings,
-                          )}
-                          g
-                        </div>
-                        <div className="text-xs text-white/70">Fat</div>
-                      </div>
-                    </div>
+                {/* Medical Safety Badges */}
+                {selected.badges && selected.badges.length > 0 && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <HealthBadgesPopover badges={selected.badges} />
+                    <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
                   </div>
                 )}
 
@@ -446,13 +394,96 @@ export default function CravingPresetsPage() {
                   </div>
                 )}
 
-                {/* Add to Macros - Bottom of card */}
-                <Button
-                  onClick={() => setLocation("/biometrics?from=craving-presets&view=macros")}
-                  className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center border border-white/30"
-                >
-                  Add to Macros
-                </Button>
+                {/* Standardized 3-Row Button Layout */}
+                <div className="space-y-2">
+                  {/* Row 1: Add to Macros (full width) */}
+                  <Button
+                    onClick={() => setLocation("/biometrics?from=craving-presets&view=macros")}
+                    className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white border border-white/30"
+                  >
+                    Add to Macros
+                  </Button>
+
+                  {/* Row 2: Add to Plan + Translate (50/50) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <AddToMealPlanButton
+                      meal={{
+                        id: selected.id,
+                        name: selected.name,
+                        description: selected.summary,
+                        imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
+                        ingredients: scaledIngs.map((ing) => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity) || "",
+                        })),
+                        instructions: selected.instructions,
+                        calories: selected.macros
+                          ? Math.round((selected.macros.calories * selectedServings) / selected.baseServings)
+                          : 0,
+                        protein: selected.macros
+                          ? Math.round((selected.macros.protein * selectedServings) / selected.baseServings)
+                          : 0,
+                        carbs: selected.macros
+                          ? Math.round((selected.macros.carbs * selectedServings) / selected.baseServings)
+                          : 0,
+                        fat: selected.macros
+                          ? Math.round((selected.macros.fat * selectedServings) / selected.baseServings)
+                          : 0,
+                        medicalBadges: selected.badges || [],
+                      }}
+                    />
+                    <TranslateToggle
+                      content={{
+                        name: selected.name,
+                        description: selected.summary,
+                        instructions: selected.instructions,
+                      }}
+                      onTranslate={() => {}}
+                    />
+                  </div>
+
+                  {/* Row 3: Prepare with Chef + Share (50/50) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
+                      onClick={() => {
+                        const mealData = {
+                          id: selected.id,
+                          name: selected.name,
+                          description: selected.summary,
+                          ingredients: scaledIngs.map((ing) => ({
+                            name: ing.name,
+                            amount: formatQty(ing.quantity),
+                            unit: pluralize(ing.unit, ing.quantity) || "",
+                          })),
+                          instructions: selected.instructions,
+                          imageUrl: selected.image || `/images/cravings/${selected.id}.jpg`,
+                        };
+                        localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+                        localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                        setLocation("/lifestyle/chefs-kitchen");
+                      }}
+                    >
+                      
+                      Cook w/ Chef
+                    </Button>
+                    <ShareRecipeButton
+                      recipe={{
+                        name: selected.name,
+                        description: selected.summary,
+                        nutrition: selected.macros,
+                        ingredients: scaledIngs.map((ing) => ({
+                          name: ing.name,
+                          amount: formatQty(ing.quantity),
+                          unit: pluralize(ing.unit, ing.quantity),
+                        })),
+                      }}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

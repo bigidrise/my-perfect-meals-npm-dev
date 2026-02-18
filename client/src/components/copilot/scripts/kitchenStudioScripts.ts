@@ -1,18 +1,15 @@
 // Kitchen Studio Voice Scripts
 // Uses the same 11L voice system as ProTip and Copilot button
 
-export const KITCHEN_STUDIO_INTRO =
-  "Alright — what do we feel like making today?";
+export const KITCHEN_STUDIO_INTRO = "What are we preparing today?";
 
-export const KITCHEN_STUDIO_STEP2 = "Perfect, and how are we cooking it?";
+export const KITCHEN_STUDIO_STEP2 = "";
 
 // Kitchen Studio - Cooking method question
-export const KITCHEN_STUDIO_COOK_METHOD =
-  "Stovetop, oven, air fryer, or grill?";
+export const KITCHEN_STUDIO_COOK_METHOD = "What are we using to cook?";
 
 // Kitchen Studio - After cooking method selected
-export const KITCHEN_STUDIO_COOK_CONFIRMED =
-  "Perfect. Next, we'll dial in your preferences.";
+export const KITCHEN_STUDIO_COOK_CONFIRMED = "";
 
 // Kitchen Studio - Preferences / guardrails (micro-lines)
 export const KITCHEN_STUDIO_PREFS_LINE1 =
@@ -27,24 +24,26 @@ export const KITCHEN_STUDIO_PREFS_LINE5 =
 
 // If you need a single combined string for the UI, keep this too:
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
-  "Any dietary needs — vegan, plant-based, allergies, or sensitivities? Or do you just want to keep it lower in sugar, gluten, fat, or sodium? Choose any cuisine, and tell me how much time you have — quick and easy or more involved. You can speak in any language, and use Translate on the meal card anytime.";
+  "Any dietary preference, low sugar, low sodium, gluten free, food allergies, or food to avoid?";
 
 // Kitchen Studio - After preferences confirmed
-export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "Next, servings.";
+export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "";
 
 // Kitchen Studio - Servings question
-export const KITCHEN_STUDIO_SERVINGS = "How many people are we cooking for?";
+export const KITCHEN_STUDIO_SERVINGS = "How many servings?";
 
 // Kitchen Studio - After servings confirmed
-export const KITCHEN_STUDIO_SERVINGS_CONFIRMED =
-  "Perfect. Let's check our set up!";
+export const KITCHEN_STUDIO_SERVINGS_CONFIRMED = "";
 
 // Kitchen Studio - Chef's Setup (equipment)
-export const KITCHEN_STUDIO_EQUIPMENT =
-  "Let's make sure we've got the ingredients and the right tools. Nothing worse than getting halfway in and realizing you’re missing something.";
+export const KITCHEN_STUDIO_EQUIPMENT = "If we have evrything we need, tap OK";
 
 // Kitchen Studio - After equipment confirmed
-export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED = "Alright, let's see what we got!";
+export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
+  "If everything looks good, tap, Create the Plan.";
+
+export const KITCHEN_STUDIO_HANDOFF_TO_PREP =
+  "This looks great. Now let’s enter Chefs Kitchen so we can prepare your meal.";
 
 // Equipment mapping based on cooking method
 export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
@@ -63,7 +62,8 @@ export const EQUIPMENT_BY_METHOD: Record<string, string[]> = {
 // Open Kitchen narration beats
 export const KITCHEN_STUDIO_OPEN_START = "";
 
-export const KITCHEN_STUDIO_OPEN_PROGRESS1 = "";
+export const KITCHEN_STUDIO_OPEN_PROGRESS1 =
+  "If you're happy with your meal press the Enter Chef’s Kitchen button, if not, press, the Create New button on the meal card, and we can create a new meal.";
 
 export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 

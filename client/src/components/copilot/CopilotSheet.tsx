@@ -363,7 +363,7 @@ export const CopilotSheet: React.FC = () => {
                 <div className="px-4 pt-3 pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <ChefCapIcon size={28} />
+                      <ChefCapIcon size={56} />
                       <div className="flex flex-col">
                         <span className="text-xs uppercase tracking-[0.16em] text-orange-300/90">
                           My Perfect Meals Copilot
@@ -390,18 +390,18 @@ export const CopilotSheet: React.FC = () => {
                           transition-all duration-150 ease-out whitespace-nowrap
                           ${isGuidedModeEnabled
                             ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-                            : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
+                            : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] border border-amber-400/40"
                           }
                         `}
                       >
                         {isGuidedModeEnabled ? "On" : "Off"}
                       </button>
-                      <button
-                        onClick={close}
-                        className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
+                      <span
+                        className="rounded-full px-2 py-1 text-xs text-transparent pointer-events-none select-none"
+                        aria-hidden="true"
                       >
                         ✕
-                      </button>
+                      </span>
                     </div>
                   </div>
                 </div>

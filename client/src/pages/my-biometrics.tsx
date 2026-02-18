@@ -10,6 +10,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ import {
   Target,
   ArrowLeft,
   Info,
+  Ruler,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -73,6 +75,8 @@ import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
+import { JustDescribeItModal } from "@/components/JustDescribeItModal";
+import { getCurrentUser } from "@/lib/auth";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -162,6 +166,12 @@ export default function MyBiometrics() {
       title: "Track Your Water",
       description:
         "Log your daily water intake at the bottom of the page to support hydration and recovery.",
+    },
+    {
+      icon: "📐",
+      title: "Body Composition Tracking",
+      description:
+        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Beach Body and Performance builders.",
     },
   ];
 
@@ -470,14 +480,41 @@ export default function MyBiometrics() {
     return () => clearTimeout(t);
   }, [qv]);
 
-  const fillFromQuickView = () => {
+  const addFromQuickView = () => {
     if (!qv) return;
-    setP(String(qv.protein));
-    setC(String(qv.carbs));
-    setF(String(qv.fat));
-    setK(String(qv.calories));
-    setSc(String(qv.starchyCarbs ?? 0));
-    setFc(String(qv.fibrousCarbs ?? 0));
+    
+    const P = qv.protein;
+    const C = qv.carbs;
+    const F = qv.fat;
+    const K = qv.calories;
+    const SC = qv.starchyCarbs ?? 0;
+    const FC = qv.fibrousCarbs ?? 0;
+
+    setMacroRows((prev) => {
+      const idx = prev.findIndex((r) => r.day === today);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
+          kcal: next[idx].kcal + K,
+          protein: next[idx].protein + P,
+          carbs: next[idx].carbs + C,
+          fat: next[idx].fat + F,
+          starchyCarbs: (next[idx].starchyCarbs ?? 0) + SC,
+          fibrousCarbs: (next[idx].fibrousCarbs ?? 0) + FC,
+        };
+        return next;
+      }
+      return [{ day: today, kcal: K, protein: P, carbs: C, fat: F, starchyCarbs: SC, fibrousCarbs: FC }, ...prev];
+    });
+
+    toast({
+      title: "Added to Today",
+      description: `${P}g protein, ${C}g carbs, ${F}g fat logged.`,
+    });
+
+    clearQuickView();
+    setQv(null);
   };
 
   const dismissQuickView = () => {
@@ -720,6 +757,7 @@ export default function MyBiometrics() {
 
   // Paste support (works with labels or just numbers: "30 40 10 370")
   const [openPaste, setOpenPaste] = useState(false);
+  const [openDescribe, setOpenDescribe] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [showBiometricsInfoModal, setShowBiometricsInfoModal] = useState(false);
   const [showTodaysMacrosInfoModal, setShowTodaysMacrosInfoModal] =
@@ -811,6 +849,42 @@ export default function MyBiometrics() {
   const [weightView, setWeightView] = useState<"7" | "1" | "3" | "6" | "12">(
     "12",
   );
+
+  // ------- BODY COMPOSITION (database) -------
+  interface BodyCompEntry {
+    id: number;
+    currentBodyFatPct: string;
+    goalBodyFatPct: string | null;
+    scanMethod: string;
+    source: string;
+    recordedAt: string;
+  }
+  const [bodyCompLatest, setBodyCompLatest] = useState<BodyCompEntry | null>(null);
+  const [bodyCompHistory, setBodyCompHistory] = useState<BodyCompEntry[]>([]);
+  const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (!currentUser?.id) return;
+    const uid = currentUser.id;
+
+    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.entry) {
+          setBodyCompLatest(data.entry);
+          setBodyCompSource(data.source);
+        }
+      })
+      .catch(() => {});
+
+    fetch(apiUrl(`/api/users/${uid}/body-composition/history`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.items) setBodyCompHistory(data.items);
+      })
+      .catch(() => {});
+  }, []);
 
   // ------- BODY / WEIGHT (local) -------
   // SAFE: Start with defaults, load from storage in useEffect
@@ -1266,10 +1340,10 @@ export default function MyBiometrics() {
     >
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-8 py-3 flex items-center gap-3">
+        <div className="px-8 pb-3 flex items-center gap-3">
           {/* Guest Mode: Back to Guest Suite button - only show for actual guests, not logged-in users */}
           {isGuestMode() && !user && (
             <Button
@@ -1530,6 +1604,14 @@ export default function MyBiometrics() {
               📸 MacroScan
             </Button>
 
+            <Button
+              onClick={() => setOpenDescribe(true)}
+              className="w-full bg-amber-600/80 hover:bg-amber-600 text-md text-white mb-3"
+              data-testid="button-just-describe"
+            >
+              ✏️ Just Describe It
+            </Button>
+
             {/* Quick View Panel (display only, no auto-logging) */}
             {qv && (
               <div className="rounded-2xl border border-white/20 p-3 mb-3 bg-black/20 backdrop-blur-sm">
@@ -1548,11 +1630,11 @@ export default function MyBiometrics() {
                 </div>
                 <div className="flex gap-2 mb-2">
                   <Button
-                    onClick={fillFromQuickView}
-                    className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
-                    data-testid="button-fill-inputs"
+                    onClick={addFromQuickView}
+                    className="px-3 py-1 rounded-lg border border-lime-500/30 bg-lime-600/20 text-lime-300 hover:bg-lime-600/30 text-sm"
+                    data-testid="button-add-to-today"
                   >
-                    Fill Inputs
+                    Add to Today
                   </Button>
                   <Button
                     onClick={dismissQuickView}
@@ -1563,8 +1645,7 @@ export default function MyBiometrics() {
                   </Button>
                 </div>
                 <div className="text-[11px] text-white/60">
-                  Tip: Review or edit your numbers below, then press <b>Add</b>{" "}
-                  to log for today.
+                  Tip: Review the values above, then tap <b>Add to Today</b> to log.
                 </div>
               </div>
             )}
@@ -1682,20 +1763,18 @@ export default function MyBiometrics() {
             )}
 
             <div className="flex justify-between items-center gap-2 mt-3">
-              <Button
+              <PillButton
                 data-testid="biometrics-add-button"
                 onClick={addMacros}
-                className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
               >
-                <PlusCircle className="h-4 w-4 mr-1" /> Add
-              </Button>
-              <Button
+                Add
+              </PillButton>
+              <PillButton
                 onClick={resetToday}
-                className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
                 data-testid="button-reset-today"
               >
-                <RotateCcw className="h-4 w-4 mr-1" /> Reset Today
-              </Button>
+                Reset Today
+              </PillButton>
             </div>
 
             {/* Paste modal */}
@@ -1880,15 +1959,18 @@ export default function MyBiometrics() {
                 />
               </div>
             </div>
-            <Button
-              id="save-weight-button"
-              data-testid="biometrics-save-weight-button"
-              data-walkthrough="save-weight"
-              onClick={saveWeight}
-              className="bg-lime-500 border border-white/20 text-white hover:bg-lime-700 mb-2"
-            >
-              Save Weight
-            </Button>
+            <div className="flex items-center gap-2 mb-2">
+              <PillButton
+                id="save-weight-button"
+                data-testid="biometrics-save-weight-button"
+                data-walkthrough="save-weight"
+                onClick={saveWeight}
+                className="!bg-lime-500/20 !border-lime-400 hover:!bg-lime-500/30"
+              >
+                Save
+              </PillButton>
+              <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">Weight</span>
+            </div>
             <ReadOnlyNote>
               Track your weight progress here over time. Your weight data
               automatically syncs with the <strong>Macro Calculator</strong>.
@@ -1951,6 +2033,75 @@ export default function MyBiometrics() {
               )}
               {whr && <Summary label="Waist/Height" value={whr} />}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* BODY COMPOSITION */}
+        <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-white text-xl flex items-center gap-2">
+              <Ruler className="h-5 w-5" /> Body Composition
+            </CardTitle>
+            <Button
+              size="sm"
+              onClick={() => setLocation("/biometrics/body-composition")}
+              className="bg-white/10 border border-white/20 text-white text-xs"
+            >
+              Full History
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {bodyCompLatest ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Body Fat</div>
+                    <div className="text-lg font-bold text-white">{parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%</div>
+                  </div>
+                  {bodyCompLatest.goalBodyFatPct && (
+                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                      <div className="text-xs text-white/60">Goal</div>
+                      <div className="text-lg font-bold text-lime-400">{parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%</div>
+                    </div>
+                  )}
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Method</div>
+                    <div className="text-sm font-medium text-white">{bodyCompLatest.scanMethod}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>Last scan: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
+                  {bodyCompSource && bodyCompSource !== "client" && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                      {bodyCompSource}
+                    </span>
+                  )}
+                </div>
+                {bodyCompHistory.length > 1 && (
+                  <div className="pt-2 space-y-2">
+                    <div className="text-xs text-white/50 font-medium">Recent History</div>
+                    {bodyCompHistory.slice(0, 5).map((entry) => (
+                      <div key={entry.id} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg bg-black/20 border border-white/5">
+                        <span className="text-white/70">{new Date(entry.recordedAt).toLocaleDateString()}</span>
+                        <span className="text-white font-medium">{parseFloat(entry.currentBodyFatPct).toFixed(1)}%</span>
+                        <span className="text-white/50 text-xs">{entry.scanMethod}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <Ruler className="h-8 w-8 text-white/30 mx-auto mb-2" />
+                <p className="text-white/60 text-sm mb-3">No body composition data yet</p>
+                <Button
+                  onClick={() => setLocation("/biometrics/body-composition")}
+                  className="bg-green-600 text-white text-sm rounded-xl"
+                >
+                  Add First Measurement
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -2034,6 +2185,42 @@ export default function MyBiometrics() {
         steps={biometricsTourSteps}
         title="How to Use Biometrics"
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+
+      <JustDescribeItModal
+        open={openDescribe}
+        onClose={() => setOpenDescribe(false)}
+        onAdd={(macros) => {
+          setMacroRows((prev) => {
+            const idx = prev.findIndex((r) => r.day === today);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = {
+                ...next[idx],
+                kcal: next[idx].kcal + macros.calories,
+                protein: next[idx].protein + macros.protein,
+                carbs: next[idx].carbs + macros.carbs,
+                fat: next[idx].fat + macros.fat,
+                starchyCarbs: (next[idx].starchyCarbs ?? 0) + macros.starchyCarbs,
+                fibrousCarbs: (next[idx].fibrousCarbs ?? 0) + macros.fibrousCarbs,
+              };
+              return next;
+            }
+            return [{
+              day: today,
+              kcal: macros.calories,
+              protein: macros.protein,
+              carbs: macros.carbs,
+              fat: macros.fat,
+              starchyCarbs: macros.starchyCarbs,
+              fibrousCarbs: macros.fibrousCarbs,
+            }, ...prev];
+          });
+          toast({
+            title: "Added to Today",
+            description: `${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat logged.`,
+          });
+        }}
       />
     </motion.div>
   );

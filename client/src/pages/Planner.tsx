@@ -2,8 +2,10 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Activity, Pill, Trophy, Lock } from "lucide-react";
+import { Calendar, Activity, Pill, Trophy, Lock, Dumbbell, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthToken } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 interface PlannerFeature {
   title: string;
@@ -16,7 +18,7 @@ interface PlannerFeature {
 
 export default function Planner() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   useEffect(() => {
     document.title = "Planner | My Perfect Meals";
@@ -69,10 +71,36 @@ export default function Planner() {
       testId: "card-competition-beachbody",
       builderId: "beach_body",
     },
+    {
+      title: "General Nutrition Builder",
+      description:
+        "Coach guided professional-grade nutrition planning and custom protocols",
+      icon: Utensils,
+      route: "/pro/general-nutrition-builder",
+      testId: "card-general-nutrition",
+      builderId: "general_nutrition",
+    },
+    {
+      title: "Performance & Competition Builder",
+      description:
+        "Coach guided elite athlete meal planning for competition prep, peak performance and recovery",
+      icon: Dumbbell,
+      route: "/pro/performance-competition-builder",
+      testId: "card-performance-competition",
+      builderId: "performance_competition",
+    },
   ];
 
-  const userActiveBoard = user?.activeBoard || user?.selectedMealBuilder;
-  const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
+  // For actual ProCare clients (not professionals), activeBoard takes priority
+  const isProfessional = ["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const isActualProCareClient = user?.isProCare && !isProfessional;
+  const userActiveBoard = isActualProCareClient
+    ? (user?.activeBoard || user?.selectedMealBuilder)
+    : (user?.selectedMealBuilder || user?.activeBoard);
+  
+  // Check for Apple Review Full Access mode - grants admin-level access
+  const isAppleReviewMode = localStorage.getItem("appleReviewFullAccess") === "true";
+  const isAdmin = isAppleReviewMode || user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
   const needsOnboarding = !isAdmin && !userActiveBoard;
 
   const isBuilderUnlocked = (builderId: string): boolean => {
@@ -81,12 +109,30 @@ export default function Planner() {
     return builderId === userActiveBoard;
   };
 
-  const handleCardClick = (feature: PlannerFeature) => {
+  const handleCardClick = async (feature: PlannerFeature) => {
     if (needsOnboarding) {
       setLocation("/onboarding/extended?repair=1");
       return;
     }
     if (isBuilderUnlocked(feature.builderId)) {
+      if (feature.builderId !== userActiveBoard) {
+        const authToken = getAuthToken();
+        if (authToken) {
+          try {
+            await fetch(apiUrl("/api/user/meal-builder"), {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "x-auth-token": authToken,
+              },
+              body: JSON.stringify({ selectedMealBuilder: feature.builderId }),
+            });
+            await refreshUser();
+          } catch (err) {
+            console.error("Failed to update builder:", err);
+          }
+        }
+      }
       setLocation(feature.route);
     }
   };
@@ -100,10 +146,10 @@ export default function Planner() {
     >
           {/* Header Banner - Planner */}
           <div
-            className="fixed left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
-            style={{ top: "env(safe-area-inset-top, 0px)" }}
+            className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
-              <div className="px-8 py-3 flex items-center gap-3">
+              <div className="px-8 pb-3 flex items-center gap-3">
               <Calendar className="h-6 w-6 text-orange-500" />
               <h1 className="text-lg font-bold text-white">Planner</h1>
             </div>
@@ -165,11 +211,26 @@ export default function Planner() {
                     >
                       <CardContent className="p-3">
                         <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Icon className={`h-4 w-4 flex-shrink-0 ${unlocked ? "text-orange-500" : "text-zinc-500"}`} />
                             <h3 className={`text-sm font-semibold ${unlocked ? "text-white" : "text-zinc-400"}`}>
                               {feature.title}
                             </h3>
+                            {feature.builderId === "beach_body" && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30 flex-shrink-0">
+                                Ultimate
+                              </span>
+                            )}
+                            {(feature.builderId === "general_nutrition" || feature.builderId === "performance_competition") && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
+                                ProCare
+                              </span>
+                            )}
+                            {unlocked && feature.builderId === userActiveBoard && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30 flex-shrink-0">
+                                Current
+                              </span>
+                            )}
                             {!unlocked && (
                               <Lock className="h-3 w-3 text-zinc-500 ml-auto" />
                             )}

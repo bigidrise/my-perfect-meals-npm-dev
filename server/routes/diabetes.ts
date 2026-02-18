@@ -2,8 +2,12 @@ import { Router } from "express";
 import { db } from "../db";
 import { diabetesProfile, glucoseLogs } from "../../shared/schema";
 import { eq } from "drizzle-orm";
+import { enforceAssignedBuilder } from "../middleware/studioAccess";
 
 export const diabetesRouter = Router();
+
+// Studio clients must be assigned to the Diabetic builder to access these routes
+diabetesRouter.use(enforceAssignedBuilder(["diabetic"]));
 
 // Get profile
 // GET /api/diabetes/profile?userId=xxx
@@ -66,8 +70,16 @@ diabetesRouter.get("/glucose", async (req, res) => {
 // body: { userId, valueMgdl, context, relatedMealId?, recordedAt?, insulinUnits?, notes? }
 diabetesRouter.post("/glucose", async (req, res) => {
   try {
+    console.log("[Diabetes] POST /glucose request received:", {
+      body: req.body,
+      headers: { contentType: req.headers["content-type"], deviceId: req.headers["x-device-id"] },
+    });
+    
     const { userId, valueMgdl, context, relatedMealId, recordedAt, insulinUnits, notes } = req.body;
-    if (!userId || !valueMgdl || !context) return res.status(400).json({ error: "missing_fields" });
+    if (!userId || !valueMgdl || !context) {
+      console.log("[Diabetes] Missing fields:", { userId: !!userId, valueMgdl: !!valueMgdl, context: !!context });
+      return res.status(400).json({ error: "missing_fields" });
+    }
     if (valueMgdl < 20 || valueMgdl > 600) return res.status(422).json({ error: "value_out_of_range" });
 
     const row = await db.insert(glucoseLogs).values({ userId, valueMgdl, context, relatedMealId, recordedAt: recordedAt ? new Date(recordedAt) : undefined, insulinUnits, notes }).returning();

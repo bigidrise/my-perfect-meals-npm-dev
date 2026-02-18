@@ -24,6 +24,8 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const [token, setToken] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     // Extract token from URL query params
@@ -166,14 +168,27 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel className="text-white">New Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter new password"
-                        className="bg-white/10 border-white/20 text-white placeholder-white/60
-                                   focus:ring-2 focus:ring-white/30 focus:border-white/30"
-                        data-testid="input-password"
-                        {...field}
-                      />
+                      <div className="space-y-2">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter new password"
+                          className="bg-white/10 border-white/20 text-white placeholder-white/60
+                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 h-10"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          data-testid="input-password"
+                          {...field}
+                        />
+                        <label className="flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showPassword}
+                            onChange={(e) => setShowPassword(e.target.checked)}
+                            className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
+                          />
+                          Show password
+                        </label>
+                      </div>
                     </FormControl>
                     <FormMessage className="text-red-300" />
                   </FormItem>
@@ -187,14 +202,27 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel className="text-white">Confirm Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Confirm new password"
-                        className="bg-white/10 border-white/20 text-white placeholder-white/60
-                                   focus:ring-2 focus:ring-white/30 focus:border-white/30"
-                        data-testid="input-confirm-password"
-                        {...field}
-                      />
+                      <div className="space-y-2">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirm new password"
+                          className="bg-white/10 border-white/20 text-white placeholder-white/60
+                                     focus:ring-2 focus:ring-white/30 focus:border-white/30 h-10"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          data-testid="input-confirm-password"
+                          {...field}
+                        />
+                        <label className="flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showConfirmPassword}
+                            onChange={(e) => setShowConfirmPassword(e.target.checked)}
+                            className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
+                          />
+                          Show password
+                        </label>
+                      </div>
                     </FormControl>
                     <FormMessage className="text-red-300" />
                   </FormItem>

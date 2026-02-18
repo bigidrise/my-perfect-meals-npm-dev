@@ -42,7 +42,7 @@ interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string) => Promise<Snack | null>;
   cancel: () => void;
 }
 
@@ -80,7 +80,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
   const generateSnack = async (
     description: string,
     dietType?: DietType,
-    dietPhase?: BeachBodyPhase
+    dietPhase?: BeachBodyPhase,
+    overrideToken?: string
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -100,18 +101,24 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           count: 1,
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody
+          overrideToken: overrideToken || null, // SafetyGuard override token
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT", // Required for override token to work
         }),
         signal: abortControllerRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate snack");
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        // Check if this is a safety/allergy block with detailed message
+        if (data.safetyBlocked && data.error) {
+          throw new Error(data.error);
+        }
+        throw new Error(data.error || data.message || "Failed to generate snack");
       }
 
-      const data = await response.json();
-
-      if (!data.success || !data.meals?.[0]) {
-        throw new Error(data.error || "No snack found in response");
+      if (!data.meals?.[0]) {
+        throw new Error("No snack found in response");
       }
 
       const generatedSnack = data.meals[0];

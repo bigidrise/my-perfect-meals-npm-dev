@@ -27,6 +27,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
+import { ProfessionalIntroOverlay } from "@/components/pro/ProfessionalIntroOverlay";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* -------------------------------- TOUR -------------------------------- */
 
@@ -87,7 +89,17 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 
 export default function PhysicianCareTeamPage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const quickTour = useQuickTour("care-team-physician");
+
+  useEffect(() => {
+    if (!user) return;
+    const isAdmin = user.role === "admin";
+    const isPhysician = user.professionalRole === "physician";
+    if (!isAdmin && !isPhysician) {
+      setLocation("/more");
+    }
+  }, [user, setLocation]);
 
   const [members, setMembers] = useState<CareMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -178,15 +190,17 @@ export default function PhysicianCareTeamPage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
+      <ProfessionalIntroOverlay type="physician" onEnter={() => {}} />
+
       {/* HEADER */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-orange-500" />
           <h1 className="text-base font-bold text-white flex-1 truncate">
-            Physician Care Team
+            Physicians Clinic
           </h1>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
@@ -250,6 +264,8 @@ export default function PhysicianCareTeamPage() {
             </GlassCardContent>
           </GlassCard>
 
+          {/* Connect with Access Code — hidden: clients use ProCare landing page instead */}
+          {false && (
           <GlassCard className="border-2 border-orange-500/40">
             <GlassCardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2">
@@ -274,6 +290,7 @@ export default function PhysicianCareTeamPage() {
               </Button>
             </GlassCardContent>
           </GlassCard>
+          )}
         </div>
 
         {error && (
@@ -288,23 +305,23 @@ export default function PhysicianCareTeamPage() {
 
         <div className="grid md:grid-cols-3 gap-4">
           {active.map((m) => (
-            <GlassCard key={m.id}>
+            <GlassCard key={m.id} className="max-w-xl">
         <GlassCardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0">
-              <div className="font-bold text-white truncate">{m.name}</div>
-              {m.email && <div className="text-sm text-white/70 truncate">{m.email}</div>}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 break-words">
+              <div className="font-bold text-white break-words">{m.name}</div>
+              {m.email && <div className="text-sm text-white/70 break-words">{m.email}</div>}
             </div>
 
-            <Badge className="bg-green-600/20 text-green-300 border border-green-400/40">
+            <Badge className="bg-green-600/20 text-green-300 border border-green-400/40 shrink-0">
               Active
             </Badge>
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-col gap-2">
             <Button
-              onClick={() => setLocation("/pro/clients")}
-              className="bg-lime-600 hover:bg-lime-600 text-white"
+              onClick={() => setLocation("/pro/physician-clients")}
+              className="w-full bg-lime-600 hover:bg-lime-600 text-white"
               data-testid="button-open-pro-portal"
             >
               <ClipboardEdit className="h-4 w-4 mr-2" />
@@ -314,7 +331,7 @@ export default function PhysicianCareTeamPage() {
             <Button
               onClick={() => revokeMember(m.id)}
               variant="destructive"
-              className="bg-red-600 hover:bg-red-700"
+              className="w-full bg-red-600 hover:bg-red-700"
               data-testid="button-revoke-member"
             >
               <XCircle className="h-4 w-4 mr-2" />
@@ -330,7 +347,7 @@ export default function PhysicianCareTeamPage() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Physician Care Team Guide"
+        title="Physicians Clinic Guide"
         steps={CARE_TEAM_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

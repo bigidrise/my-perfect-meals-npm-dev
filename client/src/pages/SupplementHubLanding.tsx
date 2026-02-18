@@ -55,7 +55,7 @@ export default function SupplementHubLanding() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <Button
-              onClick={() => setLocation("/procare-cover")}
+              onClick={() => setLocation("/more")}
               variant="ghost"
               size="icon"
               className="text-white hover:bg-white/10"

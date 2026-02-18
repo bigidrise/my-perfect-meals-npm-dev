@@ -52,11 +52,16 @@ interface Meal {
   medicalBadges?: string[];
 }
 
+interface SafetyOptions {
+  safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED';
+  overrideToken?: string;
+}
+
 interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -96,7 +101,8 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     mealType: "breakfast" | "lunch" | "dinner",
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
-    starchContext?: StarchContext
+    starchContext?: StarchContext,
+    safetyOptions?: SafetyOptions
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -117,18 +123,24 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           dietType: dietType || null, // Pass diet type for guardrails
           dietPhase: dietPhase || null, // Pass phase for BeachBody
           starchContext: starchContext || null, // Pass starch context for intelligent carb distribution
+          safetyMode: safetyOptions?.safetyMode || "STRICT",
+          overrideToken: safetyOptions?.overrideToken,
         }),
         signal: abortControllerRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate meal");
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        // Check if this is a safety/allergy block with detailed message
+        if (data.safetyBlocked && data.error) {
+          throw new Error(data.error);
+        }
+        throw new Error(data.error || data.message || "Failed to generate meal");
       }
 
-      const data = await response.json();
-
-      if (!data.success || !data.meals?.[0]) {
-        throw new Error(data.error || "No meal found in response");
+      if (!data.meals?.[0]) {
+        throw new Error("No meal found in response");
       }
 
       const generatedMeal = data.meals[0];

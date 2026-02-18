@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { proStore, Targets, ClinicalContext, BuilderType, StarchStrategy } from "@/lib/proData";
+import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Settings,
   ClipboardList,
@@ -14,18 +15,21 @@ import {
   Trophy,
   Dumbbell,
   Check,
+  Ruler,
+  LayoutGrid,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { ProClientBanner } from "@/components/pro/ProClientBanner";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
-    title: "Trainer Workspace",
+    title: "Trainer Studio",
     description:
-      "This is your client control center. You'll set macros, assign meal builders, and guide nutrition strategy here.",
+      "Welcome to your coaching studio. Set macros, assign meal builders, and guide nutrition strategy here.",
   },
   {
     icon: "2",
@@ -34,10 +38,16 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
       "Set protein, carbs, and fats for your client. These targets drive every meal they see in the app.",
   },
   {
-    icon: "🥔",
+    icon: "3",
     title: "Starch Game Plan",
     description:
       "Choose how starchy carbs are distributed. One Starch Meal concentrates all starch into one meal for appetite control. Flex Split divides across two meals. Fibrous carbs are always unlimited!",
+  },
+  {
+    icon: "4",
+    title: "Client Meal Board",
+    description:
+      "View and edit your client's weekly meal plan directly. Add meals, remove items, or repeat a day across the week. Every change is tracked so the client knows who updated their plan.",
   },
   {
     icon: "5",
@@ -64,6 +74,17 @@ export default function TrainerClientDashboard() {
     BuilderType | undefined
   >(() => client?.assignedBuilder);
 
+  interface BodyCompEntry {
+    id: number;
+    currentBodyFatPct: string;
+    goalBodyFatPct: string | null;
+    scanMethod: string;
+    source: string;
+    recordedAt: string;
+  }
+  const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
+  const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
+
   useEffect(() => {
     setT(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
@@ -72,6 +93,21 @@ export default function TrainerClientDashboard() {
       setClient(c);
       setAssignedBuilder(c.assignedBuilder);
     }
+  }, [clientId]);
+
+  useEffect(() => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.userId;
+    if (!uid) return;
+    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.entry) {
+          setBodyComp(data.entry);
+          setBodyCompSource(data.source);
+        }
+      })
+      .catch(() => {});
   }, [clientId]);
 
   const saveTargets = () => {
@@ -93,18 +129,73 @@ export default function TrainerClientDashboard() {
     });
   };
 
-  const handleBuilderAssignment = (builder: BuilderType) => {
-    setAssignedBuilder(builder);
-    if (client) {
-      proStore.upsertClient({
-        ...client,
-        assignedBuilder: builder,
+  const handleBuilderAssignment = async (builder: BuilderType) => {
+    const clientUid = client?.clientUserId || client?.userId;
+    const studioId = client?.studioId;
+    
+    if (!clientUid) {
+      toast({
+        title: "Cannot Assign",
+        description: "This client hasn't connected their account yet. They need to enter the access code first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const apiBuilderName = builder === "general" ? "general_nutrition" : "performance_competition";
+    
+    try {
+      const token = localStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["x-auth-token"] = token;
+
+      if (studioId) {
+        const studioRes = await fetch(`/api/studios/${studioId}/clients/${clientUid}/assign`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ assignedBuilder: apiBuilderName }),
+        });
+        if (!studioRes.ok) {
+          const data = await studioRes.json();
+          throw new Error(data.error || "Failed to assign builder");
+        }
+      }
+
+      const proRes = await fetch("/api/pro/assign-builder", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          clientId: clientUid,
+          builder: apiBuilderName,
+        }),
+      });
+      
+      if (!proRes.ok) {
+        const data = await proRes.json();
+        throw new Error(data.error || "Failed to assign builder");
+      }
+      
+      setAssignedBuilder(builder);
+      if (client) {
+        proStore.upsertClient({
+          ...client,
+          assignedBuilder: builder,
+        });
+      }
+      
+      toast({
+        title: "Builder Assigned",
+        description: `${builder === "general" ? "General Nutrition" : "Performance & Competition"} builder assigned to ${client?.name}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Assignment Failed",
+        description: error.message || "Could not assign builder to client.",
+        variant: "destructive",
       });
     }
-    toast({
-      title: "Builder Assigned",
-      description: `${builder === "general" ? "General Nutrition" : "Performance & Competition"} builder assigned to ${client?.name}.`,
-    });
   };
 
   return (
@@ -115,8 +206,8 @@ export default function TrainerClientDashboard() {
       className="min-h-screen text-white bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
@@ -128,16 +219,17 @@ export default function TrainerClientDashboard() {
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
-              Trainer Dashboard
+              Trainer Studio
             </h1>
           </div>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
+        <ProClientBanner />
       </div>
 
       <div
         className="max-w-5xl mx-auto px-4 space-y-6 pb-16"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
           <p className="text-white/90 mt-3 text-lg">
@@ -361,6 +453,46 @@ export default function TrainerClientDashboard() {
           </CardContent>
         </Card>
 
+        <Card className="bg-white/5 border border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Ruler className="h-5 w-5" /> Body Composition
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {bodyComp ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Body Fat</div>
+                    <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
+                  </div>
+                  {bodyComp.goalBodyFatPct && (
+                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                      <div className="text-xs text-white/60">Goal</div>
+                      <div className="text-lg font-bold text-lime-400">{parseFloat(bodyComp.goalBodyFatPct).toFixed(1)}%</div>
+                    </div>
+                  )}
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Scan Method</div>
+                    <div className="text-sm font-medium text-white">{bodyComp.scanMethod}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>Last scan: {new Date(bodyComp.recordedAt).toLocaleDateString()}</span>
+                  {bodyCompSource && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                      recorded by {bodyCompSource}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-white/50 text-sm">No body composition data recorded for this client yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
@@ -412,6 +544,29 @@ export default function TrainerClientDashboard() {
           </CardContent>
         </Card>
 
+        <Card className="bg-white/5 border border-amber-500/30">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5 text-amber-400" /> Client Meal Board
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-white/70 text-sm">
+              View and edit {client?.name || "your client"}'s weekly meal plan directly.
+            </p>
+            <Button
+              onClick={() => {
+                const boardUserId = client?.clientUserId || client?.userId || clientId;
+                setLocation(`/pro/clients/${boardUserId}/board/smart`);
+              }}
+              className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              View Meal Board
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card className="bg-white/5 border border-white/20">
           <CardContent className="p-6 space-y-3">
             <h2 className="text-lg font-bold text-white mb-2">Meal Builders</h2>
@@ -423,7 +578,7 @@ export default function TrainerClientDashboard() {
                   `/pro/clients/${clientId}/general-nutrition-builder`,
                 );
               }}
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               General Nutrition Builder
             </Button>
@@ -433,7 +588,7 @@ export default function TrainerClientDashboard() {
                   `/pro/clients/${clientId}/performance-competition-builder`,
                 )
               }
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
+              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               Performance & Competition Builder
             </Button>
@@ -444,7 +599,7 @@ export default function TrainerClientDashboard() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Trainer Dashboard Guide"
+        title="Trainer Studio Guide"
         steps={TRAINER_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

@@ -14,6 +14,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { isFeatureEnabled } from "@/lib/productionGates";
 import {
   Card,
   CardContent,
@@ -30,8 +31,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Brain, Target, Sparkles, Home, Users, ArrowLeft } from "lucide-react";
+import {
+  Brain,
+  Target,
+  Sparkles,
+  Home,
+  Users,
+  ArrowLeft,
+  ChefHat,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  isAllergyRelatedError,
+  formatAllergyAlertDescription,
+} from "@/utils/allergyAlert";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -41,13 +54,22 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { post } from "@/lib/api";
-import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
-
-// Development user ID - consistent across all components (UUID format)
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
+import { useAuth } from "@/contexts/AuthContext";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
+import {
+  StarchGuardIntercept,
+  StarchSubstitutionNotice,
+} from "@/components/StarchGuardIntercept";
 
 interface StructuredIngredient {
   name: string;
@@ -90,6 +112,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
+import FavoriteButton from "@/components/FavoriteButton";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -176,8 +199,9 @@ export default function CravingCreator() {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
-  // Development user ID - consistent across app
-  const userId = DEV_USER_ID;
+  // Get actual user ID from auth context for medical safety
+  const { user } = useAuth();
+  const userId = user?.id || "";
 
   // 🎯 Auto-start walkthrough on first visit
   useEffect(() => {
@@ -303,7 +327,7 @@ export default function CravingCreator() {
             amount: ing.quantity || 1,
             unit: ing.unit || "unit",
           })),
-          userId: DEV_USER_ID,
+          userId: userId,
         }),
       });
 
@@ -328,7 +352,69 @@ export default function CravingCreator() {
   // 🔥 SIMPLIFIED: Use same pattern as Fridge Rescue (working system)
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerateMeal = async () => {
+  // Safety override integration - always starts ON, auto-resets after generation
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+
+  // Flavor preference toggle - Personal = use user's palate, Neutral = for others
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
+
+  // 🔐 SafetyGuard preflight system
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setAlert: setSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
+
+  // 🥔 StarchGuard preflight system (Phase 3 Nutrition Budget Engine)
+  const {
+    alert: starchAlert,
+    decision: starchDecision,
+    checkStarch,
+    clearAlert: clearStarchAlert,
+    setDecision: setStarchDecision,
+    isBlocked: starchBlocked,
+  } = useStarchGuardPrecheck();
+
+  // Track substituted terms for post-generation notice
+  const [substitutedStarchTerms, setSubstitutedStarchTerms] = useState<
+    string[]
+  >([]);
+
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+
+  // Handle safety override continuation - auto-generate when override token received
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      clearSafetyAlert(); // Clear banner on successful override
+      // Set pending flag - generation will auto-trigger
+      setPendingGeneration(true);
+    }
+  };
+
+  // Effect: Auto-generate when override token is set and generation is pending
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isGenerating) {
+      setPendingGeneration(false);
+      handleGenerateMeal(true); // true = skip preflight (already have override)
+    }
+  }, [pendingGeneration, overrideToken, isGenerating]);
+
+  // 🥔 Real-time Starch Guard check - triggers immediately as user types starchy ingredients
+  useEffect(() => {
+    if (cravingInput.trim().length >= 3 && starchDecision === "pending") {
+      checkStarch(cravingInput);
+    }
+  }, [cravingInput, starchDecision, checkStarch]);
+
+  const handleGenerateMeal = async (skipPreflight = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
 
     if (!cravingInput.trim()) {
@@ -341,10 +427,39 @@ export default function CravingCreator() {
       return;
     }
 
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const isSafe = await checkSafety(cravingInput, "craving-creator");
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
+    }
+
+    // 🥔 Starch Guard preflight check - blocks if starchy + budget exhausted
+    if (!skipPreflight && starchDecision !== "let_chef_pick") {
+      const starchOk = checkStarch(cravingInput);
+      if (!starchOk) {
+        // Intercept will show - user must choose before proceeding
+        return;
+      }
+    }
+
+    // Track if Chef is substituting starches (for post-generation notice)
+    const chefSubstituting =
+      starchDecision === "let_chef_pick" && starchAlert.matchedTerms.length > 0;
+    if (chefSubstituting) {
+      setSubstitutedStarchTerms(starchAlert.matchedTerms);
+    } else {
+      setSubstitutedStarchTerms([]);
+    }
+
     console.log("✅ Starting generation with:", {
       cravingInput,
       servings,
       selectedDiet,
+      safetyEnabled,
+      hasOverrideToken: !!overrideToken,
     });
     setIsGenerating(true);
     startProgressTicker();
@@ -359,16 +474,42 @@ export default function CravingCreator() {
           targetMealType: "snacks",
           cravingInput,
           dietaryRestrictions: selectedDiet || dietaryRestrictions,
-          userId: DEV_USER_ID,
-          servings: servings, // NEW: Send serving size to backend
+          userId: userId,
+          servings: servings,
+          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: hasActiveOverride ? overrideToken : undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate meal");
+      const data = await response.json();
+
+      // Check for safety blocks/ambiguous - show banner instead of error
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Safety alert detected",
+          suggestion: data.suggestion,
+        });
+        return;
       }
 
-      const data = await response.json();
+      // Auto-reset safety state after generation attempt
+      setSafetyEnabled(true);
+      clearSafetyAlert();
+
+      if (!response.ok) {
+        if (data.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+        throw new Error(data.message || "Failed to generate meal");
+      }
       const meal = data.meal || data; // Handle both response formats
 
       stopProgressTicker();
@@ -397,12 +538,21 @@ export default function CravingCreator() {
       }, 500);
     } catch (error: any) {
       stopProgressTicker();
-      toast({
-        title: "Generation Failed",
-        description:
-          error.message || "Failed to generate meal. Please try again.",
-        variant: "destructive",
-      });
+      const errorMsg = error.message || "";
+      if (isAllergyRelatedError(errorMsg)) {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description: formatAllergyAlertDescription(errorMsg),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description:
+            "SafetyGuard™ detected a potential concern. Try a different meal or adjust your request.",
+          variant: "warning",
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -430,7 +580,7 @@ export default function CravingCreator() {
 
     const { useWeeklyPlan } = await import("@/hooks/useWeeklyPlan");
     const { clearReplaceCtx } = await import("@/lib/replacementContext");
-    const { replaceOne } = useWeeklyPlan(DEV_USER_ID, replaceCtx.weekKey);
+    const { replaceOne } = useWeeklyPlan(userId, replaceCtx.weekKey);
 
     // Create meal object compatible with Weekly Plan
     const planMeal = {
@@ -485,8 +635,8 @@ export default function CravingCreator() {
       >
         {/* Universal Safe-Area Header */}
         <div
-          className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-          style={{ top: "env(safe-area-inset-top, 0px)" }}
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
@@ -533,6 +683,42 @@ export default function CravingCreator() {
             )}
           </div>
 
+          {/* Create with Chef Entry Point */}
+          <div className="relative mb-6">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-50"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.5), rgba(239,68,68,0.25), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
+              data-testid="cravingcreator-chef-studio"
+              onClick={() => setLocation("/craving-studio")}
+            >
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
+                <span className="text-white font-semibold text-[8px] tracking-wide">
+                  Powered by Emotion AI™
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Chef's Craving Studio
+                    </h3>
+                  </div>
+                  <p className="text-xs text-white/80 ml-6">
+                    Step-by-step guided craving creation with Chef assistance
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {isDeclinedMeal && (
             <Card className="mb-6 w-full max-w-xl mx-auto bg-black/20 backdrop-blur-lg border border-white/20 shadow-lg">
               <CardContent className="p-4">
@@ -562,8 +748,8 @@ export default function CravingCreator() {
             <div>
               <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg text-white">
-                    Describe Your Craving
+                  <CardTitle className="flex items-center gap-2 text-xl text-white">
+                    Quick Create
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -675,27 +861,6 @@ export default function CravingCreator() {
                         <SelectItem value="10">10 servings</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-md text-white mt-1">
-                      Ingredients and nutrition will be scaled for {servings}{" "}
-                      {servings === 1 ? "serving" : "servings"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <label className="block text-md font-medium mb-1 text-white">
-                      Medical Safety Profile (Always Enabled)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={true}
-                        disabled={true}
-                        className="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500 opacity-50"
-                      />
-                      <span className="text-md text-green-300 font-medium">
-                        ✓ Protected
-                      </span>
-                    </div>
                   </div>
 
                   {!selectedDiet && (
@@ -721,6 +886,69 @@ export default function CravingCreator() {
                     <p className="text-white/80 text-sm mt-2 text-center"></p>
                   )}
 
+                  {/* SafetyGuard Preflight Banner */}
+                  <SafetyGuardBanner
+                    alert={safetyAlert}
+                    mealRequest={cravingInput}
+                    onDismiss={clearSafetyAlert}
+                    onOverrideSuccess={(token) =>
+                      handleSafetyOverride(false, token)
+                    }
+                  />
+
+                  {/* StarchGuard Intercept (Phase 3 Nutrition Budget Engine) */}
+                  <StarchGuardIntercept
+                    alert={starchAlert}
+                    onDecision={(decision) => {
+                      if (decision === "order_something_else") {
+                        clearStarchAlert();
+                        setCravingInput("");
+                        toast({
+                          title: "Try a different ingredient",
+                          description:
+                            "Choose something without starches like meat, fish, or veggies.",
+                          duration: 4000,
+                        });
+                      } else if (decision === "let_chef_pick") {
+                        setStarchDecision(decision);
+                        handleGenerateMeal(true);
+                      }
+                    }}
+                    className="mt-3"
+                  />
+
+                  {/* Meal Safety Section */}
+                  <div className="mt-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
+                    <span className="text-xs text-white/60 block mb-2">
+                      Meal Safety
+                    </span>
+                    <SafetyGuardToggle
+                      safetyEnabled={safetyEnabled}
+                      onSafetyChange={handleSafetyOverride}
+                      disabled={isGenerating || safetyChecking}
+                    />
+                    <GlucoseGuardToggle
+                      disabled={isGenerating || safetyChecking}
+                    />
+                  </div>
+
+                  {/* Flavor Preference Section */}
+                  <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/60 block mb-2">
+                      Flavor Preference
+                    </span>
+                    <FlavorToggle
+                      flavorPersonal={flavorPersonal}
+                      onFlavorChange={setFlavorPersonal}
+                      disabled={isGenerating}
+                    />
+                    <p className="text-xs text-white/40 mt-1">
+                      {flavorPersonal
+                        ? "Using your palate preferences"
+                        : "Neutral seasoning for others"}
+                    </p>
+                  </div>
+
                   {isGenerating ? (
                     <div className="max-w-md mx-auto mb-4">
                       <div className="flex items-center justify-between mb-2">
@@ -741,11 +969,13 @@ export default function CravingCreator() {
                     <GlassButton
                       data-testid="cravingcreator-create-button"
                       data-wt="cc-generate-button"
-                      onClick={handleGenerateMeal}
-                      disabled={isGenerating}
-                      className="w-full bg-lime-600 hover:bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      onClick={() => handleGenerateMeal()}
+                      disabled={isGenerating || safetyChecking || starchBlocked}
+                      className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
-                      Create My Craving
+                      {safetyChecking
+                        ? "Checking Safety..."
+                        : "Create My Craving"}
                     </GlassButton>
                   )}
                 </CardContent>
@@ -769,19 +999,34 @@ export default function CravingCreator() {
                           <h3 className="text-xl font-bold text-white">
                             {meal.name}
                           </h3>
+                          <FavoriteButton
+                            title={meal.name}
+                            sourceType="craving-creator"
+                            mealData={meal}
+                          />
                         </div>
                         <button
                           onClick={() => {
                             setGeneratedMeals([]);
                             clearCravingCache();
                             setCravingInput("");
+                            setSubstitutedStarchTerms([]);
+                            clearStarchAlert();
                           }}
-                          className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
+                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                           data-testid="button-create-new"
                         >
                           Create New
                         </button>
                       </div>
+
+                      {/* Starch Substitution Notice (when Chef picked alternatives) */}
+                      {substitutedStarchTerms.length > 0 && (
+                        <StarchSubstitutionNotice
+                          originalTerms={substitutedStarchTerms}
+                          className="mb-4"
+                        />
+                      )}
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
@@ -870,32 +1115,6 @@ export default function CravingCreator() {
                         </div>
                       </div>
 
-                      {/* Action Buttons - Always show */}
-                      <div className="flex gap-2 mb-4">
-                        <AddToMealPlanButton meal={meal} />
-                        <MealCardActions
-                          meal={{
-                            name: meal.name,
-                            description: meal.description,
-                            ingredients: (meal.ingredients ?? []).map(
-                              (ing: any) => ({
-                                name: ing.item || ing.name,
-                                amount: ing.amount || ing.quantity,
-                                unit: ing.unit,
-                              }),
-                            ),
-                            instructions: Array.isArray(meal.instructions)
-                              ? meal.instructions
-                              : meal.instructions
-                                ? meal.instructions
-                                    .split("\n")
-                                    .filter((s: string) => s.trim())
-                                : [],
-                            nutrition: meal.nutrition,
-                          }}
-                        />
-                      </div>
-
                       {/* Medical Badges */}
                       {(() => {
                         const profile = getUserMedicalProfile(1);
@@ -942,14 +1161,15 @@ export default function CravingCreator() {
                                 badges={medicalBadges.map((b: any) =>
                                   typeof b === "string"
                                     ? b
-                                    : (b.badge || b.id || b.condition || b.label)
+                                    : b.badge || b.id || b.condition || b.label,
                                 )}
                               />
 
-                              <h3 className="font-semibold text-white">Medical Safety</h3>
+                              <h3 className="font-semibold text-white">
+                                Medical Safety
+                              </h3>
                             </div>
                           </div>
-
                         ) : null;
                       })()}
 
@@ -1010,8 +1230,9 @@ export default function CravingCreator() {
                         </div>
                       )}
 
-                      {/* Add Your Macros - standardized black button */}
+                      {/* Standardized 3-Row Button Layout */}
                       <div className="space-y-2 mb-3">
+                        {/* Row 1: Add to Macros (full width) */}
                         <GlassButton
                           onClick={() => {
                             const macros = getMealNutrition(meal);
@@ -1029,20 +1250,90 @@ export default function CravingCreator() {
                               "/biometrics?from=craving-creator&view=macros",
                             );
                           }}
-                          className="w-full bg-black hover:bg-black/80 text-white flex items-center justify-center"
+                          className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
                           data-testid="button-add-your-macros"
                         >
-                          Add Your Macros
+                          Add to Macros
                         </GlassButton>
-                        {replaceCtx && (
+
+                        {/* Row 2: Add to Plan + Translate (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <AddToMealPlanButton meal={meal} />
+                          <TranslateToggle
+                            content={{
+                              name: meal.name,
+                              description: meal.description,
+                              instructions: meal.instructions,
+                              ingredients: meal.ingredients,
+                            }}
+                            onTranslate={(translated) => {
+                              setGeneratedMeals((prev) =>
+                                prev.map((m) =>
+                                  m.id === meal.id
+                                    ? {
+                                        ...m,
+                                        name: translated.name,
+                                        description:
+                                          translated.description ||
+                                          m.description,
+                                        instructions:
+                                          typeof translated.instructions ===
+                                          "string"
+                                            ? translated.instructions
+                                            : m.instructions,
+                                        ingredients:
+                                          (translated.ingredients as StructuredIngredient[]) ||
+                                          m.ingredients,
+                                      }
+                                    : m,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
+
+                        {/* Row 3: Prepare with Chef + Share (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
                           <GlassButton
-                            onClick={() => addMealToPlan(meal)}
-                            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 overflow-hidden text-ellipsis whitespace-nowrap"
-                            data-testid="add-to-meal-plan-button"
+                            onClick={() => {
+                              const mealData = {
+                                id: meal.id || crypto.randomUUID(),
+                                name: meal.name,
+                                description: meal.description,
+                                ingredients: meal.ingredients || [],
+                                instructions: meal.instructions,
+                                imageUrl: meal.imageUrl,
+                              };
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_meal",
+                                JSON.stringify(mealData),
+                              );
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_external_prepare",
+                                "true",
+                              );
+                              setLocation("/lifestyle/chefs-kitchen");
+                            }}
+                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Add to Meal Plan
+                            Cook w/ Chef
                           </GlassButton>
-                        )}
+                          <ShareRecipeButton
+                            recipe={{
+                              name: meal.name,
+                              description: meal.description,
+                              nutrition: meal.nutrition,
+                              ingredients: (meal.ingredients ?? []).map(
+                                (ing: any) => ({
+                                  name: ing.item || ing.name,
+                                  amount: ing.amount || ing.quantity,
+                                  unit: ing.unit,
+                                }),
+                              ),
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

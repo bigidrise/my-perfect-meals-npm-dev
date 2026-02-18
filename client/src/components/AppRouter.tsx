@@ -34,71 +34,88 @@ export default function AppRouter({ children }: AppRouterProps) {
     return !hideOnRoutes.some(route => location.startsWith(route));
   }, [location]);
 
-  // Check if user needs onboarding repair (authenticated but missing activeBoard)
-  const needsOnboardingRepair = useMemo(() => {
-    if (!user || loading) return false;
+  // Check for Apple Review Full Access mode - bypasses ALL onboarding/gates
+  const isAppleReviewMode = useMemo(() => {
+    return localStorage.getItem("appleReviewFullAccess") === "true";
+  }, []);
+
+  // Determine if user needs onboarding - returns null while loading (unknown state)
+  // CRITICAL: onboardingCompletedAt is THE sole gate. activeBoard/selectedMealBuilder
+  // may be pre-assigned by coaches before the user creates their account.
+  const needsOnboarding = useMemo(() => {
+    if (isAppleReviewMode) return false;
+    if (loading) return null;
+    if (!user) return false;
     if (user.role === "admin") return false;
-    const hasActiveBoard = user.activeBoard || user.selectedMealBuilder;
-    return !hasActiveBoard;
-  }, [user, loading]);
+    if (user.id.startsWith("guest-")) return false;
+    if (user.professionalRole === "trainer" || user.professionalRole === "physician") return false;
+    if (user.studioMembership) return false;
+    return !user.onboardingCompletedAt;
+  }, [user, loading, isAppleReviewMode]);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
     const hasChosenCoachMode = localStorage.getItem("coachMode") !== null;
 
-    // Onboarding routes should never trigger redirects
     if (location.startsWith("/onboarding")) {
       return;
     }
 
-    // Handle root path "/"
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-attestation", "/consumer-welcome", "/more"];
+    const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
+
+    // Don't make routing decisions while auth is loading - wait for user state
+    if (loading && isAuthenticated && !isPublicRoute) {
+      return; // Wait for auth to finish loading before routing
+    }
+
+    if (isAuthenticated && needsOnboarding === true && !isPublicRoute) {
+      console.log("🚨 [AppRouter] User needs onboarding - forcing redirect to /onboarding");
+      setLocation("/onboarding");
+      return;
+    }
+
+    // Only show WelcomeGate when we KNOW user doesn't need onboarding (not loading)
+    if (isAuthenticated && !hasChosenCoachMode && !isPublicRoute && needsOnboarding === false) {
+      setShowWelcomeGate(true);
+      return;
+    }
+
     if (location === "/") {
       if (!isAuthenticated) {
-        // Not signed in → redirect to Welcome page (sign in/create account)
         setLocation("/welcome");
         return;
       }
 
-      if (!hasChosenCoachMode) {
-        // Authenticated but hasn't chosen coach mode → show WelcomeGate
-        setShowWelcomeGate(true);
+      // Wait for auth to finish loading before deciding where to route
+      if (needsOnboarding === null) {
+        return; // Still loading - don't route yet
+      }
+
+      if (needsOnboarding === true) {
+        setLocation("/onboarding");
         return;
       }
 
-      // Repair redirect: if user needs onboarding, redirect there
-      if (needsOnboardingRepair) {
-        setLocation("/onboarding/extended?repair=1");
-        return;
-      }
-
-      // Authenticated and has chosen coach mode → go to dashboard
       setLocation("/dashboard");
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "instant" });
       }, 100);
       return;
     }
-
-    // Protect all routes except public pages
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest"];
-    const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
     
-    // Allow guest mode to access guest-allowed routes
     const guestModeActive = isGuestMode();
     const guestCanAccess = guestModeActive && isGuestAllowedRoute(location);
     
     if (!isAuthenticated && !isPublicRoute && !guestCanAccess) {
-      // Guests navigating from within Guest Suite stay in Guest Suite
-      // Otherwise, go to Welcome page
       if (guestModeActive && isGuestAllowedRoute(window.location.pathname)) {
         setLocation("/guest-builder");
       } else {
         setLocation("/welcome");
       }
     }
-  }, [location, setLocation, needsOnboardingRepair]);
+  }, [location, setLocation, needsOnboarding, loading]);
 
-  // Show WelcomeGate modal
   if (showWelcomeGate) {
     return (
       <WelcomeGate
@@ -110,6 +127,5 @@ export default function AppRouter({ children }: AppRouterProps) {
     );
   }
 
-  // Show normal app
   return <>{children}</>;
 }

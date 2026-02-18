@@ -1,6 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
@@ -11,9 +21,9 @@ import {
   putWeekBoard,
   getWeekBoardByDate,
 } from "@/lib/boardApi";
+import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
@@ -59,6 +69,7 @@ import {
   Trash2,
   ArrowLeft,
   ChevronLeft,
+  Calendar,
   ChevronRight,
   Copy,
   Target,
@@ -75,6 +86,7 @@ import { FEATURES } from "@/utils/features";
 import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
+import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { setMacroTargets } from "@/lib/dailyLimits";
@@ -92,6 +104,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { ProClientBanner } from "@/components/pro/ProClientBanner";
+import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -162,6 +176,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const quickTour = useQuickTour("performance-competition-builder");
+  
+  // Body fat-based starch slot adjustment (includes +1 bonus if below goal for performance builders)
+  const bodyFatAdjustment = useBodyFatStarchAdjustment("performance_competition");
 
   // Route params
   const [, athleteParams] = useRoute("/athlete-meal-board/:clientId");
@@ -228,13 +245,30 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
-  // Sync hook board to local state
+  // Draft persistence for crash/reload recovery
+  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+    {
+      userId: user?.id,
+      builderId: 'performance-competition-builder',
+      weekStartISO,
+    },
+    board,
+    setBoard,
+    hookLoading,
+    hookBoard
+  );
+
+  // Sync hook board to local state (skip if draft is active)
   React.useEffect(() => {
+    if (skipServerSync()) {
+      setLoading(hookLoading);
+      return;
+    }
     if (hookBoard) {
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(
@@ -244,18 +278,17 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        clearDraft();
+        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
-        toast({
-          title: "Save failed",
-          description: "Changes will retry when you're online",
-          variant: "destructive",
-        });
+        // Silent retry - no toast during decision-making flows
+        // Save will auto-retry on next user action
       } finally {
         setSaving(false);
       }
     },
-    [saveToHook, toast],
+    [saveToHook, clearDraft, markClean],
   );
 
   // Manual save handler for Save Plan button
@@ -273,12 +306,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
   const [showOverview, setShowOverview] = React.useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
-  // AI Meal Creator modal state
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks"
-  >("breakfast");
 
 
   // Create With Chef modal state
@@ -286,6 +315,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
     "breakfast" | "lunch" | "dinner"
   >("breakfast");
+
+  // Day/Week planning state (moved up for starchContext dependency)
+  const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
+  const [activeDayISO, setActiveDayISO] = React.useState<string>("");
 
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
@@ -318,10 +351,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Daily Totals Info state (appears after first meal is created)
   const [showDailyTotalsInfo, setShowDailyTotalsInfo] = useState(false);
   const [hasSeenDailyTotalsInfo, setHasSeenDailyTotalsInfo] = useState(false);
-
-  // Day/Week planning state
-  const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
-  const [activeDayISO, setActiveDayISO] = React.useState<string>("");
 
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
     React.useState(false);
@@ -516,30 +545,36 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     async (targetDates: string[]) => {
       if (!board || !activeDayISO) return;
 
-      const sourceLists = getDayLists(board, activeDayISO);
-      const clonedLists = cloneDayLists(sourceLists);
-
-      let updatedBoard = board;
-      targetDates.forEach((dateISO) => {
-        updatedBoard = setDayLists(updatedBoard, dateISO, clonedLists);
-      });
+      const sourceLists = { ...getDayLists(board, activeDayISO) };
 
       try {
-        await saveBoard(updatedBoard);
-        toast({
-          title: "Day duplicated",
-          description: `Copied to ${targetDates.length} day(s)`,
+        const result = await duplicateAcrossWeeks({
+          sourceLists,
+          targetDates,
+          currentBoard: board,
+          currentWeekStartISO: weekStartISO,
         });
+
+        if (result.currentWeekBoard) {
+          setBoard(result.currentWeekBoard);
+          await saveBoard(result.currentWeekBoard);
+        }
+
+        if (result.errors.length > 0) {
+          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
+          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+        } else if (result.otherWeeksSaved > 0) {
+          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+        } else {
+          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+        }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
+        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
       }
     },
-    [board, activeDayISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
   // Duplicate week handler
@@ -706,20 +741,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-  // AI Meal Creator handler - Save to localStorage (Weekly Meal Board pattern)
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(
+  const handleChefMealGenerated = useCallback(
     async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
 
-      console.log(
-        "🤖 AI Meal Generated - Replacing old meals with new one:",
-        generatedMeal,
-        "for slot:",
-        slot,
-      );
-
-      // Transform API response to match Meal type structure
       const transformedMeal: Meal = {
         id: `ai-meal-${Date.now()}`,
         name: generatedMeal.name,
@@ -740,13 +765,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         },
       };
 
-      // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
       const newMeals = [transformedMeal];
-
-      // Save to localStorage with slot info (persists until next generation)
       saveAIMealsCache(newMeals, activeDayISO, slot);
 
-      // Immediately add to board (optimistic update)
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
         const existingSlotMeals = dayLists[slot].filter(
@@ -756,25 +777,21 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
+        setBoard(updatedBoard);
+        toast({
+          title: "AI Meal Added!",
+          description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
+        });
+
         try {
           await saveBoard(updatedBoard);
-          toast({
-            title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
-          });
         } catch (error) {
-          console.error("Failed to save AI meal:", error);
-          toast({
-            title: "Failed to save",
-            description: "Please try again",
-            variant: "destructive",
-          });
+          console.error("Failed to save AI meal to server:", error);
         }
       }
     },
     [activeDayISO, board, saveBoard, toast],
   );
-
 
   // Handler for snack selection from SnackPickerDrawer (Competition Snacks)
   const handleSnackSelect = useCallback(
@@ -829,22 +846,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     [board, planningMode, activeDayISO, saveBoard, toast],
   );
 
-  // Week navigation
-  const gotoWeek = useCallback(
-    async (targetISO: string) => {
-      setLoading(true);
-      try {
-        const { weekStartISO: ws, week } = await getWeekBoardByDate(targetISO);
-        setWeekStartISO(ws);
-        setBoard(week);
-      } catch (error) {
-        console.error("Failed to load week:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setLoading, setWeekStartISO, setBoard],
-  );
+  // Week navigation - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
+  const gotoWeek = useCallback((targetISO: string) => {
+    setWeekStartISO(targetISO);
+  }, []);
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
@@ -1041,18 +1046,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     );
   }, [coachMacroTargets, clientId, toast, setLocation]);
 
-  // Show error toast if board load fails
+  // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      toast({
-        title: "Connection Issue",
-        description:
-          "Showing cached meal plan. Changes will sync when you're back online.",
-        variant: "default",
-        duration: 5000,
-      });
+      console.log("[Network] Board load encountered an issue, using cached data if available");
     }
-  }, [error, toast]);
+  }, [error]);
 
   if (loading && !board) {
     return (
@@ -1089,15 +1088,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
     >
       {/* Safe Area Top Filler - matches header gradient */}
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-black/40 via-orange-600/40 to-black/40"
-        style={{ height: "env(safe-area-inset-top, 0px)" }}
-      />
-
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-gradient-to-r from-black/40 via-orange-600/40 to-black/40 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-black/40 via-orange-600/40 to-black/40 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
@@ -1106,7 +1100,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             <button
               onClick={() =>
                 setLocation(
-                  mode === "athlete" ? "/procare-cover" : "/dashboard",
+                  mode === "athlete" ? "/more" : "/dashboard",
                 )
               }
               className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg text-md font-medium flex-shrink-0"
@@ -1145,12 +1139,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             </div>
           )}
         </div>
+        {mode === "procare" && <ProClientBanner />}
       </div>
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
         className="px-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '10rem' : '8rem'})` }}
       >
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
@@ -1193,15 +1188,27 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 />
 
                 {planningMode === "day" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDuplicateDayModal(true)}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs px-3 py-1 rounded-xl"
-                    data-testid="button-duplicate-day"
-                  >
-                    Duplicate...
-                  </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateDayModal(true)}
+                  data-testid="duplicate-button"
+                  className="
+                    flex-shrink-0 inline-flex flex-col items-center justify-center
+                    rounded-full
+                    px-4 py-2
+                    text-sm font-semibold
+                    text-white/90
+                    bg-black/20
+                    border border-white/15
+                    backdrop-blur-lg
+                    hover:bg-white/10 hover:border-white/25
+                    transition-all
+                  "
+                  style={{ minHeight: 48 }}
+                >
+                  <span className="leading-none">Duplicate</span>
+                  <span className="mt-1 text-base leading-none opacity-80">📅</span>
+                </button>
                 )}
 
                 {planningMode === "week" && (
@@ -1247,6 +1254,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
                   />
                 </div>
               )}
@@ -1256,50 +1264,65 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Delete all meals from this board? This action cannot be undone.",
-                    )
-                  ) {
-                    if (board) {
-                      const clearedBoard = {
-                        ...board,
-                        lists: {
-                          breakfast: [],
-                          lunch: [],
-                          dinner: [],
-                          snacks: [],
-                        },
-                        days: board.days
-                          ? Object.fromEntries(
-                              Object.keys(board.days).map((dateISO) => [
-                                dateISO,
-                                {
-                                  breakfast: [],
-                                  lunch: [],
-                                  dinner: [],
-                                  snacks: [],
-                                },
-                              ]),
-                            )
-                          : undefined,
-                      };
-                      saveBoard(clearedBoard);
-                      clearAIMealsCache();
-                      toast({
-                        title: "All Meals Deleted",
-                        description:
-                          "Successfully cleared all meals from the board",
-                      });
-                    }
-                  }
-                }}
+                onClick={() => setShowDeleteAllConfirm(true)}
                 className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl"
                 data-testid="button-delete-all"
               >
                 Delete All
               </Button>
+              
+              <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+                <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
+                    <AlertDialogDescription className="text-zinc-400">
+                      Delete all meals from this board? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        if (board) {
+                          const clearedBoard = {
+                            ...board,
+                            lists: {
+                              breakfast: [],
+                              lunch: [],
+                              dinner: [],
+                              snacks: [],
+                            },
+                            days: board.days
+                              ? Object.fromEntries(
+                                  Object.keys(board.days).map((dateISO) => [
+                                    dateISO,
+                                    {
+                                      breakfast: [],
+                                      lunch: [],
+                                      dinner: [],
+                                      snacks: [],
+                                    },
+                                  ]),
+                                )
+                              : undefined,
+                          };
+                          saveBoard(clearedBoard);
+                          clearAIMealsCache();
+                          toast({
+                            title: "All Meals Deleted",
+                            description: "Successfully cleared all meals from the board",
+                          });
+                        }
+                      }}
+                      className="bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
               <Button
                 onClick={handleSave}
@@ -1411,11 +1434,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                     activeDayISO,
                                     updatedDayLists,
                                   );
+                                  setBoard(updatedBoard);
                                   saveBoard(updatedBoard).catch((err) => {
                                     console.error(
-                                      "❌ Delete failed (Day mode):",
+                                      "❌ Delete sync failed (Day mode):",
                                       err,
                                     );
+                                    toast({
+                                      title: "Sync pending",
+                                      description: "Changes will sync automatically.",
+                                    });
                                   });
                                 } else {
                                   // Update meal in day lists
@@ -1547,11 +1575,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                       activeDayISO,
                                       updatedDayLists,
                                     );
+                                    setBoard(updatedBoard);
                                     saveBoard(updatedBoard).catch((err) => {
                                       console.error(
-                                        "❌ Delete failed (Day mode):",
+                                        "❌ Delete sync failed (Day mode):",
                                         err,
                                       );
+                                      toast({
+                                        title: "Sync pending",
+                                        description: "Changes will sync automatically.",
+                                      });
                                     });
                                   } else {
                                     const updatedDayLists = {
@@ -1646,11 +1679,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                   activeDayISO,
                                   updatedDayLists,
                                 );
+                                setBoard(updatedBoard);
                                 saveBoard(updatedBoard).catch((err) => {
                                   console.error(
-                                    "❌ Delete failed (Day mode):",
+                                    "❌ Delete sync failed (Day mode):",
                                     err,
                                   );
+                                  toast({
+                                    title: "Sync pending",
+                                    description: "Changes will sync automatically.",
+                                  });
                                 });
                               } else {
                                 const updatedDayLists = {
@@ -1829,9 +1867,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
                               console.error(
-                                "❌ Delete failed (Board mode):",
+                                "❌ Delete sync failed (Board mode):",
                                 err,
                               );
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                           } else {
                             // Update meal
@@ -2052,17 +2094,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           meal={shoppingListModal.meal}
         />
 
-        {/* AI Meal Creator Modal - Competition Diet Type */}
-        <AIMealCreatorModal
-          open={aiMealModalOpen}
-          onOpenChange={setAiMealModalOpen}
-          onMealGenerated={handleAIMealGenerated}
-          mealSlot={aiMealSlot}
-          dietType="competition"
-          showMacroTargeting={false}
-        />
-
-
         {/* Snack Picker Drawer - Competition Snacks */}
         <SnackPickerDrawer
           open={snackPickerOpen}
@@ -2076,7 +2107,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           open={createWithChefOpen}
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
-          onMealGenerated={handleAIMealGenerated}
+          onMealGenerated={handleChefMealGenerated}
           dietType="performance"
           starchContext={starchContext}
         />

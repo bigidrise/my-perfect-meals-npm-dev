@@ -120,11 +120,11 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     keywords: ["lifestyle", "main lifestyle page", "nutrition lifestyle", "lifestyle hub", "lifestyle page"],
   },
   
-  // Pro Care Page
+  // More Page
   {
-    path: "/procare-cover",
-    walkthroughId: "procare",
-    keywords: ["pro care", "professional care", "doctor care", "procare", "medical care", "professional help", "doctor"],
+    path: "/more",
+    walkthroughId: "more",
+    keywords: ["pro care", "professional care", "doctor care", "procare", "medical care", "professional help", "doctor", "more"],
   },
   
   // Planner Page

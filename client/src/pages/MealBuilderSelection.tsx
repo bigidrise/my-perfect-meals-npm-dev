@@ -1,21 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Check,
   Utensils,
   Heart,
   Pill,
   Flame,
   ArrowLeft,
   MessageCircle,
+  AlertTriangle,
+  RefreshCw,
+  Trophy,
+  Dumbbell,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { PillButton } from "@/components/ui/pill-button";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import DisclaimerModal from "@/components/DisclaimerModal";
+
+interface BuilderSwitchStatus {
+  switchesUsed: number;
+  switchesRemaining: number;
+  canSwitch: boolean;
+  nextSwitchAvailable: string | null;
+}
 
 interface BuilderOption {
   id: MealBuilderType;
@@ -52,10 +64,34 @@ const BUILDER_OPTIONS: BuilderOption[] = [
   },
   {
     id: "anti_inflammatory",
-    title: "Anti-Inflammatory Builder",
+    title: "Anti-Inflam. Builder",
     description:
       "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
     icon: <Flame className="w-8 h-8" />,
+    color: "from-black via-zinc-950 to-black",
+  },
+  {
+    id: "beach_body",
+    title: "Beach Body Builder",
+    description:
+      "Contest prep and leaning out. Designed for rapid, visible change.",
+    icon: <Trophy className="w-8 h-8" />,
+    color: "from-black via-zinc-950 to-black",
+  },
+  {
+    id: "general_nutrition",
+    title: "General Nutrition Builder",
+    description:
+      "Professional-grade nutrition with coach support. Requires trainer unlock.",
+    icon: <Utensils className="w-8 h-8" />,
+    color: "from-black via-zinc-950 to-black",
+  },
+  {
+    id: "performance_competition",
+    title: "Performance Builder",
+    description:
+      "Elite athlete meal planning for competition prep. Requires trainer unlock.",
+    icon: <Dumbbell className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
 ];
@@ -67,12 +103,68 @@ export default function MealBuilderSelection() {
   const [selected, setSelected] = useState<MealBuilderType | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
 
-  const isProCareClient = user?.isProCare && user?.role !== "admin";
+  const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
+  
+  // Pro builders require trainer unlock
+  const PRO_BUILDERS = ["general_nutrition", "performance_competition"];
+  
+  const isProBuilderUnlocked = (builderId: string): boolean => {
+    if (!PRO_BUILDERS.includes(builderId)) return true; // Not a pro builder
+    if (isAdmin) return true; // Admins have full access
+    // User has access if trainer assigned this as their activeBoard
+    return user?.activeBoard === builderId;
+  };
+  
   const availableBuilders =
     isProCareClient && user?.activeBoard
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
       : BUILDER_OPTIONS;
+
+  // Refresh user data when component mounts to ensure we have latest state
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  // Initialize selected state from user's current builder
+  // For ProCare clients (actual clients, not professionals), activeBoard takes priority
+  useEffect(() => {
+    const currentBuilder = isProCareClient
+      ? (user?.activeBoard || user?.selectedMealBuilder)
+      : (user?.selectedMealBuilder || user?.activeBoard);
+    if (currentBuilder) {
+      setSelected(currentBuilder as MealBuilderType);
+    }
+  }, [user?.activeBoard, user?.selectedMealBuilder, isProCareClient]);
+
+  useEffect(() => {
+    const fetchSwitchStatus = async () => {
+      const authToken = getAuthToken();
+      if (!authToken) {
+        setLoadingStatus(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(apiUrl("/api/user/builder-switch-status"), {
+          headers: { "x-auth-token": authToken },
+        });
+        if (response.ok) {
+          const status = await response.json();
+          setSwitchStatus(status);
+        }
+      } catch (error) {
+        console.error("Failed to fetch switch status:", error);
+      } finally {
+        setLoadingStatus(false);
+      }
+    };
+
+    fetchSwitchStatus();
+  }, []);
 
   const handleContinue = async () => {
     if (!selected) {
@@ -84,6 +176,25 @@ export default function MealBuilderSelection() {
       });
       return;
     }
+
+    if (selected === user?.selectedMealBuilder) {
+      toast({
+        title: "Already using this builder",
+        description: "You're already using this meal builder.",
+      });
+      setLocation("/dashboard");
+      return;
+    }
+
+    // Switch limit check - currently disabled (ENFORCE_SWITCH_LIMITS = false on backend)
+    // if (switchStatus && !switchStatus.canSwitch) {
+    //   toast({
+    //     title: "Switch limit reached",
+    //     description: `You've used all 3 builder switches this year. Next switch available ${switchStatus.nextSwitchAvailable ? new Date(switchStatus.nextSwitchAvailable).toLocaleDateString() : "later this year"}.`,
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     const authToken = getAuthToken();
     if (!authToken) {
@@ -99,8 +210,8 @@ export default function MealBuilderSelection() {
     setSaving(true);
 
     try {
-      const response = await fetch(apiUrl("/api/user/select-meal-builder"), {
-        method: "POST",
+      const response = await fetch(apiUrl("/api/user/meal-builder"), {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "x-auth-token": authToken,
@@ -110,9 +221,17 @@ export default function MealBuilderSelection() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save selection");
+        if (data.switchStatus) {
+          setSwitchStatus(data.switchStatus);
+        }
+        throw new Error(data.error || "Failed to save selection");
+      }
+
+      if (data.switchStatus) {
+        setSwitchStatus(data.switchStatus);
       }
 
       await refreshUser();
@@ -130,11 +249,11 @@ export default function MealBuilderSelection() {
       } else {
         setShowDisclaimer(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save meal builder selection:", error);
       toast({
-        title: "Error",
-        description: "Failed to save your selection. Please try again.",
+        title: "Unable to Switch",
+        description: error.message || "Failed to save your selection. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -150,10 +269,10 @@ export default function MealBuilderSelection() {
     >
       {/* Fixed Black Glass Navigation Banner */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-3">
+        <div className="px-4 pb-3 flex items-center gap-3">
           <Button
             onClick={() => setLocation("/dashboard")}
             className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
@@ -214,6 +333,43 @@ export default function MealBuilderSelection() {
           </p>
         </div>
 
+        {/* Builder Switch Status - Currently disabled, uncomment when ENFORCE_SWITCH_LIMITS is true */}
+        {/* {!loadingStatus && switchStatus && (
+          <div className={`rounded-xl p-4 mb-6 ${switchStatus.canSwitch ? "bg-zinc-900/60 border border-zinc-700" : "bg-amber-900/30 border border-amber-500/50"}`}>
+            <div className="flex items-center gap-3">
+              {switchStatus.canSwitch ? (
+                <RefreshCw className="w-5 h-5 text-zinc-400" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+              )}
+              <div className="flex-1">
+                {switchStatus.canSwitch ? (
+                  <>
+                    <p className="text-white text-sm font-medium">
+                      {switchStatus.switchesRemaining} switch{switchStatus.switchesRemaining !== 1 ? "es" : ""} remaining this year
+                    </p>
+                    <p className="text-zinc-400 text-xs mt-0.5">
+                      You can change your meal builder {switchStatus.switchesRemaining} more time{switchStatus.switchesRemaining !== 1 ? "s" : ""} in the next 12 months.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-amber-200 text-sm font-medium">
+                      Switch limit reached
+                    </p>
+                    <p className="text-amber-300/70 text-xs mt-0.5">
+                      You've used all 3 builder switches this year.
+                      {switchStatus.nextSwitchAvailable && (
+                        <> Your next switch will be available on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
+                      )}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )} */}
+
         <div className="space-y-4 mb-8">
           {/* Locked state: Pro Care client with no assigned board */}
           {isProCareClient && !user?.activeBoard && (
@@ -233,37 +389,65 @@ export default function MealBuilderSelection() {
 
           {/* Available builders - only show if NOT in locked state */}
           {!(isProCareClient && !user?.activeBoard) &&
-            availableBuilders.map((option) => (
-              <motion.button
+            availableBuilders.map((option) => {
+              const isUnlocked = isProBuilderUnlocked(option.id);
+              const isProBuilder = PRO_BUILDERS.includes(option.id);
+              
+              return (
+              <div
                 key={option.id}
-                onClick={() => setSelected(option.id)}
-                whileTap={{ scale: 0.98 }}
-                className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
-                  selected === option.id
-                    ? "border-white bg-white/10"
-                    : "border-white/20 bg-black/30 hover:border-white/40"
+                className={`w-full p-4 rounded-2xl border-2 transition-all ${
+                  !isUnlocked
+                    ? "border-zinc-700 bg-black/20 opacity-60"
+                    : selected === option.id
+                    ? "border-emerald-500/50 bg-white/10"
+                    : "border-white/20 bg-black/30"
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} text-white`}
+                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} ${isUnlocked ? "text-white" : "text-zinc-500"} flex-shrink-0`}
                   >
                     {option.icon}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">{option.title}</h3>
-                      {selected === option.id && (
-                        <Check className="w-5 h-5 text-emerald-400" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        {!isUnlocked && isProBuilder && (
+                          <Lock className="w-4 h-4 text-zinc-500" />
+                        )}
+                        {option.id === "beach_body" && (
+                          <span className="text-xs px-2 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30">
+                            Ultimate
+                          </span>
+                        )}
+                        {((user?.isProCare ? user?.activeBoard : user?.selectedMealBuilder) || user?.selectedMealBuilder) === option.id && (
+                          <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      {isUnlocked ? (
+                        <PillButton
+                          active={selected === option.id}
+                          onClick={() => setSelected(option.id)}
+                          className="flex-shrink-0"
+                        >
+                          {selected === option.id ? "On" : "Off"}
+                        </PillButton>
+                      ) : (
+                        <span className="text-xs text-zinc-500 italic">Trainer unlock required</span>
                       )}
                     </div>
-                    <p className="text-white/70 text-sm mt-1">
-                      {option.description}
+                    <p className={`text-sm mt-1 ${!isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
+                      {!isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
                     </p>
                   </div>
                 </div>
-              </motion.button>
-            ))}
+              </div>
+            );
+            })}
         </div>
 
         {/* Copilot guidance hint */}

@@ -14,6 +14,7 @@ const CACHE_TTL_MS = Number(process.env.MEALGEN_CACHE_TTL_MS || 300000); // 5 mi
 // Smart caching system for meal generation
 const cache = new MealgenCache<any>(CACHE_TTL_MS, 300);
 import { allergenViolated, banViolated } from "./ontology";
+import { buildForbiddenIngredients, scanForViolations, logSafetyEnforcement, UserSafetyProfile } from "./allergyGuardrails";
 import { estimateMacros } from "./macroEstimator";
 import { varietyBank } from "./varietyBank";
 import { generateStrictMeal } from "./mealgen_v2";
@@ -276,12 +277,43 @@ function mealSig(m: Pick<WMC2Item, "name" | "ingredients">) {
 }
 
 function violatesOnboarding(meal: WMC2Item, onboarding: any): boolean {
-  const names = (meal.ingredients || []).map(i => i.name.toLowerCase());
+  // Build comprehensive safety profile from onboarding
+  const safetyProfile: UserSafetyProfile = {
+    allergies: onboarding.allergies || [],
+    dietaryRestrictions: onboarding.diet ? [onboarding.diet] : [],
+    avoidIngredients: onboarding.avoid || []
+  };
   
-  // Use advanced ontology-based validation
+  // Add dietary restrictions based on flags
+  if (onboarding.noMeat) safetyProfile.dietaryRestrictions.push('vegetarian');
+  if (onboarding.noFish) {
+    safetyProfile.allergies.push('fish', 'shellfish');
+  }
+  if (onboarding.noDairy) safetyProfile.allergies.push('dairy');
+  if (onboarding.noEggs) safetyProfile.allergies.push('eggs');
+  
+  // Use comprehensive guardrails system
+  const forbiddenIngredients = buildForbiddenIngredients(safetyProfile);
+  
+  // Convert meal to format expected by scanner
+  const mealForScan = {
+    name: meal.name,
+    ingredients: (meal.ingredients || []).map(i => ({ name: i.name }))
+  };
+  
+  const violations = scanForViolations(mealForScan, forbiddenIngredients);
+  
+  if (violations.length > 0) {
+    console.log(`🚨 [ALLERGY SAFETY - WMC2] Meal "${meal.name}" blocked. Violations: ${violations.join(", ")}`);
+    logSafetyEnforcement(onboarding.userId || 'unknown', meal.name, violations, 'blocked');
+    return true;
+  }
+  
+  // Legacy ontology checks as backup
+  const names = (meal.ingredients || []).map(i => i.name.toLowerCase());
   const allergenViolation = allergenViolated(names, onboarding);
   if (allergenViolation) {
-    console.log(`🚫 Allergen violation detected: ${allergenViolation}`);
+    console.log(`🚫 Legacy allergen violation detected: ${allergenViolation}`);
     return true;
   }
   

@@ -1,18 +1,20 @@
 import { useLocation } from "wouter";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
-import { motion } from "framer-motion";
 import { isGuestMode } from "@/lib/guestMode";
 import {
   getGuestNavigationOverride,
   getGuestSuitePage,
 } from "@/lib/guestSuiteNavigator";
+import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
+  const { user } = useAuth();
   const { open, close, isOpen, setLastResponse } = useCopilot();
 
   const handleNavClick = useCallback(
@@ -64,32 +66,34 @@ export default function BottomNav() {
     }
   }, [isOpen, open, close, location, normalizePath, setLastResponse]);
 
-  const navItems = [
-    {
-      id: "home",
-      label: "Home",
-      icon: Home,
-      path: "/dashboard",
-    },
-    {
-      id: "planner",
-      label: "Planner",
-      icon: CalendarDays,
-      path: "/planner",
-    },
-    {
-      id: "lifestyle",
-      label: "Lifestyle",
-      icon: Sparkles,
-      path: "/lifestyle",
-    },
-    {
-      id: "procare",
-      label: "ProCare",
-      icon: Crown,
-      path: "/procare-cover",
-    },
-  ];
+  const navItems = useMemo(() => {
+    return [
+      {
+        id: "home",
+        label: "Home",
+        icon: Home,
+        path: "/dashboard",
+      },
+      {
+        id: "planner",
+        label: "Planner",
+        icon: CalendarDays,
+        path: "/planner",
+      },
+      {
+        id: "lifestyle",
+        label: "Lifestyle",
+        icon: Sparkles,
+        path: "/lifestyle",
+      },
+      {
+        id: "more",
+        label: "More",
+        icon: Crown,
+        path: "/more",
+      },
+    ];
+  }, []);
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -103,99 +107,114 @@ export default function BottomNav() {
   const rightItems = navItems.slice(2);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl pb-[var(--safe-bottom)]">
-      <div className="max-w-screen-xl mx-auto px-4">
-        <div className="relative h-12 grid grid-cols-[1fr_auto_1fr] items-center">
-          {/* LEFT ITEMS */}
-          <div className="flex items-center justify-start">
-            {leftItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.path)}
-                  style={{ flexDirection: "column" }}
-                  className={`flex items-center justify-center px-4 h-full transition-all duration-300 ${
-                    active
-                      ? "text-orange-500"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                  data-testid={`nav-${item.id}`}
-                >
-                  <div className={`relative ${active ? "animate-pulse" : ""}`}>
-                    {active && (
-                      <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
-                    )}
-                    <Icon
-                      className={`relative h-4 w-4 transition-all duration-300 ${active ? "scale-95 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
-                    />
-                  </div>
-                  <span
-                    className={`text-[11px] mt-0.5 font-medium transition-all duration-300 ${active ? "font-bold text-orange-500" : ""}`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* CENTER COPILOT BUTTON */}
-          {/* CENTER COPILOT BUTTON */}
-          <div className="flex justify-center">
-            <motion.button
-              onClick={handleChefClick}
-              className="flex items-center justify-center w-14 h-14 rounded-full bg-black/70 border-2 border-white/15 backdrop-blur-xl shadow-lg shadow-orange-500/60 hover:shadow-orange-500/100 hover:border-orange-400/100 transition-all duration-300"
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ y: -2, scale: 1.08 }}
-              style={{
-                boxShadow:
-                  "0 0 15px rgba(251,146,60,0.3), 0 0 25px rgba(251,146,60,0.2)",
-              }}
-            >
-              <span className="text-5xl leading-none">👨🏿‍🍳</span>
-            </motion.button>
-          </div>
-
-          {/* RIGHT ITEMS */}
-          <div className="flex items-center justify-end">
-            {rightItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.path)}
-                  style={{ flexDirection: "column" }}
-                  className={`flex items-center justify-center px-4 h-full transition-all duration-300 ${
-                    active
-                      ? "text-orange-500"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                  data-testid={`nav-${item.id}`}
-                >
-                  <div className={`relative ${active ? "animate-pulse" : ""}`}>
-                    {active && (
-                      <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
-                    )}
-                    <Icon
-                      className={`relative h-4 w-4 transition-all duration-300 ${active ? "scale-95 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
-                    />
-                  </div>
-                  <span
-                    className={`text-[11px] mt-0.5 font-medium transition-all duration-300 ${active ? "font-bold text-orange-500" : ""}`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+    <>
+      {/* CHEF BUTTON - DO NOT add safe-area here, nav handles it */}
+      <div
+        className="fixed left-1/2 z-[45] pointer-events-none flex items-center justify-center"
+        style={{ bottom: "6px", transform: "translateX(-50%)" }}
+      >
+        <div className="pointer-events-auto">
+          <ChefEmojiButton onClick={handleChefClick} />
         </div>
       </div>
-    </nav>
+
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-xl border-t border-white/10 shadow-2xl font-size-fixed"
+        style={{ paddingBottom: "var(--safe-bottom)", fontSize: "16px" }}
+      >
+        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 16px" }}>
+          <div style={{ position: "relative", height: "64px", display: "grid", gridTemplateColumns: "1fr 56px 1fr", alignItems: "center" }}>
+            {/* LEFT ITEMS */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", flexWrap: "nowrap" }}>
+              {leftItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.path)}
+                    style={{ 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      padding: "0 16px",
+                      height: "64px",
+                      flexShrink: 0,
+                    }}
+                    className={`touch-manipulation ${
+                      active
+                        ? "text-orange-500"
+                        : "text-gray-400 opacity-70"
+                    }`}
+                    data-testid={`nav-${item.id}`}
+                  >
+                    <div className="relative">
+                      {active && (
+                        <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
+                      )}
+                      <Icon
+                        style={{ width: "16px", height: "16px" }}
+                        className={`relative ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
+                      />
+                    </div>
+                    <span style={{ fontSize: "11px", marginTop: "2px", fontWeight: 500 }}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* CENTER SPACER - Maintains grid spacing for Chef button area */}
+            <div style={{ width: "56px" }} aria-hidden="true" />
+
+            {/* RIGHT ITEMS */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
+              {rightItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.path)}
+                    style={{ 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      padding: "0 16px",
+                      height: "64px",
+                      flexShrink: 0,
+                    }}
+                    className={`touch-manipulation ${
+                      active
+                        ? "text-orange-500"
+                        : "text-gray-400 opacity-70"
+                    }`}
+                    data-testid={`nav-${item.id}`}
+                  >
+                    <div className="relative">
+                      {active && (
+                        <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full"></div>
+                      )}
+                      <Icon
+                        style={{ width: "16px", height: "16px" }}
+                        className={`relative ${active ? "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" : ""}`}
+                      />
+                    </div>
+                    <span style={{ fontSize: "11px", marginTop: "2px", fontWeight: 500 }}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </nav>
+    </>
   );
 }

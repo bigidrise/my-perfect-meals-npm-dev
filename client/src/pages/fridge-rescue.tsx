@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { isFeatureEnabled } from "@/lib/productionGates";
 import {
   ArrowLeft,
   RefreshCw,
@@ -31,17 +32,29 @@ import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useLogMacros } from "@/hooks/useLogMacros";
 import { useToast } from "@/hooks/use-toast";
+import {
+  isAllergyRelatedError,
+  formatAllergyAlertDescription,
+} from "@/utils/allergyAlert";
 import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import TrashButton from "@/components/ui/TrashButton";
-import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ShareRecipeButton from "@/components/ShareRecipeButton";
+import TranslateToggle from "@/components/TranslateToggle";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
+import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { FlavorToggle } from "@/components/FlavorToggle";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -58,8 +71,6 @@ const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
     description: "Use what you have and skip unnecessary grocery trips.",
   },
 ];
-
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 interface StructuredIngredient {
   name: string;
@@ -104,6 +115,9 @@ const FridgeRescuePage = () => {
   const { toast } = useToast();
   const { runAction, open, startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("fridge-rescue");
+  // Get actual user ID from auth context for medical safety
+  const { user } = useAuth();
+  const userId = user?.id || "";
 
   // 🎯 Auto-start walkthrough on first visit
   useEffect(() => {
@@ -151,16 +165,55 @@ const FridgeRescuePage = () => {
   const [ingredients, setIngredients] = useState("");
   const [meals, setMeals] = useState<MealData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Safety override integration - always starts ON, auto-resets after generation
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [showResults, setShowResults] = useState(false);
+
+  // Flavor preference toggle - Personal = use user's palate, Neutral = for others
+  const [flavorPersonal, setFlavorPersonal] = useState(true);
+
+  // 🔐 SafetyGuard preflight system
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setAlert: setSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
+
+  // 🔐 Pending request for SafetyGuard continuation bridge
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+
+  // Handle safety override continuation - auto-generate when override token received
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      clearSafetyAlert(); // Clear banner on successful override
+      // Set pending flag - generation will auto-trigger
+      setPendingGeneration(true);
+    }
+  };
+
+  // Effect: Auto-generate when override token is set and generation is pending
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isLoading) {
+      setPendingGeneration(false);
+      handleGenerateMeals(true); // true = skip preflight (already have override)
+    }
+  }, [pendingGeneration, overrideToken, isLoading]);
+
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
     [],
   );
-  const [expandedIngredients, setExpandedIngredients] = useState<string[]>(
-    [],
-  );
+  const [expandedIngredients, setExpandedIngredients] = useState<string[]>([]);
   const [isReplacing, setIsReplacing] = useState<{ [key: string]: boolean }>(
     {},
   );
@@ -270,7 +323,7 @@ const FridgeRescuePage = () => {
     setProgress(100); // Complete progress
   };
 
-  const handleGenerateMeals = async () => {
+  const handleGenerateMeals = async (skipPreflight = false) => {
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
       detail: { testId: "fridge-rescue-interacted", event: "interacted" },
@@ -280,6 +333,15 @@ const FridgeRescuePage = () => {
     if (!ingredients.trim()) {
       alert("Please enter some ingredients first!");
       return;
+    }
+
+    // 🔐 Preflight safety check - BEFORE starting progress bar
+    if (!skipPreflight && !hasActiveOverride) {
+      const isSafe = await checkSafety(ingredients, "fridge-rescue");
+      if (!isSafe) {
+        // Banner will show automatically via safetyAlert state
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -295,16 +357,41 @@ const FridgeRescuePage = () => {
             .split(",")
             .map((i) => i.trim())
             .filter((i) => i),
-          userId: DEV_USER_ID,
+          userId: userId,
+          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: hasActiveOverride ? overrideToken : undefined,
+          skipPalate: !flavorPersonal,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate meal");
-      }
-
       const data = await response.json();
       console.log("🧊 Frontend received data:", data);
+
+      // Check for safety blocks/ambiguous - show banner instead of error
+      if (data.safetyBlocked || data.safetyAmbiguous) {
+        stopProgressTicker();
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Allergy alert detected",
+          suggestion: data.suggestion,
+        });
+        setIsLoading(false);
+        return; // Don't throw error, let banner handle it
+      }
+
+      // Auto-reset safety state after successful generation
+      setSafetyEnabled(true);
+      clearSafetyAlert();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || data.error || "Failed to generate meal",
+        );
+      }
 
       // Handle both response formats: {meals: [...]} or {meal: {...}}
       let mealsArray;
@@ -337,10 +424,23 @@ const FridgeRescuePage = () => {
           });
         }
       }, 100);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating meals:", error);
       stopProgressTicker();
-      alert("Failed to generate meals. Please try again.");
+      const errorMsg = error?.message || String(error) || "";
+      if (isAllergyRelatedError(errorMsg)) {
+        toast({
+          title: "⚠️ ALLERGY ALERT",
+          description: formatAllergyAlertDescription(errorMsg),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: "Failed to generate meals. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -375,7 +475,7 @@ const FridgeRescuePage = () => {
 
     const { useWeeklyPlan } = await import("@/hooks/useWeeklyPlan");
     const { clearReplaceCtx } = await import("@/lib/replacementContext");
-    const { replaceOne } = useWeeklyPlan(DEV_USER_ID, replaceCtx.weekKey);
+    const { replaceOne } = useWeeklyPlan(userId, replaceCtx.weekKey);
 
     // Create meal object compatible with Weekly Plan
     const planMeal = {
@@ -388,7 +488,10 @@ const FridgeRescuePage = () => {
       protein: meal.protein || 0,
       carbs: meal.carbs || 0,
       fat: meal.fat || 0,
-      badges: meal.medicalBadges?.map((b: any) => typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label)) || [],
+      badges:
+        meal.medicalBadges?.map((b: any) =>
+          typeof b === "string" ? b : b.badge || b.id || b.condition || b.label,
+        ) || [],
       ingredients: meal.ingredients || [],
       instructions:
         typeof meal.instructions === "string"
@@ -422,7 +525,8 @@ const FridgeRescuePage = () => {
           .map((i) => i.trim())
           .filter((i) => i),
         goal: selectedGoal,
-        userId: DEV_USER_ID,
+        userId: userId,
+        skipPalate: !flavorPersonal,
       }),
     });
     const data = await resp.json();
@@ -454,15 +558,22 @@ const FridgeRescuePage = () => {
         body: JSON.stringify({
           ingredients: ingredients.trim(),
           goal: undefined, // You can add selectedGoal if needed
-          userId: DEV_USER_ID,
+          userId: userId,
+          skipPalate: !flavorPersonal,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        // Check if this is an allergy safety block
+        if (data.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+        throw new Error(
+          data.message || `HTTP ${response.status}: ${response.statusText}`,
+        );
+      }
 
       if (data?.meals?.length > 0) {
         const next = { ...data.meals[0] };
@@ -494,8 +605,8 @@ const FridgeRescuePage = () => {
       >
         {/* Universal Safe-Area Header */}
         <div
-          className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-          style={{ top: "env(safe-area-inset-top, 0px)" }}
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
             {/* Title */}
@@ -519,11 +630,47 @@ const FridgeRescuePage = () => {
           className="max-w-4xl mx-auto px-6"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* Create with Chef Entry Point - Fridge Rescue Studio works, so enabled */}
+          <div className="relative mb-4 max-w-2xl mx-auto">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.75), rgba(239,68,68,0.35), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 rounded-xl shadow-md overflow-hidden hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
+              onClick={() => setLocation("/fridge-rescue-studio")}
+              data-testid="fridge-rescue-studio-entry"
+            >
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+                <span className="text-white font-semibold text-[8px] tracking-wide">
+                  Powered by Emotion AI™
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Refrigerator className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                    <h3 className="text-sm font-semibold text-white">
+                      Chef's Fridge Rescue Studio
+                    </h3>
+                  </div>
+                  <p className="text-xs text-white/80 ml-6">
+                    Step-by-step guided meal creation from your ingredients with
+                    Chef voice assistance
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-white mb-4"></h2>
-                <p className="text-sm text-white/80 mb-6"></p>
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-white">Quick Create</h2>
               </div>
 
               <div className="space-y-4">
@@ -579,11 +726,51 @@ const FridgeRescuePage = () => {
                   </div>
                 )}
 
+                {/* SafetyGuard Preflight Banner - Black/Yellow Alert */}
+                <SafetyGuardBanner
+                  alert={safetyAlert}
+                  mealRequest={ingredients}
+                  onDismiss={clearSafetyAlert}
+                  onOverrideSuccess={(token) =>
+                    handleSafetyOverride(false, token)
+                  }
+                />
+
+                {/* Meal Safety Section */}
+                <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
+                  <span className="text-xs text-white/60 block mb-2">
+                    Meal Safety
+                  </span>
+                  <SafetyGuardToggle
+                    safetyEnabled={safetyEnabled}
+                    onSafetyChange={handleSafetyOverride}
+                    disabled={isLoading || safetyChecking}
+                  />
+                  <GlucoseGuardToggle disabled={isLoading || safetyChecking} />
+                </div>
+
+                {/* Flavor Preference Section */}
+                <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                  <span className="text-xs text-white/60 block mb-2">
+                    Flavor Preference
+                  </span>
+                  <FlavorToggle
+                    flavorPersonal={flavorPersonal}
+                    onFlavorChange={setFlavorPersonal}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-white/40 mt-1">
+                    {flavorPersonal
+                      ? "Using your palate preferences"
+                      : "Neutral seasoning for others"}
+                  </p>
+                </div>
+
                 <button
-                  onClick={handleGenerateMeals}
-                  disabled={isLoading}
+                  onClick={() => handleGenerateMeals()}
+                  disabled={isLoading || safetyChecking}
                   data-testid="fridge-generate"
-                  className="w-full bg-lime-600 backdrop-blur-lg hover:bg-lime-600 border border-white/20 disabled:bg-black/10 disabled:opacity-50 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
+                  className="w-full bg-lime-600 backdrop-blur-lg border border-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
                 >
                   <div className="flex items-center gap-2">
                     Generate 3 Meals
@@ -651,9 +838,16 @@ const FridgeRescuePage = () => {
                     </div>
 
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg text-white">
-                        {meal.name}
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg text-white">
+                          {meal.name}
+                        </CardTitle>
+                        <FavoriteButton
+                          title={meal.name}
+                          sourceType="fridge-rescue"
+                          mealData={meal}
+                        />
+                      </div>
                       <CardDescription className="text-sm text-white/80">
                         {meal.description}
                       </CardDescription>
@@ -705,37 +899,20 @@ const FridgeRescuePage = () => {
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <AddToMealPlanButton meal={meal} />
-                        <MealCardActions
-                          meal={{
-                            name: meal.name,
-                            description: meal.description,
-                            ingredients: (meal.ingredients ?? []).map((ing: any) => ({
-                              name: typeof ing === "string" ? ing : ing.name,
-                              amount: typeof ing === "string" ? "" : ing.quantity,
-                              unit: typeof ing === "string" ? "" : ing.unit,
-                            })),
-                            instructions: typeof meal.instructions === "string"
-                              ? meal.instructions.split(/\.\s+/).filter(Boolean)
-                              : meal.instructions,
-                            nutrition: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
-                          }}
-                        />
-                      </div>
-
                       {/* Medical Badges */}
                       <div className="flex items-center gap-2">
                         <HealthBadgesPopover
                           badges={
-                            meal.medicalBadges?.map(
-                              (b: any) =>
-                                typeof b === 'string' ? b : (b.badge || b.id || b.condition || b.label),
+                            meal.medicalBadges?.map((b: any) =>
+                              typeof b === "string"
+                                ? b
+                                : b.badge || b.id || b.condition || b.label,
                             ) || []
                           }
                         />
-                        <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                        <h3 className="font-semibold text-white text-sm">
+                          Medical Safety
+                        </h3>
                       </div>
 
                       {/* Ingredients */}
@@ -744,99 +921,144 @@ const FridgeRescuePage = () => {
                           Ingredients:
                         </h4>
                         <ul className="text-xs text-white/80 space-y-1">
-                          {meal.ingredients.slice(0, 4).map((ingredient: any, i: number) => {
-                            if (typeof ingredient === "string") {
+                          {meal.ingredients
+                            .slice(0, 4)
+                            .map((ingredient: any, i: number) => {
+                              if (typeof ingredient === "string") {
+                                return (
+                                  <li key={i} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>{ingredient}</span>
+                                  </li>
+                                );
+                              }
+
+                              const name = ingredient.item || ingredient.name;
+                              const amount =
+                                ingredient.amount || ingredient.quantity;
+                              const unit = ingredient.unit;
+
+                              // Priority 1: Use pre-formatted displayText from backend
+                              if (ingredient.displayText) {
+                                return (
+                                  <li key={i} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>{ingredient.displayText}</span>
+                                  </li>
+                                );
+                              }
+
+                              // Priority 2: Show amount + unit + name
+                              if (amount && unit) {
+                                return (
+                                  <li key={i} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>
+                                      {amount} {unit} {name}
+                                    </span>
+                                  </li>
+                                );
+                              }
+
+                              // Priority 3: Just show name
                               return (
                                 <li key={i} className="flex items-start">
                                   <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient}</span>
+                                  <span>{name}</span>
                                 </li>
                               );
-                            }
-
-                            const name = ingredient.item || ingredient.name;
-                            const amount = ingredient.amount || ingredient.quantity;
-                            const unit = ingredient.unit;
-
-                            // Priority 1: Use pre-formatted displayText from backend
-                            if (ingredient.displayText) {
-                              return (
-                                <li key={i} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient.displayText}</span>
-                                </li>
-                              );
-                            }
-
-                            // Priority 2: Show amount + unit + name
-                            if (amount && unit) {
-                              return (
-                                <li key={i} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{amount} {unit} {name}</span>
-                                </li>
-                              );
-                            }
-
-                            // Priority 3: Just show name
-                            return (
-                              <li key={i} className="flex items-start">
-                                <span className="text-green-400 mr-1">•</span>
-                                <span>{name}</span>
+                            })}
+                          {meal.ingredients.length > 4 &&
+                            !expandedIngredients.includes(meal.id) && (
+                              <li
+                                className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                                onClick={() =>
+                                  setExpandedIngredients((prev) => [
+                                    ...prev,
+                                    meal.id,
+                                  ])
+                                }
+                              >
+                                + {meal.ingredients.length - 4} more ingredients
                               </li>
-                            );
-                          })}
-                          {meal.ingredients.length > 4 && !expandedIngredients.includes(meal.id) && (
-                            <li 
-                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
-                              onClick={() => setExpandedIngredients(prev => [...prev, meal.id])}
-                            >
-                              + {meal.ingredients.length - 4} more ingredients
-                            </li>
-                          )}
-                          {expandedIngredients.includes(meal.id) && meal.ingredients.slice(4).map((ingredient: any, i: number) => {
-                            if (typeof ingredient === "string") {
-                              return (
-                                <li key={i + 4} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient}</span>
-                                </li>
-                              );
-                            }
-                            const name = ingredient.item || ingredient.name;
-                            const amount = ingredient.amount || ingredient.quantity;
-                            const unit = ingredient.unit;
-                            if (ingredient.displayText) {
-                              return (
-                                <li key={i + 4} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{ingredient.displayText}</span>
-                                </li>
-                              );
-                            }
-                            if (amount && unit) {
-                              return (
-                                <li key={i + 4} className="flex items-start">
-                                  <span className="text-green-400 mr-1">•</span>
-                                  <span>{amount} {unit} {name}</span>
-                                </li>
-                              );
-                            }
-                            return (
-                              <li key={i + 4} className="flex items-start">
-                                <span className="text-green-400 mr-1">•</span>
-                                <span>{name}</span>
+                            )}
+                          {expandedIngredients.includes(meal.id) &&
+                            meal.ingredients
+                              .slice(4)
+                              .map((ingredient: any, i: number) => {
+                                if (typeof ingredient === "string") {
+                                  return (
+                                    <li
+                                      key={i + 4}
+                                      className="flex items-start"
+                                    >
+                                      <span className="text-green-400 mr-1">
+                                        •
+                                      </span>
+                                      <span>{ingredient}</span>
+                                    </li>
+                                  );
+                                }
+                                const name = ingredient.item || ingredient.name;
+                                const amount =
+                                  ingredient.amount || ingredient.quantity;
+                                const unit = ingredient.unit;
+                                if (ingredient.displayText) {
+                                  return (
+                                    <li
+                                      key={i + 4}
+                                      className="flex items-start"
+                                    >
+                                      <span className="text-green-400 mr-1">
+                                        •
+                                      </span>
+                                      <span>{ingredient.displayText}</span>
+                                    </li>
+                                  );
+                                }
+                                if (amount && unit) {
+                                  return (
+                                    <li
+                                      key={i + 4}
+                                      className="flex items-start"
+                                    >
+                                      <span className="text-green-400 mr-1">
+                                        •
+                                      </span>
+                                      <span>
+                                        {amount} {unit} {name}
+                                      </span>
+                                    </li>
+                                  );
+                                }
+                                return (
+                                  <li key={i + 4} className="flex items-start">
+                                    <span className="text-green-400 mr-1">
+                                      •
+                                    </span>
+                                    <span>{name}</span>
+                                  </li>
+                                );
+                              })}
+                          {expandedIngredients.includes(meal.id) &&
+                            meal.ingredients.length > 4 && (
+                              <li
+                                className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+                                onClick={() =>
+                                  setExpandedIngredients((prev) =>
+                                    prev.filter((id) => id !== meal.id),
+                                  )
+                                }
+                              >
+                                Show less
                               </li>
-                            );
-                          })}
-                          {expandedIngredients.includes(meal.id) && meal.ingredients.length > 4 && (
-                            <li 
-                              className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
-                              onClick={() => setExpandedIngredients(prev => prev.filter(id => id !== meal.id))}
-                            >
-                              Show less
-                            </li>
-                          )}
+                            )}
                         </ul>
                       </div>
 
@@ -876,8 +1098,9 @@ const FridgeRescuePage = () => {
                         </div>
                       </div>
 
-                      {/* Bottom Actions */}
-                      <div className="mt-auto pt-4">
+                      {/* Standardized 3-Row Button Layout */}
+                      <div className="mt-auto pt-4 space-y-2">
+                        {/* Row 1: Add to Macros (full width) */}
                         <MacroBridgeButton
                           data-testid="fridge-add-to-shopping"
                           meal={{
@@ -888,6 +1111,93 @@ const FridgeRescuePage = () => {
                           }}
                           source="fridge-rescue"
                         />
+
+                        {/* Row 2: Add to Plan + Translate (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <AddToMealPlanButton meal={meal} />
+                          <TranslateToggle
+                            content={{
+                              name: meal.name,
+                              description: meal.description,
+                              instructions: meal.instructions,
+                              ingredients: meal.ingredients,
+                            }}
+                            onTranslate={(translated) => {
+                              setMeals((prev) =>
+                                prev.map((m) =>
+                                  m.id === meal.id
+                                    ? {
+                                        ...m,
+                                        name: translated.name,
+                                        description:
+                                          translated.description ||
+                                          m.description,
+                                        instructions:
+                                          typeof translated.instructions ===
+                                          "string"
+                                            ? translated.instructions
+                                            : m.instructions,
+                                        ingredients:
+                                          (translated.ingredients as StructuredIngredient[]) ||
+                                          m.ingredients,
+                                      }
+                                    : m,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
+
+                        {/* Row 3: Prepare with Chef + Share (50/50) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                            onClick={() => {
+                              const mealData = {
+                                id: meal.id || crypto.randomUUID(),
+                                name: meal.name,
+                                description: meal.description,
+                                ingredients: meal.ingredients || [],
+                                instructions: meal.instructions,
+                                imageUrl: meal.imageUrl,
+                              };
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_meal",
+                                JSON.stringify(mealData),
+                              );
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_external_prepare",
+                                "true",
+                              );
+                              setLocation("/lifestyle/chefs-kitchen");
+                            }}
+                          >
+                            Cook w/ Chef
+                          </Button>
+                          <ShareRecipeButton
+                            recipe={{
+                              name: meal.name,
+                              description: meal.description,
+                              nutrition: {
+                                calories: meal.calories,
+                                protein: meal.protein,
+                                carbs: meal.carbs,
+                                fat: meal.fat,
+                              },
+                              ingredients: (meal.ingredients ?? []).map(
+                                (ing: any) => ({
+                                  name:
+                                    typeof ing === "string" ? ing : ing.name,
+                                  amount:
+                                    typeof ing === "string" ? "" : ing.quantity,
+                                  unit: typeof ing === "string" ? "" : ing.unit,
+                                }),
+                              ),
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

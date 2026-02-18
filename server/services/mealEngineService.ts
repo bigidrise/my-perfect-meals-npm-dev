@@ -37,6 +37,11 @@ export interface UserOnboardingProfile {
 
   // Image policy
   allowImageGen?: boolean;
+
+  // Palate preferences (flavor, not macros)
+  palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
+  palateSeasoningIntensity?: "light" | "balanced" | "bold";
+  palateFlavorStyle?: "classic" | "herb" | "savory" | "bright";
 }
 
 export interface MealGenerationRequest {
@@ -154,6 +159,9 @@ async function fetchOnboardingProfile(
     bannedSweeteners: [], // Not in current schema
     bodyType: (p?.bodyType as any) ?? "mesomorph",
     allowImageGen: true, // Not in current schema, default to true
+    palateSpiceTolerance: (p?.palateSpiceTolerance as any) || "mild",
+    palateSeasoningIntensity: (p?.palateSeasoningIntensity as any) || "balanced",
+    palateFlavorStyle: (p?.palateFlavorStyle as any) || "classic",
   };
 }
 
@@ -356,9 +364,10 @@ async function llmGenerateMeal(
       name: parsed.name,
       description: parsed.description ?? "",
       ingredients: (parsed.ingredients ?? []).map((ing: any) => ({
-        item: ing.item,
-        amount: Number(ing.amount),
-        unit: String(ing.unit),
+        // GPT sometimes uses different keys for ingredient name - handle all variants
+        item: ing.item ?? ing.name ?? ing.ingredient ?? ing.food ?? "",
+        amount: Number(ing.amount ?? ing.quantity ?? 0),
+        unit: String(ing.unit ?? ing.measure ?? ""),
         notes: ing.notes ?? undefined,
       })),
       instructions: parsed.instructions ?? [],
@@ -460,9 +469,14 @@ export class MealEngineService {
       );
     }
 
-    // 6) Persist & return
-    const savedId = await persistMeal(req.userId, meal);
-    meal.id = savedId;
+    // 6) Persist & return (only for authenticated users)
+    if (req.userId) {
+      const savedId = await persistMeal(req.userId, meal);
+      meal.id = savedId;
+    } else {
+      // Guest user - generate a temporary ID, meal won't be persisted
+      meal.id = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
     return meal;
   }
 

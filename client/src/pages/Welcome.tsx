@@ -1,15 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles, LogIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
-import { startGuestSession } from "@/lib/guestMode";
+import { startGuestSession, endGuestSession } from "@/lib/guestMode";
+import { motion, AnimatePresence } from "framer-motion";
+import { getAuthToken } from "@/lib/auth";
 
-// 🚩 FEATURE FLAG: Set to true to show carousel, false for simple layout
 const SHOW_CAROUSEL = false;
 
-// 🍎 APPLE REVIEW FLAG: Set to true to hide Sign In/Create Account for App Store review
-// After Apple approval, set this back to false to restore authentication options
 const APPLE_REVIEW_MODE = false;
 
 const slides = [
@@ -46,10 +45,13 @@ const slides = [
   },
 ] as const;
 
+type ModalStep = "choose" | "account-type";
+
 export default function Welcome() {
   const [, setLocation] = useLocation();
+  const [showModal, setShowModal] = useState(false);
+  const [modalStep, setModalStep] = useState<ModalStep>("choose");
 
-  // ROUTE SAFETY — update if your paths differ
   const LOGIN_ROUTE = "/auth";
 
   const [index, setIndex] = useState(0);
@@ -62,12 +64,29 @@ export default function Welcome() {
     window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      setLocation("/dashboard");
+    }
+  }, [setLocation]);
+
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showModal]);
+
   const goTo = (i: number) =>
     setIndex((prev) => (i + slides.length) % slides.length);
   const next = () => goTo(index + 1);
   const prev = () => goTo(index - 1);
 
-  // Auto-advance (paused on hover/touch/hidden tab; disabled if reduced-motion)
   useEffect(() => {
     if (!SHOW_CAROUSEL || prefersReducedMotion) return;
 
@@ -115,7 +134,6 @@ export default function Welcome() {
     };
   }, [prefersReducedMotion]);
 
-  // Keyboard arrows (only if carousel is shown)
   useEffect(() => {
     if (!SHOW_CAROUSEL) return;
     const onKey = (e: KeyboardEvent) => {
@@ -124,10 +142,8 @@ export default function Welcome() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Touch swipe (only if carousel is shown)
   const onTouchStart: React.TouchEventHandler<HTMLDivElement> = (e) => {
     if (!SHOW_CAROUSEL) return;
     touchStartX.current = e.touches[0].clientX;
@@ -147,27 +163,178 @@ export default function Welcome() {
     touchDeltaX.current = 0;
   };
 
-  const signIn = () => {
-    // Route to auth page for sign-in
-    setLocation("/auth");
+  const openModal = () => {
+    localStorage.removeItem("appleReviewFullAccess");
+    setModalStep("choose");
+    setShowModal(true);
   };
 
-  const createAccount = () => {
-    // Route to auth page for account creation
-    setLocation("/auth");
+  const closeModal = () => {
+    setShowModal(false);
+    setModalStep("choose");
   };
 
   const exploreAsGuest = () => {
-    // Start guest session and route to guest builder
+    localStorage.removeItem("appleReviewFullAccess");
     startGuestSession();
     setLocation("/guest-builder");
   };
 
-  // 🎨 SIMPLE LAYOUT (Option 2 - Minimal Plus without trust indicator)
+  const handleSignIn = () => {
+    closeModal();
+    setLocation("/auth");
+  };
+
+  const handleRegularSignUp = () => {
+    closeModal();
+    setLocation("/consumer-welcome");
+  };
+
+  const handleProfessionalSignUp = () => {
+    closeModal();
+    setLocation("/procare-welcome");
+  };
+
+  const renderModal = () => (
+    <AnimatePresence>
+      {showModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <motion.div
+            key={modalStep}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="w-full max-w-sm mx-6"
+          >
+            <div className="relative rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 p-6 shadow-2xl">
+              {modalStep === "choose" && (
+                <button
+                  onClick={closeModal}
+                  className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4 text-white/60" />
+                </button>
+              )}
+
+              {modalStep === "account-type" && (
+                <button
+                  onClick={() => setModalStep("choose")}
+                  className="absolute top-4 left-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
+                  aria-label="Back"
+                >
+                  <ArrowLeft className="h-4 w-4 text-white/60" />
+                </button>
+              )}
+
+              {modalStep === "account-type" && (
+                <button
+                  onClick={closeModal}
+                  className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4 text-white/60" />
+                </button>
+              )}
+
+              {modalStep === "choose" ? (
+                <div className="space-y-5 pt-2">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-white mb-1">Welcome</h2>
+                    <p className="text-white/50 text-sm">How would you like to start?</p>
+                  </div>
+
+                  <button
+                    onClick={handleSignIn}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/20">
+                        <LogIn className="h-5 w-5 text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Sign In</h3>
+                        <p className="text-white/50 text-sm mt-0.5">I already have an account</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setModalStep("account-type")}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/20">
+                        <UserPlus className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Create Account</h3>
+                        <p className="text-white/50 text-sm mt-0.5">I'm new here</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-5 pt-2">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-white mb-1">Create Account</h2>
+                    <p className="text-white/50 text-sm">What type of account?</p>
+                  </div>
+
+                  <button
+                    onClick={handleRegularSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-lime-500/20 border border-lime-500/20">
+                        <User className="h-5 w-5 text-lime-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Regular Sign Up</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Personal meal planning</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handleProfessionalSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/20">
+                        <Stethoscope className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Professional Sign Up</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Trainer, coach, or physician</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   if (!SHOW_CAROUSEL) {
     return (
       <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
-        {/* Logo */}
+        {renderModal()}
+
         <div className="mb-8">
           <img
             src="/assets/MPMFlameChefLogo.png"
@@ -176,17 +343,14 @@ export default function Welcome() {
           />
         </div>
 
-        {/* Business Name */}
         <h1 className="text-2xl md:text-2xl font-bold text-center mb-3">
           My Perfect Meals
         </h1>
 
-        {/* Value Proposition */}
         <p className="text-md md:text-xl text-white/80 text-center mb-6 max-w-md">
           Healthy Meal Planning
         </p>
 
-        {/* Emotion AI Badge - Styled to be visible */}
         <div className="mb-12 flex justify-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30 shadow-lg">
             <div className="w-2 h-2 bg-orange-400 rounded-2xl animate-pulse"></div>
@@ -196,27 +360,12 @@ export default function Welcome() {
           </div>
         </div>
 
-        {/* Buttons - Clean 3-button layout */}
         <div className="w-full max-w-sm space-y-4">
-          {/* Guest Mode - Marketing Experience */}
-          <Button
-            data-testid="button-explore-guest"
-            onClick={exploreAsGuest}
-            className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-lime-600 to-black hover:to-lime-600
-                     text-white shadow-lg border border-lime-400/30
-                     transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <Sparkles className="h-5 w-5" />
-            Enter Guest Suite
-          </Button>
-
-          {/* Sign In / Create Account - Combined auth button */}
           <Button
             data-testid="button-signin"
-            onClick={signIn}
+            onClick={openModal}
             className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30
+            bg-gradient-to-r from-black to-black rounded-2xl border border-orange-400/30
                      text-white shadow-lg
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
@@ -224,30 +373,26 @@ export default function Welcome() {
             Sign In / Create Account
           </Button>
 
-          {/* Full Access - Apple Review Bypass */}
           <Button
-            data-testid="button-full-access"
-            onClick={() => {
-              localStorage.setItem("isAuthenticated", "true");
-              localStorage.setItem("coachMode", "self");
-              localStorage.setItem("appleReviewFullAccess", "true");
-              setLocation("/dashboard");
-            }}
-            className="w-full h-12 text-sm font-medium rounded-2xl
-                     bg-white/5 hover:bg-white/10 backdrop-blur-md
-                     border border-white/10 text-white/60 hover:text-white/80
+            data-testid="button-explore-guest"
+            onClick={exploreAsGuest}
+            className="w-full h-14 text-md font-medium rounded-2xl
+            bg-gradient-to-r from-black via-lime-600 to-black
+                     text-white shadow-lg border border-lime-400/30
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
-            Full Access (Apple Review)
+            <Sparkles className="h-5 w-5" />
+            Visit App
           </Button>
         </div>
       </div>
     );
   }
 
-  // 🎠 CAROUSEL LAYOUT (Original - Flagged off by default)
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-neutral-700 via-black to-black text-white flex flex-col items-center overflow-x-hidden">
+      {renderModal()}
+
       <header className="w-full max-w-xl text-center pt-8 px-4">
         <p className="text-sm tracking-widest uppercase text-neutral-300">
           Welcome to
@@ -255,12 +400,10 @@ export default function Welcome() {
 
         <h1 className="text-2xl font-bold mt-1">My Perfect Meals</h1>
 
-        {/* Tagline (kept, tightened punctuation) */}
         <p className="text-base text-neutral-300 mt-2">
           Healthy Meals. Every Time. Everywhere.
         </p>
 
-        {/* Core identity line (new) */}
         <p className="text-sm text-neutral-400 mt-2">
           The{" "}
           <span className="font-semibold">
@@ -269,13 +412,11 @@ export default function Welcome() {
           you can depend on.
         </p>
 
-        {/* Personalization line */}
         <p className="text-sm text-neutral-400 mt-2">
           Meals created specifically for you and your lifestyle.
         </p>
       </header>
 
-      {/* Carousel */}
       <section className="w-full flex justify-center mt-8 px-4">
         <div
           ref={containerRef}
@@ -312,25 +453,23 @@ export default function Welcome() {
             </div>
           ))}
 
-          {/* Prev / Next */}
           <button
             aria-label="Previous slide"
             onClick={prev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur px-2 py-2 rounded-full border border-white/10"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur px-2 py-2 rounded-full border border-white/10 active:scale-[0.98] transition-transform"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             aria-label="Next slide"
             onClick={next}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur px-2 py-2 rounded-full border border-white/10"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur px-2 py-2 rounded-full border border-white/10 active:scale-[0.98] transition-transform"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       </section>
 
-      {/* Dots */}
       <div
         className="flex items-center justify-center gap-2 mt-6"
         aria-label="Slide navigation"
@@ -344,7 +483,7 @@ export default function Welcome() {
             className={`transition-all rounded-full ${
               i === index
                 ? "scale-110 bg-white"
-                : "bg-white/50 hover:bg-white/70"
+                : "bg-white/50"
             }`}
             style={{
               width: "10px",
@@ -356,21 +495,13 @@ export default function Welcome() {
         ))}
       </div>
 
-      {/* CTAs */}
       <div className="w-full max-w-xl grid grid-cols-1 gap-3 mt-4 px-4 pb-16">
         <Button
           variant="outline"
-          onClick={signIn}
-          className="h-12 text-base font-semibold rounded-xl border-white/80 bg-white/5 hover:bg-white/50 text-white"
+          onClick={openModal}
+          className="h-12 text-base font-semibold rounded-xl border-white/80 bg-white/5 text-white active:scale-[0.98] transition-transform"
         >
-          Sign in
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={createAccount}
-          className="h-12 text-base font-semibold rounded-xl bg-emerald-800 hover:bg-emerald-500 text-white"
-        >
-          Create Account
+          Sign In
         </Button>
       </div>
 

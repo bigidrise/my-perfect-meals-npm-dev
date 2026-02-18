@@ -76,7 +76,7 @@ export const diabetesProfile = pgTable("diabetes_profile", {
 
 export const glucoseLogs = pgTable("glucose_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull(),
+  userId: text("user_id").notNull(),
   valueMgdl: integer("value_mgdl").notNull(),
   context: glucoseContextEnum("context").notNull(),
   relatedMealId: uuid("related_meal_id"),
@@ -103,7 +103,7 @@ export const labs = pgTable("labs", {
 export const insertGlucoseLogSchema = createInsertSchema(glucoseLogs, {
   valueMgdl: z.number().int().min(20).max(600),
   context: z.enum(["FASTED", "PRE_MEAL", "POST_MEAL_1H", "POST_MEAL_2H", "RANDOM"]),
-  userId: z.string().uuid(),
+  userId: z.string(),
   relatedMealId: z.string().uuid().optional(),
   insulinUnits: z.number().optional(),
   notes: z.string().optional(),

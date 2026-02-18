@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { UtensilsCrossed, Pencil, Check } from "lucide-react";
+import { UtensilsCrossed, Pencil, Check, X } from "lucide-react";
 
 interface KitchenStepCardProps {
   stepTitle: string;
@@ -15,10 +16,20 @@ interface KitchenStepCardProps {
   onEdit?: () => void;
   canEdit?: boolean;
   placeholder?: string;
-  inputType?: "textarea" | "buttons";
+  inputType?: "textarea" | "buttons" | "yesno" | "none";
   buttonOptions?: string[];
   equipmentList?: string[];
   onInputFocus?: () => void;
+  otherEnabled?: boolean;
+  otherPlaceholder?: string;
+  yesnoConfig?: {
+    noLabel?: string;
+    yesLabel?: string;
+    noValue?: string;
+    yesPlaceholder?: string;
+  };
+  submitLabel?: string;
+  autoReady?: boolean;
 }
 
 export function KitchenStepCard({
@@ -39,7 +50,43 @@ export function KitchenStepCard({
   buttonOptions = [],
   equipmentList,
   onInputFocus,
+  otherEnabled = false,
+  otherPlaceholder = "Type your answer...",
+  yesnoConfig,
+  submitLabel,
+  autoReady = false,
 }: KitchenStepCardProps) {
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherValue, setOtherValue] = useState("");
+  const [yesnoMode, setYesnoMode] = useState<"idle" | "no" | "yes">("idle");
+  const [yesnoText, setYesnoText] = useState("");
+
+  const yesnoNoLabel = yesnoConfig?.noLabel || "No, I'm good";
+  const yesnoYesLabel = yesnoConfig?.yesLabel || "Yes, add preferences";
+  const yesnoNoValue = yesnoConfig?.noValue || "None";
+  const yesnoYesPlaceholder =
+    yesnoConfig?.yesPlaceholder || placeholder || "Type your preferences...";
+
+  const handleOtherClick = () => {
+    onInputFocus?.();
+    setShowOtherInput(true);
+    setValue("");
+  };
+
+  const handleOtherCancel = () => {
+    setShowOtherInput(false);
+    setOtherValue("");
+  };
+
+  const handleOtherConfirm = () => {
+    if (otherValue.trim()) {
+      setValue(otherValue.trim());
+      setShowOtherInput(false);
+    }
+  };
+
+  const isOtherValue = otherEnabled && value && !buttonOptions.includes(value);
+
   return (
     <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
       <CardContent className="p-4 space-y-4">
@@ -68,29 +115,34 @@ export function KitchenStepCard({
           </div>
         ) : (
           <>
-            {!hasListened && (
+            {!hasListened && !autoReady && (
               <button
                 className={`w-full py-3 rounded-xl border text-white font-medium transition ${
                   isPlaying
                     ? "bg-green-900/40 border-green-500/40"
-                    : "bg-black/40 border-white/20 hover:bg-black/50"
+                    : "bg-gradient-to-br from-black/80 via-orange-800 to-black/70 hover:from-orange-500 animate-pulse border-white/5 hover:border-white/10"
                 }`}
                 onClick={onListen}
                 disabled={isPlaying}
                 data-testid={`button-listen-${stepTitle.toLowerCase().replace(/\s+/g, "-")}`}
               >
-                {isPlaying ? "Speaking..." : "Listen to Chef"}
+                {isPlaying ? "Speaking..." : "👉 Press to Start"}
               </button>
             )}
 
-            {hasListened && (
+            {(hasListened || autoReady) && (
               <>
                 {equipmentList && equipmentList.length > 0 && (
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3 space-y-2">
-                    <p className="text-xs text-white/60 font-medium">You'll need:</p>
+                    <p className="text-xs text-white/60 font-medium">
+                      You'll need:
+                    </p>
                     <ul className="space-y-1">
                       {equipmentList.map((item, i) => (
-                        <li key={i} className="text-sm text-white/90 flex items-center gap-2">
+                        <li
+                          key={i}
+                          className="text-sm text-white/90 flex items-center gap-2"
+                        >
                           <span className="text-lime-500">•</span>
                           {item}
                         </li>
@@ -101,7 +153,82 @@ export function KitchenStepCard({
 
                 <label className="block text-sm text-white">{question}</label>
 
-                {inputType === "textarea" ? (
+                {inputType === "yesno" ? (
+                  <div className="space-y-3">
+                    {yesnoMode === "idle" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => {
+                            onInputFocus?.();
+                            setYesnoMode("no");
+                            setValue(yesnoNoValue);
+                          }}
+                          className="py-3 rounded-xl border text-sm font-medium transition bg-lime-600/20 text-lime-400 border-lime-500/40 hover:bg-lime-600/30 hover:border-lime-400"
+                        >
+                          {yesnoNoLabel}
+                        </button>
+                        <button
+                          onClick={() => {
+                            onInputFocus?.();
+                            setYesnoMode("yes");
+                            setValue("");
+                          }}
+                          className="py-3 rounded-xl border text-sm font-medium transition bg-orange-600/20 text-orange-400 border-orange-500/40 hover:bg-orange-600/30 hover:border-orange-400"
+                        >
+                          {yesnoYesLabel}
+                        </button>
+                      </div>
+                    )}
+                    {yesnoMode === "no" && (
+                      <div className="rounded-xl border border-lime-500/40 bg-lime-900/20 p-3 flex items-center justify-between">
+                        <span className="text-sm text-lime-400 font-medium flex items-center gap-2">
+                          <Check className="h-4 w-4" />
+                          No preferences needed
+                        </span>
+                        <button
+                          onClick={() => {
+                            setYesnoMode("idle");
+                            setValue("");
+                          }}
+                          className="text-xs text-white/60 hover:text-white/90 px-2 py-1 rounded hover:bg-white/10"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    )}
+                    {yesnoMode === "yes" && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-orange-400 font-medium">
+                            Add your preferences:
+                          </span>
+                          <button
+                            onClick={() => {
+                              setYesnoMode("idle");
+                              setYesnoText("");
+                              setValue("");
+                            }}
+                            className="text-xs text-white/60 hover:text-white/90 px-2 py-1 rounded hover:bg-white/10"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <textarea
+                          value={yesnoText}
+                          onChange={(e) => {
+                            setYesnoText(e.target.value);
+                            setValue(e.target.value);
+                          }}
+                          onFocus={onInputFocus}
+                          placeholder={yesnoYesPlaceholder}
+                          className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-orange-500/50 rounded-lg h-20 resize-none text-sm focus:ring-1 focus:ring-orange-500"
+                          maxLength={300}
+                          autoFocus
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : inputType === "textarea" ? (
                   <textarea
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
@@ -110,34 +237,77 @@ export function KitchenStepCard({
                     className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                     maxLength={300}
                   />
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {buttonOptions.map((option) => (
+                ) : inputType === "none" ? null : showOtherInput ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={otherValue}
+                      onChange={(e) => setOtherValue(e.target.value)}
+                      onFocus={onInputFocus}
+                      placeholder={otherPlaceholder}
+                      className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-orange-500/50 rounded-lg h-20 resize-none text-sm focus:ring-1 focus:ring-orange-500"
+                      maxLength={200}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
                       <button
-                        key={option}
-                        onClick={() => {
-                          onInputFocus?.();
-                          setValue(option);
-                        }}
-                        className={`py-2 rounded-lg border text-sm transition ${
-                          value === option
-                            ? "bg-lime-600 text-black border-lime-600"
-                            : "bg-black/40 text-white border-white/20 hover:bg-black/50"
+                        onClick={handleOtherCancel}
+                        className="flex-1 py-2 rounded-lg border border-white/20 text-white/70 text-sm hover:bg-white/10 transition flex items-center justify-center gap-1"
+                      >
+                        <X className="h-3 w-3" />
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleOtherConfirm}
+                        disabled={!otherValue.trim()}
+                        className="flex-1 py-2 rounded-lg bg-orange-600 text-white text-sm hover:bg-orange-500 transition disabled:opacity-50 flex items-center justify-center gap-1"
+                      >
+                        <Check className="h-3 w-3" />
+                        Use This
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {buttonOptions.map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => {
+                            onInputFocus?.();
+                            setValue(option);
+                          }}
+                          className={`py-2 rounded-lg border text-sm transition ${
+                            value === option
+                              ? "bg-lime-600 text-white border-lime-600"
+                              : "bg-black/40 text-white border-white/20 hover:bg-black/50"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                    {otherEnabled && (
+                      <button
+                        onClick={handleOtherClick}
+                        className={`w-full py-2 rounded-lg border text-sm transition ${
+                          isOtherValue
+                            ? "bg-orange-600 text-white border-orange-600"
+                            : "bg-black/40 text-orange-400 border-orange-500/30 hover:bg-orange-950/30"
                         }`}
                       >
-                        {option}
+                        {isOtherValue ? `Custom: "${value}"` : "Other..."}
                       </button>
-                    ))}
+                    )}
                   </div>
                 )}
 
                 <button
                   disabled={!value.trim() || isPlaying}
-                  className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm disabled:opacity-50 transition"
+                  className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-sm disabled:opacity-50 transition"
                   onClick={onSubmit}
                   data-testid={`button-submit-${stepTitle.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  Continue
+                  {submitLabel || "Continue"}
                 </button>
               </>
             )}

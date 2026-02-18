@@ -1,19 +1,10 @@
-// Carb split helper - classifies ingredients into starchy vs fibrous carbs
-// Starchy: grains, rice, pasta, bread, potatoes, corn, beans, lentils
-// Fibrous: vegetables, leafy greens, most fruits (except bananas/dried fruit)
+/**
+ * Carb split helper - classifies ingredients into starchy vs fibrous carbs
+ * 
+ * USES SHARED SOURCE OF TRUTH: shared/starchKeywords.ts
+ */
 
-const STARCHY_KEYWORDS = [
-  'rice', 'pasta', 'bread', 'potato', 'potatoes', 'noodle', 'noodles',
-  'corn', 'tortilla', 'wrap', 'pita', 'bagel', 'roll', 'bun',
-  'oat', 'oats', 'oatmeal', 'cereal', 'granola', 'quinoa', 'couscous',
-  'barley', 'wheat', 'flour', 'cracker', 'crackers', 'chip', 'chips',
-  'bean', 'beans', 'lentil', 'lentils', 'chickpea', 'chickpeas',
-  'pea', 'peas', 'hummus', 'falafel',
-  'sweet potato', 'yam', 'plantain', 'cassava', 'taro',
-  'polenta', 'grits', 'cornmeal', 'breadcrumb', 'panko', 'crouton',
-  'banana', 'dried fruit', 'raisin', 'date', 'fig',
-  'muffin', 'biscuit', 'pancake', 'waffle', 'french toast',
-];
+import { STARCHY_KEYWORDS } from '../../../../shared/starchKeywords';
 
 const FIBROUS_KEYWORDS = [
   'spinach', 'kale', 'lettuce', 'arugula', 'cabbage', 'broccoli',
@@ -63,7 +54,6 @@ export function deriveCarbSplit(
 
   let starchyCount = 0;
   let fibrousCount = 0;
-  let unknownCount = 0;
 
   for (const ing of ingredients) {
     const name = ing.name || ing.item || '';
@@ -73,8 +63,6 @@ export function deriveCarbSplit(
       starchyCount++;
     } else if (classification === 'fibrous') {
       fibrousCount++;
-    } else {
-      unknownCount++;
     }
   }
 

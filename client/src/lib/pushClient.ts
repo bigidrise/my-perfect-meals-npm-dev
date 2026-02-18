@@ -21,48 +21,6 @@ export async function registerForPush(userId: string) {
     const reg = await navigator.serviceWorker.register("/sw.js");
     console.log("✅ Service Worker registered");
 
-    // ============================================
-    // FORCE UPDATE FLOW (Mobile PWA Cache Purge)
-    // ============================================
-    
-    // Force check for updates
-    await reg.update();
-    console.log("🔄 Checked for Service Worker updates");
-
-    // If a new SW is waiting, activate it immediately and reload
-    if (reg.waiting) {
-      console.log("⏳ New Service Worker waiting, activating now...");
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      
-      // Reload once the new SW takes control
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log("🔄 New Service Worker activated, reloading page...");
-        window.location.reload();
-      }, { once: true });
-      
-      return; // Exit early, page will reload
-    }
-
-    // Listen for future updates
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      if (!newWorker) return;
-
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New SW is installed and waiting
-          console.log("⏳ New Service Worker installed, activating...");
-          newWorker.postMessage({ type: 'SKIP_WAITING' });
-          
-          // Reload when it takes control
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log("🔄 New Service Worker activated, reloading page...");
-            window.location.reload();
-          }, { once: true });
-        }
-      });
-    });
-
     // Request notification permission
     const perm = await Notification.requestPermission();
     if (perm !== "granted") {

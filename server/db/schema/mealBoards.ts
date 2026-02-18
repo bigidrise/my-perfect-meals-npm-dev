@@ -1,5 +1,5 @@
 
-import { pgTable, uuid, text, timestamp, integer, numeric, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, numeric, jsonb, index, varchar } from "drizzle-orm/pg-core";
 
 export const mealBoards = pgTable("meal_boards", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -8,6 +8,8 @@ export const mealBoards = pgTable("meal_boards", {
   title: text("title").notNull().default("Weekly Meal Board"),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   days: integer("days").notNull().default(7),
+  lastUpdatedByUserId: varchar("last_updated_by_user_id", { length: 64 }),
+  lastUpdatedByRole: varchar("last_updated_by_role", { length: 32 }), // 'client' | 'trainer' | 'physician'
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({

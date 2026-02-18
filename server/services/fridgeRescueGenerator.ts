@@ -3,6 +3,8 @@ import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
+import { buildPalateSection, PalatePreferences } from './promptBuilder';
+import { BASELINE_MACROS } from './guardrails/baselineMacros';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -122,6 +124,9 @@ interface FridgeRescueRequest {
     starchy_carbs_g?: number;
     fat_g?: number;
   };
+  // Palate preferences for flavor customization
+  skipPalate?: boolean;
+  palatePrefs?: PalatePreferences;
 }
 
 // Medical condition compatibility checker - using correct badge format
@@ -185,8 +190,29 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, macroTargets } = request;
+  const { fridgeItems, user, macroTargets, skipPalate, palatePrefs } = request;
   const userConditions = user?.healthConditions || [];
+  
+  // 🎨 PALATE PREFERENCES: Build flavor guidance section
+  let palateGuidance = "\nFLAVOR STYLE: Use light, neutral seasoning suitable for serving to guests or family.";
+  if (!skipPalate) {
+    // Check if palate preferences were passed directly
+    if (palatePrefs) {
+      palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
+      console.log(`🎨 [FRIDGE] Using provided palate preferences`);
+    } else if (user?.palateSpiceTolerance || user?.palateSeasoningIntensity || user?.palateFlavorStyle) {
+      // Extract from user object if available
+      const userPalatePrefs: PalatePreferences = {
+        palateSpiceTolerance: user.palateSpiceTolerance,
+        palateSeasoningIntensity: user.palateSeasoningIntensity,
+        palateFlavorStyle: user.palateFlavorStyle,
+      };
+      palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(userPalatePrefs)}`;
+      console.log(`🎨 [FRIDGE] Loaded palate preferences from user profile`);
+    }
+  } else {
+    console.log(`🎨 [FRIDGE] Palate preferences skipped - using neutral seasoning for shared meal`);
+  }
   
   // Safety check for fridgeItems
   if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
@@ -234,6 +260,15 @@ This is for athlete meal planning - precision is critical for contest preparatio
 
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 ${macroTargetingText}
+${palateGuidance}
+
+BASELINE MACRO REQUIREMENTS (MANDATORY):
+Every meal must meet these minimum targets:
+- Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
+- Starchy Carbs: ${BASELINE_MACROS.starchyCarbs}g (rice, potatoes, quinoa, bread, oats, pasta)
+- Fibrous Carbs: ${BASELINE_MACROS.fibrousCarbs}g (vegetables, leafy greens, broccoli, peppers, tomatoes)
+${macroTargets ? 'NOTE: The user has specified CUSTOM macro targets above which override these baselines.' : 'These are the baseline minimums for balanced, nutritious meals.'}
+
 RULES:
 - Use ONLY the ingredients provided - do not add any others
 - Create actual meal names (not just ingredient lists)
@@ -241,7 +276,7 @@ RULES:
 - Provide realistic cooking instructions
 - Include basic nutritional estimates
 - Make each meal distinctly different from the others
-${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macro targets specified above within ±5g tolerance' : ''}
+${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macro targets specified above within ±5g tolerance' : '- Ensure each meal meets the BASELINE MACRO REQUIREMENTS above'}
 
 ${medicalConditionsText}
 

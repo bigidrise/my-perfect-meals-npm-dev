@@ -1,47 +1,51 @@
 // Macro Calculator Guided Walkthrough Voice Scripts
 // Uses the same 11L voice system as Chef's Kitchen and ProTip
 
-export const MACRO_CALC_ENTRY = 
-  "Hey there! I'm going to help you dial in your perfect macros. Let's do this step by step — it'll only take a minute.";
+export const MACRO_CALC_ENTRY = " I see we have a new user, nice to meet you. If your looking for the perfect meal your in the right place. I’m Chef Copilot and Welcome to the Macro Calculator. Together we're going to set up your macro numbers to acheive your nutrition goals. Begin by tapping the start button below.";
 
-export const MACRO_CALC_GOAL = 
-  "First up — what's your goal? Are you looking to lose weight, maintain, or put on some muscle?";
+export const MACRO_CALC_GOAL =
+  "What's your goal? Are you wanting to cut, maintain, or build?";
 
-export const MACRO_CALC_BODY_TYPE = 
-  "“Alright, this is the body type section. If you’re naturally lean, that’s ectomorph. Medium build, that’s mesomorph, and if your body tends to hold weight easier, that’s endomorph. Not sure where you land? No problem — tap the dropdown and we’ll break it down for you.";
+export const MACRO_CALC_BODY_TYPE =
+  "Are you an ectomorph, mesomorph, or an endomorph? If your not sure tap the body type guide button below to see which category you fit in.";
 
-export const MACRO_CALC_UNITS = 
+export const MACRO_CALC_UNITS =
   "Do you use imperial system, the (U.S) or metric system?";
 
-export const MACRO_CALC_SEX = 
-  "Next, this is for metabolic calculations. what is your biological sex male or female?";
+export const MACRO_CALC_SEX =
+  "What is your biological sex male or female?";
 
-export const MACRO_CALC_AGE = 
-  "What's your age? This affects how many calories you burn at rest.";
+export const MACRO_CALC_AGE =
+  "What's your age?";
 
-export const MACRO_CALC_HEIGHT = 
-  "How tall are you? Enter your height.";
+export const MACRO_CALC_HEIGHT = "How tall are you?";
 
-export const MACRO_CALC_WEIGHT = 
-  "And what's your current weight? We'll use this to calculate your daily needs.";
+export const MACRO_CALC_WEIGHT =
+  "What's your current weight?";
 
-export const MACRO_CALC_ACTIVITY = 
+export const MACRO_CALC_ACTIVITY =
   "How active are you? Sedentary, lightly active, moderately active, very active, or athlete level?";
 
-export const MACRO_CALC_SYNC_WEIGHT = 
-  "Sync weight to your tracking to keep accurately log your progress over time.";
+export const MACRO_CALC_SYNC_WEIGHT =
+  "Sync weight to biometrics to keep an accurate log of your progress.";
 
-export const MACRO_CALC_METABOLIC = 
-  "Any metabolic considerations I should know about? Things like menopause, thyroid conditions, or anything that affects your metabolism?";
+export const MACRO_CALC_METABOLIC =
+  "Before we lock these macros in, take a second to check Metabolic & Hormonal Considerations below. If things like menopause, thyroid conditions, or GLP-1 meds apply to you, tap that section to open it. You can make optional adjustments there, and I’ll fine-tune your macros automatically.";
 
-export const MACRO_CALC_RESULTS = 
-  "Here are your personalized macros, calculated from everything you just told me and saved to your biometrics. These numbers are now your baseline and will stay in place as long as you’re losing weight and feeling good. If your weight stalls, progress slows, or you decide you don’t want to lose anymore, this is where you’ll come back to re-check and adjust.";
+export const MACRO_CALC_RESULTS =
+  "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal changes—loss, gain, or maintenance—rerun the Macro Calculator to reset your targets.";
 
-export const MACRO_CALC_STARCH = 
-  "Starchy carbs are the biggest lever for controlling body weight, so instead of spreading them across every meal, we usually place them intentionally. Your plan will include one or two meals where starchy carbs make the most sense. Do you want to concentrate them into one meal, split them between two meals, include smaller amounts with most meals, or keep them minimal overall?";
+export const MACRO_CALC_STARCH =
+  "Starchy carbs are the biggest lever for controlling body weight, so we place them intentionally. Tap one of the buttons below to choose your strategy. One Starch Meal puts all your carbs in one meal for appetite control. Flex Split divides them across two meals if you prefer. Tap the one that fits your lifestyle, then we'll lock it in.";
+
+export const MACRO_CALC_BODY_COMPOSITION =
+  "This part is completely optional. If you've had your body fat measured — by a DEXA scan, BodPod, calipers, or even a smart scale — you can enter that here. It helps us fine-tune your starchy carb numbers based on where you are versus your goal. But if you haven't had it done, or you're not sure what your body fat is, that's totally fine. Most people skip this. Just tap Skip and we'll move on.";
 
 export const MACRO_CALC_SAVE =
   "Perfect! Hit save and you're all set. Your macros are locked in. Let's head over to our meal bulder";
 
 export const MACRO_CALC_DONE = "";
 
+// Triggered when user opens the Metabolic & Hormonal Considerations dropdown
+export const MACRO_CALC_METABOLIC_OPEN =
+  "Go ahead and select any that apply to you. These are optional, but they help me fine-tune your macros more accurately. If menopause or hormone therapy applies to you, it means hormonal changes can affect how your body holds muscle, uses carbs, and stores fat, so we usually prioritize protein a bit more. If you have suspected insulin resistance, that means your body doesn't handle carbs as efficiently, so moderating carbs and emphasizing protein helps keep blood sugar steady. And if high stress or poor sleep applies, cortisol can mess with fat storage and recovery, so we adjust things to support your body through that. Just tap any that fit, and I'll handle the rest.";

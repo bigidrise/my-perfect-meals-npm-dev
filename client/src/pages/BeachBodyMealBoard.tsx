@@ -1,6 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
@@ -11,11 +21,11 @@ import {
   putWeekBoard,
   getWeekBoardByDate,
 } from "@/lib/boardApi";
+import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AthleteMealPickerDrawer } from "@/components/pickers/AthleteMealPickerDrawer";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import {
   RemainingMacrosFooter,
   type ConsumedMacros,
@@ -30,6 +40,7 @@ import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
@@ -53,6 +64,7 @@ import {
   Plus,
   Check,
   Sparkles,
+  Calendar,
   BarChart3,
   ShoppingCart,
   ArrowLeft,
@@ -87,6 +99,7 @@ import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 
 const BEACHBODY_TOUR_STEPS: TourStep[] = [
   {
@@ -166,6 +179,9 @@ export default function BeachBodyMealBoard() {
   const { toast } = useToast();
   const quickTour = useQuickTour("beach-body-meal-board");
   const { user } = useAuth();
+  
+  // Body fat-based starch slot adjustment
+  const bodyFatAdjustment = useBodyFatStarchAdjustment("beach_body");
 
   // Get current user ID
   const getCurrentUserId = () => {
@@ -201,7 +217,7 @@ export default function BeachBodyMealBoard() {
 
   React.useEffect(() => {
     if (hookBoard) {
-      setBoard(hookBoard);
+      setBoard(hookBoard as any);
       setLoading(hookLoading);
     }
   }, [hookBoard, hookLoading]);
@@ -215,11 +231,8 @@ export default function BeachBodyMealBoard() {
         setTimeout(() => setJustSaved(false), 2000);
       } catch (err) {
         console.error("Failed to save board:", err);
-        toast({
-          title: "Save failed",
-          description: "Changes will retry when you're online",
-          variant: "destructive",
-        });
+        // Silent retry - no toast during decision-making flows
+        // Save will auto-retry on next user action
       } finally {
         setSaving(false);
       }
@@ -243,14 +256,9 @@ export default function BeachBodyMealBoard() {
   >(null);
   const [showOverview, setShowOverview] = React.useState(false);
 
-  // AI Meal Creator modal state
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks"
-  >("breakfast");
-
   // Snack Picker state
   const [snackPickerOpen, setSnackPickerOpen] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   // Day/Week planning state - MUST be defined before callbacks that use them
   const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
@@ -316,6 +324,9 @@ export default function BeachBodyMealBoard() {
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
+
+  const [aiMealSlot, setAiMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -665,7 +676,6 @@ export default function BeachBodyMealBoard() {
     async (targetDates: string[]) => {
       if (!board || !activeDayISO) return;
 
-      // Guard: Check if any TARGET date is locked before allowing edits
       const lockedTarget = targetDates.find((d) => isDayLocked(d, user?.id));
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
@@ -673,30 +683,36 @@ export default function BeachBodyMealBoard() {
         return;
       }
 
-      const sourceLists = getDayLists(board, activeDayISO);
-      const clonedLists = cloneDayLists(sourceLists);
-
-      let updatedBoard = board;
-      targetDates.forEach((dateISO) => {
-        updatedBoard = setDayLists(updatedBoard, dateISO, clonedLists);
-      });
+      const sourceLists = { ...getDayLists(board, activeDayISO) };
 
       try {
-        await saveBoard(updatedBoard);
-        toast({
-          title: "Day duplicated",
-          description: `Copied to ${targetDates.length} day(s)`,
+        const result = await duplicateAcrossWeeks({
+          sourceLists,
+          targetDates,
+          currentBoard: board,
+          currentWeekStartISO: weekStartISO,
         });
+
+        if (result.currentWeekBoard) {
+          setBoard(result.currentWeekBoard);
+          await saveBoard(result.currentWeekBoard);
+        }
+
+        if (result.errors.length > 0) {
+          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
+          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+        } else if (result.otherWeeksSaved > 0) {
+          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+        } else {
+          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+        }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
+        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
       }
     },
-    [board, activeDayISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
   const handleDuplicateWeek = useCallback(
@@ -872,12 +888,9 @@ export default function BeachBodyMealBoard() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(
+  const handleChefMealGenerated = useCallback(
     async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
-
-      // Guard: Check if day is locked before allowing edits
       if (checkLockedDay()) return;
 
       const transformedMeal: Meal = {
@@ -886,7 +899,11 @@ export default function BeachBodyMealBoard() {
         title: generatedMeal.name,
         description: generatedMeal.description,
         ingredients: generatedMeal.ingredients || [],
-        instructions: generatedMeal.instructions || "",
+        instructions: Array.isArray(generatedMeal.instructions)
+          ? generatedMeal.instructions
+          : generatedMeal.instructions
+            ? [generatedMeal.instructions]
+            : [],
         servings: 1,
         imageUrl: generatedMeal.imageUrl,
         cookingTime: generatedMeal.cookingTime,
@@ -916,19 +933,16 @@ export default function BeachBodyMealBoard() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
+        setBoard(updatedBoard);
+        toast({
+          title: "AI Meal Added!",
+          description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
+        });
+
         try {
           await saveBoard(updatedBoard);
-          toast({
-            title: "AI Meal Added!",
-            description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
-          });
         } catch (error) {
-          console.error("Failed to save AI meal:", error);
-          toast({
-            title: "Failed to save",
-            description: "Please try again",
-            variant: "destructive",
-          });
+          console.error("Failed to save AI meal to server:", error);
         }
       }
     },
@@ -997,21 +1011,10 @@ export default function BeachBodyMealBoard() {
     [board, planningMode, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
-  const gotoWeek = useCallback(
-    async (targetISO: string) => {
-      setLoading(true);
-      try {
-        const { weekStartISO: ws, week } = await getWeekBoardByDate(targetISO);
-        setWeekStartISO(ws);
-        setBoard(week);
-      } catch (error) {
-        console.error("Failed to load week:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setLoading, setWeekStartISO, setBoard],
-  );
+  // Week navigation - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
+  const gotoWeek = useCallback((targetISO: string) => {
+    setWeekStartISO(targetISO);
+  }, []);
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
@@ -1135,17 +1138,12 @@ export default function BeachBodyMealBoard() {
     };
   }, [board, planningMode, activeDayISO]);
 
+  // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      toast({
-        title: "Connection Issue",
-        description:
-          "Showing cached meal plan. Changes will sync when you're back online.",
-        variant: "default",
-        duration: 5000,
-      });
+      console.log("[Network] Board load encountered an issue, using cached data if available");
     }
-  }, [error, toast]);
+  }, [error]);
 
   if (loading && !board) {
     return (
@@ -1183,9 +1181,9 @@ export default function BeachBodyMealBoard() {
       {/* Universal Safe-Area Header Bar */}
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="px-4 py-3 flex items-center gap-2">
+        <div className="px-4 pb-3 flex items-center gap-2">
           <Button
             onClick={() => setLocation("/planner")}
             className="bg-black/10 hover:bg-black/10 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1 px-3 h-10 flex-shrink-0"
@@ -1205,6 +1203,7 @@ export default function BeachBodyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <NutritionBudgetBanner className="mb-2" />
         <div className="mb-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
             {/* ROW 1: Week Dates (centered) */}
@@ -1245,16 +1244,27 @@ export default function BeachBodyMealBoard() {
                 />
 
                 {planningMode === "day" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDuplicateDayModal(true)}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs px-3 py-1 rounded-xl"
-                    data-testid="button-duplicate-day"
-                    data-wt="wmb-duplicate-button"
-                  >
-                    Duplicate...
-                  </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateDayModal(true)}
+                  data-testid="duplicate-button"
+                  className="
+                    flex-shrink-0 inline-flex flex-col items-center justify-center
+                    rounded-full
+                    px-4 py-2
+                    text-sm font-semibold
+                    text-white/90
+                    bg-black/20
+                    border border-white/15
+                    backdrop-blur-lg
+                    hover:bg-white/10 hover:border-white/25
+                    transition-all
+                  "
+                  style={{ minHeight: 48 }}
+                >
+                  <span className="leading-none">Duplicate</span>
+                  <span className="mt-1 text-base leading-none opacity-80">📅</span>
+                </button>
                 )}
 
                 {planningMode === "week" && (
@@ -1300,6 +1310,7 @@ export default function BeachBodyMealBoard() {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
                   />
                 </div>
               )}
@@ -1309,50 +1320,65 @@ export default function BeachBodyMealBoard() {
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Delete all meals from this board? This action cannot be undone.",
-                    )
-                  ) {
-                    if (board) {
-                      const clearedBoard = {
-                        ...board,
-                        lists: {
-                          breakfast: [],
-                          lunch: [],
-                          dinner: [],
-                          snacks: [],
-                        },
-                        days: board.days
-                          ? Object.fromEntries(
-                              Object.keys(board.days).map((dateISO) => [
-                                dateISO,
-                                {
-                                  breakfast: [],
-                                  lunch: [],
-                                  dinner: [],
-                                  snacks: [],
-                                },
-                              ]),
-                            )
-                          : undefined,
-                      };
-                      saveBoard(clearedBoard);
-                      clearAIMealsCache();
-                      toast({
-                        title: "All Meals Deleted",
-                        description:
-                          "Successfully cleared all meals from the board",
-                      });
-                    }
-                  }
-                }}
+                onClick={() => setShowDeleteAllConfirm(true)}
                 className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl"
                 data-testid="button-delete-all"
               >
                 Delete All
               </Button>
+              
+              <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+                <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
+                    <AlertDialogDescription className="text-zinc-400">
+                      Delete all meals from this board? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        if (board) {
+                          const clearedBoard = {
+                            ...board,
+                            lists: {
+                              breakfast: [],
+                              lunch: [],
+                              dinner: [],
+                              snacks: [],
+                            },
+                            days: board.days
+                              ? Object.fromEntries(
+                                  Object.keys(board.days).map((dateISO) => [
+                                    dateISO,
+                                    {
+                                      breakfast: [],
+                                      lunch: [],
+                                      dinner: [],
+                                      snacks: [],
+                                    },
+                                  ]),
+                                )
+                              : undefined,
+                          };
+                          saveBoard(clearedBoard);
+                          clearAIMealsCache();
+                          toast({
+                            title: "All Meals Deleted",
+                            description: "Successfully cleared all meals from the board",
+                          });
+                        }
+                      }}
+                      className="bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
               <Button
                 onClick={handleSave}
@@ -1447,8 +1473,13 @@ export default function BeachBodyMealBoard() {
                                       activeDayISO,
                                       updatedDayLists,
                                     );
+                                    setBoard(updatedBoard);
                                     saveBoard(updatedBoard).catch((err) => {
-                                      console.error("Delete failed:", err);
+                                      console.error("Delete sync failed:", err);
+                                      toast({
+                                        title: "Sync pending",
+                                        description: "Changes will sync automatically.",
+                                      });
                                     });
                                   } else {
                                     const updatedDayLists = {
@@ -1697,7 +1728,11 @@ export default function BeachBodyMealBoard() {
                             };
                             setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
-                              console.error("Delete failed:", err);
+                              console.error("Delete sync failed:", err);
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                           } else {
                             const updatedBoard = {
@@ -1794,8 +1829,13 @@ export default function BeachBodyMealBoard() {
                               activeDayISO,
                               updatedDayLists,
                             );
+                            setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
-                              console.error("Delete failed:", err);
+                              console.error("Delete sync failed:", err);
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                           } else {
                             const updatedDayLists = {
@@ -1841,7 +1881,11 @@ export default function BeachBodyMealBoard() {
                           };
                           setBoard(updatedBoard);
                           saveBoard(updatedBoard).catch((err) => {
-                            console.error("Delete failed:", err);
+                            console.error("Delete sync failed:", err);
+                            toast({
+                              title: "Sync pending",
+                              description: "Changes will sync automatically.",
+                            });
                           });
                         } else {
                           const updatedBoard = {
@@ -2085,15 +2129,6 @@ export default function BeachBodyMealBoard() {
           meal={shoppingListModal.meal}
         />
 
-        <AIMealCreatorModal
-          open={aiMealModalOpen}
-          onOpenChange={setAiMealModalOpen}
-          onMealGenerated={handleAIMealGenerated}
-          mealSlot={aiMealSlot}
-          showMacroTargeting={false}
-          beachBodyMode={true}
-        />
-
         {/* AI Premade Picker - Competition Meals */}
         <MealPremadePicker
           open={premadePickerOpen}
@@ -2134,7 +2169,7 @@ export default function BeachBodyMealBoard() {
           open={createWithChefOpen}
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
-          onMealGenerated={handleAIMealGenerated}
+          onMealGenerated={handleChefMealGenerated}
           dietType="beachbody"
           dietPhase="lean"
           starchContext={starchContext}
@@ -2185,7 +2220,7 @@ export default function BeachBodyMealBoard() {
               const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
               return (
-                <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
+                <div className="fixed bottom-0 left-0 right-0 z-[45] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
                   <div className="container mx-auto px-4 py-3">
                     <div className="flex flex-col gap-2">
                       <div className="text-white text-sm font-semibold">

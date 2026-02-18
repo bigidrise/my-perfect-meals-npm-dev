@@ -4,20 +4,12 @@
  * Categorical classification of meals as "Starch Meal" or "Fiber-Based Meal"
  * for the Daily Starch Meal coaching system on meal boards.
  * 
- * This is behavioral guidance, not macro tracking.
- * Classification is based on ingredient keywords, not gram calculations.
+ * USES SHARED SOURCE OF TRUTH: shared/starchKeywords.ts
+ * This ensures the client-side indicator and server-side Starch Game Plan
+ * always agree on what counts as a starchy carb.
  */
 
-const STARCHY_KEYWORDS = [
-  'rice', 'pasta', 'noodle', 'bread', 'toast', 'bagel', 'roll', 'bun', 'croissant',
-  'oat', 'oatmeal', 'cereal', 'granola', 'flour', 'wheat', 'barley', 'quinoa',
-  'couscous', 'bulgur', 'farro', 'millet', 'polenta', 'grits', 'cornmeal',
-  'potato', 'sweet potato', 'yam', 'tater', 'hash brown', 'fries', 'french fries',
-  'bean', 'lentil', 'chickpea', 'hummus', 'pea', 'black bean', 'kidney bean',
-  'pinto bean', 'navy bean', 'cannellini', 'edamame',
-  'corn', 'tortilla', 'chip', 'cracker', 'pretzel', 'popcorn',
-  'breaded', 'crusted', 'battered', 'fried',
-];
+import { STARCHY_KEYWORDS } from '../../../shared/starchKeywords';
 
 interface Ingredient {
   name?: string;
@@ -35,26 +27,50 @@ export interface StarchClassification {
   isStarchMeal: boolean;
   label: string;
   emoji: string;
+  matchedStarch?: string;
+}
+
+/**
+ * Check if an ingredient contains any starchy carb
+ * Uses the shared STARCHY_KEYWORDS list for consistency with server-side logic
+ */
+function containsStarch(ingredientName: string): string | null {
+  const name = ingredientName.toLowerCase().trim();
+  
+  for (const starch of STARCHY_KEYWORDS) {
+    if (starch.length <= 4) {
+      const regex = new RegExp(`\\b${starch}\\b`, 'i');
+      if (regex.test(name)) {
+        return starch;
+      }
+    } else {
+      if (name.includes(starch)) {
+        return starch;
+      }
+    }
+  }
+  
+  return null;
 }
 
 /**
  * Classify a meal as Starch or Fiber-Based
- * Returns categorical classification for UI display
+ * Any meal containing a starchy carb ingredient counts as a Starch Meal
  */
 export function classifyMeal(meal: MealLike): StarchClassification {
   const ingredients = meal.ingredients || [];
   
   for (const ing of ingredients) {
-    const name = (typeof ing === 'string' ? ing : (ing.name || ing.item || '')).toLowerCase();
+    const name = typeof ing === 'string' ? ing : (ing.name || ing.item || '');
+    const matchedStarch = containsStarch(name);
     
-    for (const keyword of STARCHY_KEYWORDS) {
-      if (name.includes(keyword)) {
-        return {
-          isStarchMeal: true,
-          label: 'Starch Meal',
-          emoji: '🟠',
-        };
-      }
+    if (matchedStarch) {
+      return {
+        isStarchMeal: true,
+        label: 'Starch Meal',
+        emoji: '🟠',
+        matchedStarch,
+      };
     }
   }
   
@@ -88,12 +104,10 @@ export function getDayStarchStatus(meals: MealLike[], maxSlots: number = 1): {
   const slotsRemaining = Math.max(0, maxSlots - starchMealCount);
   const isUsed = slotsRemaining === 0;
   
-  // Generate label based on slots
   let label: string;
   if (maxSlots === 1) {
     label = starchMealCount > 0 ? 'Used' : 'Available';
   } else {
-    // Flex mode: show remaining slots
     if (slotsRemaining === 0) {
       label = 'Both Used';
     } else if (slotsRemaining === maxSlots) {

@@ -35,6 +35,20 @@ export { mealBoards, mealBoardItems } from "../server/db/schema/mealBoards";
 export { careTeamMember, careInvite, careAccessCode } from "../server/db/schema/careTeam";
 export { builderPlans } from "../server/db/schema/builderPlans";
 export { generatedMealsCache } from "../server/db/schema/generatedMeals";
+export { savedMeals } from "../server/db/schema/savedMeals";
+export { studioTypeEnum, mealLibraryItems, mealLibraryUsage, mealGenerationJobs } from "../server/db/schema/mealLibrary";
+export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGenerationJob } from "../server/db/schema/mealLibrary";
+
+export { 
+  professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
+  studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog 
+} from "../server/db/schema/studio";
+export type { 
+  Studio, InsertStudio, StudioBilling, InsertStudioBilling, 
+  StudioMembership, InsertStudioMembership, StudioInvite, InsertStudioInvite,
+  ClientSubscription, InsertClientSubscription, ClientNote, InsertClientNote,
+  ClientActivityLog, InsertClientActivityLog 
+} from "../server/db/schema/studio";
 
 /**
  * Games table
@@ -225,6 +239,7 @@ export const users = pgTable("users", {
   plan: text("plan").notNull().default("basic"),
   firstName: text("first_name"),
   lastName: text("last_name"),
+  nickname: text("nickname"),
   age: integer("age"),
   height: integer("height"), // in cm
   weight: integer("weight"), // in kg
@@ -298,6 +313,25 @@ export const users = pgTable("users", {
   macrosDefined: boolean("macros_defined").default(false), // true when user has set macro targets
   starchPlanDefined: boolean("starch_plan_defined").default(false), // true when starch strategy is set
   onboardingMode: text("onboarding_mode").$type<"independent"|"procare">().default("independent"), // how user was onboarded
+  // MPM SafetyGuard PIN System
+  safetyPinHash: text("safety_pin_hash"), // bcrypt hash of 4-6 digit Safety PIN
+  safetyPinSetAt: timestamp("safety_pin_set_at", { withTimezone: true }), // when PIN was created/changed
+  // Palate Profile - flavor preferences for meal seasoning (does not affect macros)
+  palateSpiceTolerance: text("palate_spice_tolerance").$type<"none"|"mild"|"medium"|"hot">().default("mild"),
+  palateSeasoningIntensity: text("palate_seasoning_intensity").$type<"light"|"balanced"|"bold">().default("balanced"),
+  palateFlavorStyle: text("palate_flavor_style").$type<"classic"|"herb"|"savory"|"bright">().default("classic"),
+  // Display Preferences - accessibility settings
+  fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
+  // ProCare Professional Onboarding - Phase 1
+  professionalRole: text("professional_role").$type<"trainer"|"physician">(),
+  professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),
+  credentialType: text("credential_type"), // e.g. "Personal Trainer", "Physician", "Dietitian"
+  credentialBody: text("credential_body"), // e.g. "NASM", "ACE", license state
+  credentialNumber: text("credential_number"), // optional license/cert number
+  credentialYear: text("credential_year"), // year obtained
+  attestationText: text("attestation_text"), // version of attestation they agreed to
+  attestedAt: timestamp("attested_at", { withTimezone: true }), // when attestation was accepted
+  procareEntryPath: text("procare_entry_path").$type<"certified"|"experienced"|"non_certified">(), // which path they chose
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
@@ -312,6 +346,33 @@ export const pantryItems = pgTable("pantry_items", {
   unit: text("unit").default("unit"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// MPM SafetyGuard Override Audit Logs
+export const safetyOverrideAuditLogs = pgTable("safety_override_audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  mealRequest: text("meal_request").notNull(), // what the user requested
+  allergenTriggered: text("allergen_triggered").notNull(), // which allergen was overridden
+  safetyMode: text("safety_mode").$type<"CUSTOM_AUTHENTICATED">().notNull(), // always CUSTOM_AUTHENTICATED for overrides
+  builderId: text("builder_id"), // which meal builder was used (craving, dessert, fridge-rescue, etc.)
+  overrideReason: text("override_reason"), // optional user-provided reason
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index("idx_safety_override_user").on(t.userId),
+  createdAtIdx: index("idx_safety_override_created").on(t.createdAt),
+}));
+
+// Builder Switch Limit System - Track meal builder changes (3 per 12 months)
+export const builderSwitchHistory = pgTable("builder_switch_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  fromBuilder: text("from_builder"), // null if first selection
+  toBuilder: text("to_builder").notNull(), // weekly, diabetic, glp1, anti_inflammatory, beach_body, etc.
+  switchedAt: timestamp("switched_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index("idx_builder_switch_user").on(t.userId),
+  switchedAtIdx: index("idx_builder_switch_date").on(t.switchedAt),
+}));
 
 export const recipes = pgTable("recipes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

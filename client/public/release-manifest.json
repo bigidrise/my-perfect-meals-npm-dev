@@ -1,0 +1,10 @@
+{
+  "releaseId": "1.2.64",
+  "publishedAt": "2026-02-10",
+  "changes": [
+    "New: Database-backed client connections — trainers and physicians now see linked clients automatically",
+    "New: Shared meal boards — trainer and client both view and edit the same board in real time",
+    "Fixed: Builder assignment now uses verified database user IDs for reliable client linking",
+    "Fixed: Board navigation in Trainer Studio and Physician Clinic resolves correct client identity"
+  ]
+}

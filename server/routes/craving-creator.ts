@@ -4,6 +4,12 @@ import { z } from "zod";
 import { db } from "../db";
 import { mealInstances, userRecipes } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { 
+  preCheckRequest, 
+  extractSafetyProfile, 
+  getSafeSubstitute,
+  logSafetyEnforcement 
+} from "../services/allergyGuardrails";
 
 const router = express.Router();
 
@@ -59,6 +65,28 @@ router.post('/generate', requireAuth, async (req, res) => {
       }
     }
 
+    // 🚨 CRITICAL SAFETY CHECK: Block requests that ask for forbidden ingredients
+    if (user) {
+      const safetyProfile = extractSafetyProfile(user);
+      const preCheck = preCheckRequest(craving, safetyProfile);
+      
+      if (preCheck.blocked) {
+        console.log(`🚫 [ALLERGY SAFETY] Blocked request from user ${userId}: "${craving}" contains ${preCheck.violations.join(", ")}`);
+        logSafetyEnforcement(userId, craving, preCheck.violations, 'blocked');
+        
+        // Suggest safe alternatives
+        const suggestions = preCheck.violations.map(v => `${v} → ${getSafeSubstitute(v)}`).join("; ");
+        
+        return res.status(400).json({
+          error: "ALLERGY_SAFETY_BLOCK",
+          message: preCheck.message,
+          violations: preCheck.violations,
+          suggestions: `Try these safe alternatives: ${suggestions}`,
+          blocked: true
+        });
+      }
+    }
+
     // Generate the meal using AI (include servings in the craving text for scaling)
     const cravingWithServings = servings > 1 
       ? `${craving} (for ${servings} servings)` 
@@ -101,10 +129,10 @@ router.post('/generate', requireAuth, async (req, res) => {
 });
 
 // POST /api/craving-creator/log - Log craving meal (convenience wrapper)
-router.post('/log', requireAuth, async (req, res) => {
+router.post('/log', requireAuth, async (req: any, res) => {
   try {
     const input = logMealSchema.parse(req.body);
-    const userId = req.user.id;
+    const userId = req.user?.id || "1";
 
     // Save recipe to user_recipes
     const [savedRecipe] = await db.insert(userRecipes).values({

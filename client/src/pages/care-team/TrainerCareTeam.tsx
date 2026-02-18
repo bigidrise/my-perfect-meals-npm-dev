@@ -39,6 +39,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
+import { ProfessionalIntroOverlay } from "@/components/pro/ProfessionalIntroOverlay";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
@@ -94,7 +96,17 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 
 export default function CareTeamPage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const quickTour = useQuickTour("care-team");
+
+  useEffect(() => {
+    if (!user) return;
+    const isAdmin = user.role === "admin";
+    const isTrainer = user.professionalRole === "trainer";
+    if (!isAdmin && !isTrainer) {
+      setLocation("/more");
+    }
+  }, [user, setLocation]);
 
   // UI state
   const [members, setMembers] = useState<CareMember[]>([]);
@@ -246,15 +258,17 @@ export default function CareTeamPage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
+      <ProfessionalIntroOverlay type="trainer" onEnter={() => {}} />
+
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-orange-500 flex-shrink-0" />
           <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-            Trainer Care Team
+            Trainer Studio
           </h1>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
@@ -311,33 +325,7 @@ export default function CareTeamPage() {
                 </div>
               </div>
 
-              {/* Permissions */}
-              <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
-                <div className="flex items-center gap-2 text-white/80">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span className="font-semibold">Permissions</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <PermToggle
-                    label="View Macros"
-                    checked={perms.canViewMacros}
-                    onChange={() => togglePerm("canViewMacros")}
-                  />
-                  <PermToggle
-                    label="Add Meals"
-                    checked={perms.canAddMeals}
-                    onChange={() => togglePerm("canAddMeals")}
-                  />
-                  <PermToggle
-                    label="Edit Plan"
-                    checked={perms.canEditPlan}
-                    onChange={() => togglePerm("canEditPlan")}
-                  />
-                </div>
-                <div className="text-xs text-white/60">
-                  💡 You can change these anytime per person.
-                </div>
-              </div>
+              
 
               <Button
                 disabled={loading}
@@ -351,61 +339,44 @@ export default function CareTeamPage() {
             </GlassCardContent>
           </GlassCard>
 
-          {/* Connect with Access Code */}
-          <GlassCard className="border-2 border-orange-500/40">
-            <GlassCardContent className="p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-orange-500" />
-                <h2 className="text-xl font-bold text-white">
-                  Connect with Access Code
-                </h2>
-              </div>
-              <p className="text-sm text-white/70">
-                If your professional gave you a code, enter it here to link
-                instantly.
-              </p>
-              <div>
-                <Label className="text-white/80">Access Code</Label>
-                <Input
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="e.g. MP-9ZX4-QL"
-                  className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
-                  data-testid="input-careteam-code"
-                />
-              </div>
-              <Button
-                disabled={loading}
-                onClick={connectWithCode}
-                className="w-full bg-lime-600 hover:bg-lime-600 text-white"
-                data-testid="button-submit-code"
-              >
-                <ClipboardEdit className="h-4 w-4 mr-2" />
-                Link with Code
-              </Button>
-            </GlassCardContent>
-          </GlassCard>
+          {/* Connect with Access Code — hidden: clients use ProCare landing page instead */}
+          {false && (
+            <GlassCard className="border-2 border-orange-500/40">
+              <GlassCardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5 text-orange-500" />
+                  <h2 className="text-xl font-bold text-white">
+                    Connect with Access Code
+                  </h2>
+                </div>
+                <p className="text-sm text-white/70">
+                  If your professional gave you a code, enter it here to link
+                  instantly.
+                </p>
+                <div>
+                  <Label className="text-white/80">Access Code</Label>
+                  <Input
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    placeholder="e.g. MP-9ZX4-QL"
+                    className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
+                    data-testid="input-careteam-code"
+                  />
+                </div>
+                <Button
+                  disabled={loading}
+                  onClick={connectWithCode}
+                  className="w-full bg-lime-600 hover:bg-lime-600 text-white"
+                  data-testid="button-submit-code"
+                >
+                  <ClipboardEdit className="h-4 w-4 mr-2" />
+                  Link with Code
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
+          )}
 
-          {/* How it Works */}
-          <GlassCard className="border-2 border-orange-500/40">
-            <GlassCardContent className="p-6 space-y-3">
-              <h2 className="text-xl font-bold text-white">How it Works</h2>
-              <ul className="list-disc pl-5 text-white/80 text-sm space-y-2">
-                <li>You invite your pro or connect with their access code.</li>
-                <li>
-                  They get limited access based on the permissions you set.
-                </li>
-                <li>Trainers can add meals; doctors can review macros.</li>
-                <li>
-                  You can revoke access anytime. You're always in control.
-                </li>
-              </ul>
-              <div className="text-xs text-white/60">
-                Note: This is not medical advice. Always follow your licensed
-                provider's instructions.
-              </div>
-            </GlassCardContent>
-          </GlassCard>
+          
         </div>
 
         {/* Error state */}
@@ -443,7 +414,7 @@ export default function CareTeamPage() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Care Team Guide"
+        title="Trainer Studio Guide"
         steps={CARE_TEAM_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
@@ -565,29 +536,29 @@ function MemberCard({
   setLocation: (path: string) => void;
 }) {
   return (
-    <GlassCard className="overflow-hidden">
+    <GlassCard className="overflow-hidden max-w-xl">
       <CardHeader className="p-4 pb-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-white min-w-0 break-words flex-1">
             {member.name ?? "Unnamed Pro"}
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {statusBadge(member.status)}
           </div>
         </div>
         {member.email && (
-          <CardDescription className="text-white/70 mt-1">
+          <CardDescription className="text-white/70 mt-1 break-words">
             {member.email}
           </CardDescription>
         )}
       </CardHeader>
 
       <GlassCardContent className="p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2">
           {member.status === "active" && (
             <Button
               onClick={() => setLocation("/pro/clients")}
-              className="bg-lime-600 hover:bg-lime-600 text-white"
+              className="w-full bg-lime-600 hover:bg-lime-600 text-white"
               data-testid="button-open-pro-portal"
             >
               <ClipboardEdit className="h-4 w-4 mr-2" />
@@ -597,7 +568,7 @@ function MemberCard({
           {member.status === "pending" && onApprove && (
             <Button
               onClick={onApprove}
-              className="bg-orange-600/20 hover:bg-orange-600/20 text-white"
+              className="w-full bg-orange-600/20 hover:bg-orange-600/20 text-white"
               data-testid="button-approve-member"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -608,7 +579,7 @@ function MemberCard({
             <Button
               onClick={onRevoke}
               variant="destructive"
-              className="bg-red-600 hover:bg-red-700"
+              className="w-full bg-red-600 hover:bg-red-700"
               data-testid="button-revoke-member"
             >
               <XCircle className="h-4 w-4 mr-2" />

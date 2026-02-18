@@ -6,7 +6,8 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
-import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems } from "@shared/schema";
+import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable } from "@shared/schema";
+import { studioMemberships, studios } from "./db/schema/studio";
 import { db } from "./db";
 import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -17,6 +18,16 @@ import holidayFamilyRecipeRouter from "./routes/holiday-family-recipe";
 
 import { generateCravingMeal, generateWeeklyMeals } from "./services/stableMealGenerator";
 import { generateCravingMealWithProfile } from "./services/generators/cravingCreatorWrapped";
+import { enforceSafetyProfile } from "./services/safetyProfileService";
+import { 
+  hasUserSetPin, 
+  setUserPin, 
+  changeUserPin, 
+  removeUserPin, 
+  verifyPinAndIssueOverrideToken,
+  createAllergyEditToken,
+  validateAllergyEditToken
+} from "./services/safetyPinService";
 // Shopping list import removed - will be implemented per ChatGPT specifications
 import avatarChatRouter from "./routes/avatarChat";
 import conciergeRouter from "./routes/concierge";
@@ -37,6 +48,7 @@ import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
 import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
+import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
@@ -57,6 +69,7 @@ import biometricsRoutes from "./routes/biometricsRoutes";
 import builderPlansRoutes from "./routes/builderPlans";
 import careTeamRoutes from "./routes/careTeamRoutes";
 import procareRoutes from "./routes/procareRoutes";
+import studioRoutes from "./routes/studioRoutes";
 import onboardingProgressRoutes from "./routes/onboardingProgress";
 import foundersRoutes from "./routes/foundersRoutes";
 import physicianReportsRoutes from "./routes/physicianReports";
@@ -64,9 +77,13 @@ import mealFinderRouter from "./routes/mealFinder";
 import { registerAdminSql } from "./adminSql";
 import glp1ShotsRoutes from "./routes/glp1Shots"; // Added import for glp1ShotsRoutes
 import glp1Routes from "./routes/glp1"; // GLP-1 profile routes
+import bodyCompositionRoutes from "./routes/bodyComposition"; // Body fat tracking
+import { diabetesRouter } from "./routes/diabetes"; // Diabetes profile and glucose logging
 import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for stripeCheckoutRouter
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
 import lockedDaysRouter from "./routes/lockedDays";
+import usersProfileRouter from "./routes/usersProfile";
+import { loadStudioMembership } from "./middleware/studioAccess";
 
 // Helper function to determine features by subscription plan
 function getFeaturesByPlan(plan: string) {
@@ -337,6 +354,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Load studio membership for all API routes (non-blocking - just attaches membership info to req)
+  app.use("/api", loadStudioMembership);
+
   // Mount auth session and alcohol log
   app.use(authSessionRouter);
   app.use(alcoholLogRouter);
@@ -566,8 +586,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroTargets,
         count = 1,
         dietType,                   // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
-        starchContext               // Starch Game Plan context for intelligent carb distribution
+        starchContext,              // Starch Game Plan context for intelligent carb distribution
+        safetyMode,                 // Safety override mode
+        overrideToken               // One-time override token from PIN verification
       } = req.body;
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && input) {
+        const inputText = Array.isArray(input) ? input.join(' ') : input;
+        const safetyCheck = await enforceSafetyProfile(userId, inputText, `meals-generate-${type}`, {
+          safetyMode: safetyMode || "STRICT",
+          overrideToken: overrideToken
+        });
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            source: 'error',
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       // Feature gate for fridge-rescue and premade types
       if (type === 'fridge-rescue' || type === 'premade') {
@@ -614,7 +656,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroTargets,
         count,
         dietType,
-        starchContext
+        starchContext,
+        safetyAlreadyChecked: true // Route already verified with enforceSafetyProfile (may include override token)
       });
 
       // Record metrics for AI health tracking
@@ -649,13 +692,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
-      const { fridgeItems, userId = "demo-user", servings = 4, count = 3, macroTargets, _aliasUsed } = req.body;
+      const { fridgeItems, userId = "demo-user", servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
         return res.status(400).json({ 
           error: "fridgeItems is required and must be a non-empty array"
         });
+      }
+      
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // Skip safety check if user has authenticated override token
+      if (userId && userId !== "demo-user") {
+        const ingredientsText = fridgeItems.join(' ');
+        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue", {
+          safetyMode: safetyMode || "STRICT",
+          overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined
+        });
+        
+        // If override token was valid, safety check returns SAFE even for blocked terms
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked fridge rescue for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        
+        // Log if override was used
+        if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
+          console.log(`✅ [SAFETY OVERRIDE] Fridge rescue proceeding with authenticated override for user ${userId}`);
+        }
       }
 
       // 🎯 Validate macro targets if provided (all fields optional)
@@ -681,8 +760,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("[FRIDGE] valid request, items:", fridgeItems.length, "items:", fridgeItems);
 
-      // Fetch user health conditions from database for medical badge generation
+      // Fetch user health conditions and palate preferences from database
       let userHealthConditions: string[] = [];
+      let palatePrefs: { palateSpiceTolerance?: string; palateSeasoningIntensity?: string; palateFlavorStyle?: string } | undefined = undefined;
       if (userId && userId !== "demo-user") {
         try {
           const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -690,8 +770,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userHealthConditions = dbUser.healthConditions;
             console.log("[FRIDGE] User health conditions loaded:", userHealthConditions.length, "conditions");
           }
+          // Load palate preferences for flavor customization (only if not skipPalate)
+          if (!skipPalate && dbUser && (dbUser.palateSpiceTolerance || dbUser.palateSeasoningIntensity || dbUser.palateFlavorStyle)) {
+            palatePrefs = {
+              palateSpiceTolerance: dbUser.palateSpiceTolerance || undefined,
+              palateSeasoningIntensity: dbUser.palateSeasoningIntensity || undefined,
+              palateFlavorStyle: dbUser.palateFlavorStyle || undefined,
+            };
+            console.log("[FRIDGE] Loaded palate preferences for user");
+          } else if (skipPalate) {
+            console.log("[FRIDGE] Palate preferences skipped - using neutral seasoning for shared meal");
+          }
         } catch (err) {
-          console.log("[FRIDGE] Could not fetch user health conditions:", err);
+          console.log("[FRIDGE] Could not fetch user data:", err);
         }
       }
 
@@ -699,7 +790,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
         user: { healthConditions: userHealthConditions },
-        macroTargets 
+        macroTargets,
+        skipPalate,
+        palatePrefs: palatePrefs as any
       });
 
       // Record metrics - fridge rescue is AI-required
@@ -818,6 +911,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId, days, schedule, dietaryRestrictions, selectedIngredients, includeImages = true, mode = "ai_varied", constraints = {} } = req.body;
 
       console.log("🎯 AI Meal Creator generating meal plan:", { userId, days, scheduleCount: schedule?.length });
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // Check selectedIngredients against user's allergy profile
+      if (userId && selectedIngredients && selectedIngredients.length > 0) {
+        const ingredientsText = selectedIngredients.join(' ');
+        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "ai-generate-meal-plan");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked AI meal plan for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       if (!schedule || schedule.length === 0) {
         return res.status(400).json({ error: "Schedule is required" });
@@ -1362,6 +1481,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meals/holiday-feast", async (req, res) => {
     console.log("🎯 DIRECT Holiday Feast route HIT! Body:", req.body);
     try {
+      const { userId, familyRecipe, cuisineType } = req.body;
+      
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId) {
+        // Check family recipe and cuisine type for allergens
+        const inputText = [familyRecipe, cuisineType].filter(Boolean).join(' ');
+        if (inputText) {
+          const safetyCheck = await enforceSafetyProfile(userId, inputText, "meals-holiday-feast");
+          if (safetyCheck.result === "BLOCKED") {
+            console.log(`🚫 [SAFETY] Blocked holiday feast for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+            return res.status(400).json({
+              success: false,
+              error: safetyCheck.message,
+              safetyBlocked: true,
+              blockedTerms: safetyCheck.blockedTerms,
+              suggestion: safetyCheck.suggestion
+            });
+          }
+          if (safetyCheck.result === "AMBIGUOUS") {
+            return res.status(400).json({
+              success: false,
+              error: safetyCheck.message,
+              safetyAmbiguous: true,
+              ambiguousTerms: safetyCheck.ambiguousTerms,
+              suggestion: safetyCheck.suggestion
+            });
+          }
+        }
+      }
+      
       const { generateHolidayFeast } = await import("./services/holidayFeastService");
       const result = await generateHolidayFeast({
         occasion: req.body.occasion || "Christmas",
@@ -1372,6 +1521,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         budgetLevel: req.body.budgetLevel || "moderate",
         familyRecipe: req.body.familyRecipe,
       });
+
+      // 🚨 POST-GENERATION VALIDATION: Filter unsafe feast items
+      if (userId && (result.feast?.length > 0 || result.recipes?.length > 0)) {
+        const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./services/safetyProfileService');
+        const profile = await loadSafetyProfile(userId);
+        if (profile) {
+          // Filter feast items
+          const safeFeast = (result.feast || []).filter((item: any) => {
+            const mealForValidation = {
+              name: item.name || '',
+              description: item.description || '',
+              ingredients: item.ingredients || [],
+              instructions: Array.isArray(item.instructions) ? item.instructions : []
+            };
+            const validation = validateMeal(mealForValidation, profile);
+            if (validation.result === 'BLOCKED') {
+              console.log(`🚫 [POST-GENERATION] Filtered feast item "${item.name}" for user ${userId}`);
+              return false;
+            }
+            return true;
+          });
+          
+          // Filter recipes
+          const safeRecipes = (result.recipes || []).filter((item: any) => {
+            const mealForValidation = {
+              name: item.name || '',
+              description: item.description || '',
+              ingredients: item.ingredients || [],
+              instructions: Array.isArray(item.instructions) ? item.instructions : []
+            };
+            const validation = validateMeal(mealForValidation, profile);
+            if (validation.result === 'BLOCKED') {
+              console.log(`🚫 [POST-GENERATION] Filtered recipe "${item.name}" for user ${userId}`);
+              return false;
+            }
+            return true;
+          });
+          
+          result.feast = safeFeast;
+          result.recipes = safeRecipes;
+        }
+      }
 
       res.json({
         holiday: req.body.occasion,
@@ -1442,29 +1633,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Medical Personalization API - Get personalized meal plan based on user's medical profile
+  // 🚨 SAFETY: This endpoint uses template-based generation (not AI) with user.allergies passed to profile
   app.post("/api/weekly-meal-plan/:userId/regenerate", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { mealsPerDay = 3, snacksPerDay = 1, duration = 7 } = req.body;
 
-      // Get user's medical profile from onboarding data  
       // Get user data directly
       const [user] = await db.select().from(users).where(eq(users.id, userId.toString())).limit(1);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Mock medical profile based on common conditions (replace with real user data)
+      // Build medical profile from user data - allergies enforced in MedicalPersonalizationService
       const userMedicalProfile = {
-        medicalConditions: user.healthConditions || ['diabetes_type2', 'hypertension'],
-        foodAllergies: user.allergies || ['nuts'],
-        dietaryRestrictions: user.dietaryRestrictions || ['gluten_free'],
+        medicalConditions: user.healthConditions || [],
+        foodAllergies: user.allergies || [],  // 🚨 SAFETY: Allergies from single source of truth
+        dietaryRestrictions: user.dietaryRestrictions || [],
         primaryGoal: user.fitnessGoal || 'weight_loss',
         activityLevel: user.activityLevel || 'moderate',
         customConditions: {}
       };
 
-      // Generate medically personalized meal plan
+      // Generate medically personalized meal plan (template-based, respects foodAllergies)
       const { MedicalPersonalizationService } = await import("./medicalPersonalizationService.js");
       const personalizedMealPlan = MedicalPersonalizationService.generateWeeklyMealPlan(
         userMedicalProfile,
@@ -1628,11 +1819,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
+      let studioMembershipData = null;
+      const [membership] = await db
+        .select()
+        .from(studioMemberships)
+        .where(eq(studioMemberships.clientUserId, userId));
+      
+      if (membership) {
+        const [studio] = await db
+          .select()
+          .from(studios)
+          .where(eq(studios.id, membership.studioId));
+        
+        studioMembershipData = {
+          studioId: membership.studioId,
+          studioName: studio?.name || null,
+          studioType: studio?.type || null,
+          membershipId: membership.id,
+          ownerUserId: studio?.ownerUserId || null,
+          status: membership.status,
+          assignedBuilder: membership.assignedBuilder,
+        };
+      }
+
       res.json({
         id: user.id,
         email: user.email,
         username: user.username,
         firstName: user.firstName,
+        lastName: user.lastName || null,
+        nickname: user.nickname || null,
+        professionalRole: user.professionalRole || null,
+        professionalCategory: user.professionalCategory || null,
+        credentialType: user.credentialType || null,
+        credentialBody: user.credentialBody || null,
+        credentialNumber: user.credentialNumber || null,
+        credentialYear: user.credentialYear || null,
+        attestationText: user.attestationText || null,
+        procareEntryPath: user.procareEntryPath || null,
+        attestedAt: user.attestedAt?.toISOString() || null,
         entitlements: user.entitlements || [],
         planLookupKey: user.planLookupKey,
         trialStartedAt: user.trialStartedAt,
@@ -1640,14 +1865,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
         profilePhotoUrl: user.profilePhotoUrl || null,
-        // Role-based access control
         role: user.role || "client",
         isProCare: user.isProCare || false,
         activeBoard: user.activeBoard || null,
+        onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() || null,
+        age: user.age || null,
+        height: user.height || null,
+        weight: user.weight || null,
+        activityLevel: user.activityLevel || null,
+        fitnessGoal: user.fitnessGoal || null,
+        allergies: user.allergies || [],
+        dietaryRestrictions: user.dietaryRestrictions || [],
+        healthConditions: user.healthConditions || [],
+        dislikedFoods: user.dislikedFoods || [],
+        likedFoods: user.likedFoods || [],
+        studioMembership: studioMembershipData,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
+
+  // User profile update endpoint - saves onboarding/profile data
+  // CRITICAL: This is the single source of truth for allergies, dietary restrictions, etc.
+  app.put("/api/users/profile", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      
+      const {
+        firstName,
+        lastName,
+        nickname,
+        email,
+        age,
+        height,
+        weight,
+        activityLevel,
+        fitnessGoal,
+        dietaryRestrictions,
+        allergies,
+        healthConditions,
+        dislikedFoods,
+        likedFoods,
+      } = req.body;
+      
+      // Build update object with only provided fields
+      const updateData: any = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (nickname !== undefined) updateData.nickname = nickname;
+      if (email !== undefined && email.trim()) updateData.email = email.trim();
+      // Keep display name in sync with firstName/lastName
+      if (firstName !== undefined || lastName !== undefined) {
+        const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        const newFirst = firstName !== undefined ? firstName : (currentUser?.firstName || '');
+        const newLast = lastName !== undefined ? lastName : (currentUser?.lastName || '');
+        updateData.name = [newFirst, newLast].filter(Boolean).join(' ');
+      }
+      if (age !== undefined) updateData.age = age;
+      if (height !== undefined) updateData.height = height;
+      if (weight !== undefined) updateData.weight = weight;
+      if (activityLevel !== undefined) updateData.activityLevel = activityLevel;
+      if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
+      if (dietaryRestrictions !== undefined) updateData.dietaryRestrictions = dietaryRestrictions;
+      
+      if (allergies !== undefined) {
+        const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        
+        const currentAllergies = (currentUser?.allergies || []).sort().join(",");
+        const newAllergies = (Array.isArray(allergies) ? allergies : []).sort().join(",");
+        
+        if (currentAllergies !== newAllergies && currentUser?.safetyPinHash) {
+          const allergyEditToken = req.body.allergyEditToken;
+          if (!allergyEditToken) {
+            return res.status(403).json({ 
+              error: "Allergy changes require PIN verification",
+              code: "ALLERGY_PIN_REQUIRED"
+            });
+          }
+          
+          const tokenValidation = validateAllergyEditToken(allergyEditToken, userId);
+          if (!tokenValidation.valid) {
+            return res.status(403).json({ 
+              error: tokenValidation.error || "Invalid or expired allergy edit token",
+              code: "ALLERGY_TOKEN_INVALID"
+            });
+          }
+        }
+        
+        updateData.allergies = allergies;
+      }
+      if (healthConditions !== undefined) updateData.healthConditions = healthConditions;
+      if (dislikedFoods !== undefined) updateData.dislikedFoods = dislikedFoods;
+      if (likedFoods !== undefined) updateData.likedFoods = likedFoods;
+      
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No fields to update" });
+      }
+      
+      const [updatedUser] = await db.update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      console.log(`✅ Profile updated for user ${userId}:`, Object.keys(updateData).join(", "));
+      
+      res.json({
+        success: true,
+        message: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update user profile" });
     }
   });
 
@@ -1732,7 +2070,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update meal builder selection (for settings)
+  // Get builder switch status (remaining switches, can switch, etc.)
+  app.get("/api/user/builder-switch-status", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const status = await getBuilderSwitchStatus(userId);
+      res.json(status);
+    } catch (error: any) {
+      console.error("Error getting builder switch status:", error);
+      res.status(500).json({ error: "Failed to get builder switch status" });
+    }
+  });
+
+  // Update meal builder selection (for settings) - ENFORCES 3 SWITCHES PER 12 MONTHS
   // Uses x-auth-token header for secure authentication
   app.patch("/api/user/meal-builder", requireAuth, async (req: any, res) => {
     try {
@@ -1744,27 +2095,312 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "selectedMealBuilder is required" });
       }
       
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body"];
+      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body", "general_nutrition", "performance_competition"];
       if (!validBuilders.includes(selectedMealBuilder)) {
         return res.status(400).json({ error: "Invalid meal builder selection" });
       }
       
-      const [user] = await db.update(users)
-        .set({ selectedMealBuilder })
+      // Pro builders require trainer unlock - users cannot self-select these
+      const proBuilders = ["general_nutrition", "performance_competition"];
+      if (proBuilders.includes(selectedMealBuilder)) {
+        // Check if this user has been assigned this builder by a trainer
+        const [userData] = await db
+        .select({ activeBoard: users.activeBoard, isProCare: users.isProCare })
+        .from(users)
         .where(eq(users.id, userId))
-        .returning();
+        .limit(1);
+        // ProCare enforcement: client cannot override assigned board
+        if (userData?.isProCare && userData?.activeBoard) {
+          return res.status(403).json({
+            error: "Your meal builder is assigned by your coach. Contact your professional to request changes.",
+          });
+        } 
+        if (!userData || userData.activeBoard !== selectedMealBuilder) {
+          return res.status(403).json({ error: "This builder requires trainer/coach unlock. Contact your trainer to enable access." });
+        }
+      }
       
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+      const result = await attemptBuilderSwitch(userId, selectedMealBuilder);
+      
+      if (!result.success) {
+        return res.status(403).json({
+          success: false,
+          error: result.error,
+          switchStatus: result.status,
+        });
       }
       
       res.json({
         success: true,
-        selectedMealBuilder: user.selectedMealBuilder,
+        selectedMealBuilder,
+        switchStatus: result.status,
       });
     } catch (error: any) {
       console.error("Error updating meal builder:", error);
       res.status(500).json({ error: "Failed to update meal builder" });
+    }
+  });
+
+  // ===== Pro Builder Assignment (Trainer/Coach Only) =====
+  // Allows coaches/admins to assign pro builders to clients
+  app.post("/api/pro/assign-builder", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const trainerId = authReq.authUser.id;
+      const { clientId, builder } = req.body;
+      
+      if (!clientId || !builder) {
+        return res.status(400).json({ error: "clientId and builder are required" });
+      }
+      
+      // Validate the builder is a valid pro builder
+      const validProBuilders = ["general_nutrition", "performance_competition"];
+      if (!validProBuilders.includes(builder)) {
+        return res.status(400).json({ error: "Invalid pro builder. Must be general_nutrition or performance_competition" });
+      }
+      
+      // Verify the trainer has coach/admin role
+      const [trainer] = await db.select({ role: users.role }).from(users).where(eq(users.id, trainerId)).limit(1);
+      if (!trainer || !["admin", "coach"].includes(trainer.role || "")) {
+        return res.status(403).json({ error: "Only coaches and admins can assign pro builders" });
+      }
+      
+      // Update the client's activeBoard
+      const [updatedClient] = await db.update(users)
+        .set({ activeBoard: builder })
+        .where(eq(users.id, clientId))
+        .returning({ id: users.id, activeBoard: users.activeBoard });
+      
+      if (!updatedClient) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      console.log(`[Pro Builder] Trainer ${trainerId} assigned ${builder} to client ${clientId}`);
+      
+      res.json({
+        success: true,
+        clientId: updatedClient.id,
+        assignedBuilder: updatedClient.activeBoard,
+      });
+    } catch (error: any) {
+      console.error("Error assigning pro builder:", error);
+      res.status(500).json({ error: "Failed to assign pro builder" });
+    }
+  });
+
+  // ===== MPM SafetyGuard PIN System =====
+  
+  // Check if user has set a Safety PIN
+  app.get("/api/safety-pin/status", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const hasPin = await hasUserSetPin(userId);
+      res.json({ hasPin });
+    } catch (error: any) {
+      console.error("Error checking Safety PIN status:", error);
+      res.status(500).json({ error: "Failed to check PIN status" });
+    }
+  });
+
+  // Set Safety PIN (first time or if not set)
+  app.post("/api/safety-pin/set", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "PIN is required" });
+      }
+      
+      // Check if PIN already exists
+      const hasPin = await hasUserSetPin(userId);
+      if (hasPin) {
+        return res.status(400).json({ error: "PIN already set. Use change endpoint." });
+      }
+      
+      const result = await setUserPin(userId, pin);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ success: true, message: "Safety PIN set successfully" });
+    } catch (error: any) {
+      console.error("Error setting Safety PIN:", error);
+      res.status(500).json({ error: "Failed to set Safety PIN" });
+    }
+  });
+
+  // Change Safety PIN (requires current PIN)
+  app.post("/api/safety-pin/change", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { currentPin, newPin } = req.body;
+      
+      if (!currentPin || !newPin) {
+        return res.status(400).json({ error: "Current PIN and new PIN are required" });
+      }
+      
+      const result = await changeUserPin(userId, currentPin, newPin);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ success: true, message: "Safety PIN changed successfully" });
+    } catch (error: any) {
+      console.error("Error changing Safety PIN:", error);
+      res.status(500).json({ error: "Failed to change Safety PIN" });
+    }
+  });
+
+  // Remove Safety PIN (requires current PIN)
+  app.post("/api/safety-pin/remove", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "Current PIN is required" });
+      }
+      
+      const result = await removeUserPin(userId, pin);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ success: true, message: "Safety PIN removed successfully" });
+    } catch (error: any) {
+      console.error("Error removing Safety PIN:", error);
+      res.status(500).json({ error: "Failed to remove Safety PIN" });
+    }
+  });
+
+  // Verify PIN and issue one-time override token
+  app.post("/api/safety-pin/verify-override", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin, allergen, mealRequest } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "PIN is required" });
+      }
+      if (!allergen || !mealRequest) {
+        return res.status(400).json({ error: "Allergen and meal request context required" });
+      }
+      
+      const result = await verifyPinAndIssueOverrideToken(userId, pin, allergen, mealRequest);
+      if (!result.success) {
+        return res.status(401).json({ error: result.error });
+      }
+      
+      res.json({ 
+        success: true, 
+        overrideToken: result.overrideToken,
+        message: "Override authorized for this meal only"
+      });
+    } catch (error: any) {
+      console.error("Error verifying Safety PIN:", error);
+      res.status(500).json({ error: "Failed to verify PIN" });
+    }
+  });
+
+  // Verify PIN for allergy editing - issues a short-lived token
+  app.post("/api/safety/verify-pin", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { pin } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ error: "PIN is required" });
+      }
+      
+      const result = await createAllergyEditToken(userId, pin);
+      if (!result.success) {
+        return res.status(401).json({ error: result.error });
+      }
+      
+      res.json({ 
+        success: true, 
+        allergyEditToken: result.token,
+        message: "Allergy editing authorized for 10 minutes"
+      });
+    } catch (error: any) {
+      console.error("Error verifying Safety PIN for allergy edit:", error);
+      res.status(500).json({ error: "Failed to verify PIN" });
+    }
+  });
+
+  // 🛡️ SafetyGuard Preflight Check - Client calls BEFORE generation to get instant feedback
+  // This prevents "progress bar then failure" UX - shows banner immediately
+  // Supports both authenticated users (uses DB profile) and guests (uses request-provided allergies)
+  app.post("/api/safety-check", async (req: any, res) => {
+    try {
+      const { input, builderId = "preflight", guestAllergies } = req.body;
+      
+      if (!input || typeof input !== "string") {
+        return res.status(400).json({ error: "input text is required" });
+      }
+      
+      // Check if we have an authenticated user
+      const authUser = req.authUser;
+      
+      if (authUser?.id) {
+        // Authenticated user - use their profile from DB
+        const safetyCheck = await enforceSafetyProfile(authUser.id, input, builderId, {
+          safetyMode: "STRICT"
+        });
+        
+        return res.json({
+          result: safetyCheck.result,
+          blockedTerms: safetyCheck.blockedTerms,
+          blockedCategories: safetyCheck.blockedCategories,
+          ambiguousTerms: safetyCheck.ambiguousTerms,
+          message: safetyCheck.message,
+          suggestion: safetyCheck.suggestion
+        });
+      }
+      
+      // Guest user - use provided allergies from request
+      if (guestAllergies && Array.isArray(guestAllergies) && guestAllergies.length > 0) {
+        const { enforceSafetyProfileSync } = await import("./services/safetyProfileService");
+        
+        const guestProfile = {
+          userId: "guest",
+          allergies: guestAllergies,
+          dietaryRestrictions: [],
+          healthConditions: [],
+          avoidIngredients: []
+        };
+        
+        const safetyCheck = enforceSafetyProfileSync(guestProfile, input);
+        
+        return res.json({
+          result: safetyCheck.result,
+          blockedTerms: safetyCheck.blockedTerms,
+          blockedCategories: safetyCheck.blockedCategories,
+          ambiguousTerms: safetyCheck.ambiguousTerms,
+          message: safetyCheck.message,
+          suggestion: safetyCheck.suggestion
+        });
+      }
+      
+      // No auth and no guest allergies - allow but warn
+      console.log("[SafetyCheck] Guest request with no allergies - allowing");
+      return res.json({
+        result: "SAFE",
+        blockedTerms: [],
+        blockedCategories: [],
+        ambiguousTerms: [],
+        message: "No safety profile configured"
+      });
+    } catch (error: any) {
+      console.error("Error in safety preflight check:", error);
+      res.status(500).json({ error: "Failed to perform safety check" });
     }
   });
 
@@ -1897,6 +2533,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // 🚨 SAFETY: This endpoint uses pre-curated recipes, not AI generation
+      // Recipes are manually curated so no allergen enforcement needed here
+      // For AI-generated meals, use the unified pipeline which has full safety checks
+      
       const generatedPlan = await generateMealPlan(user);
       const [mealPlan] = await db.insert(mealPlans).values({
         userId,
@@ -1996,6 +2636,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/glycemic-settings", async (req, res) => {
     try {
       const userId = req.body.userId || "1"; // Default to demo user
+      const settingsData = insertUserGlycemicSettingsSchema.parse({
+        ...req.body,
+        userId
+      });
+      const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/glycemic-settings", async (req, res) => {
+    try {
+      const userId = req.body.userId || "1";
       const settingsData = insertUserGlycemicSettingsSchema.parse({
         ...req.body,
         userId
@@ -2241,13 +2895,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Craving Creator endpoints for WMC2 adapter
   app.post("/api/craving-creator/generate", async (req, res) => {
     try {
-      const { userId, courseStyle, includeImage = false, variation = 0 } = req.body;
+      const { userId, courseStyle, craving, mealType, servings = 1, includeImage = false, variation = 0, safetyMode, overrideToken } = req.body;
+      
+      // Support both courseStyle (legacy) and craving (new) patterns
+      const inputText = craving || courseStyle || "";
 
-      console.log(`🎯 Craving Creator Generate: ${courseStyle} for user ${userId}`);
+      console.log(`🎯 Craving Creator Generate: ${inputText} for user ${userId}`);
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && inputText) {
+        const safetyCheck = await enforceSafetyProfile(userId, inputText, "craving-creator-generate", {
+          safetyMode: safetyMode || "STRICT",
+          overrideToken: overrideToken
+        });
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       const meal = await generateCravingMeal(
-        courseStyle as any, // MealType
-        `${courseStyle} meal${variation ? ` variation ${variation}` : ''}`,
+        (mealType || courseStyle) as any, // MealType
+        inputText || `${courseStyle} meal${variation ? ` variation ${variation}` : ''}`,
         { userId: userId || "1" }
       );
 
@@ -2285,6 +2969,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🎯 Generate Craving Meal: ${craving} for user ${userId}`);
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && craving) {
+        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
+
       // Use the medical-aware craving creator service
       const { generateCravingMealWithProfile } = await import("./services/generators/cravingCreatorWrapped");
 
@@ -2307,7 +3015,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1 } = req.body;
+      const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1, safetyMode, overrideToken } = req.body;
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && cravingInput) {
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
+          safetyMode: safetyMode || "STRICT",
+          overrideToken: overrideToken
+        });
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
@@ -2440,6 +3175,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!userId) {
         return res.status(400).json({ error: "userId required for onboarding enforcement" });
+      }
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (cravingInput) {
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked enforced craving for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
       }
 
       console.log("🛡️ Generating craving meal with medical validation for:", userId);
@@ -2620,6 +3379,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, generateAll = true } = req.body;
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // Weekly meals don't have user input text, but we still load the profile
+      // to ensure allergies are passed to the generator
+
       // Get user data for medical personalization
       let user = null;
       if (userId) {
@@ -2657,6 +3420,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("🧒 KIDS ROUTE (routes.ts): Generating kid-friendly meal for:", preferences);
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && preferences) {
+        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked kids meal for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
+
       // Use stable kids lunchbox generator with proper kid-friendly catalog
       const { kidsLunchboxV1Generate } = await import("./services/kidsLunchboxV1");
       
@@ -2687,6 +3474,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cookingTime: result.meal.prepTime
       };
 
+      // 🚨 POST-GENERATION VALIDATION: Ensure catalog meal doesn't contain user allergens
+      if (userId) {
+        const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./services/safetyProfileService');
+        const profile = await loadSafetyProfile(userId);
+        if (profile) {
+          const mealForValidation = {
+            name: generatedMeal.name,
+            description: generatedMeal.description,
+            ingredients: generatedMeal.ingredients.map((i: any) => i.name),
+            instructions: Array.isArray(generatedMeal.instructions) ? generatedMeal.instructions : [generatedMeal.instructions]
+          };
+          const validation = validateMeal(mealForValidation, profile);
+          if (validation.result === 'BLOCKED') {
+            console.log(`🚫 [POST-GENERATION] Blocked kids meal "${generatedMeal.name}" for user ${userId}: ${validation.blockedTerms.join(', ')}`);
+            return res.status(400).json({
+              success: false,
+              error: `This meal contains ${validation.blockedTerms[0]} which conflicts with your allergy profile. Please try a different preference.`,
+              safetyBlocked: true,
+              blockedTerms: validation.blockedTerms,
+              suggestion: validation.suggestion
+            });
+          }
+        }
+      }
+
       console.log("🧒 Kids meal generated:", generatedMeal.name);
       console.log("📊 Generation source: kids-catalog");
 
@@ -2708,6 +3520,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = Date.now();
 
       console.log("🤖 AI meal creator request:", { cravingInput, userId });
+
+      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      if (userId && cravingInput) {
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator");
+        if (safetyCheck.result === "BLOCKED") {
+          console.log(`🚫 [SAFETY] Blocked ai-creator for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+        if (safetyCheck.result === "AMBIGUOUS") {
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyAmbiguous: true,
+            ambiguousTerms: safetyCheck.ambiguousTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
+      }
 
       // Use unified pipeline (deterministic: cache → templates → fallback)
       const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
@@ -4455,6 +5291,10 @@ function getMealIngredientsDatabase() {
         return res.status(400).json({ error: "userId is required" });
       }
 
+      // 🚨 SAFETY INTELLIGENCE LAYER: Load user's allergy profile
+      // Weekly plan uses templates so we don't have user input to check,
+      // but the profile is used for filtering generated meals
+      
       // Fetch user preferences
       const [userPrefs] = await db
         .select()
@@ -4903,14 +5743,26 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Mount GLP-1 profile routes
   app.use("/api/glp1", glp1Routes);
 
+  // Mount diabetes routes (glucose logging, profile)
+  app.use("/api/diabetes", diabetesRouter);
+
+  // Mount body composition routes (body fat tracking)
+  app.use("/api", bodyCompositionRoutes);
+
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;
   app.use("/api", mealBoardsRoutes);
 
+  // Pro shared board routes (coach/physician ↔ client board access)
+  const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
+  app.use("/api/pro/board", proBoardRoutes);
+
   app.use("/api/care-team", careTeamRoutes);
   app.use("/api/pro", procareRoutes);
+  app.use("/api/studios", studioRoutes);
   app.use("/api/founders", foundersRoutes);
   app.use("/api/physician-reports", physicianReportsRoutes);
+  app.use("/api/users", usersProfileRouter);
 
   // Mount builder plans routes
   app.use(builderPlansRoutes);
@@ -4920,6 +5772,93 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   
   // Mount Stripe checkout router with correct prefix
   app.use("/api/stripe", stripeCheckoutRouter);
+
+  // ── Saved Meals / Favorites ──────────────────────────────────────
+  const crypto = await import("crypto");
+
+  function mealSignature(title: string, sourceType: string, macros?: { calories?: number; protein?: number; carbs?: number; fat?: number }): string {
+    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}`;
+    return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
+  }
+
+  app.post("/api/saved-meals/toggle", requireAuth, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+
+      const { title, sourceType, mealData } = req.body;
+      if (!title || !mealData) return res.status(400).json({ error: "title and mealData required" });
+
+      const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
+      const hash = mealSignature(title, sourceType || "unknown", macros);
+
+      const existing = await db.select().from(savedMealsTable).where(
+        and(eq(savedMealsTable.userId, String(userId)), eq(savedMealsTable.signatureHash, hash))
+      ).limit(1);
+
+      if (existing.length > 0) {
+        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, existing[0].id));
+        return res.json({ saved: false, id: null });
+      }
+
+      const [row] = await db.insert(savedMealsTable).values({
+        userId: String(userId),
+        title: title.trim(),
+        sourceType: sourceType || "unknown",
+        signatureHash: hash,
+        mealData,
+      }).returning();
+
+      return res.json({ saved: true, id: row.id });
+    } catch (error) {
+      console.error("Error toggling saved meal:", error);
+      res.status(500).json({ error: "Failed to toggle saved meal" });
+    }
+  });
+
+  app.get("/api/saved-meals", requireAuth, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+
+      const rows = await db.select().from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)))
+        .orderBy(desc(savedMealsTable.createdAt));
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error listing saved meals:", error);
+      res.status(500).json({ error: "Failed to list saved meals" });
+    }
+  });
+
+  app.get("/api/saved-meals/check", requireAuth, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+
+      const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)));
+
+      res.json(rows.map(r => `${r.title.trim().toLowerCase()}|${r.sourceType}`));
+    } catch (error) {
+      console.error("Error checking saved meals:", error);
+      res.status(500).json({ error: "Failed to check saved meals" });
+    }
+  });
+
+  app.delete("/api/saved-meals/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+
+      await db.delete(savedMealsTable).where(
+        and(eq(savedMealsTable.id, req.params.id), eq(savedMealsTable.userId, String(userId)))
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting saved meal:", error);
+      res.status(500).json({ error: "Failed to delete saved meal" });
+    }
+  });
 
   return httpServer;
 }

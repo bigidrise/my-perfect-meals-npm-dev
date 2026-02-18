@@ -1,6 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
@@ -15,6 +25,7 @@ import {
   setDayLists,
   cloneDayLists,
 } from "@/lib/boardApi";
+import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
@@ -50,6 +61,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
+  Calendar,
   Check,
   Sparkles,
   BarChart3,
@@ -73,7 +85,6 @@ import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
 import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import AdditionalMacrosModal from "@/components/modals/AdditionalMacrosModal";
@@ -95,6 +106,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 
 const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
   {
@@ -192,13 +205,30 @@ export default function DiabeticMenuBuilder() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
-  // Sync hook board to local state
+  // Draft persistence for crash/reload recovery
+  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+    {
+      userId: user?.id,
+      builderId: 'diabetic-menu-builder',
+      weekStartISO,
+    },
+    board,
+    setBoard,
+    hookLoading,
+    hookBoard
+  );
+
+  // Sync hook board to local state (skip if draft is active)
   React.useEffect(() => {
+    if (skipServerSync()) {
+      setLoading(hookLoading);
+      return;
+    }
     if (hookBoard) {
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(
@@ -209,18 +239,17 @@ export default function DiabeticMenuBuilder() {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        clearDraft();
+        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
-        toast({
-          title: "Save failed",
-          description: "Changes will retry when you're online",
-          variant: "destructive",
-        });
+        // Silent retry - no toast during decision-making flows
+        // Save will auto-retry on next user action
       } finally {
         setSaving(false);
       }
     },
-    [saveToHook, toast],
+    [saveToHook, clearDraft, markClean],
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
@@ -232,6 +261,7 @@ export default function DiabeticMenuBuilder() {
   >(null);
   const [showSnackModal, setShowSnackModal] = React.useState(false);
   const [showOverview, setShowOverview] = React.useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
   // NEW: Day/Week planning state
   const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
@@ -249,12 +279,6 @@ export default function DiabeticMenuBuilder() {
     isOpen: boolean;
     meal: any | null;
   }>({ isOpen: false, meal: null });
-
-  // AI Meal Creator modal state (for all meal slots)
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks"
-  >("breakfast");
 
   // AI Premades modal state
   const [premadePickerOpen, setPremadePickerOpen] = useState(false);
@@ -347,6 +371,7 @@ export default function DiabeticMenuBuilder() {
             activeDayISO,
             updatedDayLists,
           );
+          setBoard(updatedBoard);
           await saveBoard(updatedBoard);
         } else {
           // Week mode: update local board and save
@@ -627,30 +652,36 @@ export default function DiabeticMenuBuilder() {
         return;
       }
 
-      const sourceLists = getDayLists(board, activeDayISO);
-      const clonedLists = cloneDayLists(sourceLists);
-
-      let updatedBoard = board;
-      targetDates.forEach((dateISO) => {
-        updatedBoard = setDayLists(updatedBoard, dateISO, clonedLists);
-      });
+      const sourceLists = { ...getDayLists(board, activeDayISO) };
 
       try {
-        await saveBoard(updatedBoard);
-        toast({
-          title: "Day duplicated",
-          description: `Copied to ${targetDates.length} day(s)`,
+        const result = await duplicateAcrossWeeks({
+          sourceLists,
+          targetDates,
+          currentBoard: board,
+          currentWeekStartISO: weekStartISO,
         });
+
+        if (result.currentWeekBoard) {
+          setBoard(result.currentWeekBoard);
+          await saveBoard(result.currentWeekBoard);
+        }
+
+        if (result.errors.length > 0) {
+          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
+          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+        } else if (result.otherWeeksSaved > 0) {
+          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+        } else {
+          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+        }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
+        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
       }
     },
-    [board, activeDayISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
   // Duplicate week handler
@@ -839,23 +870,12 @@ export default function DiabeticMenuBuilder() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-  // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(
+
+  const handleChefMealGenerated = useCallback(
     async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
-
-      // Guard: Check if day is locked before allowing edits
       if (checkLockedDay()) return;
 
-      console.log(
-        "🤖 AI Meal Generated - Replacing old meals with new one:",
-        generatedMeal,
-        "for slot:",
-        slot,
-      );
-
-      // Transform API response to match Meal type structure (copy Fridge Rescue format)
       const transformedMeal: Meal = {
         id: `ai-meal-${Date.now()}`,
         name: generatedMeal.name,
@@ -876,37 +896,36 @@ export default function DiabeticMenuBuilder() {
         },
       };
 
-      // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
       const newMeals = [transformedMeal];
-
-      // Save to localStorage with slot info (persists until next generation)
       saveAIMealsCache(newMeals, activeDayISO, slot);
 
-      // Also update board optimistically - REMOVE old AI meals first from the correct slot
       if (board) {
         const dayLists = getDayLists(board, activeDayISO);
-        // Filter out all old AI meals from the target slot
         const currentSlotMeals = dayLists[slot];
         const nonAIMeals = currentSlotMeals.filter(
           (m) => !m.id.startsWith("ai-meal-"),
         );
-        // Add only the new AI meal
         const updatedSlotMeals = [...nonAIMeals, transformedMeal];
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
-      }
 
-      // Format slot name for display (capitalize first letter)
-      const slotLabel =
-        slot.charAt(0).toUpperCase() + slot.slice(1);
+        try {
+          await saveBoard(updatedBoard);
+          clearAIMealsCache();
+          window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
+          window.dispatchEvent(new Event("macros:updated"));
+        } catch (error) {
+          console.error("Failed to save AI meal to server:", error);
+        }
+      }
 
       toast({
         title: "AI Meal Created!",
-        description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
+        description: `${generatedMeal.name} saved to your ${slot}`,
       });
     },
-    [board, activeDayISO, toast],
+    [board, activeDayISO, toast, saveBoard, weekStartISO],
   );
 
   const profile = useOnboardingProfile();
@@ -930,7 +949,7 @@ export default function DiabeticMenuBuilder() {
     queryClient.invalidateQueries({
       queryKey: [
         "/api/users",
-        "00000000-0000-0000-0000-000000000001",
+        user?.id || "",
         "macros",
         "today",
       ],
@@ -970,31 +989,17 @@ export default function DiabeticMenuBuilder() {
 
   // 🎯 Show toast when loading from cache/offline
   React.useEffect(() => {
-    if (!loading && source && source !== "db") {
-      const msg =
-        source === "cache"
-          ? "Viewing cached meal plan (offline)"
-          : "Starting fresh meal plan for this week";
-      toast({
-        title: "Offline Mode",
-        description: msg,
-        duration: 3000,
-      });
+    if (!loading && source) {
+      console.log("[Board] Loaded from source:", source);
     }
-  }, [loading, source, toast]);
+  }, [loading, source]);
 
-  // 🎯 Show error toast if board load fails
+  // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      toast({
-        title: "Connection Issue",
-        description:
-          "Showing cached meal plan. Changes will sync when you're back online.",
-        variant: "default",
-        duration: 5000,
-      });
+      console.log("[Network] Board load encountered an issue, using cached data if available");
     }
-  }, [error, toast]);
+  }, [error]);
 
   // Check for localStorage meal to add (after board loads)
   React.useEffect(() => {
@@ -1167,22 +1172,10 @@ export default function DiabeticMenuBuilder() {
     [board, weekStartISO, planningMode, activeDayISO],
   );
 
-  // Week navigation handlers
-  const gotoWeek = useCallback(
-    async (targetISO: string) => {
-      setLoading(true);
-      try {
-        const { weekStartISO: ws, week } = await getWeekBoardByDate(targetISO);
-        setWeekStartISO(ws);
-        setBoard(week);
-      } catch (error) {
-        console.error("Failed to load week:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setLoading, setWeekStartISO, setBoard],
-  );
+  // Week navigation handlers - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
+  const gotoWeek = useCallback((targetISO: string) => {
+    setWeekStartISO(targetISO);
+  }, []);
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
@@ -1382,8 +1375,8 @@ export default function DiabeticMenuBuilder() {
     >
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
@@ -1428,6 +1421,7 @@ export default function DiabeticMenuBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
+        <NutritionBudgetBanner className="mb-2" />
         <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
             {/* ROW 1: Week Dates (centered) */}
@@ -1466,14 +1460,27 @@ export default function DiabeticMenuBuilder() {
                 />
 
                 {planningMode === "day" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDuplicateDayModal(true)}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs px-3 py-1 rounded-xl"
-                  >
-                    Duplicate...
-                  </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateDayModal(true)}
+                  data-testid="duplicate-button"
+                  className="
+                    flex-shrink-0 inline-flex flex-col items-center justify-center
+                    rounded-full
+                    px-4 py-2
+                    text-sm font-semibold
+                    text-white/90
+                    bg-black/20
+                    border border-white/15
+                    backdrop-blur-lg
+                    hover:bg-white/10 hover:border-white/25
+                    transition-all
+                  "
+                  style={{ minHeight: 48 }}
+                >
+                  <span className="leading-none">Duplicate</span>
+                  <span className="mt-1 text-base leading-none opacity-80">📅</span>
+                </button>
                 )}
 
                 {planningMode === "week" && (
@@ -1522,54 +1529,69 @@ export default function DiabeticMenuBuilder() {
                 </div>
               )}
 
+            <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+              <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
+                  <AlertDialogDescription className="text-zinc-400">
+                    Delete all meals from this board? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => {
+                      if (board) {
+                        const clearedBoard = {
+                          ...board,
+                          lists: {
+                            breakfast: [],
+                            lunch: [],
+                            dinner: [],
+                            snacks: [],
+                          },
+                          days: board.days
+                            ? Object.fromEntries(
+                                Object.keys(board.days).map((dateISO) => [
+                                  dateISO,
+                                  {
+                                    breakfast: [],
+                                    lunch: [],
+                                    dinner: [],
+                                    snacks: [],
+                                  },
+                                ]),
+                              )
+                            : undefined,
+                        };
+                        saveBoard(clearedBoard);
+                        clearAIMealsCache();
+                        toast({
+                          title: "All Meals Deleted",
+                          description: "Successfully cleared all meals from the board",
+                        });
+                      }
+                    }}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             {/* ROW 5: Bottom Actions (Delete All + Save) */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <Button
+              {false && <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Delete all meals from this board? This action cannot be undone.",
-                    )
-                  ) {
-                    if (board) {
-                      const clearedBoard = {
-                        ...board,
-                        lists: {
-                          breakfast: [],
-                          lunch: [],
-                          dinner: [],
-                          snacks: [],
-                        },
-                        days: board.days
-                          ? Object.fromEntries(
-                              Object.keys(board.days).map((dateISO) => [
-                                dateISO,
-                                {
-                                  breakfast: [],
-                                  lunch: [],
-                                  dinner: [],
-                                  snacks: [],
-                                },
-                              ]),
-                            )
-                          : undefined,
-                      };
-                      saveBoard(clearedBoard);
-                      clearAIMealsCache();
-                      toast({
-                        title: "All Meals Deleted",
-                        description:
-                          "Successfully cleared all meals from the board",
-                      });
-                    }
-                  }
-                }}
+                onClick={() => setShowDeleteAllConfirm(true)}
                 className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl"
               >
                 Delete All
-              </Button>
+              </Button>}
 
               <Button
                 onClick={handleSave}
@@ -1678,20 +1700,20 @@ export default function DiabeticMenuBuilder() {
                                 activeDayISO,
                                 updatedDayLists,
                               );
+                              setBoard(updatedBoard);
                               putWeekBoard(weekStartISO, updatedBoard)
-                                .then(({ week }) => setBoard(week))
+                                .then(({ week }) => {
+                                  if (week) setBoard(week);
+                                })
                                 .catch((err) => {
                                   console.error(
-                                    "❌ Delete failed (Day mode):",
+                                    "❌ Delete sync failed (Day mode):",
                                     err,
                                   );
-                                  console.error(
-                                    "Error details:",
-                                    JSON.stringify(err, null, 2),
-                                  );
-                                  alert(
-                                    "Failed to delete meal. Check console for details.",
-                                  );
+                                  toast({
+                                    title: "Sync pending",
+                                    description: "Changes will sync automatically.",
+                                  });
                                 });
                             } else {
                               // Update meal in day lists
@@ -1792,24 +1814,13 @@ export default function DiabeticMenuBuilder() {
                           setBoard(updatedBoard);
                           saveBoard(updatedBoard).catch((err) => {
                             console.error(
-                              "❌ Delete failed (Board mode):",
+                              "❌ Delete sync failed (Board mode):",
                               err,
                             );
-                            console.error(
-                              "Error details:",
-                              JSON.stringify(err, null, 2),
-                            );
-                            console.error(
-                              "Error message:",
-                              err?.message || "No message",
-                            );
-                            console.error(
-                              "Error stack:",
-                              err?.stack || "No stack",
-                            );
-                            alert(
-                              "Failed to delete meal. Check console for details.",
-                            );
+                            toast({
+                              title: "Sync pending",
+                              description: "Changes will sync automatically.",
+                            });
                           });
                         } else {
                           onItemUpdated(key, idx, m);
@@ -2058,16 +2069,6 @@ export default function DiabeticMenuBuilder() {
         meal={shoppingListModal.meal}
       />
 
-      {/* AI Meal Creator with Ingredient Picker - All Meal Slots */}
-      <AIMealCreatorModal
-        open={aiMealModalOpen}
-        onOpenChange={setAiMealModalOpen}
-        onMealGenerated={handleAIMealGenerated}
-        mealSlot={aiMealSlot}
-        showMacroTargeting={false}
-        dietType="diabetic"
-      />
-
       {/* Meal Premade Picker Modal */}
       <MealPremadePicker
         open={premadePickerOpen}
@@ -2090,7 +2091,7 @@ export default function DiabeticMenuBuilder() {
         open={createWithChefOpen}
         onOpenChange={setCreateWithChefOpen}
         mealType={createWithChefSlot}
-        onMealGenerated={handleAIMealGenerated}
+        onMealGenerated={handleChefMealGenerated}
         dietType="diabetic"
         starchContext={starchContext}
       />
@@ -2140,7 +2141,7 @@ export default function DiabeticMenuBuilder() {
             const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
             return (
-              <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
+              <div className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
                 <div className="container mx-auto px-4 py-3">
                   <div className="flex flex-col gap-2">
                     <div className="text-white text-sm font-semibold">

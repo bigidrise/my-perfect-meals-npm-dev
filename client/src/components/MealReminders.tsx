@@ -51,13 +51,18 @@ export default function MealReminders() {
 
   useEffect(() => {
     async function init() {
-      const saved = await loadReminderSchedule();
-      setSchedule(saved);
-      if (isNative) {
-        const perm = await checkNotificationPermission();
-        setHasPermission(perm);
+      try {
+        const saved = await loadReminderSchedule();
+        setSchedule(saved);
+        if (isNative) {
+          const perm = await checkNotificationPermission();
+          setHasPermission(perm);
+        }
+      } catch (e) {
+        console.error("Failed to initialize meal reminders:", e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     init();
   }, [isNative]);

@@ -1,22 +1,36 @@
 import { Router } from "express";
 import { db } from "../db";
 import { careTeamMember, careInvite, careAccessCode } from "../db/schema/careTeam";
+import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
+import { bridgeToStudio } from "../services/studioBridge";
 
 const router = Router();
 
-function getUserId(req: any): string {
+async function getUserId(req: any): Promise<string | null> {
   if (req.session?.userId) return req.session.userId as string;
+
+  const authToken = req.headers["x-auth-token"] as string;
+  if (authToken) {
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.authToken, authToken))
+      .limit(1);
+    if (user) return user.id;
+  }
+
   const headerUserId = req.headers["x-user-id"] as string;
   if (headerUserId) return headerUserId;
-  return "00000000-0000-0000-0000-000000000001";
+  return null;
 }
 
 router.get("/", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const members = await db
       .select()
@@ -32,7 +46,8 @@ router.get("/", async (req, res) => {
 
 router.post("/invite", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { email: rawEmail, role, permissions } = req.body;
     if (!rawEmail || !role || !permissions) {
@@ -91,17 +106,21 @@ router.post("/invite", async (req, res) => {
 
 router.post("/connect", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { code } = req.body;
     if (!code) {
       return res.status(400).json({ error: "Missing code" });
     }
 
+    const trimmedCode = String(code).trim();
+    console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}" (original: "${code}")`);
+
     const [invite] = await db
       .select()
       .from(careInvite)
-      .where(eq(careInvite.inviteCode, code));
+      .where(eq(careInvite.inviteCode, trimmedCode));
 
     if (invite) {
       if (new Date() > invite.expiresAt) {
@@ -137,16 +156,19 @@ router.post("/connect", async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      return res.json({ member: updatedMember });
+      const trainerUserId = invite.userId;
+      const bridge = await bridgeToStudio(trainerUserId, userId, "care_team_connect_code");
+      
+      return res.json({ member: updatedMember, studio: bridge });
     }
 
-    const [accessCode] = await db
+    const [accessCodeRow] = await db
       .select()
       .from(careAccessCode)
-      .where(eq(careAccessCode.code, code));
+      .where(eq(careAccessCode.code, trimmedCode));
 
-    if (accessCode) {
-      if (new Date() > accessCode.expiresAt) {
+    if (accessCodeRow) {
+      if (new Date() > accessCodeRow.expiresAt) {
         return res.status(400).json({ error: "Code expired" });
       }
 
@@ -154,8 +176,8 @@ router.post("/connect", async (req, res) => {
         .insert(careTeamMember)
         .values({
           userId,
-          proUserId: accessCode.proUserId,
-          name: `Linked-${code.slice(-4)}`,
+          proUserId: accessCodeRow.proUserId,
+          name: `Linked-${trimmedCode.slice(-4)}`,
           role: "other",
           status: "active",
           permissions: {
@@ -166,9 +188,12 @@ router.post("/connect", async (req, res) => {
         })
         .returning();
 
-      return res.json({ member: newMember });
+      const bridge = await bridgeToStudio(accessCodeRow.proUserId, userId, "care_team_access_code");
+
+      return res.json({ member: newMember, studio: bridge });
     }
 
+    console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found in careInvite or careAccessCode tables`);
     return res.status(404).json({ error: "Invalid code" });
   } catch (error) {
     console.error("❌ Error connecting with code:", error);
@@ -178,7 +203,8 @@ router.post("/connect", async (req, res) => {
 
 router.post("/:id/approve", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { id } = req.params;
 
@@ -207,7 +233,8 @@ router.post("/:id/approve", async (req, res) => {
 
 router.post("/:id/revoke", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const { id } = req.params;
 

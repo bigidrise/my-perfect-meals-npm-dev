@@ -1,35 +1,33 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  BookOpen,
-  Video,
-  Target,
-  Apple,
-  Brain,
-  Search,
-  X,
-  Calculator,
-  Info,
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  Pause,
+  Square,
+  BookOpenText,
+  Headphones,
+  Brain,
+  Sparkles,
+  Calculator,
+  Shield,
+  Utensils,
+  Heart,
+  FileText,
+  Zap,
+  Users,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
+import { useNarration } from "@/hooks/useNarration";
 
-interface LearningTopic {
+interface LibraryTopic {
   id: string;
   title: string;
-  description: string;
-  icon: any;
-  gradient: string;
+  icon: React.ElementType;
   content: {
     sections: Array<{
       heading: string;
@@ -39,557 +37,584 @@ interface LearningTopic {
   };
 }
 
-type FoodPresetKey = "breast" | "thigh" | "salmon" | "rice" | "olive_oil";
-type FoodMacroPer100g = { label: string; p: number; c: number; f: number };
+const libraryTopics: LibraryTopic[] = [
+  {
+    id: "emotion-ai",
+    title: "How Emotion AI Works",
+    icon: Brain,
+    content: {
+      sections: [
+        {
+          heading: "What is Emotion AI?",
+          text: "Emotion AI doesn't suggest meals. It enforces rules. That's the difference. While other apps generate random options, My Perfect Meals uses behavioral guardrails to ensure every meal fits your goals.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Analyzes your macro targets and dietary preferences",
+            "Enforces portion control based on your goals",
+            "Prevents meals that would exceed your daily limits",
+            "Adapts to your metabolic profile and activity level",
+          ],
+        },
+        {
+          heading: "Why It Matters",
+          text: "This isn't a calorie counter that lets you eat anything. It's a coaching system that keeps you on track, even when cravings hit.",
+        },
+      ],
+    },
+  },
+  {
+    id: "meal-generation",
+    title: "How Meal Generation Works",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "AI-Powered Meal Creation",
+          text: "Every meal is generated in real-time using GPT-4, tailored to your exact macro targets, dietary restrictions, and preferences.",
+        },
+        {
+          heading: "Baseline Macros Per Meal",
+          text: "Unless you specify otherwise, every generated meal starts with a balanced baseline:",
+          list: [
+            "25g Protein — to support muscle and satiety",
+            "25g Starchy Carbs — for energy and fuel",
+            "50g Fibrous Carbs — for fiber, vitamins, and volume",
+          ],
+        },
+        {
+          heading: "Where This Applies",
+          list: [
+            "Weekly Meal Builder",
+            "Anti-Inflammatory Meal Builder",
+            "General Nutrition Meal Builder",
+            "Diabetic Meal Builder",
+            "Chef's Kitchen Studio",
+            "Fridge Rescue & Fridge Rescue Studio",
+          ],
+        },
+        {
+          heading: "Want More?",
+          text: "This baseline ensures balanced meals by default. If you want higher protein, more carbs, or different ratios — just ask when creating your meal. The AI will adjust accordingly.",
+        },
+        {
+          heading: "The Process",
+          list: [
+            "You set your protein, carbs, and fat targets",
+            "AI generates meals that hit those numbers precisely",
+            "DALL-E creates matching food imagery",
+            "Recipes include step-by-step instructions",
+          ],
+        },
+        {
+          heading: "Quality Control",
+          text: "Generated meals go through validation to ensure nutritional accuracy. If something doesn't add up, it gets regenerated.",
+        },
+      ],
+    },
+  },
+  {
+    id: "macro-calculator",
+    title: "How the Macro Calculator Works",
+    icon: Calculator,
+    content: {
+      sections: [
+        {
+          heading: "Science-Based Calculations",
+          text: "Your macros are calculated using the Mifflin-St Jeor equation, the gold standard for estimating metabolic rate.",
+        },
+        {
+          heading: "Factors Considered",
+          list: [
+            "Age, sex, height, and weight",
+            "Activity level and exercise frequency",
+            "Your specific goal (lose fat, build muscle, maintain)",
+            "Metabolic considerations like diabetes or GLP-1 use",
+          ],
+        },
+        {
+          heading: "Personalization",
+          text: "These aren't generic numbers. They're calculated specifically for your body and adjusted as you progress.",
+        },
+      ],
+    },
+  },
+  {
+    id: "safetyguard",
+    title: "SafetyGuard\u2122 \u2014 Allergy Protection",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "What Is SafetyGuard?",
+          text: "SafetyGuard is My Perfect Meals' two-layer allergy protection system. It's designed to help prevent meals from being created with ingredients you've marked as unsafe.",
+        },
+        {
+          heading: "How SafetyGuard Works",
+          list: [
+            "Pre-generation checks stop meals that include known allergens before they're created",
+            "Post-generation validation scans ingredients and nutrition before a meal is shown",
+            "Protection is always on by default",
+            "Temporary overrides require a personal Safety PIN and apply to one meal only",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Food allergies are serious. SafetyGuard is designed to add structure and intentional decision-making at the exact moment meals are created.",
+        },
+      ],
+    },
+  },
+  {
+    id: "starchguard",
+    title: "Starch Guard — Weight Management",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "What Is Starch Guard?",
+          text: "Starch Guard is not a food blocker. It is a portion and frequency management system for insulin stimulating carbs.\n\nNo foods are labeled good or bad in this app. A food only moves you toward or away from your current goal. Starch Guard exists to help you enjoy the foods you like while keeping insulin exposure aligned with where you are trying to go.\n\nYou can eat potatoes. You can eat rice. You can eat pasta. Starch Guard simply helps control how often and how much of those foods appear across your day.",
+        },
+        {
+          heading: "The Science Behind It",
+          text: "Not all carbohydrates affect the body the same way.\n\nStarches and sugars break down quickly into glucose. Glucose raises blood sugar. Blood sugar triggers insulin. Insulin is the hormone that signals your body to store energy, including fat.\n\nInsulin itself is not bad. Repeated, frequent insulin spikes over time are what make weight control harder for most people.\n\nFibrous carbohydrates digest more slowly, produce a smaller insulin response, and provide volume, nutrients, and satiety. That is why the app emphasizes fibrous carbs once starch needs are met.\n\nThis is also why the app focuses more on starch than sodium. Sodium can cause temporary water weight that resolves quickly. Insulin driven weight gain is a longer term process. Managing insulin exposure is the lever that matters most for sustainable results.",
+        },
+        {
+          heading: "What Starch Guard Manages",
+          text: "Starch Guard does not ban foods. It manages high impact starch portions across the day.\n\nThese foods are treated as starch meals because they raise blood sugar more quickly in typical servings:",
+          list: [
+            "Potatoes and potato based dishes",
+            "Rice and rice based dishes",
+            "Bread, pasta, noodles, and refined flour products",
+            "Pancakes, waffles, and similar starch dense foods",
+          ],
+        },
+        {
+          heading: "What Happens After Starch Is Covered",
+          text: "Once your starch allocation for the day is used, the app guides you toward fibrous carbohydrates instead.\n\nFibrous carbs provide steady energy, fiber and micronutrients, a lower insulin response, and greater food volume.",
+          list: [
+            "Vegetables like broccoli, asparagus, spinach, and peppers",
+            "Beans, lentils, and chickpeas",
+            "Whole foods where fiber slows digestion",
+          ],
+        },
+        {
+          heading: "How Starch Guard Works in Practice",
+          text: "You receive a set number of starch meals per day based on your strategy and goals.\n\nWhen you request a meal with a starch after that allocation is covered, Starch Guard pauses meal creation and gives you two options:",
+          list: [
+            "Choose a different carb that fits the current phase of your day",
+            "Let Chef substitute a fibrous carb automatically",
+          ],
+        },
+        {
+          heading: "Why This Matters",
+          text: "Foods do not cause weight gain. Context does.\n\nYou can gain weight with healthy foods and lose weight while eating foods people call unhealthy. What matters is portion size, frequency, and direction.\n\nStarch Guard removes food guilt and replaces it with structure. It allows enjoyment without loss of control. It helps you eat freely while still moving forward.\n\nThat is the strategy.",
+        },
+      ],
+    },
+  },
+  {
+    id: "glucoseguard",
+    title: "GlucoseGuard™ — Diabetic Meal Adjustment",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What Is GlucoseGuard?",
+          text: "GlucoseGuard is for diabetics only. It reads your actual blood glucose level (mg/dL) from the Diabetic Hub and adjusts meal generation based on your current glucose state.",
+        },
+        {
+          heading: "How GlucoseGuard Works",
+          list: [
+            "Reads your latest glucose log from the Diabetic Hub",
+            "When glucose is low, meals include more carbs to help stabilize",
+            "When glucose is elevated, meals go lower carb to help bring you back into range",
+            "Only appears in the Diabetic Hub and Diabetic Meal Builder",
+          ],
+        },
+        {
+          heading: "This Is Different From Starch Guard",
+          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about real-time glucose monitoring for diabetics. Most users don't need GlucoseGuard — they need Starch Guard.",
+        },
+        {
+          heading: "What It Does Not Do",
+          list: [
+            "Does not diagnose, treat, or manage diabetes",
+            "Does not monitor blood glucose or adjust medications",
+            "Does not replace medical care or professional advice",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "nutrition-budget",
+    title: "Nutrition Budget — Daily Tracking",
+    icon: Calculator,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Nutrition Budget?",
+          text: "The Nutrition Budget is a real-time tracking system that shows how much of your daily nutrition targets you've used — and what's left. It focuses on the three nutrients that matter most: Protein, Starchy Carbs, and Fibrous Carbs.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Your targets come from the Macro Calculator — one authoritative source",
+            "As you add meals throughout the day, the budget updates automatically",
+            "A banner at the top of each meal builder shows what's remaining",
+            "When a nutrient is covered, you'll see a checkmark and gentle coaching",
+          ],
+        },
+        {
+          heading: "What You'll See",
+          list: [
+            "Protein, Starchy Carbs, and Fiber remaining for the day",
+            "Helpful coaching when you're running low or covered",
+            "Forward-looking guidance — no judgment, just awareness",
+          ],
+        },
+        {
+          heading: "Works With Starch Guard",
+          text: "When your starchy carb budget is exhausted, Starch Guard steps in to help you substitute with fibrous carbs. See the Starch Guard section for details.",
+        },
+        {
+          heading: "Why It Exists",
+          text: "Most apps only tell you what you ate. The Nutrition Budget tells you what to eat next. It's coaching in real-time, helping you make smarter choices as your day unfolds.",
+        },
+      ],
+    },
+  },
+  {
+    id: "palate-preferences",
+    title: "Palate Preferences — Flavor Customization",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "What Are Palate Preferences?",
+          text: "By default, AI-generated meals are lightly seasoned to be safe for most palates. But everyone's taste is different. Palate Preferences let you tell the AI exactly how you like your food flavored — without affecting your macros.",
+        },
+        {
+          heading: "What You Can Customize",
+          list: [
+            "Spice Tolerance — from no heat at all to bring-on-the-fire",
+            "Seasoning Intensity — light and subtle to bold and pronounced",
+            "Flavor Style — classic comfort, herb-forward, savory umami, or bright and fresh",
+          ],
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Set your preferences during onboarding or update them anytime in Edit Profile",
+            "The AI reads your palate profile when generating every meal",
+            "Your macros stay exactly the same — only the flavor changes",
+            "No more bland meals if you love bold seasoning",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Nutrition apps often produce generic, underseasoned meals. Palate Preferences fix that by making flavor personal. If you want garlic, herbs, and heat — you'll get it. If you prefer mild and classic — that's what you'll see.",
+        },
+      ],
+    },
+  },
+  {
+    id: "cravings",
+    title: "How Cravings Are Handled",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "Cravings Aren't the Enemy",
+          text: "Instead of telling you to ignore cravings, the app helps you satisfy them within your macro budget.",
+        },
+        {
+          heading: "The Approach",
+          list: [
+            "Tell the app what you're craving",
+            "It generates a version that fits your macros",
+            "You eat what you want without going off track",
+            "No guilt, no willpower battles",
+          ],
+        },
+        {
+          heading: "The Result",
+          text: "Sustainable nutrition means not fighting your body. It means working with it.",
+        },
+      ],
+    },
+  },
+  {
+    id: "meal-builder",
+    title: "How the Meal Builder Works",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "Build Your Day",
+          text: "The Meal Builder lets you construct a full day of eating that hits your exact macro targets.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Add breakfast, lunch, dinner, and snacks",
+            "Watch your macro totals update in real-time",
+            "Swap meals until the numbers align",
+            "Save complete meal days for future use",
+          ],
+        },
+        {
+          heading: "The Benefit",
+          text: "No more guessing. No more hoping the math works out. You see exactly where you stand before eating a single bite.",
+        },
+      ],
+    },
+  },
+  {
+    id: "why-different",
+    title: "Why This App Is Different",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "Not Another Calorie Counter",
+          text: "Most nutrition apps track what you ate. My Perfect Meals tells you what to eat—before you eat it.",
+        },
+        {
+          heading: "Key Differences",
+          list: [
+            "Proactive meal planning, not reactive tracking",
+            "AI-generated meals tailored to your exact needs",
+            "Behavioral guardrails that prevent diet failures",
+            "Coach voice guidance when you need support",
+          ],
+        },
+        {
+          heading: "The Philosophy",
+          text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
+        },
+      ],
+    },
+  },
+  {
+    id: "procare",
+    title: "ProCare — Professional Coaching & Medical Oversight",
+    icon: Users,
+    content: {
+      sections: [
+        {
+          heading: "What Is ProCare?",
+          text: "ProCare connects you with certified trainers and licensed physicians right inside My Perfect Meals. Your professional gets their own workspace to set your nutrition targets, assign meal builders, and guide your meal plan — all without leaving the app. Think of it as having a coach in your pocket who can see your plan and adjust it in real time.",
+        },
+        {
+          heading: "For Trainers & Coaches",
+          text: "Trainers work inside the Trainers Studio — a dedicated workspace where they manage clients one by one.",
+          list: [
+            "Set precise macro targets (protein, carbs, fat) tailored to your goals",
+            "Choose your Starch Game Plan — One Starch Meal or Flex Split",
+            "Assign a meal builder — General Nutrition or Performance & Competition",
+            "View and edit your weekly meal board directly",
+            "Track body composition and adjust strategy over time",
+          ],
+        },
+        {
+          heading: "For Physicians & Clinicians",
+          text: "Physicians work inside the Physicians Clinic — a clinical workspace designed for medical-grade nutrition oversight.",
+          list: [
+            "Access specialized medical hubs — Diabetic, GLP-1, and Anti-Inflammatory builders",
+            "Set clinical macro targets and medical directives",
+            "Configure SafetyGuard allergen restrictions and dietary guardrails",
+            "View and edit your weekly meal board directly",
+            "Provide clinical context notes and advisory guidance",
+          ],
+        },
+        {
+          heading: "Shared Meal Boards",
+          text: "When you connect with a trainer or physician, they can view and edit your Meal Board directly. There is one shared board per client — you own it, and your professional is an authorized editor. Every change is tracked so you always know who updated your plan last. Your professional can add meals, remove items, and repeat days — all within the permissions you set.",
+        },
+        {
+          heading: "How to Connect",
+          list: [
+            "Go to the More tab in the bottom navigation",
+            "Your trainer or physician gives you an access code (e.g. MP-9ZX4-QL)",
+            "Enter the code on the More page to link instantly",
+            "Or your professional can invite you by email",
+            "Once connected, they appear on your active Care Team",
+          ],
+        },
+        {
+          heading: "Permissions You Control",
+          text: "You decide exactly what your professional can see and do. You can update or revoke permissions at any time from your Care Team page.",
+          list: [
+            "Can View Macros — let them see your nutrition numbers",
+            "Can Add Meals — let them add meals to your board",
+            "Can Edit Plan — full control to modify your Meal Board",
+          ],
+        },
+        {
+          heading: "Favorites / Saved Meals",
+          text: "Any meal you love can be saved with a single tap using the heart button. Your saved favorites live on the More page and can be reused anytime — add them back to your macros, share them, translate them, or cook them with the guided Prepare with Chef feature.",
+        },
+        {
+          heading: "Tell Your Trainer or Doctor",
+          text: "ProCare works best when your professional knows about it. Share the app with your trainer, physician, dietitian, or nutritionist — they can sign up, connect with you using an access code, and start managing your nutrition plan from their own professional workspace inside the app.",
+        },
+      ],
+    },
+  },
+  {
+    id: "medical-sources",
+    title: "Medical & Nutrition Sources",
+    icon: FileText,
+    content: {
+      sections: [
+        {
+          heading: "Where the Data Comes From",
+          text: "All nutritional calculations and recommendations are based on peer-reviewed research and official guidelines.",
+        },
+        {
+          heading: "Primary Sources",
+          list: [
+            "National Institutes of Health (NIH) — nih.gov",
+            "U.S. Department of Agriculture (USDA) — usda.gov",
+            "American Diabetes Association (ADA) — diabetes.org",
+            "World Health Organization (WHO) — who.int",
+            "Academy of Nutrition and Dietetics — eatright.org",
+            "Centers for Disease Control (CDC) — cdc.gov",
+          ],
+        },
+        {
+          heading: "Medical Disclaimer",
+          text: "This app provides nutritional information, not medical advice. Always consult a healthcare professional before making significant dietary changes, especially if you have a medical condition.",
+        },
+      ],
+    },
+  },
+];
 
-const FOOD_PRESETS: Record<FoodPresetKey, FoodMacroPer100g> = {
-  breast: { label: "Chicken Breast", p: 31, c: 0, f: 3.6 },
-  thigh: { label: "Chicken Thigh", p: 26, c: 0, f: 10.9 },
-  salmon: { label: "Salmon", p: 25, c: 0, f: 14 },
-  rice: { label: "White Rice", p: 2.7, c: 28, f: 0.3 },
-  olive_oil: { label: "Olive Oil", p: 0, c: 0, f: 100 },
-};
+function LibraryItem({ topic }: { topic: LibraryTopic }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [mode, setMode] = useState<"read" | "listen">("read");
+  const narration = useNarration(topic.content.sections);
 
-function kcalPer100g(food: FoodMacroPer100g) {
-  return 4 * food.p + 4 * food.c + 9 * food.f;
-}
-
-function gramsFor100kcal(food: FoodMacroPer100g) {
-  const k100 = kcalPer100g(food);
-  if (k100 <= 0) return 0;
-  return Math.round((10000 / k100) * 10) / 10;
-}
-
-function macroAt100kcal(food: FoodMacroPer100g) {
-  const g100 = gramsFor100kcal(food);
-  return {
-    p: Math.round(((food.p * g100) / 100) * 10) / 10,
-    c: Math.round(((food.c * g100) / 100) * 10) / 10,
-    f: Math.round(((food.f * g100) / 100) * 10) / 10,
-    grams: g100,
-    ounces: Math.round(g100 * 0.0352739619 * 10) / 10,
+  const handleToggle = () => {
+    if (isExpanded) {
+      narration.reset();
+    }
+    setIsExpanded(!isExpanded);
   };
-}
 
-function PocketMathCard() {
-  const [leftFood, setLeftFood] = useState<FoodPresetKey>("breast");
-  const [rightFood, setRightFood] = useState<FoodPresetKey>("thigh");
+  const handleModeChange = (newMode: "read" | "listen") => {
+    if (newMode === "read") {
+      narration.reset();
+    }
+    setMode(newMode);
+    narration.toggleMode(newMode);
+  };
 
-  const L = macroAt100kcal(FOOD_PRESETS[leftFood]);
-  const R = macroAt100kcal(FOOD_PRESETS[rightFood]);
+  const Icon = topic.icon;
 
   return (
-    <Card className="bg-black/30 backdrop-blur-lg border border-white/20 text-white mt-6">
-      <CardContent className="p-5">
-        <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-          <Info className="h-5 w-5 text-orange-400" />
-          Pocket Math: Food Comparison Tool
-        </h3>
-
-        <div className="mb-4 p-4 rounded-xl border border-white/20 bg-black/20">
-          <p className="text-sm text-white/90 leading-relaxed">
-            <strong>Why fat changes "how much food" you get:</strong> Fat has 9
-            calories per gram vs 4 for protein/carbs. In a 100-calorie portion,
-            higher-fat foods give you less weight/volume and usually less
-            protein. Compare foods below to see the difference!
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-xs font-semibold text-white/80 mb-2 block">
-              Food A
-            </label>
-            <select
-              value={leftFood}
-              onChange={(e) => setLeftFood(e.target.value as FoodPresetKey)}
-              className="w-full bg-black/40 backdrop-blur-lg border border-white/30 rounded-lg px-3 py-2 text-sm text-white"
-            >
-              {(Object.keys(FOOD_PRESETS) as FoodPresetKey[]).map((k) => (
-                <option key={k} value={k} className="bg-black text-white">
-                  {FOOD_PRESETS[k].label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-white/80 mb-2 block">
-              Food B
-            </label>
-            <select
-              value={rightFood}
-              onChange={(e) => setRightFood(e.target.value as FoodPresetKey)}
-              className="w-full bg-black/40 backdrop-blur-lg border border-white/30 rounded-lg px-3 py-2 text-sm text-white"
-            >
-              {(Object.keys(FOOD_PRESETS) as FoodPresetKey[]).map((k) => (
-                <option key={k} value={k} className="bg-black text-white">
-                  {FOOD_PRESETS[k].label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-white/25 bg-black/40 backdrop-blur-lg p-4">
-            <div className="text-sm font-semibold text-white mb-3">
-              {FOOD_PRESETS[leftFood].label}
-            </div>
-            <div className="space-y-2">
-              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
-                <div className="text-[11px] uppercase text-white/70 mb-1">
-                  100 calorie portion
-                </div>
-                <div className="text-white font-bold text-lg">
-                  {L.grams}g{" "}
-                  <span className="text-sm text-white/70">({L.ounces} oz)</span>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
-                <div className="text-[11px] uppercase text-white/70 mb-1">
-                  Macros
-                </div>
-                <div className="text-white font-semibold text-sm">
-                  {L.p}g P • {L.c}g C • {L.f}g F
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/25 bg-black/40 backdrop-blur-lg p-4">
-            <div className="text-sm font-semibold text-white mb-3">
-              {FOOD_PRESETS[rightFood].label}
-            </div>
-            <div className="space-y-2">
-              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
-                <div className="text-[11px] uppercase text-white/70 mb-1">
-                  100 calorie portion
-                </div>
-                <div className="text-white font-bold text-lg">
-                  {R.grams}g{" "}
-                  <span className="text-sm text-white/70">({R.ounces} oz)</span>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
-                <div className="text-[11px] uppercase text-white/70 mb-1">
-                  Macros
-                </div>
-                <div className="text-white font-semibold text-sm">
-                  {R.p}g P • {R.c}g C • {R.f}g F
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-xl border border-orange-400/30 bg-orange-600/15 p-3 text-sm">
-          <strong className="text-white">Takeaway:</strong>{" "}
-          <span className="text-white/90">
-            For the same calories, lean foods (lower fat) give you more food
-            volume and more protein. Use this to keep protein high without
-            blowing through fat calories.
-          </span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function Learn() {
-  const [, setLocation] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState<LearningTopic | null>(
-    null,
-  );
-
-  useEffect(() => {
-    document.title = "Learn | My Perfect Meals";
-  }, []);
-
-  const learningTopics: LearningTopic[] = [
-    {
-      id: "emotion-ai",
-      title: "The Brain Behind Emotion AI",
-      description:
-        "How your meals are decided, protected, and informed by evidence-based nutrition principles",
-      icon: Brain,
-      gradient: "from-orange-500/20 to-orange-600/20",
-      content: {
-        sections: [
-          {
-            heading: "This Is Not a 'Suggestion App'",
-            text: "Most apps work like this: 'Here's a meal. Hope it fits your goals.' My Perfect Meals works differently: 'Who is this person, what condition are they in right now, what rules must be followed - and if anything breaks those rules, fix it before the meal is shown.'",
-          },
-          {
-            heading: "The App Thinks in Context - Not Labels",
-            text: "You'll see terms like Diabetic, GLP-1, Competition, and Anti-Inflammatory. In My Perfect Meals, these are not just modes or labels. Each one activates a set of non-negotiable rules that control how meals are built. If a rule applies to you, the app enforces it automatically.",
-          },
-          {
-            heading: "Real-Time Awareness (Not Static Plans)",
-            text: "If you're diabetic, the app doesn't just know that you're diabetic. It looks at your most recent blood sugar, your current metabolic state, and your doctor-defined limits. Meals change based on what your body needs right now, not what a plan said weeks ago.",
-          },
-          {
-            heading: "GLP-1 and How You Actually Feel",
-            text: "If you're using GLP-1 medications, the app adapts to appetite changes, nausea, reflux, and digestive sensitivity. That means smaller, protein-dense meals when appetite is low, gentler foods when symptoms are high, and no oversized, greasy meals that make you feel worse.",
-          },
-          {
-            heading: "Performance Rules Are Enforced - Not Hoped For",
-            text: "If you're in Competition or Pro Performance mode, protein minimums are mandatory, carb limits are mandatory, and cravings never override performance rules. If a meal doesn't meet the requirements, it is rejected and rebuilt automatically.",
-          },
-          {
-            heading: "The Safety Check You Never See",
-            text: "Every meal and snack goes through a hidden process: The meal is generated, the system checks it against your rules, if it violates a critical rule it is automatically corrected, and if it still fails the meal is discarded and replaced with a safe option. You never see unsafe meals.",
-          },
-          {
-            heading: "Why This Matters",
-            text: "This is what separates My Perfect Meals from typical nutrition apps. We don't rely on willpower or 'good suggestions.' We enforce safety, performance, and medical rules at the system level. That's how doctors trust it, athletes rely on it, and users feel confident using it daily.",
-            list: [
-              "Doctors trust it",
-              "Athletes rely on it",
-              "Users feel confident using it daily",
-            ],
-          },
-          {
-            heading: "Nutrition Sources & Methodology",
-            text: "My Perfect Meals is built using established nutrition principles and publicly available dietary guidelines from recognized health organizations, including the American Diabetes Association (ADA), the National Institutes of Health (NIH), the CDC, and the Academy of Nutrition and Dietetics. These sources inform how specialty meal builders — including GLP-1, diabetic, and anti-inflammatory plans — are structured and safeguarded within the system.",
-          },
-          {
-            heading: "Important Medical Disclaimer",
-            text: "My Perfect Meals does not provide medical advice, diagnosis, or treatment. The app is intended for general nutrition guidance and lifestyle support. Users should consult a qualified healthcare professional for personalized medical decisions, especially when managing medical conditions or medications.",
-          },
-          {
-            heading: "In One Sentence",
-            text: "My Perfect Meals doesn't just track food - it actively protects your decisions.",
-          },
-        ],
-      },
-    },
-    {
-      id: "fiber-vegetables",
-      title: "Fiber & Vegetables",
-      description: "Understanding fiber and gut health",
-      icon: Apple,
-      gradient: "from-emerald-500/20 to-teal-500/20",
-      content: {
-        sections: [
-          {
-            heading: "The Importance of Fiber",
-            text: "Fiber is a type of carbohydrate that your body can't digest. While it may seem odd to eat something your body can't break down, fiber is crucial for:",
-            list: [
-              "Digestive health and regularity",
-              "Blood sugar control",
-              "Heart health",
-              "Weight management",
-              "Feeding beneficial gut bacteria",
-            ],
-          },
-          {
-            heading: "Daily Fiber Goals",
-            text: "Aim for 25-38 grams of fiber per day from whole grains, fruits, vegetables, legumes, and nuts.",
-          },
-          {
-            heading: "Best Sources",
-            list: [
-              "Vegetables: Broccoli, Brussels sprouts, carrots",
-              "Fruits: Berries, apples, pears",
-              "Whole grains: Oats, quinoa, brown rice",
-              "Legumes: Beans, lentils, chickpeas",
-            ],
-          },
-        ],
-      },
-    },
-    {
-      id: "how-to-videos",
-      title: "Copilot Walkthroughs",
-      description: "Guided, step-by-step help using Copilot",
-      icon: Video,
-      gradient: "from-orange-600/20 to-orange-500/20",
-      content: {
-        sections: [
-          {
-            heading: "Copilot Has Replaced Video Tutorials",
-            text: "Instead of watching long videos, your Copilot now teaches you in real time. It opens the right page, dims the screen, and walks you through each step while you actually use the feature.",
-          },
-          {
-            heading: "Available Tutorials",
-            list: [
-              "Fridge Rescue: How to enter items and generate meals",
-              "Craving Creator: How to build or choose cravings step-by-step",
-              "Weekly Meal Board: How to plan your day or week with Copilot",
-              "Macro Calculator: How to send meals and check your macros",
-              "My Biometrics: How to log weight and update your stats",
-              "Shopping List: How to send meals and organize your groceries",
-            ],
-          },
-        ],
-      },
-    },
-    {
-      id: "how-mpm-works",
-      title: "How the My Perfect Meals System Works",
-      description:
-        "A simple, hormone-aware approach to meal planning that actually works in real life",
-      icon: BookOpen,
-      gradient: "from-orange-500/20 to-orange-600/20",
-      content: {
-        sections: [
-          {
-            heading: "This Is Not Traditional Meal Planning",
-            text: "Most nutrition apps focus on calories and restriction. My Perfect Meals is built differently. Our system is designed around how your body actually responds to food — hormones, hunger, energy, and metabolism — not just numbers on a label.",
-          },
-          {
-            heading: "Step 1: Start With Macros (Not Calories)",
-            text: "Instead of obsessing over calories, we start with macros. Protein, carbs, and fats determine how full you feel, how stable your energy is, and how your body uses food. Calories are a result — not the driver.",
-          },
-          {
-            heading: "Step 2: Understand Carbs the Right Way",
-            text: "All carbs are not the same. My Perfect Meals separates carbs into two types: fibrous carbs (vegetables) and starchy carbs (grains, potatoes, rice, sugars). Fibrous carbs support digestion, metabolism, and fullness. Starchy carbs must be intentional.",
-          },
-          {
-            heading: "Step 3: Use the Starch Meal Strategy",
-            text: "Instead of forcing you to count carb grams all day, we convert your daily starch allowance into meals. Most people do best with one starch-based meal per day. Some can split starch across two meals. This makes eating simple and sustainable.",
-          },
-          {
-            heading: "Step 4: Meals Are Built for Hormones, Not Willpower",
-            text: "Each meal is designed to stabilize blood sugar, control hunger, and support hormones. Protein anchors every meal. Fibrous carbs are encouraged. Starches are placed intentionally — not accidentally.",
-          },
-          {
-            heading: "Step 5: Plan First, Track Less",
-            text: "When meals are planned correctly, tracking becomes easier — or unnecessary. You don’t need to micromanage every bite. The structure does the work for you.",
-          },
-          {
-            heading: "Why This System Works",
-            list: [
-              "You eat more vegetables without fear",
-              "You stop overeating starches by accident",
-              "You stay full longer with less effort",
-              "Your energy stays more consistent",
-              "Meal planning becomes simple, not stressful",
-            ],
-          },
-          {
-            heading: "The Goal",
-            text: "My Perfect Meals isn’t about restriction. It’s about clarity. When you understand how food works in your body, eating well becomes automatic — not exhausting.",
-          },
-        ],
-      },
-    },
-    {
-      id: "calories-vs-macros",
-      title: "Calories vs Macros",
-      description:
-        "Why macro tracking beats calorie counting + practical tools",
-      icon: Calculator,
-      gradient: "from-blue-500/20 to-cyan-500/20",
-      content: {
-        sections: [
-          {
-            heading: "Before Calculating: Understanding Macro Basics",
-            text: "Macros (macronutrients) are the three main nutrients your body needs in large quantities: Protein, Carbohydrates, and Fat. Unlike counting calories alone, tracking macros gives you a complete picture of what you're eating.",
-            list: [
-              "Protein: 4 calories per gram - Builds muscle, repairs tissue, supports immune function",
-              "Carbohydrates: 4 calories per gram - Primary energy source for workouts and brain function",
-              "Fat: 9 calories per gram - Essential for hormones, vitamin absorption, and satiety",
-            ],
-          },
-          {
-            heading: "Why Track Macros Instead of Calories?",
-            text: "Calories tell you 'how much' you're eating, but macros tell you 'what' you're eating. Two meals with identical calories can have completely different effects on your body based on their macro composition.",
-            list: [
-              "Better body composition: High protein helps preserve muscle during weight loss",
-              "Sustained energy: Balanced macros prevent energy crashes and cravings",
-              "Hormonal health: Adequate fat intake supports hormone production",
-              "Athletic performance: Proper carb timing fuels your workouts",
-              "Personalization: Adjust macros based on your goals (muscle gain, fat loss, maintenance)",
-            ],
-          },
-          {
-            heading: "Carb Lanes That Make Sense",
-            text: "Think of carbs in 'lanes' based on your activity level and goals:",
-            list: [
-              "Low Lane (50-100g): For sedentary days or aggressive fat loss",
-              "Moderate Lane (100-200g): For general health and moderate activity",
-              "Performance Lane (200-300g+): For athletes, high activity, or muscle building",
-              "Example: A 150lb person lifting 4x/week might aim for 150-200g carbs daily",
-            ],
-          },
-          {
-            heading: "Protein and Fat Anchors",
-            text: "Set your protein and fat as 'anchors' - non-negotiable targets you hit daily. Carbs become your 'flexible' macro that adjusts based on activity.",
-            list: [
-              "Protein Anchor: 0.8-1.2g per lb bodyweight (higher if building muscle or cutting)",
-              "Fat Anchor: 0.3-0.5g per lb bodyweight (minimum for hormonal health)",
-              "Carb Flexibility: Fill remaining calories with carbs based on activity level",
-              "Example for 150lb person: 150g protein (anchor), 60g fat (anchor), 150-250g carbs (flexible)",
-            ],
-          },
-          {
-            heading: "Pocket Math: Quick Calculations",
-            text: "Learn these quick calculations to estimate macros on the go without a calculator:",
-            list: [
-              "Protein Rule: Your bodyweight in grams (150 lbs = 150g protein target)",
-              "Fat Floor: Bodyweight × 0.35 (150 lbs = ~50g fat minimum)",
-              "Calorie Check: Protein × 4 + Carbs × 4 + Fat × 9 = Total Calories",
-              "Quick Estimation: 1 palm of protein = ~25g, 1 fist of carbs = ~30g, 1 thumb of fat = ~10g",
-              "Restaurant Math: Divide plate into thirds - one-third protein, one-third carbs, one-third veggies (fat is usually in cooking)",
-            ],
-          },
-        ],
-      },
-    },
-  ];
-
-  const filteredTopics = learningTopics.filter(
-    (topic) =>
-      topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      topic.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-
-  const handleTopicClick = (topic: LearningTopic) => {
-    setSelectedTopic(topic);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedTopic(null);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
-    >
-      {/* Fixed Black Glass Navigation Banner */}
-      <div
-        className="fixed left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+    <div className="w-full">
+      <button
+        onClick={handleToggle}
+        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-200 ${
+          isExpanded
+            ? "bg-black/70 border border-white/20 shadow-lg"
+            : "bg-black/50 border border-white/10 hover:bg-black/60 hover:border-white/15"
+        }`}
       >
-        <div className="px-4 py-3 flex items-center gap-3">
-          <Button
-            onClick={() => setLocation("/dashboard")}
-            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-            data-testid="button-back"
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-white/5">
+            <Icon className="h-4 w-4 text-white/80" />
+          </div>
+          <span className="text-white font-medium text-sm">{topic.title}</span>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="h-4 w-4 text-white/60" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-white/60" />
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
-          </Button>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            App Library
-          </h1>
-        </div>
-      </div>
+            <div className="mt-2 p-4 bg-black/40 rounded-xl border border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex gap-2">
+                  <PillButton
+                    onClick={() => handleModeChange("read")}
+                    active={mode === "read"}
+                  >
+                    <BookOpenText className="h-3 w-3 mr-1" />
+                    Read
+                  </PillButton>
+                  <PillButton
+                    onClick={() => handleModeChange("listen")}
+                    active={mode === "listen"}
+                  >
+                    <Headphones className="h-3 w-3 mr-1" />
+                    Listen
+                  </PillButton>
+                </div>
 
-      {/* Main Content */}
-      <div
-        className="max-w-7xl mx-auto px-4 text-white space-y-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
-      >
-        {/* Search Bar */}
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-400" />
-            <Input
-              type="text"
-              placeholder="Search topics or guides..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-black/30 backdrop-blur-lg border border-white/10 text-white placeholder:text-gray-400 focus:border-orange-400"
-              data-testid="input-search-topics"
-            />
-          </div>
-        </div>
-
-        {/* Content - Learning Library Grid */}
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            {filteredTopics.map((topic) => {
-              const Icon = topic.icon;
-              return (
-                <Card
-                  key={topic.id}
-                  className={`bg-black/30 backdrop-blur-lg border-2 border-white/10 cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 hover:border-orange-400/50 rounded-2xl shadow-md`}
-                  onClick={() => handleTopicClick(topic)}
-                  data-testid={`card-learn-${topic.id}`}
-                >
-                  <CardContent className="p-4 md:p-6">
-                    <div className="flex flex-col items-center text-center space-y-2">
-                      <Icon className="h-8 w-8 md:h-10 md:w-10 text-white" />
-                      <h3 className="text-base md:text-lg font-semibold text-white">
-                        {topic.title}
-                      </h3>
-                      <p className="text-xs md:text-sm text-white/90 leading-snug">
-                        {topic.description}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* No Results Message */}
-          {filteredTopics.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400 text-lg">
-                No topics found matching "{searchQuery}"
-              </p>
-              <Button
-                onClick={() => setSearchQuery("")}
-                variant="ghost"
-                className="mt-4"
-                data-testid="button-clear-search"
-              >
-                Clear search
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Content Modal */}
-        <Dialog open={!!selectedTopic} onOpenChange={handleCloseModal}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-black/40 backdrop-blur-lg border border-white/10">
-            <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                {selectedTopic && (
-                  <>
-                    <div className="p-3 bg-gradient-primary rounded-xl">
-                      <selectedTopic.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <DialogTitle className="text-2xl font-bold text-white">
-                      {selectedTopic.title}
-                    </DialogTitle>
-                  </>
+                {mode === "listen" && (
+                  <div className="flex items-center gap-2">
+                    <PillButton
+                      onClick={narration.isPlaying ? narration.pause : narration.play}
+                      active={narration.isPlaying}
+                    >
+                      {narration.isPlaying ? (
+                        <Pause className="h-3 w-3" />
+                      ) : (
+                        <Play className="h-3 w-3" />
+                      )}
+                    </PillButton>
+                    <PillButton onClick={narration.stop}>
+                      <Square className="h-3 w-3" />
+                    </PillButton>
+                    <span className="text-[10px] text-white/50 ml-1">
+                      {narration.currentSectionIndex + 1}/{narration.totalSections}
+                    </span>
+                  </div>
                 )}
               </div>
-              <DialogDescription className="text-base text-white/90">
-                {selectedTopic?.description}
-              </DialogDescription>
-            </DialogHeader>
 
-            {selectedTopic && (
-              <div className="space-y-6 py-4">
-                {selectedTopic.content.sections.map((section, index) => (
-                  <div key={index} className="space-y-3">
-                    <h3 className="text-lg font-bold text-white">
+              <div className="space-y-4">
+                {topic.content.sections.map((section, index) => (
+                  <div
+                    key={index}
+                    className={`space-y-2 transition-all ${
+                      mode === "listen" && narration.currentSectionIndex === index
+                        ? "bg-white/5 -mx-2 px-2 py-2 rounded-lg"
+                        : ""
+                    }`}
+                  >
+                    <h4 className="text-sm font-semibold text-white">
                       {section.heading}
-                    </h3>
+                    </h4>
                     {section.text && (
-                      <p className="text-white/90 leading-relaxed">
+                      <p className="text-xs text-white/75 leading-relaxed">
                         {section.text}
                       </p>
                     )}
                     {section.list && (
-                      <ul className="space-y-2 ml-4">
+                      <ul className="space-y-1 ml-3">
                         {section.list.map((item, i) => (
                           <li
                             key={i}
-                            className="text-white/90 flex items-start gap-2"
+                            className="text-xs text-white/75 flex items-start gap-2"
                           >
-                            <span className="text-orange-400 mt-1">•</span>
+                            <span className="text-white/40 mt-0.5">•</span>
                             <span>{item}</span>
                           </li>
                         ))}
@@ -597,15 +622,54 @@ export default function Learn() {
                     )}
                   </div>
                 ))}
-
-                {/* Pocket Math Food Comparison Tool for Calories vs Macros */}
-                {selectedTopic.id === "calories-vs-macros" && (
-                  <PocketMathCard />
-                )}
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export default function Learn() {
+  const [, navigate] = useLocation();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white p-4"
+    >
+      {/* Fixed Black Glass Navigation Banner */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="px-4 pb-3 flex items-center gap-3">
+          <Button
+            onClick={() => navigate("/")}
+            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-xs font-medium">Back</span>
+          </Button>
+          <div>
+            <h1 className="text-lg font-bold text-white">App Library</h1>
+            <p className="text-xs text-white/60">Learn how My Perfect Meals works</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content with padding for fixed header */}
+      <div 
+        className="max-w-lg mx-auto pb-24"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+      >
+        <div className="space-y-2">
+          {libraryTopics.map((topic) => (
+            <LibraryItem key={topic.id} topic={topic} />
+          ))}
+        </div>
       </div>
     </motion.div>
   );

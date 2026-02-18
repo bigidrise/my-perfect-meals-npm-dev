@@ -4,11 +4,14 @@ import { z } from "zod";
 import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
 import { eq, and, desc } from "drizzle-orm";
+import { logActivityFireAndForget } from "../services/activityLog";
+import { enforceBuilderFromParam } from "../middleware/studioAccess";
 
 const router = Router();
 
 // Get or create current board for user/program
-router.get("/users/:userId/boards/:program/current", async (req, res) => {
+// Studio clients can only access their assigned builder
+router.get("/users/:userId/boards/:program/current", enforceBuilderFromParam("program"), async (req, res) => {
   try {
     const { userId, program } = req.params;
     const { days = "7", start } = req.query as { days?: string; start?: string };
@@ -30,6 +33,15 @@ router.get("/users/:userId/boards/:program/current", async (req, res) => {
         startDate,
         days: Number(days)
       }).returning();
+
+      logActivityFireAndForget(
+        userId,
+        userId,
+        "board_created",
+        "meal_board",
+        board.id,
+        { program, startDate: startDate.toISOString(), days: Number(days) }
+      );
     }
 
     const items = await db.select().from(mealBoardItems)
@@ -60,6 +72,15 @@ router.post("/boards/:boardId/items", async (req, res) => {
       ingredients: ingredients || []
     }).returning();
 
+    const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
+    if (board) {
+      await db.update(mealBoards).set({
+        lastUpdatedByUserId: board.userId,
+        lastUpdatedByRole: "client",
+        updatedAt: new Date(),
+      }).where(eq(mealBoards.id, boardId));
+    }
+
     res.json(item);
   } catch (error) {
     console.error("Error adding board item:", error);
@@ -70,9 +91,19 @@ router.post("/boards/:boardId/items", async (req, res) => {
 // Delete item from board
 router.delete("/boards/:boardId/items/:itemId", async (req, res) => {
   try {
-    const { itemId } = req.params;
+    const { boardId, itemId } = req.params;
 
     await db.delete(mealBoardItems).where(eq(mealBoardItems.id, itemId));
+
+    const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
+    if (board) {
+      await db.update(mealBoards).set({
+        lastUpdatedByUserId: board.userId,
+        lastUpdatedByRole: "client",
+        updatedAt: new Date(),
+      }).where(eq(mealBoards.id, boardId));
+    }
+
     res.json({ ok: true });
   } catch (error) {
     console.error("Error deleting board item:", error);
@@ -121,6 +152,12 @@ router.post("/boards/:boardId/repeat-day", async (req, res) => {
     if (clones.length) {
       await db.insert(mealBoardItems).values(clones);
     }
+
+    await db.update(mealBoards).set({
+      lastUpdatedByUserId: board.userId,
+      lastUpdatedByRole: "client",
+      updatedAt: new Date(),
+    }).where(eq(mealBoards.id, boardId));
 
     res.json({ ok: true });
   } catch (error) {
@@ -175,6 +212,15 @@ router.post("/boards/:boardId/commit", async (req, res) => {
 
     // TODO: Wire to existing shopping list and food logs services
     console.log("Board commit:", { scope, totals, itemCount: selectedItems.length });
+
+    logActivityFireAndForget(
+      board.userId,
+      board.userId,
+      "board_updated",
+      "meal_board",
+      board.id,
+      { action: "commit", scope, totals, itemCount: selectedItems.length }
+    );
 
     res.json({
       ok: true,

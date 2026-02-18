@@ -7,42 +7,21 @@
  * 
  * This utility analyzes ingredients and derives starchyCarbs/fibrousCarbs when AI returns 0s.
  * Called POST-PARSE, BEFORE SAVING, in the meal generation pipeline.
+ * 
+ * USES SHARED SOURCE OF TRUTH: shared/starchKeywords.ts
  */
 
-// Starchy ingredients (energy-dense carbs)
-const STARCHY_KEYWORDS = [
-  // Grains & Starches
-  'rice', 'pasta', 'noodle', 'bread', 'toast', 'bagel', 'roll', 'bun', 'croissant',
-  'oat', 'oatmeal', 'cereal', 'granola', 'flour', 'wheat', 'barley', 'quinoa',
-  'couscous', 'bulgur', 'farro', 'millet', 'polenta', 'grits', 'cornmeal',
-  // Potatoes & Tubers
-  'potato', 'sweet potato', 'yam', 'tater', 'hash brown', 'fries', 'french fries',
-  // Legumes (starchy)
-  'bean', 'lentil', 'chickpea', 'hummus', 'pea', 'black bean', 'kidney bean',
-  'pinto bean', 'navy bean', 'cannellini', 'edamame',
-  // Corn & Starchy Vegetables
-  'corn', 'tortilla', 'chip', 'cracker', 'pretzel', 'popcorn',
-  // Breaded/Fried
-  'breaded', 'crusted', 'battered', 'fried',
-  // Sweeteners (starchy/sugar)
-  'sugar', 'honey', 'syrup', 'molasses', 'agave',
-];
+import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 
-// Fibrous ingredients (volume-dense carbs - vegetables)
 const FIBROUS_KEYWORDS = [
-  // Leafy Greens
   'spinach', 'lettuce', 'kale', 'arugula', 'chard', 'collard', 'romaine',
   'mixed greens', 'spring mix', 'salad', 'cabbage', 'bok choy', 'watercress',
-  // Cruciferous
   'broccoli', 'cauliflower', 'brussels sprout', 'kohlrabi',
-  // Peppers & Alliums
   'pepper', 'bell pepper', 'jalapeno', 'onion', 'garlic', 'shallot', 'leek',
   'scallion', 'green onion', 'chive',
-  // Other Vegetables
   'tomato', 'cucumber', 'zucchini', 'squash', 'eggplant', 'mushroom',
   'asparagus', 'artichoke', 'celery', 'carrot', 'radish', 'turnip', 'beet',
   'green bean', 'snap pea', 'snow pea', 'okra',
-  // Fresh Herbs
   'basil', 'cilantro', 'parsley', 'dill', 'mint', 'oregano', 'thyme', 'rosemary',
 ];
 
@@ -79,7 +58,6 @@ export function deriveCarbs(
   for (const ing of ingredients) {
     const name = (typeof ing === 'string' ? ing : (ing.name || ing.item || '')).toLowerCase();
     
-    // Check for starchy keywords
     for (const keyword of STARCHY_KEYWORDS) {
       if (name.includes(keyword)) {
         starchyScore += 1;
@@ -87,7 +65,6 @@ export function deriveCarbs(
       }
     }
     
-    // Check for fibrous keywords
     for (const keyword of FIBROUS_KEYWORDS) {
       if (name.includes(keyword)) {
         fibrousScore += 1;
@@ -99,7 +76,6 @@ export function deriveCarbs(
   const totalScore = starchyScore + fibrousScore;
   
   if (totalScore === 0) {
-    // No recognizable carb sources - default 60/40 split
     return {
       starchyCarbs: Math.round(totalCarbs * 0.6),
       fibrousCarbs: Math.round(totalCarbs * 0.4),
@@ -108,7 +84,6 @@ export function deriveCarbs(
     };
   }
 
-  // Distribute carbs proportionally based on ingredient analysis
   const starchyRatio = starchyScore / totalScore;
   const fibrousRatio = fibrousScore / totalScore;
 
@@ -139,27 +114,22 @@ export function enforceCarbs<T extends {
 }>(meal: T): T {
   const ingredients = meal.ingredients || [];
   
-  // Get current values
   const existingStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs ?? 0;
   const existingFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs ?? 0;
   const totalCarbs = meal.carbs ?? meal.nutrition?.carbs ?? 0;
   
-  // If we already have valid starchy/fibrous values, keep them
   if (existingStarchy > 0 || existingFibrous > 0) {
     return meal;
   }
   
-  // If total carbs is 0, nothing to derive
   if (totalCarbs === 0) {
     return meal;
   }
   
-  // Derive carbs from ingredients
   const derived = deriveCarbs(ingredients, totalCarbs);
   
   console.log(`🥕 Carb enforcement: ${totalCarbs}g total → ${derived.starchyCarbs}g starchy, ${derived.fibrousCarbs}g fibrous (derived from ${ingredients.length} ingredients)`);
   
-  // Return meal with enforced values
   return {
     ...meal,
     starchyCarbs: derived.starchyCarbs,

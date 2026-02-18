@@ -15,21 +15,16 @@ export const ChefCapIcon: React.FC<ChefCapIconProps> = ({
       className="relative flex items-center justify-center"
       style={{ width: size, height: size }}
     >
-      {/* CHEF EMOJI - INSTANTLY RECOGNIZABLE */}
-      <span
-        className="relative z-10"
+      <img
+        src="/assets/MPMFlameChefLogo.png"
+        alt="MPM Logo"
+        className="relative z-10 object-contain"
         style={{
-          fontSize: size * 0.85,
-          lineHeight: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
+          width: size,
+          height: size,
         }}
-      >
-        👨🏿‍🍳
-      </span>
+      />
 
-      {/* Subtle glow effect */}
       {glow && (
         <motion.div
           className="absolute inset-0 rounded-full bg-orange-400/30"

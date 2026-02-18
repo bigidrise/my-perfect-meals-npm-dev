@@ -188,7 +188,7 @@ export const useCopilotBrain = (props: CopilotBrainProps) => {
         label: "Simplify tonight with a low-effort plan",
         description:
           "You flagged stress or fatigue. I’ll keep this to one-pan, low-dish, low-decision meals.",
-        badge: "Emotion AI",
+        badge: "Emotion AI™",
         emphasis: "high",
         action: { type: "run-command", id: "emotion.simplifyTonight" },
       });

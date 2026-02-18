@@ -12,15 +12,19 @@ interface DailyStarchIndicatorProps {
   compact?: boolean;
   /** Override the strategy - useful when board knows the strategy */
   strategyOverride?: 'one' | 'flex';
+  /** Body fat-based slot adjustment (-1, 0, or +1) */
+  bodyFatSlotDelta?: number;
 }
 
-export function DailyStarchIndicator({ meals, compact = false, strategyOverride }: DailyStarchIndicatorProps) {
+export function DailyStarchIndicator({ meals, compact = false, strategyOverride, bodyFatSlotDelta = 0 }: DailyStarchIndicatorProps) {
   const { user } = useAuth();
   
   // Get strategy from macroResolver (respects pro override) or use override
   const resolvedTargets = getResolvedTargets(user?.id);
   const strategy = strategyOverride || resolvedTargets.starchStrategy || 'one';
-  const maxSlots = strategy === 'flex' ? 2 : 1;
+  const baseSlots = strategy === 'flex' ? 2 : 1;
+  // Apply body fat adjustment (minimum 0 slots)
+  const maxSlots = Math.max(0, baseSlots + bodyFatSlotDelta);
   
   const status = getDayStarchStatus(meals, maxSlots);
   

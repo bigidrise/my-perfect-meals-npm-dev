@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "engines": {
-    "node": "20.19.3"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
@@ -12,12 +12,10 @@
     "dev:server": "NODE_ENV=development tsx server/index.ts",
     "dev:clean": "bash scripts/killports.sh && npm run dev",
     "dev:full": "pkill -f vite || true && pkill -f tsx || true && fuser -k 5000/tcp 5173/tcp || true && concurrently \"npm run dev\" \"cd client && npm run dev\"",
-    "generate:version": "node scripts/generate-version.js",
-    "prebuild": "npm run generate:version",
     "build:client": "cd client && vite build",
     "build:server": "esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap",
-    "build": "npm run generate:version && npm run build:client && npm run build:server",
-    "prestart": "npm run db:push",
+    "build": "npm run build:client && npm run build:server",
+    "prestart": "echo 'Column migrations handled by server startup'",
     "start": "NODE_ENV=production node dist/prod.js",
     "preserve": "npm run db:push",
     "serve": "NODE_ENV=production tsx server/prod.ts",

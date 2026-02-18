@@ -2,7 +2,7 @@
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Capacitor } from '@capacitor/core';
 
-export type MealBuilderType = "weekly" | "diabetic" | "glp1" | "anti_inflammatory";
+export type MealBuilderType = "weekly" | "diabetic" | "glp1" | "anti_inflammatory" | "beach_body" | "general_nutrition" | "performance_competition";
 
 // APP STORE REVIEW: Demo credentials for Apple reviewers
 // These are prefilled in the login form on native builds for convenience
@@ -63,6 +63,40 @@ export interface User {
   role?: UserRole;
   isProCare?: boolean;
   activeBoard?: MealBuilderType | null;
+  // Onboarding completion - CRITICAL for enforcing onboarding gate
+  onboardingCompletedAt?: string | null;
+  // Profile data from onboarding (used by Edit Profile)
+  firstName?: string | null;
+  lastName?: string | null;
+  nickname?: string | null;
+  age?: number | null;
+  height?: number | null;
+  weight?: number | null;
+  activityLevel?: string | null;
+  fitnessGoal?: string | null;
+  allergies?: string[];
+  dietaryRestrictions?: string[];
+  // Display preferences
+  fontSizePreference?: "standard" | "large" | "xl";
+  // ProCare Professional fields
+  professionalRole?: "trainer" | "physician" | null;
+  professionalCategory?: "certified" | "experienced" | "non_certified" | null;
+  credentialType?: string | null;
+  credentialBody?: string | null;
+  credentialNumber?: string | null;
+  credentialYear?: string | null;
+  attestationText?: string | null;
+  procareEntryPath?: string | null;
+  attestedAt?: string | null;
+  studioMembership?: {
+    studioId: string;
+    studioName: string | null;
+    studioType: string | null;
+    membershipId: string;
+    ownerUserId: string | null;
+    status?: string;
+    assignedBuilder?: string | null;
+  } | null;
 }
 
 export function getAuthToken(): string | null {
@@ -100,17 +134,73 @@ export function getTrialDaysRemaining(user: User | null): number {
 }
 
 // API-based authentication with database persistence
-export async function signUp(email: string, password: string): Promise<User> {
+export interface ProCareSignupData {
+  professionalRole: "trainer" | "physician";
+  professionalCategory: "certified" | "experienced" | "non_certified";
+  credentialType?: string;
+  credentialBody?: string;
+  credentialNumber?: string;
+  credentialYear?: string;
+  attestationText: string;
+  attestedAt: string;
+  procareEntryPath: string;
+}
+
+export function getProCareSignupData(): ProCareSignupData | null {
+  const role = localStorage.getItem("procare_role") as ProCareSignupData["professionalRole"] | null;
+  const category = localStorage.getItem("procare_category") as ProCareSignupData["professionalCategory"] | null;
+  const attestationText = localStorage.getItem("procare_attestation_text");
+  const attestedAt = localStorage.getItem("procare_attested_at");
+  const entryPath = localStorage.getItem("procare_entry_path");
+
+  if (!role || !category || !attestationText || !attestedAt || !entryPath) return null;
+
+  return {
+    professionalRole: role,
+    professionalCategory: category,
+    credentialType: localStorage.getItem("procare_credential_type") || undefined,
+    credentialBody: localStorage.getItem("procare_credential_body") || undefined,
+    credentialNumber: localStorage.getItem("procare_credential_number") || undefined,
+    credentialYear: localStorage.getItem("procare_credential_year") || undefined,
+    attestationText,
+    attestedAt,
+    procareEntryPath: entryPath,
+  };
+}
+
+export function clearProCareSignupData() {
+  const keys = [
+    "procare_role", "procare_category", "procare_credential_type", "procare_credential_body",
+    "procare_credential_number", "procare_credential_year", "procare_attestation_text",
+    "procare_attestation_version", "procare_attested_at", "procare_entry_path",
+  ];
+  keys.forEach((k) => localStorage.removeItem(k));
+}
+
+export async function signUp(email: string, password: string, procareData?: ProCareSignupData | null): Promise<User> {
   if (password.length < 6) {
     throw new Error("Password must be at least 6 characters");
   }
+
+  // CRITICAL: Clear ANY existing auth state before signup to prevent identity leakage
+  // This prevents iOS Keychain token reuse from causing cross-account data sharing
+  console.log("🔐 [Signup] Clearing all existing auth state before creating new account");
+  clearAuthToken();
+  localStorage.removeItem("mpm_current_user");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("coachMode");
+  localStorage.removeItem("onboardingCompleted");
+  localStorage.removeItem("completedProfile");
+  localStorage.removeItem("onboardingData");
+  localStorage.removeItem("selectedBuilder");
 
   try {
     const response = await fetch(apiUrl("/api/auth/signup"), {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, ...(procareData ? { procare: procareData } : {}) }),
     });
 
     if (!response.ok) {
@@ -120,7 +210,7 @@ export async function signUp(email: string, password: string): Promise<User> {
 
     const userData = await response.json();
     
-    // Store auth token from server response
+    // Store FRESH auth token from server response
     if (userData.authToken) {
       setAuthToken(userData.authToken);
     }
@@ -129,6 +219,8 @@ export async function signUp(email: string, password: string): Promise<User> {
       id: userData.id,
       email: userData.email,
       name: userData.username,
+      // New accounts have NO onboarding completion
+      onboardingCompletedAt: null,
     };
 
     // Save to localStorage for offline access
@@ -136,7 +228,7 @@ export async function signUp(email: string, password: string): Promise<User> {
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
-    console.log("✅ User created and saved:", user.email, "ID:", user.id);
+    console.log("✅ NEW user created and saved:", user.email, "ID:", user.id);
 
     return user;
   } catch (error: any) {
@@ -170,14 +262,20 @@ export async function login(email: string, password: string): Promise<User> {
       id: userData.id,
       email: userData.email,
       name: userData.username,
+      isProCare: userData.isProCare || false,
+      professionalRole: userData.professionalRole || null,
+      role: userData.role || "client",
+      selectedMealBuilder: userData.selectedMealBuilder || null,
+      activeBoard: userData.activeBoard || null,
+      onboardingCompletedAt: userData.onboardingCompletedAt || null,
+      studioMembership: userData.studioMembership || null,
     };
 
-    // Save to localStorage for offline access
     localStorage.setItem("mpm_current_user", JSON.stringify(user));
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
-    console.log("✅ User logged in:", user.email, "ID:", user.id);
+    console.log("✅ User logged in:", user.email, "ID:", user.id, "isProCare:", user.isProCare, "role:", user.professionalRole, "studioMembership:", !!user.studioMembership);
 
     return user;
   } catch (error: any) {

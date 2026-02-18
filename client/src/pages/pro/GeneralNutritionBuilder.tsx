@@ -1,10 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
 import { proStore } from "@/lib/proData";
 import { MealCard, Meal } from "@/components/MealCard";
 import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
+import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
@@ -51,7 +62,6 @@ import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
-import AIMealCreatorModal from "@/components/modals/AIMealCreatorModal";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
@@ -64,6 +74,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { ProClientBanner } from "@/components/pro/ProClientBanner";
 
 const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Build Client Meals", description: "Tap the + button on any meal card to add personalized recipes for your client." },
@@ -124,7 +136,7 @@ export default function WeeklyMealBoard() {
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
-  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard("1", weekStartISO);
+  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard(clientId, weekStartISO);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -132,13 +144,29 @@ export default function WeeklyMealBoard() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
-  // Sync hook board to local state only after loading completes
+  // Draft persistence for crash/reload recovery
+  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+    {
+      userId: user?.id,
+      builderId: 'general-nutrition-builder',
+      weekStartISO,
+    },
+    board,
+    setBoard,
+    hookLoading,
+    hookBoard
+  );
+
+  // Sync hook board to local state only after loading completes (skip if draft is active)
   React.useEffect(() => {
+    if (skipServerSync()) {
+      return;
+    }
     if (!hookLoading && !Object.is(boardRef.current, hookBoard)) {
       setBoard(hookBoard);
       boardRef.current = hookBoard;
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Use hook's loading state directly (no local copy needed)
   const loading = hookLoading;
@@ -151,19 +179,23 @@ export default function WeeklyMealBoard() {
       await saveToHook(updatedBoard as any, uuidv4());
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
+      clearDraft();
+      markClean();
     } catch (err) {
       console.error("Failed to save board:", err);
-      toast({ title: "Save failed", description: "Changes will retry when you're online", variant: "destructive" });
+      // Silent retry - no toast during decision-making flows
+      // Save will auto-retry on next user action
     } finally {
       setSaving(false);
     }
-  }, [saveToHook, toast]);
+  }, [saveToHook, clearDraft, markClean]);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<"breakfast"|"lunch"|"dinner"|"snacks"|null>(null);
   const [manualModalOpen, setManualModalOpen] = React.useState(false);
   const [manualModalList, setManualModalList] = React.useState<"breakfast"|"lunch"|"dinner"|"snacks"|null>(null);
   const [showSnackModal, setShowSnackModal] = React.useState(false);
   const [showOverview, setShowOverview] = React.useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
   // NEW: Day/Week planning state
   const [planningMode, setPlanningMode] = React.useState<'day' | 'week'>('day');
@@ -176,10 +208,6 @@ export default function WeeklyMealBoard() {
 
   // Shopping list v2 modal state
   const [shoppingListModal, setShoppingListModal] = useState<{ isOpen: boolean; meal: any | null }>({ isOpen: false, meal: null });
-
-  // AI Meal Creator modal state (for all meal slots)
-  const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
-  const [aiMealSlot, setAiMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
 
   // Snack Picker state
   const [snackPickerOpen, setSnackPickerOpen] = useState(false);
@@ -274,6 +302,7 @@ export default function WeeklyMealBoard() {
           snacks: [...dayLists.snacks, snack]
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       } else {
         // Week mode: update local board and save
@@ -429,22 +458,36 @@ export default function WeeklyMealBoard() {
   const handleDuplicateDay = useCallback(async (targetDates: string[]) => {
     if (!board || !activeDayISO) return;
 
-    const sourceLists = getDayLists(board, activeDayISO);
-    const clonedLists = cloneDayLists(sourceLists);
-
-    let updatedBoard = board;
-    targetDates.forEach(dateISO => {
-      updatedBoard = setDayLists(updatedBoard, dateISO, clonedLists);
-    });
+    const sourceLists = { ...getDayLists(board, activeDayISO) };
 
     try {
-      await saveBoard(updatedBoard);
-      toast({ title: "Day duplicated", description: `Copied to ${targetDates.length} day(s)` });
+      const result = await duplicateAcrossWeeks({
+        sourceLists,
+        targetDates,
+        currentBoard: board,
+        currentWeekStartISO: weekStartISO,
+      });
+
+      if (result.currentWeekBoard) {
+        setBoard(result.currentWeekBoard);
+        boardRef.current = result.currentWeekBoard;
+        await saveBoard(result.currentWeekBoard);
+      }
+
+      if (result.errors.length > 0) {
+        toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+      } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
+        toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+      } else if (result.otherWeeksSaved > 0) {
+        toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+      } else {
+        toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+      }
     } catch (error) {
       console.error('Failed to duplicate day:', error);
       toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
     }
-  }, [board, activeDayISO, saveBoard, toast]);
+  }, [board, activeDayISO, weekStartISO, saveBoard, toast]);
 
   // Duplicate week handler
   const handleDuplicateWeek = useCallback(async (targetWeekStartISO: string) => {
@@ -583,76 +626,6 @@ export default function WeeklyMealBoard() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-  // AI Meal Creator handler - Save to localStorage (Fridge Rescue pattern)
-  // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleAIMealGenerated = useCallback(async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
-    if (!activeDayISO) return;
-
-    console.log("🤖 AI Meal Generated - Replacing old meals with new one:", generatedMeal, "for slot:", slot);
-
-    // Transform API response to match Meal type structure (copy Fridge Rescue format)
-    const transformedMeal: Meal = {
-      id: `ai-meal-${Date.now()}`,
-      name: generatedMeal.name,
-      title: generatedMeal.name,
-      description: generatedMeal.description,
-      ingredients: generatedMeal.ingredients || [],
-      instructions: generatedMeal.instructions || '',
-      servings: 1,
-      imageUrl: generatedMeal.imageUrl,
-      cookingTime: generatedMeal.cookingTime,
-      difficulty: generatedMeal.difficulty,
-      medicalBadges: generatedMeal.medicalBadges || [],
-      nutrition: {
-        calories: generatedMeal.calories || 0,
-        protein: generatedMeal.protein || 0,
-        carbs: generatedMeal.carbs || 0,
-        fat: generatedMeal.fat || 0,
-      },
-    };
-
-    // 🔥 REPLACE old AI meals (don't append) - Like Fridge Rescue
-    const newMeals = [transformedMeal];
-
-    // Save to localStorage with slot info (persists until next generation)
-    saveAIMealsCache(newMeals, activeDayISO, slot);
-
-    // Also update board optimistically - REMOVE old AI meals first from the correct slot
-    if (board) {
-      const dayLists = getDayLists(board, activeDayISO);
-      // Filter out all old AI meals from the target slot
-      const currentSlotMeals = dayLists[slot];
-      const nonAIMeals = currentSlotMeals.filter(m => !m.id.startsWith('ai-meal-'));
-      // Add only the new AI meal
-      const updatedSlotMeals = [...nonAIMeals, transformedMeal];
-      const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
-      const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
-      setBoard(updatedBoard);
-    }
-
-    // Format slot name for display (capitalize first letter)
-    const slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1);
-
-    // Dispatch meal:saved event for coach progression
-    const mealIdMap: Record<string, string> = {
-      breakfast: "breakfast",
-      lunch: "lunch",
-      dinner: "dinner",
-      snacks: "snack1"
-    };
-    window.dispatchEvent(
-      new CustomEvent("meal:saved", { detail: { mealId: mealIdMap[slot] || "snack1" } })
-    );
-
-    toast({
-      title: "AI Meal Created!",
-      description: `${generatedMeal.name} saved to your ${slotLabel.toLowerCase()}`,
-    });
-
-    // Advance guided tour to next step
-    advanceTourStep();
-  }, [board, activeDayISO, toast, advanceTourStep]);
-
   const profile = useOnboardingProfile();
   const targets = computeTargetsFromOnboarding(profile);
 
@@ -672,7 +645,7 @@ export default function WeeklyMealBoard() {
     console.log('🌅 Midnight macro reset triggered');
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: ["/api/users", "00000000-0000-0000-0000-000000000001", "macros", "today"]
+      queryKey: ["/api/users", user?.id || "", "macros", "today"]
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));
@@ -697,30 +670,19 @@ export default function WeeklyMealBoard() {
   }
 
   // 🎯 Show toast when loading from cache/offline
+  // Silent source tracking - no toast needed for normal operation
   React.useEffect(() => {
-    if (!loading && source && source !== "db") {
-      const msg = source === "cache"
-        ? "Viewing cached meal plan (offline)"
-        : "Starting fresh meal plan for this week";
-      toast({
-        title: "Offline Mode",
-        description: msg,
-        duration: 3000,
-      });
+    if (!loading && source) {
+      console.log("[Board] Loaded from source:", source);
     }
-  }, [loading, source, toast]);
+  }, [loading, source]);
 
-  // 🎯 Show error toast if board load fails
+  // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      toast({
-        title: "Connection Issue",
-        description: "Showing cached meal plan. Changes will sync when you're back online.",
-        variant: "default",
-        duration: 5000,
-      });
+      console.log("[Network] Board load encountered an issue, using cached data if available");
     }
-  }, [error, toast]);
+  }, [error]);
 
   // Check for localStorage meal to add (after board loads)
   React.useEffect(() => {
@@ -860,15 +822,9 @@ export default function WeeklyMealBoard() {
     }
   }, [board, weekStartISO, planningMode, activeDayISO]);
 
-  // Week navigation handlers (hook manages loading state automatically)
-  const gotoWeek = useCallback(async (targetISO: string) => {
-    try {
-      const { weekStartISO: ws, week } = await getWeekBoardByDate(targetISO);
-      setWeekStartISO(ws);
-      setBoard(week);
-    } catch (error) {
-      console.error("Failed to load week:", error);
-    }
+  // Week navigation handlers - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
+  const gotoWeek = useCallback((targetISO: string) => {
+    setWeekStartISO(targetISO);
   }, []);
 
   const onPrevWeek = useCallback(() => {
@@ -1043,8 +999,8 @@ export default function WeeklyMealBoard() {
     >
       {/* Universal Safe-Area Header */}
       <div
-        className="fixed left-0 right-0 z-50 bg-gradient-to-r from-black/40 via-orange-600/40 to-black/40 backdrop-blur-lg border-b border-white/10"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-black/40 via-orange-600/40 to-black/40 backdrop-blur-lg border-b border-white/10"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex flex-col gap-2">
           {/* Row 1: Main Navigation */}
@@ -1088,12 +1044,13 @@ export default function WeeklyMealBoard() {
             </div>
           )}
         </div>
+        {isProCareMode && <ProClientBanner />}
       </div>
 
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isProCareMode ? '10rem' : '8rem'})` }}
       >
       <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
         <div className="px-4 py-4 flex flex-col gap-3">
@@ -1134,14 +1091,27 @@ export default function WeeklyMealBoard() {
               <DayWeekToggle mode={planningMode} onModeChange={setPlanningMode} />
 
               {planningMode === 'day' && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowDuplicateDayModal(true)}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs px-3 py-1 rounded-xl"
-                >
-                  Duplicate...
-                </Button>
+              <button
+                type="button"
+                onClick={() => setShowDuplicateDayModal(true)}
+                data-testid="duplicate-button"
+                className="
+                  flex-shrink-0 inline-flex flex-col items-center justify-center
+                  rounded-full
+                  px-4 py-2
+                  text-sm font-semibold
+                  text-white/90
+                  bg-black/20
+                  border border-white/15
+                  backdrop-blur-lg
+                  hover:bg-white/10 hover:border-white/25
+                  transition-all
+                "
+                style={{ minHeight: 48 }}
+              >
+                <span className="leading-none">Duplicate</span>
+                <span className="mt-1 text-base leading-none opacity-80">📅</span>
+              </button>
               )}
 
               {planningMode === 'week' && (
@@ -1193,36 +1163,56 @@ export default function WeeklyMealBoard() {
             <Button
               size="sm"
               variant="destructive"
-              onClick={() => {
-                if (confirm("Delete all meals from this board? This action cannot be undone.")) {
-                  if (board) {
-                    const clearedBoard = {
-                      ...board,
-                      lists: {
-                        breakfast: [],
-                        lunch: [],
-                        dinner: [],
-                        snacks: []
-                      },
-                      days: board.days ? Object.fromEntries(
-                        Object.keys(board.days).map(dateISO => [
-                          dateISO,
-                          { breakfast: [], lunch: [], dinner: [], snacks: [] }
-                        ])
-                      ) : undefined
-                    };
-                    saveBoard(clearedBoard);
-                    toast({
-                      title: "All Meals Deleted",
-                      description: "Successfully cleared all meals from the board",
-                    });
-                  }
-                }
-              }}
+              onClick={() => setShowDeleteAllConfirm(true)}
               className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl"
             >
               Delete All
             </Button>
+            
+            <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+              <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
+                  <AlertDialogDescription className="text-zinc-400">
+                    Delete all meals from this board? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => {
+                      if (board) {
+                        const clearedBoard = {
+                          ...board,
+                          lists: {
+                            breakfast: [],
+                            lunch: [],
+                            dinner: [],
+                            snacks: []
+                          },
+                          days: board.days ? Object.fromEntries(
+                            Object.keys(board.days).map(dateISO => [
+                              dateISO,
+                              { breakfast: [], lunch: [], dinner: [], snacks: [] }
+                            ])
+                          ) : undefined
+                        };
+                        saveBoard(clearedBoard);
+                        toast({
+                          title: "All Meals Deleted",
+                          description: "Successfully cleared all meals from the board",
+                        });
+                      }
+                    }}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <Button
               onClick={handleSave}
@@ -1341,12 +1331,17 @@ export default function WeeklyMealBoard() {
                             )
                           };
                           const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+                          setBoard(updatedBoard);
                           putWeekBoard(weekStartISO, updatedBoard)
-                            .then(({ week }) => setBoard(week))
+                            .then(({ week }) => {
+                              if (week) setBoard(week);
+                            })
                             .catch((err) => {
-                              console.error("❌ Delete failed (Day mode):", err);
-                              console.error("Error details:", JSON.stringify(err, null, 2));
-                              alert("Failed to delete meal. Check console for details.");
+                              console.error("❌ Delete sync failed (Day mode):", err);
+                              toast({
+                                title: "Sync pending",
+                                description: "Changes will sync automatically.",
+                              });
                             });
                         } else {
                           // Update meal in day lists
@@ -1425,11 +1420,11 @@ export default function WeeklyMealBoard() {
                       };
                       setBoard(updatedBoard);
                       saveBoard(updatedBoard).catch((err) => {
-                        console.error("❌ Delete failed (Board mode):", err);
-                        console.error("Error details:", JSON.stringify(err, null, 2));
-                        console.error("Error message:", err?.message || "No message");
-                        console.error("Error stack:", err?.stack || "No stack");
-                        alert("Failed to delete meal. Check console for details.");
+                        console.error("❌ Delete sync failed (Board mode):", err);
+                        toast({
+                          title: "Sync pending",
+                          description: "Changes will sync automatically.",
+                        });
                       });
                     } else {
                       onItemUpdated(key, idx, m);
@@ -1721,15 +1716,6 @@ export default function WeeklyMealBoard() {
         isOpen={shoppingListModal.isOpen}
         onClose={() => setShoppingListModal({ isOpen: false, meal: null })}
         meal={shoppingListModal.meal}
-      />
-
-      {/* AI Meal Creator with Ingredient Picker - All Meal Slots */}
-      <AIMealCreatorModal
-        open={aiMealModalOpen}
-        onOpenChange={setAiMealModalOpen}
-        onMealGenerated={handleAIMealGenerated}
-        mealSlot={aiMealSlot}
-        showMacroTargeting={false}
       />
 
       {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}

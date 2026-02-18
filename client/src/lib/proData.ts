@@ -22,6 +22,11 @@ export type ClientProfile = {
   archived?: boolean;
   workspace?: WorkspaceType;
   assignedBuilder?: BuilderType;
+  userId?: string;
+  clientUserId?: string;
+  studioId?: string;
+  activeBoardId?: string;
+  dbBacked?: boolean;
 };
 
 export type StarchStrategy = "one" | "flex";

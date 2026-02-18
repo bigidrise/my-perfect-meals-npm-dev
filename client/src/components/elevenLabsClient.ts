@@ -1,44 +1,15 @@
 import { speechBubbleManager } from '../utils/speechBubbleManager';
 import { apiUrl } from '@/lib/resolveApiBase';
 
-// Feature flags
+/**
+ * BRANDED VOICE ONLY - NO FALLBACKS
+ * @deprecated Use VoiceManager instead
+ */
+
 const AVATAR_FEATURES = {
-  ELEVENLABS_ENABLED: false, // Flag to disable ElevenLabs
-  CHEF_AVATAR_ENABLED: false, // Flag to disable chef avatar system
+  ELEVENLABS_ENABLED: false,
+  CHEF_AVATAR_ENABLED: false,
 };
-
-// Fallback to browser speech synthesis if ElevenLabs fails
-function speakWithBrowserTTS(text: string, mood: string): void {
-  if (!('speechSynthesis' in window)) {
-    console.log('Browser TTS not supported');
-    return;
-  }
-
-  const selectedAvatar = localStorage.getItem('selectedAvatar') || '';
-  const utterance = new SpeechSynthesisUtterance(text);
-
-  // Configure voice based on avatar
-  const voices = speechSynthesis.getVoices();
-  const isFemale = selectedAvatar.includes('Female');
-
-  // Find appropriate voice
-  const preferredVoice = voices.find(voice =>
-    isFemale ? voice.name.includes('Female') || voice.name.includes('Woman') || voice.name.includes('Samantha')
-             : voice.name.includes('Male') || voice.name.includes('Man') || voice.name.includes('Alex')
-  );
-
-  if (preferredVoice) {
-    utterance.voice = preferredVoice;
-  }
-
-  // Configure based on mood
-  utterance.rate = mood === 'casual' ? 1.1 : mood === 'professional' ? 0.9 : 1.0;
-  utterance.pitch = isFemale ? 1.2 : 0.8;
-  utterance.volume = 0.8;
-
-  speechSynthesis.speak(utterance);
-  console.log('✅ Browser TTS speaking:', text);
-}
 
 export async function speakWithElevenLabs(text: string, mood: string = 'professional'): Promise<void> {
   console.log('🎤 ElevenLabs TTS request:', { text, mood });
@@ -109,10 +80,10 @@ export async function speakWithElevenLabs(text: string, mood: string = 'professi
       console.log('✅ ElevenLabs voice played successfully');
       return;
     } catch (error) {
-      console.log('ElevenLabs failed, falling back to browser TTS:', error);
+      console.log('ElevenLabs failed, staying silent (no fallback):', error);
     }
   }
 
-  // Fallback to browser speech synthesis
-  speakWithBrowserTTS(text, mood);
+  // NO FALLBACK - branded voice only, stay silent if unavailable
+  console.log('🔇 Voice unavailable, staying silent');
 }
