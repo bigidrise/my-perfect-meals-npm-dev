@@ -1,7 +1,13 @@
-// client/src/contexts/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
 import { User, getCurrentUser, getAuthHeaders, getAuthToken } from "@/lib/auth";
-import { apiUrl } from '@/lib/resolveApiBase';
+import { apiUrl } from "@/lib/resolveApiBase";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 
 interface AuthContextType {
@@ -24,15 +30,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = useCallback(async (): Promise<User | null> => {
     const token = getAuthToken();
     if (!token) {
+      console.log("⚠️ [AuthContext] No token - skipping refresh");
       return null;
     }
 
     try {
+      console.log("📡 [AuthContext] Refreshing user...");
       const response = await fetch(apiUrl(`/api/user/profile`), {
-        headers: {
-          ...getAuthHeaders(),
-        },
+        headers: { ...getAuthHeaders() },
       });
+
       if (response.ok) {
         const userData = await response.json();
         const updatedUser: User = {
@@ -46,13 +53,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           selectedMealBuilder: userData.selectedMealBuilder,
           isTester: userData.isTester || false,
           profilePhotoUrl: userData.profilePhotoUrl || null,
-          // Role-based access control
           role: userData.role || "client",
           isProCare: userData.isProCare || false,
           activeBoard: userData.activeBoard || null,
-          // Onboarding completion - CRITICAL for enforcing onboarding gate
           onboardingCompletedAt: userData.onboardingCompletedAt || null,
-          // Profile data from onboarding (used by Edit Profile)
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,
           nickname: userData.nickname || null,
@@ -77,96 +81,94 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
+        console.log("✅ [AuthContext] User refreshed:", updatedUser.email);
         return updatedUser;
+      } else {
+        console.log(
+          "⚠️ [AuthContext] Refresh failed - status:",
+          response.status,
+        );
+        return null;
       }
-      return null;
     } catch (error) {
-      console.error("Failed to refresh user:", error);
+      console.error("❌ [AuthContext] Refresh error:", error);
       return null;
     }
   }, []);
 
   useEffect(() => {
-    // Initialize user from localStorage only if we have a valid auth token
-    const currentUser = getCurrentUser();
-    const token = getAuthToken();
-    
-    // Check for Apple Review Full Access mode (allows full app access without auth)
-    const appleReviewFullAccess = localStorage.getItem("appleReviewFullAccess") === "true";
-    
-    if (token && currentUser && !currentUser.id.startsWith("guest-")) {
-      setUser(currentUser);
-      refreshUser().then((freshUser) => {
-        if (freshUser) {
-          console.log("✅ [AuthContext] refreshUser complete — professionalRole:", freshUser.professionalRole, "isProCare:", freshUser.isProCare);
-        } else {
-          console.log("⚠️ [AuthContext] refreshUser returned null (user deleted or token expired) — clearing auth state");
+    const initializeAuth = async () => {
+      const currentUser = getCurrentUser();
+      const token = getAuthToken();
+      const appleReviewFullAccess =
+        localStorage.getItem("appleReviewFullAccess") === "true";
+
+      if (token && currentUser && !currentUser.id.startsWith("guest-")) {
+        setUser(currentUser);
+        const freshUser = await refreshUser();
+        if (!freshUser) {
+          console.log(
+            "⚠️ [AuthContext] refreshUser returned null - clearing state",
+          );
           setUser(null);
           localStorage.removeItem("mpm_current_user");
           localStorage.removeItem("userId");
           localStorage.removeItem("isAuthenticated");
           localStorage.removeItem("authToken");
+          // Redirect to login - simple window redirect (no router dependency)
+          window.location.href = "/login";
         }
-      }).catch(() => {
+      } else if (appleReviewFullAccess) {
+        const demoUser: User = {
+          id: "00000000-0000-0000-0000-000000000001",
+          email: "reviewer@apple.com",
+          name: "Apple Reviewer",
+          entitlements: ["FULL_ACCESS"],
+          planLookupKey: "premium",
+          trialStartedAt: null,
+          trialEndsAt: null,
+          selectedMealBuilder: "weekly",
+          isTester: true,
+          profilePhotoUrl: null,
+          role: "admin",
+          isProCare: false,
+          activeBoard: "weekly",
+          onboardingCompletedAt: new Date().toISOString(),
+        };
+        setUser(demoUser);
+        localStorage.setItem("mpm_current_user", JSON.stringify(demoUser));
+      } else if (isGuestMode()) {
+        const guestSession = getGuestSession();
+        const guestUser: User = {
+          id: guestSession?.sessionId || `guest-${Date.now()}`,
+          email: "guest@myperfectmeals.com",
+          name: "Guest",
+          entitlements: ["GUEST_ACCESS"],
+          planLookupKey: null,
+          trialStartedAt: null,
+          trialEndsAt: null,
+          selectedMealBuilder: "weekly",
+          isTester: false,
+          profilePhotoUrl: null,
+          role: "client",
+          isProCare: false,
+          activeBoard: "weekly",
+        };
+        setUser(guestUser);
+      } else {
+        console.log("⚠️ [AuthContext] No valid auth - clearing state");
         setUser(null);
         localStorage.removeItem("mpm_current_user");
         localStorage.removeItem("userId");
         localStorage.removeItem("isAuthenticated");
         localStorage.removeItem("authToken");
-      }).finally(() => {
-        setLoading(false);
-      });
-    } else if (appleReviewFullAccess) {
-      // Apple Review Full Access mode - create a demo user with FULL admin access
-      // Must match Welcome.tsx demo user exactly to prevent state mismatch on reload
-      const demoUser: User = {
-        id: "00000000-0000-0000-0000-000000000001",
-        email: "reviewer@apple.com",
-        name: "Apple Reviewer",
-        entitlements: ["FULL_ACCESS"],
-        planLookupKey: "premium",
-        trialStartedAt: null,
-        trialEndsAt: null,
-        selectedMealBuilder: "weekly",
-        isTester: true,
-        profilePhotoUrl: null,
-        role: "admin", // Admin role for full access - matches Welcome.tsx
-        isProCare: false,
-        activeBoard: "weekly",
-        onboardingCompletedAt: new Date().toISOString(), // Skip onboarding - matches Welcome.tsx
-      };
-      setUser(demoUser);
-      localStorage.setItem("mpm_current_user", JSON.stringify(demoUser));
+        window.location.href = "/login";
+      }
+
       setLoading(false);
-    } else if (isGuestMode()) {
-      // Guest mode (Build a Day) - create a guest user for limited meal creation
-      const guestSession = getGuestSession();
-      const guestUser: User = {
-        id: guestSession?.sessionId || `guest-${Date.now()}`,
-        email: "guest@myperfectmeals.com",
-        name: "Guest",
-        entitlements: ["GUEST_ACCESS"],
-        planLookupKey: null,
-        trialStartedAt: null,
-        trialEndsAt: null,
-        selectedMealBuilder: "weekly",
-        isTester: false,
-        profilePhotoUrl: null,
-        role: "client",
-        isProCare: false,
-        activeBoard: "weekly",
-      };
-      setUser(guestUser);
-      setLoading(false);
-    } else {
-      // No valid token - user is not authenticated
-      // Clear any stale auth data (but preserve guest mode flags)
-      localStorage.removeItem("mpm_current_user");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("isAuthenticated");
-      setUser(null);
-      setLoading(false);
-    }
+    };
+
+    initializeAuth();
   }, [refreshUser]);
 
   return (

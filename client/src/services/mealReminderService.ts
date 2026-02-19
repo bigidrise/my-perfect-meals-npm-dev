@@ -1,9 +1,8 @@
-import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
 
 export interface MealReminderSchedule {
   enabled: boolean;
-  breakfast: string; // "08:00" format
+  breakfast: string;
   lunch: string;
   dinner: string;
 }
@@ -23,38 +22,58 @@ const DEFAULT_SCHEDULE: MealReminderSchedule = {
 };
 
 let LocalNotificationsModule: any = null;
+let PreferencesModule: any = null;
 
-async function getLocalNotifications() {
+async function getPlugins() {
   if (!Capacitor.isNativePlatform()) return null;
-  
-  if (!LocalNotificationsModule) {
-    try {
+
+  try {
+    if (!PreferencesModule) {
+      const pref = await import("@capacitor/preferences");
+      PreferencesModule = pref.Preferences;
+    }
+
+    if (!LocalNotificationsModule) {
       const mod = await import("@capacitor/local-notifications");
       LocalNotificationsModule = mod.LocalNotifications;
-    } catch (e) {
-      console.error("Failed to load LocalNotifications module:", e);
-      return null;
     }
+
+    return {
+      Preferences: PreferencesModule,
+      LocalNotifications: LocalNotificationsModule,
+    };
+  } catch (e) {
+    console.warn("Capacitor plugins unavailable:", e);
+    return null;
   }
-  
-  return LocalNotificationsModule;
 }
 
+/* ---------------- LOAD & SAVE ---------------- */
+
 export async function loadReminderSchedule(): Promise<MealReminderSchedule> {
+  const plugins = await getPlugins();
+  if (!plugins) return DEFAULT_SCHEDULE;
+
   try {
-    const { value } = await Preferences.get({ key: STORAGE_KEY });
+    const { value } = await plugins.Preferences.get({ key: STORAGE_KEY });
     if (value) {
       return { ...DEFAULT_SCHEDULE, ...JSON.parse(value) };
     }
   } catch (e) {
     console.error("Failed to load reminder schedule:", e);
   }
+
   return DEFAULT_SCHEDULE;
 }
 
-export async function saveReminderSchedule(schedule: MealReminderSchedule): Promise<void> {
+export async function saveReminderSchedule(
+  schedule: MealReminderSchedule,
+): Promise<void> {
+  const plugins = await getPlugins();
+  if (!plugins) return;
+
   try {
-    await Preferences.set({
+    await plugins.Preferences.set({
       key: STORAGE_KEY,
       value: JSON.stringify(schedule),
     });
@@ -63,53 +82,55 @@ export async function saveReminderSchedule(schedule: MealReminderSchedule): Prom
   }
 }
 
+/* ---------------- PERMISSIONS ---------------- */
+
 export async function requestNotificationPermission(): Promise<boolean> {
-  const LN = await getLocalNotifications();
-  if (!LN) return false;
+  const plugins = await getPlugins();
+  if (!plugins) return false;
 
   try {
-    const permission = await LN.checkPermissions();
-    if (permission.display === "granted") {
-      return true;
-    }
+    const perm = await plugins.LocalNotifications.checkPermissions();
+    if (perm.display === "granted") return true;
 
-    const request = await LN.requestPermissions();
+    const request = await plugins.LocalNotifications.requestPermissions();
     return request.display === "granted";
   } catch (e) {
-    console.error("Failed to request notification permission:", e);
+    console.error("Permission request failed:", e);
     return false;
   }
 }
 
 export async function checkNotificationPermission(): Promise<boolean> {
-  const LN = await getLocalNotifications();
-  if (!LN) return false;
+  const plugins = await getPlugins();
+  if (!plugins) return false;
 
   try {
-    const permission = await LN.checkPermissions();
-    return permission.display === "granted";
-  } catch (e) {
+    const perm = await plugins.LocalNotifications.checkPermissions();
+    return perm.display === "granted";
+  } catch {
     return false;
   }
 }
 
-function parseTime(timeStr: string): { hour: number; minute: number } {
+/* ---------------- SCHEDULING ---------------- */
+
+function parseTime(timeStr: string) {
   const [hour, minute] = timeStr.split(":").map(Number);
   return { hour, minute };
 }
 
-export async function scheduleReminders(schedule: MealReminderSchedule): Promise<void> {
-  const LN = await getLocalNotifications();
-  if (!LN) {
+export async function scheduleReminders(
+  schedule: MealReminderSchedule,
+): Promise<void> {
+  const plugins = await getPlugins();
+  if (!plugins) {
     console.log("Reminders only work on native platforms");
     return;
   }
 
   await cancelAllReminders();
 
-  if (!schedule.enabled) {
-    return;
-  }
+  if (!schedule.enabled) return;
 
   const hasPermission = await requestNotificationPermission();
   if (!hasPermission) {
@@ -117,20 +138,17 @@ export async function scheduleReminders(schedule: MealReminderSchedule): Promise
     return;
   }
 
-  const notifications: Array<{
-    id: number;
-    title: string;
-    body: string;
-    schedule: { on: { hour: number; minute: number }; repeats: boolean; allowWhileIdle: boolean };
-    sound: string;
-    extra: { route: string };
-  }> = [];
+  const notifications = [];
 
-  const meals: Array<{ key: keyof typeof NOTIFICATION_IDS; time: string; title: string }> = [
-    { key: "breakfast", time: schedule.breakfast, title: "Time for breakfast!" },
+  const meals = [
+    {
+      key: "breakfast",
+      time: schedule.breakfast,
+      title: "Time for breakfast!",
+    },
     { key: "lunch", time: schedule.lunch, title: "Time for lunch!" },
     { key: "dinner", time: schedule.dinner, title: "Time for dinner!" },
-  ];
+  ] as const;
 
   for (const meal of meals) {
     const { hour, minute } = parseTime(meal.time);
@@ -140,67 +158,64 @@ export async function scheduleReminders(schedule: MealReminderSchedule): Promise
       title: meal.title,
       body: "Open Planner to see what's next",
       schedule: {
-        on: {
-          hour,
-          minute,
-        },
+        on: { hour, minute },
         repeats: true,
         allowWhileIdle: true,
       },
       sound: "default",
-      extra: {
-        route: "/planner",
-      },
+      extra: { route: "/planner" },
     });
   }
 
   try {
-    await LN.schedule({ notifications });
-    console.log("Scheduled meal reminders:", notifications.length);
+    await plugins.LocalNotifications.schedule({ notifications });
+    console.log("Scheduled reminders:", notifications.length);
   } catch (e) {
     console.error("Failed to schedule reminders:", e);
   }
 }
 
 export async function cancelAllReminders(): Promise<void> {
-  const LN = await getLocalNotifications();
-  if (!LN) return;
+  const plugins = await getPlugins();
+  if (!plugins) return;
 
   try {
-    const pending = await LN.getPending();
+    const pending = await plugins.LocalNotifications.getPending();
+
     if (pending.notifications.length > 0) {
-      await LN.cancel({
-        notifications: pending.notifications.map((n: { id: number }) => ({ id: n.id })),
+      await plugins.LocalNotifications.cancel({
+        notifications: pending.notifications.map((n: { id: number }) => ({
+          id: n.id,
+        })),
       });
-      console.log("Cancelled all meal reminders");
+
+      console.log("Cancelled all reminders");
     }
   } catch (e) {
     console.error("Failed to cancel reminders:", e);
   }
 }
 
-export function setupNotificationListeners(navigate: (path: string) => void): () => void {
-  if (!Capacitor.isNativePlatform()) {
-    return () => {};
-  }
+/* ---------------- LISTENERS ---------------- */
+
+export function setupNotificationListeners(
+  navigate: (path: string) => void,
+): () => void {
+  if (!Capacitor.isNativePlatform()) return () => {};
 
   let cleanup: (() => void) | null = null;
 
-  getLocalNotifications().then((LN) => {
-    if (!LN) return;
+  getPlugins().then((plugins) => {
+    if (!plugins) return;
 
-    const listener = LN.addListener(
+    plugins.LocalNotifications.addListener(
       "localNotificationActionPerformed",
       (notification: { notification: { extra?: { route?: string } } }) => {
         const route = notification.notification.extra?.route;
-        if (route) {
-          navigate(route);
-        }
-      }
-    );
-
-    listener.then((l: { remove: () => void }) => {
-      cleanup = () => l.remove();
+        if (route) navigate(route);
+      },
+    ).then((listener: { remove: () => void }) => {
+      cleanup = () => listener.remove();
     });
   });
 

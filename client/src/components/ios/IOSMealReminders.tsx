@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { Bell, Clock, AlertCircle } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
-import { LocalNotifications } from "@capacitor/local-notifications";
-import { Preferences } from "@capacitor/preferences";
 import { PillButton } from "@/components/ui/pill-button";
 
 const STORAGE_KEY = "meal_reminder_schedule_v2";
+
 const NOTIFICATION_IDS = {
   breakfast: 2001,
   lunch: 2002,
@@ -28,11 +27,30 @@ const DEFAULT_SCHEDULE: ReminderSchedule = {
 
 export default function IOSMealReminders() {
   const [schedule, setSchedule] = useState<ReminderSchedule>(DEFAULT_SCHEDULE);
-  const [permissionStatus, setPermissionStatus] = useState<"unknown" | "granted" | "denied">("unknown");
+  const [permissionStatus, setPermissionStatus] = useState<
+    "unknown" | "granted" | "denied"
+  >("unknown");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   const isNative = Capacitor.isNativePlatform();
+
+  // Lazy plugin loaders (prevents UNIMPLEMENTED crash)
+  const loadPlugins = async () => {
+    if (!isNative) return null;
+
+    try {
+      const LN = await import("@capacitor/local-notifications");
+      const Pref = await import("@capacitor/preferences");
+      return {
+        LocalNotifications: LN.LocalNotifications,
+        Preferences: Pref.Preferences,
+      };
+    } catch (err) {
+      console.warn("Native plugins unavailable:", err);
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (!isNative) {
@@ -42,6 +60,14 @@ export default function IOSMealReminders() {
 
     async function init() {
       try {
+        const plugins = await loadPlugins();
+        if (!plugins) {
+          setReady(true);
+          return;
+        }
+
+        const { Preferences, LocalNotifications } = plugins;
+
         const { value } = await Preferences.get({ key: STORAGE_KEY });
         if (value) {
           setSchedule({ ...DEFAULT_SCHEDULE, ...JSON.parse(value) });
@@ -50,8 +76,8 @@ export default function IOSMealReminders() {
         const perm = await LocalNotifications.checkPermissions();
         setPermissionStatus(perm.display === "granted" ? "granted" : "denied");
       } catch (e) {
+        console.error("Reminder init error:", e);
         setError("Failed to initialize reminders");
-        console.error("IOSMealReminders init error:", e);
       } finally {
         setReady(true);
       }
@@ -61,25 +87,34 @@ export default function IOSMealReminders() {
   }, [isNative]);
 
   const saveSchedule = async (newSchedule: ReminderSchedule) => {
-    await Preferences.set({
+    const plugins = await loadPlugins();
+    if (!plugins) return;
+
+    await plugins.Preferences.set({
       key: STORAGE_KEY,
       value: JSON.stringify(newSchedule),
     });
+
     setSchedule(newSchedule);
   };
 
   const scheduleNotifications = async (sched: ReminderSchedule) => {
+    const plugins = await loadPlugins();
+    if (!plugins) return;
+
+    const { LocalNotifications } = plugins;
+
     await LocalNotifications.cancel({
       notifications: Object.values(NOTIFICATION_IDS).map((id) => ({ id })),
     });
 
     if (!sched.enabled) return;
 
-    const meals: Array<{ key: keyof typeof NOTIFICATION_IDS; time: string; title: string }> = [
+    const meals = [
       { key: "breakfast", time: sched.breakfast, title: "Time for breakfast!" },
       { key: "lunch", time: sched.lunch, title: "Time for lunch!" },
       { key: "dinner", time: sched.dinner, title: "Time for dinner!" },
-    ];
+    ] as const;
 
     const notifications = meals.map((meal) => {
       const [hour, minute] = meal.time.split(":").map(Number);
@@ -93,8 +128,6 @@ export default function IOSMealReminders() {
           allowWhileIdle: true,
         },
         sound: "default",
-        smallIcon: "ic_stat_icon_config_sample",
-        iconColor: "#F97316",
         extra: { route: "/planner" },
       };
     });
@@ -105,13 +138,20 @@ export default function IOSMealReminders() {
   const handleToggle = async () => {
     setError(null);
 
+    const plugins = await loadPlugins();
+    if (!plugins) return;
+
+    const { LocalNotifications } = plugins;
+
     if (!schedule.enabled) {
       const perm = await LocalNotifications.checkPermissions();
       if (perm.display !== "granted") {
         const request = await LocalNotifications.requestPermissions();
         if (request.display !== "granted") {
           setPermissionStatus("denied");
-          setError("Go to iPhone Settings > My Perfect Meals > Allow Notifications");
+          setError(
+            "Go to iPhone Settings → My Perfect Meals → Allow Notifications",
+          );
           return;
         }
       }
@@ -123,9 +163,13 @@ export default function IOSMealReminders() {
     await scheduleNotifications(newSchedule);
   };
 
-  const handleTimeChange = async (meal: "breakfast" | "lunch" | "dinner", time: string) => {
+  const handleTimeChange = async (
+    meal: "breakfast" | "lunch" | "dinner",
+    time: string,
+  ) => {
     const newSchedule = { ...schedule, [meal]: time };
     await saveSchedule(newSchedule);
+
     if (newSchedule.enabled) {
       await scheduleNotifications(newSchedule);
     }
@@ -148,7 +192,9 @@ export default function IOSMealReminders() {
       <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-4">
         <div className="flex items-center gap-3">
           <Bell className="w-5 h-5 text-orange-400 animate-pulse" />
-          <span className="text-white text-sm font-medium">Loading Reminders...</span>
+          <span className="text-white text-sm font-medium">
+            Loading Reminders...
+          </span>
         </div>
       </div>
     );
@@ -173,15 +219,6 @@ export default function IOSMealReminders() {
         </div>
       )}
 
-      {permissionStatus === "denied" && !schedule.enabled && (
-        <div className="flex items-start gap-2 bg-amber-500/20 border border-amber-500/40 rounded-lg p-3">
-          <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-          <span className="text-amber-200 text-xs">
-            Notifications are disabled. Enable in iPhone Settings to use reminders.
-          </span>
-        </div>
-      )}
-
       {schedule.enabled && (
         <div className="space-y-3 pt-2 border-t border-white/10">
           {(["breakfast", "lunch", "dinner"] as const).map((meal) => (
@@ -198,11 +235,6 @@ export default function IOSMealReminders() {
               />
             </div>
           ))}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-3">
-            <p className="text-amber-200 text-xs leading-relaxed">
-              <span className="font-semibold">Volume too low?</span> Go to iPhone Settings → Sounds & Haptics → turn up "Ringer and Alerts". Also check Settings → Notifications → My Perfect Meals → ensure "Sounds" is ON.
-            </p>
-          </div>
         </div>
       )}
     </div>
