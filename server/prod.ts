@@ -25,6 +25,8 @@ process.on('uncaughtException', (error) => {
 });
 
 const app = express();
+app.set("trust proxy", 1);
+
 
 // Trust proxy for correct IP handling (Cloud Run uses 1 proxy hop)
 app.set('trust proxy', 1);

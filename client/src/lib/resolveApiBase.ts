@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 
 // ⭐ Production backend URL (your live deployed app backend)
 const PROD_SERVER_URL =
-  "https://my-perfect-meals-production-do-not-touch--bigidrise.replit.app";
+  "https://mpm-dev.replit.app";
 
 // ⭐ Staging backend URL (your new staging environment)
 const STAGING_SERVER_URL =
