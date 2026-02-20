@@ -115,8 +115,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.removeItem("userId");
           localStorage.removeItem("isAuthenticated");
           localStorage.removeItem("authToken");
-          // Redirect to login - simple window redirect (no router dependency)
-          window.location.href = "/login";
+          if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+            window.location.href = "/login";
+          }
         }
       } else if (appleReviewFullAccess) {
         const demoUser: User = {
@@ -162,7 +163,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.removeItem("userId");
         localStorage.removeItem("isAuthenticated");
         localStorage.removeItem("authToken");
-        window.location.href = "/login";
+        if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+          window.location.href = "/login";
+        }
       }
 
       setLoading(false);
