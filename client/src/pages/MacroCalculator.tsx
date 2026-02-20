@@ -2364,7 +2364,22 @@ export default function MacroCounter() {
               )}
 
               {/* Body Composition - affects starchy carb allocation */}
-              {results && <BodyCompositionSection />}
+              {results && (
+                <BodyCompositionSection
+                  onApplyAdjustments={(deltas) => {
+                    setAdvisoryDeltas({
+                      protein: advisoryDeltas.protein + deltas.protein,
+                      carbs: advisoryDeltas.carbs + deltas.carbs,
+                      fat: advisoryDeltas.fat + deltas.fat,
+                    });
+                    toast({
+                      title: "Adjustments Applied",
+                      description:
+                        "Your macro targets have been adjusted based on your body composition.",
+                    });
+                  }}
+                />
+              )}
 
               {/* Results - Only show when activity is selected */}
               {results && (

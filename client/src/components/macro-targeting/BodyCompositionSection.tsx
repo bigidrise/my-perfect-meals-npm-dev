@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useChefVoice } from "@/lib/useChefVoice";
@@ -13,11 +13,15 @@ import {
   ChevronUp,
   Info,
   AlertTriangle,
+  AlertCircle,
   Plus,
+  Check,
+  X,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import BodyCompositionSheet from "./BodyCompositionSheet";
+import { MacroDeltas } from "@/lib/clinicalAdvisory";
 
 interface BodyFatEntry {
   id: number;
@@ -33,16 +37,20 @@ interface BodyFatEntry {
 
 interface BodyCompositionSectionProps {
   builderType?: string;
+  onApplyAdjustments?: (deltas: MacroDeltas) => void;
 }
 
 export default function BodyCompositionSection({
   builderType,
+  onApplyAdjustments,
 }: BodyCompositionSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [latestEntry, setLatestEntry] = useState<BodyFatEntry | null>(null);
   const [latestSource, setLatestSource] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [adjustmentApplied, setAdjustmentApplied] = useState(false);
 
   const hasSpokenRef = useRef(false);
   const { speak, stop, preload } = useChefVoice();
@@ -85,6 +93,62 @@ export default function BodyCompositionSection({
     }
   };
 
+  const starchImpact = useMemo(() => {
+    if (!latestEntry) return null;
+
+    const currentBf = parseFloat(latestEntry.currentBodyFatPct);
+    const goalBf = latestEntry.goalBodyFatPct
+      ? parseFloat(latestEntry.goalBodyFatPct)
+      : null;
+
+    if (!goalBf || isNaN(currentBf) || isNaN(goalBf)) return null;
+
+    const diff = currentBf - goalBf;
+    const starchPerSlot = 25;
+
+    if (diff >= 5) {
+      return {
+        carbsDelta: -starchPerSlot,
+        proteinDelta: 0,
+        fatDelta: 0,
+        direction: "reduce" as const,
+        label: `${currentBf.toFixed(1)}% is 5%+ above your goal (${goalBf.toFixed(1)}%)`,
+        explanation: "Reducing starchy carbs to help you lean out",
+        color: "amber",
+      };
+    } else if (diff <= -3 && builderType === "performance_competition") {
+      return {
+        carbsDelta: starchPerSlot,
+        proteinDelta: 0,
+        fatDelta: 0,
+        direction: "increase" as const,
+        label: `${currentBf.toFixed(1)}% is below your goal (${goalBf.toFixed(1)}%)`,
+        explanation: "Adding starchy carbs to fuel performance",
+        color: "blue",
+      };
+    } else if (Math.abs(diff) <= 3) {
+      return {
+        carbsDelta: 0,
+        proteinDelta: 0,
+        fatDelta: 0,
+        direction: "neutral" as const,
+        label: `${currentBf.toFixed(1)}% is within range of goal (${goalBf.toFixed(1)}%)`,
+        explanation: "Your starchy carb allocation stays standard",
+        color: "green",
+      };
+    }
+
+    return {
+      carbsDelta: 0,
+      proteinDelta: 0,
+      fatDelta: 0,
+      direction: "neutral" as const,
+      label: `${currentBf.toFixed(1)}% is moderately above goal (${goalBf.toFixed(1)}%)`,
+      explanation: "Your starchy carb allocation stays standard for now",
+      color: "green",
+    };
+  }, [latestEntry, builderType]);
+
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (open && !hasSpokenRef.current) {
@@ -99,7 +163,29 @@ export default function BodyCompositionSection({
   };
 
   const handleSheetSaved = () => {
+    setAdjustmentApplied(false);
     loadLatest();
+  };
+
+  const handlePreviewChanges = () => {
+    if (!starchImpact || starchImpact.carbsDelta === 0) return;
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmApply = () => {
+    if (starchImpact && onApplyAdjustments) {
+      onApplyAdjustments({
+        protein: starchImpact.proteinDelta,
+        carbs: starchImpact.carbsDelta,
+        fat: starchImpact.fatDelta,
+      });
+      setAdjustmentApplied(true);
+    }
+    setShowConfirmDialog(false);
+  };
+
+  const handleCancelApply = () => {
+    setShowConfirmDialog(false);
   };
 
   const sourceLabel = (s: string) => {
@@ -124,6 +210,12 @@ export default function BodyCompositionSection({
   if (!isRelevantBuilder) {
     return null;
   }
+
+  const deltaColor = (val: number) =>
+    val > 0 ? "text-green-400" : val < 0 ? "text-red-400" : "text-white/60";
+
+  const formatDelta = (val: number) =>
+    `${val > 0 ? "+" : ""}${val}g`;
 
   return (
     <Card className="bg-zinc-900/80 border border-white/30 text-white mt-5">
@@ -202,27 +294,76 @@ export default function BodyCompositionSection({
                   )}
                 </div>
 
-                <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                    <div className="text-xs text-blue-200/90">
-                      <p className="mb-2">
-                        <strong>How this affects your meals:</strong>
+                {starchImpact && (
+                  <div className={`p-4 rounded-lg border ${
+                    starchImpact.direction === "reduce"
+                      ? "bg-amber-900/20 border-amber-500/30"
+                      : starchImpact.direction === "increase"
+                        ? "bg-blue-900/20 border-blue-500/30"
+                        : "bg-green-900/20 border-green-500/30"
+                  }`}>
+                    <div className="text-xs font-medium text-white/80 mb-2">
+                      Impact on your macros:
+                    </div>
+                    <p className="text-sm text-white/90 mb-2">
+                      {starchImpact.explanation}
+                    </p>
+                    <p className="text-xs text-white/60 italic mb-3">
+                      {starchImpact.label}
+                    </p>
+
+                    {starchImpact.carbsDelta !== 0 && (
+                      <>
+                        <div className="flex gap-4 text-sm mb-3">
+                          <span className={deltaColor(starchImpact.proteinDelta)}>
+                            Protein: {formatDelta(starchImpact.proteinDelta)}
+                          </span>
+                          <span className={deltaColor(starchImpact.carbsDelta)}>
+                            Carbs: {formatDelta(starchImpact.carbsDelta)}
+                          </span>
+                          <span className={deltaColor(starchImpact.fatDelta)}>
+                            Fat: {formatDelta(starchImpact.fatDelta)}
+                          </span>
+                        </div>
+
+                        {onApplyAdjustments && !adjustmentApplied && (
+                          <Button
+                            onClick={handlePreviewChanges}
+                            className="w-full bg-lime-600 border border-2 border-lime-400 text-white"
+                          >
+                            Preview Changes
+                          </Button>
+                        )}
+
+                        {adjustmentApplied && (
+                          <div className="flex items-center gap-2 text-sm text-green-400">
+                            <Check className="h-4 w-4" />
+                            <span>Adjustment applied to your macros</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {starchImpact.carbsDelta === 0 && (
+                      <div className="flex items-center gap-2 text-sm text-green-400">
+                        <Check className="h-4 w-4" />
+                        <span>No macro changes needed</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!starchImpact && latestEntry.goalBodyFatPct === null && (
+                  <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-blue-200/90">
+                        Add a goal body fat % to see how your body composition
+                        affects your starchy carb allocation.
                       </p>
-                      <ul className="space-y-1 list-disc list-inside">
-                        <li>
-                          Above goal by 5%+: Fewer starchy carb options to help
-                          you lean out
-                        </li>
-                        <li>Within 3% of goal: Standard starchy carb allocation</li>
-                        <li>
-                          Below goal: Additional carbs for performance (if
-                          applicable)
-                        </li>
-                      </ul>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <Button
                   onClick={openSheet}
@@ -275,6 +416,71 @@ export default function BodyCompositionSection({
         onOpenChange={setSheetOpen}
         onSaved={handleSheetSaved}
       />
+
+      {showConfirmDialog && starchImpact && starchImpact.carbsDelta !== 0 && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full bg-zinc-900 border border-blue-500/50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertCircle className="h-5 w-5 text-blue-400" />
+                <h3 className="text-lg font-semibold text-white">
+                  Apply Body Composition Adjustment?
+                </h3>
+              </div>
+
+              <p className="text-sm text-white/80 mb-4">
+                Based on your body fat data, these adjustments will be applied
+                to your macro targets:
+              </p>
+
+              <div className="p-4 bg-black/30 rounded-lg mb-2">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className={`text-lg font-bold ${deltaColor(starchImpact.proteinDelta)}`}>
+                      {formatDelta(starchImpact.proteinDelta)}
+                    </div>
+                    <div className="text-xs text-white/60">Protein</div>
+                  </div>
+                  <div>
+                    <div className={`text-lg font-bold ${deltaColor(starchImpact.carbsDelta)}`}>
+                      {formatDelta(starchImpact.carbsDelta)}
+                    </div>
+                    <div className="text-xs text-white/60">Carbs</div>
+                  </div>
+                  <div>
+                    <div className={`text-lg font-bold ${deltaColor(starchImpact.fatDelta)}`}>
+                      {formatDelta(starchImpact.fatDelta)}
+                    </div>
+                    <div className="text-xs text-white/60">Fat</div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-white/60 italic mb-4">
+                {starchImpact.explanation} — {starchImpact.label}
+              </p>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelApply}
+                  className="flex-1 bg-black border-white/20 text-white"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmApply}
+                  className="flex-1 bg-lime-600 text-white"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Apply
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </Card>
   );
 }
