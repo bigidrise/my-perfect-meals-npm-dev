@@ -3056,6 +3056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
 
       const startTime = Date.now();
+      console.log("🔥 CRAVING ROUTE HIT", startTime);
       console.log("🎯 Craving creator request:", { targetMealType, cravingInput, userId, servings: validatedServings });
 
       // Get user data for medical personalization
@@ -3158,6 +3159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Would add ingredients to shopping list:", generatedMeal.ingredients);
       }
 
+      console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
       console.log("🍽️ Stable craving creator generated meal:", generatedMeal.name);
       console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
       console.log("📊 Generation source:", result.source);

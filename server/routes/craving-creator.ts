@@ -46,6 +46,7 @@ router.post('/generate', requireAuth, async (req, res) => {
   try {
     const { craving, mealType = 'dinner', userId = '1', macroTargets, servings = 2 } = req.body;
     
+    console.log('🔥 CRAVING ROUTE HIT', Date.now());
     console.log('🍳 Craving Creator generating meal:', { craving, mealType, userId, servings });
     
     // Import the actual AI meal generator
@@ -117,6 +118,7 @@ router.post('/generate', requireAuth, async (req, res) => {
       servings: servings
     };
 
+    console.log('✅ CRAVING ROUTE COMPLETE', Date.now());
     console.log('✅ Craving Creator generated:', generatedMeal.name);
     console.log('🏥 Medical badges:', generatedMeal.medicalBadges?.length || 0);
     console.log('🍽️ Servings:', servings);
