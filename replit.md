@@ -63,5 +63,6 @@ MyPerfectMeals is a comprehensive meal planning and nutrition application built 
 - Target: Autoscale deployment
 
 ## Recent Changes
+- 2026-02-21: Added ProCare account upgrade feature - existing users can upgrade to coach/ProCare role without creating a new account (POST /api/auth/upgrade-to-procare endpoint + updated ProCareAttestation page)
 - 2026-02-17: Initial Replit setup - configured workflow, database, and deployment
 - Fixed translate.ts to lazily initialize OpenAI client (prevents crash without API key)
