@@ -1,7 +1,8 @@
 // Macro Calculator Guided Walkthrough Voice Scripts
 // Uses the same 11L voice system as Chef's Kitchen and ProTip
 
-export const MACRO_CALC_ENTRY = " I see we have a new user, nice to meet you. If your looking for the perfect meal your in the right place. I’m Chef Copilot and Welcome to the Macro Calculator. Together we're going to set up your macro numbers to acheive your nutrition goals. Begin by tapping the start button below.";
+export const MACRO_CALC_ENTRY =
+  " I see we have a new user, nice to meet you. If your looking for the perfect meal your in the right place. I’m Chef Copilot and Welcome to the Macro Calculator. Together we're going to set up your macro numbers to acheive your nutrition goals. Begin by tapping the start button below.";
 
 export const MACRO_CALC_GOAL =
   "What's your goal? Are you wanting to cut, maintain, or build?";
@@ -12,16 +13,13 @@ export const MACRO_CALC_BODY_TYPE =
 export const MACRO_CALC_UNITS =
   "Do you use imperial system, the (U.S) or metric system?";
 
-export const MACRO_CALC_SEX =
-  "What is your biological sex male or female?";
+export const MACRO_CALC_SEX = "What is your biological sex male or female?";
 
-export const MACRO_CALC_AGE =
-  "What's your age?";
+export const MACRO_CALC_AGE = "What's your age?";
 
 export const MACRO_CALC_HEIGHT = "How tall are you?";
 
-export const MACRO_CALC_WEIGHT =
-  "What's your current weight?";
+export const MACRO_CALC_WEIGHT = "What's your current weight?";
 
 export const MACRO_CALC_ACTIVITY =
   "How active are you? Sedentary, lightly active, moderately active, very active, or athlete level?";
@@ -42,7 +40,7 @@ export const MACRO_CALC_BODY_COMPOSITION =
   "This part is completely optional. If you've had your body fat measured — by a DEXA scan, BodPod, calipers, or even a smart scale — you can enter that here. It helps us fine-tune your starchy carb numbers based on where you are versus your goal. But if you haven't had it done, or you're not sure what your body fat is, that's totally fine. Most people skip this. Just tap Skip and we'll move on.";
 
 export const MACRO_CALC_SAVE =
-  "Perfect! Hit save and you're all set. Your macros are locked in. Let's head over to our meal bulder";
+  "Perfect! Hit save and you're all set. Your macros are locked in. Let's head over to our meal builder";
 
 export const MACRO_CALC_DONE = "";
 
