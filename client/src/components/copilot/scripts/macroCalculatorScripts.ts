@@ -37,7 +37,7 @@ export const MACRO_CALC_STARCH =
   "Starchy carbs are the biggest lever for controlling body weight, so we place them intentionally. Tap one of the buttons below to choose your strategy. One Starch Meal puts all your carbs in one meal for appetite control. Flex Split divides them across two meals if you prefer. Tap the one that fits your lifestyle, then we'll lock it in.";
 
 export const MACRO_CALC_BODY_COMPOSITION =
-  "This part is completely optional. If you've had your body fat measured — by a DEXA scan, BodPod, calipers, or even a smart scale — you can enter that here. It helps us fine-tune your starchy carb numbers based on where you are versus your goal. But if you haven't had it done, or you're not sure what your body fat is, that's totally fine. Most people skip this. Just tap Skip and we'll move on.";
+  "This part is completely optional. If you've had your body fat measured — by DEXA scan, BodPod, calipers, or even a smart scale — you can enter that here. It helps us fine-tune your starchy carb numbers based on where you are versus your goal. But if you haven't had it done, or you're not sure what your body fat is, that's totally fine. Most people skip this. Just tap Skip and we'll move on.";
 
 export const MACRO_CALC_SAVE =
   "Perfect! Hit save and you're all set. Your macros are locked in. Let's head over to our meal builder";
