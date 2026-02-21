@@ -19,15 +19,23 @@ function normUnit(u?: string) {
 }
 
 function toCanonical(item: Item): Normalized {
-  const name = item.name.trim();
+  const displayName = String(item.name).trim();     // keep for UI
+  const keyName = displayName.toLowerCase();        // use only for merging keys
+
   const unit = normUnit(item.unit);
   let qty = Number(item.qty ?? 1) || 1;
 
   // convert oz→lb, g→kg to reduce fragmentation
-  if (unit === "oz") { qty = qty / OZ_PER_LB; return { ...item, qty, unit: "lb", key: `${name}|lb|${item.aisle||""}` }; }
-  if (unit === "g")  { qty = qty / G_PER_KG; return { ...item, qty, unit: "kg", key: `${name}|kg|${item.aisle||""}` }; }
+  if (unit === "oz") {
+    qty = qty / OZ_PER_LB;
+    return { ...item, name: displayName, qty, unit: "lb", key: `${keyName}|lb|${item.aisle || ""}` };
+  }
+  if (unit === "g") {
+    qty = qty / G_PER_KG;
+    return { ...item, name: displayName, qty, unit: "kg", key: `${keyName}|kg|${item.aisle || ""}` };
+  }
 
-  return { ...item, qty, unit, key: `${name}|${unit}|${item.aisle||""}` };
+  return { ...item, name: displayName, qty, unit, key: `${keyName}|${unit}|${item.aisle || ""}` };
 }
 
 export function mergeIngredients(items: Item[]): Item[] {
