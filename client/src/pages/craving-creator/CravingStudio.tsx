@@ -889,46 +889,57 @@ export default function CravingStudio() {
                     </div>
                   </div>
 
-                  {/* Macros */}
-                  <div className="grid grid-cols-4 gap-4 text-center">
-                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                      <div className="text-lg font-bold text-white">
-                        {mealToShow.calories || 0}
-                      </div>
-                      <div className="text-xs text-white">Calories</div>
-                    </div>
-                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                      <div className="text-lg font-bold text-white">
-                        {mealToShow.protein || 0}g
-                      </div>
-                      <div className="text-xs text-white">Protein</div>
-                    </div>
-                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                      <div className="text-lg font-bold text-white">
-                        {mealToShow.carbs || 0}g
-                      </div>
-                      <div className="text-xs text-white">Carbs</div>
-                    </div>
-                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
-                      <div className="text-lg font-bold text-white">
-                        {mealToShow.fat || 0}g
-                      </div>
-                      <div className="text-xs text-white">Fat</div>
-                    </div>
-                  </div>
+                  {/* Macros - Per Serving */}
+                  {(() => {
+                    const s = Math.max(1, Math.round(servings ?? 1));
+                    return (
+                      <>
+                        {s > 1 && (
+                          <p className="text-xs text-white/60 text-center">Macros shown per serving</p>
+                        )}
+                        <div className="grid grid-cols-4 gap-4 text-center">
+                          <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                            <div className="text-lg font-bold text-white">
+                              {Math.round((mealToShow.calories || 0) / s)}
+                            </div>
+                            <div className="text-xs text-white">Calories</div>
+                          </div>
+                          <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                            <div className="text-lg font-bold text-white">
+                              {Math.round((mealToShow.protein || 0) / s)}g
+                            </div>
+                            <div className="text-xs text-white">Protein</div>
+                          </div>
+                          <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                            <div className="text-lg font-bold text-white">
+                              {Math.round((mealToShow.carbs || 0) / s)}g
+                            </div>
+                            <div className="text-xs text-white">Carbs</div>
+                          </div>
+                          <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                            <div className="text-lg font-bold text-white">
+                              {Math.round((mealToShow.fat || 0) / s)}g
+                            </div>
+                            <div className="text-xs text-white">Fat</div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
 
                   {/* Standardized 3-Row Button Layout */}
                   <div className="space-y-2">
-                    {/* Row 1: Add to Macros (full width) */}
+                    {/* Row 1: Add to Macros (full width) - logs per-serving amounts */}
                     <button
                       onClick={() => {
+                        const s = Math.max(1, Math.round(servings ?? 1));
                         setQuickView({
-                          protein: Math.round(generatedMeal.protein || 0),
-                          carbs: Math.round(generatedMeal.carbs || 0),
+                          protein: Math.round((generatedMeal.protein || 0) / s),
+                          carbs: Math.round((generatedMeal.carbs || 0) / s),
                           starchyCarbs: 0,
                           fibrousCarbs: 0,
-                          fat: Math.round(generatedMeal.fat || 0),
-                          calories: Math.round(generatedMeal.calories || 0),
+                          fat: Math.round((generatedMeal.fat || 0) / s),
+                          calories: Math.round((generatedMeal.calories || 0) / s),
                           dateISO: new Date().toISOString().slice(0, 10),
                           mealSlot: "snacks",
                         });
@@ -1024,7 +1035,7 @@ export default function CravingStudio() {
                   {generatedMeal.ingredients?.length > 0 && (
                     <div>
                       <h4 className="font-semibold mb-2 text-white">
-                        Ingredients:
+                        Ingredients{(servings ?? 1) > 1 ? ` (for ${servings} servings)` : ""}:
                       </h4>
                       <ul className="text-sm text-white/80 space-y-1">
                         {generatedMeal.ingredients.map((ing, i) => (

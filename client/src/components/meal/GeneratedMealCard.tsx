@@ -115,22 +115,28 @@ export default function GeneratedMealCard({
     setLocation("/lifestyle/chefs-kitchen");
   };
 
-  const handleAddToMacros = () => {
-    const s = Math.max(1, Math.round(servings ?? 1));
-    const protein = generatedMeal.nutrition?.protein || generatedMeal.protein || 0;
-    const carbs = generatedMeal.nutrition?.carbs || generatedMeal.carbs || 0;
-    const fat = generatedMeal.nutrition?.fat || generatedMeal.fat || 0;
-    const starchyCarbs = generatedMeal.nutrition?.starchyCarbs || generatedMeal.starchyCarbs || 0;
-    const fibrousCarbs = generatedMeal.nutrition?.fibrousCarbs || generatedMeal.fibrousCarbs || 0;
-    const calories = generatedMeal.nutrition?.calories || generatedMeal.calories || (protein * 4 + carbs * 4 + fat * 9);
+  const s = Math.max(1, Math.round(servings ?? 1));
 
+  const totalProtein = generatedMeal.nutrition?.protein || generatedMeal.protein || 0;
+  const totalCarbs = generatedMeal.nutrition?.carbs || generatedMeal.carbs || 0;
+  const totalFat = generatedMeal.nutrition?.fat || generatedMeal.fat || 0;
+  const totalStarchyCarbs = generatedMeal.nutrition?.starchyCarbs || generatedMeal.starchyCarbs || 0;
+  const totalFibrousCarbs = generatedMeal.nutrition?.fibrousCarbs || generatedMeal.fibrousCarbs || 0;
+  const totalCalories = generatedMeal.nutrition?.calories || generatedMeal.calories || (totalProtein * 4 + totalCarbs * 4 + totalFat * 9);
+
+  const perServingCalories = Math.round(totalCalories / s);
+  const perServingProtein = Math.round(totalProtein / s);
+  const perServingCarbs = Math.round(totalCarbs / s);
+  const perServingFat = Math.round(totalFat / s);
+
+  const handleAddToMacros = () => {
     setQuickView({
-      protein: Math.round(protein * s),
-      carbs: Math.round(carbs * s),
-      starchyCarbs: Math.round(starchyCarbs * s),
-      fibrousCarbs: Math.round(fibrousCarbs * s),
-      fat: Math.round(fat * s),
-      calories: Math.round(calories * s),
+      protein: perServingProtein,
+      carbs: perServingCarbs,
+      starchyCarbs: Math.round(totalStarchyCarbs / s),
+      fibrousCarbs: Math.round(totalFibrousCarbs / s),
+      fat: perServingFat,
+      calories: perServingCalories,
       dateISO: new Date().toISOString().slice(0, 10),
       mealSlot: null,
     });
@@ -198,29 +204,32 @@ export default function GeneratedMealCard({
         </div>
       </div>
 
-      {/* 4. Macros Grid */}
+      {/* 4. Macros Grid - Per Serving */}
+      {s > 1 && (
+        <p className="text-xs text-white/60 text-center">Macros shown per serving</p>
+      )}
       <div className="grid grid-cols-4 gap-4 text-center">
         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
           <div className="text-lg font-bold text-white">
-            {mealToShow.calories || 0}
+            {perServingCalories}
           </div>
           <div className="text-xs text-white">Calories</div>
         </div>
         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
           <div className="text-lg font-bold text-white">
-            {mealToShow.protein || 0}g
+            {perServingProtein}g
           </div>
           <div className="text-xs text-white">Protein</div>
         </div>
         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
           <div className="text-lg font-bold text-white">
-            {mealToShow.carbs || 0}g
+            {perServingCarbs}g
           </div>
           <div className="text-xs text-white">Carbs</div>
         </div>
         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
           <div className="text-lg font-bold text-white">
-            {mealToShow.fat || 0}g
+            {perServingFat}g
           </div>
           <div className="text-xs text-white">Fat</div>
         </div>
@@ -246,7 +255,7 @@ export default function GeneratedMealCard({
       {generatedMeal.ingredients?.length > 0 && (
         <div>
           <h4 className="font-semibold mb-2 text-white">
-            Ingredients:
+            Ingredients{s > 1 ? ` (for ${s} servings)` : ""}:
           </h4>
           <ul className="text-sm text-white/80 space-y-1">
             {generatedMeal.ingredients.map((ing, i) => (
