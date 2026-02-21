@@ -6,7 +6,8 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { User, getCurrentUser, getAuthHeaders, getAuthToken } from "@/lib/auth";
+
+import { User, getCurrentUser, getAuthHeaders, getAuthToken, clearAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.removeItem("mpm_current_user");
           localStorage.removeItem("userId");
           localStorage.removeItem("isAuthenticated");
-          localStorage.removeItem("authToken");
+          clearAuthToken();
           if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
             window.location.href = "/login";
           }
@@ -162,7 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.removeItem("mpm_current_user");
         localStorage.removeItem("userId");
         localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("authToken");
+        clearAuthToken();
         if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
           window.location.href = "/login";
         }
