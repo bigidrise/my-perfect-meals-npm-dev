@@ -122,6 +122,74 @@ router.post("/api/auth/signup", async (req, res) => {
 });
 
 /**
+ * POST /api/auth/upgrade-to-procare
+ * Upgrades an existing authenticated user to coach/ProCare role
+ */
+router.post("/api/auth/upgrade-to-procare", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.authUser.id;
+    const { procare } = req.body;
+
+    if (!procare || !procare.professionalCategory) {
+      return res.status(400).json({ error: "Professional category is required" });
+    }
+
+    const validRoles = ["trainer", "physician"];
+    const validCategories = ["certified", "experienced", "non_certified"];
+
+    if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
+      return res.status(400).json({ error: "Professional role (trainer or physician) is required" });
+    }
+    if (!validCategories.includes(procare.professionalCategory)) {
+      return res.status(400).json({ error: "Invalid professional category" });
+    }
+    if (!procare.attestationText || !procare.attestedAt) {
+      return res.status(400).json({ error: "Attestation is required for professional accounts" });
+    }
+
+    const updateValues: any = {
+      role: "coach",
+      isProCare: true,
+      professionalRole: procare.professionalRole,
+      professionalCategory: procare.professionalCategory,
+      procareEntryPath: procare.procareEntryPath || procare.professionalCategory,
+      attestationText: procare.attestationText,
+      attestedAt: new Date(procare.attestedAt),
+      plan: "procare",
+      subscriptionPlan: "procare",
+      subscriptionStatus: "active",
+      planLookupKey: "mpm_procare_monthly",
+      entitlements: ["procare", "care_team", "lab_metrics"],
+    };
+
+    if (procare.credentialType) updateValues.credentialType = procare.credentialType;
+    if (procare.credentialBody) updateValues.credentialBody = procare.credentialBody;
+    if (procare.credentialNumber) updateValues.credentialNumber = procare.credentialNumber;
+    if (procare.credentialYear) updateValues.credentialYear = procare.credentialYear;
+
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateValues)
+      .where(eq(users.id, userId))
+      .returning();
+
+    console.log("✅ Upgraded user to ProCare:", updatedUser.email, "ID:", updatedUser.id);
+
+    res.json({
+      success: true,
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      isProCare: updatedUser.isProCare,
+      professionalRole: updatedUser.professionalRole,
+    });
+  } catch (error: any) {
+    console.error("ProCare upgrade error:", error);
+    res.status(500).json({ error: "Failed to upgrade account" });
+  }
+});
+
+/**
  * POST /api/auth/login
  * Authenticates user and returns user data
  */

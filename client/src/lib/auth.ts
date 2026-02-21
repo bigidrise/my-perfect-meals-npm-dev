@@ -177,6 +177,22 @@ export function clearProCareSignupData() {
   keys.forEach((k) => localStorage.removeItem(k));
 }
 
+export async function upgradeToProCare(procareData: ProCareSignupData): Promise<any> {
+  const res = await fetch(`${apiUrl}/api/auth/upgrade-to-procare`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ procare: procareData }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to upgrade account");
+  }
+  return res.json();
+}
+
 export async function signUp(email: string, password: string, procareData?: ProCareSignupData | null): Promise<User> {
   if (password.length < 6) {
     throw new Error("Password must be at least 6 characters");

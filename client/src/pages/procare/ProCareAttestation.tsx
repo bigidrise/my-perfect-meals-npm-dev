@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, ShieldCheck, FileCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShieldCheck, FileCheck, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getProCareSignupData, upgradeToProCare, clearProCareSignupData } from "@/lib/auth";
 
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
@@ -19,8 +21,13 @@ const CATEGORY_LABELS: Record<ProfessionalCategory, string> = {
 
 export default function ProCareAttestation() {
   const [, setLocation] = useLocation();
+  const { user, refreshUser } = useAuth();
   const [accepted, setAccepted] = useState(false);
   const [category, setCategory] = useState<ProfessionalCategory | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     const stored = localStorage.getItem("procare_category") as ProfessionalCategory | null;
@@ -35,7 +42,7 @@ export default function ProCareAttestation() {
 
   const attestationText = ATTESTATION_V1[category];
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!accepted) return;
 
     localStorage.setItem("procare_attestation_text", attestationText);
@@ -43,7 +50,28 @@ export default function ProCareAttestation() {
     localStorage.setItem("procare_attested_at", new Date().toISOString());
     localStorage.setItem("procare_entry_path", category);
 
-    setLocation("/auth?procare=true");
+    if (isLoggedIn) {
+      setUpgrading(true);
+      setError(null);
+      try {
+        const procareData = getProCareSignupData();
+        if (!procareData) {
+          setError("Missing professional information. Please go back and complete the identity step.");
+          setUpgrading(false);
+          return;
+        }
+        await upgradeToProCare(procareData);
+        clearProCareSignupData();
+        await refreshUser();
+        localStorage.setItem("coachMode", "self");
+        setLocation("/dashboard");
+      } catch (err: any) {
+        setError(err.message || "Failed to upgrade account. Please try again.");
+        setUpgrading(false);
+      }
+    } else {
+      setLocation("/auth?procare=true");
+    }
   };
 
   return (
@@ -67,10 +95,21 @@ export default function ProCareAttestation() {
 
             <h1 className="text-2xl font-bold mb-2">Professional Acknowledgment</h1>
             <p className="text-white/60 text-sm max-w-sm mx-auto">
-              Please review and accept the following before creating your professional account.
+              {isLoggedIn
+                ? "Please review and accept the following to upgrade your account to ProCare."
+                : "Please review and accept the following before creating your professional account."}
             </p>
           </div>
         </div>
+
+        {/* Upgrade Notice for Logged-in Users */}
+        {isLoggedIn && (
+          <div className="mb-6 p-4 rounded-xl border border-emerald-400/20 bg-emerald-900/10">
+            <p className="text-sm text-emerald-300">
+              Signed in as <span className="font-semibold">{user.email}</span>. Your existing account will be upgraded to ProCare.
+            </p>
+          </div>
+        )}
 
         {/* Selected Role Summary */}
         <div className="mb-6 p-4 rounded-xl border border-white/10 bg-white/5">
@@ -111,6 +150,13 @@ export default function ProCareAttestation() {
           </p>
         </button>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mt-4 p-3 rounded-xl border border-red-400/30 bg-red-900/20">
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        )}
+
         {/* Trust Message */}
         <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-400/10">
           <p className="text-xs text-white/50 text-center">
@@ -123,11 +169,25 @@ export default function ProCareAttestation() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
         <Button
           onClick={handleContinue}
-          disabled={!accepted}
+          disabled={!accepted || upgrading}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-40"
         >
-          Create Professional Account
-          <ArrowRight className="w-5 h-5" />
+          {upgrading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Upgrading Account...
+            </>
+          ) : isLoggedIn ? (
+            <>
+              Upgrade to ProCare
+              <ArrowRight className="w-5 h-5" />
+            </>
+          ) : (
+            <>
+              Create Professional Account
+              <ArrowRight className="w-5 h-5" />
+            </>
+          )}
         </Button>
       </div>
     </div>
