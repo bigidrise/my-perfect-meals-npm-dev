@@ -30,18 +30,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = useCallback(async (): Promise<User | null> => {
     const token = getAuthToken();
     if (!token) {
-      console.log("⚠️ [AuthContext] No token - skipping refresh");
+      console.log("⚠️ [AuthContext] No token found - skipping refresh");
       return null;
     }
 
     try {
-      console.log("📡 [AuthContext] Refreshing user...");
+      console.log(
+        "📡 [AuthContext] Refreshing user with token:",
+        token.substring(0, 10) + "...",
+      );
+      const headers = {
+        ...getAuthHeaders(),
+        Authorization: `Bearer ${token}`, // Ensure Bearer token is sent
+      };
+      console.log("Request headers:", headers);
+
       const response = await fetch(apiUrl(`/api/user/profile`), {
-        headers: { ...getAuthHeaders() },
+        method: "GET",
+        headers,
       });
+
+      console.log("Refresh response status:", response.status);
+      console.log("Refresh response headers:", [...response.headers.entries()]);
 
       if (response.ok) {
         const userData = await response.json();
+        console.log("Refresh user data:", userData);
         const updatedUser: User = {
           id: userData.id,
           email: userData.email,
@@ -81,17 +95,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
-        console.log("✅ [AuthContext] User refreshed:", updatedUser.email);
+        console.log(
+          "✅ [AuthContext] User refreshed successfully:",
+          updatedUser.email,
+        );
         return updatedUser;
       } else {
-        console.log(
-          "⚠️ [AuthContext] Refresh failed - status:",
+        const errorText = await response.text();
+        console.error(
+          "Refresh failed - status:",
           response.status,
+          "body:",
+          errorText,
         );
         return null;
       }
     } catch (error) {
-      console.error("❌ [AuthContext] Refresh error:", error);
+      console.error("❌ [AuthContext] Refresh network error:", error);
       return null;
     }
   }, []);
@@ -103,19 +123,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const appleReviewFullAccess =
         localStorage.getItem("appleReviewFullAccess") === "true";
 
+      console.log(
+        "InitializeAuth - token exists:",
+        !!token,
+        "currentUser:",
+        currentUser,
+      );
+
       if (token && currentUser && !currentUser.id.startsWith("guest-")) {
         setUser(currentUser);
         const freshUser = await refreshUser();
         if (!freshUser) {
           console.log(
-            "⚠️ [AuthContext] refreshUser returned null - clearing state",
+            "⚠️ [AuthContext] refreshUser returned null - clearing state and redirecting",
           );
           setUser(null);
           localStorage.removeItem("mpm_current_user");
           localStorage.removeItem("userId");
           localStorage.removeItem("isAuthenticated");
           localStorage.removeItem("authToken");
-          if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+          if (
+            window.location.pathname !== "/login" &&
+            window.location.pathname !== "/welcome"
+          ) {
             window.location.href = "/login";
           }
         }
@@ -138,6 +168,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
         setUser(demoUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(demoUser));
+        console.log("✅ [AuthContext] Apple Review full access mode enabled");
       } else if (isGuestMode()) {
         const guestSession = getGuestSession();
         const guestUser: User = {
@@ -156,14 +187,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
           activeBoard: "weekly",
         };
         setUser(guestUser);
+        console.log("✅ [AuthContext] Guest mode enabled");
       } else {
-        console.log("⚠️ [AuthContext] No valid auth - clearing state");
+        console.log(
+          "⚠️ [AuthContext] No valid auth - clearing state and redirecting",
+        );
         setUser(null);
         localStorage.removeItem("mpm_current_user");
         localStorage.removeItem("userId");
         localStorage.removeItem("isAuthenticated");
         localStorage.removeItem("authToken");
-        if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+        if (
+          window.location.pathname !== "/login" &&
+          window.location.pathname !== "/welcome"
+        ) {
           window.location.href = "/login";
         }
       }
