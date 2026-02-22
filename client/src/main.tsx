@@ -72,22 +72,41 @@ import("./app-entry")
         import("react-dom/client")
           .then((ReactDOM) => {
             console.log("[MPM Boot] React loaded, mounting app");
-            const root = ReactDOM.createRoot(rootEl);
-            root.render(
-              <React.StrictMode>
-                <AppEntry />
-              </React.StrictMode>,
-            );
-
-            hideSplashSafely();
+            try {
+              const root = ReactDOM.createRoot(rootEl);
+              root.render(
+                <React.StrictMode>
+                  <AppEntry />
+                </React.StrictMode>,
+              );
+              console.log("[MPM Boot] render() called successfully");
+              hideSplashSafely();
+            } catch (renderErr: any) {
+              console.error("[MPM Boot] Render threw synchronously:", renderErr?.name, renderErr?.message, renderErr?.stack);
+              hideSplashSafely();
+            }
           })
           .catch((err) => {
             console.error("React bootstrap failed:", err);
+            if (err instanceof Error) {
+              console.error("  name:", err.name);
+              console.error("  message:", err.message);
+              console.error("  stack:", err.stack);
+            } else {
+              try { console.error("  raw:", JSON.stringify(err)); } catch { console.error("  type:", typeof err, Object.keys(err || {})); }
+            }
             hideSplashSafely();
           }),
       )
       .catch((err) => {
         console.error("React import failed:", err);
+        if (err instanceof Error) {
+          console.error("  name:", err.name);
+          console.error("  message:", err.message);
+          console.error("  stack:", err.stack);
+        } else {
+          try { console.error("  raw:", JSON.stringify(err)); } catch { console.error("  type:", typeof err, Object.keys(err || {})); }
+        }
         hideSplashSafely();
       });
   })
