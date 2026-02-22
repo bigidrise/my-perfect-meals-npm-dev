@@ -58,6 +58,7 @@ patchFetchForCredentials();
 
 import("./app-entry")
   .then(({ AppEntry }) => {
+    console.log("[MPM Boot] app-entry loaded successfully");
     const rootEl = document.getElementById("root");
 
     if (!rootEl) {
@@ -70,6 +71,7 @@ import("./app-entry")
       .then((React) =>
         import("react-dom/client")
           .then((ReactDOM) => {
+            console.log("[MPM Boot] React loaded, mounting app");
             const root = ReactDOM.createRoot(rootEl);
             root.render(
               <React.StrictMode>
@@ -77,7 +79,6 @@ import("./app-entry")
               </React.StrictMode>,
             );
 
-            // ✅ Correct splash hide
             hideSplashSafely();
           })
           .catch((err) => {
@@ -92,5 +93,16 @@ import("./app-entry")
   })
   .catch((error) => {
     console.error("Failed to load app-entry:", error);
+    if (error instanceof Error) {
+      console.error("  name:", error.name);
+      console.error("  message:", error.message);
+      console.error("  stack:", error.stack);
+    } else {
+      try {
+        console.error("  raw error:", JSON.stringify(error));
+      } catch {
+        console.error("  error type:", typeof error, Object.keys(error || {}));
+      }
+    }
     hideSplashSafely();
   });

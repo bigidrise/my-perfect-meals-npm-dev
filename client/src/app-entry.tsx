@@ -2,9 +2,7 @@ import "@/lib/fetch-credentials-patch";
 import App from "./App";
 import "./index.css";
 import { GlobalErrorBoundary, setupGlobalErrorHandling } from './components/GlobalErrorBoundary';
-
-// Set up global error handling immediately
-setupGlobalErrorHandling();
+import { useEffect } from "react";
 
 // Register service worker for PWA functionality and offline support
 if ('serviceWorker' in navigator) {
@@ -19,8 +17,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Export AppEntry for use by main.tsx
 export function AppEntry() {
+  useEffect(() => {
+    setupGlobalErrorHandling();
+  }, []);
+
   return (
     <GlobalErrorBoundary>
       <App />
