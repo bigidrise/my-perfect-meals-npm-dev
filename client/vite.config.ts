@@ -12,9 +12,7 @@ export default defineConfig({
     }
   },
   build: {
-    rollupOptions: {
-      external: ["@squareetlabs/capacitor-subscriptions"]
-    }
+    rollupOptions: {}
   },
   server: {
     host: "0.0.0.0",
