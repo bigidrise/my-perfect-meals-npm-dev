@@ -62,7 +62,17 @@ MyPerfectMeals is a comprehensive meal planning and nutrition application built 
 - Run: `npm run start` (runs compiled production server)
 - Target: Autoscale deployment
 
+## iOS / Capacitor Notes
+- Capacitor config uses bundled mode (`webDir: "client/dist"`, NO `server.url`)
+- iOS loads from `capacitor://localhost` using bundled assets
+- StoreKit uses `@squareetlabs/capacitor-subscriptions` plugin (lazy dynamic import)
+- Product IDs: `mpm_basic_plan_999`, `mpm_premium_plan_1999`, `mpm_ultimate_plan_2999`
+- After build: run `npx cap sync ios` before opening in Xcode
+- Global error handling (`setupGlobalErrorHandling`) deferred to useEffect to avoid swallowing module evaluation errors
+
 ## Recent Changes
+- 2026-02-22: Fixed iOS Capacitor runtime crash - removed `server.url` from both `capacitor.config.ts` and `ios/App/App/capacitor.config.json` (was forcing remote URL loading instead of bundled mode); deferred `setupGlobalErrorHandling()` to useEffect to stop swallowing boot errors; added detailed error logging in main.tsx dynamic import catch handler
+- 2026-02-22: Fixed shopping aggregate bar z-index in Diabetic Menu Builder (removed overflow-x-hidden)
 - 2026-02-21: Added ProCare account upgrade feature - existing users can upgrade to coach/ProCare role without creating a new account (POST /api/auth/upgrade-to-procare endpoint + updated ProCareAttestation page)
 - 2026-02-17: Initial Replit setup - configured workflow, database, and deployment
 - Fixed translate.ts to lazily initialize OpenAI client (prevents crash without API key)
