@@ -6,6 +6,7 @@ import {
 } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { registerPlugin } from "@capacitor/core";
 
 let SubscriptionsPlugin: any = null;
 
@@ -15,8 +16,7 @@ async function getPlugin() {
   }
   if (!SubscriptionsPlugin) {
     try {
-      const mod = await import("@squareetlabs/capacitor-subscriptions");
-      SubscriptionsPlugin = mod.Subscriptions;
+      SubscriptionsPlugin = registerPlugin('Subscriptions');
     } catch (e) {
       console.warn("[StoreKit] Failed to load plugin:", e);
       return null;
