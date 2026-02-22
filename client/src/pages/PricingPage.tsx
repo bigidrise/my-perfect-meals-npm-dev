@@ -21,7 +21,6 @@ import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
 import {
   isIosNativeShell,
   IOS_PAYMENT_MESSAGE,
-  openAppleSubscriptions,
 } from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +28,7 @@ import {
   fetchProducts,
   restorePurchases,
   purchaseProduct,
+  manageSubscriptions,
   type StoreKitProduct,
 } from "@/lib/storekit";
 import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
@@ -394,7 +394,18 @@ export default function PricingPage() {
             </div>
 
             <Button
-              onClick={openAppleSubscriptions}
+              onClick={async () => {
+                try {
+                  await manageSubscriptions();
+                } catch (e) {
+                  console.error("[Pricing] Failed to open manage subscriptions:", e);
+                  toast({
+                    title: "Unable to open subscriptions",
+                    description: "Please go to Settings > Apple ID > Subscriptions to manage your plan.",
+                    variant: "destructive",
+                  });
+                }
+              }}
               className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
             >
               <ExternalLink className="w-4 h-4 mr-2" />

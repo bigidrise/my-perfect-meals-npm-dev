@@ -63,21 +63,28 @@ export async function fetchProducts(): Promise<StoreKitProduct[]> {
     
     for (const productId of IOS_PRODUCT_IDS) {
       try {
-        const product = await plugin.getProductDetails({ productId });
-        if (product) {
+        console.log("[StoreKit] Fetching product:", productId);
+        const result = await plugin.getProductDetails({ productIdentifier: productId });
+        console.log("[StoreKit] getProductDetails result:", JSON.stringify(result));
+
+        if (result && result.responseCode === 0 && result.data) {
+          const product = result.data;
           products.push({
-            productId: product.id || productId,
-            displayName: product.displayName || product.title || productId,
-            displayPrice: product.displayPrice || product.price || "$0.00",
+            productId: product.productIdentifier || productId,
+            displayName: product.displayName || productId,
+            displayPrice: product.price || "$0.00",
             price: parseFloat(product.price) || 0,
             description: product.description || "",
           });
+        } else {
+          console.warn(`[StoreKit] Product ${productId} not found: code=${result?.responseCode}, msg=${result?.responseMessage}`);
         }
       } catch (e) {
         console.warn(`[StoreKit] Failed to fetch product ${productId}:`, e);
       }
     }
 
+    console.log("[StoreKit] Total products loaded:", products.length);
     return products;
   } catch (e) {
     console.error("[StoreKit] Failed to fetch products:", e);
@@ -108,18 +115,31 @@ export async function purchaseProduct(
   try {
     console.log("[StoreKit] Initiating purchase for:", iosProduct.productId);
 
-    await plugin.purchaseProduct({
-      productId: iosProduct.productId,
+    const purchaseResult = await plugin.purchaseProduct({
+      productIdentifier: iosProduct.productId,
     });
 
-    let transaction;
+    console.log("[StoreKit] Purchase result:", JSON.stringify(purchaseResult));
+
+    if (purchaseResult.responseCode !== 0) {
+      if (purchaseResult.responseCode === 3) {
+        return { success: false, error: "Purchase cancelled" };
+      }
+      return { success: false, error: purchaseResult.responseMessage || "Purchase failed" };
+    }
+
+    let transactionId = `tx_${Date.now()}`;
     try {
-      transaction = await plugin.getMostRecentTransaction();
+      const latestTx = await plugin.getLatestTransaction({
+        productIdentifier: iosProduct.productId,
+      });
+      console.log("[StoreKit] Latest transaction:", JSON.stringify(latestTx));
+      if (latestTx.responseCode === 0 && latestTx.data) {
+        transactionId = latestTx.data.transactionId || latestTx.data.originalId || transactionId;
+      }
     } catch (txError) {
       console.warn("[StoreKit] Failed to get transaction, using fallback:", txError);
-      transaction = null;
     }
-    const transactionId = transaction?.transactionId || transaction?.id || `tx_${Date.now()}`;
 
     console.log("[StoreKit] Purchase successful:", transactionId);
 
@@ -137,11 +157,6 @@ export async function purchaseProduct(
       return { success: false, error: "Purchase cancelled" };
     }
 
-    // iPad-specific: Handle layout/constraint errors gracefully
-    if (e.message?.includes("constraint") || e.message?.includes("layout")) {
-      return { success: false, error: "Purchase temporarily unavailable. Please try again." };
-    }
-
     return { success: false, error: e.message || "Purchase failed. Please try again." };
   }
 }
@@ -153,18 +168,19 @@ export async function restorePurchases(): Promise<PurchaseResult[]> {
   }
 
   try {
-    const entitlements = await plugin.getCurrentEntitlements();
+    const result = await plugin.getCurrentEntitlements();
+    console.log("[StoreKit] Entitlements result:", JSON.stringify(result));
 
-    if (!entitlements || entitlements.length === 0) {
+    if (!result || result.responseCode !== 0 || !result.data || result.data.length === 0) {
       console.log("[StoreKit] No purchases to restore");
       return [];
     }
 
     const results: PurchaseResult[] = [];
 
-    for (const ent of entitlements) {
-      const productId = ent.productId || ent.id;
-      const transactionId = ent.transactionId || ent.id || `restore_${Date.now()}`;
+    for (const ent of result.data) {
+      const productId = ent.productIdentifier;
+      const transactionId = ent.transactionId || ent.originalId || `restore_${Date.now()}`;
 
       try {
         await verifyAndActivate(transactionId, productId);
@@ -196,16 +212,32 @@ export async function getCurrentEntitlements(): Promise<string[]> {
   }
 
   try {
-    const entitlements = await plugin.getCurrentEntitlements();
+    const result = await plugin.getCurrentEntitlements();
+    console.log("[StoreKit] getCurrentEntitlements result:", JSON.stringify(result));
 
-    if (!entitlements || entitlements.length === 0) {
+    if (!result || result.responseCode !== 0 || !result.data || result.data.length === 0) {
       return [];
     }
 
-    return entitlements.map((e: any) => e.productId || e.id);
+    return result.data.map((e: any) => e.productIdentifier);
   } catch (e) {
     console.error("[StoreKit] Failed to get entitlements:", e);
     return [];
+  }
+}
+
+export async function manageSubscriptions(): Promise<void> {
+  const plugin = await getPlugin();
+  if (!plugin) {
+    console.warn("[StoreKit] Plugin not available for manageSubscriptions");
+    return;
+  }
+
+  try {
+    await plugin.manageSubscriptions();
+  } catch (e) {
+    console.error("[StoreKit] Failed to open manage subscriptions:", e);
+    throw e;
   }
 }
 
