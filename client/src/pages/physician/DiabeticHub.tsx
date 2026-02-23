@@ -197,9 +197,12 @@ export default function DiabeticHub() {
     });
   };
 
-  return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 relative pb-safe-nav">
+        return (
+          <>
+            <div
+              className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 relative"
+              style={{ paddingBottom: "var(--safe-bottom)" }}
+            >
         {/* Enhanced Glass Overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/5 via-transparent to-black/10 pointer-events-none" />
 
