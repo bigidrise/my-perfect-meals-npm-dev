@@ -127,7 +127,8 @@ export default function PricingPage() {
   }
 
   if (isIosNativeShell()) {
-    const hasSubscription = !!user?.planLookupKey;
+    const iosSubscriptionPlans = ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"];
+    const hasIosSubscription = !!user?.planLookupKey && iosSubscriptionPlans.includes(user.planLookupKey);
 
     return (
       <motion.div
@@ -159,7 +160,7 @@ export default function PricingPage() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
         >
           {/* Current subscription status */}
-          {hasSubscription && (
+          {hasIosSubscription && (
             <div className="bg-lime-500/20 border border-lime-500/30 rounded-xl p-4 mb-6 text-center">
               <p className="text-lime-400 font-medium text-sm">
                 Active Subscription
@@ -174,7 +175,7 @@ export default function PricingPage() {
           )}
 
           {/* Subscription plans - Always show products to Apple reviewers */}
-          {!hasSubscription && (
+          {!hasIosSubscription && (
             <div className="space-y-4 mb-6">
               <h2 className="text-xl font-bold text-center mb-4">
                 Choose Your Plan
@@ -412,7 +413,7 @@ export default function PricingPage() {
               Open Apple Subscriptions
             </Button>
 
-            {!hasSubscription && (
+            {!hasIosSubscription && (
               <Button
                 onClick={handleRestorePurchases}
                 disabled={restoringPurchases}
