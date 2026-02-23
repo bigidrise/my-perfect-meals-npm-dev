@@ -29,10 +29,7 @@ import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AddSnackModal } from "@/components/AddSnackModal";
-import {
-  RemainingMacrosFooter,
-  type ConsumedMacros,
-} from "@/components/biometrics/RemainingMacrosFooter";
+import { RemainingMacrosFooter, type ConsumedMacros } from "@/components/biometrics/RemainingMacrosFooter";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
 import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
@@ -49,15 +46,15 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import {
-  getWeekStartISOInTZ,
-  getTodayISOSafe,
-  weekDatesInTZ,
-  nextWeekISO,
-  prevWeekISO,
+import { 
+  getWeekStartISOInTZ, 
+  getTodayISOSafe, 
+  weekDatesInTZ, 
+  nextWeekISO, 
+  prevWeekISO, 
   formatWeekLabel,
   formatDateDisplay,
-  todayISOInTZ,
+  todayISOInTZ 
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -110,51 +107,14 @@ import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 
 const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Small Portions",
-    description:
-      "All meals are designed for reduced appetite with maximum nutrition density.",
-  },
-  {
-    icon: "2",
-    title: "Add Your Meals",
-    description: "Tap + on any meal card to add GLP-1 optimized recipes.",
-  },
-  {
-    icon: "3",
-    title: "Duplicate Days",
-    description: "Copy meals to other days when you find what works for you.",
-  },
-  {
-    icon: "4",
-    title: "Track Macros",
-    description:
-      "Send meals to the Macro Calculator to ensure adequate protein.",
-  },
-  {
-    icon: "5",
-    title: "Shopping List",
-    description: "Export ingredients for easy meal prep shopping.",
-  },
-  {
-    icon: "6",
-    title: "Track Progress at Bottom",
-    description:
-      "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics.",
-  },
-  {
-    icon: "🥔",
-    title: "Watch Your Starch Slots",
-    description:
-      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
-  },
-  {
-    icon: "*",
-    title: "What the Asterisks Mean",
-    description:
-      "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first.",
-  },
+  { icon: "1", title: "Small Portions", description: "All meals are designed for reduced appetite with maximum nutrition density." },
+  { icon: "2", title: "Add Your Meals", description: "Tap + on any meal card to add GLP-1 optimized recipes." },
+  { icon: "3", title: "Duplicate Days", description: "Copy meals to other days when you find what works for you." },
+  { icon: "4", title: "Track Macros", description: "Send meals to the Macro Calculator to ensure adequate protein." },
+  { icon: "5", title: "Shopping List", description: "Export ingredients for easy meal prep shopping." },
+  { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
+  { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
+  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
 
 // Helper function to create new snacks
@@ -175,20 +135,19 @@ function makeNewSnack(nextIndex: number): Meal {
 export default function GLP1MealBuilder() {
   const quickTour = useQuickTour("glp1-meal-builder");
   const [, setLocation] = useLocation();
-
+  
   // ProCare route detection for Client Dashboard button
   const [, proParams] = useRoute("/pro/clients/:id/glp1-builder");
   const proClientId = proParams?.id;
-
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
-  const [weekStartISO, setWeekStartISO] = React.useState<string>(
-    getWeekStartISOInTZ("America/Chicago"),
-  );
+  const [weekStartISO, setWeekStartISO] =
+    React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -207,13 +166,13 @@ export default function GLP1MealBuilder() {
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
       userId: user?.id,
-      builderId: "glp1-meal-builder",
+      builderId: 'glp1-meal-builder',
       weekStartISO,
     },
     board,
     setBoard,
     hookLoading,
-    hookBoard,
+    hookBoard
   );
 
   // Sync hook board to local state (skip if draft is active)
@@ -280,30 +239,23 @@ export default function GLP1MealBuilder() {
 
   // AI Premades modal state
   const [premadePickerOpen, setPremadePickerOpen] = useState(false);
-  const [premadePickerSlot, setPremadePickerSlot] = useState<
-    "breakfast" | "lunch" | "dinner"
-  >("breakfast");
+  const [premadePickerSlot, setPremadePickerSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
 
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
-  const [createWithChefSlot, setCreateWithChefSlot] = useState<
-    "breakfast" | "lunch" | "dinner"
-  >("breakfast");
+  const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
 
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
     const resolved = user?.id ? getResolvedTargets(user.id) : null;
-    const strategy = resolved?.starchStrategy || "one";
+    const strategy = resolved?.starchStrategy || 'one';
     const dayLists = getDayLists(board, activeDayISO);
-    const existingMeals: StarchContext["existingMeals"] = [];
-    for (const slot of ["breakfast", "lunch", "dinner"] as const) {
+    const existingMeals: StarchContext['existingMeals'] = [];
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
       const meals = dayLists[slot] || [];
       for (const meal of meals) {
-        existingMeals.push({
-          slot,
-          hasStarch: classifyMeal(meal).isStarchMeal,
-        });
+        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
       }
     }
     return { strategy, existingMeals };
@@ -318,169 +270,125 @@ export default function GLP1MealBuilder() {
   // Locked day dialog state
   const [lockedDayDialogOpen, setLockedDayDialogOpen] = useState(false);
   const [additionalMacrosOpen, setAdditionalMacrosOpen] = useState(false);
-  const [pendingLockedDayISO, setPendingLockedDayISO] = useState<string>("");
-
+  const [pendingLockedDayISO, setPendingLockedDayISO] = useState<string>('');
+  
   // Guard function: checks if current day is locked before allowing edits
-  const checkLockedDay = useCallback(
-    (forDayISO?: string): boolean => {
-      const dayToCheck = forDayISO || activeDayISO;
-      if (
-        planningMode === "day" &&
-        dayToCheck &&
-        isDayLocked(dayToCheck, user?.id)
-      ) {
-        setPendingLockedDayISO(dayToCheck);
-        setLockedDayDialogOpen(true);
-        return true; // Day is locked, block edit
-      }
-      return false; // Day is not locked, allow edit
-    },
-    [activeDayISO, planningMode, user?.id],
-  );
-
+  const checkLockedDay = useCallback((forDayISO?: string): boolean => {
+    const dayToCheck = forDayISO || activeDayISO;
+    if (planningMode === 'day' && dayToCheck && isDayLocked(dayToCheck, user?.id)) {
+      setPendingLockedDayISO(dayToCheck);
+      setLockedDayDialogOpen(true);
+      return true; // Day is locked, block edit
+    }
+    return false; // Day is not locked, allow edit
+  }, [activeDayISO, planningMode, user?.id]);
+  
   // Handle "Go to Today" from locked day dialog
   const handleGoToToday = useCallback(() => {
     const today = todayISOInTZ("America/Chicago");
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
-    setPendingLockedDayISO("");
+    setPendingLockedDayISO('');
   }, []);
 
   // Handler for snack selection
-  const handleSnackSelect = useCallback(
-    async (snack: any) => {
-      if (!board) return;
+  const handleSnackSelect = useCallback(async (snack: any) => {
+    if (!board) return;
+    
+    // Guard: Check if day is locked before allowing edits
+    if (checkLockedDay()) return;
 
-      // Guard: Check if day is locked before allowing edits
-      if (checkLockedDay()) return;
-
-      try {
-        // Add to the snacks slot
-        if (
-          FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
-          activeDayISO
-        ) {
-          // Add to specific day
-          const dayLists = getDayLists(board, activeDayISO);
-          const updatedDayLists = {
-            ...dayLists,
-            snacks: [...dayLists.snacks, snack],
-          };
-          const updatedBoard = setDayLists(
-            board,
-            activeDayISO,
-            updatedDayLists,
-          );
-          setBoard(updatedBoard);
-          await saveBoard(updatedBoard);
-        } else {
-          // Week mode: update local board and save
-          const updatedBoard = {
-            ...board,
-            lists: {
-              ...board.lists,
-              snacks: [...board.lists.snacks, snack],
-            },
-            version: board.version + 1,
-            meta: {
-              ...board.meta,
-              lastUpdatedAt: new Date().toISOString(),
-            },
-          };
-          setBoard(updatedBoard);
-          await saveBoard(updatedBoard);
-        }
-
-        // Dispatch board update event
-        window.dispatchEvent(
-          new CustomEvent("board:updated", { detail: { weekStartISO } }),
-        );
-        window.dispatchEvent(new Event("macros:updated"));
-      } catch (error) {
-        console.error("Failed to add snack:", error);
-        toast({
-          title: "Error",
-          description: "Failed to add snack. Please try again.",
-          variant: "destructive",
-        });
+    try {
+      // Add to the snacks slot
+      if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
+        // Add to specific day
+        const dayLists = getDayLists(board, activeDayISO);
+        const updatedDayLists = {
+          ...dayLists,
+          snacks: [...dayLists.snacks, snack]
+        };
+        const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
+        await saveBoard(updatedBoard);
+      } else {
+        // Week mode: update local board and save
+        const updatedBoard = {
+          ...board,
+          lists: {
+            ...board.lists,
+            snacks: [...board.lists.snacks, snack]
+          },
+          version: board.version + 1,
+          meta: {
+            ...board.meta,
+            lastUpdatedAt: new Date().toISOString()
+          }
+        };
+        setBoard(updatedBoard);
+        await saveBoard(updatedBoard);
       }
-    },
-    [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast],
-  );
+
+      // Dispatch board update event
+      window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
+      window.dispatchEvent(new Event("macros:updated"));
+    } catch (error) {
+      console.error("Failed to add snack:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add snack. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast]);
 
   // Handler for premade meal selection
-  const handlePremadeSelect = useCallback(
-    async (meal: any) => {
-      if (!board) return;
+  const handlePremadeSelect = useCallback(async (meal: any) => {
+    if (!board) return;
+    
+    // Guard: Check if day is locked before allowing edits
+    if (checkLockedDay()) return;
 
-      // Guard: Check if day is locked before allowing edits
-      if (checkLockedDay()) return;
-
-      try {
-        // Add to the appropriate slot based on premadePickerSlot
-        if (
-          FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
-          activeDayISO
-        ) {
-          // Add to specific day
-          const dayLists = getDayLists(board, activeDayISO);
-          const updatedDayLists = {
-            ...dayLists,
-            [premadePickerSlot]: [
-              ...dayLists[premadePickerSlot as keyof typeof dayLists],
-              meal,
-            ],
-          };
-          const updatedBoard = setDayLists(
-            board,
-            activeDayISO,
-            updatedDayLists,
-          );
-          await saveBoard(updatedBoard);
-        } else {
-          // Week mode: update local board and save
-          const updatedBoard = {
-            ...board,
-            lists: {
-              ...board.lists,
-              [premadePickerSlot]: [...board.lists[premadePickerSlot], meal],
-            },
-            version: board.version + 1,
-            meta: {
-              ...board.meta,
-              lastUpdatedAt: new Date().toISOString(),
-            },
-          };
-          setBoard(updatedBoard);
-          await saveBoard(updatedBoard);
-        }
-
-        // Dispatch board update event
-        window.dispatchEvent(
-          new CustomEvent("board:updated", { detail: { weekStartISO } }),
-        );
-        window.dispatchEvent(new Event("macros:updated"));
-      } catch (error) {
-        console.error("Failed to add premade meal:", error);
-        toast({
-          title: "Error",
-          description: "Failed to add meal. Please try again.",
-          variant: "destructive",
-        });
+    try {
+      // Add to the appropriate slot based on premadePickerSlot
+      if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
+        // Add to specific day
+        const dayLists = getDayLists(board, activeDayISO);
+        const updatedDayLists = {
+          ...dayLists,
+          [premadePickerSlot]: [...dayLists[premadePickerSlot as keyof typeof dayLists], meal]
+        };
+        const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        await saveBoard(updatedBoard);
+      } else {
+        // Week mode: update local board and save
+        const updatedBoard = {
+          ...board,
+          lists: {
+            ...board.lists,
+            [premadePickerSlot]: [...board.lists[premadePickerSlot], meal]
+          },
+          version: board.version + 1,
+          meta: {
+            ...board.meta,
+            lastUpdatedAt: new Date().toISOString()
+          }
+        };
+        setBoard(updatedBoard);
+        await saveBoard(updatedBoard);
       }
-    },
-    [
-      board,
-      premadePickerSlot,
-      planningMode,
-      activeDayISO,
-      saveBoard,
-      weekStartISO,
-      toast,
-    ],
-  );
+
+      // Dispatch board update event
+      window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
+      window.dispatchEvent(new Event("macros:updated"));
+    } catch (error) {
+      console.error("Failed to add premade meal:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add meal. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [board, premadePickerSlot, planningMode, activeDayISO, saveBoard, weekStartISO, toast]);
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -644,9 +552,9 @@ export default function GLP1MealBuilder() {
   const handleDuplicateDay = useCallback(
     async (targetDates: string[]) => {
       if (!board || !activeDayISO) return;
-
+      
       // Guard: Check if any TARGET date is locked before allowing edits
-      const lockedTarget = targetDates.find((d) => isDayLocked(d, user?.id));
+      const lockedTarget = targetDates.find(d => isDayLocked(d, user?.id));
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
         setLockedDayDialogOpen(true);
@@ -669,37 +577,17 @@ export default function GLP1MealBuilder() {
         }
 
         if (result.errors.length > 0) {
-          toast({
-            title: "Partial duplicate",
-            description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`,
-            variant: "destructive",
-          });
-        } else if (
-          result.otherWeeksSaved > 0 &&
-          result.currentWeekDayCount === 0
-        ) {
-          toast({
-            title: "Saved to future week",
-            description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.`,
-          });
+          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
+          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
         } else if (result.otherWeeksSaved > 0) {
-          toast({
-            title: "Day duplicated",
-            description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks`,
-          });
+          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
         } else {
-          toast({
-            title: "Day duplicated",
-            description: `Copied to ${result.currentWeekDayCount} day(s)`,
-          });
+          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
+        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
@@ -709,16 +597,11 @@ export default function GLP1MealBuilder() {
   const handleDuplicateWeek = useCallback(
     async (targetWeekStartISO: string) => {
       if (!board) return;
-
+      
       // Guard: Check if any day in TARGET week is locked
       // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ
-      const targetWeekDates = weekDatesInTZ(
-        targetWeekStartISO,
-        "America/Chicago",
-      );
-      const lockedTarget = targetWeekDates.find((d) =>
-        isDayLocked(d, user?.id),
-      );
+      const targetWeekDates = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+      const lockedTarget = targetWeekDates.find(d => isDayLocked(d, user?.id));
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
         setLockedDayDialogOpen(true);
@@ -733,10 +616,7 @@ export default function GLP1MealBuilder() {
         days: board.days
           ? Object.fromEntries(
               Object.entries(board.days).map(([oldDateISO, lists]) => {
-                const targetWeekDatesSafe = weekDatesInTZ(
-                  targetWeekStartISO,
-                  "America/Chicago",
-                );
+                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
                 const dayIndex = weekDatesList.indexOf(oldDateISO);
                 const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
 
@@ -897,11 +777,9 @@ export default function GLP1MealBuilder() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
+
   const handleChefMealGenerated = useCallback(
-    async (
-      generatedMeal: any,
-      slot: "breakfast" | "lunch" | "dinner" | "snacks",
-    ) => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
@@ -938,15 +816,13 @@ export default function GLP1MealBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
-
+        
         // Persist to database (was missing - caused meals to not persist!)
         await saveBoard(updatedBoard);
         clearAIMealsCache();
-
+        
         // Dispatch events for other components
-        window.dispatchEvent(
-          new CustomEvent("board:updated", { detail: { weekStartISO } }),
-        );
+        window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
         window.dispatchEvent(new Event("macros:updated"));
       }
 
@@ -977,7 +853,12 @@ export default function GLP1MealBuilder() {
     console.log("🌅 Midnight macro reset triggered");
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: ["/api/users", user?.id || "", "macros", "today"],
+      queryKey: [
+        "/api/users",
+        user?.id || "",
+        "macros",
+        "today",
+      ],
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));
@@ -1022,9 +903,7 @@ export default function GLP1MealBuilder() {
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      console.log(
-        "[Network] Board load encountered an issue, using cached data if available",
-      );
+      console.log("[Network] Board load encountered an issue, using cached data if available");
     }
   }, [error]);
 
@@ -1221,7 +1100,7 @@ export default function GLP1MealBuilder() {
   ) {
     // Guard: Check if day is locked before allowing edits
     if (checkLockedDay()) return;
-
+    
     setBoard((prev: any) => {
       const next = structuredClone(prev);
       if (m === null) next.lists[list].splice(idx, 1);
@@ -1254,7 +1133,7 @@ export default function GLP1MealBuilder() {
     meal: Meal,
   ) {
     if (!board) return;
-
+    
     // Guard: Check if day is locked before allowing edits
     if (checkLockedDay()) return;
 
@@ -1354,14 +1233,8 @@ export default function GLP1MealBuilder() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
-          starchyCarbs:
-            (meal as any).starchyCarbs ??
-            (meal.nutrition as any)?.starchyCarbs ??
-            0,
-          fibrousCarbs:
-            (meal as any).fibrousCarbs ??
-            (meal.nutrition as any)?.fibrousCarbs ??
-            0,
+          starchyCarbs: (meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0,
+          fibrousCarbs: (meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk",
         };
@@ -1392,7 +1265,7 @@ export default function GLP1MealBuilder() {
 
   if (loading || !board)
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pt-20">
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pt-16">
         <div className="text-white/80 p-6 text-center">
           Loading meal board...
         </div>
@@ -1404,7 +1277,7 @@ export default function GLP1MealBuilder() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-16 overflow-x-hidden"
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
       {/* Universal Safe-Area Header */}
       <div
@@ -1415,19 +1288,13 @@ export default function GLP1MealBuilder() {
           {/* Row 1: Main Navigation */}
           <div className="flex items-center gap-2">
             <Button
-              onClick={() =>
-                setLocation(
-                  proClientId ? `/pro/clients/${proClientId}` : "/glp1-hub",
-                )
-              }
+              onClick={() => setLocation(proClientId ? `/pro/clients/${proClientId}` : "/glp1-hub")}
               className="bg-black/10 hover:bg-black/10 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1 px-3 h-10 flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
               <span className="text-sm font-medium">Back</span>
             </Button>
-            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-              GLP-1 Builder
-            </h1>
+            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">GLP-1 Builder</h1>
             <div className="flex items-center gap-2">
               <MedicalSourcesInfo asPillButton />
               <QuickTourButton onClick={quickTour.openTour} />
@@ -1455,50 +1322,52 @@ export default function GLP1MealBuilder() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <NutritionBudgetBanner className="mb-2" />
-        <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
-          <div className="px-4 py-4 flex flex-col gap-3">
-            {/* ROW 1: Week Dates (centered) */}
-            <div className="flex justify-center">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onPrevWeek}
-                  className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Previous week"
-                >
-                  ‹
-                </button>
+      <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
+        <div className="px-4 py-4 flex flex-col gap-3">
+          {/* ROW 1: Week Dates (centered) */}
+          <div className="flex justify-center">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onPrevWeek}
+                className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
+                aria-label="Previous week"
+              >
+                ‹
+              </button>
 
-                <div className="text-sm font-medium text-white/90">
-                  {weekStartISO ? formatWeekLabel(weekStartISO) : "Loading…"}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={onNextWeek}
-                  className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Next week"
-                >
-                  ›
-                </button>
+              <div className="text-sm font-medium text-white/90">
+                {weekStartISO ? formatWeekLabel(weekStartISO) : "Loading…"}
               </div>
+
+              <button
+                type="button"
+                onClick={onNextWeek}
+                className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
+                aria-label="Next week"
+              >
+                ›
+              </button>
             </div>
+          </div>
 
-            {/* ROW 2 & 3: Days of Week */}
-            {FEATURES.dayPlanning === "alpha" && weekDatesList.length > 0 && (
-              <div className="flex justify-center">
-                <DayChips
-                  weekDates={weekDatesList}
-                  activeDayISO={activeDayISO}
-                  onDayChange={setActiveDayISO}
-                />
-              </div>
-            )}
+          {/* ROW 2 & 3: Days of Week */}
+          {FEATURES.dayPlanning === "alpha" && weekDatesList.length > 0 && (
+            <div className="flex justify-center">
+              <DayChips
+                weekDates={weekDatesList}
+                activeDayISO={activeDayISO}
+                onDayChange={setActiveDayISO}
+              />
+            </div>
+          )}
 
-            {/* ROW 4: Daily Starch Indicator */}
-            {FEATURES.dayPlanning === "alpha" && activeDayISO && board && (
+          {/* ROW 4: Daily Starch Indicator */}
+          {FEATURES.dayPlanning === "alpha" &&
+            activeDayISO &&
+            board && (
               <div className="flex justify-center">
-                <DailyStarchIndicator
+                <DailyStarchIndicator 
                   meals={(() => {
                     const dayLists = getDayLists(board, activeDayISO);
                     return [
@@ -1512,36 +1381,37 @@ export default function GLP1MealBuilder() {
               </div>
             )}
 
-            {/* ROW 5: Bottom Actions */}
-            <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <Button
-                onClick={handleSave}
-                disabled={saving || justSaved}
-                size="sm"
-                className={`${
-                  justSaved
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                    : "bg-emerald-600/80 hover:bg-emerald-600 text-white"
-                } text-xs px-3 py-1 rounded-xl transition-all duration-200`}
-                data-wt="wmb-save-week-button"
-              >
-                {justSaved ? (
-                  <>
-                    <Check className="h-3 w-3 mr-1" />
-                    Saved ✓
-                  </>
-                ) : saving ? (
-                  "Saving…"
-                ) : (
-                  "Save Plan"
-                )}
-              </Button>
+          {/* ROW 5: Bottom Actions */}
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
 
-              <button
-                type="button"
-                onClick={() => setShowDuplicateDayModal(true)}
-                data-testid="duplicate-button"
-                className="
+            <Button
+              onClick={handleSave}
+              disabled={saving || justSaved}
+              size="sm"
+              className={`${
+                justSaved
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  : "bg-emerald-600/80 hover:bg-emerald-600 text-white"
+              } text-xs px-3 py-1 rounded-xl transition-all duration-200`}
+              data-wt="wmb-save-week-button"
+            >
+              {justSaved ? (
+                <>
+                  <Check className="h-3 w-3 mr-1" />
+                  Saved ✓
+                </>
+              ) : saving ? (
+                "Saving…"
+              ) : (
+                "Save Plan"
+              )}
+            </Button>
+
+            <button
+              type="button"
+              onClick={() => setShowDuplicateDayModal(true)}
+              data-testid="duplicate-button"
+              className="
                 inline-flex items-center justify-center
                 rounded-2xl
                 px-4 py-2
@@ -1553,238 +1423,134 @@ export default function GLP1MealBuilder() {
                 hover:bg-white/10 hover:border-white/25
                 transition-all
               "
-                style={{ minHeight: 36 }}
-              >
-                Duplicate 📅
-              </button>
-            </div>
+              style={{ minHeight: 36 }}
+            >
+              Duplicate 📅
+            </button>
+
           </div>
         </div>
+      </div>
 
-        <div className="max-w-[1600px] mx-auto px-4 pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-          {/* Render day view or week view based on mode */}
-          {FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
-          activeDayISO &&
-          board
-            ? // DAY MODE: Show only the active day's meals
-              (() => {
-                const dayLists = getDayLists(board, activeDayISO);
-                return lists.map(([key, label]) => (
-                  <section
-                    key={key}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-white/90 text-lg font-medium">
-                        {label}
-                      </h2>
-                      <GlobalMealActionBar
-                        slot={
-                          key as "breakfast" | "lunch" | "dinner" | "snacks"
-                        }
-                        onCreateWithAI={() => {
-                          if (key === "snacks") {
-                            setSnackPickerOpen(true);
-                          } else {
-                            setAiMealSlot(
-                              key as
-                                | "breakfast"
-                                | "lunch"
-                                | "dinner"
-                                | "snacks",
-                            );
-                            setAiMealModalOpen(true);
-                          }
-                        }}
-                        onCreateWithChef={() => {
-                          setCreateWithChefSlot(
-                            key as "breakfast" | "lunch" | "dinner",
-                          );
-                          setCreateWithChefOpen(true);
-                        }}
-                        onSnackCreator={() => {
-                          setSnackCreatorOpen(true);
-                        }}
-                        onManualAdd={() => openManualModal(key)}
-                        onLogSnack={() => {}}
-                        showLogSnack={false}
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      {dayLists[key as keyof typeof dayLists].map(
-                        (meal: Meal, idx: number) => (
-                          <MealCard
-                            key={meal.id}
-                            date={activeDayISO}
-                            slot={key}
-                            meal={meal}
-                            data-wt="wmb-meal-card"
-                            onUpdated={(m) => {
-                              if (m === null) {
-                                // REMOVE MEAL in Day mode - use the new system
-
-                                // 🗑️ If it's an AI meal, also clear from localStorage
-                                if (meal.id.startsWith("ai-meal-")) {
-                                  console.log(
-                                    "🗑️ Deleting AI meal from localStorage:",
-                                    meal.name,
-                                  );
-                                  clearAIMealsCache();
-                                }
-
-                                const updatedDayLists = {
-                                  ...dayLists,
-                                  [key]: dayLists[
-                                    key as keyof typeof dayLists
-                                  ].filter(
-                                    (existingMeal) =>
-                                      existingMeal.id !== meal.id,
-                                  ),
-                                };
-                                const updatedBoard = setDayLists(
-                                  board,
-                                  activeDayISO,
-                                  updatedDayLists,
-                                );
-                                // Optimistic update - remove meal immediately from UI
-                                setBoard(updatedBoard);
-                                // Sync to server in background
-                                putWeekBoard(weekStartISO, updatedBoard)
-                                  .then(({ week }) => {
-                                    // Server confirmed - update with server state
-                                    if (week) setBoard(week);
-                                  })
-                                  .catch((err) => {
-                                    console.error(
-                                      "❌ Delete sync failed (Day mode):",
-                                      err,
-                                    );
-                                    // Meal already removed from UI - will sync on next save
-                                    toast({
-                                      title: "Sync pending",
-                                      description:
-                                        "Changes will sync automatically.",
-                                    });
-                                  });
-                              } else {
-                                // Update meal in day lists
-                                const updatedDayLists = {
-                                  ...dayLists,
-                                  [key]: dayLists[
-                                    key as keyof typeof dayLists
-                                  ].map((existingMeal, i) =>
-                                    i === idx ? m : existingMeal,
-                                  ),
-                                };
-                                const updatedBoard = setDayLists(
-                                  board,
-                                  activeDayISO,
-                                  updatedDayLists,
-                                );
-                                putWeekBoard(weekStartISO, updatedBoard).then(
-                                  ({ week }) => setBoard(week),
-                                );
-                              }
-                            }}
-                          />
-                        ),
-                      )}
-                      {dayLists[key as keyof typeof dayLists].length === 0 && (
-                        <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                          <p className="mb-2">
-                            No {label.toLowerCase()} meals yet
-                          </p>
-                          <p className="text-xs text-white/40">
-                            Use "Create with Chef" or "+" to add meals
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                ));
-              })()
-            : // WEEK MODE: Show traditional week view (legacy lists)
-              lists.map(([key, label]) => (
+      <div className="max-w-[1600px] mx-auto px-4 pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+        {/* Render day view or week view based on mode */}
+        {FEATURES.dayPlanning === "alpha" &&
+        planningMode === "day" &&
+        activeDayISO &&
+        board
+          ? // DAY MODE: Show only the active day's meals
+            (() => {
+              const dayLists = getDayLists(board, activeDayISO);
+              return lists.map(([key, label]) => (
                 <section
                   key={key}
-                  data-meal-id={key === "snacks" ? "snack1" : key}
                   className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">
                       {label}
                     </h2>
-                    <div className="flex gap-2">
-                      {/* Plus button for manual entry */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-white/10"
-                        onClick={() => openManualModal(key)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-
-                      {/* Special Add Snack button for snacks section only */}
-                      {key === "snacks" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/70 hover:bg-white/10 text-xs font-medium"
-                          onClick={() => openPicker("snacks")}
-                        >
-                          Add Snack
-                        </Button>
-                      )}
-                    </div>
+                    <GlobalMealActionBar
+                      slot={key as "breakfast" | "lunch" | "dinner" | "snacks"}
+                      onCreateWithAI={() => {
+                        if (key === "snacks") {
+                          setSnackPickerOpen(true);
+                        } else {
+                          setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                          setAiMealModalOpen(true);
+                        }
+                      }}
+                      onCreateWithChef={() => {
+                        setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
+                        setCreateWithChefOpen(true);
+                      }}
+                      onSnackCreator={() => {
+                        setSnackCreatorOpen(true);
+                      }}
+                      onManualAdd={() => openManualModal(key)}
+                      onLogSnack={() => {}}
+                      showLogSnack={false}
+                    />
                   </div>
 
                   <div className="space-y-3">
-                    {board.lists[key].map((meal: Meal, idx: number) => (
-                      <MealCard
-                        key={meal.id}
-                        date={"board"}
-                        slot={key}
-                        meal={meal}
-                        onUpdated={(m) => {
-                          if (m === null) {
-                            // Remove meal using new API
-                            if (!board) return;
-                            const updatedBoard = {
-                              ...board,
-                              lists: {
-                                ...board.lists,
-                                [key]: board.lists[key].filter(
-                                  (item: Meal) => item.id !== meal.id,
+                    {dayLists[key as keyof typeof dayLists].map(
+                      (meal: Meal, idx: number) => (
+                        <MealCard
+                          key={meal.id}
+                          date={activeDayISO}
+                          slot={key}
+                          meal={meal}
+                          data-wt="wmb-meal-card"
+                          onUpdated={(m) => {
+                            if (m === null) {
+                              // REMOVE MEAL in Day mode - use the new system
+
+                              // 🗑️ If it's an AI meal, also clear from localStorage
+                              if (meal.id.startsWith("ai-meal-")) {
+                                console.log(
+                                  "🗑️ Deleting AI meal from localStorage:",
+                                  meal.name,
+                                );
+                                clearAIMealsCache();
+                              }
+
+                              const updatedDayLists = {
+                                ...dayLists,
+                                [key]: dayLists[
+                                  key as keyof typeof dayLists
+                                ].filter(
+                                  (existingMeal) => existingMeal.id !== meal.id,
                                 ),
-                              },
-                              version: board.version + 1,
-                              meta: {
-                                ...board.meta,
-                                lastUpdatedAt: new Date().toISOString(),
-                              },
-                            };
-                            setBoard(updatedBoard);
-                            saveBoard(updatedBoard).catch((err) => {
-                              console.error(
-                                "❌ Delete sync failed (Board mode):",
-                                err,
+                              };
+                              const updatedBoard = setDayLists(
+                                board,
+                                activeDayISO,
+                                updatedDayLists,
                               );
-                              // Meal already removed from UI - will sync on next save
-                              toast({
-                                title: "Sync pending",
-                                description: "Changes will sync automatically.",
-                              });
-                            });
-                          } else {
-                            onItemUpdated(key, idx, m);
-                          }
-                        }}
-                      />
-                    ))}
-                    {board.lists[key].length === 0 && (
+                              // Optimistic update - remove meal immediately from UI
+                              setBoard(updatedBoard);
+                              // Sync to server in background
+                              putWeekBoard(weekStartISO, updatedBoard)
+                                .then(({ week }) => {
+                                  // Server confirmed - update with server state
+                                  if (week) setBoard(week);
+                                })
+                                .catch((err) => {
+                                  console.error(
+                                    "❌ Delete sync failed (Day mode):",
+                                    err,
+                                  );
+                                  // Meal already removed from UI - will sync on next save
+                                  toast({
+                                    title: "Sync pending",
+                                    description: "Changes will sync automatically.",
+                                  });
+                                });
+                            } else {
+                              // Update meal in day lists
+                              const updatedDayLists = {
+                                ...dayLists,
+                                [key]: dayLists[
+                                  key as keyof typeof dayLists
+                                ].map((existingMeal, i) =>
+                                  i === idx ? m : existingMeal,
+                                ),
+                              };
+                              const updatedBoard = setDayLists(
+                                board,
+                                activeDayISO,
+                                updatedDayLists,
+                              );
+                              putWeekBoard(weekStartISO, updatedBoard).then(
+                                ({ week }) => setBoard(week),
+                              );
+                            }
+                          }}
+                        />
+                      ),
+                    )}
+                    {dayLists[key as keyof typeof dayLists].length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                         <p className="mb-2">
                           No {label.toLowerCase()} meals yet
@@ -1796,7 +1562,96 @@ export default function GLP1MealBuilder() {
                     )}
                   </div>
                 </section>
-              ))}
+              ));
+            })()
+          : // WEEK MODE: Show traditional week view (legacy lists)
+            lists.map(([key, label]) => (
+              <section
+                key={key}
+                data-meal-id={key === "snacks" ? "snack1" : key}
+                className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-white/90 text-lg font-medium">{label}</h2>
+                  <div className="flex gap-2">
+                    {/* Plus button for manual entry */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-white/80 hover:bg-white/10"
+                      onClick={() => openManualModal(key)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+
+                    {/* Special Add Snack button for snacks section only */}
+                    {key === "snacks" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-white/70 hover:bg-white/10 text-xs font-medium"
+                        onClick={() => openPicker("snacks")}
+                      >
+                        Add Snack
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {board.lists[key].map((meal: Meal, idx: number) => (
+                    <MealCard
+                      key={meal.id}
+                      date={"board"}
+                      slot={key}
+                      meal={meal}
+                      onUpdated={(m) => {
+                        if (m === null) {
+                          // Remove meal using new API
+                          if (!board) return;
+                          const updatedBoard = {
+                            ...board,
+                            lists: {
+                              ...board.lists,
+                              [key]: board.lists[key].filter(
+                                (item: Meal) => item.id !== meal.id,
+                              ),
+                            },
+                            version: board.version + 1,
+                            meta: {
+                              ...board.meta,
+                              lastUpdatedAt: new Date().toISOString(),
+                            },
+                          };
+                          setBoard(updatedBoard);
+                          saveBoard(updatedBoard).catch((err) => {
+                            console.error(
+                              "❌ Delete sync failed (Board mode):",
+                              err,
+                            );
+                            // Meal already removed from UI - will sync on next save
+                            toast({
+                              title: "Sync pending",
+                              description: "Changes will sync automatically.",
+                            });
+                          });
+                        } else {
+                          onItemUpdated(key, idx, m);
+                        }
+                      }}
+                    />
+                  ))}
+                  {board.lists[key].length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
+                      <p className="mb-2">No {label.toLowerCase()} meals yet</p>
+                      <p className="text-xs text-white/40">
+                        Use "Create with Chef" or "+" to add meals
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            ))}
 
           {/* Pro Tip Card */}
           <ProTipCard />
@@ -1808,8 +1663,7 @@ export default function GLP1MealBuilder() {
               onQuickAddClick={() => setAdditionalMacrosOpen(true)}
               targetsOverride={(() => {
                 const targetMacros = getMacroTargets(user?.id);
-                if (!targetMacros)
-                  return { protein_g: 0, carbs_g: 0, fat_g: 0 };
+                if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
                 return {
                   protein_g: targetMacros.protein_g || 0,
                   carbs_g: targetMacros.carbs_g || 0,
@@ -1821,489 +1675,424 @@ export default function GLP1MealBuilder() {
             />
           </div>
 
-          {/* Remaining Macros Footer - Inline Mode */}
-          {board &&
-            FEATURES.dayPlanning === "alpha" &&
-            planningMode === "day" &&
-            activeDayISO &&
-            (() => {
-              const dayLists = getDayLists(board, activeDayISO);
-              const computeSlotMacros = (meals: Meal[]) => ({
-                count: meals.length,
-                calories: meals.reduce(
-                  (sum, m) => sum + (m.nutrition?.calories || 0),
-                  0,
-                ),
-                protein: meals.reduce(
-                  (sum, m) => sum + (m.nutrition?.protein || 0),
-                  0,
-                ),
-                carbs: meals.reduce(
-                  (sum, m) => sum + (m.nutrition?.carbs || 0),
-                  0,
-                ),
-                fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
-                starchyCarbs: meals.reduce(
-                  (sum, m) =>
-                    sum +
-                    ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0),
-                  0,
-                ),
-                fibrousCarbs: meals.reduce(
-                  (sum, m) =>
-                    sum +
-                    ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0),
-                  0,
-                ),
-              });
-              const slots = {
-                breakfast: computeSlotMacros(dayLists.breakfast),
-                lunch: computeSlotMacros(dayLists.lunch),
-                dinner: computeSlotMacros(dayLists.dinner),
-                snacks: computeSlotMacros(dayLists.snacks),
-              };
-              const consumed = {
-                calories:
-                  slots.breakfast.calories +
-                  slots.lunch.calories +
-                  slots.dinner.calories +
-                  slots.snacks.calories,
-                protein:
-                  slots.breakfast.protein +
-                  slots.lunch.protein +
-                  slots.dinner.protein +
-                  slots.snacks.protein,
-                carbs:
-                  slots.breakfast.carbs +
-                  slots.lunch.carbs +
-                  slots.dinner.carbs +
-                  slots.snacks.carbs,
-                fat:
-                  slots.breakfast.fat +
-                  slots.lunch.fat +
-                  slots.dinner.fat +
-                  slots.snacks.fat,
-                starchyCarbs:
-                  slots.breakfast.starchyCarbs +
-                  slots.lunch.starchyCarbs +
-                  slots.dinner.starchyCarbs +
-                  slots.snacks.starchyCarbs,
-                fibrousCarbs:
-                  slots.breakfast.fibrousCarbs +
-                  slots.lunch.fibrousCarbs +
-                  slots.dinner.fibrousCarbs +
-                  slots.snacks.fibrousCarbs,
-              };
-              const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
+        {/* Remaining Macros Footer - Inline Mode */}
+        {board &&
+          FEATURES.dayPlanning === "alpha" &&
+          planningMode === "day" &&
+          activeDayISO && (() => {
+            const dayLists = getDayLists(board, activeDayISO);
+            const computeSlotMacros = (meals: Meal[]) => ({
+              count: meals.length,
+              calories: meals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0),
+              protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
+              carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
+              fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+              starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
+              fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
+            });
+            const slots = {
+              breakfast: computeSlotMacros(dayLists.breakfast),
+              lunch: computeSlotMacros(dayLists.lunch),
+              dinner: computeSlotMacros(dayLists.dinner),
+              snacks: computeSlotMacros(dayLists.snacks),
+            };
+            const consumed = {
+              calories: slots.breakfast.calories + slots.lunch.calories + slots.dinner.calories + slots.snacks.calories,
+              protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
+              carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
+              fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
+              starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
+              fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
+            };
+            const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
+            
+            return (
+              <div className="col-span-full mb-6">
+                <RemainingMacrosFooter
+                  consumedOverride={consumed}
+                  showSaveButton={!dayAlreadyLocked}
+                  layoutMode="inline"
+                  onSaveDay={async () => {
+                    const raw = getMacroTargets(user?.id);
+                    const targets = raw 
+                      ? { calories: raw.calories, protein_g: raw.protein_g, carbs_g: raw.carbs_g, fat_g: raw.fat_g }
+                      : { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+                    const result = await lockDay({
+                      dateISO: activeDayISO,
+                      targets,
+                      consumed,
+                      slots,
+                    }, user?.id);
+                    
+                    if (result.alreadyLocked) {
+                      toast({
+                        title: "Already Locked",
+                        description: result.message,
+                        variant: "destructive",
+                      });
+                    } else {
+                      setQuickView({
+                        protein: consumed.protein,
+                        carbs: consumed.carbs,
+                        fat: consumed.fat,
+                        calories: consumed.calories,
+                        dateISO: activeDayISO,
+                      });
+                      toast({
+                        title: "Day Saved to Biometrics",
+                        description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                      });
+                      setLocation('/my-biometrics');
+                    }
+                  }}
+                />
+              </div>
+            );
+          })()}
 
-              return (
-                <div className="col-span-full mb-6">
-                  <RemainingMacrosFooter
-                    consumedOverride={consumed}
-                    showSaveButton={!dayAlreadyLocked}
-                    layoutMode="inline"
-                    onSaveDay={async () => {
-                      const raw = getMacroTargets(user?.id);
-                      const targets = raw
-                        ? {
-                            calories: raw.calories,
-                            protein_g: raw.protein_g,
-                            carbs_g: raw.carbs_g,
-                            fat_g: raw.fat_g,
-                          }
-                        : { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
-                      const result = await lockDay(
-                        {
-                          dateISO: activeDayISO,
-                          targets,
-                          consumed,
-                          slots,
-                        },
-                        user?.id,
-                      );
+        {/* Bottom spacing to clear fixed shopping bar */}
+        <div className="col-span-full h-18" />
+      </div>
 
-                      if (result.alreadyLocked) {
-                        toast({
-                          title: "Already Locked",
-                          description: result.message,
-                          variant: "destructive",
-                        });
-                      } else {
-                        setQuickView({
-                          protein: consumed.protein,
-                          carbs: consumed.carbs,
-                          fat: consumed.fat,
-                          calories: consumed.calories,
-                          dateISO: activeDayISO,
-                        });
-                        toast({
-                          title: "Day Saved to Biometrics",
-                          description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
-                        });
-                        setLocation("/my-biometrics");
-                      }
-                    }}
-                  />
-                </div>
-              );
-            })()}
-
-          {/* Bottom spacing to clear fixed shopping bar */}
-          <div className="col-span-full h-18" />
-        </div>
-
-        {/* MealPickerDrawer handles ALL meal slots (breakfast, lunch, dinner, snacks) */}
-        <MealPickerDrawer
-          open={pickerOpen}
-          list={pickerList}
-          onClose={() => {
-            setPickerOpen(false);
-            setPickerList(null);
-            // Clear pending meal if user cancels
+      {/* MealPickerDrawer handles ALL meal slots (breakfast, lunch, dinner, snacks) */}
+      <MealPickerDrawer
+        open={pickerOpen}
+        list={pickerList}
+        onClose={() => {
+          setPickerOpen(false);
+          setPickerList(null);
+          // Clear pending meal if user cancels
+          if ((window as any).pendingMeal) {
+            delete (window as any).pendingMeal;
+          }
+        }}
+        onPick={(meal) => {
+          if (pickerList) {
+            // Use pending meal from localStorage if available, otherwise use picked meal
+            const mealToAdd = (window as any).pendingMeal || meal;
+            quickAdd(pickerList, mealToAdd);
+            // Clear pending meal after adding
             if ((window as any).pendingMeal) {
               delete (window as any).pendingMeal;
             }
-          }}
-          onPick={(meal) => {
-            if (pickerList) {
-              // Use pending meal from localStorage if available, otherwise use picked meal
-              const mealToAdd = (window as any).pendingMeal || meal;
-              quickAdd(pickerList, mealToAdd);
-              // Clear pending meal after adding
-              if ((window as any).pendingMeal) {
-                delete (window as any).pendingMeal;
-              }
-            }
-            setPickerOpen(false);
-            setPickerList(null);
-          }}
+          }
+          setPickerOpen(false);
+          setPickerList(null);
+        }}
+      />
+
+      <ManualMealModal
+        open={manualModalOpen}
+        onClose={() => {
+          setManualModalOpen(false);
+          setManualModalList(null);
+        }}
+        onSave={(meal) => {
+          if (manualModalList) {
+            quickAdd(manualModalList, meal);
+          }
+          setManualModalOpen(false);
+          setManualModalList(null);
+        }}
+      />
+
+      <AddSnackModal
+        open={showSnackModal}
+        onClose={() => setShowSnackModal(false)}
+        onSave={onSaveSnack}
+      />
+
+      <WeeklyOverviewModal
+        open={showOverview}
+        onClose={() => setShowOverview(false)}
+        weekStartISO={weekStartISO}
+        board={board}
+        onJumpToDay={undefined} // wire later if/when day-level boards are added
+      />
+
+      {/* NEW: Duplicate Day Modal */}
+      {FEATURES.dayPlanning === "alpha" && (
+        <DuplicateDayModal
+          isOpen={showDuplicateDayModal}
+          onClose={() => setShowDuplicateDayModal(false)}
+          onConfirm={handleDuplicateDay}
+          sourceDateISO={activeDayISO}
+          availableDates={weekDatesList.filter((date) => date !== activeDayISO)}
         />
+      )}
 
-        <ManualMealModal
-          open={manualModalOpen}
-          onClose={() => {
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-          onSave={(meal) => {
-            if (manualModalList) {
-              quickAdd(manualModalList, meal);
-            }
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
+      {/* NEW: Duplicate Week Modal */}
+      {FEATURES.dayPlanning === "alpha" && (
+        <DuplicateWeekModal
+          isOpen={showDuplicateWeekModal}
+          onClose={() => setShowDuplicateWeekModal(false)}
+          onConfirm={handleDuplicateWeek}
+          sourceWeekStartISO={weekStartISO}
         />
+      )}
 
-        <AddSnackModal
-          open={showSnackModal}
-          onClose={() => setShowSnackModal(false)}
-          onSave={onSaveSnack}
+      {/* Why Drawer */}
+      {FEATURES.explainMode === "alpha" && (
+        <WhyDrawer
+          open={boardWhyOpen}
+          onClose={() => setBoardWhyOpen(false)}
+          title="Why weekly planning?"
+          reasons={getWeeklyPlanningWhy()}
         />
+      )}
 
-        <WeeklyOverviewModal
-          open={showOverview}
-          onClose={() => setShowOverview(false)}
-          weekStartISO={weekStartISO}
-          board={board}
-          onJumpToDay={undefined} // wire later if/when day-level boards are added
-        />
+      {/* Shopping List Preview Modal */}
+      <ShoppingListPreviewModal
+        isOpen={shoppingListModal.isOpen}
+        onClose={() => setShoppingListModal({ isOpen: false, meal: null })}
+        meal={shoppingListModal.meal}
+      />
 
-        {/* NEW: Duplicate Day Modal */}
-        {FEATURES.dayPlanning === "alpha" && (
-          <DuplicateDayModal
-            isOpen={showDuplicateDayModal}
-            onClose={() => setShowDuplicateDayModal(false)}
-            onConfirm={handleDuplicateDay}
-            sourceDateISO={activeDayISO}
-            availableDates={weekDatesList.filter(
-              (date) => date !== activeDayISO,
-            )}
-          />
-        )}
+      {/* Meal Premade Picker Modal */}
+      <MealPremadePicker
+        open={premadePickerOpen}
+        onClose={() => setPremadePickerOpen(false)}
+        mealType={premadePickerSlot}
+        dietType="glp1"
+        onMealSelect={handlePremadeSelect}
+      />
 
-        {/* NEW: Duplicate Week Modal */}
-        {FEATURES.dayPlanning === "alpha" && (
-          <DuplicateWeekModal
-            isOpen={showDuplicateWeekModal}
-            onClose={() => setShowDuplicateWeekModal(false)}
-            onConfirm={handleDuplicateWeek}
-            sourceWeekStartISO={weekStartISO}
-          />
-        )}
+      {/* Snack Picker Modal - Completely independent system for snacks */}
+      <SnackPickerDrawer
+        open={snackPickerOpen}
+        onClose={() => setSnackPickerOpen(false)}
+        dietType="glp1"
+        onSnackSelect={handleSnackSelect}
+      />
 
-        {/* Why Drawer */}
-        {FEATURES.explainMode === "alpha" && (
-          <WhyDrawer
-            open={boardWhyOpen}
-            onClose={() => setBoardWhyOpen(false)}
-            title="Why weekly planning?"
-            reasons={getWeeklyPlanningWhy()}
-          />
-        )}
+      {/* Create With Chef Modal - with GLP-1 guardrails */}
+      <CreateWithChefModal
+        open={createWithChefOpen}
+        onOpenChange={setCreateWithChefOpen}
+        mealType={createWithChefSlot}
+        onMealGenerated={handleChefMealGenerated}
+        dietType="glp1"
+        starchContext={starchContext}
+      />
 
-        {/* Shopping List Preview Modal */}
-        <ShoppingListPreviewModal
-          isOpen={shoppingListModal.isOpen}
-          onClose={() => setShoppingListModal({ isOpen: false, meal: null })}
-          meal={shoppingListModal.meal}
-        />
+      {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with GLP-1 guardrails */}
+      <SnackCreatorModal
+        open={snackCreatorOpen}
+        onOpenChange={setSnackCreatorOpen}
+        onSnackGenerated={handleSnackSelect}
+        dietType="glp1"
+      />
 
-        {/* Meal Premade Picker Modal */}
-        <MealPremadePicker
-          open={premadePickerOpen}
-          onClose={() => setPremadePickerOpen(false)}
-          mealType={premadePickerSlot}
-          dietType="glp1"
-          onMealSelect={handlePremadeSelect}
-        />
-
-        {/* Snack Picker Modal - Completely independent system for snacks */}
-        <SnackPickerDrawer
-          open={snackPickerOpen}
-          onClose={() => setSnackPickerOpen(false)}
-          dietType="glp1"
-          onSnackSelect={handleSnackSelect}
-        />
-
-        {/* Create With Chef Modal - with GLP-1 guardrails */}
-        <CreateWithChefModal
-          open={createWithChefOpen}
-          onOpenChange={setCreateWithChefOpen}
-          mealType={createWithChefSlot}
-          onMealGenerated={handleChefMealGenerated}
-          dietType="glp1"
-          starchContext={starchContext}
-        />
-
-        {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with GLP-1 guardrails */}
-        <SnackCreatorModal
-          open={snackCreatorOpen}
-          onOpenChange={setSnackCreatorOpen}
-          onSnackGenerated={handleSnackSelect}
-          dietType="glp1"
-        />
-
-        {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}
-        {board &&
-          (() => {
-            const allMeals =
-              planningMode === "day" && activeDayISO
-                ? (() => {
-                    const dayLists = getDayLists(board, activeDayISO);
-                    return [
-                      ...dayLists.breakfast,
-                      ...dayLists.lunch,
-                      ...dayLists.dinner,
-                      ...dayLists.snacks,
-                    ];
-                  })()
-                : [
-                    ...board.lists.breakfast,
-                    ...board.lists.lunch,
-                    ...board.lists.dinner,
-                    ...board.lists.snacks,
+      {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}
+      {board &&
+        (() => {
+          const allMeals =
+            planningMode === "day" && activeDayISO
+              ? (() => {
+                  const dayLists = getDayLists(board, activeDayISO);
+                  return [
+                    ...dayLists.breakfast,
+                    ...dayLists.lunch,
+                    ...dayLists.dinner,
+                    ...dayLists.snacks,
                   ];
+                })()
+              : [
+                  ...board.lists.breakfast,
+                  ...board.lists.lunch,
+                  ...board.lists.dinner,
+                  ...board.lists.snacks,
+                ];
 
-            const ingredients = allMeals.flatMap((meal) =>
-              normalizeIngredients(meal.ingredients || []),
-            );
+          const ingredients = allMeals.flatMap((meal) =>
+            normalizeIngredients(meal.ingredients || []),
+          );
 
-            // If no ingredients, don't show the bar
-            if (ingredients.length === 0) return null;
+          // If no ingredients, don't show the bar
+          if (ingredients.length === 0) return null;
 
-            // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
-            if (
-              FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              activeDayISO
-            ) {
-              const dayName = formatDateDisplay(activeDayISO, {
-                weekday: "long",
-              });
+          // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
+          if (
+            FEATURES.dayPlanning === "alpha" &&
+            planningMode === "day" &&
+            activeDayISO
+          ) {
+            const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
-              return (
-                <div
-                  className="fixed left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl"
-                  style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}
-                >
-                  <div className="container mx-auto px-4 py-3">
-                    <div className="flex flex-col gap-2">
-                      <div className="text-white text-sm font-semibold">
-                        Shopping List Ready - {ingredients.length} ingredients
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => {
-                            handleAddToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=weekly-meal-board",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
-                          data-testid="button-send-day-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send {dayName}
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            handleAddEntireWeekToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=weekly-meal-board",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
-                          data-testid="button-send-week-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send Entire Week
-                        </Button>
-                      </div>
+            return (
+              <div className="fixed left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl" style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}>
+                <div className="container mx-auto px-4 py-3">
+                  <div className="flex flex-col gap-2">
+                    <div className="text-white text-sm font-semibold">
+                      Shopping List Ready - {ingredients.length} ingredients
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          handleAddToShoppingList();
+                          setTimeout(
+                            () =>
+                              setLocation(
+                                "/shopping-list-v2?from=weekly-meal-board",
+                              ),
+                            100,
+                          );
+                        }}
+                        className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
+                        data-testid="button-send-day-shopping"
+                      >
+                        <ShoppingCart className="h-5 w-5 mr-2" />
+                        Send {dayName}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          handleAddEntireWeekToShoppingList();
+                          setTimeout(
+                            () =>
+                              setLocation(
+                                "/shopping-list-v2?from=weekly-meal-board",
+                              ),
+                            100,
+                          );
+                        }}
+                        className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
+                        data-testid="button-send-week-shopping"
+                      >
+                        <ShoppingCart className="h-5 w-5 mr-2" />
+                        Send Entire Week
+                      </Button>
                     </div>
                   </div>
                 </div>
-              );
-            }
-
-            // WEEK MODE: Use existing ShoppingAggregateBar component
-            return (
-              <ShoppingAggregateBar
-                ingredients={ingredients}
-                source={`GLP-1 Meal Plan (${formatWeekLabel(weekStartISO)})`}
-                sourceSlug="glp1-meal-board"
-                aboveBottomNav
-              />
+              </div>
             );
-          })()}
+          }
 
-        {/* Daily Totals Info Modal - Next Steps After First Meal */}
-        <Dialog
-          open={showDailyTotalsInfo}
-          onOpenChange={(open) => {
-            if (!open) {
-              setShowDailyTotalsInfo(false);
-              setHasSeenDailyTotalsInfo(true);
-              localStorage.setItem(
-                "glp1-meal-builder-daily-totals-info-seen",
-                "true",
-              );
-            }
-          }}
-        >
-          <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md mx-auto rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-white text-xl flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-orange-400" />
-                Next Steps - Track Your Progress!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="text-white/90 text-sm space-y-4">
-              <p className="text-base font-semibold text-white">
-                Great job creating your meals! Here's what to do next:
-              </p>
+          // WEEK MODE: Use existing ShoppingAggregateBar component
+          return (
+            <ShoppingAggregateBar
+              ingredients={ingredients}
+              source={`GLP-1 Meal Plan (${formatWeekLabel(weekStartISO)})`}
+              sourceSlug="glp1-meal-board"
+              aboveBottomNav
+            />
+          );
+        })()}
 
-              <div className="space-y-3">
-                <div className="bg-black/30 p-3 rounded-lg border border-white/10">
-                  <p className="font-semibold text-white mb-1 flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-orange-400" />
-                    Option 1: Track Your Macros
-                  </p>
-                  <p className="text-white/70 text-xs">
-                    Send your day to the Macro Calculator to ensure you're
-                    hitting your nutrition targets. Look for the "Send to
-                    Macros" button below.
-                  </p>
-                </div>
+      {/* Daily Totals Info Modal - Next Steps After First Meal */}
+      <Dialog
+        open={showDailyTotalsInfo}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDailyTotalsInfo(false);
+            setHasSeenDailyTotalsInfo(true);
+            localStorage.setItem(
+              "glp1-meal-builder-daily-totals-info-seen",
+              "true",
+            );
+          }
+        }}
+      >
+        <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <Sparkles className="h-6 w-6 text-orange-400" />
+              Next Steps - Track Your Progress!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-white/90 text-sm space-y-4">
+            <p className="text-base font-semibold text-white">
+              Great job creating your meals! Here's what to do next:
+            </p>
 
-                <div className="bg-black/30 p-3 rounded-lg border border-white/10">
-                  <p className="font-semibold text-white mb-1">
-                    Option 2: Plan Your Week
-                  </p>
-                  <p className="text-white/70 text-xs">
-                    Use the Day/Week toggle at the top to switch between
-                    planning a single day or your entire week. You can duplicate
-                    days or create each day individually.
-                  </p>
-                </div>
-
-                <div className="bg-black/30 p-3 rounded-lg border border-white/10">
-                  <p className="font-semibold text-white mb-1">
-                    💡 Pro Tip: Macro Tracking
-                  </p>
-                  <p className="text-white/70 text-xs">
-                    Send just ONE day to macros at a time (not the whole week).
-                    This way, if you change meals on other days, you won't have
-                    outdated data.
-                  </p>
-                </div>
-
-                <div className="bg-black/30 p-3 rounded-lg border border-white/10">
-                  <p className="font-semibold text-white mb-1 flex items-center gap-2">
-                    <ShoppingCart className="h-4 w-4 text-emerald-400" />
-                    Shopping List Ready
-                  </p>
-                  <p className="text-white/70 text-xs">
-                    You CAN send your entire week to the shopping list! This
-                    consolidates all ingredients for easy grocery shopping.
-                    Click "Send Entire Week" at the bottom.
-                  </p>
-                </div>
+            <div className="space-y-3">
+              <div className="bg-black/30 p-3 rounded-lg border border-white/10">
+                <p className="font-semibold text-white mb-1 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-orange-400" />
+                  Option 1: Track Your Macros
+                </p>
+                <p className="text-white/70 text-xs">
+                  Send your day to the Macro Calculator to ensure you're hitting
+                  your nutrition targets. Look for the "Send to Macros" button
+                  below.
+                </p>
               </div>
 
-              <p className="text-xs text-white/60 text-center pt-2 border-t border-white/10">
-                Next: Check out the Shopping List to learn how to use it
-                effectively!
-              </p>
+              <div className="bg-black/30 p-3 rounded-lg border border-white/10">
+                <p className="font-semibold text-white mb-1">
+                  Option 2: Plan Your Week
+                </p>
+                <p className="text-white/70 text-xs">
+                  Use the Day/Week toggle at the top to switch between planning
+                  a single day or your entire week. You can duplicate days or
+                  create each day individually.
+                </p>
+              </div>
+
+              <div className="bg-black/30 p-3 rounded-lg border border-white/10">
+                <p className="font-semibold text-white mb-1">
+                  💡 Pro Tip: Macro Tracking
+                </p>
+                <p className="text-white/70 text-xs">
+                  Send just ONE day to macros at a time (not the whole week).
+                  This way, if you change meals on other days, you won't have
+                  outdated data.
+                </p>
+              </div>
+
+              <div className="bg-black/30 p-3 rounded-lg border border-white/10">
+                <p className="font-semibold text-white mb-1 flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4 text-emerald-400" />
+                  Shopping List Ready
+                </p>
+                <p className="text-white/70 text-xs">
+                  You CAN send your entire week to the shopping list! This
+                  consolidates all ingredients for easy grocery shopping. Click
+                  "Send Entire Week" at the bottom.
+                </p>
+              </div>
             </div>
-          </DialogContent>
-        </Dialog>
 
-        {/* Quick Tour Modal */}
-        <QuickTourModal
-          isOpen={quickTour.shouldShow}
-          onClose={quickTour.closeTour}
-          title="GLP-1 Meal Builder Guide"
-          steps={GLP1_BUILDER_TOUR_STEPS}
-          onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
-        />
+            <p className="text-xs text-white/60 text-center pt-2 border-t border-white/10">
+              Next: Check out the Shopping List to learn how to use it
+              effectively!
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        {/* Locked Day Dialog */}
-        <LockedDayDialog
-          open={lockedDayDialogOpen}
-          onOpenChange={setLockedDayDialogOpen}
-          dateISO={pendingLockedDayISO}
-          onViewOnly={() => setLockedDayDialogOpen(false)}
-          onCreateNewDay={handleGoToToday}
-        />
+      {/* Quick Tour Modal */}
+      <QuickTourModal
+        isOpen={quickTour.shouldShow}
+        onClose={quickTour.closeTour}
+        title="GLP-1 Meal Builder Guide"
+        steps={GLP1_BUILDER_TOUR_STEPS}
+        onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
 
-        {/* Additional Macros Modal */}
-        <AdditionalMacrosModal
-          open={additionalMacrosOpen}
-          onClose={() => setAdditionalMacrosOpen(false)}
-          onAdd={(meal) => quickAdd("snacks", meal)}
-          proteinDeficit={(() => {
-            const resolved = getResolvedTargets(user?.id);
-            return Math.max(
-              0,
-              (resolved.protein_g || 0) - Math.round(totals.protein),
-            );
-          })()}
-          carbsDeficit={(() => {
-            const resolved = getResolvedTargets(user?.id);
-            return Math.max(
-              0,
-              (resolved.carbs_g || 0) - Math.round(totals.carbs),
-            );
-          })()}
-        />
+      {/* Locked Day Dialog */}
+      <LockedDayDialog
+        open={lockedDayDialogOpen}
+        onOpenChange={setLockedDayDialogOpen}
+        dateISO={pendingLockedDayISO}
+        onViewOnly={() => setLockedDayDialogOpen(false)}
+        onCreateNewDay={handleGoToToday}
+      />
+
+      {/* Additional Macros Modal */}
+      <AdditionalMacrosModal
+        open={additionalMacrosOpen}
+        onClose={() => setAdditionalMacrosOpen(false)}
+        onAdd={(meal) => quickAdd("snacks", meal)}
+        proteinDeficit={(() => {
+          const resolved = getResolvedTargets(user?.id);
+          return Math.max(0, (resolved.protein_g || 0) - Math.round(totals.protein));
+        })()}
+        carbsDeficit={(() => {
+          const resolved = getResolvedTargets(user?.id);
+          return Math.max(0, (resolved.carbs_g || 0) - Math.round(totals.carbs));
+        })()}
+      />
       </div>
     </motion.div>
   );

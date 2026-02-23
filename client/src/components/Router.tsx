@@ -207,7 +207,6 @@ export default function Router() {
     "/pro/clients",
     "/pro/physician-clients",
     "/pro/physician",
-    "/pro/general-nutrition-builder",
   ];
 
   const isInClinicWorkspace = clinicWorkspaceRoutes.some(route =>
