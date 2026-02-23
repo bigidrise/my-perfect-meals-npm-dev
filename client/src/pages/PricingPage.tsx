@@ -127,8 +127,15 @@ export default function PricingPage() {
   }
 
   if (isIosNativeShell()) {
-    const iosSubscriptionPlans = ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"];
-    const hasIosSubscription = !!user?.planLookupKey && iosSubscriptionPlans.includes(user.planLookupKey);
+    const iosSubscriptionPlans = [
+      "mpm_basic_monthly",
+      "mpm_premium_monthly",
+      "mpm_ultimate_monthly",
+    ];
+
+    const planKey = user?.planLookupKey || "";
+    const hasIosSubscription =
+      !!planKey && iosSubscriptionPlans.includes(planKey);
 
     return (
       <motion.div
@@ -159,226 +166,229 @@ export default function PricingPage() {
           className="max-w-md mx-auto px-6 text-white"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
         >
-          {/* Current subscription status */}
           {hasIosSubscription && (
             <div className="bg-lime-500/20 border border-lime-500/30 rounded-xl p-4 mb-6 text-center">
               <p className="text-lime-400 font-medium text-sm">
                 Active Subscription
               </p>
               <p className="text-white text-lg font-bold mt-1">
-                {user.planLookupKey
-                  ?.replace(/_/g, " ")
+                {planKey
+                  .replace(/_/g, " ")
                   .replace("mpm ", "")
                   .replace(" monthly", "")}
               </p>
             </div>
           )}
 
-          {/* Subscription plans - Always show products to Apple reviewers */}
-          {!hasIosSubscription && (
-            <div className="space-y-4 mb-6">
-              <h2 className="text-xl font-bold text-center mb-4">
-                Choose Your Plan
-              </h2>
+          <div className="space-y-4 mb-6">
+            <h2 className="text-xl font-bold text-center mb-4">
+              Choose Your Plan
+            </h2>
 
-              {iosLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
-                </div>
-              ) : (
-                IOS_PRODUCTS.map((product) => {
-                  const storeProduct = iosProducts.find(
-                    (p) => p.productId === product.productId,
-                  );
-                  const displayPrice =
-                    storeProduct?.displayPrice ||
-                    `$${product.price.toFixed(2)}/mo`;
-                  const isPurchasing = purchasingProduct === product.productId;
-                  const isPremium =
-                    product.internalSku === "mpm_premium_monthly";
+            {iosLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
+              </div>
+            ) : (
+              IOS_PRODUCTS.map((product) => {
+                const storeProduct = iosProducts.find(
+                  (p) => p.productId === product.productId,
+                );
+                const displayPrice =
+                  storeProduct?.displayPrice ||
+                  `$${product.price.toFixed(2)}/mo`;
+                const isPurchasing = purchasingProduct === product.productId;
+                const isPremium =
+                  product.internalSku === "mpm_premium_monthly";
+                const isCurrentPlan = planKey === product.internalSku;
 
-                  return (
-                    <div
-                      key={product.productId}
-                      className={`bg-black/40 backdrop-blur-lg border rounded-xl p-5 ${
-                        isPremium
-                          ? "border-orange-400/50 ring-1 ring-orange-400/30"
-                          : "border-white/15"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="text-white font-bold text-lg">
-                            {product.label}
-                          </h3>
-                          <p className="text-white/60 text-sm">
-                            {displayPrice}
-                          </p>
-                        </div>
-                        {isPremium && (
-                          <Badge className="bg-orange-500/80 text-white text-xs">
-                            Most Popular
-                          </Badge>
-                        )}
+                return (
+                  <div
+                    key={product.productId}
+                    className={`bg-black/40 backdrop-blur-lg border rounded-xl p-5 ${
+                      isPremium
+                        ? "border-orange-400/50 ring-1 ring-orange-400/30"
+                        : "border-white/15"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-white font-bold text-lg">
+                          {product.label}
+                        </h3>
+                        <p className="text-white/60 text-sm">
+                          {displayPrice}
+                        </p>
                       </div>
+                      {isCurrentPlan ? (
+                        <Badge className="bg-lime-500/80 text-white text-xs">
+                          Current
+                        </Badge>
+                      ) : isPremium ? (
+                        <Badge className="bg-orange-500/80 text-white text-xs">
+                          Most Popular
+                        </Badge>
+                      ) : null}
+                    </div>
 
-                      {/* Feature highlights per tier */}
-                      <ul className="text-white/70 text-xs space-y-1.5 mb-4">
-                        {product.internalSku === "mpm_basic_monthly" && (
-                          <>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Copilot Voice Guidance
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Multi-Language Voice Input & Translation
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Weekly
-                              Meal Board
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> GLP-1
-                              & Diabetic Support
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Anti-Inflammatory Builder
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Daily
-                              Macro Calculator
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Master
-                              Shopping Lists
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Biometrics Tracking
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Spirits & Alcohol Hub
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              SafetyGuard Allergy Protection
-                            </li>
-                          </>
-                        )}
-                        {product.internalSku === "mpm_premium_monthly" && (
-                          <>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Everything in Basic, plus:
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Chef's
-                              Kitchen Studio
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Craving Creator/ Studio
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Craving Presets
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />
-                              Dessert Creator/ Studio{" "}
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Fridge
-                              Rescue/ Studio
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Restaurant Guide
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Find
-                              Meals Near Me
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Spirits & Alcohol Hub
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Kids &
-                              Toddler Meals
-                            </li>
-                          </>
-                        )}
-                        {product.internalSku === "mpm_ultimate_monthly" && (
-                          <>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Everything in Premium, plus:
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Pro
-                              Care Team Access
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Beach
-                              Body Meal Builder
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Competition Prep Builder
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Lab
-                              Metrics Integration
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Priority Support
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" /> Coach
-                              Workspace
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3 h-3 text-lime-400" />{" "}
-                              Clinical Advisory System
-                            </li>
-                          </>
-                        )}
-                      </ul>
+                    <ul className="text-white/70 text-xs space-y-1.5 mb-4">
+                      {product.internalSku === "mpm_basic_monthly" && (
+                        <>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Copilot Voice Guidance
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Multi-Language Voice Input & Translation
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Weekly Meal Board
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            GLP-1 & Diabetic Support
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Anti-Inflammatory Builder
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Daily Macro Calculator
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Master Shopping Lists
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Biometrics Tracking
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Spirits & Alcohol Hub
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            SafetyGuard Allergy Protection
+                          </li>
+                        </>
+                      )}
+                      {product.internalSku === "mpm_premium_monthly" && (
+                        <>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Everything in Basic, plus:
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Chef&apos;s Kitchen Studio
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Craving Creator / Studio
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Craving Presets
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Dessert Creator / Studio
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Fridge Rescue / Studio
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Restaurant Guide
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Find Meals Near Me
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Spirits & Alcohol Hub
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Kids & Toddler Meals
+                          </li>
+                        </>
+                      )}
+                      {product.internalSku === "mpm_ultimate_monthly" && (
+                        <>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Everything in Premium, plus:
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Pro Care Team Access
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Beach Body Meal Builder
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Competition Prep Builder
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Lab Metrics Integration
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Priority Support
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Coach Workspace
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <Check className="w-3 h-3 text-lime-400" />
+                            Clinical Advisory System
+                          </li>
+                        </>
+                      )}
+                    </ul>
 
-                      <Button
-                        onClick={() => handleIosPurchase(product)}
-                        disabled={isPurchasing}
-                        className={`w-full ${
-                          isPremium
+                    <Button
+                      onClick={() => handleIosPurchase(product)}
+                      disabled={isPurchasing || isCurrentPlan}
+                      className={`w-full ${
+                        isCurrentPlan
+                          ? "bg-lime-500/20 text-lime-300 border border-lime-500/30 cursor-not-allowed"
+                          : isPremium
                             ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold"
                             : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                        }`}
-                      >
-                        {isPurchasing ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Apple className="w-4 h-4 mr-2" />
-                            Subscribe with Apple
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
+                      }`}
+                    >
+                      {isCurrentPlan ? (
+                        "Current Plan"
+                      ) : isPurchasing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Apple className="w-4 h-4 mr-2" />
+                          Subscribe with Apple
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
 
-          {/* Manage subscription section */}
           <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-2xl p-6 text-center space-y-4">
             <div className="w-14 h-14 mx-auto bg-white/10 rounded-full flex items-center justify-center">
               <Apple className="w-7 h-7 text-white" />
@@ -413,25 +423,24 @@ export default function PricingPage() {
               Open Apple Subscriptions
             </Button>
 
-            {!hasIosSubscription && (
-              <Button
-                onClick={handleRestorePurchases}
-                disabled={restoringPurchases}
-                variant="ghost"
-                className="w-full text-white/60 hover:text-white hover:bg-white/5"
-              >
-                {restoringPurchases ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-                    Restoring...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" /> Restore Purchases
-                  </>
-                )}
-              </Button>
-            )}
+            <Button
+              onClick={handleRestorePurchases}
+              disabled={restoringPurchases}
+              variant="ghost"
+              className="w-full text-white/60 hover:text-white hover:bg-white/5"
+            >
+              {restoringPurchases ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Restoring...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Restore Purchases
+                </>
+              )}
+            </Button>
           </div>
 
           <div className="pt-6 space-y-3 text-center">
