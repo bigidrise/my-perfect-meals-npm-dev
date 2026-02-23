@@ -72,7 +72,6 @@ import {
   Info,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
-import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";

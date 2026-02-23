@@ -83,7 +83,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { FEATURES } from "@/utils/features";
-import { DayWeekToggle } from "@/components/DayWeekToggle";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
@@ -1179,68 +1178,19 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               </div>
             </div>
 
-            {/* ROW 3: Day/Week Toggle + Duplicate */}
-            {FEATURES.dayPlanning === "alpha" && (
-              <div className="flex items-center justify-between gap-3">
-                <DayWeekToggle
-                  mode={planningMode}
-                  onModeChange={setPlanningMode}
+            {/* ROW 3: Days of Week */}
+            {FEATURES.dayPlanning === "alpha" && weekDatesList.length > 0 && (
+              <div className="flex justify-center">
+                <DayChips
+                  weekDates={weekDatesList}
+                  activeDayISO={activeDayISO}
+                  onDayChange={setActiveDayISO}
                 />
-
-                {planningMode === "day" && (
-                <button
-                  type="button"
-                  onClick={() => setShowDuplicateDayModal(true)}
-                  data-testid="duplicate-button"
-                  className="
-                    flex-shrink-0 inline-flex flex-col items-center justify-center
-                    rounded-full
-                    px-4 py-2
-                    text-sm font-semibold
-                    text-white/90
-                    bg-black/20
-                    border border-white/15
-                    backdrop-blur-lg
-                    hover:bg-white/10 hover:border-white/25
-                    transition-all
-                  "
-                  style={{ minHeight: 48 }}
-                >
-                  <span className="leading-none">Duplicate</span>
-                  <span className="mt-1 text-base leading-none opacity-80">📅</span>
-                </button>
-                )}
-
-                {planningMode === "week" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDuplicateWeekModal(true)}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs px-3 py-1 rounded-xl"
-                    data-testid="button-duplicate-week"
-                  >
-                    Copy Week...
-                  </Button>
-                )}
               </div>
             )}
 
-            {/* ROW 4: Days of Week */}
+            {/* ROW 4: Daily Starch Indicator */}
             {FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              weekDatesList.length > 0 && (
-                <div className="flex justify-center">
-                  <DayChips
-                    weekDates={weekDatesList}
-                    activeDayISO={activeDayISO}
-                    onDayChange={setActiveDayISO}
-                  />
-                </div>
-              )}
-
-            {/* Daily Starch Indicator - Shows starch meal slots */}
-            {FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
               activeDayISO &&
               board && (
                 <div className="flex justify-center">
@@ -1259,70 +1209,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 </div>
               )}
 
-            {/* ROW 5: Bottom Actions (Delete All + Save) */}
+            {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => setShowDeleteAllConfirm(true)}
-                className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl"
-                data-testid="button-delete-all"
-              >
-                Delete All
-              </Button>
-              
-              <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
-                <AlertDialogContent className="bg-zinc-900 border-zinc-700">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
-                    <AlertDialogDescription className="text-zinc-400">
-                      Delete all meals from this board? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => {
-                        if (board) {
-                          const clearedBoard = {
-                            ...board,
-                            lists: {
-                              breakfast: [],
-                              lunch: [],
-                              dinner: [],
-                              snacks: [],
-                            },
-                            days: board.days
-                              ? Object.fromEntries(
-                                  Object.keys(board.days).map((dateISO) => [
-                                    dateISO,
-                                    {
-                                      breakfast: [],
-                                      lunch: [],
-                                      dinner: [],
-                                      snacks: [],
-                                    },
-                                  ]),
-                                )
-                              : undefined,
-                          };
-                          saveBoard(clearedBoard);
-                          clearAIMealsCache();
-                          toast({
-                            title: "All Meals Deleted",
-                            description: "Successfully cleared all meals from the board",
-                          });
-                        }
-                      }}
-                      className="bg-red-600 text-white hover:bg-red-700"
-                    >
-                      Delete All
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
 
               <Button
                 onClick={handleSave}
@@ -1346,6 +1234,28 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   "Save Plan"
                 )}
               </Button>
+
+              <button
+                type="button"
+                onClick={() => setShowDuplicateDayModal(true)}
+                data-testid="duplicate-button"
+                className="
+                  inline-flex items-center justify-center
+                  rounded-2xl
+                  px-4 py-2
+                  text-sm font-semibold
+                  text-white/90
+                  bg-black/20
+                  border border-white/15
+                  backdrop-blur-lg
+                  hover:bg-white/10 hover:border-white/25
+                  transition-all
+                "
+                style={{ minHeight: 36 }}
+              >
+                Duplicate 📅
+              </button>
+
             </div>
           </div>
         </div>
