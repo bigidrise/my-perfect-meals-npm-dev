@@ -48,15 +48,15 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { 
-  getWeekStartISOInTZ, 
-  getTodayISOSafe, 
-  weekDatesInTZ, 
-  nextWeekISO, 
-  prevWeekISO, 
+import {
+  getWeekStartISOInTZ,
+  getTodayISOSafe,
+  weekDatesInTZ,
+  nextWeekISO,
+  prevWeekISO,
   formatWeekLabel,
   formatDateDisplay,
-  todayISOInTZ 
+  todayISOInTZ,
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -189,8 +189,9 @@ export default function DiabeticMenuBuilder() {
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
-  const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(
+    getWeekStartISOInTZ("America/Chicago"),
+  );
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -209,13 +210,13 @@ export default function DiabeticMenuBuilder() {
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
       userId: user?.id,
-      builderId: 'diabetic-menu-builder',
+      builderId: "diabetic-menu-builder",
       weekStartISO,
     },
     board,
     setBoard,
     hookLoading,
-    hookBoard
+    hookBoard,
   );
 
   // Sync hook board to local state (skip if draft is active)
@@ -296,13 +297,16 @@ export default function DiabeticMenuBuilder() {
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
     const resolved = user?.id ? getResolvedTargets(user.id) : null;
-    const strategy = resolved?.starchStrategy || 'one';
+    const strategy = resolved?.starchStrategy || "one";
     const dayLists = getDayLists(board, activeDayISO);
-    const existingMeals: StarchContext['existingMeals'] = [];
-    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+    const existingMeals: StarchContext["existingMeals"] = [];
+    for (const slot of ["breakfast", "lunch", "dinner"] as const) {
       const meals = dayLists[slot] || [];
       for (const meal of meals) {
-        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+        existingMeals.push({
+          slot,
+          hasStarch: classifyMeal(meal).isStarchMeal,
+        });
       }
     }
     return { strategy, existingMeals };
@@ -668,17 +672,37 @@ export default function DiabeticMenuBuilder() {
         }
 
         if (result.errors.length > 0) {
-          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
-        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
-          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+          toast({
+            title: "Partial duplicate",
+            description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`,
+            variant: "destructive",
+          });
+        } else if (
+          result.otherWeeksSaved > 0 &&
+          result.currentWeekDayCount === 0
+        ) {
+          toast({
+            title: "Saved to future week",
+            description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.`,
+          });
         } else if (result.otherWeeksSaved > 0) {
-          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+          toast({
+            title: "Day duplicated",
+            description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks`,
+          });
         } else {
-          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+          toast({
+            title: "Day duplicated",
+            description: `Copied to ${result.currentWeekDayCount} day(s)`,
+          });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
+        toast({
+          title: "Failed to duplicate",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
@@ -691,7 +715,10 @@ export default function DiabeticMenuBuilder() {
 
       // Guard: Check if any day in TARGET week is locked
       // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ
-      const targetWeekDates = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+      const targetWeekDates = weekDatesInTZ(
+        targetWeekStartISO,
+        "America/Chicago",
+      );
       const lockedTarget = targetWeekDates.find((d) =>
         isDayLocked(d, user?.id),
       );
@@ -709,7 +736,10 @@ export default function DiabeticMenuBuilder() {
         days: board.days
           ? Object.fromEntries(
               Object.entries(board.days).map(([oldDateISO, lists]) => {
-                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+                const targetWeekDatesSafe = weekDatesInTZ(
+                  targetWeekStartISO,
+                  "America/Chicago",
+                );
                 const dayIndex = weekDatesList.indexOf(oldDateISO);
                 const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
 
@@ -870,9 +900,11 @@ export default function DiabeticMenuBuilder() {
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
-
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      generatedMeal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    ) => {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
@@ -913,7 +945,9 @@ export default function DiabeticMenuBuilder() {
         try {
           await saveBoard(updatedBoard);
           clearAIMealsCache();
-          window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
+          window.dispatchEvent(
+            new CustomEvent("board:updated", { detail: { weekStartISO } }),
+          );
           window.dispatchEvent(new Event("macros:updated"));
         } catch (error) {
           console.error("Failed to save AI meal to server:", error);
@@ -947,12 +981,7 @@ export default function DiabeticMenuBuilder() {
     console.log("🌅 Midnight macro reset triggered");
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: [
-        "/api/users",
-        user?.id || "",
-        "macros",
-        "today",
-      ],
+      queryKey: ["/api/users", user?.id || "", "macros", "today"],
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));
@@ -997,7 +1026,9 @@ export default function DiabeticMenuBuilder() {
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      console.log("[Network] Board load encountered an issue, using cached data if available");
+      console.log(
+        "[Network] Board load encountered an issue, using cached data if available",
+      );
     }
   }, [error]);
 
@@ -1327,8 +1358,14 @@ export default function DiabeticMenuBuilder() {
           protein: meal.nutrition?.protein ?? 0,
           carbs: meal.nutrition?.carbs ?? 0,
           fat: meal.nutrition?.fat ?? 0,
-          starchyCarbs: (meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0,
-          fibrousCarbs: (meal as any).fibrousCarbs ?? (meal.nutrition as any)?.fibrousCarbs ?? 0,
+          starchyCarbs:
+            (meal as any).starchyCarbs ??
+            (meal.nutrition as any)?.starchyCarbs ??
+            0,
+          fibrousCarbs:
+            (meal as any).fibrousCarbs ??
+            (meal.nutrition as any)?.fibrousCarbs ??
+            0,
           servings: meal.servings || 1,
           source: "weekly-meal-board-bulk",
         };
@@ -1422,9 +1459,11 @@ export default function DiabeticMenuBuilder() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <NutritionBudgetBanner className="mb-2" />
+
         <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
-            {/* ROW 1: Week Dates (centered) */}
+
+            {/* ROW 1: Week Navigation */}
             <div className="flex justify-center">
               <div className="flex items-center gap-3">
                 <button
@@ -1451,71 +1490,23 @@ export default function DiabeticMenuBuilder() {
               </div>
             </div>
 
-            {/* ROW 2: Day/Week Toggle + Duplicate */}
-            {FEATURES.dayPlanning === "alpha" && (
-              <div className="flex items-center justify-between gap-3">
-                <DayWeekToggle
-                  mode={planningMode}
-                  onModeChange={setPlanningMode}
+            {/* ROW 2 & 3: Days of Week */}
+            {FEATURES.dayPlanning === "alpha" && weekDatesList.length > 0 && (
+              <div className="flex justify-center">
+                <DayChips
+                  weekDates={weekDatesList}
+                  activeDayISO={activeDayISO}
+                  onDayChange={setActiveDayISO}
                 />
-
-                {planningMode === "day" && (
-                <button
-                  type="button"
-                  onClick={() => setShowDuplicateDayModal(true)}
-                  data-testid="duplicate-button"
-                  className="
-                    flex-shrink-0 inline-flex flex-col items-center justify-center
-                    rounded-full
-                    px-4 py-2
-                    text-sm font-semibold
-                    text-white/90
-                    bg-black/20
-                    border border-white/15
-                    backdrop-blur-lg
-                    hover:bg-white/10 hover:border-white/25
-                    transition-all
-                  "
-                  style={{ minHeight: 48 }}
-                >
-                  <span className="leading-none">Duplicate</span>
-                  <span className="mt-1 text-base leading-none opacity-80">📅</span>
-                </button>
-                )}
-
-                {planningMode === "week" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDuplicateWeekModal(true)}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs px-3 py-1 rounded-xl"
-                  >
-                    Copy Week...
-                  </Button>
-                )}
               </div>
             )}
 
-            {/* ROW 4: Days of Week */}
+            {/* ROW 4: Daily Starch Indicator */}
             {FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              weekDatesList.length > 0 && (
-                <div className="flex justify-center">
-                  <DayChips
-                    weekDates={weekDatesList}
-                    activeDayISO={activeDayISO}
-                    onDayChange={setActiveDayISO}
-                  />
-                </div>
-              )}
-
-            {/* Daily Starch Indicator - Shows starch meal slots */}
-            {FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
               activeDayISO &&
               board && (
                 <div className="flex justify-center">
-                  <DailyStarchIndicator 
+                  <DailyStarchIndicator
                     meals={(() => {
                       const dayLists = getDayLists(board, activeDayISO);
                       return [
@@ -1529,70 +1520,10 @@ export default function DiabeticMenuBuilder() {
                 </div>
               )}
 
-            <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
-              <AlertDialogContent className="bg-zinc-900 border-zinc-700">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-white">Delete All Meals</AlertDialogTitle>
-                  <AlertDialogDescription className="text-zinc-400">
-                    Delete all meals from this board? This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700">
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={() => {
-                      if (board) {
-                        const clearedBoard = {
-                          ...board,
-                          lists: {
-                            breakfast: [],
-                            lunch: [],
-                            dinner: [],
-                            snacks: [],
-                          },
-                          days: board.days
-                            ? Object.fromEntries(
-                                Object.keys(board.days).map((dateISO) => [
-                                  dateISO,
-                                  {
-                                    breakfast: [],
-                                    lunch: [],
-                                    dinner: [],
-                                    snacks: [],
-                                  },
-                                ]),
-                              )
-                            : undefined,
-                        };
-                        saveBoard(clearedBoard);
-                        clearAIMealsCache();
-                        toast({
-                          title: "All Meals Deleted",
-                          description: "Successfully cleared all meals from the board",
-                        });
-                      }
-                    }}
-                    className="bg-red-600 text-white hover:bg-red-700"
-                  >
-                    Delete All
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            {/* ROW 5: Bottom Actions (Delete All + Save) */}
+            {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-              {false && <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => setShowDeleteAllConfirm(true)}
-                className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-xl"
-              >
-                Delete All
-              </Button>}
 
+              {/* Save Plan (LEFT) */}
               <Button
                 onClick={handleSave}
                 disabled={saving || justSaved}
@@ -1615,6 +1546,29 @@ export default function DiabeticMenuBuilder() {
                   "Save Plan"
                 )}
               </Button>
+
+              {/* Duplicate (RIGHT) */}
+              <button
+                type="button"
+                onClick={() => setShowDuplicateDayModal(true)}
+                data-testid="duplicate-button"
+                className="
+                  inline-flex items-center justify-center
+                  rounded-2xl
+                  px-4 py-2
+                  text-sm font-semibold
+                  text-white/90
+                  bg-black/20
+                  border border-white/15
+                  backdrop-blur-lg
+                  hover:bg-white/10 hover:border-white/25
+                  transition-all
+                "
+                style={{ minHeight: 36 }}
+              >
+                Duplicate 📅
+              </button>
+
             </div>
           </div>
         </div>
@@ -1712,7 +1666,8 @@ export default function DiabeticMenuBuilder() {
                                   );
                                   toast({
                                     title: "Sync pending",
-                                    description: "Changes will sync automatically.",
+                                    description:
+                                      "Changes will sync automatically.",
                                   });
                                 });
                             } else {
@@ -1841,26 +1796,26 @@ export default function DiabeticMenuBuilder() {
             ))}
 
         {/* Pro Tip Card */}
-          <ProTipCard />
+        <ProTipCard />
 
         {/* Daily Targets Card with Quick Add */}
-          <div className="col-span-full">
-            <DailyTargetsCard
-              userId={user?.id}
-              onQuickAddClick={() => setAdditionalMacrosOpen(true)}
-              targetsOverride={(() => {
-                const targetMacros = getMacroTargets(user?.id);
-                if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
-                return {
-                  protein_g: targetMacros.protein_g || 0,
-                  carbs_g: targetMacros.carbs_g || 0,
-                  fat_g: targetMacros.fat_g || 0,
-                  starchyCarbs_g: targetMacros.starchyCarbs_g,
-                  fibrousCarbs_g: targetMacros.fibrousCarbs_g,
-                };
-              })()}
-            />
-          </div>
+        <div className="col-span-full">
+          <DailyTargetsCard
+            userId={user?.id}
+            onQuickAddClick={() => setAdditionalMacrosOpen(true)}
+            targetsOverride={(() => {
+              const targetMacros = getMacroTargets(user?.id);
+              if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
+              return {
+                protein_g: targetMacros.protein_g || 0,
+                carbs_g: targetMacros.carbs_g || 0,
+                fat_g: targetMacros.fat_g || 0,
+                starchyCarbs_g: targetMacros.starchyCarbs_g,
+                fibrousCarbs_g: targetMacros.fibrousCarbs_g,
+              };
+            })()}
+          />
+        </div>
 
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
@@ -1884,8 +1839,18 @@ export default function DiabeticMenuBuilder() {
                 0,
               ),
               fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
-              starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
-              fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
+              starchyCarbs: meals.reduce(
+                (sum, m) =>
+                  sum +
+                  ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0),
+                0,
+              ),
+              fibrousCarbs: meals.reduce(
+                (sum, m) =>
+                  sum +
+                  ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0),
+                0,
+              ),
             });
             const slots = {
               breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1914,8 +1879,16 @@ export default function DiabeticMenuBuilder() {
                 slots.lunch.fat +
                 slots.dinner.fat +
                 slots.snacks.fat,
-              starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
-              fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
+              starchyCarbs:
+                slots.breakfast.starchyCarbs +
+                slots.lunch.starchyCarbs +
+                slots.dinner.starchyCarbs +
+                slots.snacks.starchyCarbs,
+              fibrousCarbs:
+                slots.breakfast.fibrousCarbs +
+                slots.lunch.fibrousCarbs +
+                slots.dinner.fibrousCarbs +
+                slots.snacks.fibrousCarbs,
             };
             const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
 
@@ -2138,10 +2111,15 @@ export default function DiabeticMenuBuilder() {
             planningMode === "day" &&
             activeDayISO
           ) {
-            const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
+            const dayName = formatDateDisplay(activeDayISO, {
+              weekday: "long",
+            });
 
             return (
-              <div className="fixed left-0 right-0 z-30 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl" style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}>
+              <div
+                className="fixed left-0 right-0 z-30 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl"
+                style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}
+              >
                 <div className="container mx-auto px-4 py-3">
                   <div className="flex flex-col gap-2">
                     <div className="text-white text-sm font-semibold">
