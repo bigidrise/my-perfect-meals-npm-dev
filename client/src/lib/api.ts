@@ -1,15 +1,17 @@
 // client/src/lib/api.ts
 import { getDeviceId } from "@/utils/deviceId";
-import { Capacitor } from '@capacitor/core';
+import { Capacitor } from "@capacitor/core";
 import { getAuthHeaders } from "@/lib/auth";
 
 type Json = Record<string, any>;
 
 // Production API base for iOS/native apps - must match capacitor.config.ts server.url
-const NATIVE_API_BASE = 'https://my-perfect-meals-production-do-not-touch--bigidrise.replit.app';
+const NATIVE_API_BASE = "https://my-perfect-meals-npm-dev.replit.app";
 
 const isDev = import.meta.env.DEV;
-const ENV_BASE = (import.meta as any).env?.VITE_API_BASE?.trim() || (import.meta as any).env?.VITE_API_BASE_URL?.trim();
+const ENV_BASE =
+  (import.meta as any).env?.VITE_API_BASE?.trim() ||
+  (import.meta as any).env?.VITE_API_BASE_URL?.trim();
 
 function normalize(u?: string | null) {
   return u ? u.replace(/\/+$/, "") : "";
@@ -19,21 +21,24 @@ function getApiBase(): string {
   if (ENV_BASE) return normalize(ENV_BASE);
   if (Capacitor.isNativePlatform()) return NATIVE_API_BASE;
   if (isDev) return normalize(`http://${location.hostname}:5000`);
-  return '';
+  return "";
 }
 
 export const API_BASE = getApiBase();
 
 // Environment fingerprint for iOS debugging
-export function logEnvironmentFingerprint(context: string, userId?: string | null) {
+export function logEnvironmentFingerprint(
+  context: string,
+  userId?: string | null,
+) {
   if (!Capacitor.isNativePlatform()) return;
-  
+
   const fingerprint = {
     platform: Capacitor.getPlatform(),
     apiBase: API_BASE,
-    authMode: 'cookie', // We use credentials: "include"
+    authMode: "cookie", // We use credentials: "include"
     userIdPresent: !!userId,
-    deviceId: getDeviceId()?.slice(0, 8) + '...',
+    deviceId: getDeviceId()?.slice(0, 8) + "...",
   };
   console.log(`[API Fingerprint] ${context}:`, fingerprint);
 }
@@ -43,28 +48,28 @@ export class ApiError extends Error {
   status: number;
   statusText: string;
   body: string;
-  
+
   constructor(status: number, statusText: string, body: string) {
     super(`API ${status} ${statusText} → ${body || "(no body)"}`);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.statusText = statusText;
     this.body = body;
   }
-  
+
   // Helper to diagnose auth issues
   get isAuthError(): boolean {
     return this.status === 401 || this.status === 403;
   }
-  
+
   get isNotFound(): boolean {
     return this.status === 404;
   }
-  
+
   get isServerError(): boolean {
     return this.status >= 500;
   }
-  
+
   get isNetworkError(): boolean {
     return this.status === 0;
   }
@@ -97,7 +102,9 @@ export async function apiJSON<T = any>(
     res = await fetch(fullUrl, {
       credentials: "include", // allow cookies/sessions if you use them
       headers: {
-        "Content-Type": json ? "application/json" : (headers as any)?.["Content-Type"] ?? "application/json",
+        "Content-Type": json
+          ? "application/json"
+          : ((headers as any)?.["Content-Type"] ?? "application/json"),
         "X-Device-Id": deviceId,
         ...getAuthHeaders(),
         ...(headers || {}),
@@ -108,48 +115,66 @@ export async function apiJSON<T = any>(
   } catch (networkErr: any) {
     // Network-level failure (no response at all)
     if (isNative) {
-      console.error(`[API] Network error on ${init.method || 'GET'} ${path}:`, networkErr.message);
+      console.error(
+        `[API] Network error on ${init.method || "GET"} ${path}:`,
+        networkErr.message,
+      );
     }
-    const apiErr = new ApiError(0, 'Network Error', networkErr.message || 'Connection failed');
+    const apiErr = new ApiError(
+      0,
+      "Network Error",
+      networkErr.message || "Connection failed",
+    );
     throw apiErr;
   }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    
+
     // Log status codes on iOS for debugging
     if (isNative) {
-      console.error(`[API] ${init.method || 'GET'} ${path} failed:`, {
+      console.error(`[API] ${init.method || "GET"} ${path} failed:`, {
         status: res.status,
         statusText: res.statusText,
         body: text?.slice(0, 200),
         isAuth: res.status === 401 || res.status === 403,
       });
     }
-    
+
     throw new ApiError(res.status, res.statusText, text);
   }
-  
+
   // Try JSON; fall back to text
   const ct = res.headers.get("content-type") || "";
-  return ct.includes("application/json") ? ((await res.json()) as T) : ((await res.text()) as unknown as T);
+  return ct.includes("application/json")
+    ? ((await res.json()) as T)
+    : ((await res.text()) as unknown as T);
 }
 
 // Convenience helpers
 export const get = <T = any>(path: string, init: RequestInit = {}) =>
   apiJSON<T>(path, { ...init, method: "GET" });
 
-export const post = <T = any>(path: string, json?: Json, init: RequestInit = {}) =>
-  apiJSON<T>(path, { ...init, method: "POST", json });
+export const post = <T = any>(
+  path: string,
+  json?: Json,
+  init: RequestInit = {},
+) => apiJSON<T>(path, { ...init, method: "POST", json });
 
-export const put = <T = any>(path: string, json?: Json, init: RequestInit = {}) =>
-  apiJSON<T>(path, { ...init, method: "PUT", json });
+export const put = <T = any>(
+  path: string,
+  json?: Json,
+  init: RequestInit = {},
+) => apiJSON<T>(path, { ...init, method: "PUT", json });
 
 export const del = <T = any>(path: string, init: RequestInit = {}) =>
   apiJSON<T>(path, { ...init, method: "DELETE" });
 
-export const patch = <T = any>(path: string, json?: Json, init: RequestInit = {}) =>
-  apiJSON<T>(path, { ...init, method: "PATCH", json });
+export const patch = <T = any>(
+  path: string,
+  json?: Json,
+  init: RequestInit = {},
+) => apiJSON<T>(path, { ...init, method: "PATCH", json });
 
 // Legacy compatibility - keep existing code working
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -163,22 +188,46 @@ export async function apiPost<T = any>(urlPath: string, body: any): Promise<T> {
 // Weekly Calendar API functions
 import type { Meal } from "@/components/MealCard";
 
-export async function getWeekPlan(): Promise<Record<string, Record<string, Meal | null>>> {
+export async function getWeekPlan(): Promise<
+  Record<string, Record<string, Meal | null>>
+> {
   return get("/api/weekly-calendar");
 }
 
-export async function saveWeekMeal({ date, slot, meal }: { date: string; slot: string; meal: Meal }) {
+export async function saveWeekMeal({
+  date,
+  slot,
+  meal,
+}: {
+  date: string;
+  slot: string;
+  meal: Meal;
+}) {
   return put(`/api/weekly-calendar/${date}/${slot}`, { meal });
 }
 
-export async function deleteWeekMeal({ date, slot }: { date: string; slot: string }) {
+export async function deleteWeekMeal({
+  date,
+  slot,
+}: {
+  date: string;
+  slot: string;
+}) {
   return del(`/api/weekly-calendar/${date}/${slot}`);
 }
 
-export async function addMealToMacros({ date, slot, meal }: { date: string; slot: string; meal: Meal }) {
+export async function addMealToMacros({
+  date,
+  slot,
+  meal,
+}: {
+  date: string;
+  slot: string;
+  meal: Meal;
+}) {
   // Use the same working pattern as craving creator
   console.log("📊 Adding meal to macros:", { date, slot, meal: meal.title });
-  
+
   const logEntry = {
     id: meal.id || crypto.randomUUID(),
     name: `${meal.title} (${meal.servings || 1} serving${meal.servings !== 1 ? "s" : ""})`,
@@ -186,7 +235,7 @@ export async function addMealToMacros({ date, slot, meal }: { date: string; slot
     time: new Date().toLocaleTimeString("en-US", {
       hour12: false,
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     }),
     calories: meal.nutrition.calories,
     protein: meal.nutrition.protein,
@@ -195,14 +244,14 @@ export async function addMealToMacros({ date, slot, meal }: { date: string; slot
     fiber: 0, // Default values for missing fields
     sugar: 0,
     sodium: 0,
-    meal_type: slot || 'lunch',
+    meal_type: slot || "lunch",
     timestamp: new Date().toISOString(),
   };
 
   console.log("📝 Sending log entry:", logEntry);
 
   const result = await post("/api/food-logs", logEntry);
-  
+
   // Trigger macro refresh in Biometrics dashboard
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("macros:updated"));
@@ -212,56 +261,82 @@ export async function addMealToMacros({ date, slot, meal }: { date: string; slot
   return result;
 }
 
-export async function regenerateMealCard({ date, slot, baseMeal }: { date: string; slot: string; baseMeal: Meal }) {
+export async function regenerateMealCard({
+  date,
+  slot,
+  baseMeal,
+}: {
+  date: string;
+  slot: string;
+  baseMeal: Meal;
+}) {
   // For week board system, we'll generate a new random meal from templates
   // This is a client-side regeneration that picks a different template
-  const { TEMPLATE_SETS } = await import('@/data/templateSets');
-  
+  const { TEMPLATE_SETS } = await import("@/data/templateSets");
+
   // Map slot to template list
-  const listName = slot as "breakfast"|"lunch"|"dinner"|"snacks";
+  const listName = slot as "breakfast" | "lunch" | "dinner" | "snacks";
   const templates = TEMPLATE_SETS[listName] || [];
-  
+
   // Filter out current meal and pick random different one
-  const others = templates.filter(t => t.id !== baseMeal.id);
+  const others = templates.filter((t) => t.id !== baseMeal.id);
   const pick = others[Math.floor(Math.random() * others.length)];
-  
-  if (!pick) throw new Error('No alternative meals available');
-  
+
+  if (!pick) throw new Error("No alternative meals available");
+
   // Return with new ID to avoid conflicts
   return {
     ...pick,
-    id: 'regen_' + Math.random().toString(36).slice(2)
+    id: "regen_" + Math.random().toString(36).slice(2),
   };
 }
 
-export async function replaceMealWithCraving({ date, slot }: { date: string; slot: string }) {
+export async function replaceMealWithCraving({
+  date,
+  slot,
+}: {
+  date: string;
+  slot: string;
+}) {
   // Store return info for craving creator navigation
-  localStorage.setItem('cravingReturn', JSON.stringify({
-    returnTo: 'weekly-meal-board',
-    date,
-    slot,
-    timestamp: Date.now()
-  }));
-  
+  localStorage.setItem(
+    "cravingReturn",
+    JSON.stringify({
+      returnTo: "weekly-meal-board",
+      date,
+      slot,
+      timestamp: Date.now(),
+    }),
+  );
+
   // Navigate to craving creator
-  window.location.href = '/craving-creator';
-  
+  window.location.href = "/craving-creator";
+
   // Return placeholder since we're navigating away
   return { navigated: true };
 }
 
-export async function replaceMealWithFridge({ date, slot }: { date: string; slot: string }) {
+export async function replaceMealWithFridge({
+  date,
+  slot,
+}: {
+  date: string;
+  slot: string;
+}) {
   // Store return info for fridge rescue navigation
-  localStorage.setItem('fridgeReturn', JSON.stringify({
-    returnTo: 'weekly-meal-board',
-    date,
-    slot,
-    timestamp: Date.now()
-  }));
-  
+  localStorage.setItem(
+    "fridgeReturn",
+    JSON.stringify({
+      returnTo: "weekly-meal-board",
+      date,
+      slot,
+      timestamp: Date.now(),
+    }),
+  );
+
   // Navigate to fridge rescue
-  window.location.href = '/fridge-rescue';
-  
+  window.location.href = "/fridge-rescue";
+
   // Return placeholder since we're navigating away
   return { navigated: true };
 }
@@ -269,26 +344,38 @@ export async function replaceMealWithFridge({ date, slot }: { date: string; slot
 /** Bulk upsert meals into the weekly calendar (server source of truth). */
 export async function upsertWeekPlanBulk(payload: {
   startDate: string;
-  items: Array<{ date: string; slot: "breakfast"|"lunch"|"dinner"; meal: Meal }>;
+  items: Array<{
+    date: string;
+    slot: "breakfast" | "lunch" | "dinner";
+    meal: Meal;
+  }>;
 }) {
   // Debug: log payload size so we know items isn't empty
   if (!payload?.items?.length) {
-    throw new Error("No items to save (payload.items is empty). Check Classic Builder output.");
+    throw new Error(
+      "No items to save (payload.items is empty). Check Classic Builder output.",
+    );
   }
 
   return post("/api/weekly-calendar/bulk-upsert", payload);
 }
 
 /** Fetch server plan first; if empty and legacy local data exists, migrate it once. */
-export async function getWeekPlanWithMigration(): Promise<Record<string, Record<string, Meal | null>>> {
+export async function getWeekPlanWithMigration(): Promise<
+  Record<string, Record<string, Meal | null>>
+> {
   // 1) Try server
-  let data = await get<Record<string, Record<string, Meal | null>>>("/api/weekly-calendar");
+  let data = await get<Record<string, Record<string, Meal | null>>>(
+    "/api/weekly-calendar",
+  );
 
   // If server has data, return it
   if (data && Object.keys(data).length > 0) return data;
 
   // 2) Check legacy Classic Builder localStorage (adjust keys to your actual ones)
-  const legacy = window.localStorage.getItem("weeklyPlan:00000000-0000-0000-0000-000000000001"); // PlanMeal[] JSON
+  const legacy = window.localStorage.getItem(
+    "weeklyPlan:00000000-0000-0000-0000-000000000001",
+  ); // PlanMeal[] JSON
   const legacyWeek = window.localStorage.getItem("weeklyPlan");
 
   if (!legacy && !legacyWeek) return data; // nothing to migrate
@@ -302,15 +389,17 @@ export async function getWeekPlanWithMigration(): Promise<Record<string, Record<
     } else if (legacyWeek) {
       parsed = JSON.parse(legacyWeek);
     }
-    
-    const sd = new Date().toISOString().slice(0,10);
+
+    const sd = new Date().toISOString().slice(0, 10);
     const items = transformLegacyPlanMealsToCalendarItems(parsed, sd);
     if (items.length) {
       await upsertWeekPlanBulk({ startDate: sd, items });
       // Re-fetch
       data = await get("/api/weekly-calendar");
       // Clear legacy so it doesn't repeat
-      window.localStorage.removeItem("weeklyPlan:00000000-0000-0000-0000-000000000001");
+      window.localStorage.removeItem(
+        "weeklyPlan:00000000-0000-0000-0000-000000000001",
+      );
       window.localStorage.removeItem("weeklyPlan");
     }
   } catch (e) {
@@ -326,24 +415,32 @@ export function transformLegacyPlanMealsToCalendarItems(
   planMeals: Array<{
     name?: string;
     title?: string;
-    type?: string;          // sometimes used instead of mealType
-    mealType?: string;      // "Breakfast" | "Lunch" | "Dinner" | etc
-    dayIndex?: number;      // 0..6
+    type?: string; // sometimes used instead of mealType
+    mealType?: string; // "Breakfast" | "Lunch" | "Dinner" | etc
+    dayIndex?: number; // 0..6
     servings?: number;
-    nutrition?: { calories:number; protein:number; carbs:number; fat:number } | any;
-    ingredients?: Array<{ item?: string; name?: string; amount?: string } | string> | any;
+    nutrition?:
+      | { calories: number; protein: number; carbs: number; fat: number }
+      | any;
+    ingredients?:
+      | Array<{ item?: string; name?: string; amount?: string } | string>
+      | any;
     instructions?: string[];
     badges?: string[];
   }>,
-  startDate: string
+  startDate: string,
 ) {
-  const slotMap: Record<string, "breakfast"|"lunch"|"dinner"> = {
+  const slotMap: Record<string, "breakfast" | "lunch" | "dinner"> = {
     breakfast: "breakfast",
     lunch: "lunch",
     dinner: "dinner",
   };
 
-  const items: Array<{ date: string; slot: "breakfast"|"lunch"|"dinner"; meal: Meal }> = [];
+  const items: Array<{
+    date: string;
+    slot: "breakfast" | "lunch" | "dinner";
+    meal: Meal;
+  }> = [];
 
   for (const pm of planMeals || []) {
     const idx = Number.isFinite(pm.dayIndex) ? (pm.dayIndex as number) : 0;
@@ -358,7 +455,9 @@ export function transformLegacyPlanMealsToCalendarItems(
       title: (pm.title || pm.name || "Generated Meal").toString().trim(),
       servings: Math.max(1, pm.servings ?? 1),
       ingredients: normalizeIngredients(pm.ingredients),
-      instructions: Array.isArray(pm.instructions) ? pm.instructions.filter(Boolean) : [],
+      instructions: Array.isArray(pm.instructions)
+        ? pm.instructions.filter(Boolean)
+        : [],
       nutrition: normalizeNutrition(pm.nutrition),
       badges: Array.isArray(pm.badges) ? pm.badges.filter(Boolean) : [],
     };
@@ -375,7 +474,10 @@ function normalizeIngredients(raw: any): { item: string; amount: string }[] {
   const out: { item: string; amount: string }[] = [];
   for (const ing of raw) {
     if (!ing) continue;
-    if (typeof ing === "string") { out.push({ item: ing.trim(), amount: "" }); continue; }
+    if (typeof ing === "string") {
+      out.push({ item: ing.trim(), amount: "" });
+      continue;
+    }
     const item = (ing.item ?? ing.name ?? "").toString().trim();
     const amount = (ing.amount ?? "").toString().trim();
     if (item) out.push({ item, amount });
@@ -383,16 +485,35 @@ function normalizeIngredients(raw: any): { item: string; amount: string }[] {
   return out;
 }
 
-function normalizeNutrition(nut: any): { calories:number; protein:number; carbs:number; fat:number } {
-  const num = (n:any) => (Number.isFinite(+n) ? +n : 0);
-  if (!nut || typeof nut !== "object") return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-  return { calories: num(nut.calories), protein: num(nut.protein), carbs: num(nut.carbs), fat: num(nut.fat) };
+function normalizeNutrition(nut: any): {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+} {
+  const num = (n: any) => (Number.isFinite(+n) ? +n : 0);
+  if (!nut || typeof nut !== "object")
+    return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  return {
+    calories: num(nut.calories),
+    protein: num(nut.protein),
+    carbs: num(nut.carbs),
+    fat: num(nut.fat),
+  };
 }
 
 function isoDateAddDays(iso: string, days: number) {
-  const d = new Date(iso+"T00:00:00"); d.setDate(d.getDate() + (days|0)); return d.toISOString().slice(0,10);
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + (days | 0));
+  return d.toISOString().slice(0, 10);
 }
 function cryptoRandomId() {
-  try { return (crypto as any).randomUUID?.() || "id_"+Math.random().toString(36).slice(2); }
-  catch { return "id_"+Math.random().toString(36).slice(2); }
+  try {
+    return (
+      (crypto as any).randomUUID?.() ||
+      "id_" + Math.random().toString(36).slice(2)
+    );
+  } catch {
+    return "id_" + Math.random().toString(36).slice(2);
+  }
 }
