@@ -70,7 +70,21 @@ MyPerfectMeals is a comprehensive meal planning and nutrition application built 
 - After build: run `npx cap sync ios` before opening in Xcode
 - Global error handling (`setupGlobalErrorHandling`) deferred to useEffect to avoid swallowing module evaluation errors
 
+## Navigation Architecture
+- **Bottom Nav**: Role + workspace based (not route-only)
+  - Clients always see Regular BottomNav
+  - Clinicians (coach/trainer/physician) see StudioBottomNav only inside clinic workspace routes (/care-team, /pro/clients, /pro/physician-clients, /pro/physician, /pro-portal)
+  - Personal builder routes (/pro/general-nutrition-builder, /performance-competition-builder) always show Regular BottomNav
+- **Builder Headers**: Shared `BuilderHeader` component (`client/src/components/pro/BuilderHeader.tsx`)
+  - Row 1: Title + Info (MedicalSourcesInfo) + Guide (QuickTourButton)
+  - Row 2 (conditional): "Working with [Client Name] + Exit Client" — only shows for clinicians in studio client context
+  - No back button in any builder (bottom nav handles navigation)
+  - Applies to: GeneralNutritionBuilder, PerformanceCompetitionBuilder, DiabeticMenuBuilder, GLP1MealBuilder, AntiInflammatoryMenuBuilder
+  - Excluded: WeeklyMealBoard, BeachBodyBuilder (unchanged)
+- **ProClientContext**: Detects studio client context from route params for all builder types including medical builders
+
 ## Recent Changes
+- 2026-02-23: Implemented ProCare navigation + header spec — created shared BuilderHeader component, role-based bottom nav logic, removed back/dashboard buttons from all 5 eligible builders, standardized "Working with + Exit Client" UX
 - 2026-02-22: Fixed iOS Capacitor runtime crash - removed `server.url` from both `capacitor.config.ts` and `ios/App/App/capacitor.config.json` (was forcing remote URL loading instead of bundled mode); deferred `setupGlobalErrorHandling()` to useEffect to stop swallowing boot errors; added detailed error logging in main.tsx dynamic import catch handler
 - 2026-02-22: Fixed shopping aggregate bar z-index in Diabetic Menu Builder (removed overflow-x-hidden)
 - 2026-02-21: Added ProCare account upgrade feature - existing users can upgrade to coach/ProCare role without creating a new account (POST /api/auth/upgrade-to-procare endpoint + updated ProCareAttestation page)

@@ -29,7 +29,6 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import BottomNav from "@/components/BottomNav";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
@@ -47,7 +46,7 @@ import {
   todayISOInTZ 
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Home, ArrowLeft, Info, Calendar } from "lucide-react";
+import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Calendar } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
@@ -71,10 +70,8 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
-import { ProClientBanner } from "@/components/pro/ProClientBanner";
+import { BuilderHeader } from "@/components/pro/BuilderHeader";
 
 const GENERAL_NUTRITION_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Build Client Meals", description: "Tap the + button on any meal card to add personalized recipes for your client." },
@@ -992,60 +989,12 @@ export default function WeeklyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
-      {/* Universal Safe-Area Header */}
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-black/40 via-orange-600/40 to-black/40 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex flex-col gap-2">
-          {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
-            {/* Back Button */}
-            <button
-              onClick={() => setLocation(isProCareMode ? `/pro/clients/${clientId}` : "/dashboard")}
-              className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg text-md font-medium flex-shrink-0"
-              data-testid="button-back-dashboard"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-
-            {/* Title */}
-            <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
-              General Nutrition Builder
-            </h1>
-
-            <div className="flex items-center gap-2">
-              <MedicalSourcesInfo asPillButton />
-              {!isProCareMode && (
-                <QuickTourButton onClick={quickTour.openTour} />
-              )}
-            </div>
-          </div>
-
-          {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}
-          {isProCareMode && (
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={() => setLocation(`/pro/clients/${clientId}`)}
-                className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
-                data-testid="button-client-dashboard-text"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Client Dashboard</span>
-              </button>
-
-              <QuickTourButton onClick={quickTour.openTour} />
-            </div>
-          )}
-        </div>
-        {isProCareMode && <ProClientBanner />}
-      </div>
+      <BuilderHeader title="General Nutrition Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} />
 
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isProCareMode ? '10rem' : '8rem'})` }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isProCareMode ? '9rem' : '6rem'})` }}
       >
       <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
         <div className="px-4 py-4 flex flex-col gap-3">

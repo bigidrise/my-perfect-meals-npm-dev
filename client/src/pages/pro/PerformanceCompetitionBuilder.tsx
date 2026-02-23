@@ -67,14 +67,11 @@ import {
   ShoppingCart,
   X,
   Trash2,
-  ArrowLeft,
   ChevronLeft,
   Calendar,
   ChevronRight,
   Copy,
   Target,
-  Home,
-  Info,
   ChefHat,
 } from "lucide-react";
 import {
@@ -101,9 +98,7 @@ import {
 } from "@/components/ui/dialog";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
-import { ProClientBanner } from "@/components/pro/ProClientBanner";
+import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
@@ -1086,65 +1081,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28"
     >
-      {/* Safe Area Top Filler - matches header gradient */}
-      {/* Universal Safe-Area Header */}
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-black/40 via-orange-600/40 to-black/40 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex flex-col gap-2">
-          {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
-            {/* Back Button */}
-            <button
-              onClick={() =>
-                setLocation(
-                  mode === "athlete" ? "/more" : "/dashboard",
-                )
-              }
-              className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg text-md font-medium flex-shrink-0"
-              data-testid="button-back-dashboard"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-
-            {/* Title - shorter on mobile */}
-            <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
-              Performance Builder
-            </h1>
-
-            <div className="flex items-center gap-2">
-              <MedicalSourcesInfo asPillButton />
-              {mode === "athlete" && (
-                <QuickTourButton onClick={quickTour.openTour} />
-              )}
-            </div>
-          </div>
-
-          {/* Row 2: Client Dashboard + Guide (ProCare mode only) */}
-          {mode === "procare" && (
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={() => setLocation(`/pro/clients/${clientId}`)}
-                className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
-                data-testid="button-client-dashboard-text"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Client Dashboard</span>
-              </button>
-
-              <QuickTourButton onClick={quickTour.openTour} />
-            </div>
-          )}
-        </div>
-        {mode === "procare" && <ProClientBanner />}
-      </div>
+      <BuilderHeader title="Performance Builder" onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} />
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
         className="px-4"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '10rem' : '8rem'})` }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
       >
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">

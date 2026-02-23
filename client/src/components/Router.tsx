@@ -209,11 +209,15 @@ export default function Router() {
     "/pro/physician",
   ];
 
+  const isInPersonalBuilder =
+    location === "/pro/general-nutrition-builder" ||
+    location === "/performance-competition-builder";
+
   const isInClinicWorkspace = clinicWorkspaceRoutes.some(route =>
     location.startsWith(route)
   );
 
-  const showClinicianNav = isClinicianUser && isInClinicWorkspace;
+  const showClinicianNav = isClinicianUser && isInClinicWorkspace && !isInPersonalBuilder;
 
   // The rest of the original routes are kept below.
 

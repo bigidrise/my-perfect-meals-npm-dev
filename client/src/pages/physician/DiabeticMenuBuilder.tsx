@@ -67,9 +67,6 @@ import {
   BarChart3,
   ShoppingCart,
   X,
-  Home,
-  ArrowLeft,
-  Info,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
@@ -103,10 +100,9 @@ import {
 } from "@/components/ui/dialog";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
+import { BuilderHeader } from "@/components/pro/BuilderHeader";
 
 const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
   {
@@ -1409,53 +1405,12 @@ export default function DiabeticMenuBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36"
     >
-      {/* Universal Safe-Area Header */}
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex flex-col gap-2">
-          {/* Row 1: Main Navigation */}
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() =>
-                setLocation(
-                  proClientId ? `/pro/clients/${proClientId}` : "/diabetic-hub",
-                )
-              }
-              className="bg-black/10 hover:bg-black/10 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1 px-3 h-10 flex-shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </Button>
-            <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-              Diabetic Meal Builder
-            </h1>
-            <div className="flex items-center gap-2">
-              <MedicalSourcesInfo asPillButton />
-              <QuickTourButton onClick={quickTour.openTour} />
-            </div>
-          </div>
-          {/* Row 2: Client Dashboard Button (only when accessed from ProCare) */}
-          {proClientId && (
-            <div className="flex items-center">
-              <button
-                onClick={() => setLocation(`/pro/clients/${proClientId}`)}
-                className="flex items-center text-white/90 hover:bg-white/10 transition-all duration-200 px-3 py-1.5 rounded-lg text-sm font-medium"
-                data-testid="button-client-dashboard"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Client Dashboard</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <BuilderHeader title="Diabetic Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
 
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         <NutritionBudgetBanner className="mb-2" />
 
