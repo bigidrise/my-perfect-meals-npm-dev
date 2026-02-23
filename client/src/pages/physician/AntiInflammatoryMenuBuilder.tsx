@@ -2068,7 +2068,7 @@ export default function AntiInflammatoryMenuBuilder() {
               const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
 
               return (
-                <div className="fixed bottom-0 left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl safe-area-inset-bottom">
+                <div className="fixed left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl" style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}>
                   <div className="container mx-auto px-4 py-3">
                     <div className="flex flex-col gap-2">
                       <div className="text-white text-sm font-semibold">
@@ -2122,6 +2122,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 ingredients={ingredients}
                 source={`Diabetic Meal Plan (${formatWeekLabel(weekStartISO)})`}
                 sourceSlug="diabetic-meal-board"
+                aboveBottomNav
               />
             );
           })()}
