@@ -671,6 +671,79 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* Founder Coaching Tier */}
+        <div className="mb-16">
+          <h2 className="text-xl font-bold mb-6 text-center">
+            Personal Guidance
+          </h2>
+
+          <Card className="relative bg-black/60 backdrop-blur-lg border border-amber-400/50 ring-2 ring-amber-400/30 text-white shadow-2xl max-w-2xl mx-auto">
+            <Badge className="absolute top-4 right-4 bg-amber-500/80 text-white">
+              Limited Founding Access
+            </Badge>
+
+            <CardHeader>
+              <div className="space-y-3 text-center">
+                <h3 className="text-2xl font-bold">
+                  MPM Personal Guidance
+                </h3>
+                <p className="text-white/80 text-sm">
+                  Work directly with the founder of My Perfect Meals through structured,
+                  in-app, async guidance.
+                </p>
+                <p className="text-2xl font-semibold">
+                  $299 / month
+                </p>
+                <p className="text-xs text-white/60">
+                  6-Month Commitment · Async Only · In-App Messaging
+                </p>
+              </div>
+            </CardHeader>
+
+            <Separator className="bg-white/10" />
+
+            <CardContent className="space-y-4 pt-6">
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-400 mt-0.5" />
+                  Personalized meal board setup and adjustments
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-400 mt-0.5" />
+                  Direct async messaging with founder
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-400 mt-0.5" />
+                  Decision-free nutrition structure
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-400 mt-0.5" />
+                  Ongoing macro calibration and refinements
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-400 mt-0.5" />
+                  Monitored messaging for safety and professionalism
+                </li>
+              </ul>
+
+              <div className="pt-4">
+                <Button
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold"
+                  onClick={() => setLocation("/apply-guidance")}
+                >
+                  Apply for Personal Guidance
+                </Button>
+              </div>
+
+              <p className="text-xs text-center text-white/50 pt-2">
+                This is a structured, professional coaching layer. No video calls.
+                No off-platform contact. Designed for long-term confidence.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Family Plans Section */}
         <div className="mb-12">
           <h2 className="text-xl font-bold mb-6 text-center">Family Plans</h2>

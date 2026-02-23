@@ -43,6 +43,7 @@ import Auth from "@/pages/Auth";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import PricingPage from "@/pages/PricingPage";
+import ApplyGuidance from "@/pages/ApplyGuidance";
 import MealBuilderSelection from "@/pages/MealBuilderSelection";
 import CheckoutSuccess from "@/pages/CheckoutSuccess";
 import FamilyInfoPage from "@/pages/FamilyInfoPage";
@@ -234,6 +235,7 @@ export default function Router() {
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/pricing" component={PricingPage} />
+        <Route path="/apply-guidance" component={ApplyGuidance} />
         <Route path="/paywall" component={PricingPage} />
         <Route path="/select-builder" component={MealBuilderSelection} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
