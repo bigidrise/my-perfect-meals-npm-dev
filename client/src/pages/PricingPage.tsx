@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -21,15 +21,13 @@ import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
 import {
   isIosNativeShell,
   IOS_PAYMENT_MESSAGE,
+  openAppleSubscriptions,
 } from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  fetchProducts,
   restorePurchases,
   purchaseProduct,
-  manageSubscriptions,
-  type StoreKitProduct,
 } from "@/lib/storekit";
 import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
@@ -42,32 +40,10 @@ export default function PricingPage() {
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
 
-  // iOS App Store Compliance: Show StoreKit products and Apple subscription management
-  // Apple Guideline 3.1.1 - All purchases through Apple In-App Purchase
-  const [iosProducts, setIosProducts] = useState<StoreKitProduct[]>([]);
-  const [iosLoading, setIosLoading] = useState(true);
   const [purchasingProduct, setPurchasingProduct] = useState<string | null>(
     null,
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
-
-  useEffect(() => {
-    if (isIosNativeShell()) {
-      loadIosProducts();
-    }
-  }, []);
-
-  async function loadIosProducts() {
-    setIosLoading(true);
-    try {
-      const products = await fetchProducts();
-      setIosProducts(products);
-    } catch (e) {
-      console.error("[iOS Pricing] Failed to load products:", e);
-    } finally {
-      setIosLoading(false);
-    }
-  }
 
   async function handleIosPurchase(product: IosProduct) {
     setPurchasingProduct(product.productId);
@@ -185,18 +161,8 @@ export default function PricingPage() {
               Choose Your Plan
             </h2>
 
-            {iosLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
-              </div>
-            ) : (
-              IOS_PRODUCTS.map((product) => {
-                const storeProduct = iosProducts.find(
-                  (p) => p.productId === product.productId,
-                );
-                const displayPrice =
-                  storeProduct?.displayPrice ||
-                  `$${product.price.toFixed(2)}/mo`;
+            {IOS_PRODUCTS.map((product) => {
+                const displayPrice = `$${product.price.toFixed(2)}/mo`;
                 const isPurchasing = purchasingProduct === product.productId;
                 const isPremium =
                   product.internalSku === "mpm_premium_monthly";
@@ -385,8 +351,7 @@ export default function PricingPage() {
                     </Button>
                   </div>
                 );
-              })
-            )}
+              })}
           </div>
 
           <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-2xl p-6 text-center space-y-4">
@@ -407,7 +372,7 @@ export default function PricingPage() {
             <Button
               onClick={async () => {
                 try {
-                  await manageSubscriptions();
+                  await openAppleSubscriptions();
                 } catch (e) {
                   console.error("[Pricing] Failed to open manage subscriptions:", e);
                   toast({
