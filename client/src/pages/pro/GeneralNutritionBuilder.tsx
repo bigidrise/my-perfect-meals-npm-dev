@@ -108,11 +108,7 @@ export default function WeeklyMealBoard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Hide bottom navigation on this page (conflicts with Shopping Aggregate Bar)
-  React.useEffect(() => {
-    document.body.classList.add('hide-bottom-nav');
-    return () => document.body.classList.remove('hide-bottom-nav');
-  }, []);
+  
   
   const quickTour = useQuickTour("general-nutrition-builder");
 
@@ -994,7 +990,7 @@ export default function WeeklyMealBoard() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20"
     >
       {/* Universal Safe-Area Header */}
       <div

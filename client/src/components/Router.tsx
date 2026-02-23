@@ -5,11 +5,11 @@ import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
 import { withPageErrorBoundary } from "@/components/PageErrorBoundary";
 import { withGate } from "@/components/GatedRoute";
-// import MealLogHistoryPage from "@/pages/MealLogHistoryPage"; // TEMPORARILY DISABLED - File missing
 import ABTestingDemo from "@/pages/ABTestingDemo";
 import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
@@ -194,7 +194,14 @@ export default function Router() {
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
 
-  const clinicRoutes = [
+  const { user } = useAuth();
+
+  const isClinicianUser =
+    user?.role === "coach" ||
+    user?.role === "trainer" ||
+    user?.role === "physician";
+
+  const clinicWorkspaceRoutes = [
     "/care-team",
     "/pro-portal",
     "/pro/clients",
@@ -203,9 +210,11 @@ export default function Router() {
     "/pro/general-nutrition-builder",
   ];
 
-  const isClinicRoute = clinicRoutes.some(route =>
+  const isInClinicWorkspace = clinicWorkspaceRoutes.some(route =>
     location.startsWith(route)
   );
+
+  const showClinicianNav = isClinicianUser && isInClinicWorkspace;
 
   // The rest of the original routes are kept below.
 
@@ -564,8 +573,8 @@ export default function Router() {
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
-      {shouldShowBottomNav && !isClinicRoute && <BottomNav />}
-      {isClinicRoute && <StudioBottomNav />}
+      {shouldShowBottomNav && !showClinicianNav && <BottomNav />}
+      {showClinicianNav && <StudioBottomNav />}
     </>
   );
 }

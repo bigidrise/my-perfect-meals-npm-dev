@@ -46,14 +46,14 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  getWeekStartISOInTZ, 
-  getTodayISOSafe, 
-  weekDatesInTZ, 
-  nextWeekISO, 
-  prevWeekISO, 
+import {
+  getWeekStartISOInTZ,
+  getTodayISOSafe,
+  weekDatesInTZ,
+  nextWeekISO,
+  prevWeekISO,
   formatWeekLabel,
-  formatDateDisplay
+  formatDateDisplay,
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
@@ -137,7 +137,8 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
     icon: "6",
     title: "Track Progress & Save Day",
-    description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
+    description:
+      "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
   },
   {
     icon: "🥔",
@@ -175,9 +176,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const quickTour = useQuickTour("performance-competition-builder");
-  
+
   // Body fat-based starch slot adjustment (includes +1 bonus if below goal for performance builders)
-  const bodyFatAdjustment = useBodyFatStarchAdjustment("performance_competition");
+  const bodyFatAdjustment = useBodyFatStarchAdjustment(
+    "performance_competition",
+  );
 
   // Route params
   const [, athleteParams] = useRoute("/athlete-meal-board/:clientId");
@@ -228,8 +231,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // 🎯 BULLETPROOF BOARD LOADING
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
-  const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(
+    getWeekStartISOInTZ("America/Chicago"),
+  );
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -248,13 +252,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
       userId: user?.id,
-      builderId: 'performance-competition-builder',
+      builderId: "performance-competition-builder",
       weekStartISO,
     },
     board,
     setBoard,
     hookLoading,
-    hookBoard
+    hookBoard,
   );
 
   // Sync hook board to local state (skip if draft is active)
@@ -307,8 +311,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [showOverview, setShowOverview] = React.useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
-
-
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
@@ -323,13 +325,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
     const resolved = user?.id ? getResolvedTargets(user.id) : null;
-    const strategy = resolved?.starchStrategy || 'one';
+    const strategy = resolved?.starchStrategy || "one";
     const dayLists = getDayLists(board, activeDayISO);
-    const existingMeals: StarchContext['existingMeals'] = [];
-    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+    const existingMeals: StarchContext["existingMeals"] = [];
+    for (const slot of ["breakfast", "lunch", "dinner"] as const) {
       const meals = dayLists[slot] || [];
       for (const meal of meals) {
-        existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
+        existingMeals.push({
+          slot,
+          hasStarch: classifyMeal(meal).isStarchMeal,
+        });
       }
     }
     return { strategy, existingMeals };
@@ -560,17 +565,37 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
 
         if (result.errors.length > 0) {
-          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
-        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
-          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+          toast({
+            title: "Partial duplicate",
+            description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`,
+            variant: "destructive",
+          });
+        } else if (
+          result.otherWeeksSaved > 0 &&
+          result.currentWeekDayCount === 0
+        ) {
+          toast({
+            title: "Saved to future week",
+            description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.`,
+          });
         } else if (result.otherWeeksSaved > 0) {
-          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+          toast({
+            title: "Day duplicated",
+            description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks`,
+          });
         } else {
-          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+          toast({
+            title: "Day duplicated",
+            description: `Copied to ${result.currentWeekDayCount} day(s)`,
+          });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
+        toast({
+          title: "Failed to duplicate",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
@@ -589,7 +614,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           ? Object.fromEntries(
               Object.entries(board.days).map(([oldDateISO, lists]) => {
                 const dayIndex = weekDatesList.indexOf(oldDateISO);
-                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+                const targetWeekDatesSafe = weekDatesInTZ(
+                  targetWeekStartISO,
+                  "America/Chicago",
+                );
                 const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
                 return [newDateISO, cloneDayLists(lists)];
               }),
@@ -741,7 +769,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }, [board, weekStartISO, weekDatesList, toast]);
 
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      generatedMeal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    ) => {
       if (!activeDayISO) return;
 
       const transformedMeal: Meal = {
@@ -1048,7 +1079,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
-      console.log("[Network] Board load encountered an issue, using cached data if available");
+      console.log(
+        "[Network] Board load encountered an issue, using cached data if available",
+      );
     }
   }, [error]);
 
@@ -1084,7 +1117,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
       {/* Safe Area Top Filler - matches header gradient */}
       {/* Universal Safe-Area Header */}
@@ -1098,9 +1131,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             {/* Back Button */}
             <button
               onClick={() =>
-                setLocation(
-                  mode === "athlete" ? "/more" : "/dashboard",
-                )
+                setLocation(mode === "athlete" ? "/more" : "/dashboard")
               }
               className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg text-md font-medium flex-shrink-0"
               data-testid="button-back-dashboard"
@@ -1144,7 +1175,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
         className="px-4"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '10rem' : '8rem'})` }}
+        style={{
+          paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? "10rem" : "8rem"})`,
+        }}
       >
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
@@ -1190,28 +1223,25 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             )}
 
             {/* ROW 4: Daily Starch Indicator */}
-            {FEATURES.dayPlanning === "alpha" &&
-              activeDayISO &&
-              board && (
-                <div className="flex justify-center">
-                  <DailyStarchIndicator 
-                    meals={(() => {
-                      const dayLists = getDayLists(board, activeDayISO);
-                      return [
-                        ...dayLists.breakfast,
-                        ...dayLists.lunch,
-                        ...dayLists.dinner,
-                        ...dayLists.snacks,
-                      ];
-                    })()}
-                    bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
-                  />
-                </div>
-              )}
+            {FEATURES.dayPlanning === "alpha" && activeDayISO && board && (
+              <div className="flex justify-center">
+                <DailyStarchIndicator
+                  meals={(() => {
+                    const dayLists = getDayLists(board, activeDayISO);
+                    return [
+                      ...dayLists.breakfast,
+                      ...dayLists.lunch,
+                      ...dayLists.dinner,
+                      ...dayLists.snacks,
+                    ];
+                  })()}
+                  bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
+                />
+              </div>
+            )}
 
             {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-
               <Button
                 onClick={handleSave}
                 disabled={saving || justSaved}
@@ -1255,7 +1285,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               >
                 Duplicate 📅
               </button>
-
             </div>
           </div>
         </div>
@@ -1352,7 +1381,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                     );
                                     toast({
                                       title: "Sync pending",
-                                      description: "Changes will sync automatically.",
+                                      description:
+                                        "Changes will sync automatically.",
                                     });
                                   });
                                 } else {
@@ -1493,7 +1523,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                       );
                                       toast({
                                         title: "Sync pending",
-                                        description: "Changes will sync automatically.",
+                                        description:
+                                          "Changes will sync automatically.",
                                       });
                                     });
                                   } else {
@@ -1597,7 +1628,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                   );
                                   toast({
                                     title: "Sync pending",
-                                    description: "Changes will sync automatically.",
+                                    description:
+                                      "Changes will sync automatically.",
                                   });
                                 });
                               } else {
@@ -1711,7 +1743,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
                           onClick={() => {
                             setAiMealSlot(
-                              key as "breakfast" | "lunch" | "dinner" | "snacks",
+                              key as
+                                | "breakfast"
+                                | "lunch"
+                                | "dinner"
+                                | "snacks",
                             );
                             setAiMealModalOpen(true);
                           }}
@@ -1830,7 +1866,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               showQuickAddButton={false}
               targetsOverride={(() => {
                 const coachTargets = proStore.getTargets(clientId);
-                const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
+                const totalCarbs =
+                  (coachTargets.starchyCarbs || 0) +
+                  (coachTargets.fibrousCarbs || 0);
                 return {
                   protein_g: coachTargets.protein,
                   carbs_g: totalCarbs,
@@ -1846,16 +1884,36 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           {board &&
             FEATURES.dayPlanning === "alpha" &&
             planningMode === "day" &&
-            activeDayISO && (() => {
+            activeDayISO &&
+            (() => {
               const dayLists = getDayLists(board, activeDayISO);
               const computeSlotMacros = (meals: Meal[]) => ({
                 count: meals.length,
-                calories: meals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0),
-                protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
-                carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
+                calories: meals.reduce(
+                  (sum, m) => sum + (m.nutrition?.calories || 0),
+                  0,
+                ),
+                protein: meals.reduce(
+                  (sum, m) => sum + (m.nutrition?.protein || 0),
+                  0,
+                ),
+                carbs: meals.reduce(
+                  (sum, m) => sum + (m.nutrition?.carbs || 0),
+                  0,
+                ),
                 fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
-                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
-                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
+                starchyCarbs: meals.reduce(
+                  (sum, m) =>
+                    sum +
+                    ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0),
+                  0,
+                ),
+                fibrousCarbs: meals.reduce(
+                  (sum, m) =>
+                    sum +
+                    ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0),
+                  0,
+                ),
               });
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
@@ -1864,19 +1922,48 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 snacks: computeSlotMacros(dayLists.snacks),
               };
               const consumed = {
-                calories: slots.breakfast.calories + slots.lunch.calories + slots.dinner.calories + slots.snacks.calories,
-                protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
-                carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
-                fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
-                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
-                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
+                calories:
+                  slots.breakfast.calories +
+                  slots.lunch.calories +
+                  slots.dinner.calories +
+                  slots.snacks.calories,
+                protein:
+                  slots.breakfast.protein +
+                  slots.lunch.protein +
+                  slots.dinner.protein +
+                  slots.snacks.protein,
+                carbs:
+                  slots.breakfast.carbs +
+                  slots.lunch.carbs +
+                  slots.dinner.carbs +
+                  slots.snacks.carbs,
+                fat:
+                  slots.breakfast.fat +
+                  slots.lunch.fat +
+                  slots.dinner.fat +
+                  slots.snacks.fat,
+                starchyCarbs:
+                  slots.breakfast.starchyCarbs +
+                  slots.lunch.starchyCarbs +
+                  slots.dinner.starchyCarbs +
+                  slots.snacks.starchyCarbs,
+                fibrousCarbs:
+                  slots.breakfast.fibrousCarbs +
+                  slots.lunch.fibrousCarbs +
+                  slots.dinner.fibrousCarbs +
+                  slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
-              
+
               // Get coach targets from proStore for this client
               const coachTargets = proStore.getTargets(clientId);
-              const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
-              const totalCalories = (coachTargets.protein * 4) + (totalCarbs * 4) + (coachTargets.fat * 9);
+              const totalCarbs =
+                (coachTargets.starchyCarbs || 0) +
+                (coachTargets.fibrousCarbs || 0);
+              const totalCalories =
+                coachTargets.protein * 4 +
+                totalCarbs * 4 +
+                coachTargets.fat * 9;
               const targetsForFooter = {
                 calories: totalCalories,
                 protein_g: coachTargets.protein,
@@ -1885,7 +1972,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 starchyCarbs_g: coachTargets.starchyCarbs || 0,
                 fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
               };
-              
+
               return (
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
@@ -1900,13 +1987,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         carbs_g: targetsForFooter.carbs_g,
                         fat_g: targetsForFooter.fat_g,
                       };
-                      const result = await lockDay({
-                        dateISO: activeDayISO,
-                        targets,
-                        consumed,
-                        slots,
-                      }, user?.id);
-                      
+                      const result = await lockDay(
+                        {
+                          dateISO: activeDayISO,
+                          targets,
+                          consumed,
+                          slots,
+                        },
+                        user?.id,
+                      );
+
                       if (result.alreadyLocked) {
                         toast({
                           title: "Already Locked",
@@ -1923,9 +2013,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         });
                         toast({
                           title: "Day Saved to Coach Targets",
-                          description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                         });
-                        setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
+                        setLocation(
+                          `/pro/clients/${clientId}/dashboard?tab=targets`,
+                        );
                       }
                     }}
                   />
@@ -2065,10 +2157,15 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
+              const dayName = formatDateDisplay(activeDayISO, {
+                weekday: "long",
+              });
 
               return (
-                <div className="fixed left-0 right-0 pb-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl" style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}>
+                <div
+                  className="fixed left-0 right-0 pb-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl"
+                  style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}
+                >
                   <div className="container mx-auto px-4 py-3">
                     <div className="flex flex-col gap-2">
                       <div className="text-white text-sm font-semibold">

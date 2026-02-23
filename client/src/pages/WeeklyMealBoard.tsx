@@ -55,21 +55,21 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
-import { 
-  getWeekStartISOInTZ, 
-  getTodayISOSafe, 
-  weekDatesInTZ, 
+import {
+  getWeekStartISOInTZ,
+  getTodayISOSafe,
+  weekDatesInTZ,
   todayISOInTZ,
   nextWeekISO,
   prevWeekISO,
   formatWeekLabel,
   formatDateDisplay,
   addDaysISOSafe,
-  isoToUtcNoonDate
+  isoToUtcNoonDate,
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Plus, 
+  Plus,
   Calendar1,
   Check,
   Sparkles,
@@ -107,7 +107,16 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
-import { isGuestMode, incrementMealsBuilt, startMealBoardVisit, endMealBoardVisit, shouldShowHardGate, getGuestLoopCount, hasActiveMealDaySession, getActiveMealDaySessionRemaining } from "@/lib/guestMode";
+import {
+  isGuestMode,
+  incrementMealsBuilt,
+  startMealBoardVisit,
+  endMealBoardVisit,
+  shouldShowHardGate,
+  getGuestLoopCount,
+  hasActiveMealDaySession,
+  getActiveMealDaySessionRemaining,
+} from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
@@ -188,8 +197,8 @@ export default function WeeklyMealBoard() {
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Uses noon UTC anchor pattern
-  const [weekStartISO, setWeekStartISO] = React.useState<string>(
-    () => getWeekStartISOInTZ("America/Chicago")
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(() =>
+    getWeekStartISOInTZ("America/Chicago"),
   );
   const {
     board: hookBoard,
@@ -224,10 +233,10 @@ export default function WeeklyMealBoard() {
         setLocation("/pricing");
       }
     };
-    
+
     // Check on mount
     checkHardGate();
-    
+
     // Listen for progress updates (fires when loopCount changes)
     const handleProgressUpdate = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -235,7 +244,7 @@ export default function WeeklyMealBoard() {
         checkHardGate();
       }
     };
-    
+
     window.addEventListener("guestProgressUpdate", handleProgressUpdate);
     return () => {
       window.removeEventListener("guestProgressUpdate", handleProgressUpdate);
@@ -249,7 +258,7 @@ export default function WeeklyMealBoard() {
       const hadActiveSession = hasActiveMealDaySession();
       const newMealDayConsumed = startMealBoardVisit();
       const loopCount = getGuestLoopCount();
-      
+
       if (newMealDayConsumed) {
         // NEW meal day session started
         toast({
@@ -268,7 +277,7 @@ export default function WeeklyMealBoard() {
           });
         }
       }
-      
+
       return () => {
         endMealBoardVisit();
       };
@@ -279,20 +288,20 @@ export default function WeeklyMealBoard() {
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
       userId: user?.id,
-      builderId: 'weekly-meal-board',
+      builderId: "weekly-meal-board",
       weekStartISO,
     },
     board,
     setBoard,
     hookLoading,
-    hookBoard
+    hookBoard,
   );
 
   // Sync hook board to local state only after loading completes
   // Skip if draft was restored to prevent server data from overwriting local changes
   React.useEffect(() => {
     if (skipServerSync()) {
-      console.log('⚠️ [MPM Board] Skipping server sync - draft is active');
+      console.log("⚠️ [MPM Board] Skipping server sync - draft is active");
       return;
     }
     if (!hookLoading && !Object.is(boardRef.current, hookBoard)) {
@@ -391,14 +400,14 @@ export default function WeeklyMealBoard() {
 
     // Get the starch strategy from resolved targets (default to 'one' if no user/targets)
     const resolved = user?.id ? getResolvedTargets(user.id) : null;
-    const strategy = resolved?.starchStrategy || 'one';
+    const strategy = resolved?.starchStrategy || "one";
 
     // Get existing meals for the active day
     const dayLists = getDayLists(board, activeDayISO);
-    const existingMeals: StarchContext['existingMeals'] = [];
+    const existingMeals: StarchContext["existingMeals"] = [];
 
     // Classify each meal slot
-    for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
+    for (const slot of ["breakfast", "lunch", "dinner"] as const) {
       const meals = dayLists[slot] || [];
       for (const meal of meals) {
         existingMeals.push({
@@ -854,7 +863,10 @@ export default function WeeklyMealBoard() {
             description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved. Some future weeks failed.`,
             variant: "destructive",
           });
-        } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
+        } else if (
+          result.otherWeeksSaved > 0 &&
+          result.currentWeekDayCount === 0
+        ) {
           toast({
             title: "Saved to future week",
             description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.`,
@@ -889,7 +901,10 @@ export default function WeeklyMealBoard() {
 
       // Guard: Check if any day in TARGET week is locked
       // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ
-      const targetWeekDates = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+      const targetWeekDates = weekDatesInTZ(
+        targetWeekStartISO,
+        "America/Chicago",
+      );
       const lockedTarget = targetWeekDates.find((d) =>
         isDayLocked(d, user?.id),
       );
@@ -907,7 +922,10 @@ export default function WeeklyMealBoard() {
         days: board.days
           ? Object.fromEntries(
               Object.entries(board.days).map(([oldDateISO, lists]) => {
-                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
+                const targetWeekDatesSafe = weekDatesInTZ(
+                  targetWeekStartISO,
+                  "America/Chicago",
+                );
                 const dayIndex = weekDatesList.indexOf(oldDateISO);
                 const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
 
@@ -1097,12 +1115,7 @@ export default function WeeklyMealBoard() {
     console.log("🌅 Midnight macro reset triggered");
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: [
-        "/api/users",
-        user?.id || "",
-        "macros",
-        "today",
-      ],
+      queryKey: ["/api/users", user?.id || "", "macros", "today"],
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));
@@ -1148,7 +1161,9 @@ export default function WeeklyMealBoard() {
   // Only log to console for debugging, don't interrupt UX with toasts
   React.useEffect(() => {
     if (error) {
-      console.log("[Network] Board load encountered an issue, using cached data if available");
+      console.log(
+        "[Network] Board load encountered an issue, using cached data if available",
+      );
     }
   }, [error]);
 
@@ -1530,7 +1545,7 @@ export default function WeeklyMealBoard() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
       {/* Universal Safe-Area Header */}
       <div
@@ -1612,27 +1627,24 @@ export default function WeeklyMealBoard() {
             )}
 
             {/* ROW 4: Daily Starch Indicator */}
-            {FEATURES.dayPlanning === "alpha" &&
-              activeDayISO &&
-              board && (
-                <div className="flex justify-center">
-                  <DailyStarchIndicator 
-                    meals={(() => {
-                      const dayLists = getDayLists(board, activeDayISO);
-                      return [
-                        ...dayLists.breakfast,
-                        ...dayLists.lunch,
-                        ...dayLists.dinner,
-                        ...dayLists.snacks,
-                      ];
-                    })()}
-                  />
-                </div>
-              )}
+            {FEATURES.dayPlanning === "alpha" && activeDayISO && board && (
+              <div className="flex justify-center">
+                <DailyStarchIndicator
+                  meals={(() => {
+                    const dayLists = getDayLists(board, activeDayISO);
+                    return [
+                      ...dayLists.breakfast,
+                      ...dayLists.lunch,
+                      ...dayLists.dinner,
+                      ...dayLists.snacks,
+                    ];
+                  })()}
+                />
+              </div>
+            )}
 
             {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-
               <Button
                 onClick={handleSave}
                 disabled={saving || justSaved}
@@ -1675,7 +1687,6 @@ export default function WeeklyMealBoard() {
               >
                 Duplicate 📅
               </button>
-
             </div>
           </div>
         </div>
@@ -1798,7 +1809,8 @@ export default function WeeklyMealBoard() {
                                   );
                                   toast({
                                     title: "Sync pending",
-                                    description: "Changes will sync automatically.",
+                                    description:
+                                      "Changes will sync automatically.",
                                   });
                                 });
                             } else {
@@ -1955,19 +1967,26 @@ export default function WeeklyMealBoard() {
           <div className="col-span-full">
             {(() => {
               const resolved = getResolvedTargets(user?.id);
-              const hasTargets = (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
-              
+              const hasTargets =
+                (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
+
               if (!hasTargets) return null;
 
-              const hasStarchyFibrous = (resolved.starchyCarbs_g ?? 0) > 0 || (resolved.fibrousCarbs_g ?? 0) > 0;
+              const hasStarchyFibrous =
+                (resolved.starchyCarbs_g ?? 0) > 0 ||
+                (resolved.fibrousCarbs_g ?? 0) > 0;
 
               return (
                 <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-white/60 uppercase tracking-wide">Daily Targets</span>
+                      <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
+                        Daily Targets
+                      </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">QUICK</span>
+                        <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">
+                          QUICK
+                        </span>
                         <PillButton
                           onClick={() => setAdditionalMacrosOpen(true)}
                           data-testid="button-quick-add-macros"
@@ -1979,38 +1998,56 @@ export default function WeeklyMealBoard() {
                     {hasStarchyFibrous ? (
                       <div className="grid grid-cols-5 gap-2">
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.protein_g || 0)}g
+                          </div>
                           <div className="text-xs text-white/60">Protein</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
-                          <div className="text-xs text-white/60">Total Carbs</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.carbs_g || 0)}g
+                          </div>
+                          <div className="text-xs text-white/60">
+                            Total Carbs
+                          </div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.starchyCarbs_g ?? 0)}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.starchyCarbs_g ?? 0)}g
+                          </div>
                           <div className="text-xs text-white/60">Starchy</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.fibrousCarbs_g ?? 0)}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.fibrousCarbs_g ?? 0)}g
+                          </div>
                           <div className="text-xs text-white/60">Fibrous</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.fat_g || 0)}g
+                          </div>
                           <div className="text-xs text-white/60">Fat</div>
                         </div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-3">
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.protein_g || 0)}g
+                          </div>
                           <div className="text-xs text-white/60">Protein</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.carbs_g || 0)}g
+                          </div>
                           <div className="text-xs text-white/60">Carbs</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
+                          <div className="text-lg font-bold text-white">
+                            {Math.round(resolved.fat_g || 0)}g
+                          </div>
                           <div className="text-xs text-white/60">Fat</div>
                         </div>
                       </div>
@@ -2312,10 +2349,17 @@ export default function WeeklyMealBoard() {
               planningMode === "day" &&
               activeDayISO
             ) {
-              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" }, "America/Chicago");
+              const dayName = formatDateDisplay(
+                activeDayISO,
+                { weekday: "long" },
+                "America/Chicago",
+              );
 
               return (
-                <div className="fixed left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl" style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}>
+                <div
+                  className="fixed left-0 right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl shadow-2xl"
+                  style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}
+                >
                   <div className="container mx-auto px-4 py-3">
                     <div className="flex flex-col gap-2">
                       <div className="text-white text-sm font-semibold">
