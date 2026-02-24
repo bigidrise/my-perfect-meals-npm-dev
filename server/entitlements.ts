@@ -16,6 +16,7 @@ export type Entitlement =
   | "procare";
 
 export type PlanKey =
+  | "mpm_free"
   | "mpm_basic_monthly"
   | "mpm_upgrade_monthly"
   | "mpm_upgrade_beta_monthly"
@@ -26,6 +27,10 @@ export type PlanKey =
   | "mpm_procare_monthly";
 
 export const PLAN_ENTITLEMENTS: Record<PlanKey, Entitlement[]> = {
+  mpm_free: [
+    "shopping_list",
+    "biometrics",
+  ],
   mpm_basic_monthly: [
     "smart_menu_builder",
     "weekly_meal_board",
