@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🔒 LOCKED: Deterministic Fridge Rescue Engine - DO NOT MODIFY
   // User confirmed this new system works perfectly - keep it locked!
-  app.use("/api", requireAuth, requireActiveAccess, fridgeRescueRouter);
+  app.use("/api", fridgeRescueRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 

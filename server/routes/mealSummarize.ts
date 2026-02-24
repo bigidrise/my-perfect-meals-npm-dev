@@ -1,5 +1,7 @@
 import express from "express";
 import { OpenAI } from "openai";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireActiveAccess } from "../middleware/requireActiveAccess";
 
 const router = express.Router();
 
@@ -14,7 +16,7 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-router.post("/meal-summarize", async (req, res) => {
+router.post("/meal-summarize", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { text } = req.body as { text: string };
     if (!text || text.trim().length < 3) {

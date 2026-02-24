@@ -4,6 +4,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { generateFridgeMeals } from '../services/fridgeRescueEngine';
+import { requireAuth } from '../middleware/requireAuth';
+import { requireActiveAccess } from '../middleware/requireActiveAccess';
 
 const router = Router();
 
@@ -13,7 +15,7 @@ const GenerateRequestSchema = z.object({
   dietFlags: z.array(z.string()).default([]),
 });
 
-router.post('/fridge-rescue/generate', async (req, res) => {
+router.post('/fridge-rescue/generate', requireAuth, requireActiveAccess, async (req, res) => {
   console.log('🔧 New deterministic fridge rescue request:', req.body);
   
   try {

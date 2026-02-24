@@ -1,5 +1,7 @@
 import { Router } from "express";
 import OpenAI from "openai";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireActiveAccess } from "../middleware/requireActiveAccess";
 
 const r = Router();
 
@@ -19,7 +21,7 @@ function getOpenAI(): OpenAI {
 }
 
 // AI-powered feedback for user-created recipes
-r.post("/get-recipe-feedback", async (req, res) => {
+r.post("/get-recipe-feedback", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { recipe } = req.body;
 
@@ -76,7 +78,7 @@ Format your response as constructive, encouraging feedback that helps the cook i
 });
 
 // Create a new user recipe
-r.post("/user-recipes", async (req, res) => {
+r.post("/user-recipes", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { title, ingredients, instructions, tips, videoUrl, userId = TEST_USER_ID } = req.body;
 
@@ -109,7 +111,7 @@ r.post("/user-recipes", async (req, res) => {
 });
 
 // Get user's created recipes
-r.get("/user-recipes/:userId", async (req, res) => {
+r.get("/user-recipes/:userId", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -128,7 +130,7 @@ r.get("/user-recipes/:userId", async (req, res) => {
 });
 
 // Generate cooking challenge suggestions
-r.post("/generate-cooking-challenge", async (req, res) => {
+r.post("/generate-cooking-challenge", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { theme, difficulty = "beginner", timeLimit = 60 } = req.body;
 

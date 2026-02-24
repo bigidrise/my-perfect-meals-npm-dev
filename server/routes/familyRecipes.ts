@@ -9,8 +9,12 @@ import {
   familyRecipeNutrition 
 } from "../../shared/schema";
 import { computeNutritionAndBadges, scaleIngredients } from "../services/familyNutrition";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireActiveAccess } from "../middleware/requireActiveAccess";
 
 export const familyRecipesRouter = Router();
+
+familyRecipesRouter.use(requireAuth, requireActiveAccess);
 
 // Helper: get user ID from request
 function getUserId(req: any): string | null {
