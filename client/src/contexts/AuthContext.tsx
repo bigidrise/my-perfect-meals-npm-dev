@@ -78,6 +78,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           allergies: userData.allergies || [],
           dietaryRestrictions: userData.dietaryRestrictions || [],
           fontSizePreference: userData.fontSizePreference || "standard",
+          medicalConditions: userData.medicalConditions || [],
+          preferredBuilder: userData.preferredBuilder || null,
+          flavorPreference: userData.flavorPreference || null,
+          hasAllergyPin: userData.hasAllergyPin || false,
           studioMembership: userData.studioMembership || null,
         };
         setUser(updatedUser);

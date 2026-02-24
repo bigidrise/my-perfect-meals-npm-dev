@@ -1,4 +1,4 @@
-import React, { lazy } from "react";
+import React, { lazy, useEffect, useRef } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
 import ScrollRestorer from "@/components/ScrollRestorer";
@@ -10,6 +10,7 @@ import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
@@ -34,7 +35,8 @@ import ProfileNew from "@/pages/Profile";
 import PrivacySecurity from "@/pages/privacy";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
-// Standalone 3-step onboarding for all onboarding routes
+// Onboarding V3 - 5-page safety-first flow
+import OnboardingV3 from "@/pages/OnboardingV3";
 import OnboardingStandalone from "@/pages/onboarding-standalone";
 import ExtendedOnboarding from "@/pages/onboarding/ExtendedOnboarding";
 import Welcome from "@/pages/Welcome";
@@ -166,7 +168,9 @@ const PerformanceCompetitionBuilderProCare = (_props: any) => (
 );
 
 export default function Router() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { toast } = useToast();
+  const guardRedirectedRef = useRef(false);
 
   // Add fallback protection
   if (!location) {
@@ -220,7 +224,54 @@ export default function Router() {
 
   const showClinicianNav = isClinicianUser && isInClinicWorkspace && !isInPersonalBuilder;
 
-  // The rest of the original routes are kept below.
+  // Routes that DON'T require onboarding or macro completion
+  const ungatedRoutes = [
+    "/", "/auth", "/welcome", "/login", "/signup",
+    "/guest-builder", "/guest-suite",
+    "/forgot-password", "/reset-password",
+    "/onboarding", "/onboarding-v2", "/onboarding-legacy", "/onboarding/extended",
+    "/pricing", "/paywall", "/apply-guidance",
+    "/checkout/success",
+    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-attestation",
+    "/privacy", "/privacy-policy", "/terms",
+    "/profile", "/settings",
+    "/home",
+  ];
+
+  const isUngatedRoute = ungatedRoutes.some(r => location === r || location.startsWith(r + "/"));
+  const isMacroRoute = location === "/macro-counter" || location.startsWith("/macro-counter");
+
+  // Onboarding + Macro route guards with toast feedback
+  useEffect(() => {
+    if (!user || isUngatedRoute || isMacroRoute) return;
+    if (user.id.startsWith("guest-") || user.isTester) return;
+    if (guardRedirectedRef.current) return;
+
+    // Guard 1: Onboarding must be complete
+    if (!user.onboardingCompletedAt) {
+      guardRedirectedRef.current = true;
+      toast({
+        title: "Almost there!",
+        description: "Let's finish setting up your safety profile first.",
+      });
+      setLocation("/onboarding");
+      setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
+      return;
+    }
+
+    // Guard 2: Macro profile must be complete (age, height, weight required)
+    const hasMacroProfile = user.age && user.height && user.weight;
+    if (!hasMacroProfile) {
+      guardRedirectedRef.current = true;
+      toast({
+        title: "One more step",
+        description: "We need your macro profile to generate accurate meals.",
+      });
+      setLocation("/macro-counter?from=onboarding");
+      setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
+      return;
+    }
+  }, [location, user]);
 
   return (
     <>
@@ -249,11 +300,11 @@ export default function Router() {
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route
           path="/onboarding"
-          component={withPageErrorBoundary(OnboardingStandalone, "Onboarding")}
+          component={withPageErrorBoundary(OnboardingV3, "Onboarding")}
         />
         <Route
           path="/onboarding-v2"
-          component={withPageErrorBoundary(OnboardingStandalone, "Onboarding V2")}
+          component={withPageErrorBoundary(OnboardingV3, "Onboarding V2")}
         />
         <Route
           path="/onboarding-legacy"

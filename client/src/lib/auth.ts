@@ -76,6 +76,11 @@ export interface User {
   fitnessGoal?: string | null;
   allergies?: string[];
   dietaryRestrictions?: string[];
+  // Onboarding V2 fields
+  medicalConditions?: string[];
+  preferredBuilder?: string | null;
+  flavorPreference?: string | null;
+  hasAllergyPin?: boolean;
   // Display preferences
   fontSizePreference?: "standard" | "large" | "xl";
   // ProCare Professional fields

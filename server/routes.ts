@@ -1888,6 +1888,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dislikedFoods: user.dislikedFoods || [],
         likedFoods: user.likedFoods || [],
         studioMembership: studioMembershipData,
+        medicalConditions: user.medicalConditions || [],
+        preferredBuilder: user.preferredBuilder || null,
+        flavorPreference: user.flavorPreference || null,
+        hasAllergyPin: !!user.safetyPinHash,
+        fontSizePreference: user.fontSizePreference || "standard",
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -1917,6 +1922,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         healthConditions,
         dislikedFoods,
         likedFoods,
+        medicalConditions,
+        preferredBuilder,
+        flavorPreference,
       } = req.body;
       
       // Build update object with only provided fields
@@ -1938,6 +1946,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (activityLevel !== undefined) updateData.activityLevel = activityLevel;
       if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
       if (dietaryRestrictions !== undefined) updateData.dietaryRestrictions = dietaryRestrictions;
+      if (medicalConditions !== undefined) updateData.medicalConditions = medicalConditions;
+      if (preferredBuilder !== undefined) updateData.preferredBuilder = preferredBuilder;
+      if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
       
       if (allergies !== undefined) {
         const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
@@ -2413,62 +2424,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Complete onboarding - marks user as having completed extended onboarding
-  // VALIDATION: Requires that builder and macros are actually persisted in the database
+  // V2: Validates safety profile (name, allergies, medical conditions, flavor, builder, PIN)
+  // Macros are collected AFTER onboarding in macro calculator
+  // Trial starts here, not on builder selection
   app.post("/api/user/complete-onboarding", requireAuth, async (req: any, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
       const { onboardingMode } = req.body;
       
-      // First, fetch current user to verify prerequisites in DATABASE
       const [existingUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!existingUser) {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // SERVER-SIDE VALIDATION: User must have selected a meal builder
-      const hasBuilder = existingUser.selectedMealBuilder || existingUser.activeBoard;
-      if (!hasBuilder) {
+      // SERVER-SIDE VALIDATION: firstName must exist
+      if (!existingUser.firstName) {
+        return res.status(400).json({ 
+          error: "Cannot complete onboarding without a name",
+          code: "MISSING_NAME"
+        });
+      }
+      
+      // SERVER-SIDE VALIDATION: medicalConditions must be explicitly set
+      if (!existingUser.medicalConditions || existingUser.medicalConditions.length === 0) {
+        return res.status(400).json({ 
+          error: "Cannot complete onboarding without setting medical conditions",
+          code: "MISSING_MEDICAL_CONDITIONS"
+        });
+      }
+      
+      // SERVER-SIDE VALIDATION: flavorPreference must be set
+      if (!existingUser.flavorPreference) {
+        return res.status(400).json({ 
+          error: "Cannot complete onboarding without setting flavor preference",
+          code: "MISSING_FLAVOR_PREFERENCE"
+        });
+      }
+      
+      // SERVER-SIDE VALIDATION: preferredBuilder must be set
+      if (!existingUser.preferredBuilder && !existingUser.selectedMealBuilder && !existingUser.activeBoard) {
         return res.status(400).json({ 
           error: "Cannot complete onboarding without selecting a meal builder",
           code: "MISSING_BUILDER"
         });
       }
       
-      // SERVER-SIDE VALIDATION: Macros must be set in the database (not just client claim)
-      const hasMacros = existingUser.dailyCalorieTarget && existingUser.dailyProteinTarget;
-      if (!hasMacros) {
+      // SERVER-SIDE VALIDATION: Safety PIN must be set
+      if (!existingUser.safetyPinHash) {
         return res.status(400).json({ 
-          error: "Cannot complete onboarding without setting macro targets",
-          code: "MISSING_MACROS"
+          error: "Cannot complete onboarding without setting a safety PIN",
+          code: "MISSING_SAFETY_PIN"
         });
       }
       
-      // Starch strategy is stored in localStorage and synced; we trust client here
-      // since starch strategy is a behavioral preference, not critical data
-      
-      // Validate onboardingMode if provided
       const validModes = ['independent', 'procare'];
       const resolvedMode = onboardingMode && validModes.includes(onboardingMode) 
         ? (onboardingMode as 'independent' | 'procare')
         : 'independent';
       
+      // Set onboarding complete + trial start (trial starts AFTER onboarding, not at account creation)
+      const now = new Date();
+      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      
+      const updateFields: any = {
+        onboardingCompletedAt: now,
+        onboardingMode: resolvedMode,
+        selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
+      };
+      
+      // Only set trial dates if trial hasn't started yet
+      if (!existingUser.trialStartedAt) {
+        updateFields.trialStartedAt = now;
+        updateFields.trialEndsAt = trialEndsAt;
+      }
+      
       const [user] = await db.update(users)
-        .set({
-          onboardingCompletedAt: new Date(),
-          macrosDefined: true,
-          starchPlanDefined: true,
-          onboardingMode: resolvedMode,
-        })
+        .set(updateFields)
         .where(eq(users.id, userId))
         .returning();
       
       res.json({
         success: true,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString(),
-        macrosDefined: user.macrosDefined,
-        starchPlanDefined: user.starchPlanDefined,
         onboardingMode: user.onboardingMode,
+        trialStartedAt: user.trialStartedAt?.toISOString(),
+        trialEndsAt: user.trialEndsAt?.toISOString(),
+        preferredBuilder: user.preferredBuilder,
       });
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
