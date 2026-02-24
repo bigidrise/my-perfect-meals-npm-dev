@@ -100,6 +100,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
+import { TrialBanner } from "@/components/TrialBanner";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -1331,6 +1332,7 @@ export default function AntiInflammatoryMenuBuilder() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20 overflow-x-hidden"
     >
       <BuilderHeader title="Anti-Inflammatory Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <TrialBanner />
 
       {/* Main Content */}
       <div

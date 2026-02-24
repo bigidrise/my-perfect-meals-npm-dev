@@ -101,6 +101,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
+import { TrialBanner } from "@/components/TrialBanner";
 
 const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Small Portions", description: "All meals are designed for reduced appetite with maximum nutrition density." },
@@ -1276,6 +1277,7 @@ export default function GLP1MealBuilder() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
       <BuilderHeader title="GLP-1 Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <TrialBanner />
 
       {/* Main Content */}
       <div

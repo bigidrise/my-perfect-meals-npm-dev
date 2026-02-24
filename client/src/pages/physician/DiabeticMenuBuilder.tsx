@@ -103,6 +103,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
+import { TrialBanner } from "@/components/TrialBanner";
 
 const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
   {
@@ -1406,6 +1407,7 @@ export default function DiabeticMenuBuilder() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36"
     >
       <BuilderHeader title="Diabetic Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <TrialBanner />
 
       {/* Main Content */}
       <div

@@ -4,6 +4,8 @@ import { biometricPayloadSchema, biometricSample, biometricSource } from '../../
 import { normalizeWeightToKg, normalizeWaistToCm, calculateDailySummaries, filterAllowedBiometrics } from '../services/biometricsService';
 import { and, eq, gte, lte, desc } from 'drizzle-orm';
 import { openai, chatJson } from '../utils/openaiSafe';
+import { requireAuth } from '../middleware/requireAuth';
+import { requireActiveAccess } from '../middleware/requireActiveAccess';
 
 const router = express.Router();
 
@@ -401,7 +403,7 @@ router.get('/weight', async (req, res) => {
   }
 });
 
-router.post('/analyze-photo', async (req, res) => {
+router.post('/analyze-photo', requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { image } = req.body;
     
