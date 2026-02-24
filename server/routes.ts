@@ -1320,7 +1320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Avatar Chat Routes
   app.use("/api", avatarChatRouter);
   app.use("/api", conciergeRouter);
-  app.use("/api", requireAuth, requireActiveAccess, chefRouter);
+  app.use("/api", chefRouter);
   app.use("/api/cooking-challenges", requireAuth, requireActiveAccess, cookingChallengesRouter);
   app.use("/api/cooking-classes", requireAuth, requireActiveAccess, cookingClassesRouter);
 
@@ -1451,7 +1451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Alcohol logs endpoint now handled by alcoholLogRouter
 
   // Family Recipe routes
-  app.use("/api", requireAuth, requireActiveAccess, familyRecipesRouter);
+  app.use("/api", familyRecipesRouter);
 
   // Upload routes
   app.use("/api", uploadsRouter);
