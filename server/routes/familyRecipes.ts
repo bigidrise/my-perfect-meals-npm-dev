@@ -14,15 +14,13 @@ import { requireActiveAccess } from "../middleware/requireActiveAccess";
 
 export const familyRecipesRouter = Router();
 
-familyRecipesRouter.use(requireAuth, requireActiveAccess);
-
 // Helper: get user ID from request
 function getUserId(req: any): string | null {
   return req.user?.id || req.user?.claims?.sub || req.headers["x-user-id"] || "00000000-0000-0000-0000-000000000001";
 }
 
 // Create new family recipe
-familyRecipesRouter.post("/family-recipes", async (req, res) => {
+familyRecipesRouter.post("/family-recipes", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -101,7 +99,7 @@ familyRecipesRouter.post("/family-recipes", async (req, res) => {
 });
 
 // Get all user's family recipes
-familyRecipesRouter.get("/family-recipes", async (req, res) => {
+familyRecipesRouter.get("/family-recipes", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -120,7 +118,7 @@ familyRecipesRouter.get("/family-recipes", async (req, res) => {
 });
 
 // Get single family recipe with full details
-familyRecipesRouter.get("/family-recipes/:id", async (req, res) => {
+familyRecipesRouter.get("/family-recipes/:id", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -169,7 +167,7 @@ familyRecipesRouter.get("/family-recipes/:id", async (req, res) => {
 });
 
 // Update family recipe
-familyRecipesRouter.put("/family-recipes/:id", async (req, res) => {
+familyRecipesRouter.put("/family-recipes/:id", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -262,7 +260,7 @@ familyRecipesRouter.put("/family-recipes/:id", async (req, res) => {
 });
 
 // Delete family recipe
-familyRecipesRouter.delete("/family-recipes/:id", async (req, res) => {
+familyRecipesRouter.delete("/family-recipes/:id", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -284,7 +282,7 @@ familyRecipesRouter.delete("/family-recipes/:id", async (req, res) => {
 });
 
 // Scale recipe ingredients
-familyRecipesRouter.post("/family-recipes/:id/scale", async (req, res) => {
+familyRecipesRouter.post("/family-recipes/:id/scale", requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
