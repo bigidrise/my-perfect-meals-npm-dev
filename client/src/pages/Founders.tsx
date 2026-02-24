@@ -52,12 +52,12 @@ export default function Founder() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-white/85">
             <div>✔ NASM Certified Personal Trainer</div>
-            <div>✔ Women’s Fitness Specialist</div>
-            <div>✔ Certified Nutrition Coach</div>
-            <div>✔ Behavior Change Specialist</div>
-            <div>✔ Online Coaching Specialist</div>
+            <div>✔ NASM Certified Women’s Fitness Specialist</div>
+            <div>✔ NASM Certified Nutrition Coach</div>
+            <div>✔ NASM Behavior Change Specialist</div>
+            <div>✔ NASM Online Coaching Specialist</div>
             <div>✔ Former Professional Bodybuilder</div>
-            <div>✔ Former ICU Medic – United States Air Force</div>
+            <div>✔ Former ICU Medic &  – United States Air Force</div>
             <div>✔ Former Semi-Professional Athlete</div>
           </div>
         </section>
