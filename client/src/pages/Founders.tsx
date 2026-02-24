@@ -57,8 +57,7 @@ export default function Founder() {
             <div>✔ NASM Behavior Change Specialist</div>
             <div>✔ NASM Online Coaching Specialist</div>
             <div>✔ Former Professional Bodybuilder</div>
-            <div>✔ Former ICU Medic &  – United States Air Force</div>
-            <div>✔ Former Semi-Professional Athlete</div>
+            <div>✔ Former ICU Medic & EMT-I – United States Air Force</div>
           </div>
         </section>
 
