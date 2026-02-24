@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   Activity,
   Target,
   TrendingUp,
   ChefHat,
   Home,
   Utensils,
+  Leaf,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { PillButton } from "@/components/ui/pill-button";
 import { GlucoseGuardExplainerModal } from "@/components/GlucoseGuardExplainerModal";
+import { GlycemicSettingsModal } from "@/components/diabetic/GlycemicSettingsModal";
 
 const DIABETIC_TOUR_STEPS: TourStep[] = [
   {
@@ -93,6 +94,7 @@ export default function DiabeticHub() {
   const [mealFrequency, setMealFrequency] = useState("4");
   const [selectedPreset, setSelectedPreset] = useState<string>("");
   const [showGlucoseExplainer, setShowGlucoseExplainer] = useState(false);
+  const [showGlycemicModal, setShowGlycemicModal] = useState(false);
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -364,6 +366,17 @@ export default function DiabeticHub() {
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
               <span className="relative z-10">
                 {saveMutation.isPending ? "Saving..." : "Save Guardrails"}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setShowGlycemicModal(true)}
+              className="w-full mt-3 px-6 py-3 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-medium transition-all border border-white/20 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 pointer-events-none" />
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <Leaf className="h-4 w-4 text-green-400" />
+                Manage Glycemic Preferences
               </span>
             </button>
           </section>
@@ -679,6 +692,11 @@ export default function DiabeticHub() {
         <GlucoseGuardExplainerModal
           isOpen={showGlucoseExplainer}
           onClose={() => setShowGlucoseExplainer(false)}
+        />
+
+        <GlycemicSettingsModal
+          open={showGlycemicModal}
+          onClose={() => setShowGlycemicModal(false)}
         />
       </div>
     </>

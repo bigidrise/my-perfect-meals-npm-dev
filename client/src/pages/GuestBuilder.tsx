@@ -309,21 +309,11 @@ export default function GuestBuilder() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3">
-          <Button
-            onClick={() => setLocation("/welcome")}
-            variant="ghost"
-            size="sm"
-            className="text-white hover:bg-white/10"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-lime-400" />
-              {GUEST_SUITE_BRANDING.headerTitle}
-            </h1>
-          </div>
+          <Sparkles className="h-5 w-5 text-lime-400" />
+          <h1 className="text-lg font-bold text-white">
+            {GUEST_SUITE_BRANDING.headerTitle}
+          </h1>
+          <div className="flex-grow" />
           <MedicalSourcesInfo asPillButton />
         </div>
       </div>

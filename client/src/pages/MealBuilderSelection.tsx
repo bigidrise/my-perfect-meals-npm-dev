@@ -8,7 +8,6 @@ import {
   Heart,
   Pill,
   Flame,
-  ArrowLeft,
   MessageCircle,
   AlertTriangle,
   RefreshCw,
@@ -273,15 +272,8 @@ export default function MealBuilderSelection() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 pb-3 flex items-center gap-3">
-          <Button
-            onClick={() => setLocation("/dashboard")}
-            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
-          </Button>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
+          <Utensils className="h-5 w-5 text-orange-400" />
+          <h1 className="text-lg font-bold text-white">
             Meal Builder Exchange
           </h1>
         </div>
