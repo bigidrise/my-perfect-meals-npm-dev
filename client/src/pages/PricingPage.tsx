@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import AffiliateOnPricing from "@/components/AffiliateOnPricing";
 import { PLAN_SKUS, getPlansByGroup } from "@/data/planSkus";
+import { getDisplayFeaturesForTier, IOS_DISPLAY_FEATURES } from "@shared/planFeatures";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
 import {
   isIosNativeShell,
@@ -198,130 +199,16 @@ export default function PricingPage() {
                     </div>
 
                     <ul className="text-white/70 text-xs space-y-1.5 mb-4">
-                      {product.internalSku === "mpm_basic_monthly" && (
-                        <>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Copilot Voice Guidance
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Multi-Language Voice Input & Translation
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Weekly Meal Board
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            GLP-1 & Diabetic Support
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Anti-Inflammatory Builder
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Daily Macro Calculator
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Master Shopping Lists
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Biometrics Tracking
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Spirits & Alcohol Hub
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            SafetyGuard Allergy Protection
-                          </li>
-                        </>
-                      )}
-                      {product.internalSku === "mpm_premium_monthly" && (
-                        <>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Everything in Basic, plus:
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Chef&apos;s Kitchen Studio
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Craving Creator / Studio
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Craving Presets
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Dessert Creator / Studio
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Fridge Rescue / Studio
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Restaurant Guide
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Find Meals Near Me
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Spirits & Alcohol Hub
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Kids & Toddler Meals
-                          </li>
-                        </>
-                      )}
-                      {product.internalSku === "mpm_ultimate_monthly" && (
-                        <>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Everything in Premium, plus:
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Pro Care Team Access
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Beach Body Meal Builder
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Competition Prep Builder
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Lab Metrics Integration
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Priority Support
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Coach Workspace
-                          </li>
-                          <li className="flex items-center gap-1.5">
-                            <Check className="w-3 h-3 text-lime-400" />
-                            Clinical Advisory System
-                          </li>
-                        </>
-                      )}
+                      {(IOS_DISPLAY_FEATURES[
+                        product.internalSku === "mpm_basic_monthly" ? "basic"
+                          : product.internalSku === "mpm_premium_monthly" ? "premium"
+                          : "ultimate"
+                      ] || []).map((label, fi) => (
+                        <li key={fi} className="flex items-center gap-1.5">
+                          <Check className="w-3 h-3 text-lime-400" />
+                          {label}
+                        </li>
+                      ))}
                     </ul>
 
                     <Button
@@ -529,42 +416,10 @@ export default function PricingPage() {
     return "Select Plan";
   };
 
-  const legacyFeatures = {
-    basic: [
-      "Copilot Voice Guidance",
-      "Multi-Language Voice Input & Translation",
-      "Weekly Meal Builder",
-      "GLP-1 Hub and Meal Builder",
-      "Diabetic Hub and Meal Builder",
-      "Anti-Inflammatory Meal Bulider",
-      "Daily Macro Calculator",
-      "Supplement Hub",
-      "Master Shopping List",
-      "Biometrics Tracking",
-      "MacroScan",
-      "Spirits & Alcohol Hub",
-      "Daily Health Journal",
-      "SafeGuard Allergy Protection",
-    ],
-    premium: [
-      "Everything in Basic",
-      "Chef’s Kitchen Studio (create & customize meals)",
-      "Craving Presets (healthy AI created favorites)",
-      "Craving Creator plus Studio (healthy versions of your favorite cravings)",
-      "Dessert Creator plus Studio (healthy versions of your favorite desserts)",
-      "Fridge Rescue plus Studio (turn what you have into meals)",
-      "Restaurant Guide",
-      "Find Meals Near Me",
-      "Healthy Kids & Toddler Meals",
-      "Spirits & Lifestyle Hub",
-    ],
-    ultimate: [
-      "Everything in Premium",
-      "Physicians Care Team / Pro Access",
-      "Trainers Care Team / Pro Access",
-      "Beach Body / Hard Body Meal Builder",
-    ],
-  };
+  const freeFeatures = getDisplayFeaturesForTier("free");
+  const basicFeatures = getDisplayFeaturesForTier("basic");
+  const premiumFeatures = getDisplayFeaturesForTier("premium");
+  const ultimateFeatures = getDisplayFeaturesForTier("ultimate");
 
   return (
     <motion.div
@@ -611,16 +466,7 @@ export default function PricingPage() {
             <Separator className="bg-white/10" />
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  "Daily Macro Calculator",
-                  "Biometrics Tracking",
-                  "Daily Health Journal",
-                  "SafeGuard Allergy Protection",
-                  "Supplement Hub",
-                  "Spirits & Alcohol Hub",
-                  "View Saved Meals",
-                  "Profile & Settings",
-                ].map((label, idx) => (
+                {freeFeatures.map((label, idx) => (
                   <div key={idx} className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
                     <span className="text-sm text-white">{label}</span>
@@ -643,10 +489,10 @@ export default function PricingPage() {
             {consumerPlans.map((plan) => {
               const features =
                 plan.sku === "mpm_basic_monthly"
-                  ? legacyFeatures.basic
+                  ? basicFeatures
                   : plan.sku === "mpm_premium_monthly"
-                    ? legacyFeatures.premium
-                    : legacyFeatures.ultimate;
+                    ? premiumFeatures
+                    : ultimateFeatures;
 
               return (
                 <Card
