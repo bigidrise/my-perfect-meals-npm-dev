@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { resolveAccessTier, getTrialDaysRemaining, type AccessTier } from "../lib/accessTier";
 
 export interface AuthenticatedUser {
   id: string;
@@ -14,10 +15,40 @@ export interface AuthenticatedUser {
   trialEndsAt: Date | null;
   selectedMealBuilder: string | null;
   isTester: boolean;
+  accessTier: AccessTier;
+  trialDaysRemaining: number | null;
+  hasHadTrial: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {
   authUser: AuthenticatedUser;
+}
+
+function buildAuthUser(user: any): AuthenticatedUser {
+  const now = new Date();
+  const accessTier = resolveAccessTier(user, now);
+  const trialDaysRemaining = getTrialDaysRemaining(user, now);
+  const hasHadTrial = !!user.trialStartedAt;
+
+  if (accessTier === "FREE" && hasHadTrial && user.trialEndsAt && now >= user.trialEndsAt) {
+    console.log(`[Access] Trial expired for user ${user.id}. Tier resolved to FREE.`);
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    plan: user.plan,
+    entitlements: user.entitlements || [],
+    planLookupKey: user.planLookupKey || null,
+    trialStartedAt: user.trialStartedAt || null,
+    trialEndsAt: user.trialEndsAt || null,
+    selectedMealBuilder: user.selectedMealBuilder || null,
+    isTester: user.isTester || false,
+    accessTier,
+    trialDaysRemaining,
+    hasHadTrial,
+  };
 }
 
 export async function requireAuth(
@@ -28,7 +59,6 @@ export async function requireAuth(
   const token = req.headers["x-auth-token"] as string;
   const sessionUser = (req as any).session?.userId;
 
-  // Check for x-auth-token header first
   if (token) {
     try {
       const [user] = await db
@@ -38,18 +68,7 @@ export async function requireAuth(
         .limit(1);
 
       if (user) {
-        (req as AuthenticatedRequest).authUser = {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          plan: user.plan,
-          entitlements: user.entitlements || [],
-          planLookupKey: user.planLookupKey || null,
-          trialStartedAt: user.trialStartedAt || null,
-          trialEndsAt: user.trialEndsAt || null,
-          selectedMealBuilder: user.selectedMealBuilder || null,
-          isTester: user.isTester || false,
-        };
+        (req as AuthenticatedRequest).authUser = buildAuthUser(user);
         return next();
       }
     } catch (error) {
@@ -57,7 +76,6 @@ export async function requireAuth(
     }
   }
 
-  // Fallback to session-based authentication
   if (sessionUser) {
     try {
       const [user] = await db
@@ -67,18 +85,7 @@ export async function requireAuth(
         .limit(1);
 
       if (user) {
-        (req as AuthenticatedRequest).authUser = {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          plan: user.plan,
-          entitlements: user.entitlements || [],
-          planLookupKey: user.planLookupKey || null,
-          trialStartedAt: user.trialStartedAt || null,
-          trialEndsAt: user.trialEndsAt || null,
-          selectedMealBuilder: user.selectedMealBuilder || null,
-          isTester: user.isTester || false,
-        };
+        (req as AuthenticatedRequest).authUser = buildAuthUser(user);
         return next();
       }
     } catch (error) {
@@ -86,7 +93,6 @@ export async function requireAuth(
     }
   }
 
-  // No valid authentication found
   res.status(401).json({ error: "Authentication required" });
   return;
 }

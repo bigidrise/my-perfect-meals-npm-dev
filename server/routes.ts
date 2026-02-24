@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
+import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { db } from "./db";
@@ -300,6 +301,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Router-group gate: all /api/ai/* routes require auth + active access (PAID_FULL or TRIAL_FULL)
+  // Note: /api/health/ai is registered ABOVE this middleware so it remains public
+  app.use("/api/ai", requireAuth, requireActiveAccess);
 
   // Public Object Storage - Serves meal images for Hybrid Meal Engine
   app.get("/public-objects/*", async (req, res) => {
@@ -1872,6 +1877,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trialEndsAt: user.trialEndsAt,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
+        accessTier: authReq.authUser.accessTier,
+        trialDaysRemaining: authReq.authUser.trialDaysRemaining,
+        hasHadTrial: authReq.authUser.hasHadTrial,
         profilePhotoUrl: user.profilePhotoUrl || null,
         role: user.role || "client",
         isProCare: user.isProCare || false,
@@ -3013,7 +3021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🔒🔒🔒 CRAVING CREATOR API LOCKDOWN - DO NOT MODIFY
   // Add the missing endpoint that the frontend expects
-  app.post("/api/generate-craving-meal", async (req, res) => {
+  app.post("/api/generate-craving-meal", requireAuth, requireActiveAccess, async (req, res) => {
     try {
       const { craving, userId, medicalProfile, userCategories, generateImages, maxMeals } = req.body;
 
@@ -3421,7 +3429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Image generation endpoint
-  app.post("/api/generate-image", async (req, res) => {
+  app.post("/api/generate-image", requireAuth, requireActiveAccess, async (req, res) => {
     const { handleImageGeneration } = await import("./services/imageService");
     await handleImageGeneration(req, res);
   });
@@ -5335,7 +5343,7 @@ function getMealIngredientsDatabase() {
     }
   });
 
-  app.post("/api/generate-weekly-plan", async (req, res) => {
+  app.post("/api/generate-weekly-plan", requireAuth, requireActiveAccess, async (req, res) => {
     try {
       const { userId, weeks = 1, mealsPerDay = 3, snacksPerDay = 1 } = req.body;
 

@@ -47,6 +47,8 @@ const AUTH_TOKEN_KEY = "mpm_auth_token";
 
 export type UserRole = "admin" | "coach" | "client";
 
+export type AccessTier = "PAID_FULL" | "TRIAL_FULL" | "FREE";
+
 export interface User {
   id: string;
   email: string;
@@ -58,6 +60,9 @@ export interface User {
   trialEndsAt?: string | null;
   selectedMealBuilder?: MealBuilderType | null;
   isTester?: boolean;
+  accessTier?: AccessTier;
+  trialDaysRemaining?: number | null;
+  hasHadTrial?: boolean;
   profilePhotoUrl?: string | null;
   // Role-based access control
   role?: UserRole;

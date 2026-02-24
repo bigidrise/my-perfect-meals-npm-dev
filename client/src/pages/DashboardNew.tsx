@@ -34,6 +34,8 @@ import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useCopilot } from "@/components/copilot/CopilotContext";
+import { TrialBanner } from "@/components/TrialBanner";
+import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 
 interface FeatureCard {
   title: string;
@@ -154,6 +156,8 @@ export default function DashboardNew() {
       transition={{ duration: 0.4 }}
       className="min-h-full flex flex-col bg-black pb-safe-nav"
     >
+      <TrialBanner />
+      <TrialExpiredModal />
       {/* Fixed My Hub - Top Right */}
       <div
         className="fixed right-4 z-50"
