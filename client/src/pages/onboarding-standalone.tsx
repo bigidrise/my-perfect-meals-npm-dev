@@ -1080,7 +1080,7 @@ export default function OnboardingStandalone() {
             <Button
               onClick={handleBack}
               variant="outline"
-              className="flex-1 h-12 border-white/30 bg-white/5 hover:bg-white/10 text-white"
+              className="flex-1 h-12 bg-white/5 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" /> Back
             </Button>

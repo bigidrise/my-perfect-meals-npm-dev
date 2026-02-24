@@ -287,7 +287,7 @@ export default function OnboardingV3() {
               <Button
                 onClick={handleAddCustomAllergy}
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
+                className="bg-white/10 border-white/30 text-white active:bg-white/20"
                 disabled={!customAllergyInput.trim()}
               >
                 Add
@@ -467,7 +467,7 @@ export default function OnboardingV3() {
             <Button
               variant="outline"
               onClick={handleBack}
-              className="flex-1 border-white/20 text-white hover:bg-white/10"
+              className="flex-1 bg-white/10 border-white/30 text-white active:bg-white/20"
               disabled={saving}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -478,7 +478,7 @@ export default function OnboardingV3() {
             <Button
               onClick={handleNext}
               disabled={saving}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              className="flex-1 bg-orange-500 active:bg-orange-700 text-white"
             >
               {saving ? "Saving..." : "Next"}
               {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
@@ -487,7 +487,7 @@ export default function OnboardingV3() {
             <Button
               onClick={handleFinish}
               disabled={saving || !canFinish}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              className="flex-1 bg-orange-500 active:bg-orange-700 text-white"
             >
               {saving ? "Setting up..." : "Start My Plan"}
               {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
