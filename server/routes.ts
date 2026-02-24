@@ -7,6 +7,8 @@ import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
+import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
+import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { db } from "./db";
@@ -919,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ai/generate-meal-plan", async (req, res) => {
+  app.post("/api/ai/generate-meal-plan", requireMacroProfile, async (req, res) => {
     try {
       const { userId, days, schedule, dietaryRestrictions, selectedIngredients, includeImages = true, mode = "ai_varied", constraints = {} } = req.body;
 
@@ -1231,7 +1233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ai/regenerate-meal", async (req, res) => {
+  app.post("/api/ai/regenerate-meal", requireMacroProfile, async (req, res) => {
     try {
       const { userId, slot, label, time, dayIndex, dietaryRestrictions, selectedIngredients } = req.body;
 
@@ -2170,7 +2172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== Pro Builder Assignment (Trainer/Coach Only) =====
   // Allows coaches/admins to assign pro builders to clients
-  app.post("/api/pro/assign-builder", requireAuth, async (req: any, res) => {
+  app.post("/api/pro/assign-builder", requireAuth, requirePremiumAccess, async (req: any, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
       const trainerId = authReq.authUser.id;
@@ -3021,7 +3023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🔒🔒🔒 CRAVING CREATOR API LOCKDOWN - DO NOT MODIFY
   // Add the missing endpoint that the frontend expects
-  app.post("/api/generate-craving-meal", requireAuth, requireActiveAccess, async (req, res) => {
+  app.post("/api/generate-craving-meal", requireAuth, requireActiveAccess, requireMacroProfile, async (req, res) => {
     try {
       const { craving, userId, medicalProfile, userCategories, generateImages, maxMeals } = req.body;
 
@@ -5343,7 +5345,7 @@ function getMealIngredientsDatabase() {
     }
   });
 
-  app.post("/api/generate-weekly-plan", requireAuth, requireActiveAccess, async (req, res) => {
+  app.post("/api/generate-weekly-plan", requireAuth, requireActiveAccess, requireMacroProfile, async (req, res) => {
     try {
       const { userId, weeks = 1, mealsPerDay = 3, snacksPerDay = 1 } = req.body;
 
@@ -5815,13 +5817,13 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // Pro shared board routes (coach/physician ↔ client board access)
   const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
-  app.use("/api/pro/board", proBoardRoutes);
+  app.use("/api/pro/board", requireAuth, requirePremiumAccess, proBoardRoutes);
 
-  app.use("/api/care-team", careTeamRoutes);
-  app.use("/api/pro", procareRoutes);
-  app.use("/api/studios", studioRoutes);
+  app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
+  app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
+  app.use("/api/studios", requireAuth, requirePremiumAccess, studioRoutes);
   app.use("/api/founders", foundersRoutes);
-  app.use("/api/physician-reports", physicianReportsRoutes);
+  app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
   app.use("/api/users", usersProfileRouter);
 
   // Mount builder plans routes

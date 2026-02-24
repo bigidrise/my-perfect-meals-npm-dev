@@ -83,7 +83,19 @@ MyPerfectMeals is a comprehensive meal planning and nutrition application built 
   - Excluded: WeeklyMealBoard, BeachBodyBuilder (unchanged)
 - **ProClientContext**: Detects studio client context from route params for all builder types including medical builders
 
+## Access Tier & Trial System (Phase A)
+- **accessTier** computed at runtime by `server/lib/accessTier.ts` → `resolveAccessTier(user)` returns `PAID_FULL | TRIAL_FULL | FREE`
+- **requireAuth** middleware attaches `accessTier`, `trialDaysRemaining`, `hasHadTrial` to `req.authUser`
+- **requireActiveAccess** (`server/middleware/requireActiveAccess.ts`) gates all `/api/ai/*` routes + `/api/generate-*` routes — returns 403 `AI_REQUIRES_SUBSCRIPTION` for FREE tier
+- **requirePremiumAccess** (`server/middleware/requirePremiumAccess.ts`) gates ProCare routes (`/api/pro/*`, `/api/studios`, `/api/care-team`, `/api/physician-reports`) — returns 403 `PREMIUM_REQUIRED` for FREE tier
+- **requireMacroProfile** (`server/middleware/requireMacroProfile.ts`) gates AI meal generation routes — returns 412 `MACRO_PROFILE_REQUIRED` if age/height/weight/activityLevel/fitnessGoal missing
+- **Trial trigger**: 7-day trial starts on first onboarding completion (`POST /api/user/complete-onboarding`), never overwrites existing trial
+- **Frontend**: `TrialBanner` (non-dismissible, shows days remaining) + `TrialExpiredModal` (one-time, localStorage flag) on Dashboard
+- **Profile endpoint** (`/api/user/profile`) returns `accessTier`, `trialDaysRemaining`, `hasHadTrial`
+- **Frontend User type** includes `AccessTier` type + trial fields in `client/src/lib/auth.ts`
+
 ## Recent Changes
+- 2026-02-24: Phase A trial system — added requirePremiumAccess middleware for ProCare routes, requireMacroProfile 412 guard for AI generation, completed accessTier integration across backend and frontend
 - 2026-02-23: Implemented ProCare navigation + header spec — created shared BuilderHeader component, role-based bottom nav logic, removed back/dashboard buttons from all 5 eligible builders, standardized "Working with + Exit Client" UX
 - 2026-02-22: Fixed iOS Capacitor runtime crash - removed `server.url` from both `capacitor.config.ts` and `ios/App/App/capacitor.config.json` (was forcing remote URL loading instead of bundled mode); deferred `setupGlobalErrorHandling()` to useEffect to stop swallowing boot errors; added detailed error logging in main.tsx dynamic import catch handler
 - 2026-02-22: Fixed shopping aggregate bar z-index in Diabetic Menu Builder (removed overflow-x-hidden)
