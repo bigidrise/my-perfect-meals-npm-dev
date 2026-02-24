@@ -215,17 +215,22 @@ export default function DiabeticMenuBuilder() {
     hookBoard,
   );
 
-  // Sync hook board to local state (skip if draft is active)
+  // Sync hook board to local state — initial hydration must ALWAYS succeed
   React.useEffect(() => {
-    if (skipServerSync()) {
-      setLoading(hookLoading);
-      return;
-    }
     if (hookBoard) {
+      if (!board) {
+        setBoard(hookBoard);
+        setLoading(hookLoading);
+        return;
+      }
+      if (skipServerSync()) {
+        setLoading(hookLoading);
+        return;
+      }
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading, skipServerSync]);
+  }, [hookBoard, hookLoading, board, skipServerSync]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(

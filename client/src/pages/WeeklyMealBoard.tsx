@@ -298,17 +298,23 @@ export default function WeeklyMealBoard() {
   );
 
   // Sync hook board to local state only after loading completes
-  // Skip if draft was restored to prevent server data from overwriting local changes
+  // Initial hydration must ALWAYS succeed — draft logic only blocks subsequent syncs
   React.useEffect(() => {
-    if (skipServerSync()) {
-      console.log("⚠️ [MPM Board] Skipping server sync - draft is active");
-      return;
+    if (!hookLoading && hookBoard) {
+      if (!board) {
+        setBoard(hookBoard);
+        boardRef.current = hookBoard;
+        return;
+      }
+      if (skipServerSync()) {
+        return;
+      }
+      if (!Object.is(boardRef.current, hookBoard)) {
+        setBoard(hookBoard);
+        boardRef.current = hookBoard;
+      }
     }
-    if (!hookLoading && !Object.is(boardRef.current, hookBoard)) {
-      setBoard(hookBoard);
-      boardRef.current = hookBoard;
-    }
-  }, [hookBoard, hookLoading, skipServerSync]);
+  }, [hookBoard, hookLoading, board, skipServerSync]);
 
   // Use hook's loading state directly (no local copy needed)
   const loading = hookLoading;
