@@ -153,7 +153,7 @@ export default function WeeklyMealBoard() {
   // Sync hook board to local state — initial hydration must ALWAYS succeed
   React.useEffect(() => {
     if (!hookLoading && hookBoard) {
-      if (!board) {
+      if (!boardRef.current) {
         setBoard(hookBoard);
         boardRef.current = hookBoard;
         return;
@@ -164,7 +164,7 @@ export default function WeeklyMealBoard() {
         boardRef.current = hookBoard;
       }
     }
-  }, [hookBoard, hookLoading, board, skipServerSync]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Use hook's loading state directly (no local copy needed)
   const loading = hookLoading;

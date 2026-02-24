@@ -233,18 +233,21 @@ export function useMealBoardDraft(
     };
   }, [board, saveDraftImmediate]);
 
+  const skipServerSyncRef = useRef(false);
+  useEffect(() => {
+    skipServerSyncRef.current = initializedRef.current && (draftRestoredRef.current || dirtyRef.current);
+  });
+
+  const skipServerSync = useCallback(() => skipServerSyncRef.current, []);
+
   return { 
     saveDraft, 
     clearDraft,
     isDraftActive: () => draftRestoredRef.current,
-    skipServerSync: () => {
-      if (!initializedRef.current) return false;
-      if (draftRestoredRef.current) return true;
-      if (dirtyRef.current) return true;
-      return false;
-    },
+    skipServerSync,
     markClean: () => {
       dirtyRef.current = false;
+      skipServerSyncRef.current = false;
       if (board) {
         initialBoardHashRef.current = computeBoardHash(board);
       }

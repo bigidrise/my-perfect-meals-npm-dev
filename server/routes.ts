@@ -1961,7 +1961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
       
       if (allergies !== undefined) {
-        const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
+        const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash, onboardingCompletedAt: users.onboardingCompletedAt })
           .from(users)
           .where(eq(users.id, userId))
           .limit(1);
@@ -1969,7 +1969,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const currentAllergies = (currentUser?.allergies || []).sort().join(",");
         const newAllergies = (Array.isArray(allergies) ? allergies : []).sort().join(",");
         
-        if (currentAllergies !== newAllergies && currentUser?.safetyPinHash) {
+        const isOnboarding = !currentUser?.onboardingCompletedAt;
+        if (currentAllergies !== newAllergies && currentUser?.safetyPinHash && !isOnboarding) {
           const allergyEditToken = req.body.allergyEditToken;
           if (!allergyEditToken) {
             return res.status(403).json({ 

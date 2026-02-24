@@ -254,9 +254,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   );
 
   // Sync hook board to local state — initial hydration must ALWAYS succeed
+  const boardInitializedRef = React.useRef(false);
   React.useEffect(() => {
     if (hookBoard) {
-      if (!board) {
+      if (!boardInitializedRef.current) {
+        boardInitializedRef.current = true;
         setBoard(hookBoard);
         setLoading(hookLoading);
         return;
@@ -268,7 +270,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading, board, skipServerSync]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(

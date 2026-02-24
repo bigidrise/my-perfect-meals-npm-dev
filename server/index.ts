@@ -264,13 +264,14 @@ app.use((req, res, next) => {
 // Simple request logger (safe, no fancy response-capture)
 app.use((req: Request, _res: Response, next: NextFunction) => {
   const start = Date.now();
+  let logged = false;
   const done = () => {
+    if (logged) return;
+    logged = true;
     const ms = Date.now() - start;
     log("http", `${req.method} ${req.originalUrl} - ${ms}ms`);
   };
-  // ensure we log after response ends
   _res.on("finish", done);
-  _res.on("close", done);
   next();
 });
 
