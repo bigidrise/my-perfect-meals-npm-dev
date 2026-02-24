@@ -15,6 +15,7 @@ const TOTAL_STEPS = 5;
 const ALLERGY_OPTIONS = [
   "Peanuts", "Tree Nuts", "Dairy", "Lactose Intolerance", "Eggs",
   "Wheat/Gluten", "Soy", "Fish", "Shellfish", "Sesame",
+  "Corn", "Nightshades", "Garlic", "Onions", "Artificial Sweeteners",
 ];
 
 const MEDICAL_CONDITIONS = [
@@ -22,6 +23,16 @@ const MEDICAL_CONDITIONS = [
   { label: "Type 2 Diabetes", value: "diabetes-type2" },
   { label: "Prediabetes", value: "prediabetes" },
   { label: "GLP-1 Medication", value: "glp1" },
+  { label: "Crohn's Disease", value: "crohns" },
+  { label: "Ulcerative Colitis", value: "ulcerative-colitis" },
+  { label: "Irritable Bowel Syndrome (IBS)", value: "ibs" },
+  { label: "Celiac Disease", value: "celiac" },
+  { label: "Rheumatoid Arthritis", value: "rheumatoid-arthritis" },
+  { label: "Psoriasis", value: "psoriasis" },
+  { label: "Lupus", value: "lupus" },
+  { label: "Hypertension", value: "hypertension" },
+  { label: "High Cholesterol", value: "high-cholesterol" },
+  { label: "PCOS", value: "pcos" },
   { label: "Anti-Inflammatory Focus", value: "anti-inflammatory" },
   { label: "None", value: "none" },
 ];
@@ -42,9 +53,21 @@ const BUILDER_OPTIONS = [
 ];
 
 function getRecommendedBuilder(conditions: string[]): string {
-  if (conditions.includes("diabetes-type1") || conditions.includes("diabetes-type2")) return "diabetic";
+  if (
+    conditions.includes("diabetes-type1") ||
+    conditions.includes("diabetes-type2") ||
+    conditions.includes("prediabetes")
+  ) return "diabetic";
   if (conditions.includes("glp1")) return "glp1";
-  if (conditions.includes("anti-inflammatory")) return "anti-inflammatory";
+  if (
+    conditions.includes("anti-inflammatory") ||
+    conditions.includes("crohns") ||
+    conditions.includes("ulcerative-colitis") ||
+    conditions.includes("ibs") ||
+    conditions.includes("rheumatoid-arthritis") ||
+    conditions.includes("psoriasis") ||
+    conditions.includes("lupus")
+  ) return "anti-inflammatory";
   return "general";
 }
 
@@ -60,6 +83,7 @@ export default function OnboardingV3() {
   const [allergies, setAllergies] = useState<string[]>([]);
   const [customAllergyInput, setCustomAllergyInput] = useState("");
   const [medicalConditions, setMedicalConditions] = useState<string[]>([]);
+  const [customConditionInput, setCustomConditionInput] = useState("");
   const [flavorPreference, setFlavorPreference] = useState("");
   const [selectedBuilder, setSelectedBuilder] = useState("");
   const [pin, setPin] = useState("");
@@ -116,6 +140,14 @@ export default function OnboardingV3() {
         const without = prev.filter((c) => c !== "none");
         return without.includes(value) ? without.filter((c) => c !== value) : [...without, value];
       });
+    }
+  };
+
+  const handleAddCustomCondition = () => {
+    const trimmed = customConditionInput.trim().toLowerCase();
+    if (trimmed && !medicalConditions.includes(trimmed)) {
+      setMedicalConditions((prev) => [...prev.filter((c) => c !== "none"), trimmed]);
+      setCustomConditionInput("");
     }
   };
 
@@ -325,7 +357,7 @@ export default function OnboardingV3() {
                       ? item.value === "none"
                         ? "bg-green-500/20 border-green-500 text-green-300"
                         : "bg-orange-500/20 border-orange-500 text-orange-300"
-                      : "bg-white/5 border-white/15 text-white/80 hover:border-white/30"
+                      : "bg-white/5 border-white/15 text-white/80 active:border-white/30"
                   }`}
                 >
                   <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
@@ -339,6 +371,45 @@ export default function OnboardingV3() {
                 </button>
               ))}
             </div>
+            <div className="max-w-sm mx-auto flex gap-2">
+              <Input
+                value={customConditionInput}
+                onChange={(e) => setCustomConditionInput(e.target.value)}
+                placeholder="Add another condition..."
+                className="text-white bg-white/10 border-white/20 flex-1"
+                onKeyDown={(e) => e.key === "Enter" && handleAddCustomCondition()}
+              />
+              <Button
+                onClick={handleAddCustomCondition}
+                variant="outline"
+                className="bg-white/10 border-white/30 text-white active:bg-white/20"
+                disabled={!customConditionInput.trim()}
+              >
+                Add
+              </Button>
+            </div>
+            {medicalConditions.filter(
+              (c) => !MEDICAL_CONDITIONS.map((m) => m.value).includes(c) && c !== "none"
+            ).length > 0 && (
+              <div className="max-w-sm mx-auto flex flex-wrap gap-2">
+                {medicalConditions
+                  .filter((c) => !MEDICAL_CONDITIONS.map((m) => m.value).includes(c) && c !== "none")
+                  .map((custom) => (
+                    <span
+                      key={custom}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500 text-orange-300 text-sm"
+                    >
+                      {custom}
+                      <button
+                        onClick={() => setMedicalConditions((prev) => prev.filter((c) => c !== custom))}
+                        className="ml-1 text-orange-300 active:text-white"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
           </div>
         );
 
