@@ -598,6 +598,45 @@ export default function PricingPage() {
         className="max-w-6xl mx-auto px-4 text-white space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* Free Tier Card */}
+        <div className="mb-2">
+          <Card className="relative bg-black/30 backdrop-blur-lg text-white shadow-xl border border-white/15">
+            <CardHeader className="pb-4">
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold">Free</h3>
+                <p className="text-sm text-white/80">Explore the app at your own pace</p>
+                <p className="text-lg font-semibold">$0.00 / month</p>
+              </div>
+            </CardHeader>
+            <Separator className="bg-white/10" />
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  "Daily Macro Calculator",
+                  "Biometrics Tracking",
+                  "Daily Health Journal",
+                  "SafeGuard Allergy Protection",
+                  "Supplement Hub",
+                  "Spirits & Alcohol Hub",
+                  "View Saved Meals",
+                  "Profile & Settings",
+                ].map((label, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <Separator className="bg-white/10" />
+            <div className="p-6">
+              <p className="text-xs text-white/50 text-center">
+                Upgrade anytime to unlock AI meal generation, builders, and more.
+              </p>
+            </div>
+          </Card>
+        </div>
+
         {/* Consumer Plans Grid */}
         <div className="mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
