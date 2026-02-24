@@ -84,7 +84,7 @@ export default function OnboardingV3() {
     const res = await fetch(apiUrl("/api/users/profile"), {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-      body: JSON.stringify(fields),
+      body: JSON.stringify({ ...fields, fromOnboarding: true }),
     });
     if (!res.ok) throw new Error("Failed to save profile");
   };
