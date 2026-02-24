@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowLeft,
+  ChevronRight,
   Sparkles,
   UserPlus,
   Calculator,
@@ -381,7 +381,7 @@ export default function GuestBuilder() {
                   </div>
                   <div className={unlocked ? "text-white/30" : "text-white/20"}>
                     {unlocked ? (
-                      <ArrowLeft className="h-4 w-4 rotate-180" />
+                      <ChevronRight className="h-4 w-4" />
                     ) : (
                       <Lock className="h-4 w-4" />
                     )}
@@ -456,7 +456,7 @@ export default function GuestBuilder() {
                   </div>
                   <div className={unlocked ? "text-white/30" : "text-white/20"}>
                     {unlocked ? (
-                      <ArrowLeft className="h-4 w-4 rotate-180" />
+                      <ChevronRight className="h-4 w-4" />
                     ) : (
                       <Lock className="h-4 w-4" />
                     )}
