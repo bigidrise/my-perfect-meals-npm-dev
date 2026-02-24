@@ -373,17 +373,6 @@ export default function Welcome() {
             Sign In / Create Account
           </Button>
 
-          <Button
-            data-testid="button-explore-guest"
-            onClick={exploreAsGuest}
-            className="w-full h-14 text-md font-medium rounded-2xl
-            bg-gradient-to-r from-black via-lime-600 to-black
-                     text-white shadow-lg border border-lime-400/30
-                     transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <Sparkles className="h-5 w-5" />
-            Visit App
-          </Button>
         </div>
       </div>
     );
