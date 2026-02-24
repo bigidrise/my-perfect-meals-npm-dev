@@ -22,6 +22,8 @@ import { requestId } from "./middleware/requestId";
 import { logger } from "./middleware/logger";
 import { createApiRateLimit } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
+import { requireAuth } from "./middleware/requireAuth";
+import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import healthRouter from "./routes/health.routes";
 import keepaliveRouter from "./routes/keepalive";
 
@@ -303,7 +305,7 @@ app.use("/api", mealsRouter);
 app.use("/api", alcoholRouter);
 app.use("/api", glycemicRouter);
 app.use("/api", shoppingListRouter);
-app.use("/api", mealSummarizeRouter);
+app.use("/api", requireAuth, requireActiveAccess, mealSummarizeRouter);
 app.use("/api", mealLogsRouter);
 app.use("/api", waterLogsRouter);
 app.use("/api", wmc2LogRouter);
@@ -327,7 +329,7 @@ app.use("/api", notifyTestRouter);
 app.use("/api", quickTestEnhancedRouter);
 app.use("/api", adherenceRouter);
 app.use("/api", notifyExtrasRouter);
-app.use("/api", cookingTutorialsRouter);
+app.use("/api", requireAuth, requireActiveAccess, cookingTutorialsRouter);
 app.use("/api/trivia", triviaRouter);
 app.use("/api/challenges", challengeRoutes);
 app.use("/api/fitlife", fitlifeRouter);
@@ -357,12 +359,12 @@ import avatarContextRoutes from "./routes/avatar-context";
 app.use("/api/avatar", avatarContextRoutes);
 
 // Meal Replacement System
-app.use("/api/craving-creator", cravingCreatorRouter);  
-app.use("/api/meals/dessert-creator", dessertCreatorRouter);
-app.use("/api/holiday-feast", holidayFeastRouter);
+app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouter);  
+app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouter);
+app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFeastRouter);
 
 // Studio Generation Facade (LibraryEngine + QueueEngine)
-app.use("/api/studio", studioGeneratorRouter);
+app.use("/api/studio", requireAuth, requireActiveAccess, studioGeneratorRouter);
 app.use("/api/breakfast", breakfastRouter);
 app.use("/api/lunch", lunchRouter);
 app.use("/api/dinner", dinnerRouter);
@@ -378,7 +380,7 @@ app.use("/api", manualMacrosRouter);
 app.use("/api/meal-templates", templateRouter);
 
 // Translation API - UI-level translation for meal content
-app.use("/api/translate", translateRouter);
+app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
 
 // Game Leaderboards System
 app.use("/api/games", gamesRouter);
@@ -387,7 +389,7 @@ app.use("/api/games", gamesRouter);
 app.use("/api/testimonials", testimonialsRouter);
 
 // Restaurant Guide System - with Google Places API cuisine enrichment
-app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
+app.use("/api/restaurants", requireAuth, requireActiveAccess, resolveCuisineMiddleware, restaurantRoutes);
 console.log("✅ Restaurant routes mounted at /api/restaurants");
 
 // Shopping List V2 - Split into public preview and protected routes (imported at top)
@@ -395,7 +397,7 @@ app.use("/api/shopping-list-v2", shoppingPreviewRouter); // Preview endpoint (no
 app.use("/api/shopping-list-v2", shoppingRouter); // Protected endpoints (inherit auth from registerRoutes)
 
 // DIRECT Holiday Feast route fix - BEFORE Vite middleware
-app.post("/api/meals/holiday-feast", async (req, res) => {
+app.post("/api/meals/holiday-feast", requireAuth, requireActiveAccess, async (req, res) => {
   console.log("🎯 WORKING Holiday Feast route HIT! Body:", req.body);
   try {
     const { generateHolidayFeast } = await import("./services/holidayFeastService");

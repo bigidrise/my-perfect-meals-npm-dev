@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🔒 LOCKED: Deterministic Fridge Rescue Engine - DO NOT MODIFY
   // User confirmed this new system works perfectly - keep it locked!
-  app.use("/api", fridgeRescueRouter);
+  app.use("/api", requireAuth, requireActiveAccess, fridgeRescueRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -1287,7 +1287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Voice Processing API
-  app.post("/api/voice/process", async (req, res) => {
+  app.post("/api/voice/process", requireAuth, requireActiveAccess, async (req, res) => {
     try {
       const { transcript } = req.body;
 
@@ -1320,9 +1320,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Avatar Chat Routes
   app.use("/api", avatarChatRouter);
   app.use("/api", conciergeRouter);
-  app.use("/api", chefRouter);
-  app.use("/api/cooking-challenges", cookingChallengesRouter);
-  app.use("/api/cooking-classes", cookingClassesRouter);
+  app.use("/api", requireAuth, requireActiveAccess, chefRouter);
+  app.use("/api/cooking-challenges", requireAuth, requireActiveAccess, cookingChallengesRouter);
+  app.use("/api/cooking-classes", requireAuth, requireActiveAccess, cookingClassesRouter);
 
   // Week Board routes (simplified meal board)
   weekBoardRoutes(app);
@@ -1446,12 +1446,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Holiday Feast Routes
-  app.use("/api/holiday-feast", holidayFamilyRecipeRouter);
+  app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFamilyRecipeRouter);
 
   // Alcohol logs endpoint now handled by alcoholLogRouter
 
   // Family Recipe routes
-  app.use("/api", familyRecipesRouter);
+  app.use("/api", requireAuth, requireActiveAccess, familyRecipesRouter);
 
   // Upload routes
   app.use("/api", uploadsRouter);
@@ -4458,7 +4458,7 @@ function getMealIngredientsDatabase() {
   });
 
   // Voice command parsing endpoint
-  app.post('/api/voice/parse', async (req, res) => {
+  app.post('/api/voice/parse', requireAuth, requireActiveAccess, async (req, res) => {
     try {
       const { transcript } = req.body;
       if (!transcript) {
