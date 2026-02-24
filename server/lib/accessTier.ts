@@ -21,7 +21,13 @@ const PAID_PLAN_KEYS = [
   "mpm_ultimate_plan_2999",
 ];
 
+// PRE-LAUNCH: Grant full access to all users for testing & growth.
+// When ready to enforce subscriptions, remove the early return below.
+const PRE_LAUNCH_FULL_ACCESS = true;
+
 export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): AccessTier {
+  if (PRE_LAUNCH_FULL_ACCESS) return "PAID_FULL";
+
   if (user.isTester) return "PAID_FULL";
 
   if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) {
