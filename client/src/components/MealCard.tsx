@@ -265,7 +265,7 @@ export function MealCard({
         )}
 
         {/* Action Buttons */}
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-col gap-2">
           {date !== "board" && (
             <MacroBridgeButton
               meal={{

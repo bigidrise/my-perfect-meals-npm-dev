@@ -173,7 +173,7 @@ export default function TranslateToggle({ content, onTranslate, className }: Tra
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30 active:scale-95 transition-all duration-200 relative cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none ${className || ""}`}
+      className={`inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30 active:scale-95 transition-all duration-200 relative cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none w-full ${className || ""}`}
       onClick={handleToggle}
       disabled={isLoading}
     >

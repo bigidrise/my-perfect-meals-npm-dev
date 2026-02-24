@@ -122,25 +122,27 @@ export default function MealCardActions({
             nutrition: meal.nutrition,
             ingredients: normalizedIngredients,
           }}
-          className="flex-1"
+          className="flex-1 min-w-0"
         />
         {showTranslate && (
-          <TranslateToggle
-            content={{
-              name: meal.name,
-              description: meal.description,
-              instructions: meal.instructions,
-              notes: meal.notes,
-              ingredients: meal.ingredients,
-            }}
-            onTranslate={handleTranslate}
-          />
+          <div className="flex-1 min-w-0">
+            <TranslateToggle
+              content={{
+                name: meal.name,
+                description: meal.description,
+                instructions: meal.instructions,
+                notes: meal.notes,
+                ingredients: meal.ingredients,
+              }}
+              onTranslate={handleTranslate}
+            />
+          </div>
         )}
       </div>
       {showPrepareButton && isFeatureEnabled('chefsKitchen') && (
         <Button
           size="sm"
-          className="w-full bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
+          className="w-full bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
           onClick={handlePrepareWithChef}
           disabled={!hasInstructions}
           title={!hasInstructions ? "No cooking instructions available" : undefined}
