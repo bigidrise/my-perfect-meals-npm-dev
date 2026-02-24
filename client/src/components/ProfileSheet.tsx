@@ -290,7 +290,11 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   };
 
   // Check if user is a Pro Care client (restricted from changing builder)
-  const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const isProCareClient =
+    user?.isProCare &&
+    !["admin", "coach", "physician", "trainer"].includes(
+      user?.professionalRole || user?.role || "",
+    );
 
   const menuItems = [
     // ✅ NEW: Personal profile editing entry
@@ -344,7 +348,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       testId: "menu-tutorials",
     },
     {
-      title: "Meet the MPM Team",
+      title: "MPM Team",
       description: "Message from our founders",
       icon: MessageCircle,
       route: "/founders",
@@ -382,9 +386,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         {/* User Info Section */}
         <div className="mt-6 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
           <div className="flex items-center gap-3">
-            <div
-              className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg ring-2 ring-orange-500/30"
-            >
+            <div className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg ring-2 ring-orange-500/30">
               <div className="w-full h-full flex items-center justify-center">
                 <User className="h-9 w-9 text-white/70" />
               </div>

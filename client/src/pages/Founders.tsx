@@ -5,7 +5,7 @@ export default function Founder() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-gray-950 pt-16 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pt-16 pb-24">
       {/* Main Content */}
       <div
         className="max-w-5xl mx-auto px-4 text-white space-y-12"
