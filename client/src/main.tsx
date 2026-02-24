@@ -6,6 +6,33 @@
 import { Capacitor } from "@capacitor/core";
 import { patchFetchForCredentials } from "@/lib/fetch-credentials-patch";
 
+const APP_STORAGE_VERSION = "3";
+const STORAGE_VERSION_KEY = "mpm.storage.version";
+const DRAFT_KEY_PREFIXES = [
+  "mpm_board_draft_",
+  "mpm.weeklyBoard",
+];
+
+(function purgeStaleDraftStorage() {
+  try {
+    const current = localStorage.getItem(STORAGE_VERSION_KEY);
+    if (current === APP_STORAGE_VERSION) return;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (DRAFT_KEY_PREFIXES.some(prefix => k.startsWith(prefix))) {
+        keysToRemove.push(k);
+      }
+    }
+    if (keysToRemove.length > 0) {
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      console.log(`[MPM Storage] Purged ${keysToRemove.length} stale draft keys (v${current} → v${APP_STORAGE_VERSION})`);
+    }
+    localStorage.setItem(STORAGE_VERSION_KEY, APP_STORAGE_VERSION);
+  } catch {}
+})();
+
 // ============================================
 // PART 0: INSTRUMENTATION - Detect page reloads
 // ============================================
