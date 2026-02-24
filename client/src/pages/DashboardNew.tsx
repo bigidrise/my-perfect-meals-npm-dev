@@ -1,4 +1,4 @@
- import { useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -9,6 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Calculator,
   ShoppingCart,
@@ -48,6 +56,7 @@ export default function DashboardNew() {
   const { toast } = useToast();
   const [showScanner, setShowScanner] = useState(false);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const { open: openCopilot } = useCopilot();
 
   const handlePhotoLog = () => {
@@ -76,6 +85,14 @@ export default function DashboardNew() {
       }, 100); // 100ms delay - short enough to preserve user gesture for audio autoplay
     }
   }, [openCopilot]);
+
+  useEffect(() => {
+    if (!user) return;
+    const hasShown = localStorage.getItem("mpm_subscription_modal_shown");
+    if (!hasShown) {
+      setShowSubscriptionModal(true);
+    }
+  }, [user]);
 
   // Greeting priority: nickname > firstName > username-derived name > fallback
   const firstName = user?.nickname || user?.firstName || user?.name?.split(" ")[0] || "there";
@@ -386,6 +403,50 @@ export default function DashboardNew() {
       {/* Barcode Scanner Modal - This will be removed or modified based on the new requirements */}
       {/* Removed the BarcodeScanner card and its onClick handler from the dashboard.
           The BarcodeScanner component itself might still be used in the shopping list feature. */}
+
+      <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
+        <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">
+              Unlock Full Access
+            </DialogTitle>
+            <DialogDescription className="text-white/80 text-center mt-2">
+              AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-2 text-sm text-white/80">
+            <div>• Unlimited AI meal creation</div>
+            <div>• Advanced macro targeting</div>
+            <div>• Restaurant & craving tools</div>
+            <div>• Premium coaching access</div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <Button
+              className="w-full bg-orange-600 hover:bg-orange-700"
+              onClick={() => {
+                localStorage.setItem("mpm_subscription_modal_shown", "true");
+                setShowSubscriptionModal(false);
+                setLocation("/pricing");
+              }}
+            >
+              Explore Premium Plans
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="w-full text-orange-400 hover:bg-orange-500/10"
+              onClick={() => {
+                localStorage.setItem("mpm_subscription_modal_shown", "true");
+                setShowSubscriptionModal(false);
+              }}
+            >
+              Continue with Free Features
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </motion.div>
   );
