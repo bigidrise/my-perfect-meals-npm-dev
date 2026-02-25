@@ -18,10 +18,14 @@ const UpdateProfileSchema = z.object({
   fitnessGoal: z.string().max(40).optional(),
   dietaryRestrictions: z.array(z.string()).optional(),
   allergies: z.array(z.string()).optional(),
+  medicalConditions: z.array(z.string()).optional(),
+  flavorPreference: z.string().max(60).optional(),
+  preferredBuilder: z.string().max(60).optional(),
   palateSpiceTolerance: z.enum(["none", "mild", "medium", "hot"]).optional(),
   palateSeasoningIntensity: z.enum(["light", "balanced", "bold"]).optional(),
   palateFlavorStyle: z.enum(["classic", "herb", "savory", "bright"]).optional(),
   fontSizePreference: z.enum(["standard", "large", "xl"]).optional(),
+  fromOnboarding: z.boolean().optional(),
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -33,6 +37,7 @@ router.put("/profile", requireAuth, async (req, res) => {
 
     const parsed = UpdateProfileSchema.safeParse(req.body);
     if (!parsed.success) {
+      console.error("Profile update validation error:", parsed.error.flatten());
       return res.status(400).json({ 
         error: "Invalid payload", 
         details: parsed.error.flatten() 
@@ -55,10 +60,16 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.fitnessGoal !== undefined) updateData.fitnessGoal = patch.fitnessGoal;
     if (patch.dietaryRestrictions !== undefined) updateData.dietaryRestrictions = patch.dietaryRestrictions;
     if (patch.allergies !== undefined) updateData.allergies = patch.allergies;
+    if (patch.medicalConditions !== undefined) updateData.medicalConditions = patch.medicalConditions;
+    if (patch.flavorPreference !== undefined) updateData.flavorPreference = patch.flavorPreference;
+    if (patch.preferredBuilder !== undefined) updateData.preferredBuilder = patch.preferredBuilder;
     if (patch.palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = patch.palateSpiceTolerance;
     if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;
     if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
     if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
+
+    const updatedFields = Object.keys(updateData).filter(k => k !== 'updatedAt').join(', ');
+    console.log(`✅ Profile updated for user ${userId}: ${updatedFields}`);
 
     await db
       .update(users)
