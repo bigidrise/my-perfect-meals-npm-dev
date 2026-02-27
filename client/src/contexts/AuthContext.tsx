@@ -171,8 +171,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.removeItem("userId");
         localStorage.removeItem("isAuthenticated");
         clearAuthToken();
-        if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
-          window.location.href = "/login";
+        const publicPaths = ["/login", "/welcome", "/auth", "/forgot-password", "/reset-password", "/pricing", "/privacy", "/guest-builder", "/guest-suite", "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-attestation", "/founders", "/affiliates"];
+        const isPublicPath = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + "/"));
+        if (!isPublicPath) {
+          window.location.href = "/welcome";
         }
       }
 
