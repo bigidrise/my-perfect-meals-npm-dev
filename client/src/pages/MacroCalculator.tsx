@@ -502,6 +502,8 @@ export default function MacroCounter() {
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
+  const isFromOnboarding = window.location.search.includes("from=onboarding");
+
   // usePageWalkthrough('macro-calculator'); // Disabled - conflicts with Copilot intro
 
   // Load calculator settings from localStorage
@@ -567,7 +569,7 @@ export default function MacroCounter() {
   >(existingTargets?.starchStrategy ?? undefined);
 
   // Guided Mode State
-  const hasExistingSettings = savedSettings !== null;
+  const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
   const [guidedStep, setGuidedStep] = useState<GuidedStep>(
     hasExistingSettings ? "done" : "entry",
   );
