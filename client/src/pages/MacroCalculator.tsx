@@ -82,6 +82,7 @@ import {
 } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthHeaders } from "@/lib/auth";
 import { TrialBanner } from "@/components/TrialBanner";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -498,7 +499,7 @@ const getStarchyCarbs = (sex: Sex, goal: Goal) => {
 export default function MacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
   // usePageWalkthrough('macro-calculator'); // Disabled - conflicts with Copilot intro
@@ -820,6 +821,28 @@ export default function MacroCounter() {
   const kg = units === "imperial" ? kgFromLbs(weightLbs) : weightKg;
   const cm =
     units === "imperial" ? cmFromFeetInches(heightFt, heightIn) : heightCm;
+
+  const saveBiometricsToProfile = async () => {
+    if (!user?.id || user.id.startsWith("guest-")) return;
+    try {
+      const heightVal = Math.round(cm);
+      const weightVal = Math.round(kg * 2.205);
+      await fetch(apiUrl("/api/users/profile"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          age,
+          height: heightVal,
+          weight: weightVal,
+          activityLevel: activity,
+          fitnessGoal: goal,
+        }),
+      });
+      await refreshUser();
+    } catch (err) {
+      console.error("Failed to save biometrics to profile:", err);
+    }
+  };
 
   const results = useMemo(() => {
     // Don't calculate until activity is selected
@@ -1823,6 +1846,8 @@ export default function MacroCounter() {
                             user?.id,
                           );
 
+                          await saveBiometricsToProfile();
+
                           window.dispatchEvent(
                             new CustomEvent("mpm:targetsUpdated"),
                           );
@@ -2684,6 +2709,8 @@ export default function MacroCounter() {
                             },
                             user?.id,
                           );
+
+                          await saveBiometricsToProfile();
 
                           // Dispatch event for real-time refresh on Biometrics/other pages
                           window.dispatchEvent(
