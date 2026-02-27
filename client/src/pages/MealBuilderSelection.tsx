@@ -321,10 +321,10 @@ export default function MealBuilderSelection() {
             <RefreshCw className="w-5 h-5 text-zinc-400 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-white text-sm font-medium mb-1">
-                4 Builder Switches Included
+                3 Builder Switches Included
               </p>
               <p className="text-zinc-400 text-xs leading-relaxed">
-                Your membership includes 4 builder switches per year. If your health needs change, you can explore a different builder that may be a better fit.
+                Your membership includes 3 builder switches per year. If your health needs change, you can explore a different builder that may be a better fit.
                 {user?.isProCare && (
                   <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your limit.</span>
                 )}
@@ -358,7 +358,7 @@ export default function MealBuilderSelection() {
                       Switch limit reached
                     </p>
                     <p className="text-amber-300/70 text-xs mt-0.5">
-                      You've used all 4 builder switches this year.
+                      You've used all 3 builder switches this year.
                       {switchStatus.nextSwitchAvailable && (
                         <> Your next switch will be available on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
                       )}
