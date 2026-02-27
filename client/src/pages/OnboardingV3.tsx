@@ -157,7 +157,7 @@ export default function OnboardingV3() {
       switch (step) {
         case 1:
           if (!firstName.trim()) {
-            toast({ title: "Please enter your name", variant: "destructive" });
+            toast({ title: "Please enter your first name", variant: "destructive" });
             setSaving(false);
             return;
           }
@@ -252,14 +252,14 @@ export default function OnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">What should we call you?</h1>
-              <p className="text-white/60 text-sm">We'll use this to personalize your experience</p>
+              <h1 className="text-2xl font-bold text-white">What's your first name?</h1>
+              <p className="text-white/60 text-sm">You can personalize your display name later in settings</p>
             </div>
             <div className="max-w-sm mx-auto">
               <Input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Your first name"
+                placeholder="First name"
                 className="text-white bg-white/10 border-white/20 text-lg h-12 text-center"
                 autoFocus
               />
