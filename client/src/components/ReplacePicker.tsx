@@ -3,10 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, ChefHat, Sparkles, Refrigerator, Baby } from "lucide-react";
+import { X, ChefHat, Refrigerator } from "lucide-react";
 import type { MealTemplateBase } from "@/data/models";
 import { TEMPLATES_SEED } from "@/data/templates.seed";
-import { CRAVING_PRESETS } from "@/data/cravingsPresetsData";
 
 interface ReplacePickerProps {
   isOpen: boolean;
@@ -32,20 +31,6 @@ export default function ReplacePicker({
     const matchesArchetype = !currentArchetype || template.archetype === currentArchetype;
     const matchesMealType = !currentMealType || template.mealType === currentMealType;
     return matchesArchetype && matchesMealType;
-  });
-
-  // Convert craving presets to MealTemplateBase format for compatibility
-  const convertedPresets: MealTemplateBase[] = CRAVING_PRESETS.map(preset => ({
-    ...preset,
-    archetype: "Other" as const,
-    mealType: "snack" as const, // Default craving presets to snack
-    source: "preset" as const,
-    nutritionPerServing: undefined // Will be calculated if needed
-  }));
-
-  // Filter craving presets by meal type
-  const filteredPresets = convertedPresets.filter(preset => {
-    return !currentMealType || preset.mealType === currentMealType;
   });
 
   const handleSelect = (meal: MealTemplateBase) => {
@@ -151,20 +136,13 @@ export default function ReplacePicker({
         </DialogHeader>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="h-full">
-          <TabsList className="grid w-full grid-cols-3 bg-white/10 border border-white/20">
+          <TabsList className="grid w-full grid-cols-2 bg-white/10 border border-white/20">
             <TabsTrigger 
               value="templates" 
               className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70"
             >
               <ChefHat className="h-4 w-4 mr-2" />
               Templates ({filteredTemplates.length})
-            </TabsTrigger>
-            <TabsTrigger 
-              value="presets"
-              className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Craving Presets ({filteredPresets.length})
             </TabsTrigger>
             <TabsTrigger 
               value="fridge" 
@@ -180,12 +158,6 @@ export default function ReplacePicker({
             <TabsContent value="templates" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredTemplates.map(template => renderMealCard(template, "template"))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="presets" className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredPresets.map(preset => renderMealCard(preset, "preset"))}
               </div>
             </TabsContent>
 

@@ -50,7 +50,6 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/craving-studio", label: "Craving Studio" },
       { path: "/craving-desserts", label: "Dessert Creator" },
       { path: "/dessert-studio", label: "Dessert Studio" },
-      { path: "/craving-presets", label: "Craving Presets" },
       { path: "/fridge-rescue", label: "Fridge Rescue" },
       { path: "/fridge-rescue-studio", label: "Fridge Rescue Studio" },
     ],
@@ -87,17 +86,12 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Alcohol Hub",
+    title: "Beverage (Remaining)",
     routes: [
-      { path: "/alcohol-hub", label: "Alcohol Hub" },
-      { path: "/alcohol/lean-and-social", label: "Lean & Social" },
-      { path: "/alcohol-smart-sips", label: "Alcohol Smart Sips" },
-      { path: "/mocktails-low-cal-mixers", label: "Mocktails" },
       { path: "/beer-pairing", label: "Beer Pairing" },
       { path: "/bourbon-spirits", label: "Bourbon & Spirits" },
       { path: "/wine-pairing", label: "Wine Pairing" },
       { path: "/meal-pairing-ai", label: "Meal Pairing AI" },
-      { path: "/alcohol-log", label: "Alcohol Log" },
       { path: "/weaning-off-tool", label: "Weaning Off Tool" },
     ],
   },
@@ -112,9 +106,6 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "Kids & Family",
     routes: [
-      { path: "/kids-meals", label: "Kids Meals Hub" },
-      { path: "/toddler-meals", label: "Toddler Meals Hub" },
-      { path: "/healthy-kids-meals", label: "Healthy Kids Meals" },
       { path: "/family-info", label: "Family Info" },
       { path: "/glp1-meals-tracking", label: "GLP-1 Meals Tracking" },
     ],

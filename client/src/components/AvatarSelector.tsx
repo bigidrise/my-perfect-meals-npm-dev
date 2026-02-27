@@ -71,8 +71,8 @@ export const AvatarSelector = () => {
       { patterns: ['meal journal', 'journal', 'food journal'], route: '/meal-journal' },
       { patterns: ['craving creator', 'cravings', 'create craving'], route: '/craving-creator' },
       { patterns: ['restaurant guide', 'restaurants', 'dining'], route: '/restaurant-guide' },
-      { patterns: ['kids meals', 'children meals', 'kid food'], route: '/meals-for-kids' },
-      { patterns: ['alcohol hub', 'drinks', 'beverages'], route: '/alcohol-hub' }
+      { patterns: ['kids meals', 'children meals', 'kid food'], route: '/lifestyle' },
+      { patterns: ['alcohol hub', 'drinks', 'beverages'], route: '/lifestyle' }
     ];
 
     for (const { patterns, route } of routes) {
@@ -92,8 +92,7 @@ export const AvatarSelector = () => {
       '/meal-journal': "Let's check out your meal history and journal.",
       '/craving-creator': "I'll help you create something amazing for your cravings!",
       '/restaurant-guide': "Let's find you some great restaurant options!",
-      '/meals-for-kids': "Perfect! Let's create some kid-friendly meals.",
-      '/alcohol-hub': "Exploring beverage options and pairings for you."
+      '/lifestyle': "Opening the Lifestyle Hub for you."
     };
     return routeResponses[route] || "I'm taking you there now!";
   };

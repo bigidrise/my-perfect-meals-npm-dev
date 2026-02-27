@@ -27,8 +27,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       "/affiliates",
       "/founders",
       "/privacy",
-      "/admin-moderation",
-      "/alcohol/lean-and-social"
+      "/admin-moderation"
     ];
     
     return !hideOnRoutes.some(route => location.startsWith(route));

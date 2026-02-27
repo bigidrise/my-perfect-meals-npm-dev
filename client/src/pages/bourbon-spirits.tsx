@@ -146,7 +146,7 @@ export default function BourbonSpiritsPage() {
         <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
           {/* Back Button */}
           <button
-            onClick={() => setLocation("/alcohol-hub")}
+            onClick={() => setLocation("/lifestyle")}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />

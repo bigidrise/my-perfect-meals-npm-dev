@@ -339,7 +339,7 @@ const TapToRecordButton: React.FC = () => {
     }
 
     if (cleaned.includes("alcohol") || cleaned.includes("drinks") || cleaned.includes("spirits") || cleaned.includes("lifestyle")) {
-      return "/alcohol-hub";
+      return "/lifestyle";
     }
 
     if (cleaned.includes("potluck") || cleaned.includes("party") || cleaned.includes("event")) {
@@ -421,8 +421,8 @@ const TapToRecordButton: React.FC = () => {
       return "Let me help you with wellness and health tips.";
     }
 
-    if (route === "/alcohol-hub") {
-      return "Opening the Alcohol and Lifestyle Spirits Hub for you!";
+    if (route === "/lifestyle") {
+      return "Opening the Lifestyle Hub for you!";
     }
 
     if (route === "/potluck-planner") {

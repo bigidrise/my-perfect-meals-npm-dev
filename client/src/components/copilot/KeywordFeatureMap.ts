@@ -36,12 +36,7 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     keywords: ["cravings", "craving hub", "I have a craving", "crave", "satisfy cravings", "craving center", "cravings hub"],
   },
   
-  // Alcohol Hub (Phase C.4: High-level summons only, granular terms delegated to sub-options)
-  {
-    path: "/alcohol-hub",
-    walkthroughId: "alcohol-hub",
-    keywords: ["alcohol", "lean cocktails", "smart sips", "spirits hub", "alcohol hub", "drinks hub", "bar hub", "booze"],
-  },
+  // DELETED: Alcohol Hub (Phase 1 cleanup)
   
   // Socializing Hub (Phase C.4: High-level summons only, sub-option terms delegated to CanonicalAliasRegistry)
   {
@@ -71,12 +66,7 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     keywords: ["anti-inflammatory", "inflammation", "anti inflammatory", "anti", "reduce inflammation", "inflammatory diet", "healing diet", "anti inflam"],
   },
   
-  // Kids Hub (Phase C.4: High-level summons only)
-  {
-    path: "/healthy-kids-meals",
-    walkthroughId: "kids-hub",
-    keywords: ["kids", "children", "healthy kids", "kids hub", "kids meals hub", "children hub", "kids section"],
-  },
+  // DELETED: Kids Hub (Phase 1 cleanup)
   
   // Master Shopping List
   {

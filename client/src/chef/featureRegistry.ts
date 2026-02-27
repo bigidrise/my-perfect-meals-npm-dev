@@ -18,12 +18,7 @@ export const FEATURES: Feature[] = [
     synonyms: ['meal creator', 'meal builder', 'make me a plan', 'create meals', 'ai plan', 'generate meals', 'ai meal creator']
   },
   // Weekly Meal Planner removed - meal calendar functionality disabled
-  {
-    id: 'meals-for-kids',
-    path: '/meals-for-kids',
-    displayName: '🍽️ Meals for Kids',
-    synonyms: ['kids meals', 'kids menu', 'meals for kids', 'children meals', 'kid-friendly', 'kid meals', 'kids hub']
-  },
+  // DELETED: meals-for-kids (Phase 1 cleanup)
   {
     id: 'craving-creator',
     path: '/craving-creator',
@@ -197,13 +192,6 @@ export const FEATURES: Feature[] = [
     path: '/bourbon-spirits',
     displayName: 'Bourbon and Spirits',
     synonyms: ['bourbon', 'spirits', 'bourbon pairing', 'bourbon and spirits mode'],
-    hidden: true  // Not a card but Chef should know about it
-  },
-  {
-    id: 'alcohol-log',
-    path: '/alcohol-log',
-    displayName: 'Alcohol Log',
-    synonyms: ['alcohol log', 'drink tracking', 'alcohol tracking'],
     hidden: true  // Not a card but Chef should know about it
   },
   {

@@ -73,7 +73,7 @@ export default function WinePairingPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = "Wine Pairing | My Perfect Meals";
-    saveNavigationHistory("/wine-pairing", "/alcohol-hub");
+    saveNavigationHistory("/wine-pairing", "/lifestyle");
 
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
@@ -150,8 +150,8 @@ export default function WinePairingPage() {
           <button
             onClick={() => {
               saveScrollPosition("winePairingScroll");
-              saveNavigationHistory("/alcohol-hub", "/wine-pairing");
-              setLocation("/alcohol-hub");
+              saveNavigationHistory("/lifestyle", "/wine-pairing");
+              setLocation("/lifestyle");
             }}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >

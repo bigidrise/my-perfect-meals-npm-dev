@@ -68,15 +68,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/craving-presets": {
-    pageId: "craving-presets",
-    title: "Craving Premades",
-    description:
-      "Browse ready-made AI craving meals you can use instantly — and add straight to your daily meal plan.",
-    spokenText:
-      "Craving Presets is where you grab ready-made meals without starting from scratch. Ch0ose how many servings you’re making, and your rounding preference, so portions stay realistic. Then scroll through the premade meals and tap any one that looks good. Inside each meal, you’ll see ingredients, nutrition, and instructions. From there, you can log the macros, send the ingredients to your shopping list, or add that meal directly to today’s breakfast, lunch, dinner, or snacks. It’s the fastest way to pick a meal, and drop it straight into your plan.",
-    autoClose: true,
-  },
 
   "/fridge-rescue": {
     pageId: "fridge-rescue-studio",
@@ -92,35 +83,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "This is Fridge Rescue — and this is what happens when life doesn’t go according to plan. You’ve got random ingredients at home, no time to shop, and no idea what to make. Sound familiar? Just tell me what you’ve got — chicken, eggs, leftover rice, whatever — and I’ll turn it into a real meal with ingredients, instructions, and nutrition. No grocery run. No guessing. No wasted food. This feature is free for you to explore — no pass required. Play around, see what’s possible. When you find something you like, you can add it to your meal plan, and watch how it connects back to your day. This is one of those features that makes people go ‘oh wow, I didn’t know it could do that.’ So go ahead — rescue your fridge.",
   },
 
-  "/healthy-kids-meals": {
-    pageId: "healthy-kids-meals",
-    title: "Healthy Kids Meals Hub",
-    description:
-      "Healthy, kid-friendly meals for ages 5–12. Tap any picture to see ingredients and cooking instructions, and send ingredients to your shopping list with one tap.",
-    spokenText:
-      "Healthy Kids Meals. These meals are designed for kids ages four to twelve. Tap any picture to see the ingredients and cooking instructions, and you can send ingredients straight to your shopping list.",
-    autoClose: true,
-  },
 
-  "/kids-meals": {
-    pageId: "kids-meals",
-    title: "Kids Meals",
-    description:
-      "Choose between Kids Meals for ages 5–12 or Toddler Meals for little ones. Both include easy ingredient lists you can send to your shopping list.",
-    spokenText:
-      "Trying to make healthier meals for your kids without overthinking it? That’s exactly what Kids Meals is for. These meals are designed for ages five to twelve. Pick your servings, choose your rounding — tenth, half, or whole — and tap any meal to open the picture. From there, you can view the ingredients, see the cooking instructions, and send everything you need straight to the shopping list.",
-    autoClose: true,
-  },
 
-  "/toddler-meals": {
-    pageId: "toddler-meals",
-    title: "Toddler Meals",
-    description:
-      "Simple, soft, and finger-friendly meals for toddlers. Tap a picture to view ingredients and instructions, and send ingredients to your shopping list instantly.",
-    spokenText:
-      "Trying to figure out what to feed a toddler who grazes all day? Toddler Meals are built for little ones with softer textures and finger-friendly foods. Pick your servings, choose your rounding, and tap any meal to open the picture. You’ll see the ingredients, the simple cooking instructions, and you can send everything you need directly to the shopping list.",
-    autoClose: true,
-  },
 
   "/social-hub": {
     pageId: "social-hub",
@@ -152,25 +116,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/alcohol-hub": {
-    pageId: "alcohol-hub",
-    title: "Spirits & Lifestyle Hub",
-    description:
-      "A guide to smarter drinking with pairings, mixers, meal matches, and tools to help you cut back.",
-    spokenText:
-      "Spirits and Lifestyle Hub helps you drink smarter without overthinking it. Here, you can explore wine, beer, and bourbon pairings, find lower calorie mixers and mocktail ideas, match drinks to meals, or use the weaning off tools if you’re cutting back. Choose what you want to explore, and I’ll guide you from there.",
-    autoClose: true,
-  },
 
-  "/alcohol/lean-and-social": {
-    pageId: "alcohol/lean-and-social",
-    title: "Lean & Social",
-    description:
-      "Tips and strategies for eating well at parties, BBQs, and social events without feeling restricted.",
-    spokenText:
-      "Lean and Social helps you stay on track when food choices get tricky. Whether you’re at a party, a BBQ, or a social event, you’ll find simple strategies to help you choose smarter portions, enjoy what’s available, and still feel confident in your decisions. Tap a section to get started, and I’ll walk you through it.",
-    autoClose: true,
-  },
 
   "/wine-pairing": {
     pageId: "wine-pairing",
@@ -201,15 +147,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/mocktails-low-cal-mixers": {
-    pageId: "mocktails",
-    title: "Mocktails",
-    description:
-      "Alcohol-free drinks and low-calorie mixers for lighter options.",
-    spokenText:
-      "Mocktails gives you refreshing alcohol-free drinks and lower calorie mixer options. Tap any drink to see the ingredients, how to make it, and quickly add what you need to your shopping list.",
-    autoClose: true,
-  },
 
   "/meal-pairing-ai": {
     pageId: "meal-pairing",
@@ -221,14 +158,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/alcohol-log": {
-    pageId: "alcohol-log",
-    title: "Alcohol Log",
-    description: "Log your drinks and track alcohol trends over time.",
-    spokenText:
-      "Alcohol Log lets you keep track of what you drink and when. Enter the drink, the amount, and the date, and I’ll track your activity across seven, thirty, and ninety days, along with recent entries and a visual look at your last month.",
-    autoClose: true,
-  },
 
   "/weaning-off-tool": {
     pageId: "weaning-off-tool",

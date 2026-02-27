@@ -37,14 +37,6 @@ export default function CravingCreatorLanding() {
       testId: "cravinghub-creator",
     },
     {
-      title: "Premade Cravings",
-      description:
-        "Browse our collection of ready-made craving meals. Tap any picture to see ingredients and nutrition info.",
-      icon: Sparkles,
-      route: "/craving-presets",
-      testId: "cravinghub-premades",
-    },
-    {
       title: "Dessert Creator",
       description: "AI-powered dessert recipes: pies, cakes, cookies, brownies & more",
       icon: Sparkles,

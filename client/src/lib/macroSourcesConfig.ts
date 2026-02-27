@@ -30,11 +30,6 @@ export const MACRO_SOURCES = [
     route: "/craving-creator"
   },
   {
-    label: "Craving Presets",
-    slug: "craving-presets",
-    route: "/craving-presets"
-  },
-  {
     label: "Weekly Meal Board",
     slug: "weekly-meal-board",
     route: "/weekly-meal-board"
@@ -83,21 +78,6 @@ export const MACRO_SOURCES = [
     label: "Cultural Cuisines",
     slug: "cultural-cuisines",
     route: "/cultural-cuisines"
-  },
-  {
-    label: "Mocktails",
-    slug: "mocktails",
-    route: "/mocktails-low-cal-mixers"
-  },
-  {
-    label: "Kids Drinks Hub",
-    slug: "kids-drinks-hub",
-    route: "/kids-drinks-hub"
-  },
-  {
-    label: "Lean & Social",
-    slug: "lean-and-social",
-    route: "/lean-and-social"
   },
   {
     label: "Performance & Competition Builder",

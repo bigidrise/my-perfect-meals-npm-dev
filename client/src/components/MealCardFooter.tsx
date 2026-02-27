@@ -107,9 +107,8 @@ export default function MealCardFooter({
   };
 
   const handleAddFromCravingCreator = () => {
-    // Phase 2: Link to craving presets with return context
     const returnUrl = encodeURIComponent(window.location.pathname);
-    window.location.href = `/craving-presets?return=${returnUrl}&context=add`;
+    window.location.href = `/craving-creator-landing?return=${returnUrl}&context=add`;
   };
 
   const scaledNutrition = meal.nutritionPerServing ? {

@@ -163,7 +163,7 @@ const WeaningOffTool = () => {
               if (step === "tracking") {
                 setStep("setup");
               } else {
-                setLocation("/alcohol-hub");
+                setLocation("/lifestyle");
               }
             }}
             className="flex items-center gap-1 text-white transition-all duration-200 p-2 rounded-2xl"

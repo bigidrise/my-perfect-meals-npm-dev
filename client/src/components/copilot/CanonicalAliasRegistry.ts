@@ -61,97 +61,10 @@ export const HUBS: Record<string, FeatureDefinition> = {
         aliases: ["creator", "create", "custom craving", "make a craving", "craving creator", "create craving", "make my craving"],
         voiceHint: "creator"
       },
-      {
-        id: "CRAVING_PREMADES",
-        label: "Craving Premades",
-        route: "/craving-presets",
-        testId: "cravinghub-premades",
-        walkthroughId: "craving-premades-walkthrough",
-        aliases: ["premades", "presets", "premade cravings", "premade", "craving premades", "pre-mades", "pre made", "pre maid", "pro maids", "maids"],
-        voiceHint: "premades"
-      }
-      
     ]
   },
 
-  ALCOHOL_HUB: {
-    id: "ALCOHOL_HUB",
-    legacyId: "alcohol-hub",
-    primaryRoute: "/alcohol-hub",
-    walkthroughId: "alcohol-hub-walkthrough", // Phase C.7: Hub-level walkthrough
-    isHub: true,
-    hubSize: "large",
-    keywords: ["alcohol", "spirits", "drinks", "cocktails", "lean cocktails", "smart sips", "mixed drinks", "mocktails", "mocktail ideas", "spirits hub", "alcohol hub", "drinks hub", "lifestyle drinks", "bar hub", "booze", "hard drinks", "lean and social", "wine pairing", "beer pairing", "bourbon pairing", "bourbon", "wine", "beer", "alcohol log", "weaning off", "weaning", "taper", "meal pairing"],
-    spokenPrompt: "Welcome to the Spirits & Lifestyle Hub! Navigate social moments mindfully with smart drink choices and alternatives.",
-    selectionPrompt: "What would you like to explore? You can say: 'Lean & Social', 'Mocktails', 'Wine Pairing', 'Beer Pairing', 'Bourbon', 'Alcohol Log', 'Meal Pairing', or 'Weaning Off'.",
-    voiceTimeoutMessage: "I didn't catch that. Try typing one of the options instead: Lean & Social, Mocktails, Wine, Beer, Bourbon, Log, Meal Pairing, or Weaning Off.",
-    subOptions: [
-      {
-        id: "LEAN_SOCIAL",
-        label: "Alcohol Lean and Social",
-        route: "/alcohol/lean-and-social",
-        testId: "alcoholhub-lean",
-        walkthroughId: "lean-social-walkthrough",
-        aliases: ["lean", "social", "lean and social", "lean alcohol", "lean drinks", "lean social", "low cal drinks", "diet drinks"]
-      },
-      {
-        id: "MOCKTAILS",
-        label: "Mocktails",
-        route: "/mocktails-low-cal-mixers",
-        testId: "alcoholhub-mocktails",
-        walkthroughId: "mocktails-walkthrough",
-        aliases: ["mocktails", "alcohol-free", "non-alcoholic", "mocktail", "low cal mixers", "no alcohol drinks", "zero proof", "virgin drinks"]
-      },
-      {
-        id: "MEAL_PAIRING",
-        label: "Meal Pairing",
-        route: "/meal-pairing-ai",
-        testId: "alcoholhub-pairing",
-        walkthroughId: "meal-pairing-walkthrough",
-        aliases: ["meal pairing", "pairing", "pair meal", "pair my meal", "food pairing", "what to drink with", "pairing guide"]
-      },
-      {
-        id: "WINE_PAIRING",
-        label: "Wine Pairing",
-        route: "/wine-pairing",
-        testId: "alcoholhub-wine",
-        walkthroughId: "wine-pairing-walkthrough",
-        aliases: ["wine", "wine pairing", "wines", "pair wine", "wine guide", "wine with dinner"]
-      },
-      {
-        id: "BEER_PAIRING",
-        label: "Beer Pairing",
-        route: "/beer-pairing",
-        testId: "alcoholhub-beer",
-        walkthroughId: "beer-pairing-walkthrough",
-        aliases: ["beer", "beer pairing", "beers", "pair beer", "beer guide", "beer with dinner"]
-      },
-      {
-        id: "BOURBON_PAIRING",
-        label: "Bourbon Pairing",
-        route: "/bourbon-spirits",
-        testId: "alcoholhub-bourbon",
-        walkthroughId: "bourbon-pairing-walkthrough",
-        aliases: ["bourbon", "spirits", "whiskey", "bourbon pairing", "bourbon guide", "whiskey pairing"]
-      },
-      {
-        id: "ALCOHOL_LOG",
-        label: "Alcohol Log",
-        route: "/alcohol-log",
-        testId: "alcoholhub-log",
-        walkthroughId: "alcohol-log-walkthrough",
-        aliases: ["log", "track alcohol", "alcohol log", "alcohol tracker", "alog", "drink log", "drinking log", "booze log"]
-      },
-      {
-        id: "WEANING_OFF",
-        label: "Weaning Off Tool",
-        route: "/weaning-off-tool",
-        testId: "alcoholhub-weaning",
-        walkthroughId: "weaning-off-walkthrough",
-        aliases: ["weaning", "taper", "weaning off", "taper off", "wean", "cutting back", "quit drinking", "reduce alcohol"]
-      }
-    ]
-  },
+  // DELETED: ALCOHOL_HUB (Phase 1 cleanup — will be replaced by Beverage Hub in Phase 2)
 
   SOCIAL_HUB: {
     id: "SOCIAL_HUB",
@@ -184,36 +97,7 @@ export const HUBS: Record<string, FeatureDefinition> = {
     ]
   },
 
-  KIDS_HUB: {
-    id: "KIDS_HUB",
-    legacyId: "kids-hub",
-    primaryRoute: "/healthy-kids-meals",
-    walkthroughId: "kids-hub-walkthrough", // Phase C.7: Hub-level walkthrough
-    isHub: true,
-    hubSize: "small",
-    keywords: ["kids", "kids meals", "children", "healthy kids", "kids food", "children meals", "kids hub", "kids meals hub", "children hub", "kids section", "toddler meals", "toddlers", "little kids", "baby meals"],
-    spokenPrompt: "Welcome to the Kids Meals Hub! Find nutritious, kid-friendly meals that your children will actually enjoy eating.",
-    selectionPrompt: "Choose what you need: 'Kids Meals' for ages 4-12, or 'Toddler Meals' for ages 1-3. Each collection is age-appropriate and nutrition-optimized.",
-    voiceTimeoutMessage: "I didn't catch that. Try typing 'Kids Meals' or 'Toddler Meals' instead.",
-    subOptions: [
-      {
-        id: "KIDS_MEALS",
-        label: "Kids Meals",
-        route: "/kids-meals",
-        testId: "card-kids-meals",
-        walkthroughId: "kids-meals-walkthrough",
-        aliases: ["kids meals", "children meals", "kids", "meal picker", "big kids meals", "older kids", "school lunch"]
-      },
-      {
-        id: "TODDLER_MEALS",
-        label: "Toddler Meals",
-        route: "/toddler-meals",
-        testId: "card-toddler-meals",
-        walkthroughId: "toddler-meals-walkthrough",
-        aliases: ["toddler", "toddler meals", "toddlers", "little kids", "baby meals"]
-      }
-    ]
-  },
+  // DELETED: KIDS_HUB (Phase 1 cleanup — will be replaced by Healthy Kids Hub in Phase 2)
 
   DIABETIC_HUB: {
     id: "DIABETIC_HUB",

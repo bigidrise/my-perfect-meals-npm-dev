@@ -18,12 +18,9 @@ import Planner from "@/pages/Planner";
 import WeeklyMealBoard from "@/pages/WeeklyMealBoard";
 import BeachBodyMealBoard from "@/pages/BeachBodyMealBoard";
 import MacroCounter from "@/pages/MacroCalculator";
-// DELETED: AdultBeverageHubPage
+// DELETED: AdultBeverageHubPage, HealthyKidsMeals, KidsMealsHub, ToddlersMealsHub
 import LifestyleLandingPage from "@/pages/LifestyleLandingPage"; // Renamed from EmotionAIHub
-import HealthyKidsMeals from "@/pages/HealthyKidsMeals";
 import GLP1MealsTracking from "@/pages/GLP1MealsTracking";
-import KidsMealsHub from "@/pages/kids-meals-hub";
-import ToddlersMealsHub from "@/pages/toddlers-meals-hub";
 
 // New Simple Plan page
 // Page imports
@@ -118,21 +115,16 @@ import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuB
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
-import CravingPresets from "@/pages/CravingPresets";
+// DELETED: CravingPresets
 import CravingStudio from "@/pages/craving-creator/CravingStudio";
 import DessertStudio from "@/pages/dessert-creator/DessertStudio";
 import FridgeRescueStudio from "@/pages/fridge-rescue/FridgeRescueStudio";
 import EditProfilePage from "@/pages/profile/EditProfilePage";
 import SavedMeals from "@/pages/SavedMeals";
 
-// Alcohol Hub pages
-import AlcoholHubLanding from "@/pages/AlcoholHubLanding";
-import AlcoholLeanAndSocial from "@/pages/AlcoholLeanAndSocial";
-import AlcoholSmartSips from "@/pages/AlcoholSmartSips";
-import MocktailsLowCalMixers from "@/pages/mocktails-low-cal-mixers";
+// DELETED: AlcoholHubLanding, AlcoholLeanAndSocial, AlcoholSmartSips, MocktailsLowCalMixers, AlcoholLog
 import BeerPairing from "@/pages/beer-pairing";
 import BourbonSpirits from "@/pages/bourbon-spirits";
-import AlcoholLog from "@/pages/alcohol-log";
 import MealPairingAI from "@/pages/meal-pairing-ai";
 import WeaningOffTool from "@/pages/weaning-off-tool";
 import WinePairing from "@/pages/wine-pairing";
@@ -326,9 +318,7 @@ export default function Router() {
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />
-        <Route path="/healthy-kids-meals" component={HealthyKidsMeals} />
-        <Route path="/kids-meals" component={KidsMealsHub} />
-        <Route path="/toddler-meals" component={ToddlersMealsHub} />
+        {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/craving-creator" component={CravingCreator} />
@@ -595,21 +585,9 @@ export default function Router() {
         <Route path="/craving-studio" component={withGate(CravingStudio, 'studioCreators')} />
         <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
         <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
-        <Route path="/craving-presets" component={CravingPresets} />
-        {/* Alcohol Hub Routes */}
-        <Route path="/alcohol-hub" component={AlcoholHubLanding} />
-        <Route
-          path="/alcohol/lean-and-social"
-          component={AlcoholLeanAndSocial}
-        />
-        <Route path="/alcohol-smart-sips" component={AlcoholSmartSips} />
-        <Route
-          path="/mocktails-low-cal-mixers"
-          component={MocktailsLowCalMixers}
-        />
+        {/* DELETED: /craving-presets, /alcohol-hub, /alcohol/lean-and-social, /alcohol-smart-sips, /mocktails-low-cal-mixers, /alcohol-log (Phase 1 cleanup) */}
         <Route path="/beer-pairing" component={BeerPairing} />
         <Route path="/bourbon-spirits" component={BourbonSpirits} />
-        <Route path="/alcohol-log" component={AlcoholLog} />
         <Route path="/meal-pairing-ai" component={MealPairingAI} />
         <Route path="/weaning-off-tool" component={WeaningOffTool} />
         <Route path="/wine-pairing" component={WinePairing} />

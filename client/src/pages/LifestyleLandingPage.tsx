@@ -7,8 +7,6 @@ import {
   Sparkles,
   RefrigeratorIcon,
   Utensils,
-  Baby,
-  Wine,
   UtensilsCrossed,
   ChefHat,
   ArrowLeft,
@@ -73,23 +71,6 @@ export default function LifestyleLandingPage() {
       route: "/social-hub",
       gradient: "from-pink-500/20 to-purple-500/20",
       testId: "card-socializing-hub",
-    },
-    {
-      title: "Healthy Kids Meals Hub",
-      description: "Nutritious, kid-friendly meals that children love",
-      icon: Baby,
-      route: "/healthy-kids-meals",
-      gradient: "from-blue-500/20 to-cyan-500/20",
-      testId: "card-healthy-kids-meals",
-    },
-    {
-      title: "Spirits & Lifestyle Hub",
-      description:
-        "Wine pairing, smart drinks, mocktails, and mindful consumption",
-      icon: Wine,
-      route: "/alcohol-hub",
-      gradient: "from-orange-500/20 to-red-500/20",
-      testId: "card-alcohol-hub",
     },
   ];
 
