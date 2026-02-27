@@ -41,15 +41,21 @@ router.post("/api/auth/forgot-password", async (req, res) => {
       // Store hashed token in database
       await storage.setPasswordResetToken(email.toLowerCase().trim(), tokenHash, expiresAt);
       
-      // Send email with unhashed token in the link
-      const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5000"}/reset-password?token=${resetToken}`;
-      await sendPasswordResetEmail({
-        to: email,
-        resetLink,
-        userName: user.username || email.split("@")[0],
-      });
-      
-      console.log(`✅ Password reset email sent to ${email}`);
+      // Build reset link using request host (works in dev, Replit, and production)
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:5000";
+      const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
+      const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+      try {
+        await sendPasswordResetEmail({
+          to: email,
+          resetLink,
+          userName: user.firstName || user.username || email.split("@")[0],
+        });
+        console.log(`✅ Password reset email sent to ${email} (link: ${resetLink})`);
+      } catch (emailError) {
+        console.error(`❌ Failed to send password reset email to ${email}:`, emailError);
+      }
     }
 
     // Always return the same message (don't reveal if account exists)
