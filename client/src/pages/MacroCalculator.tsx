@@ -1,5 +1,5 @@
 // client/src/pages/MacroCounter.tsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -591,6 +591,7 @@ export default function MacroCounter() {
   const [showResults, setShowResults] = useState(hasExistingSettings || resolveInitialStep() !== "entry");
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
+  const entrySpokenRef = useRef(resolveInitialStep() !== "entry");
 
   // Chef Voice for guided walkthrough
   const { speak, stop } = useChefVoice(setIsPlaying);
@@ -640,15 +641,18 @@ export default function MacroCounter() {
 
   // Speak entry script when component mounts in guided mode
   useEffect(() => {
-    if (guidedStep === "entry" && !hasExistingSettings && !hasSpokenEntry) {
-      // Slight delay to ensure component is mounted
+    if (guidedStep === "entry" && !hasExistingSettings && !entrySpokenRef.current) {
+      entrySpokenRef.current = true;
       const timer = setTimeout(() => {
         speak(MACRO_CALC_ENTRY);
         setHasSpokenEntry(true);
       }, 500);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        entrySpokenRef.current = false;
+      };
     }
-  }, [guidedStep, hasExistingSettings, hasSpokenEntry, speak]);
+  }, [guidedStep, hasExistingSettings, speak]);
 
   // Cleanup: stop voice when navigating away
   useEffect(() => {
@@ -674,14 +678,10 @@ export default function MacroCounter() {
   // Reset guided flow to start over
   const resetGuidedFlow = useCallback(() => {
     setHasSpokenEntry(false);
+    entrySpokenRef.current = false;
     setGuidedStep("entry");
     setShowResults(false);
-    // Speak entry after a brief delay
-    setTimeout(() => {
-      speak(MACRO_CALC_ENTRY);
-      setHasSpokenEntry(true);
-    }, 500);
-  }, [speak]);
+  }, []);
 
   // Check if we're past a certain step (for showing completed items)
   const isPastStep = (step: GuidedStep): boolean => {
