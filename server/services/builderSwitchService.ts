@@ -3,11 +3,11 @@ import { builderSwitchHistory, users } from "../../shared/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 
 const SWITCH_LIMIT = 3;
-const WINDOW_MONTHS = 12;
 
 // FEATURE FLAG: Set to true to enforce builder switch limits (for regular users only)
 // When false: unlimited switches, no tracking for everyone
-// When true: 3 switches per year for regular users, admins/testers always unlimited
+// When true: 3 switches per calendar year for regular users, admins/testers always unlimited
+// No rollover — unused switches do not carry into the next year
 const ENFORCE_SWITCH_LIMITS = false;
 
 export interface BuilderSwitchStatus {
@@ -22,10 +22,9 @@ export interface BuilderSwitchStatus {
   }>;
 }
 
-function getWindowStartDate(): Date {
+function getYearStartDate(): Date {
   const now = new Date();
-  now.setMonth(now.getMonth() - WINDOW_MONTHS);
-  return now;
+  return new Date(now.getFullYear(), 0, 1);
 }
 
 // Check if user is admin/tester - they NEVER have switch limits
@@ -68,8 +67,7 @@ export async function getBuilderSwitchStatus(userId: string): Promise<BuilderSwi
     return getUnlimitedStatus();
   }
   
-  // For regular users when limits are enforced, check their history
-  const windowStart = getWindowStartDate();
+  const yearStart = getYearStartDate();
   
   const switches = await db
     .select()
@@ -77,7 +75,7 @@ export async function getBuilderSwitchStatus(userId: string): Promise<BuilderSwi
     .where(
       and(
         eq(builderSwitchHistory.userId, userId),
-        gte(builderSwitchHistory.switchedAt, windowStart)
+        gte(builderSwitchHistory.switchedAt, yearStart)
       )
     )
     .orderBy(desc(builderSwitchHistory.switchedAt));
@@ -87,11 +85,9 @@ export async function getBuilderSwitchStatus(userId: string): Promise<BuilderSwi
   const canSwitch = switchesRemaining > 0;
   
   let nextSwitchAvailable: Date | null = null;
-  if (!canSwitch && switches.length > 0) {
-    const oldestSwitch = switches[switches.length - 1];
-    const oldestDate = new Date(oldestSwitch.switchedAt);
-    oldestDate.setMonth(oldestDate.getMonth() + WINDOW_MONTHS);
-    nextSwitchAvailable = oldestDate;
+  if (!canSwitch) {
+    const nextYear = new Date(yearStart.getFullYear() + 1, 0, 1);
+    nextSwitchAvailable = nextYear;
   }
   
   return {
@@ -145,7 +141,7 @@ export async function attemptBuilderSwitch(
       
       return {
         success: false,
-        error: `You've used all ${SWITCH_LIMIT} builder switches for this year. Your next switch will be available on ${nextDate}.`,
+        error: `You've used all ${SWITCH_LIMIT} program transitions for this year. Your transitions reset on ${nextDate}.`,
         status,
       };
     }

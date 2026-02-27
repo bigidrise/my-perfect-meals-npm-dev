@@ -324,7 +324,7 @@ export default function MealBuilderSelection() {
                 Program Transitions
               </p>
               <p className="text-zinc-400 text-xs leading-relaxed">
-                You have 3 program transitions available to customize your journey. These reset annually, so as your needs evolve over time, you'll always have the flexibility to adjust.
+                You have 3 program transitions per year to customize your journey. Transitions reset each January — they don't roll over, but you'll always get a fresh set to adjust as your needs evolve.
                 {user?.isProCare && (
                   <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your transitions.</span>
                 )}
@@ -346,21 +346,21 @@ export default function MealBuilderSelection() {
                 {switchStatus.canSwitch ? (
                   <>
                     <p className="text-white text-sm font-medium">
-                      {switchStatus.switchesRemaining} switch{switchStatus.switchesRemaining !== 1 ? "es" : ""} remaining this year
+                      {switchStatus.switchesRemaining} transition{switchStatus.switchesRemaining !== 1 ? "s" : ""} remaining this year
                     </p>
                     <p className="text-zinc-400 text-xs mt-0.5">
-                      You can change your meal builder {switchStatus.switchesRemaining} more time{switchStatus.switchesRemaining !== 1 ? "s" : ""} in the next 12 months.
+                      You can change your program {switchStatus.switchesRemaining} more time{switchStatus.switchesRemaining !== 1 ? "s" : ""} this year. Transitions reset each January.
                     </p>
                   </>
                 ) : (
                   <>
                     <p className="text-amber-200 text-sm font-medium">
-                      Switch limit reached
+                      Transitions used
                     </p>
                     <p className="text-amber-300/70 text-xs mt-0.5">
-                      You've used all 3 builder switches this year.
+                      You've used all 3 program transitions for this year.
                       {switchStatus.nextSwitchAvailable && (
-                        <> Your next switch will be available on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
+                        <> Your transitions reset on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
                       )}
                     </p>
                   </>
