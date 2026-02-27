@@ -347,10 +347,14 @@ router.post("/api/auth/forgot-password", async (req, res) => {
       }).where(eq(users.id, user.id));
       console.log(`📧 [FORGOT-PASSWORD] Token saved to database`);
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL 
-        || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
-        || "http://localhost:5000";
-      const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
+      const appUrl = process.env.PUBLIC_APP_URL;
+
+if (!appUrl) {
+  console.error("❌ PUBLIC_APP_URL not configured");
+  return res.status(500).json({ error: "Server configuration error" });
+}
+
+const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
       console.log(`📧 [FORGOT-PASSWORD] Reset link generated: ${resetLink}`);
 
       try {
