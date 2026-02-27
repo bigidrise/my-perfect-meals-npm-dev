@@ -321,12 +321,12 @@ export default function MealBuilderSelection() {
             <RefreshCw className="w-5 h-5 text-zinc-400 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-white text-sm font-medium mb-1">
-                3 Builder Switches Included
+                Program Transitions
               </p>
               <p className="text-zinc-400 text-xs leading-relaxed">
-                Your membership includes 3 builder switches per year. If your health needs change, you can explore a different builder that may be a better fit.
+                You have 3 program transitions available to customize your journey. These reset annually, so as your needs evolve over time, you'll always have the flexibility to adjust.
                 {user?.isProCare && (
-                  <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your limit.</span>
+                  <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your transitions.</span>
                 )}
               </p>
             </div>
