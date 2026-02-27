@@ -570,12 +570,27 @@ export default function MacroCounter() {
 
   // Guided Mode State
   const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
-  const [guidedStep, setGuidedStep] = useState<GuidedStep>(
-    hasExistingSettings ? "done" : "entry",
-  );
-  const [showResults, setShowResults] = useState(hasExistingSettings);
+
+  const resolveInitialStep = (): GuidedStep => {
+    if (hasExistingSettings) return "done";
+    try {
+      const persisted = sessionStorage.getItem("macro_guided_step");
+      if (persisted) {
+        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","activity","syncWeight","metabolic","results","starch","bodyComposition","save","done"];
+        if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
+      }
+    } catch {}
+    return "entry";
+  };
+
+  const [guidedStep, setGuidedStepRaw] = useState<GuidedStep>(resolveInitialStep);
+  const setGuidedStep = (step: GuidedStep) => {
+    setGuidedStepRaw(step);
+    try { sessionStorage.setItem("macro_guided_step", step); } catch {}
+  };
+  const [showResults, setShowResults] = useState(hasExistingSettings || resolveInitialStep() !== "entry");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hasSpokenEntry, setHasSpokenEntry] = useState(false);
+  const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
 
   // Chef Voice for guided walkthrough
   const { speak, stop } = useChefVoice(setIsPlaying);
@@ -1507,11 +1522,17 @@ export default function MacroCounter() {
                         });
                         advanceGuided("metabolic");
                       }}
-                      className="w-full py-3 bg-lime-600     border border-lime-300
- text-white font-semibold rounded-xl"
+                      className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl"
                     >
                       <Scale className="h-4 w-4 mr-2" />
                       Save Weight to Biometrics
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => advanceGuided("metabolic")}
+                      className="w-full text-white/60 hover:text-white"
+                    >
+                      Skip for Now
                     </Button>
                   </CardContent>
                 </Card>
@@ -1866,6 +1887,7 @@ export default function MacroCounter() {
                           });
 
                           advanceGuided("done");
+                          try { sessionStorage.removeItem("macro_guided_step"); } catch {}
                           setLocation(assignedBuilder.path);
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
