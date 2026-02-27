@@ -1869,8 +1869,6 @@ export default function MacroCounter() {
                             user?.id,
                           );
 
-                          await saveBiometricsToProfile();
-
                           window.dispatchEvent(
                             new CustomEvent("mpm:targetsUpdated"),
                           );
@@ -1889,6 +1887,8 @@ export default function MacroCounter() {
                           advanceGuided("done");
                           try { sessionStorage.removeItem("macro_guided_step"); } catch {}
                           setLocation(assignedBuilder.path);
+
+                          saveBiometricsToProfile().catch(() => {});
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
@@ -2734,8 +2734,6 @@ export default function MacroCounter() {
                             user?.id,
                           );
 
-                          await saveBiometricsToProfile();
-
                           // Dispatch event for real-time refresh on Biometrics/other pages
                           window.dispatchEvent(
                             new CustomEvent("mpm:targetsUpdated"),
@@ -2753,6 +2751,8 @@ export default function MacroCounter() {
                             description: `Heading to ${assignedBuilder.name} to build your meals.`,
                           });
                           setLocation(assignedBuilder.path);
+
+                          saveBiometricsToProfile().catch(() => {});
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({

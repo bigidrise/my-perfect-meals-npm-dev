@@ -253,7 +253,15 @@ export default function Router() {
 
     // Guard 2: Macro profile must be complete (age, height, weight required)
     const hasMacroProfile = user.age && user.height && user.weight;
-    if (!hasMacroProfile) {
+    const hasLocalMacroSettings = (() => {
+      try {
+        const s = localStorage.getItem("macro_calculator_settings");
+        if (!s) return false;
+        const p = JSON.parse(s);
+        return p.age && (p.heightFt || p.heightCm) && (p.weightLbs || p.weightKg);
+      } catch { return false; }
+    })();
+    if (!hasMacroProfile && !hasLocalMacroSettings) {
       guardRedirectedRef.current = true;
       toast({
         title: "One more step",
