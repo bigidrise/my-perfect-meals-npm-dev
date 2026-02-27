@@ -100,6 +100,7 @@ export default function MealBuilderSelection() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [selected, setSelected] = useState<MealBuilderType | null>(null);
+  const [confirmedBuilder, setConfirmedBuilder] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
@@ -131,6 +132,7 @@ export default function MealBuilderSelection() {
   useEffect(() => {
     if (user?.selectedMealBuilder) {
       setSelected(user.selectedMealBuilder as MealBuilderType);
+      setConfirmedBuilder(null);
     }
   }, [user?.selectedMealBuilder]);
 
@@ -228,6 +230,7 @@ export default function MealBuilderSelection() {
         setSwitchStatus(data.switchStatus);
       }
 
+      setConfirmedBuilder(selected);
       await refreshUser();
 
       toast({
@@ -417,7 +420,7 @@ export default function MealBuilderSelection() {
                             Ultimate
                           </span>
                         )}
-                        {user?.selectedMealBuilder === option.id && (
+                        {(confirmedBuilder || user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
                             Current
                           </span>
