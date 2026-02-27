@@ -56,7 +56,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
     const hasChosenCoachMode = localStorage.getItem("coachMode") !== null;
 
-    if (location.startsWith("/onboarding")) {
+    if (location.startsWith("/onboarding") || location.startsWith("/macro-counter")) {
       return;
     }
 
