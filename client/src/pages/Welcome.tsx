@@ -14,26 +14,26 @@ const APPLE_REVIEW_MODE = false;
 const slides = [
   {
     id: 1,
-    image: bustImageCache("/assets/MacroCounterImage_1756489833897.png"),
+    image: bustImageCache("/assets/MacroCounterImage_1756489833897.jpg"),
     title: "Stay on Track",
     subtitle: "Effortless tracking that keeps your meals balanced.",
   },
   {
     id: 2,
-    image: bustImageCache("/assets/slide2_1756485962360.png"),
+    image: bustImageCache("/assets/slide2_1756485962360.jpg"),
     title: "Got Food, Don't Know What to Make?",
     subtitle:
       "Tell me what's in your fridge — I'll give you delicious meal choices",
   },
   {
     id: 3,
-    image: bustImageCache("/assets/slide31.png"),
+    image: bustImageCache("/assets/slide31.jpg"),
     title: "Dining Out? No Problem.",
     subtitle: "Let your nutrition coach  Choiceconcierge order for you.",
   },
   {
     id: 4,
-    image: bustImageCache("/assets/CravingImage_1756490064349.png"),
+    image: bustImageCache("/assets/CravingImage_1756490064349.jpg"),
     title: "Got a Craving? Its All Good!",
     subtitle: "Enjoy your desserts and favorites without the guilt.",
   },

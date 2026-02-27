@@ -13,6 +13,7 @@ out/
 .replit
 
 # iOS / Capacitor
+ios/App/App/public/
 ios/App/Pods/
 ios/App/App.xcworkspace/xcuserdata/
 ios/App/App.xcodeproj/xcuserdata/
@@ -33,9 +34,12 @@ client/public/version.json
 
 # build / export artifacts
 *.zip
-dist
-build
+dist/
+client/dist/
+build/
 client-dist*
+scripts/promote/promotion_package_*
+scripts/promote/promotion_payload/
 
 # uploads / attachments
 attached_assets

@@ -161,7 +161,7 @@ export default function ProCareWelcome() {
         {/* Chef Hero Section */}
         <div className="flex flex-col items-center mb-4 -mt-2">
           <img
-            src="/assets/ProCareChef.png"
+            src="/assets/ProCareChef.jpg"
             alt="Chef"
             className="w-[26rem] h-auto -mb-3"
           />

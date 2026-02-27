@@ -35,7 +35,7 @@ export default function Founder() {
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="w-36 h-48 overflow-hidden rounded-xl ring-1 ring-white/20 shadow-lg">
               <img
-                src="/assets/founder-photo.png"
+                src="/assets/founder-photo.jpg"
                 alt="Coach Idrise"
                 className="w-full h-full object-cover"
               />
