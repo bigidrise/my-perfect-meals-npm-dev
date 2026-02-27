@@ -6,8 +6,8 @@ const SWITCH_LIMIT = 3;
 
 // FEATURE FLAG: Set to true to enforce builder switch limits (for regular users only)
 // When false: unlimited switches, no tracking for everyone
-// When true: 3 switches per calendar year for regular users, admins/testers always unlimited
-// No rollover — unused switches do not carry into the next year
+// When true: 3 switches per subscription year for regular users, admins/testers always unlimited
+// No rollover — unused switches do not carry into the next subscription year
 const ENFORCE_SWITCH_LIMITS = false;
 
 export interface BuilderSwitchStatus {
@@ -22,12 +22,32 @@ export interface BuilderSwitchStatus {
   }>;
 }
 
-function getYearStartDate(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), 0, 1);
+function getAnchorMonthDay(subscriptionDate: Date): { month: number; day: number } {
+  const month = subscriptionDate.getUTCMonth();
+  const day = subscriptionDate.getUTCDate();
+  if (month === 1 && day === 29) {
+    return { month: 1, day: 28 };
+  }
+  return { month, day };
 }
 
-// Check if user is admin/tester - they NEVER have switch limits
+function getCurrentPeriodStart(subscriptionDate: Date): Date {
+  const now = new Date();
+  const { month, day } = getAnchorMonthDay(subscriptionDate);
+
+  const thisYearAnniversary = new Date(Date.UTC(now.getUTCFullYear(), month, day));
+  if (thisYearAnniversary <= now) {
+    return thisYearAnniversary;
+  }
+  return new Date(Date.UTC(now.getUTCFullYear() - 1, month, day));
+}
+
+function getNextPeriodStart(subscriptionDate: Date): Date {
+  const periodStart = getCurrentPeriodStart(subscriptionDate);
+  const { month, day } = getAnchorMonthDay(subscriptionDate);
+  return new Date(Date.UTC(periodStart.getUTCFullYear() + 1, month, day));
+}
+
 async function isAdminOrTester(userId: string): Promise<boolean> {
   const [user] = await db.select({
     role: users.role,
@@ -44,7 +64,6 @@ async function isAdminOrTester(userId: string): Promise<boolean> {
   );
 }
 
-// Return unlimited status - used for admins and when limits are off
 function getUnlimitedStatus(): BuilderSwitchStatus {
   return {
     switchesUsed: 0,
@@ -56,18 +75,21 @@ function getUnlimitedStatus(): BuilderSwitchStatus {
 }
 
 export async function getBuilderSwitchStatus(userId: string): Promise<BuilderSwitchStatus> {
-  // When limits aren't enforced, everyone gets unlimited
   if (!ENFORCE_SWITCH_LIMITS) {
     return getUnlimitedStatus();
   }
   
-  // Admins/testers always get unlimited, even when limits are enforced
   const isAdmin = await isAdminOrTester(userId);
   if (isAdmin) {
     return getUnlimitedStatus();
   }
+
+  const [user] = await db.select({ createdAt: users.createdAt }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!user || !user.createdAt) {
+    return getUnlimitedStatus();
+  }
   
-  const yearStart = getYearStartDate();
+  const periodStart = getCurrentPeriodStart(user.createdAt);
   
   const switches = await db
     .select()
@@ -75,7 +97,7 @@ export async function getBuilderSwitchStatus(userId: string): Promise<BuilderSwi
     .where(
       and(
         eq(builderSwitchHistory.userId, userId),
-        gte(builderSwitchHistory.switchedAt, yearStart)
+        gte(builderSwitchHistory.switchedAt, periodStart)
       )
     )
     .orderBy(desc(builderSwitchHistory.switchedAt));
@@ -86,8 +108,7 @@ export async function getBuilderSwitchStatus(userId: string): Promise<BuilderSwi
   
   let nextSwitchAvailable: Date | null = null;
   if (!canSwitch) {
-    const nextYear = new Date(yearStart.getFullYear() + 1, 0, 1);
-    nextSwitchAvailable = nextYear;
+    nextSwitchAvailable = getNextPeriodStart(user.createdAt);
   }
   
   return {
@@ -114,7 +135,6 @@ export async function attemptBuilderSwitch(
   
   const currentBuilder = user.selectedMealBuilder;
   
-  // Same builder - just return success, no action needed
   if (currentBuilder === newBuilder) {
     const status = await getBuilderSwitchStatus(userId);
     return {
@@ -123,10 +143,8 @@ export async function attemptBuilderSwitch(
     };
   }
   
-  // Check if admin/tester - they ALWAYS can switch, no limits ever
   const isAdmin = await isAdminOrTester(userId);
   
-  // Only check limits for non-admin users when ENFORCE_SWITCH_LIMITS is true
   if (ENFORCE_SWITCH_LIMITS && !isAdmin) {
     const status = await getBuilderSwitchStatus(userId);
     
@@ -137,16 +155,15 @@ export async function attemptBuilderSwitch(
             day: "numeric",
             year: "numeric",
           })
-        : "later this year";
+        : "your next subscription anniversary";
       
       return {
         success: false,
-        error: `You've used all ${SWITCH_LIMIT} program transitions for this year. Your transitions reset on ${nextDate}.`,
+        error: `You've used all ${SWITCH_LIMIT} program transitions for this subscription year. Your transitions reset on ${nextDate}.`,
         status,
       };
     }
     
-    // Only track history when limits are enforced (for non-admins)
     await db.insert(builderSwitchHistory).values({
       userId,
       fromBuilder: currentBuilder,
@@ -154,7 +171,6 @@ export async function attemptBuilderSwitch(
     });
   }
   
-  // Update the user's selected builder
   await db
     .update(users)
     .set({ selectedMealBuilder: newBuilder })

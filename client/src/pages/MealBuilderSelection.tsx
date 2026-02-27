@@ -324,7 +324,7 @@ export default function MealBuilderSelection() {
                 Program Transitions
               </p>
               <p className="text-zinc-400 text-xs leading-relaxed">
-                You have 3 program transitions per year to customize your journey. Transitions reset each January — they don't roll over, but you'll always get a fresh set to adjust as your needs evolve.
+                You have 3 program transitions per subscription year to customize your journey. They reset on your subscription anniversary — no rollover, but you'll always get a fresh set as your needs evolve.
                 {user?.isProCare && (
                   <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your transitions.</span>
                 )}
@@ -349,7 +349,7 @@ export default function MealBuilderSelection() {
                       {switchStatus.switchesRemaining} transition{switchStatus.switchesRemaining !== 1 ? "s" : ""} remaining this year
                     </p>
                     <p className="text-zinc-400 text-xs mt-0.5">
-                      You can change your program {switchStatus.switchesRemaining} more time{switchStatus.switchesRemaining !== 1 ? "s" : ""} this year. Transitions reset each January.
+                      You can change your program {switchStatus.switchesRemaining} more time{switchStatus.switchesRemaining !== 1 ? "s" : ""} this subscription year.
                     </p>
                   </>
                 ) : (
@@ -358,7 +358,7 @@ export default function MealBuilderSelection() {
                       Transitions used
                     </p>
                     <p className="text-amber-300/70 text-xs mt-0.5">
-                      You've used all 3 program transitions for this year.
+                      You've used all 3 program transitions for this subscription year.
                       {switchStatus.nextSwitchAvailable && (
                         <> Your transitions reset on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
                       )}
