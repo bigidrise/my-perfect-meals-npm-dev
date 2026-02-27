@@ -1,19 +1,50 @@
+# ===============================
+# Dependencies
+# ===============================
 node_modules/
-dist/
-build/
-.vercel/
-.next/
-out/
+
+# ===============================
+# Environment
+# ===============================
 .env
 .env.*
-.DS_Store
+
+# ===============================
+# Build / Output
+# ===============================
+dist/
+build/
+.next/
+out/
+.vercel/
+client-dist*
+*.zip
+
+# ===============================
+# Logs / OS
+# ===============================
 *.log
+.DS_Store
+
+# ===============================
+# Editor / Tooling
+# ===============================
 .vscode/
 .idea/
 .replit
+.vite/
+.cache/
 
+# ===============================
+# Uploads / Attachments
+# ===============================
+attached_assets/
+
+# ===============================
 # iOS / Capacitor
+# ===============================
 ios/App/Pods/
+ios/App/build/
 ios/App/App.xcworkspace/xcuserdata/
 ios/App/App.xcodeproj/xcuserdata/
 ios/.DS_Store
@@ -22,31 +53,12 @@ ios/.DS_Store
 *.dSYM.zip
 *.dSYM
 
-# Android (if added later)
+# ===============================
+# Android
+# ===============================
 android/.gradle/
 android/app/build/
 android/build/
 android/captures/
 *.apk
 *.aab
-client/public/version.json
-
-# build / export artifacts
-*.zip
-dist
-build
-client-dist*
-
-# uploads / attachments
-attached_assets
-
-# tooling caches
-.vite
-.cache
-
-# dependencies
-node_modules
-
-# env
-.env
-.env.*
