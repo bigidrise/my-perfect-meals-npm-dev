@@ -422,7 +422,7 @@ export default function MealBuilderSelection() {
                             Ultimate
                           </span>
                         )}
-                        {((user?.isProCare ? user?.activeBoard : user?.selectedMealBuilder) || user?.selectedMealBuilder) === option.id && (
+                        {(user?.isProCare ? user?.activeBoard : user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
                             Current
                           </span>
