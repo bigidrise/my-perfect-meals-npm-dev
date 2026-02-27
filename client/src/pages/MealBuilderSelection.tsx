@@ -315,14 +315,22 @@ export default function MealBuilderSelection() {
           </div>
         )}
 
-        {/* Pricing clarity */}
-        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-3 mb-6">
-          <p className="text-emerald-300 text-sm text-center font-medium">
-            Update the Meal Builder used to create your meals.
-          </p>
-          <p className="text-emerald-400/70 text-xs text-center mt-1">
-            Your plan adjusts based on the builder or program selected.
-          </p>
+        {/* Builder switch allowance note */}
+        <div className="bg-zinc-900/60 border border-zinc-700 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <RefreshCw className="w-5 h-5 text-zinc-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-white text-sm font-medium mb-1">
+                4 Builder Switches Included
+              </p>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                Your membership includes 4 builder switches per year. If your health needs change, you can explore a different builder that may be a better fit.
+                {user?.isProCare && (
+                  <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your limit.</span>
+                )}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Builder Switch Status - Currently disabled, uncomment when ENFORCE_SWITCH_LIMITS is true */}
@@ -350,7 +358,7 @@ export default function MealBuilderSelection() {
                       Switch limit reached
                     </p>
                     <p className="text-amber-300/70 text-xs mt-0.5">
-                      You've used all 3 builder switches this year.
+                      You've used all 4 builder switches this year.
                       {switchStatus.nextSwitchAvailable && (
                         <> Your next switch will be available on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
                       )}
