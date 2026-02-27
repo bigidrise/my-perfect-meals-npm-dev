@@ -2062,7 +2062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If trial already started, only update the builder selection (not trial dates)
       if (existingUser.trialStartedAt) {
         const [user] = await db.update(users)
-          .set({ selectedMealBuilder })
+          .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
           .where(eq(users.id, userId))
           .returning();
         
@@ -2082,6 +2082,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [user] = await db.update(users)
         .set({
           selectedMealBuilder,
+          activeBoard: selectedMealBuilder,
           trialStartedAt: now,
           trialEndsAt: trialEndsAt,
         })

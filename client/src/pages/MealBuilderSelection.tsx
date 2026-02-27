@@ -128,12 +128,10 @@ export default function MealBuilderSelection() {
     refreshUser();
   }, [refreshUser]);
 
-  // Initialize selected state from user's current builder
-  // For ProCare clients (actual clients, not professionals), activeBoard takes priority
   useEffect(() => {
     const currentBuilder = isProCareClient
       ? (user?.activeBoard || user?.selectedMealBuilder)
-      : (user?.selectedMealBuilder || user?.activeBoard);
+      : user?.selectedMealBuilder;
     if (currentBuilder) {
       setSelected(currentBuilder as MealBuilderType);
     }
@@ -422,7 +420,7 @@ export default function MealBuilderSelection() {
                             Ultimate
                           </span>
                         )}
-                        {(isProCareClient ? user?.activeBoard : user?.selectedMealBuilder) === option.id && (
+                        {(isProCareClient ? (user?.activeBoard || user?.selectedMealBuilder) : user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
                             Current
                           </span>
