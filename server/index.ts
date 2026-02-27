@@ -91,7 +91,7 @@ import stripeRouter from "./routes/stripe";
 import stripeCheckoutRouter from "./routes/stripeCheckout";
 import stripeWebhookRouter from "./routes/stripeWebhook";
 import builderPlansRouter from "./routes/builderPlans";
-import passwordResetRouter from "./routes/password-reset";
+
 import iosVerifyRouter from "./routes/iosVerify";
 import translateRouter from "./routes/translate";
 import studioGeneratorRouter from "./routes/studioGenerator";
@@ -285,9 +285,6 @@ app.use(express.static(path.join(import.meta.dirname, "../public")));
 // Health checks and keep-alive first
 app.use("/api", healthRouter);
 app.use("/api", keepaliveRouter);
-
-// Password reset routes (public, no auth required)
-app.use(passwordResetRouter);
 
 // Stripe checkout route (after express.json())
 app.use("/api/stripe", stripeCheckoutRouter);

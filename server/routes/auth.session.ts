@@ -347,9 +347,9 @@ router.post("/api/auth/forgot-password", async (req, res) => {
       }).where(eq(users.id, user.id));
       console.log(`📧 [FORGOT-PASSWORD] Token saved to database`);
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL 
-        || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
-        || "http://localhost:5000";
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:5000";
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
       const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
       console.log(`📧 [FORGOT-PASSWORD] Reset link generated: ${resetLink}`);
 
