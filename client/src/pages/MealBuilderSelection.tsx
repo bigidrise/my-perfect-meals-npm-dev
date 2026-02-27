@@ -129,13 +129,10 @@ export default function MealBuilderSelection() {
   }, [refreshUser]);
 
   useEffect(() => {
-    const currentBuilder = isProCareClient
-      ? (user?.activeBoard || user?.selectedMealBuilder)
-      : user?.selectedMealBuilder;
-    if (currentBuilder) {
-      setSelected(currentBuilder as MealBuilderType);
+    if (user?.selectedMealBuilder) {
+      setSelected(user.selectedMealBuilder as MealBuilderType);
     }
-  }, [user?.activeBoard, user?.selectedMealBuilder, isProCareClient]);
+  }, [user?.selectedMealBuilder]);
 
   useEffect(() => {
     const fetchSwitchStatus = async () => {
@@ -420,7 +417,7 @@ export default function MealBuilderSelection() {
                             Ultimate
                           </span>
                         )}
-                        {(isProCareClient ? (user?.activeBoard || user?.selectedMealBuilder) : user?.selectedMealBuilder) === option.id && (
+                        {user?.selectedMealBuilder === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
                             Current
                           </span>
