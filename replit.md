@@ -102,6 +102,7 @@ MyPerfectMeals is a comprehensive meal planning and nutrition application built 
 - **Frontend User type** includes `AccessTier` type + trial fields in `client/src/lib/auth.ts`
 
 ## Recent Changes
+- 2026-02-27: Fixed meal board blinking — hoisted all `withPageErrorBoundary()` calls in Router.tsx from inline JSX to module-level constants (`SafeWeeklyMealBoard`, `SafeDashboard`, etc.). Inline HOC calls created new component references on every re-render, causing Wouter to unmount/remount pages when auth state changed (e.g., background `refreshUser()`). Also moved `saveBiometricsToProfile()` to fire-and-forget after navigation, and added localStorage fallback in Router macro guard to prevent redirect loops.
 - 2026-02-24: Created `shared/planFeatures.ts` as single source of truth for plan tiers, display features, and entitlements. PricingPage, FeatureGate, PageGuard, and server entitlements all read from it. No more hardcoded feature arrays in PricingPage.
 - 2026-02-24: Phase A trial system — added requirePremiumAccess middleware for ProCare routes, requireMacroProfile 412 guard for AI generation, completed accessTier integration across backend and frontend
 - 2026-02-23: Implemented ProCare navigation + header spec — created shared BuilderHeader component, role-based bottom nav logic, removed back/dashboard buttons from all 5 eligible builders, standardized "Working with + Exit Client" UX

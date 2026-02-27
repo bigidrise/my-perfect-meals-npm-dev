@@ -159,6 +159,36 @@ const PerformanceCompetitionBuilderProCare = (_props: any) => (
   <PerformanceCompetitionBuilder mode="procare" />
 );
 
+const SafeOnboarding = withPageErrorBoundary(OnboardingV3, "Onboarding");
+const SafeOnboardingV2 = withPageErrorBoundary(OnboardingV3, "Onboarding V2");
+const SafeOnboardingLegacy = withPageErrorBoundary(OnboardingStandalone, "Onboarding");
+const SafeDashboard = withPageErrorBoundary(DashboardNew, "Dashboard");
+const SafeMacroCounter = withPageErrorBoundary(MacroCounter, "Macro Counter");
+const SafeMyBiometrics = withPageErrorBoundary(MyBiometrics, "My Biometrics");
+const SafeBiometrics = withPageErrorBoundary(MyBiometrics, "Biometrics");
+const SafeBodyComposition = withPageErrorBoundary(BodyComposition, "Body Composition");
+const SafeSleep = withPageErrorBoundary(Sleep, "Sleep Tracking");
+const SafeWeeklyMealBoard = withPageErrorBoundary(WeeklyMealBoard, "Weekly Meal Board");
+const SafePlanner = withPageErrorBoundary(Planner, "Planner");
+const SafeShoppingList = withPageErrorBoundary(ShoppingListMasterView, "Shopping List");
+const SafeMore = withPageErrorBoundary(MorePage, "More");
+const SafeCareTeam = withPageErrorBoundary(CareTeam, "Care Team");
+const SafePhysicianCareTeam = withPageErrorBoundary(PhysicianCareTeam, "Physician Care Team");
+const SafeTrainerCareTeam = withPageErrorBoundary(TrainerCareTeam, "Trainer Care Team");
+const SafeProPortal = withPageErrorBoundary(ProPortal, "Pro Portal");
+const SafeProClients = withPageErrorBoundary(ProClients, "Pro Clients");
+const SafeProClientsPhysician = withPageErrorBoundary(ProClientsPhysician, "Physician Clients");
+const SafeProClientDashboard = withPageErrorBoundary(ProClientDashboard, "Client Dashboard");
+const SafeTrainerClientDashboard = withPageErrorBoundary(TrainerClientDashboard, "Trainer Dashboard");
+const SafeClinicianClientDashboard = withPageErrorBoundary(ClinicianClientDashboard, "Clinician Dashboard");
+const SafeProBoardViewer = withPageErrorBoundary(ProBoardViewer, "Pro Board Viewer");
+const SafeDiabeticHub = withPageErrorBoundary(DiabeticHub, "Diabetic Hub");
+const SafeDiabetesSupport = withPageErrorBoundary(DiabetesSupportPage, "Diabetes Support");
+const SafeDiabeticMenuBuilder = withPageErrorBoundary(DiabeticMenuBuilder, "Diabetic Menu Builder");
+const SafeGLP1Hub = withPageErrorBoundary(GLP1Hub, "GLP-1 Hub");
+const SafeGLP1MealBuilder = withPageErrorBoundary(GLP1MealBuilder, "GLP-1 Meal Builder");
+const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMenuBuilder, "Anti-Inflammatory Menu Builder");
+
 export default function Router() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -298,22 +328,10 @@ export default function Router() {
         <Route path="/procare-identity" component={ProCareIdentity} />
         <Route path="/procare-attestation" component={ProCareAttestation} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
-        <Route
-          path="/onboarding"
-          component={withPageErrorBoundary(OnboardingV3, "Onboarding")}
-        />
-        <Route
-          path="/onboarding-v2"
-          component={withPageErrorBoundary(OnboardingV3, "Onboarding V2")}
-        />
-        <Route
-          path="/onboarding-legacy"
-          component={withPageErrorBoundary(OnboardingStandalone, "Onboarding")}
-        />
-        <Route
-          path="/dashboard"
-          component={withPageErrorBoundary(DashboardNew, "Dashboard")}
-        />
+        <Route path="/onboarding" component={SafeOnboarding} />
+        <Route path="/onboarding-v2" component={SafeOnboardingV2} />
+        <Route path="/onboarding-legacy" component={SafeOnboardingLegacy} />
+        <Route path="/dashboard" component={SafeDashboard} />
         <Route path="/tutorials" component={TutorialHub} />
         <Route path="/learn" component={Learn} />
         <Route path="/get-inspiration" component={GetInspiration} />
@@ -338,28 +356,13 @@ export default function Router() {
         <Route path="/social-hub/find" component={SocialFindMeals} />
         <Route path="/social-hub/restaurant-guide" component={SocialRestaurantGuide} />
         {/* DELETED: SmartWeekBuilder, AdultBeverageHubPage routes */}
-        <Route
-          path="/macro-counter"
-          component={withPageErrorBoundary(MacroCounter, "Macro Counter")}
-        />
+        <Route path="/macro-counter" component={SafeMacroCounter} />
         {/* DELETED: All kids meal routes, all alcohol hub routes */}
-        <Route
-          path="/my-biometrics"
-          component={withPageErrorBoundary(MyBiometrics, "My Biometrics")}
-        />
+        <Route path="/my-biometrics" component={SafeMyBiometrics} />
         {/* Biometric sub-pages */}
-        <Route
-          path="/biometrics"
-          component={withPageErrorBoundary(MyBiometrics, "Biometrics")}
-        />
-        <Route
-          path="/biometrics/body-composition"
-          component={withPageErrorBoundary(BodyComposition, "Body Composition")}
-        />
-        <Route
-          path="/biometrics/sleep"
-          component={withPageErrorBoundary(Sleep, "Sleep Tracking")}
-        />
+        <Route path="/biometrics" component={SafeBiometrics} />
+        <Route path="/biometrics/body-composition" component={SafeBodyComposition} />
+        <Route path="/biometrics/sleep" component={SafeSleep} />
         {/* ✅ NEW: Unified Food Logging Routes */}
         {/* <Route path="/food" component={FoodLogToday} /> */}{" "}
         {/* TEMPORARILY DISABLED - File missing */}
@@ -393,41 +396,14 @@ export default function Router() {
           />
         </Route>
         {/* DELETED: TemplateHub route */}
-        <Route
-          path="/weekly"
-          component={withPageErrorBoundary(
-            WeeklyMealBoard,
-            "Weekly Meal Board",
-          )}
-        />
+        <Route path="/weekly" component={SafeWeeklyMealBoard} />
         {/* DELETED: PlanBuilderTurbo, ProteinPlannerPage, PlanBuilderHub, CompetitionBeachbodyBoard routes */}
-        <Route
-          path="/planner"
-          component={withPageErrorBoundary(Planner, "Planner")}
-        />
-        <Route
-          path="/weekly-meal-board"
-          component={withPageErrorBoundary(
-            WeeklyMealBoard,
-            "Weekly Meal Board",
-          )}
-        />
+        <Route path="/planner" component={SafePlanner} />
+        <Route path="/weekly-meal-board" component={SafeWeeklyMealBoard} />
         <Route path="/beach-body-meal-board" component={BeachBodyMealBoard} />
         {/* Legacy redirects - redirect Classic Builder to Weekly Meal Board */}
-        <Route
-          path="/plan-builder/classic"
-          component={withPageErrorBoundary(
-            WeeklyMealBoard,
-            "Weekly Meal Board",
-          )}
-        />
-        <Route
-          path="/builder/classic"
-          component={withPageErrorBoundary(
-            WeeklyMealBoard,
-            "Weekly Meal Board",
-          )}
-        />
+        <Route path="/plan-builder/classic" component={SafeWeeklyMealBoard} />
+        <Route path="/builder/classic" component={SafeWeeklyMealBoard} />
         {/* DELETED: PlanBuilderTurbo route */}
         {/* DELETED: CravingHub, CravingPresetsPage, SearchPage, PhysicianReportView, SmartMenuBuilder routes */}
         {/* DELETED: GLP1Hub, GLP1MealBuilder, SpecialtyDietsHub, HormonePresetDetail, HormonePreviewWeeklyBoard, ToughDayCompanion, DiabetesSupport routes */}
@@ -436,86 +412,22 @@ export default function Router() {
         {/* <Route path="/meal-log-history" component={MealLogHistoryPage} /> */}{" "}
         {/* TEMPORARILY DISABLED - File missing */}
         {/* Shopping List Routes */}
-        <Route
-          path="/shopping-list-v2"
-          component={withPageErrorBoundary(
-            ShoppingListMasterView,
-            "Shopping List",
-          )}
-        />
-        <Route
-          path="/shopping-list"
-          component={withPageErrorBoundary(
-            ShoppingListMasterView,
-            "Shopping List",
-          )}
-        />
+        <Route path="/shopping-list-v2" component={SafeShoppingList} />
+        <Route path="/shopping-list" component={SafeShoppingList} />
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
-        <Route
-          path="/more"
-          component={withPageErrorBoundary(MorePage, "More")}
-        />
+        <Route path="/more" component={SafeMore} />
         <Route path="/pro/physician" component={PhysicianPortal} />
-        <Route
-          path="/care-team"
-          component={withPageErrorBoundary(CareTeam, "Care Team")}
-        />
-        <Route
-          path="/care-team/physician"
-          component={withPageErrorBoundary(PhysicianCareTeam, "Physician Care Team")}
-        />
-        <Route
-          path="/care-team/trainer"
-          component={withPageErrorBoundary(TrainerCareTeam, "Trainer Care Team")}
-        />
-        <Route
-          path="/pro-portal"
-          component={withPageErrorBoundary(ProPortal, "Pro Portal")}
-        />
-        <Route
-          path="/pro/clients"
-          component={withPageErrorBoundary(ProClients, "Pro Clients")}
-        />
-        <Route
-          path="/pro/physician-clients"
-          component={withPageErrorBoundary(ProClientsPhysician, "Physician Clients")}
-        />
-        <Route path="/pro/clients/:id" component={ProClientDashboard} />
-        <Route
-          path="/pro/clients/:id"
-          component={withPageErrorBoundary(
-            ProClientDashboard,
-            "Client Dashboard",
-          )}
-        />
-        <Route
-          path="/pro/clients/:id/trainer"
-          component={withPageErrorBoundary(
-            TrainerClientDashboard,
-            "Trainer Dashboard",
-          )}
-        />
-        <Route
-          path="/pro/clients/:id/clinician"
-          component={withPageErrorBoundary(
-            ClinicianClientDashboard,
-            "Clinician Dashboard",
-          )}
-        />
-        <Route
-          path="/pro/clients/:clientId/board/:program"
-          component={withPageErrorBoundary(
-            ProBoardViewer,
-            "Pro Board Viewer",
-          )}
-        />
-        <Route
-          path="/pro-client-dashboard"
-          component={withPageErrorBoundary(
-            ProClientDashboard,
-            "Client Dashboard",
-          )}
-        />
+        <Route path="/care-team" component={SafeCareTeam} />
+        <Route path="/care-team/physician" component={SafePhysicianCareTeam} />
+        <Route path="/care-team/trainer" component={SafeTrainerCareTeam} />
+        <Route path="/pro-portal" component={SafeProPortal} />
+        <Route path="/pro/clients" component={SafeProClients} />
+        <Route path="/pro/physician-clients" component={SafeProClientsPhysician} />
+        <Route path="/pro/clients/:id" component={SafeProClientDashboard} />
+        <Route path="/pro/clients/:id/trainer" component={SafeTrainerClientDashboard} />
+        <Route path="/pro/clients/:id/clinician" component={SafeClinicianClientDashboard} />
+        <Route path="/pro/clients/:clientId/board/:program" component={SafeProBoardViewer} />
+        <Route path="/pro-client-dashboard" component={SafeProClientDashboard} />
         <Route
           path="/performance-competition-builder"
           component={PerformanceCompetitionBuilderStandalone}
@@ -546,43 +458,13 @@ export default function Router() {
           component={AntiInflammatoryMenuBuilder}
         />
         {/* Physician Hub Routes (Diabetic, GLP-1, Medical Diets, Clinical Lifestyle) */}
-        <Route
-          path="/diabetic-hub"
-          component={withPageErrorBoundary(DiabeticHub, "Diabetic Hub")}
-        />
-        <Route
-          path="/diabetes-support"
-          component={withPageErrorBoundary(
-            DiabetesSupportPage,
-            "Diabetes Support",
-          )}
-        />
-        <Route
-          path="/diabetic-menu-builder"
-          component={withPageErrorBoundary(
-            DiabeticMenuBuilder,
-            "Diabetic Menu Builder",
-          )}
-        />
-        <Route
-          path="/glp1-hub"
-          component={withPageErrorBoundary(GLP1Hub, "GLP-1 Hub")}
-        />
-        <Route
-          path="/glp1-meal-builder"
-          component={withPageErrorBoundary(
-            GLP1MealBuilder,
-            "GLP-1 Meal Builder",
-          )}
-        />
+        <Route path="/diabetic-hub" component={SafeDiabeticHub} />
+        <Route path="/diabetes-support" component={SafeDiabetesSupport} />
+        <Route path="/diabetic-menu-builder" component={SafeDiabeticMenuBuilder} />
+        <Route path="/glp1-hub" component={SafeGLP1Hub} />
+        <Route path="/glp1-meal-builder" component={SafeGLP1MealBuilder} />
         {/* QUARANTINED: /medical-diets-hub route removed - MedicalDietsHub moved to _quarantine */}
-        <Route
-          path="/anti-inflammatory-menu-builder"
-          component={withPageErrorBoundary(
-            AntiInflammatoryMenuBuilder,
-            "Anti-Inflammatory Menu Builder",
-          )}
-        />
+        <Route path="/anti-inflammatory-menu-builder" component={SafeAntiInflammatoryMenuBuilder} />
         {/* Craving Creator Routes */}
         <Route
           path="/craving-creator-landing"
