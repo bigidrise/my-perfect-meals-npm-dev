@@ -175,7 +175,7 @@ export default function Planner() {
               {/* Hero Image Section */}
               <div className="relative h-48 rounded-xl overflow-hidden">
                 <img
-                  src="/images/planner-hero.jpg"
+                  src="/images/planner-hero.png"
                   alt="Medical meal planning"
                   className="w-full h-full object-cover"
                   onError={(e) => {
