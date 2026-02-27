@@ -88,7 +88,7 @@ export default function CravingCreatorLanding() {
           {/* Hero Image Section */}
           <div className="relative h-40 rounded-xl overflow-hidden">
             <img
-              src="/images/cravings/satisfy-cravings.jpg"
+              src="/images/cravings/satisfy-cravings.png"
               alt="Satisfy your cravings"
               className="w-full h-full object-cover"
               onError={(e) => {

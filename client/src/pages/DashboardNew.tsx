@@ -201,7 +201,7 @@ export default function DashboardNew() {
         >
           <div className="relative h-48 lg:h-64 rounded-xl overflow-hidden">
             <img
-              src="/images/home-hero.jpg"
+              src="/images/home-hero.png"
               alt="My Perfect Meals Dashboard"
               className="w-full h-full object-cover"
             />

@@ -56,7 +56,7 @@ export default function Home() {
           {/* Hero Image Section */}
           <div className="relative h-64 lg:h-96 rounded-xl overflow-hidden mb-8">
             <img 
-              src="/images/home-hero.jpg?v=20241202" 
+              src="/images/home-hero.png" 
               alt="My Perfect Meals - AI Powered Nutrition"
               className="w-full h-full object-cover"
               onError={(e) => {

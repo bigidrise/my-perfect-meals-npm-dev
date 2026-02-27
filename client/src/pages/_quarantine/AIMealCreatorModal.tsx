@@ -389,7 +389,7 @@ export default function AIMealCreatorModal({
 
       // Unified pipeline guarantees imageUrl, but add fallback just in case
       if (!meal.imageUrl) {
-        meal.imageUrl = `/images/cravings/satisfy-cravings.jpg`;
+        meal.imageUrl = `/images/cravings/satisfy-cravings.png`;
       }
       if (!meal.id) {
         meal.id = `ai-meal-${Date.now()}`;

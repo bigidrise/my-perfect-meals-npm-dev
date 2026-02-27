@@ -105,7 +105,7 @@ export default function LifestyleLandingPage() {
           {/* Hero */}
           <div className="relative h-48 rounded-xl overflow-hidden">
             <img
-              src="/images/lifestyle-hero.jpg"
+              src="/images/lifestyle-hero.png"
               alt="Lifestyle nutrition"
               className="w-full h-full object-cover"
             />

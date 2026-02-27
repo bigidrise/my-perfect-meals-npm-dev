@@ -90,7 +90,7 @@ export default function SocializingHub() {
           {/* Hero Image Section */}
           <div className="relative h-40 rounded-xl overflow-hidden">
             <img
-              src="/images/social-hero.jpg"
+              src="/images/social-hero.png"
               alt="Eating out with friends"
               className="w-full h-full object-cover"
               onError={(e) => {

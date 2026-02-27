@@ -133,7 +133,7 @@ export default function MorePage() {
           {/* Hero Image Section */}
           <div className="relative h-48 rounded-xl overflow-hidden">
             <img 
-              src="/images/procare-hero.jpg" 
+              src="/images/procare-hero.png" 
               alt="Professional coaching"
               className="w-full h-full object-cover"
               onError={(e) => {
