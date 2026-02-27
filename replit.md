@@ -101,6 +101,58 @@ MyPerfectMeals is a comprehensive meal planning and nutrition application built 
 - **Profile endpoint** (`/api/user/profile`) returns `accessTier`, `trialDaysRemaining`, `hasHadTrial`
 - **Frontend User type** includes `AccessTier` type + trial fields in `client/src/lib/auth.ts`
 
+## Operating Rules (MANDATORY)
+
+### Rule 1: One change set, one purpose
+Every commit must answer: "What single outcome is this supposed to change?" If it changes more than one feature, split it.
+
+### Rule 2: No new work until the last change is proven
+A feature is not "done" when it compiles. It is done when it passes the Golden Path checklist on web (and iOS for key flows).
+
+### Rule 3: High-Risk zones require extra checks
+Any change touching **auth, onboarding, macros, or meal boards** is High Risk. Extra verification required, no exceptions.
+
+### Rule 4: Stop the line on regressions
+If a regression is found: stop feature work, fix the regression first, ship the fix, then resume.
+
+### Rule 5: One ticket at a time
+Fix one bug → verify Golden Path → commit and deploy → then start the next bug. No stacking.
+
+## Golden Path Test Checklist (Release Gate)
+Every change must pass these flows before shipping. If any fails, roll back or fix first.
+
+### Identity
+- Sign up, verify email, login, forgot password, logout, re-login
+
+### Onboarding
+- Step through start to finish, save profile, allergies section, land on dashboard
+
+### Macro Calculator
+- Start fresh, complete all steps, save targets, see targets on dashboard, restart behavior works
+
+### Meal Builder
+- Build a week, save, reload, shopping list works
+
+### Payments (when relevant)
+- Products load, purchase flow does not crash
+
+## Feature Flag Discipline
+New ProCare features go behind flags, default OFF in production:
+- `PROCARE_WORKSPACE`, `PROCARE_CLIENTS`, `PROCARE_SHARED_MEALBOARD`, `PROCARE_TRANSLATION_PAD`
+- Use existing `PhaseGate` component as the gating mechanism
+- Code can be merged without exposing broken UI
+
+## Versioned Storage for Drafts
+- `APP_STORAGE_VERSION` — bump when draft schema changes
+- Auto-clear stale drafts when version changes
+- Prevents old draft data from breaking new UIs
+
+## ProCare Build Phases
+- **Phase A (Stabilization)**: Zero broken golden paths — fix onboarding, macro calculator, forgot password
+- **Phase B (Foundation)**: Infrastructure behind flags — workspace model, roles/permissions, client linking
+- **Phase C (ProCare UI)**: Professional dashboard behind flags — clients list, detail view, read-only biometrics, shared meal board
+- **Phase D (Translation Pad)**: Messaging tablet behind flags — notes thread, translation toggle, notifications
+
 ## Recent Changes
 - 2026-02-27: Fixed meal board blinking — hoisted all `withPageErrorBoundary()` calls in Router.tsx from inline JSX to module-level constants (`SafeWeeklyMealBoard`, `SafeDashboard`, etc.). Inline HOC calls created new component references on every re-render, causing Wouter to unmount/remount pages when auth state changed (e.g., background `refreshUser()`). Also moved `saveBiometricsToProfile()` to fire-and-forget after navigation, and added localStorage fallback in Router macro guard to prevent redirect loops.
 - 2026-02-24: Created `shared/planFeatures.ts` as single source of truth for plan tiers, display features, and entitlements. PricingPage, FeatureGate, PageGuard, and server entitlements all read from it. No more hardcoded feature arrays in PricingPage.
