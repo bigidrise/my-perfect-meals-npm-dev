@@ -2184,10 +2184,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "clientId and builder are required" });
       }
       
-      // Validate the builder is a valid pro builder
-      const validProBuilders = ["general_nutrition", "performance_competition"];
-      if (!validProBuilders.includes(builder)) {
-        return res.status(400).json({ error: "Invalid pro builder. Must be general_nutrition or performance_competition" });
+      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body", "general_nutrition", "performance_competition"];
+      if (!validBuilders.includes(builder)) {
+        return res.status(400).json({ error: `Invalid builder. Must be one of: ${validBuilders.join(", ")}` });
       }
       
       // Verify the trainer has coach/admin role

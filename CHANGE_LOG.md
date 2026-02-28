@@ -4,6 +4,38 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Shared BUILDER_MAP, expand all 7 builders, rewire dashboard routing
+
+**Change scope:** Create single source of truth for builder keys/routes, expand assignment from 2 to 7 builders, fix "Client Dashboard" button routing to assigned builder. Routing + mapping only — no schema, auth, switch logic, or guardrail changes.
+
+**What changed:**
+- `client/src/lib/builderMap.ts` (NEW): Single shared builder map with all 7 builder keys, client routes, pro routes, labels. Exported `BUILDER_MAP`, `ALL_BUILDER_KEYS`, `isValidBuilderKey`.
+- `client/src/lib/assignedBuilder.ts`: Refactored to import from shared `builderMap.ts`. `LEGACY_BUILDER_MAP` derived from `BUILDER_MAP`. No behavior change.
+- `client/src/lib/proData.ts`: Expanded `BuilderType` union from `"general" | "performance"` to all 7 builder keys.
+- `client/src/pages/pro/TrainerClientDashboard.tsx`: 
+  - Assignment card now shows all 7 builders (driven by `ALL_BUILDER_KEYS.map`)
+  - `handleBuilderAssignment` sends the actual builder key (e.g. `"diabetic"`) instead of mapping `"general"` → `"general_nutrition"`
+  - "Client Dashboard" card now routes to assigned builder's pro route via `BUILDER_MAP[key].proRoute`
+  - "All Meal Builders" card lists all 7 for direct access
+- `client/src/components/pro/ProClientFolderModal.tsx`: "Go To Client Dashboard" button now routes to assigned builder's pro route; label shows builder name
+- `client/src/components/Router.tsx`: Added missing pro-client routes: `/pro/clients/:id/weekly-builder`, `/pro/clients/:id/beach-body-builder`
+- `server/routes.ts`: Expanded `POST /api/pro/assign-builder` validation from 2 to all 7 builder keys
+
+**Files touched:**
+- `client/src/lib/builderMap.ts` (new)
+- `client/src/lib/assignedBuilder.ts` (modified)
+- `client/src/lib/proData.ts` (modified)
+- `client/src/pages/pro/TrainerClientDashboard.tsx` (modified)
+- `client/src/components/pro/ProClientFolderModal.tsx` (modified)
+- `client/src/components/Router.tsx` (modified)
+- `server/routes.ts` (modified)
+
+**Expected impact:** Builder assignment and routing only. All 7 builders assignable and routable. No changes to auth, meal generation, switch limits, guardrails, or onboarding.
+
+**Golden Path:** App compiles and runs. All builder routes resolve. Assignment persists across refresh.
+
+---
+
 ## 2026-02-28: Fix builder assignment not taking effect on client side
 
 **Change scope:** When a Pro assigns a builder (e.g. performance_competition) to a client, the client's app stayed locked to the old builder. Three root causes identified and fixed. No changes to builder logic itself, meal generation, guardrails, or unrelated features.

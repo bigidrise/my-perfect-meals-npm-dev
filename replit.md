@@ -86,6 +86,8 @@ The application is structured as a full-stack TypeScript project.
 - Dev and production share the SAME database — no staging DB
 
 ## Recent Changes
+- 2026-02-28: Shared BUILDER_MAP + expand all 7 builders + dashboard routing. New `builderMap.ts` = single source of truth for builder keys/routes. TrainerClientDashboard shows all 7 builders for assignment. "Client Dashboard" button routes to assigned builder. Backend validation expanded to 7 keys. Missing pro-client routes added (weekly-builder, beach-body-builder).
+- 2026-02-28: Fix builder assignment bug — `isProCare` never set during access-code connect, `BUILDER_MAP` missing pro builders, backfill existing clients. `careTeamRoutes.ts` sets `isProCare=true`, `More.tsx` calls `refreshUser()` after connect.
 - 2026-02-28: ProCare Phase 5A — Pro Client Tablet. Server: GET/POST /api/pro/tablet/:clientId (proTabletRoutes.ts, uses client_notes table, studio_id via ownerUserId, requireWorkspaceAccess). Client: ProClientFolderModal real tablet UI — scrollable note history, per-entry translate (session-cached), textarea+Send.
 - 2026-02-28: ProCare Phase 4 — Pro Portal Restructure. ProClients "Open" → "Open Folder" modal, builder badge on cards, ProClientFolderModal with View Biometrics/Macro Calculator/Dashboard buttons.
 - 2026-02-28: ProCare Phase 3 — Client Workspace UI Shell. Upgraded WorkspaceShell with structured layout: header (name/status), biometrics, macros, meal boards placeholder. Read-only display only.

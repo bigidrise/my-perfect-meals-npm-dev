@@ -11,7 +11,14 @@ export type ProRole =
   | "rn";
 
 export type WorkspaceType = "trainer" | "clinician";
-export type BuilderType = "general" | "performance";
+export type BuilderType =
+  | "weekly"
+  | "diabetic"
+  | "glp1"
+  | "anti_inflammatory"
+  | "beach_body"
+  | "general_nutrition"
+  | "performance_competition";
 
 export type ClientProfile = {
   id: string;

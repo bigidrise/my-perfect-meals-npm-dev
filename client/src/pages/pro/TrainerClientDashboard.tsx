@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { proStore, Targets, ClinicalContext, BuilderType, StarchStrategy } from "@/lib/proData";
+import { BUILDER_MAP, ALL_BUILDER_KEYS, type BuilderKey } from "@/lib/builderMap";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Settings,
@@ -130,7 +131,7 @@ export default function TrainerClientDashboard() {
     });
   };
 
-  const handleBuilderAssignment = async (builder: BuilderType) => {
+  const handleBuilderAssignment = async (builderKey: BuilderKey) => {
     const clientUid = client?.clientUserId || client?.userId;
     const studioId = client?.studioId;
     
@@ -143,8 +144,6 @@ export default function TrainerClientDashboard() {
       return;
     }
     
-    const apiBuilderName = builder === "general" ? "general_nutrition" : "performance_competition";
-    
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -155,7 +154,7 @@ export default function TrainerClientDashboard() {
         const studioRes = await fetch(`/api/studios/${studioId}/clients/${clientUid}/assign`, {
           method: "PATCH",
           headers,
-          body: JSON.stringify({ assignedBuilder: apiBuilderName }),
+          body: JSON.stringify({ assignedBuilder: builderKey }),
         });
         if (!studioRes.ok) {
           const data = await studioRes.json();
@@ -168,7 +167,7 @@ export default function TrainerClientDashboard() {
         headers,
         body: JSON.stringify({
           clientId: clientUid,
-          builder: apiBuilderName,
+          builder: builderKey,
         }),
       });
       
@@ -177,17 +176,17 @@ export default function TrainerClientDashboard() {
         throw new Error(data.error || "Failed to assign builder");
       }
       
-      setAssignedBuilder(builder);
+      setAssignedBuilder(builderKey as BuilderType);
       if (client) {
         proStore.upsertClient({
           ...client,
-          assignedBuilder: builder,
+          assignedBuilder: builderKey as BuilderType,
         });
       }
       
       toast({
         title: "Builder Assigned",
-        description: `${builder === "general" ? "General Nutrition" : "Performance & Competition"} builder assigned to ${client?.name}.`,
+        description: `${BUILDER_MAP[builderKey].label} builder assigned to ${client?.name}.`,
       });
     } catch (error: any) {
       toast({
@@ -504,42 +503,26 @@ export default function TrainerClientDashboard() {
               Choose which meal builder this client will see in their app.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button
-                onClick={() => handleBuilderAssignment("general")}
-                className={`h-auto py-4 flex flex-col items-center gap-2 transition-all duration-200 ${
-                  assignedBuilder === "general"
-                    ? "bg-lime-600 border-2 border-lime-400"
-                    : "bg-black/40 border border-white/20 hover:bg-black/60"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {assignedBuilder === "general" && (
-                    <Check className="h-5 w-5" />
-                  )}
-                  <span className="font-bold">General Nutrition</span>
-                </div>
-                <span className="text-xs text-white/70 font-normal">
-                  Balanced meals for everyday health
-                </span>
-              </Button>
-              <Button
-                onClick={() => handleBuilderAssignment("performance")}
-                className={`h-auto py-4 flex flex-col items-center gap-2 transition-all duration-200 ${
-                  assignedBuilder === "performance"
-                    ? "bg-lime-600 border-2 border-lime-400"
-                    : "bg-black/40 border border-white/20 hover:bg-black/60"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {assignedBuilder === "performance" && (
-                    <Check className="h-5 w-5" />
-                  )}
-                  <span className="font-bold">Performance & Competition</span>
-                </div>
-                <span className="text-xs text-white/70 font-normal">
-                  High-protein, athletic-focused meals
-                </span>
-              </Button>
+              {ALL_BUILDER_KEYS.map((key) => {
+                const entry = BUILDER_MAP[key];
+                const isActive = assignedBuilder === key;
+                return (
+                  <Button
+                    key={key}
+                    onClick={() => handleBuilderAssignment(key)}
+                    className={`h-auto py-4 flex flex-col items-center gap-2 transition-all duration-200 ${
+                      isActive
+                        ? "bg-lime-600 border-2 border-lime-400"
+                        : "bg-black/40 border border-white/20 hover:bg-black/60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isActive && <Check className="h-5 w-5" />}
+                      <span className="font-bold">{entry.label}</span>
+                    </div>
+                  </Button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -569,29 +552,57 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardContent className="p-6 space-y-3">
-            <h2 className="text-lg font-bold text-white mb-2">Meal Builders</h2>
-            
+            <h2 className="text-lg font-bold text-white mb-2">Client Dashboard</h2>
+            <p className="text-white/70 text-sm mb-3">
+              {assignedBuilder
+                ? `Open the ${BUILDER_MAP[assignedBuilder as BuilderKey]?.label || assignedBuilder} builder for ${client?.name || "this client"}.`
+                : `Assign a builder above first, then open it here.`}
+            </p>
             <Button
               onClick={() => {
+                const key = assignedBuilder as BuilderKey;
+                if (!key || !BUILDER_MAP[key]) {
+                  toast({
+                    title: "No Builder Assigned",
+                    description: "Please assign a meal builder to this client first.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
                 localStorage.setItem("pro-client-id", clientId);
-                setLocation(
-                  `/pro/clients/${clientId}/general-nutrition-builder`,
-                );
+                setLocation(`/pro/clients/${clientId}/${BUILDER_MAP[key].proRoute}`);
               }}
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
+              className="w-full sm:w-[400px] bg-lime-600 border border-lime-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
-              General Nutrition Builder
+              <Dumbbell className="h-4 w-4 mr-2" />
+              {assignedBuilder && BUILDER_MAP[assignedBuilder as BuilderKey]
+                ? `Open ${BUILDER_MAP[assignedBuilder as BuilderKey].label} Builder`
+                : "Assign Builder First"}
             </Button>
-            <Button
-              onClick={() =>
-                setLocation(
-                  `/pro/clients/${clientId}/performance-competition-builder`,
-                )
-              }
-              className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
-            >
-              Performance & Competition Builder
-            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/5 border border-white/20">
+          <CardContent className="p-6 space-y-3">
+            <h2 className="text-lg font-bold text-white mb-2">All Meal Builders</h2>
+            <p className="text-white/70 text-sm mb-3">
+              Open any builder directly for this client.
+            </p>
+            {ALL_BUILDER_KEYS.map((key) => (
+              <Button
+                key={key}
+                onClick={() => {
+                  localStorage.setItem("pro-client-id", clientId);
+                  setLocation(`/pro/clients/${clientId}/${BUILDER_MAP[key].proRoute}`);
+                }}
+                className={`w-full sm:w-[400px] bg-black backdrop-blur-md border text-white font-semibold rounded-xl shadow-lg active:scale-[0.98] ${
+                  assignedBuilder === key ? "border-lime-400/50" : "border-white/20"
+                }`}
+              >
+                {assignedBuilder === key && <Check className="h-4 w-4 mr-2 text-lime-400" />}
+                {BUILDER_MAP[key].label}
+              </Button>
+            ))}
           </CardContent>
         </Card>
       </div>

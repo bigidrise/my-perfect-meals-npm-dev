@@ -460,6 +460,14 @@ export default function Router() {
           path="/pro/clients/:id/anti-inflammatory-builder"
           component={AntiInflammatoryMenuBuilder}
         />
+        <Route
+          path="/pro/clients/:id/weekly-builder"
+          component={SafeWeeklyMealBoard}
+        />
+        <Route
+          path="/pro/clients/:id/beach-body-builder"
+          component={BeachBodyMealBoard}
+        />
         {/* Physician Hub Routes (Diabetic, GLP-1, Medical Diets, Clinical Lifestyle) */}
         <Route path="/diabetic-hub" component={SafeDiabeticHub} />
         <Route path="/diabetes-support" component={SafeDiabetesSupport} />
