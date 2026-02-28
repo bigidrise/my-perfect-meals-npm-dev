@@ -14,7 +14,7 @@
 export type AssignedBuilder = {
   path: string;
   name: string;
-  type: "diabetic" | "glp1" | "anti-inflammatory" | "weekly";
+  type: "diabetic" | "glp1" | "anti-inflammatory" | "weekly" | "general_nutrition" | "performance_competition";
 };
 
 const BUILDER_MAP: Record<string, AssignedBuilder> = {
@@ -47,6 +47,16 @@ const BUILDER_MAP: Record<string, AssignedBuilder> = {
     path: "/beach-body-meal-board",
     name: "Beach Body Meal Builder",
     type: "weekly",
+  },
+  general_nutrition: {
+    path: "/pro/general-nutrition-builder",
+    name: "General Nutrition Builder",
+    type: "general_nutrition",
+  },
+  performance_competition: {
+    path: "/performance-competition-builder",
+    name: "Performance & Competition Builder",
+    type: "performance_competition",
   },
 };
 

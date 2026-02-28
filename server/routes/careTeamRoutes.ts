@@ -168,6 +168,8 @@ router.post("/connect", async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
+      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, userId));
+
       const bridge = await bridgeToStudio(trainerUserId, userId, "care_team_connect_code");
       
       return res.json({ member: updatedMember, studio: bridge });
@@ -207,6 +209,8 @@ router.post("/connect", async (req, res) => {
           },
         })
         .returning();
+
+      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, userId));
 
       const bridge = await bridgeToStudio(accessCodeRow.proUserId, userId, "care_team_access_code");
 

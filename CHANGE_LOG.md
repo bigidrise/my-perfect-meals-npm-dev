@@ -4,6 +4,30 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Fix builder assignment not taking effect on client side
+
+**Change scope:** When a Pro assigns a builder (e.g. performance_competition) to a client, the client's app stayed locked to the old builder. Three root causes identified and fixed. No changes to builder logic itself, meal generation, guardrails, or unrelated features.
+
+**Root causes:**
+1. Client's `isProCare` flag was never set to `true` during access code linking — so `assignedBuilder.ts` treated them as a regular user and read `selectedMealBuilder` (old value) instead of `activeBoard` (pro-assigned value).
+2. `BUILDER_MAP` in `assignedBuilder.ts` had no entries for `general_nutrition` or `performance_competition` — even when `activeBoard` was read, it fell through to the weekly fallback.
+3. Existing linked clients in the DB had `isProCare: false` — needed backfill.
+
+**What changed:**
+- `server/routes/careTeamRoutes.ts`: Added `db.update(users).set({ isProCare: true, role: "client" })` after both invite-code and access-code linking paths.
+- `client/src/lib/assignedBuilder.ts`: Added `general_nutrition` and `performance_competition` entries to `BUILDER_MAP` with correct paths and types. Expanded `AssignedBuilder.type` union.
+- DB backfill: Set `isProCare: true` for all 3 existing active client links.
+
+**Files touched:**
+- `server/routes/careTeamRoutes.ts` (modified)
+- `client/src/lib/assignedBuilder.ts` (modified)
+
+**Expected impact:** ProCare client builder resolution only. When pro assigns a builder, client app now picks it up after profile refresh.
+
+**Golden Path:** App compiles and runs. Client's `isProCare` is `true`, `activeBoard` takes priority in builder resolution.
+
+---
+
 ## 2026-02-28: Fix auth token key mismatch in ProClients + TrainerClientDashboard
 
 **Change scope:** Fix 401 errors when assigning builders to clients and when loading studio data on Pro Clients page. Wrong localStorage key was being used for auth token. No changes to auth flow, middleware, schema, or unrelated features.

@@ -27,7 +27,7 @@ type ConnectedResult = {
 
 export default function MorePage() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
 
@@ -98,6 +98,7 @@ export default function MorePage() {
       });
       setAccessCode("");
       setConnectedResult(response);
+      await refreshUser();
     } catch (e: any) {
       setError(e?.message ?? "Invalid or expired access code.");
     } finally {
