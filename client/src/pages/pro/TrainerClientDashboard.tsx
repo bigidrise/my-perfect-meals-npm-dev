@@ -13,12 +13,10 @@ import {
   Settings,
   ClipboardList,
   ArrowLeft,
-  Target,
   Trophy,
   Dumbbell,
   Check,
   Ruler,
-  LayoutGrid,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -47,15 +45,15 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
   {
     icon: "4",
-    title: "Client Meal Board",
-    description:
-      "View and edit your client's weekly meal plan directly. Add meals, remove items, or repeat a day across the week. Every change is tracked so the client knows who updated their plan.",
-  },
-  {
-    icon: "5",
     title: "Assigned Meal Builder",
     description:
       "Choose which meal builder your client will use. This determines their entire in-app experience.",
+  },
+  {
+    icon: "5",
+    title: "Client Meal Builder",
+    description:
+      "Open your client's assigned meal builder directly. The button updates automatically when you change the assigned builder above.",
   },
 ];
 
@@ -527,33 +525,14 @@ export default function TrainerClientDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border border-amber-500/30">
+        <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <LayoutGrid className="h-5 w-5 text-amber-400" /> Client Meal Board
+              <Dumbbell className="h-5 w-5 text-lime-400" /> Client Meal Builder
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              View and edit {client?.name || "your client"}'s weekly meal plan directly.
-            </p>
-            <Button
-              onClick={() => {
-                const boardUserId = client?.clientUserId || client?.userId || clientId;
-                setLocation(`/pro/clients/${boardUserId}/board/smart`);
-              }}
-              className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
-            >
-              <LayoutGrid className="h-4 w-4 mr-2" />
-              View Meal Board
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/5 border border-white/20">
-          <CardContent className="p-6 space-y-3">
-            <h2 className="text-lg font-bold text-white mb-2">Client Dashboard</h2>
-            <p className="text-white/70 text-sm mb-3">
               {assignedBuilder
                 ? `Open the ${BUILDER_MAP[assignedBuilder as BuilderKey]?.label || assignedBuilder} builder for ${client?.name || "this client"}.`
                 : `Assign a builder above first, then open it here.`}
@@ -569,8 +548,9 @@ export default function TrainerClientDashboard() {
                   });
                   return;
                 }
-                localStorage.setItem("pro-client-id", clientId);
-                setLocation(`/pro/clients/${clientId}/${BUILDER_MAP[key].proRoute}`);
+                const clientUserId = client?.clientUserId || client?.userId || clientId;
+                localStorage.setItem("pro-client-id", clientUserId);
+                setLocation(`/pro/clients/${clientUserId}/${BUILDER_MAP[key].proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-lime-600 border border-lime-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
@@ -579,30 +559,6 @@ export default function TrainerClientDashboard() {
                 ? `Open ${BUILDER_MAP[assignedBuilder as BuilderKey].label} Builder`
                 : "Assign Builder First"}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/5 border border-white/20">
-          <CardContent className="p-6 space-y-3">
-            <h2 className="text-lg font-bold text-white mb-2">All Meal Builders</h2>
-            <p className="text-white/70 text-sm mb-3">
-              Open any builder directly for this client.
-            </p>
-            {ALL_BUILDER_KEYS.map((key) => (
-              <Button
-                key={key}
-                onClick={() => {
-                  localStorage.setItem("pro-client-id", clientId);
-                  setLocation(`/pro/clients/${clientId}/${BUILDER_MAP[key].proRoute}`);
-                }}
-                className={`w-full sm:w-[400px] bg-black backdrop-blur-md border text-white font-semibold rounded-xl shadow-lg active:scale-[0.98] ${
-                  assignedBuilder === key ? "border-lime-400/50" : "border-white/20"
-                }`}
-              >
-                {assignedBuilder === key && <Check className="h-4 w-4 mr-2 text-lime-400" />}
-                {BUILDER_MAP[key].label}
-              </Button>
-            ))}
           </CardContent>
         </Card>
       </div>
