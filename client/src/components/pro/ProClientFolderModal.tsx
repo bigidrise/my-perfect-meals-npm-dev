@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
 import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface TabletEntry {
   id: string;
@@ -85,9 +85,8 @@ export default function ProClientFolderModal({
     setLoading(true);
     setError(null);
     try {
-      const token = await getAuthToken();
       const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}`), {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { ...getAuthHeaders() },
         credentials: "include",
       });
       if (!res.ok) {
@@ -125,12 +124,11 @@ export default function ProClientFolderModal({
     if (!input.trim() || !clientId || sending) return;
     setSending(true);
     try {
-      const token = await getAuthToken();
       const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
         credentials: "include",
         body: JSON.stringify({ body: input.trim() }),
@@ -161,12 +159,11 @@ export default function ProClientFolderModal({
     }
     setTranslatingId(entry.id);
     try {
-      const token = await getAuthToken();
       const res = await fetch(apiUrl("/api/translate"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
         credentials: "include",
         body: JSON.stringify({
