@@ -6,6 +6,10 @@ export const noteTypeEnum = pgEnum("note_type", ["session", "progress", "goal", 
 
 export const noteVisibilityEnum = pgEnum("note_visibility", ["professional_only", "shared_with_client"]);
 
+export const entryTypeEnum = pgEnum("entry_type", ["message", "note"]);
+
+export const senderTypeEnum = pgEnum("sender_type", ["client", "pro"]);
+
 export const activityActionEnum = pgEnum("activity_action", [
   "membership_created",
   "membership_activated", 
@@ -102,6 +106,8 @@ export const clientNotes = pgTable("client_notes", {
   body: text("body").notNull(),
   sessionDate: timestamp("session_date", { withTimezone: true }),
   tags: jsonb("tags").$type<string[]>().default([]),
+  entryType: entryTypeEnum("entry_type").notNull().default("note"),
+  sender: senderTypeEnum("sender").notNull().default("pro"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({

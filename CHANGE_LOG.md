@@ -4,6 +4,34 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Phase 5 Tablet System — Full Install (Messages + Provider Notes)
+
+**Change scope:** Install the complete tablet architecture with two modes inside the Client Folder Modal (Messages = shared two-way thread with translation, Provider Notes = private provider-only running history without translation), plus client-side access to shared thread on the More page. Extended client_notes table with entry_type and sender columns. Created client tablet routes for client read/write access to shared messages only.
+
+**What changed:**
+- `server/db/schema/studio.ts`: Added `entryTypeEnum` ("message" | "note"), `senderTypeEnum` ("client" | "pro"), and corresponding columns to `clientNotes` table
+- `server/routes/proTabletRoutes.ts`: Rewrote with split endpoints — GET /:clientId (returns both messages and notes), POST /:clientId/message (shared, sender=pro), POST /:clientId/note (private, sender=pro)
+- `server/routes/clientTabletRoutes.ts`: New file — GET /api/client/tablet (shared messages only, protected by client_links), POST /api/client/tablet/message (client reply to shared thread)
+- `server/routes.ts`: Mounted clientTabletRoutes at /api/client/tablet
+- `client/src/components/pro/ProClientFolderModal.tsx`: Replaced single note stream with tabbed UI (Messages + Provider Notes segmented control). Messages tab has translate button, Provider Notes tab does not. Both have separate input areas and scroll containers.
+- `client/src/pages/More.tsx`: Added "Messages From Your Coach" expandable card for ProCare clients (isProCare && not a professional). Shows shared thread with reply box and per-entry translation. Only visible when client has active pro connection.
+- DB migration: Added `entry_type` (enum: message/note, default: note) and `sender` (enum: client/pro, default: pro) columns to client_notes. Existing rows default to note/pro (appear as Provider Notes).
+
+**Files touched:**
+- `server/db/schema/studio.ts` (modified)
+- `server/routes/proTabletRoutes.ts` (rewritten)
+- `server/routes/clientTabletRoutes.ts` (new)
+- `server/routes.ts` (modified — 2 lines added)
+- `client/src/components/pro/ProClientFolderModal.tsx` (rewritten)
+- `client/src/pages/More.tsx` (modified)
+- `CHANGE_LOG.md` (this entry)
+
+**Expected impact:** Pro sees tabbed tablet in Client Folder with Messages (shared, translatable) and Provider Notes (private, no translate). Client sees shared thread under More page. No notifications yet. No builder integration. No side effects on auth, onboarding, macros, or meal boards.
+
+**Golden Path:** App compiles and runs. Schema extended safely with defaults. Existing note data preserved as Provider Notes.
+
+---
+
 ## 2026-02-28: Fix Anti-Inflammatory builder context + Folder Modal always→dashboard
 
 **Change scope:** Two bugs. (1) AntiInflammatoryMenuBuilder uses `user?.id` (coach) for all data resolution in procare mode — macro targets, drafts, day locks, starch context, daily targets, nutrition budget. Should use client ID from route param. (2) ProClientFolderModal dashboard button dynamically changed to navigate directly to builder when assignedBuilder was set. Should always navigate to client dashboard. Builders are reached from the dashboard, not the folder modal.

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
-import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe } from "lucide-react";
+import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -10,6 +10,9 @@ interface TabletEntry {
   id: string;
   body: string;
   authorUserId: string;
+  entryType: "message" | "note";
+  visibility: string;
+  sender: "client" | "pro";
   createdAt: string;
   translatedBody?: string;
 }
@@ -71,17 +74,21 @@ export default function ProClientFolderModal({
   onNavigate,
   isPhysician,
 }: ProClientFolderModalProps) {
+  const [messages, setMessages] = useState<TabletEntry[]>([]);
   const [notes, setNotes] = useState<TabletEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<"messages" | "notes">("messages");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [input, setInput] = useState("");
+  const [msgInput, setMsgInput] = useState("");
+  const [noteInput, setNoteInput] = useState("");
   const [sending, setSending] = useState(false);
   const [translatingId, setTranslatingId] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const msgScrollRef = useRef<HTMLDivElement>(null);
+  const noteScrollRef = useRef<HTMLDivElement>(null);
 
   const clientId = client?.clientUserId || client?.userId || client?.id;
 
-  const fetchNotes = useCallback(async () => {
+  const fetchTablet = useCallback(async () => {
     if (!clientId) return;
     setLoading(true);
     setError(null);
@@ -92,13 +99,14 @@ export default function ProClientFolderModal({
       });
       if (!res.ok) {
         if (res.status === 403) setError("No access to this client");
-        else setError("Failed to load notes");
+        else setError("Failed to load tablet");
         return;
       }
       const data = await res.json();
+      setMessages(data.messages || []);
       setNotes(data.notes || []);
     } catch {
-      setError("Failed to load notes");
+      setError("Failed to load tablet");
     } finally {
       setLoading(false);
     }
@@ -106,40 +114,64 @@ export default function ProClientFolderModal({
 
   useEffect(() => {
     if (open && clientId) {
-      fetchNotes();
+      fetchTablet();
     }
     if (!open) {
+      setMessages([]);
       setNotes([]);
-      setInput("");
+      setMsgInput("");
+      setNoteInput("");
       setError(null);
+      setActiveTab("messages");
     }
-  }, [open, clientId, fetchNotes]);
+  }, [open, clientId, fetchTablet]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (activeTab === "messages" && msgScrollRef.current) {
+      msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
     }
-  }, [notes]);
+    if (activeTab === "notes" && noteScrollRef.current) {
+      noteScrollRef.current.scrollTop = noteScrollRef.current.scrollHeight;
+    }
+  }, [messages, notes, activeTab]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !clientId || sending) return;
+  const handleSendMessage = async () => {
+    if (!msgInput.trim() || !clientId || sending) return;
     setSending(true);
     try {
-      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}`), {
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/message`), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ body: input.trim() }),
+        body: JSON.stringify({ body: msgInput.trim() }),
       });
       if (!res.ok) throw new Error("Failed to send");
       const data = await res.json();
-      setNotes((prev) => [...prev, data.note]);
-      setInput("");
+      setMessages((prev) => [...prev, data.entry]);
+      setMsgInput("");
     } catch {
-      setError("Failed to send note");
+      setError("Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteInput.trim() || !clientId || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/note`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ body: noteInput.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      const data = await res.json();
+      setNotes((prev) => [...prev, data.entry]);
+      setNoteInput("");
+    } catch {
+      setError("Failed to save note");
     } finally {
       setSending(false);
     }
@@ -149,7 +181,8 @@ export default function ProClientFolderModal({
     if (translatingId) return;
     const cacheKey = `${entry.id}_translate`;
     if (translationCache.has(cacheKey)) {
-      setNotes((prev) =>
+      const setFn = entry.entryType === "message" ? setMessages : setNotes;
+      setFn((prev) =>
         prev.map((n) =>
           n.id === entry.id
             ? { ...n, translatedBody: n.translatedBody ? undefined : translationCache.get(cacheKey) }
@@ -162,10 +195,7 @@ export default function ProClientFolderModal({
     try {
       const res = await fetch(apiUrl("/api/translate"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
           content: { name: "Tablet Note", description: entry.body },
@@ -176,7 +206,8 @@ export default function ProClientFolderModal({
       const data = await res.json();
       const translated = data.translated?.description || data.description || entry.body;
       translationCache.set(cacheKey, translated);
-      setNotes((prev) =>
+      const setFn = entry.entryType === "message" ? setMessages : setNotes;
+      setFn((prev) =>
         prev.map((n) => (n.id === entry.id ? { ...n, translatedBody: translated } : n))
       );
     } catch {
@@ -190,6 +221,54 @@ export default function ProClientFolderModal({
 
   const builderLabel = getBuilderLabel(client);
   const workspace = isPhysician ? "clinician" : "trainer";
+
+  const renderEntryList = (entries: TabletEntry[], scrollRef: React.RefObject<HTMLDivElement | null>, showTranslate: boolean) => (
+    <div ref={scrollRef} className="max-h-48 overflow-y-auto space-y-2 mb-2">
+      {entries.length === 0 && (
+        <p className="text-xs text-white/30 py-2">
+          {activeTab === "messages" ? "No messages yet" : "No notes yet"}
+        </p>
+      )}
+      {entries.map((entry) => (
+        <div
+          key={entry.id}
+          className={`rounded-md p-2 border ${
+            entry.sender === "client"
+              ? "bg-blue-500/10 border-blue-500/20 ml-4"
+              : "bg-white/5 border-white/5 mr-4"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-white/40">
+              {entry.sender === "client" ? "Client" : "Coach"} &middot; {formatTimestamp(entry.createdAt)}
+            </span>
+            {showTranslate && (
+              <button
+                onClick={() => handleTranslate(entry)}
+                disabled={translatingId === entry.id}
+                className="text-white/30 hover:text-white/60 p-0.5"
+                title="Translate"
+              >
+                {translatingId === entry.id ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Globe className="w-3 h-3" />
+                )}
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+            {entry.translatedBody || entry.body}
+          </p>
+          {entry.translatedBody && (
+            <p className="text-[10px] text-white/30 mt-1 italic">
+              Original: {entry.body}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,6 +305,31 @@ export default function ProClientFolderModal({
                 Client Tablet
               </div>
 
+              <div className="flex rounded-md overflow-hidden border border-white/10 mb-3">
+                <button
+                  onClick={() => setActiveTab("messages")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium transition-colors ${
+                    activeTab === "messages"
+                      ? "bg-purple-600 text-white"
+                      : "bg-white/5 text-white/50 hover:text-white/70"
+                  }`}
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  Messages
+                </button>
+                <button
+                  onClick={() => setActiveTab("notes")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium transition-colors ${
+                    activeTab === "notes"
+                      ? "bg-purple-600 text-white"
+                      : "bg-white/5 text-white/50 hover:text-white/70"
+                  }`}
+                >
+                  <FileText className="w-3 h-3" />
+                  Provider Notes
+                </button>
+              </div>
+
               {loading && (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-4 h-4 animate-spin text-white/40" />
@@ -233,76 +337,69 @@ export default function ProClientFolderModal({
               )}
 
               {error && (
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-red-400 mb-2">{error}</p>
               )}
 
-              {!loading && !error && (
+              {!loading && !error && activeTab === "messages" && (
                 <>
-                  <div
-                    ref={scrollRef}
-                    className="max-h-48 overflow-y-auto space-y-2 mb-2"
-                  >
-                    {notes.length === 0 && (
-                      <p className="text-xs text-white/30 py-2">No notes yet</p>
-                    )}
-                    {notes.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="bg-white/5 rounded-md p-2 border border-white/5"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] text-white/40">
-                            Coach &middot; {formatTimestamp(entry.createdAt)}
-                          </span>
-                          <button
-                            onClick={() => handleTranslate(entry)}
-                            disabled={translatingId === entry.id}
-                            className="text-white/30 hover:text-white/60 p-0.5"
-                            title="Translate"
-                          >
-                            {translatingId === entry.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Globe className="w-3 h-3" />
-                            )}
-                          </button>
-                        </div>
-                        <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
-                          {entry.translatedBody || entry.body}
-                        </p>
-                        {entry.translatedBody && (
-                          <p className="text-[10px] text-white/30 mt-1 italic">
-                            Original: {entry.body}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
+                  {renderEntryList(messages, msgScrollRef, true)}
                   <div className="flex gap-2">
                     <textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Write a note..."
+                      value={msgInput}
+                      onChange={(e) => setMsgInput(e.target.value)}
+                      placeholder="Write a message to client..."
                       className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/20"
                       rows={2}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
-                          handleSend();
+                          handleSendMessage();
                         }
                       }}
                     />
                     <Button
                       size="sm"
-                      disabled={!input.trim() || sending}
-                      onClick={handleSend}
+                      disabled={!msgInput.trim() || sending}
+                      onClick={handleSendMessage}
                       className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
                     >
                       {sending ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Send className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {!loading && !error && activeTab === "notes" && (
+                <>
+                  {renderEntryList(notes, noteScrollRef, false)}
+                  <div className="flex gap-2">
+                    <textarea
+                      value={noteInput}
+                      onChange={(e) => setNoteInput(e.target.value)}
+                      placeholder="Write a private note..."
+                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/20"
+                      rows={2}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSaveNote();
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      disabled={!noteInput.trim() || sending}
+                      onClick={handleSaveNote}
+                      className="bg-zinc-700 hover:bg-zinc-600 px-3 self-end"
+                    >
+                      {sending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <FileText className="w-3.5 h-3.5" />
                       )}
                     </Button>
                   </div>

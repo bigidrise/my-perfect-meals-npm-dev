@@ -1,15 +1,17 @@
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, MessageSquare, Send, Loader2, Globe, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface ProCareFeature {
   title: string;
@@ -37,12 +39,113 @@ export default function MorePage() {
   const [connectedResult, setConnectedResult] = useState<ConnectedResult | null>(null);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
 
+  const isProCareClient = !!user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const [tabletOpen, setTabletOpen] = useState(false);
+  const [tabletMessages, setTabletMessages] = useState<any[]>([]);
+  const [tabletLoading, setTabletLoading] = useState(false);
+  const [tabletError, setTabletError] = useState<string | null>(null);
+  const [tabletInput, setTabletInput] = useState("");
+  const [tabletSending, setTabletSending] = useState(false);
+  const [tabletTranslatingId, setTabletTranslatingId] = useState<string | null>(null);
+  const tabletScrollRef = useRef<HTMLDivElement>(null);
+  const tabletTranslationCache = useRef(new Map<string, string>());
+
+  const fetchClientTablet = useCallback(async () => {
+    setTabletLoading(true);
+    setTabletError(null);
+    try {
+      const res = await fetch(apiUrl("/api/client/tablet"), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        if (res.status === 404) setTabletError("No active coach connection");
+        else setTabletError("Failed to load messages");
+        return;
+      }
+      const data = await res.json();
+      setTabletMessages(data.messages || []);
+    } catch {
+      setTabletError("Failed to load messages");
+    } finally {
+      setTabletLoading(false);
+    }
+  }, []);
+
+  const handleTabletSend = async () => {
+    if (!tabletInput.trim() || tabletSending) return;
+    setTabletSending(true);
+    try {
+      const res = await fetch(apiUrl("/api/client/tablet/message"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ body: tabletInput.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to send");
+      const data = await res.json();
+      setTabletMessages((prev) => [...prev, data.entry]);
+      setTabletInput("");
+    } catch {
+      setTabletError("Failed to send message");
+    } finally {
+      setTabletSending(false);
+    }
+  };
+
+  const handleTabletTranslate = async (entry: any) => {
+    if (tabletTranslatingId) return;
+    const cacheKey = `${entry.id}_translate`;
+    if (tabletTranslationCache.current.has(cacheKey)) {
+      setTabletMessages((prev) =>
+        prev.map((n: any) =>
+          n.id === entry.id
+            ? { ...n, translatedBody: n.translatedBody ? undefined : tabletTranslationCache.current.get(cacheKey) }
+            : n
+        )
+      );
+      return;
+    }
+    setTabletTranslatingId(entry.id);
+    try {
+      const res = await fetch(apiUrl("/api/translate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          content: { name: "Message", description: entry.body },
+          targetLanguage: navigator.language?.split("-")[0] || "es",
+        }),
+      });
+      if (!res.ok) throw new Error("Translation failed");
+      const data = await res.json();
+      const translated = data.translated?.description || data.description || entry.body;
+      tabletTranslationCache.current.set(cacheKey, translated);
+      setTabletMessages((prev) =>
+        prev.map((n: any) => (n.id === entry.id ? { ...n, translatedBody: translated } : n))
+      );
+    } catch {
+      setTabletError("Translation failed");
+    } finally {
+      setTabletTranslatingId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (tabletOpen && isProCareClient) {
+      fetchClientTablet();
+    }
+  }, [tabletOpen, isProCareClient, fetchClientTablet]);
+
+  useEffect(() => {
+    if (tabletScrollRef.current) {
+      tabletScrollRef.current.scrollTop = tabletScrollRef.current.scrollHeight;
+    }
+  }, [tabletMessages]);
+
   useEffect(() => {
     document.title = "More | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, []);
-
-  useEffect(() => {
   }, []);
 
   const proCareFeatures: ProCareFeature[] = [
@@ -314,6 +417,117 @@ export default function MorePage() {
                   </p>
                 </GlassCardContent>
               </GlassCard>
+            )}
+
+            {isProCareClient && (
+              <Card
+                className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+                onClick={() => setTabletOpen(!tabletOpen)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-500/20">
+                      <MessageSquare className="h-5 w-5 text-purple-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-white">Messages From Your Coach</h3>
+                      <p className="text-xs text-white/70">View and reply to your coach</p>
+                    </div>
+                    {tabletOpen ? (
+                      <ChevronUp className="h-4 w-4 text-white/40" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-white/40" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {isProCareClient && tabletOpen && (
+              <div className="bg-black/30 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 space-y-3">
+                {tabletLoading && (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+                  </div>
+                )}
+                {tabletError && (
+                  <p className="text-sm text-red-400">{tabletError}</p>
+                )}
+                {!tabletLoading && !tabletError && (
+                  <>
+                    <div ref={tabletScrollRef} className="max-h-64 overflow-y-auto space-y-2">
+                      {tabletMessages.length === 0 && (
+                        <p className="text-xs text-white/30 py-2">No messages yet</p>
+                      )}
+                      {tabletMessages.map((entry: any) => (
+                        <div
+                          key={entry.id}
+                          className={`rounded-md p-2.5 border ${
+                            entry.sender === "client"
+                              ? "bg-blue-500/10 border-blue-500/20 ml-6"
+                              : "bg-white/5 border-white/5 mr-6"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-white/40">
+                              {entry.sender === "client" ? "You" : "Coach"} &middot;{" "}
+                              {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
+                              {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                            </span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleTabletTranslate(entry); }}
+                              disabled={tabletTranslatingId === entry.id}
+                              className="text-white/30 hover:text-white/60 p-0.5"
+                              title="Translate"
+                            >
+                              {tabletTranslatingId === entry.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Globe className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+                            {entry.translatedBody || entry.body}
+                          </p>
+                          {entry.translatedBody && (
+                            <p className="text-[10px] text-white/30 mt-1 italic">
+                              Original: {entry.body}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <textarea
+                        value={tabletInput}
+                        onChange={(e) => setTabletInput(e.target.value)}
+                        placeholder="Reply to your coach..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-purple-500/50"
+                        rows={2}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleTabletSend();
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        disabled={!tabletInput.trim() || tabletSending}
+                        onClick={handleTabletSend}
+                        className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
+                      >
+                        {tabletSending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
 
             {/* 3. Other features (Supplement Hub, etc.) */}
