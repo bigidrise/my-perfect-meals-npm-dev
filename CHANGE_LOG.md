@@ -4,6 +4,22 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Fix ProCare StudioBottomNav Missing on Deep Pro Routes
+
+**Change scope:** `clinicWorkspaceRoutes` array was too narrow — only listed 5 specific `/pro/` paths. Deeper routes like `/pro/workspace/:clientId`, `/pro/clients/:id/trainer`, `/pro/clients/:id/board/:program`, and all per-client builder routes fell through and showed the consumer BottomNav instead.
+
+**What changed:**
+- `client/src/components/Router.tsx`: Simplified `clinicWorkspaceRoutes` from 5 specific entries to `["/care-team", "/pro-portal", "/pro/"]` — prefix match now catches all pro sub-routes. `isInPersonalBuilder` exception still correctly shows consumer nav when coach is in their own builder.
+
+**Files touched:**
+- `client/src/components/Router.tsx` (modified — 1 array change)
+
+**Expected impact:** StudioBottomNav now visible on all pro routes. No impact on consumer nav, auth, or builders.
+
+**Golden Path:** Pass — app compiles, single line change.
+
+---
+
 ## 2026-02-28: Mobile UX Correction — Remove Hover-Dependent Action Visibility
 
 **Change scope:** Remove all `opacity-0 group-hover:opacity-100` patterns from ProCare tablet/notes UI. Action buttons (delete, edit, archive) now always visible with mobile-safe tap targets. No functionality changes.

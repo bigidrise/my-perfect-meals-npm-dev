@@ -548,7 +548,7 @@ function statusBadge(status: CareMember["status"]) {
     );
   return (
     <Badge className="bg-red-600/20 text-red-300 border border-red-400/40">
-      Revoked
+      Delete
     </Badge>
   );
 }
@@ -612,7 +612,7 @@ function MemberCard({
               data-testid="button-revoke-member"
             >
               <XCircle className="h-4 w-4 mr-2" />
-              Revoke
+              Delete
             </Button>
           )}
         </div>
