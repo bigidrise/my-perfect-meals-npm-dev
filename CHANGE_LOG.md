@@ -4,6 +4,30 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: ProCare Phase 2 — Workspace Governance Wiring
+
+**Change scope:** We are adding a workspace access middleware, a read-only workspace endpoint, and a frontend workspace shell route. It affects only new ProCare files + minimal mount points in routes.ts and Router.tsx. It should NOT affect onboarding, macro calculator, builder switching, studio schema, Stripe, feature flags, AppRouter, ProClientDashboard, or translation system.
+
+**What changed:**
+- Created `server/middleware/requireWorkspaceAccess.ts` — checks `client_links` table ONLY (not care_team_member), hard 403 if no active link
+- Created `server/routes/workspaceRoutes.ts` — `GET /api/pro/workspace/:clientId` returns strict field selection: client name, selectedMealBuilder, activeBoard, macro targets, biometrics (height/weight/age), medicalConditions, healthConditions. Read-only, no mutations.
+- Created `client/src/pages/pro/WorkspaceShell.tsx` — fetches workspace endpoint, displays client name + builder type, handles 403/404 with error states
+- Added route `/pro/workspace/:clientId` in Router.tsx with module-level `SafeWorkspaceShell` constant
+- Mounted `/api/pro/workspace` in routes.ts with `requireAuth` middleware
+
+**Files touched:**
+- `server/middleware/requireWorkspaceAccess.ts` (new)
+- `server/routes/workspaceRoutes.ts` (new)
+- `client/src/pages/pro/WorkspaceShell.tsx` (new)
+- `server/routes.ts` — added workspace route mount (2 lines)
+- `client/src/components/Router.tsx` — added import, Safe constant, route (3 lines)
+
+**Expected impact:** ProCare workspace entry point only. No effect on auth, onboarding, macro calculator, meal builders, or existing Pro Portal pages.
+
+**Golden Path:** App compiles and runs. No regressions — only new files + minimal additions to existing mount points.
+
+---
+
 ## 2026-02-28: ProCare Phase 1 — Single Active Professional Relationship Enforcement
 
 **Change scope:** We are enforcing single-active-professional relationships via the `client_links` table. It affects careTeamRoutes, procareRoutes, requireBoardAccess middleware, and a new clientLinkService. It should NOT affect onboarding, macro calculator, builder routing, studio schema, translation system, or any Pro UI pages.

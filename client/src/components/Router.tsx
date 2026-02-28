@@ -99,6 +99,7 @@ import ProClientDashboard from "@/pages/pro/ProClientDashboard";
 import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
 import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
 import ProBoardViewer from "@/pages/pro/ProBoardViewer";
+import WorkspaceShell from "@/pages/pro/WorkspaceShell";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
 
 // Physician Hub Pages
@@ -182,6 +183,7 @@ const SafeProClientDashboard = withPageErrorBoundary(ProClientDashboard, "Client
 const SafeTrainerClientDashboard = withPageErrorBoundary(TrainerClientDashboard, "Trainer Dashboard");
 const SafeClinicianClientDashboard = withPageErrorBoundary(ClinicianClientDashboard, "Clinician Dashboard");
 const SafeProBoardViewer = withPageErrorBoundary(ProBoardViewer, "Pro Board Viewer");
+const SafeWorkspaceShell = withPageErrorBoundary(WorkspaceShell, "Client Workspace");
 const SafeDiabeticHub = withPageErrorBoundary(DiabeticHub, "Diabetic Hub");
 const SafeDiabetesSupport = withPageErrorBoundary(DiabetesSupportPage, "Diabetes Support");
 const SafeDiabeticMenuBuilder = withPageErrorBoundary(DiabeticMenuBuilder, "Diabetic Menu Builder");
@@ -423,6 +425,7 @@ export default function Router() {
         <Route path="/pro-portal" component={SafeProPortal} />
         <Route path="/pro/clients" component={SafeProClients} />
         <Route path="/pro/physician-clients" component={SafeProClientsPhysician} />
+        <Route path="/pro/workspace/:clientId" component={SafeWorkspaceShell} />
         <Route path="/pro/clients/:id" component={SafeProClientDashboard} />
         <Route path="/pro/clients/:id/trainer" component={SafeTrainerClientDashboard} />
         <Route path="/pro/clients/:id/clinician" component={SafeClinicianClientDashboard} />

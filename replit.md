@@ -86,6 +86,7 @@ The application is structured as a full-stack TypeScript project.
 - Dev and production share the SAME database — no staging DB
 
 ## Recent Changes
+- 2026-02-28: ProCare Phase 2 — Workspace Governance Wiring. Created requireWorkspaceAccess middleware (client_links only, hard 403), GET /api/pro/workspace/:clientId read-only endpoint, /pro/workspace/:clientId frontend route + WorkspaceShell component
 - 2026-02-28: ProCare Phase 1 — Single Active Professional Relationship enforcement. Created clientLinkService.ts, POST /api/pro/end-relationship, wired createLink into /connect, endLink into /revoke, hardened requireBoardAccess
 - 2026-02-28: Builder switch system overhauled — switches now tied to subscription anniversary (user.createdAt), not calendar year
 - 2026-02-28: Created BASELINE_STATUS.md and CHANGE_LOG.md for change control discipline
