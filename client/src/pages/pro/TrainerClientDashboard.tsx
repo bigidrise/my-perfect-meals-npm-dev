@@ -211,7 +211,7 @@ export default function TrainerClientDashboard() {
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
-            onClick={() => setLocation("/care-team/trainer")}
+            onClick={() => setLocation("/pro/clients")}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />

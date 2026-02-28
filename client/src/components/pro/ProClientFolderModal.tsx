@@ -97,7 +97,7 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
               onClick={() => {
                 onOpenChange(false);
-                onNavigate(`/pro/workspace/${client.clientUserId || client.id}`);
+                onNavigate(`/pro/clients/${client.id}/${workspace}`);
               }}
             >
               <span className="flex items-center gap-2">
@@ -112,12 +112,12 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
               onClick={() => {
                 onOpenChange(false);
-                onNavigate("/macro-counter");
+                onNavigate(`/pro/clients/${client.id}/${workspace}`);
               }}
             >
               <span className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-green-400" />
-                View Macro Calculator
+                Macro Calculator
               </span>
               <ArrowRight className="w-4 h-4 text-white/40" />
             </Button>

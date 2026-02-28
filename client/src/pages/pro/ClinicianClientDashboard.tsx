@@ -159,7 +159,7 @@ export default function ClinicianClientDashboard() {
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
-            onClick={() => setLocation("/care-team/physician")}
+            onClick={() => setLocation("/pro/clients")}
             className="flex items-center gap-1 text-white transition-all duration-200 p-2 rounded-lg flex-shrink-0 active:scale-[0.98]"
           >
             <ArrowLeft className="h-5 w-5" />
