@@ -39,7 +39,7 @@ export default function MorePage() {
   const [connectedResult, setConnectedResult] = useState<ConnectedResult | null>(null);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
 
-  const isProCareClient = !!user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
+  const isProCareClient = !!user?.isProCare;
   const [tabletOpen, setTabletOpen] = useState(false);
   const [tabletMessages, setTabletMessages] = useState<any[]>([]);
   const [tabletLoading, setTabletLoading] = useState(false);
