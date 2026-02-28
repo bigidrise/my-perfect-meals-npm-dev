@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, Loader2, Activity, Target, UtensilsCrossed, CheckCircle2 } from "lucide-react";
+import { getAuthToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 interface WorkspaceClient {
@@ -37,8 +37,8 @@ function formatCondition(condition: string): string {
 
 export default function WorkspaceShell() {
   const { clientId } = useParams<{ clientId: string }>();
-  const { token } = useAuth();
   const [, navigate] = useLocation();
+  const token = getAuthToken();
   const [client, setClient] = useState<WorkspaceClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
