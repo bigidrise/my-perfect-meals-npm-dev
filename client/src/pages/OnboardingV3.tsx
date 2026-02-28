@@ -170,6 +170,11 @@ export default function OnboardingV3() {
           break;
         }
         case 3:
+          if (medicalConditions.length === 0) {
+            toast({ title: "Please select at least one condition, or choose 'None'", variant: "destructive" });
+            setSaving(false);
+            return;
+          }
           await saveProfile({ medicalConditions });
           break;
         case 4:
