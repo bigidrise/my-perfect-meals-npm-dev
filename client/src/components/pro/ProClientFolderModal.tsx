@@ -1,7 +1,18 @@
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
-import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight } from "lucide-react";
+import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe } from "lucide-react";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthToken } from "@/lib/auth";
+
+interface TabletEntry {
+  id: string;
+  body: string;
+  authorUserId: string;
+  createdAt: string;
+  translatedBody?: string;
+}
 
 interface ProClientFolderModalProps {
   client: ClientProfile | null;
@@ -43,6 +54,15 @@ function getRoleLabel(role?: string): string {
   return map[role] || role;
 }
 
+const translationCache = new Map<string, string>();
+
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+    " " +
+    d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
 export default function ProClientFolderModal({
   client,
   open,
@@ -50,6 +70,124 @@ export default function ProClientFolderModal({
   onNavigate,
   isPhysician,
 }: ProClientFolderModalProps) {
+  const [notes, setNotes] = useState<TabletEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const clientId = client?.clientUserId || client?.id;
+
+  const fetchNotes = useCallback(async () => {
+    if (!clientId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}`), {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        if (res.status === 403) setError("No access to this client");
+        else setError("Failed to load notes");
+        return;
+      }
+      const data = await res.json();
+      setNotes(data.notes || []);
+    } catch {
+      setError("Failed to load notes");
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    if (open && clientId) {
+      fetchNotes();
+    }
+    if (!open) {
+      setNotes([]);
+      setInput("");
+      setError(null);
+    }
+  }, [open, clientId, fetchNotes]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [notes]);
+
+  const handleSend = async () => {
+    if (!input.trim() || !clientId || sending) return;
+    setSending(true);
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({ body: input.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to send");
+      const data = await res.json();
+      setNotes((prev) => [...prev, data.note]);
+      setInput("");
+    } catch {
+      setError("Failed to send note");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleTranslate = async (entry: TabletEntry) => {
+    if (translatingId) return;
+    const cacheKey = `${entry.id}_translate`;
+    if (translationCache.has(cacheKey)) {
+      setNotes((prev) =>
+        prev.map((n) =>
+          n.id === entry.id
+            ? { ...n, translatedBody: n.translatedBody ? undefined : translationCache.get(cacheKey) }
+            : n
+        )
+      );
+      return;
+    }
+    setTranslatingId(entry.id);
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(apiUrl("/api/translate"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          content: { name: "Tablet Note", description: entry.body },
+          targetLanguage: navigator.language?.split("-")[0] || "es",
+        }),
+      });
+      if (!res.ok) throw new Error("Translation failed");
+      const data = await res.json();
+      const translated = data.translated?.description || data.description || entry.body;
+      translationCache.set(cacheKey, translated);
+      setNotes((prev) =>
+        prev.map((n) => (n.id === entry.id ? { ...n, translatedBody: translated } : n))
+      );
+    } catch {
+      setError("Translation failed");
+    } finally {
+      setTranslatingId(null);
+    }
+  };
+
   if (!client) return null;
 
   const builderLabel = getBuilderLabel(client);
@@ -57,7 +195,7 @@ export default function ProClientFolderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md">
+      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
           <DialogDescription className="text-white/50">
@@ -85,11 +223,93 @@ export default function ProClientFolderModal({
 
           <div className="border-t border-white/10 pt-3 space-y-2">
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-              <div className="flex items-center gap-2 text-white/40 text-xs mb-1">
+              <div className="flex items-center gap-2 text-white/60 text-xs mb-2">
                 <Tablet className="w-3.5 h-3.5" />
-                Tablet
+                Client Tablet
               </div>
-              <p className="text-sm text-white/30">Coming soon</p>
+
+              {loading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+                </div>
+              )}
+
+              {error && (
+                <p className="text-sm text-red-400">{error}</p>
+              )}
+
+              {!loading && !error && (
+                <>
+                  <div
+                    ref={scrollRef}
+                    className="max-h-48 overflow-y-auto space-y-2 mb-2"
+                  >
+                    {notes.length === 0 && (
+                      <p className="text-xs text-white/30 py-2">No notes yet</p>
+                    )}
+                    {notes.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="bg-white/5 rounded-md p-2 border border-white/5"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-white/40">
+                            Coach &middot; {formatTimestamp(entry.createdAt)}
+                          </span>
+                          <button
+                            onClick={() => handleTranslate(entry)}
+                            disabled={translatingId === entry.id}
+                            className="text-white/30 hover:text-white/60 p-0.5"
+                            title="Translate"
+                          >
+                            {translatingId === entry.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Globe className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+                          {entry.translatedBody || entry.body}
+                        </p>
+                        {entry.translatedBody && (
+                          <p className="text-[10px] text-white/30 mt-1 italic">
+                            Original: {entry.body}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Write a note..."
+                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/20"
+                      rows={2}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      disabled={!input.trim() || sending}
+                      onClick={handleSend}
+                      className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
+                    >
+                      {sending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             <Button

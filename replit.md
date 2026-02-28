@@ -86,6 +86,7 @@ The application is structured as a full-stack TypeScript project.
 - Dev and production share the SAME database — no staging DB
 
 ## Recent Changes
+- 2026-02-28: ProCare Phase 5A — Pro Client Tablet. Server: GET/POST /api/pro/tablet/:clientId (proTabletRoutes.ts, uses client_notes table, studio_id via ownerUserId, requireWorkspaceAccess). Client: ProClientFolderModal real tablet UI — scrollable note history, per-entry translate (session-cached), textarea+Send.
 - 2026-02-28: ProCare Phase 4 — Pro Portal Restructure. ProClients "Open" → "Open Folder" modal, builder badge on cards, ProClientFolderModal with View Biometrics/Macro Calculator/Dashboard buttons.
 - 2026-02-28: ProCare Phase 3 — Client Workspace UI Shell. Upgraded WorkspaceShell with structured layout: header (name/status), biometrics, macros, meal boards placeholder. Read-only display only.
 - 2026-02-28: ProCare Phase 2 — Workspace Governance Wiring. Created requireWorkspaceAccess middleware (client_links only, hard 403), GET /api/pro/workspace/:clientId read-only endpoint, /pro/workspace/:clientId frontend route + WorkspaceShell component

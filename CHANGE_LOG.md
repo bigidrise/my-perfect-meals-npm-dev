@@ -4,6 +4,57 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: ProCare Phase 5A — Pro Client Tablet
+
+**Change scope:** Add a per-client, persistent, translatable tablet inside the Client Folder Modal. Uses existing client_notes table. No schema changes. No new tables. No changes to auth, onboarding, builders, or unrelated features.
+
+**What changed:**
+- Created `server/routes/proTabletRoutes.ts`:
+  - GET /api/pro/tablet/:clientId — returns last 100 notes ordered ascending by created_at, filtered by pro's studio_id and client_user_id. Protected by requireAuth + requireWorkspaceAccess.
+  - POST /api/pro/tablet/:clientId — inserts into client_notes with studio_id, client_user_id, author_user_id, note_type='general', visibility='professional_only'. Protected by requireAuth + requireWorkspaceAccess.
+- Modified `server/routes.ts`: mounted proTabletRoutes under /api/pro/tablet
+- Modified `client/src/components/pro/ProClientFolderModal.tsx`:
+  - Replaced "Coming soon" tablet placeholder with real tablet UI
+  - Scrollable history list with timestamps, "Coach" label, body text
+  - Per-entry translate button using /api/translate endpoint with session caching
+  - Input textarea + Send button with loading states
+  - Fetches notes on modal open, POSTs on send
+
+**Files touched:**
+- `server/routes/proTabletRoutes.ts` (new)
+- `server/routes.ts` (mount only)
+- `client/src/components/pro/ProClientFolderModal.tsx` (modified)
+
+**Expected impact:** Pro Folder Modal only. No backend schema changes. No routing changes. No auth changes.
+
+**Golden Path:** App compiles and runs. Tablet notes persist in DB via client_notes table.
+
+---
+
+## 2026-02-28: ProCare Phase 4A — Pro Session Navigation Fix
+
+**Change scope:** Fix modal navigation so View Biometrics and Macro Calculator go to the actual client pages (not the pro dashboard), with pro session context and return-to-Pro-Portal buttons.
+
+**What changed:**
+- Modified `client/src/components/pro/ProClientFolderModal.tsx`: View Biometrics sets pro session flags then navigates to /biometrics. Macro Calculator sets pro session flags then navigates to /macro-counter. Dashboard button navigates to /pro/clients/:id/:workspace (no session flags).
+- Modified `client/src/pages/my-biometrics.tsx`: Added "Return to Pro Portal" button when pro-session is active. Clears session flags on click.
+- Modified `client/src/pages/MacroCalculator.tsx`: Same return button behavior. Added ArrowLeft import.
+- Modified `client/src/pages/pro/TrainerClientDashboard.tsx`: Back button now goes to /pro/clients (was /care-team/trainer)
+- Modified `client/src/pages/pro/ClinicianClientDashboard.tsx`: Back button now goes to /pro/clients (was /care-team/physician)
+
+**Files touched:**
+- `client/src/components/pro/ProClientFolderModal.tsx`
+- `client/src/pages/my-biometrics.tsx`
+- `client/src/pages/MacroCalculator.tsx`
+- `client/src/pages/pro/TrainerClientDashboard.tsx`
+- `client/src/pages/pro/ClinicianClientDashboard.tsx`
+
+**Expected impact:** Pro navigation only. No backend changes.
+
+**Golden Path:** App compiles and runs. All three modal buttons go to different destinations. Return buttons work on biometrics and macro calculator.
+
+---
+
 ## 2026-02-28: ProCare Phase 4 — Pro Portal Restructure
 
 **Change scope:** We are restructuring the Pro Portal client list to use a central Client Folder Modal instead of direct navigation. We are adding builder badges to client cards. We are NOT touching ProClientDashboard, macro logic, guardrails, translation, onboarding, builder internals, studio DB schema, or routing structure.
