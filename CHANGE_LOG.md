@@ -4,6 +4,26 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Fix auth token key mismatch in ProClients + TrainerClientDashboard
+
+**Change scope:** Fix 401 errors when assigning builders to clients and when loading studio data on Pro Clients page. Wrong localStorage key was being used for auth token. No changes to auth flow, middleware, schema, or unrelated features.
+
+**What changed:**
+- `client/src/pages/pro/ProClients.tsx`: Replaced `localStorage.getItem("auth_token")` with `getAuthHeaders()` from `@/lib/auth`. Added import.
+- `client/src/pages/pro/TrainerClientDashboard.tsx`: Same fix — replaced manual wrong-key token read with `getAuthHeaders()`. Added import.
+
+**Root cause:** Auth token is stored under `mpm_auth_token` (defined in `client/src/lib/auth.ts`), but both files were reading `auth_token` — always got `null`, so requests went out without auth.
+
+**Files touched:**
+- `client/src/pages/pro/ProClients.tsx` (modified)
+- `client/src/pages/pro/TrainerClientDashboard.tsx` (modified)
+
+**Expected impact:** Pro Portal and Trainer Dashboard only. Builder assignment now works. Studio data loads.
+
+**Golden Path:** App compiles and runs. No 401s on studio or assign routes.
+
+---
+
 ## 2026-02-28: ProCare Phase 5A — Pro Client Tablet
 
 **Change scope:** Add a per-client, persistent, translatable tablet inside the Client Folder Modal. Uses existing client_notes table. No schema changes. No new tables. No changes to auth, onboarding, builders, or unrelated features.

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+import { getAuthHeaders } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -38,9 +39,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
 
   async function syncDbClients() {
     try {
-      const token = localStorage.getItem("auth_token");
-      const headers: Record<string, string> = {};
-      if (token) headers["x-auth-token"] = token;
+      const headers: Record<string, string> = { ...getAuthHeaders() };
 
       const studioRes = await fetch("/api/studios/my-studio", { headers });
       if (!studioRes.ok) return;

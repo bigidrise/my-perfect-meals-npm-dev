@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
+import { getAuthHeaders } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,11 +146,10 @@ export default function TrainerClientDashboard() {
     const apiBuilderName = builder === "general" ? "general_nutrition" : "performance_competition";
     
     try {
-      const token = localStorage.getItem("auth_token");
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       };
-      if (token) headers["x-auth-token"] = token;
 
       if (studioId) {
         const studioRes = await fetch(`/api/studios/${studioId}/clients/${clientUid}/assign`, {
