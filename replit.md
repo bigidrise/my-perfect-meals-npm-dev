@@ -1,166 +1,63 @@
 # MyPerfectMeals (MPM) - Replit Project
 
 ## Overview
-MyPerfectMeals is a comprehensive meal planning and nutrition application built as a full-stack TypeScript project. It features AI-powered meal generation, dietary tracking, biometrics monitoring, and various specialized meal builders (craving creator, dessert creator, holiday feast, etc.).
+MyPerfectMeals is a full-stack TypeScript application designed for comprehensive meal planning and nutrition. It leverages AI for meal generation, offers diverse dietary tracking, biometrics monitoring, and specialized meal builders (e.g., craving, dessert, holiday). The project aims to provide a robust platform for personalized nutrition management with a vision for significant market impact in health and wellness technology.
 
-## Architecture
-- **Frontend**: React 18 + Vite + TypeScript, using Tailwind CSS, Radix UI, shadcn/ui components, Wouter for routing
-- **Backend**: Express.js (Node.js 20) serving both API routes and the Vite dev server on port 5000
-- **Database**: PostgreSQL (Neon-backed via Replit) with Drizzle ORM
-- **AI**: OpenAI API integration for meal generation, translation, and various AI features
+## User Preferences
+### Change Control Protocol (MANDATORY)
 
-## Project Structure
-```
-/
-├── client/              # React frontend (Vite)
-│   ├── src/
-│   │   ├── components/  # UI components
-│   │   ├── pages/       # Page components (routes)
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── lib/         # Utilities and helpers
-│   │   └── services/    # API service layers
-│   └── index.html       # Entry HTML
-├── server/              # Express backend
-│   ├── index.ts         # Dev entry point
-│   ├── prod.ts          # Production entry point
-│   ├── routes/          # API route handlers
-│   ├── routes.ts        # Main route registration
-│   ├── vite.ts          # Vite dev middleware setup
-│   ├── db.ts            # Database connection
-│   ├── db/              # Database schemas and queries
-│   ├── services/        # Business logic services
-│   └── middleware/       # Express middleware
-├── shared/              # Shared code (schema, types)
-│   └── schema.ts        # Drizzle database schema
-├── drizzle.config.ts    # Drizzle ORM configuration
-├── vite.config.ts       # Root Vite config (used by server)
-└── package.json         # Dependencies and scripts
-```
+#### Pre-Change
+1. Record current checkpoint hash in `BASELINE_STATUS.md`
+2. For High-Risk changes (auth, onboarding, macros, meal boards, middleware): run full Golden Path checklist and record pass/fail
+3. Write a 1-paragraph change scope: "We are changing X. It affects Y files/routes. It should NOT affect A, B, C flows."
 
-## Key Scripts
-- `npm run dev` - Start development server (Express + Vite on port 5000)
-- `npm run build` - Build client and server for production
-- `npm run start` - Run production server
-- `npm run db:push` - Push Drizzle schema to database
+#### During Change
+- One change set, one purpose — no bonus refactors, no "while I'm here" edits
+- Only touch files listed in the scope
 
-## Environment Variables
-- `DATABASE_URL` - PostgreSQL connection string (auto-configured by Replit)
-- `OPENAI_API_KEY` - OpenAI API key (optional, AI features disabled without it)
-- `STRIPE_SECRET_KEY` - Stripe payments (optional)
-- `RESEND_API_KEY` - Email service (optional)
-- `TWILIO_*` - SMS notifications (optional)
-- `VAPID_*` - Push notifications (optional)
+#### Post-Change
+1. Run Golden Path again — every item must match baseline unless intentionally changed
+2. Review diff — confirm only intended files were modified
+3. Check logs for new warnings, 403s, 404s, unexpected middleware hits
+4. If anything regressed that wasn't in scope: STOP, fix immediately, do not proceed
+5. Record the change in `CHANGE_LOG.md` with: date, what changed, files touched, expected impact, Golden Path result
+6. Update `BASELINE_STATUS.md` with new checkpoint hash
 
-## Development Notes
-- The server binds to 0.0.0.0:5000, serving both API and frontend
-- HMR is disabled; full page refresh is used for updates
-- All hosts are allowed for Replit proxy compatibility
-- OpenAI client is lazily initialized to prevent crashes when API key is missing
+### Operating Rules (MANDATORY)
 
-## Deployment
-- Build: `npm run build` (compiles client with Vite, server with esbuild)
-- Run: `npm run start` (runs compiled production server)
-- Target: Autoscale deployment
-
-## iOS / Capacitor Notes
-- Capacitor config uses bundled mode (`webDir: "client/dist"`, NO `server.url`)
-- iOS loads from `capacitor://localhost` using bundled assets
-- StoreKit uses `@squareetlabs/capacitor-subscriptions` plugin (lazy dynamic import)
-- Product IDs: `mpm_basic_plan_999`, `mpm_premium_plan_1999`, `mpm_ultimate_plan_2999`
-- After build: run `npx cap sync ios` before opening in Xcode
-- Global error handling (`setupGlobalErrorHandling`) deferred to useEffect to avoid swallowing module evaluation errors
-
-## Navigation Architecture
-- **Bottom Nav**: Role + workspace based (not route-only)
-  - Clients always see Regular BottomNav
-  - Clinicians (coach/trainer/physician) see StudioBottomNav only inside clinic workspace routes (/care-team, /pro/clients, /pro/physician-clients, /pro/physician, /pro-portal)
-  - Personal builder routes (/pro/general-nutrition-builder, /performance-competition-builder) always show Regular BottomNav
-- **Builder Headers**: Shared `BuilderHeader` component (`client/src/components/pro/BuilderHeader.tsx`)
-  - Row 1: Title + Info (MedicalSourcesInfo) + Guide (QuickTourButton)
-  - Row 2 (conditional): "Working with [Client Name] + Exit Client" — only shows for clinicians in studio client context
-  - No back button in any builder (bottom nav handles navigation)
-  - Applies to: GeneralNutritionBuilder, PerformanceCompetitionBuilder, DiabeticMenuBuilder, GLP1MealBuilder, AntiInflammatoryMenuBuilder
-  - Excluded: WeeklyMealBoard, BeachBodyBuilder (unchanged)
-- **ProClientContext**: Detects studio client context from route params for all builder types including medical builders
-
-## Plan Features & Access Tier System
-- **Single source of truth**: `shared/planFeatures.ts` defines all plan tiers (free/basic/premium/ultimate), their display features (shown on PricingPage), and their entitlements (used for gating)
-- **How to update features**: Edit ONLY `shared/planFeatures.ts` — PricingPage, FeatureGate, PageGuard, and backend entitlements all read from it
-- **Plan lookup key → tier mapping**: `LOOKUP_KEY_TO_TIER` maps Stripe/iOS lookup keys to tiers (handles legacy `mpm_upgrade_monthly` = premium)
-- **Trial unlocks**: `TRIAL_UNLOCKS_TIER = "ultimate"` — trial users get full ultimate-tier access
-- **PRE_LAUNCH_FULL_ACCESS**: `server/lib/accessTier.ts` flag (currently `true`) grants everyone PAID_FULL — flip to `false` at App Store launch
-- **accessTier** computed at runtime by `server/lib/accessTier.ts` → `resolveAccessTier(user)` returns `PAID_FULL | TRIAL_FULL | FREE`
-- **requireAuth** middleware attaches `accessTier`, `trialDaysRemaining`, `hasHadTrial` to `req.authUser`
-- **requireActiveAccess** (`server/middleware/requireActiveAccess.ts`) gates all `/api/ai/*` routes + `/api/generate-*` routes — returns 403 `AI_REQUIRES_SUBSCRIPTION` for FREE tier
-- **requirePremiumAccess** (`server/middleware/requirePremiumAccess.ts`) gates ProCare routes (`/api/pro/*`, `/api/studios`, `/api/care-team`, `/api/physician-reports`) — returns 403 `PREMIUM_REQUIRED` for FREE tier
-- **requireMacroProfile** (`server/middleware/requireMacroProfile.ts`) gates AI meal generation routes — returns 412 `MACRO_PROFILE_REQUIRED` if age/height/weight/activityLevel/fitnessGoal missing
-- **Trial trigger**: 7-day trial starts on first onboarding completion (`POST /api/user/complete-onboarding`), never overwrites existing trial
-- **Frontend**: `TrialBanner` (non-dismissible, shows days remaining) + `TrialExpiredModal` (one-time, localStorage flag) on Dashboard
-- **Client helpers**: `hasFeature(user, entitlement)` / `hasPlanFeature(user, entitlement)` in `client/src/lib/entitlements.ts` — checks accessTier + tier entitlements
-- **Components**: `<FeatureGate feature="...">` for inline gating, `<PageGuard feature="...">` for route-level gating
-- **Profile endpoint** (`/api/user/profile`) returns `accessTier`, `trialDaysRemaining`, `hasHadTrial`
-- **Frontend User type** includes `AccessTier` type + trial fields in `client/src/lib/auth.ts`
-
-## Operating Rules (MANDATORY)
-
-### Rule 1: One change set, one purpose
+#### Rule 1: One change set, one purpose
 Every commit must answer: "What single outcome is this supposed to change?" If it changes more than one feature, split it.
 
-### Rule 2: No new work until the last change is proven
+#### Rule 2: No new work until the last change is proven
 A feature is not "done" when it compiles. It is done when it passes the Golden Path checklist on web (and iOS for key flows).
 
-### Rule 3: High-Risk zones require extra checks
+#### Rule 3: High-Risk zones require extra checks
 Any change touching **auth, onboarding, macros, or meal boards** is High Risk. Extra verification required, no exceptions.
 
-### Rule 4: Stop the line on regressions
+#### Rule 4: Stop the line on regressions
 If a regression is found: stop feature work, fix the regression first, ship the fix, then resume.
 
-### Rule 5: One ticket at a time
+#### Rule 5: One ticket at a time
 Fix one bug → verify Golden Path → commit and deploy → then start the next bug. No stacking.
 
-## Golden Path Test Checklist (Release Gate)
-Every change must pass these flows before shipping. If any fails, roll back or fix first.
+## System Architecture
+The application is structured as a full-stack TypeScript project.
+- **Frontend**: Developed with React 18, Vite, TypeScript, styled using Tailwind CSS, Radix UI, and shadcn/ui components. Wouter handles client-side routing.
+- **Backend**: An Express.js (Node.js 20) server manages API routes and serves the frontend.
+- **Database**: PostgreSQL is used for data persistence, managed via Drizzle ORM.
+- **AI**: OpenAI API is integrated for various AI-driven features, including meal generation and content translation.
+- **Navigation**: Features role and workspace-based navigation, differentiating between client and clinician views. A shared `BuilderHeader` component is used across specific builders, and the `ProClientContext` manages clinician-client interactions.
+- **Access Tier System**: A centralized system (`shared/planFeatures.ts`) defines plan tiers (free, basic, premium, ultimate), their features, and entitlements. Backend middleware (`requireAuth`, `requireActiveAccess`, `requirePremiumAccess`, `requireMacroProfile`) enforces access based on user subscription status and profile completeness.
+- **Feature Flags**: New features, especially for ProCare, are implemented behind feature flags using a `PhaseGate` component, allowing for phased rollouts and stabilization.
+- **Versioned Storage**: Drafts and temporary data utilize `APP_STORAGE_VERSION` for schema versioning, ensuring compatibility and preventing data breakage during updates.
+- **Deployment**: The application is designed for autoscale deployment, with separate build and start scripts for production.
+- **iOS/Capacitor Integration**: The project supports iOS via Capacitor, bundling web assets and utilizing StoreKit for in-app purchases. Global error handling is configured to prevent silent failures.
 
-### Identity
-- Sign up, verify email, login, forgot password, logout, re-login
-
-### Onboarding
-- Step through start to finish, save profile, allergies section, land on dashboard
-
-### Macro Calculator
-- Start fresh, complete all steps, save targets, see targets on dashboard, restart behavior works
-
-### Meal Builder
-- Build a week, save, reload, shopping list works
-
-### Payments (when relevant)
-- Products load, purchase flow does not crash
-
-## Feature Flag Discipline
-New ProCare features go behind flags, default OFF in production:
-- `PROCARE_WORKSPACE`, `PROCARE_CLIENTS`, `PROCARE_SHARED_MEALBOARD`, `PROCARE_TRANSLATION_PAD`
-- Use existing `PhaseGate` component as the gating mechanism
-- Code can be merged without exposing broken UI
-
-## Versioned Storage for Drafts
-- `APP_STORAGE_VERSION` — bump when draft schema changes
-- Auto-clear stale drafts when version changes
-- Prevents old draft data from breaking new UIs
-
-## ProCare Build Phases
-- **Phase A (Stabilization)**: Zero broken golden paths — fix onboarding, macro calculator, forgot password
-- **Phase B (Foundation)**: Infrastructure behind flags — workspace model, roles/permissions, client linking
-- **Phase C (ProCare UI)**: Professional dashboard behind flags — clients list, detail view, read-only biometrics, shared meal board
-- **Phase D (Translation Pad)**: Messaging tablet behind flags — notes thread, translation toggle, notifications
-
-## Recent Changes
-- 2026-02-27: Fixed meal board blinking — hoisted all `withPageErrorBoundary()` calls in Router.tsx from inline JSX to module-level constants (`SafeWeeklyMealBoard`, `SafeDashboard`, etc.). Inline HOC calls created new component references on every re-render, causing Wouter to unmount/remount pages when auth state changed (e.g., background `refreshUser()`). Also moved `saveBiometricsToProfile()` to fire-and-forget after navigation, and added localStorage fallback in Router macro guard to prevent redirect loops.
-- 2026-02-24: Created `shared/planFeatures.ts` as single source of truth for plan tiers, display features, and entitlements. PricingPage, FeatureGate, PageGuard, and server entitlements all read from it. No more hardcoded feature arrays in PricingPage.
-- 2026-02-24: Phase A trial system — added requirePremiumAccess middleware for ProCare routes, requireMacroProfile 412 guard for AI generation, completed accessTier integration across backend and frontend
-- 2026-02-23: Implemented ProCare navigation + header spec — created shared BuilderHeader component, role-based bottom nav logic, removed back/dashboard buttons from all 5 eligible builders, standardized "Working with + Exit Client" UX
-- 2026-02-27: Phase 1 Lifestyle Cleanup — Deleted Craving Presets, Kids Meals Hub, Toddler Meals Hub, Alcohol Hub (landing, lean-and-social, smart-sips), Mocktails, and Alcohol Log pages + all static data files (cravingsPresetsData, kidsMealsData, kidsHealthyMealsData, kidsDrinksData, toddlersMealsData, mocktailsData, alcoholDrinksData) + all feature images (cravings/, kids-meals/, toddlers/, mocktails/, alcohol/ folders). Cleaned Router.tsx routes, LifestyleLandingPage nav cards, copilot references, DevNavigator, AvatarSelector, TapToRecordButton, ReplacePicker, featureRegistry. Craving Creator engine (CravingStudio, CravingCreatorLanding) preserved intact. Beer/Wine/Bourbon pairing, Meal Pairing AI, and Weaning Off Tool routes still active. Phase 2 (Healthy Kids Hub + Beverage Hub as Craving Creator wrappers) pending.
-- 2026-02-22: Fixed iOS Capacitor runtime crash - removed `server.url` from both `capacitor.config.ts` and `ios/App/App/capacitor.config.json` (was forcing remote URL loading instead of bundled mode); deferred `setupGlobalErrorHandling()` to useEffect to stop swallowing boot errors; added detailed error logging in main.tsx dynamic import catch handler
-- 2026-02-22: Fixed shopping aggregate bar z-index in Diabetic Menu Builder (removed overflow-x-hidden)
-- 2026-02-21: Added ProCare account upgrade feature - existing users can upgrade to coach/ProCare role without creating a new account (POST /api/auth/upgrade-to-procare endpoint + updated ProCareAttestation page)
-- 2026-02-17: Initial Replit setup - configured workflow, database, and deployment
-- Fixed translate.ts to lazily initialize OpenAI client (prevents crash without API key)
+## External Dependencies
+- **PostgreSQL**: Database solution (Neon-backed on Replit).
+- **OpenAI API**: For AI-powered meal generation, translation, and other intelligent features.
+- **Stripe**: (Optional) For payment processing.
+- **Resend**: (Optional) For email services.
+- **Twilio**: (Optional) For SMS notifications.
+- **VAPID**: (Optional) For push notifications.
+- **@squareetlabs/capacitor-subscriptions**: iOS StoreKit plugin for subscription management.
