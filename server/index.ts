@@ -608,9 +608,6 @@ async function start() {
   });
   const NODE_ENV = process.env.NODE_ENV || "development";
 
-  const { startBoardDigestJob } = await import("./services/boardDigestJob");
-  startBoardDigestJob();
-
   const server = app.listen(PORT, "0.0.0.0", () => {
     const bootTime = Date.now() - startTime;
     console.log(`🚀 Server running on 0.0.0.0:${PORT} (startup: ${bootTime}ms)`);

@@ -1,22 +1,10 @@
 import { Router } from "express";
 import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
-import { users } from "../../shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireBoardAccess, BoardAccessRequest } from "../middleware/requireBoardAccess";
 import { logActivityFireAndForget } from "../services/activityLog";
-
-async function markBoardUpdatePending(clientUserId: string) {
-  try {
-    await db
-      .update(users)
-      .set({ boardUpdatePending: true, boardUpdatedAt: new Date() })
-      .where(eq(users.id, clientUserId));
-  } catch (err) {
-    console.error("Failed to mark board_update_pending:", err);
-  }
-}
 
 const router = Router();
 
@@ -138,8 +126,6 @@ router.post(
         { role: access.role, title, action: "item_added" }
       );
 
-      markBoardUpdatePending(access.clientUserId);
-
       res.json(item);
     } catch (error) {
       console.error("Error adding pro board item:", error);
@@ -183,8 +169,6 @@ router.delete(
           updatedAt: new Date(),
         })
         .where(eq(mealBoards.id, boardId));
-
-      markBoardUpdatePending(access.clientUserId);
 
       res.json({ ok: true });
     } catch (error) {
@@ -260,8 +244,6 @@ router.post(
           updatedAt: new Date(),
         })
         .where(eq(mealBoards.id, boardId));
-
-      markBoardUpdatePending(access.clientUserId);
 
       res.json({ ok: true });
     } catch (error) {

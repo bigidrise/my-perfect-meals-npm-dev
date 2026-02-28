@@ -233,7 +233,9 @@ export default function Router() {
   const clinicWorkspaceRoutes = [
     "/care-team",
     "/pro-portal",
-    "/pro/",
+    "/pro/clients",
+    "/pro/physician-clients",
+    "/pro/physician",
   ];
 
   const isInPersonalBuilder =
