@@ -33,6 +33,7 @@ const BUILDER_LABELS: Record<string, string> = {
   "anti-inflammatory": "Anti-Inflammatory",
   anti_inflammatory: "Anti-Inflammatory",
   weekly: "Weekly",
+  beach_body: "Beach Body",
 };
 
 function getBuilderLabel(client: ClientProfile): string | null {
@@ -79,7 +80,7 @@ export default function ProClientFolderModal({
   const [translatingId, setTranslatingId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const clientId = client?.clientUserId || client?.id;
+  const clientId = client?.clientUserId || client?.userId || client?.id;
 
   const fetchNotes = useCallback(async () => {
     if (!clientId) return;
@@ -315,7 +316,7 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
               onClick={() => {
                 onOpenChange(false);
-                localStorage.setItem("pro-client-id", client.clientUserId || client.id);
+                localStorage.setItem("pro-client-id", client.clientUserId || client.userId || client.id);
                 localStorage.setItem("pro-return-route", "/pro/clients");
                 localStorage.setItem("pro-session", "true");
                 onNavigate("/biometrics");
@@ -333,7 +334,7 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
               onClick={() => {
                 onOpenChange(false);
-                localStorage.setItem("pro-client-id", client.clientUserId || client.id);
+                localStorage.setItem("pro-client-id", client.clientUserId || client.userId || client.id);
                 localStorage.setItem("pro-return-route", "/pro/clients");
                 localStorage.setItem("pro-session", "true");
                 onNavigate("/macro-counter");

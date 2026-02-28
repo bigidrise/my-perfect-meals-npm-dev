@@ -98,7 +98,7 @@ export default function TrainerClientDashboard() {
 
   useEffect(() => {
     const c = proStore.getClient(clientId);
-    const uid = c?.userId;
+    const uid = c?.clientUserId || c?.userId;
     if (!uid) return;
     fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
       .then((r) => (r.ok ? r.json() : null))
