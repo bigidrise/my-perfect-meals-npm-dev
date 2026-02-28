@@ -1,8 +1,22 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
-import { Activity, Target, LayoutDashboard, CheckCircle2, ArrowRight, MessageSquare, FileText } from "lucide-react";
+import {
+  Activity,
+  Target,
+  LayoutDashboard,
+  CheckCircle2,
+  ArrowRight,
+  MessageSquare,
+  FileText,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import MessagesModal from "./MessagesModal";
 import ProviderNotesModal from "./ProviderNotesModal";
@@ -31,7 +45,10 @@ const BUILDER_LABELS: Record<string, string> = {
 function getBuilderLabel(client: ClientProfile): string | null {
   const raw = client.assignedBuilder || client.activeBoardId;
   if (!raw) return null;
-  return BUILDER_LABELS[raw] || raw.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return (
+    BUILDER_LABELS[raw] ||
+    raw.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }
 
 function getRoleLabel(role?: string): string {
@@ -70,7 +87,9 @@ export default function ProClientFolderModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
+            <DialogTitle className="text-xl text-white">
+              {client.name}
+            </DialogTitle>
             <DialogDescription className="text-white/50">
               {client.email || "No email on file"}
             </DialogDescription>
@@ -102,7 +121,7 @@ export default function ProClientFolderModal({
               >
                 <span className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-purple-400" />
-                  View Messages
+                  Messages
                 </span>
                 <ArrowRight className="w-4 h-4 text-white/40" />
               </Button>
@@ -114,7 +133,7 @@ export default function ProClientFolderModal({
               >
                 <span className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-zinc-400" />
-                  View Provider Notes
+                  Provider Notes
                 </span>
                 <ArrowRight className="w-4 h-4 text-white/40" />
               </Button>
@@ -132,7 +151,7 @@ export default function ProClientFolderModal({
               >
                 <span className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-blue-400" />
-                  View Biometrics
+                  Client Biometrics
                 </span>
                 <ArrowRight className="w-4 h-4 text-white/40" />
               </Button>
@@ -150,7 +169,7 @@ export default function ProClientFolderModal({
               >
                 <span className="flex items-center gap-2">
                   <Target className="w-4 h-4 text-green-400" />
-                  Macro Calculator
+                  Client Macros
                 </span>
                 <ArrowRight className="w-4 h-4 text-white/40" />
               </Button>
@@ -159,7 +178,8 @@ export default function ProClientFolderModal({
                 className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"
                 onClick={() => {
                   onOpenChange(false);
-                  const navId = client.clientUserId || client.userId || client.id;
+                  const navId =
+                    client.clientUserId || client.userId || client.id;
                   onNavigate(`/pro/clients/${navId}/${workspace}`);
                 }}
               >
