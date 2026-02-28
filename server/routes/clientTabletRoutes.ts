@@ -32,7 +32,7 @@ async function getStudioIdByOwner(proUserId: string): Promise<string | null> {
   return studio?.id ?? null;
 }
 
-router.get("/", async (req: Request, res: Response) => {
+router.get("/messages", async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
@@ -59,7 +59,8 @@ router.get("/", async (req: Request, res: Response) => {
       and(
         eq(clientNotes.clientUserId, authUser.id),
         eq(clientNotes.entryType, "message"),
-        eq(clientNotes.visibility, "shared_with_client")
+        eq(clientNotes.visibility, "shared_with_client"),
+        eq(clientNotes.deletedByClient, false)
       )
     )
     .orderBy(asc(clientNotes.createdAt))
@@ -68,7 +69,7 @@ router.get("/", async (req: Request, res: Response) => {
   res.json({ messages: entries });
 });
 
-router.post("/message", async (req: Request, res: Response) => {
+router.post("/messages", async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
@@ -115,6 +116,54 @@ router.post("/message", async (req: Request, res: Response) => {
     });
 
   res.status(201).json({ entry });
+});
+
+router.patch("/messages/:id/delete", async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  const { id } = req.params;
+
+  const [note] = await db
+    .select({
+      id: clientNotes.id,
+      authorUserId: clientNotes.authorUserId,
+      entryType: clientNotes.entryType,
+      clientUserId: clientNotes.clientUserId,
+    })
+    .from(clientNotes)
+    .where(eq(clientNotes.id, id))
+    .limit(1);
+
+  if (!note) {
+    res.status(404).json({ error: "Message not found" });
+    return;
+  }
+
+  if (note.clientUserId !== authUser.id) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  if (note.entryType !== "message") {
+    res.status(400).json({ error: "Can only delete messages" });
+    return;
+  }
+
+  if (note.authorUserId !== authUser.id) {
+    res.status(403).json({ error: "You can only delete your own messages" });
+    return;
+  }
+
+  await db
+    .update(clientNotes)
+    .set({ deletedByClient: true })
+    .where(eq(clientNotes.id, id));
+
+  res.json({ success: true });
 });
 
 export default router;

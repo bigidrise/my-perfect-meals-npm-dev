@@ -4,6 +4,35 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Phase 5 Fix Pack — Soft Delete + Provider Notes CRUD + Modal Restructure
+
+**Change scope:** Tablet UX enhancement. Soft delete for shared messages (per-side visibility), provider notes CRUD (create/edit/archive/permanent delete/bulk archive), modal restructure (ProClientFolderModal → button hub, separate MessagesModal + ProviderNotesModal). Client More page updated with soft delete for own messages. No builders or routing touched.
+
+**What changed:**
+- `server/db/schema/studio.ts`: Added `boolean` import. Added 3 columns: `archived` (boolean, default false), `deletedByPro` (boolean, default false), `deletedByClient` (boolean, default false)
+- `server/routes/proTabletRoutes.ts`: Rewrote with split routes — GET /:clientId/messages (excludes deleted_by_pro), POST /:clientId/messages, PATCH /:clientId/messages/:id/delete (soft delete, ownership check), GET /:clientId/notes?archived=true|false, POST /:clientId/notes, PATCH /:clientId/notes/:id (edit body, ownership check), DELETE /:clientId/notes/:id (permanent delete, ownership check), PATCH /:clientId/notes/:id/archive (toggle, ownership check), PATCH /:clientId/notes/bulk-archive (by age 12/24/36 months)
+- `server/routes/clientTabletRoutes.ts`: Rewrote with new routes — GET /messages (excludes deleted_by_client), POST /messages, PATCH /messages/:id/delete (soft delete, ownership check)
+- `client/src/components/pro/ProClientFolderModal.tsx`: Stripped to button-only hub — View Messages, View Provider Notes, View Biometrics, Macro Calculator, Go To Client Dashboard. No inline tablet content.
+- `client/src/components/pro/MessagesModal.tsx`: New full modal — scrollable thread, per-message delete (own only, shows on hover), translate toggle, send input
+- `client/src/components/pro/ProviderNotesModal.tsx`: New full modal — Active/Archived tabs, create/edit/archive/delete per note, bulk archive banner (>100 active), smart age-based archival
+- `client/src/pages/More.tsx`: Updated API paths to /messages, added soft delete handler + Trash2 button on client's own messages
+
+**Files touched:**
+- `server/db/schema/studio.ts` (modified)
+- `server/routes/proTabletRoutes.ts` (rewritten)
+- `server/routes/clientTabletRoutes.ts` (rewritten)
+- `client/src/components/pro/ProClientFolderModal.tsx` (rewritten)
+- `client/src/components/pro/MessagesModal.tsx` (new)
+- `client/src/components/pro/ProviderNotesModal.tsx` (new)
+- `client/src/pages/More.tsx` (modified)
+- `CHANGE_LOG.md` (this entry)
+
+**Expected impact:** Pro sees button-hub folder modal, opens separate Messages/Notes modals. Client sees messages with delete button on own messages. No impact on auth, onboarding, macros, builders, or meal boards.
+
+**Golden Path:** Pass — all 5 DB columns verified, routes mounted, app compiles and runs.
+
+---
+
 ## 2026-02-28: Phase 5 Tablet System — Full Install (Messages + Provider Notes)
 
 **Change scope:** Install the complete tablet architecture with two modes inside the Client Folder Modal (Messages = shared two-way thread with translation, Provider Notes = private provider-only running history without translation), plus client-side access to shared thread on the More page. Extended client_notes table with entry_type and sender columns. Created client tablet routes for client read/write access to shared messages only.

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 
 export const professionalSpaceTypeEnum = pgEnum("professional_space_type", ["studio", "clinic"]);
 
@@ -108,6 +108,9 @@ export const clientNotes = pgTable("client_notes", {
   tags: jsonb("tags").$type<string[]>().default([]),
   entryType: entryTypeEnum("entry_type").notNull().default("note"),
   sender: senderTypeEnum("sender").notNull().default("pro"),
+  archived: boolean("archived").notNull().default(false),
+  deletedByPro: boolean("deleted_by_pro").notNull().default(false),
+  deletedByClient: boolean("deleted_by_client").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({

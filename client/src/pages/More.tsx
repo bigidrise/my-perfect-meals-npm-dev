@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, MessageSquare, Send, Loader2, Globe, ChevronDown, ChevronUp } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, MessageSquare, Send, Loader2, Globe, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
@@ -47,6 +47,7 @@ export default function MorePage() {
   const [tabletInput, setTabletInput] = useState("");
   const [tabletSending, setTabletSending] = useState(false);
   const [tabletTranslatingId, setTabletTranslatingId] = useState<string | null>(null);
+  const [tabletDeletingId, setTabletDeletingId] = useState<string | null>(null);
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
 
@@ -54,7 +55,7 @@ export default function MorePage() {
     setTabletLoading(true);
     setTabletError(null);
     try {
-      const res = await fetch(apiUrl("/api/client/tablet"), {
+      const res = await fetch(apiUrl("/api/client/tablet/messages"), {
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
@@ -76,7 +77,7 @@ export default function MorePage() {
     if (!tabletInput.trim() || tabletSending) return;
     setTabletSending(true);
     try {
-      const res = await fetch(apiUrl("/api/client/tablet/message"), {
+      const res = await fetch(apiUrl("/api/client/tablet/messages"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
@@ -90,6 +91,28 @@ export default function MorePage() {
       setTabletError("Failed to send message");
     } finally {
       setTabletSending(false);
+    }
+  };
+
+  const handleTabletDelete = async (entry: any) => {
+    if (tabletDeletingId) return;
+    setTabletDeletingId(entry.id);
+    try {
+      const res = await fetch(apiUrl(`/api/client/tablet/messages/${entry.id}/delete`), {
+        method: "PATCH",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setTabletError(data.error || "Failed to delete message");
+        return;
+      }
+      setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
+    } catch {
+      setTabletError("Failed to delete message");
+    } finally {
+      setTabletDeletingId(null);
     }
   };
 
@@ -462,7 +485,7 @@ export default function MorePage() {
                       {tabletMessages.map((entry: any) => (
                         <div
                           key={entry.id}
-                          className={`rounded-md p-2.5 border ${
+                          className={`rounded-md p-2.5 border group ${
                             entry.sender === "client"
                               ? "bg-blue-500/10 border-blue-500/20 ml-6"
                               : "bg-white/5 border-white/5 mr-6"
@@ -474,18 +497,34 @@ export default function MorePage() {
                               {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
                               {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
                             </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleTabletTranslate(entry); }}
-                              disabled={tabletTranslatingId === entry.id}
-                              className="text-white/30 hover:text-white/60 p-0.5"
-                              title="Translate"
-                            >
-                              {tabletTranslatingId === entry.id ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Globe className="w-3 h-3" />
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleTabletTranslate(entry); }}
+                                disabled={tabletTranslatingId === entry.id}
+                                className="text-white/30 hover:text-white/60 p-0.5"
+                                title="Translate"
+                              >
+                                {tabletTranslatingId === entry.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Globe className="w-3 h-3" />
+                                )}
+                              </button>
+                              {entry.sender === "client" && entry.authorUserId === user?.id && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleTabletDelete(entry); }}
+                                  disabled={tabletDeletingId === entry.id}
+                                  className="text-white/20 hover:text-red-400 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Delete for you"
+                                >
+                                  {tabletDeletingId === entry.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-3 h-3" />
+                                  )}
+                                </button>
                               )}
-                            </button>
+                            </div>
                           </div>
                           <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
                             {entry.translatedBody || entry.body}
