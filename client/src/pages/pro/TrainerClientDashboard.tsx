@@ -66,6 +66,7 @@ export default function TrainerClientDashboard() {
   const quickTour = useQuickTour("trainer-client-dashboard");
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
+  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
   const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() =>
     proStore.getContext(clientId),
@@ -548,9 +549,8 @@ export default function TrainerClientDashboard() {
                   });
                   return;
                 }
-                const clientUserId = client?.clientUserId || client?.userId || clientId;
-                localStorage.setItem("pro-client-id", clientUserId);
-                setLocation(`/pro/clients/${clientUserId}/${BUILDER_MAP[key].proRoute}`);
+                localStorage.setItem("pro-client-id", resolvedClientUserId);
+                setLocation(`/pro/clients/${resolvedClientUserId}/${BUILDER_MAP[key].proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-lime-600 border border-lime-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >

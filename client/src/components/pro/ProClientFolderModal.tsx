@@ -351,10 +351,11 @@ export default function ProClientFolderModal({
               onClick={() => {
                 onOpenChange(false);
                 const builderKey = (client.assignedBuilder || client.activeBoardId) as BuilderKey | undefined;
+                const navId = client.clientUserId || client.userId || client.id;
                 if (builderKey && BUILDER_MAP[builderKey]) {
-                  onNavigate(`/pro/clients/${client.id}/${BUILDER_MAP[builderKey].proRoute}`);
+                  onNavigate(`/pro/clients/${navId}/${BUILDER_MAP[builderKey].proRoute}`);
                 } else {
-                  onNavigate(`/pro/clients/${client.id}/${workspace}`);
+                  onNavigate(`/pro/clients/${navId}/${workspace}`);
                 }
               }}
             >

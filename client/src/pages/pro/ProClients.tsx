@@ -55,8 +55,13 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
 
       for (const dbClient of dbClients) {
         const builderMap: Record<string, BuilderType> = {
-          general_nutrition: "general",
-          performance_competition: "performance",
+          weekly: "weekly",
+          diabetic: "diabetic",
+          glp1: "glp1",
+          anti_inflammatory: "anti_inflammatory",
+          beach_body: "beach_body",
+          general_nutrition: "general_nutrition",
+          performance_competition: "performance_competition",
         };
 
         const existing = localClients.find(
