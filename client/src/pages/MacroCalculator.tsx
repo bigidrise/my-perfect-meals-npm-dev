@@ -54,6 +54,7 @@ import {
   ChefHat,
   Check,
   Sparkles,
+  ArrowLeft,
 } from "lucide-react";
 
 // Guided flow step type
@@ -501,6 +502,7 @@ export default function MacroCounter() {
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
 
   const isFromOnboarding = window.location.search.includes("from=onboarding");
 
@@ -910,6 +912,21 @@ export default function MacroCounter() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-8 pb-3 flex items-center gap-3">
+            {isProSession && (
+              <button
+                onClick={() => {
+                  const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
+                  localStorage.removeItem("pro-session");
+                  localStorage.removeItem("pro-client-id");
+                  localStorage.removeItem("pro-return-route");
+                  setLocation(returnRoute);
+                }}
+                className="flex items-center gap-1 text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded-lg text-sm font-medium -ml-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Return to Pro Portal
+              </button>
+            )}
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
               <span>Macro Calculator</span>
             </h1>

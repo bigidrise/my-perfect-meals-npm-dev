@@ -131,6 +131,8 @@ export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   
+  const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
+
   // === DEFERRED STORAGE READS (Option A: No localStorage during render) ===
   const [storageLoaded, setStorageLoaded] = useState(false);
   
@@ -1344,6 +1346,24 @@ export default function MyBiometrics() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 pb-3 flex items-center gap-3">
+          {/* Pro Session: Return to Pro Portal */}
+          {isProSession && (
+            <Button
+              onClick={() => {
+                const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
+                localStorage.removeItem("pro-session");
+                localStorage.removeItem("pro-client-id");
+                localStorage.removeItem("pro-return-route");
+                setLocation(returnRoute);
+              }}
+              variant="ghost"
+              size="sm"
+              className="text-purple-400 hover:bg-purple-500/10 -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Return to Pro Portal
+            </Button>
+          )}
           {/* Guest Mode: Back to Guest Suite button - only show for actual guests, not logged-in users */}
           {isGuestMode() && !user && (
             <Button
