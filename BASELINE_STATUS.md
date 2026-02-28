@@ -1,7 +1,7 @@
 # MPM Baseline Status
 
-Last updated: 2026-02-28 (pre ProCare Phase 2 — Workspace Governance)
-Checkpoint: `4a3be53327f9c572e0babf07e6c9e7714bddab5d`
+Last updated: 2026-02-28 (pre ProCare Phase 3 — Client Workspace UI Shell)
+Checkpoint: `b042a5e86ed6dd46599f163c92b936fb8b819760`
 
 ## Golden Path Status
 

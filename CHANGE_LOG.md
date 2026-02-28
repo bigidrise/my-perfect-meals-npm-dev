@@ -4,6 +4,29 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: ProCare Phase 3 — Client Workspace UI Shell
+
+**Change scope:** We are upgrading the WorkspaceShell component from a bare-bones display to a structured workspace layout with display sections. We are ONLY modifying `WorkspaceShell.tsx`. We are NOT touching backend, routes, middleware, onboarding, macro calculator, builder switching, Stripe, or any other file.
+
+**What changed:**
+- Upgraded `client/src/pages/pro/WorkspaceShell.tsx` with structured layout:
+  - Header: client name, "Client Workspace" subtitle, green "Active" status indicator
+  - Active Builder section: builder name + medical condition badges (excluding "none")
+  - Biometrics section: age, height (cm→ft/in conversion), weight (lbs)
+  - Macro Targets section: calories, protein, carbs, fat — with null handling ("—" for missing)
+  - Meal Boards section: placeholder ("Read-only view coming in Phase 4")
+- All sections are read-only display blocks — no editing logic, no mutations
+- Uses existing Phase 2 endpoint `GET /api/pro/workspace/:clientId` — no backend changes
+
+**Files touched:**
+- `client/src/pages/pro/WorkspaceShell.tsx` (modified — UI upgrade only)
+
+**Expected impact:** ProCare workspace display only. No effect on any other system.
+
+**Golden Path:** App compiles and runs. No regressions — single file UI change.
+
+---
+
 ## 2026-02-28: ProCare Phase 2 — Workspace Governance Wiring
 
 **Change scope:** We are adding a workspace access middleware, a read-only workspace endpoint, and a frontend workspace shell route. It affects only new ProCare files + minimal mount points in routes.ts and Router.tsx. It should NOT affect onboarding, macro calculator, builder switching, studio schema, Stripe, feature flags, AppRouter, ProClientDashboard, or translation system.
