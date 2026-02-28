@@ -11,6 +11,8 @@ import {
   transferToPro,
   constructWebhookEvent,
 } from "../services/stripeProcare";
+import { endLink, getActiveLink } from "../services/clientLinkService";
+import { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -254,6 +256,33 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
   } catch (error: any) {
     console.error("❌ Webhook error:", error.message);
     res.status(400).send(`Webhook Error: ${error.message}`);
+  }
+});
+
+router.post("/end-relationship", async (req, res) => {
+  try {
+    const authUser = (req as AuthenticatedRequest).authUser;
+    if (!authUser) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const { clientUserId } = req.body;
+    if (!clientUserId) {
+      return res.status(400).json({ error: "Missing clientUserId" });
+    }
+
+    const proUserId = authUser.id;
+
+    const activeLink = await getActiveLink(clientUserId);
+    if (!activeLink || activeLink.proUserId !== proUserId) {
+      return res.status(404).json({ error: "No active relationship found with this client" });
+    }
+
+    const result = await endLink(clientUserId, proUserId);
+    res.json(result);
+  } catch (error) {
+    console.error("❌ Error ending relationship:", error);
+    res.status(500).json({ error: "Failed to end relationship" });
   }
 });
 

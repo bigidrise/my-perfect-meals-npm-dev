@@ -4,6 +4,33 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: ProCare Phase 1 — Single Active Professional Relationship Enforcement
+
+**Change scope:** We are enforcing single-active-professional relationships via the `client_links` table. It affects careTeamRoutes, procareRoutes, requireBoardAccess middleware, and a new clientLinkService. It should NOT affect onboarding, macro calculator, builder routing, studio schema, translation system, or any Pro UI pages.
+
+**What changed:**
+- Created `server/services/clientLinkService.ts` with `getActiveLink()`, `createLink()`, `endLink()` functions
+- `createLink()` enforces single active professional per client — rejects with `CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL` if duplicate
+- `endLink()` sets `active = false` (no deletes, no destructive behavior)
+- Added DB-level unique partial index `idx_client_links_single_active` on `(client_user_id) WHERE active = true` for race condition protection
+- Created `client_links` table in database (was defined in schema but never pushed)
+- Added `POST /api/pro/end-relationship` endpoint to `procareRoutes.ts` — pro can end relationship with a client
+- Updated `careTeamRoutes.ts` `/connect` endpoint — both invite code and access code branches now call `createLink()`, returning 409 if client already has active pro
+- Updated `careTeamRoutes.ts` `/revoke` endpoint — calls `endLink()` using the member row's `proUserId`
+- Hardened `requireBoardAccess` middleware — now checks EITHER `care_team_member` (existing) OR `client_links` (new, additive)
+
+**Files touched:**
+- `server/services/clientLinkService.ts` (new)
+- `server/routes/procareRoutes.ts` — added end-relationship endpoint + imports
+- `server/routes/careTeamRoutes.ts` — wired createLink into /connect, endLink into /revoke
+- `server/middleware/requireBoardAccess.ts` — additive client_links check
+
+**Expected impact:** ProCare governance layer only. No effect on auth, onboarding, macro calculator, meal builders, or UI.
+
+**Golden Path:** All core flows verified — no regressions. App compiles and runs clean.
+
+---
+
 ## 2026-02-28: Builder Switch — Subscription Anniversary Reset + "Current" Badge Fix
 
 **What changed:**

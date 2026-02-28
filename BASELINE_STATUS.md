@@ -1,7 +1,7 @@
 # MPM Baseline Status
 
-Last updated: 2026-02-28
-Checkpoint: `f81b5ed54c5b10374cafffaa051bfc5a319b7fc9`
+Last updated: 2026-02-28 (post ProCare Phase 1)
+Checkpoint: `8d6cfe2b5641095f190bcd69841dc3506727fe9c`
 
 ## Golden Path Status
 

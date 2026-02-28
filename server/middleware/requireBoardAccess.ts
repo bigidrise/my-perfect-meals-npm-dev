@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { careTeamMember, type Permissions } from "../db/schema/careTeam";
+import { clientLinks } from "../db/schema/procare";
 import { eq, and } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
 
@@ -53,19 +54,39 @@ export async function requireBoardAccess(
     )
     .limit(1);
 
-  if (!relation) {
-    res.status(403).json({ error: "No active care team relationship with this client" });
-    return;
+  if (relation) {
+    const permissions = relation.permissions as Permissions;
+    (req as BoardAccessRequest).boardAccess = {
+      clientUserId: clientId,
+      proUserId: authUser.id,
+      role: relation.role === "trainer" ? "trainer" : "physician",
+      permissions,
+    };
+    return next();
   }
 
-  const permissions = relation.permissions as Permissions;
+  const [activeLink] = await db
+    .select()
+    .from(clientLinks)
+    .where(
+      and(
+        eq(clientLinks.clientUserId, clientId),
+        eq(clientLinks.proUserId, authUser.id),
+        eq(clientLinks.active, true)
+      )
+    )
+    .limit(1);
 
-  (req as BoardAccessRequest).boardAccess = {
-    clientUserId: clientId,
-    proUserId: authUser.id,
-    role: relation.role === "trainer" ? "trainer" : "physician",
-    permissions,
-  };
+  if (activeLink) {
+    (req as BoardAccessRequest).boardAccess = {
+      clientUserId: clientId,
+      proUserId: authUser.id,
+      role: "professional",
+      permissions: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
+    };
+    return next();
+  }
 
-  return next();
+  res.status(403).json({ error: "No active relationship with this client" });
+  return;
 }

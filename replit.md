@@ -23,6 +23,10 @@ MyPerfectMeals is a full-stack TypeScript application designed for comprehensive
 5. Record the change in `CHANGE_LOG.md` with: date, what changed, files touched, expected impact, Golden Path result
 6. Update `BASELINE_STATUS.md` with new checkpoint hash
 
+### Reference Files
+- `BASELINE_STATUS.md` — Current known-good state and Golden Path pass/fail
+- `CHANGE_LOG.md` — Surgical log of every change with scope and verification
+
 ### Operating Rules (MANDATORY)
 
 #### Rule 1: One change set, one purpose
@@ -53,6 +57,16 @@ The application is structured as a full-stack TypeScript project.
 - **Deployment**: The application is designed for autoscale deployment, with separate build and start scripts for production.
 - **iOS/Capacitor Integration**: The project supports iOS via Capacitor, bundling web assets and utilizing StoreKit for in-app purchases. Global error handling is configured to prevent silent failures.
 
+## ProCare Architecture
+- **Single Active Professional**: Enforced via `client_links` table with DB-level unique partial index `idx_client_links_single_active` on `(client_user_id) WHERE active = true`
+- **clientLinkService**: `getActiveLink()`, `createLink()` (rejects duplicates with `CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL`), `endLink()` (sets active=false, no deletes)
+- **End Relationship**: `POST /api/pro/end-relationship` — pro can end relationship with a client
+- **Board Access**: `requireBoardAccess` middleware checks EITHER `care_team_member` (existing) OR `client_links` (additive)
+- **Tables**: `client_links` (source of truth for active pro), `care_team_member` (permissions/roles), `studios`, `studio_memberships`, `pro_accounts`, `subscriptions`, `payouts`
+- **Middleware chain**: `requireAuth` → `requirePremiumAccess` → route-specific middleware (requireBoardAccess, loadStudioMembership, etc.)
+- **PRE_LAUNCH_FULL_ACCESS**: `server/lib/accessTier.ts` flag (currently `true`) grants everyone PAID_FULL — flip to `false` at App Store launch
+- **ENFORCE_SWITCH_LIMITS**: `server/services/builderSwitchService.ts` flag (currently `false`) — flip to `true` when ready to enforce builder switch limits
+
 ## External Dependencies
 - **PostgreSQL**: Database solution (Neon-backed on Replit).
 - **OpenAI API**: For AI-powered meal generation, translation, and other intelligent features.
@@ -61,3 +75,20 @@ The application is structured as a full-stack TypeScript project.
 - **Twilio**: (Optional) For SMS notifications.
 - **VAPID**: (Optional) For push notifications.
 - **@squareetlabs/capacitor-subscriptions**: iOS StoreKit plugin for subscription management.
+
+## Key Technical Notes
+- `activeBoard` = coach-assigned builder; `selectedMealBuilder` = user self-selected; PATCH syncs both
+- `isProCareClient` = `isProCare AND professionalRole NOT IN [admin, coach, physician, trainer]`
+- `withPageErrorBoundary` pattern: ALL Safe* constants MUST remain module-level (not inline JSX)
+- React StrictMode ON in main.tsx (doubles effects in dev)
+- `APP_STORAGE_VERSION = "3"` in main.tsx
+- DB schema: `height` stored in cm, `weight` stored in lbs
+- Dev and production share the SAME database — no staging DB
+
+## Recent Changes
+- 2026-02-28: ProCare Phase 1 — Single Active Professional Relationship enforcement. Created clientLinkService.ts, POST /api/pro/end-relationship, wired createLink into /connect, endLink into /revoke, hardened requireBoardAccess
+- 2026-02-28: Builder switch system overhauled — switches now tied to subscription anniversary (user.createdAt), not calendar year
+- 2026-02-28: Created BASELINE_STATUS.md and CHANGE_LOG.md for change control discipline
+- 2026-02-27: Forgot password FIXED (3 root causes)
+- 2026-02-27: Fixed meal board blinking — hoisted withPageErrorBoundary calls to module-level constants
+- 2026-02-27: Phase 1 Lifestyle Cleanup — Deleted Kids Hub, Toddler Hub, Alcohol Hub, Mocktails, Craving Presets pages + data + images

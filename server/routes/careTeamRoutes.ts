@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
 import { bridgeToStudio } from "../services/studioBridge";
+import { createLink, endLink, ClientLinkError } from "../services/clientLinkService";
 
 const router = Router();
 
@@ -141,6 +142,17 @@ router.post("/connect", async (req, res) => {
         return res.status(404).json({ error: "Member not found" });
       }
 
+      const trainerUserId = invite.userId;
+
+      try {
+        await createLink(userId, trainerUserId);
+      } catch (err) {
+        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+          return res.status(409).json({ error: err.code, message: err.message });
+        }
+        throw err;
+      }
+
       const [updatedMember] = await db
         .update(careTeamMember)
         .set({
@@ -156,7 +168,6 @@ router.post("/connect", async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      const trainerUserId = invite.userId;
       const bridge = await bridgeToStudio(trainerUserId, userId, "care_team_connect_code");
       
       return res.json({ member: updatedMember, studio: bridge });
@@ -170,6 +181,15 @@ router.post("/connect", async (req, res) => {
     if (accessCodeRow) {
       if (new Date() > accessCodeRow.expiresAt) {
         return res.status(400).json({ error: "Code expired" });
+      }
+
+      try {
+        await createLink(userId, accessCodeRow.proUserId);
+      } catch (err) {
+        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+          return res.status(409).json({ error: err.code, message: err.message });
+        }
+        throw err;
       }
 
       const [newMember] = await db
@@ -253,6 +273,10 @@ router.post("/:id/revoke", async (req, res) => {
       .update(careTeamMember)
       .set({ status: "revoked", updatedAt: new Date() })
       .where(eq(careTeamMember.id, id));
+
+    if (existing.proUserId) {
+      await endLink(existing.userId, existing.proUserId);
+    }
 
     res.json({ ok: true });
   } catch (error) {
