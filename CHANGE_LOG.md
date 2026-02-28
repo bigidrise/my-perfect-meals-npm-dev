@@ -4,6 +4,26 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Mobile UX Correction — Remove Hover-Dependent Action Visibility
+
+**Change scope:** Remove all `opacity-0 group-hover:opacity-100` patterns from ProCare tablet/notes UI. Action buttons (delete, edit, archive) now always visible with mobile-safe tap targets. No functionality changes.
+
+**What changed:**
+- `client/src/components/pro/MessagesModal.tsx`: Removed `group` class from message containers. Delete button changed from `opacity-0 group-hover:opacity-100` to always-visible with `min-w-[28px] min-h-[28px]` tap target, `active:` instead of `hover:` for color feedback
+- `client/src/components/pro/ProviderNotesModal.tsx`: Removed `group` class from note containers. Edit/archive/delete buttons changed from `opacity-0 group-hover:opacity-100` to always-visible with `min-w-[28px] min-h-[28px]` tap targets, `active:` instead of `hover:` for color feedback
+- `client/src/pages/More.tsx`: Same pattern — removed `group` class, delete button always visible with mobile tap targets
+
+**Files touched:**
+- `client/src/components/pro/MessagesModal.tsx` (modified)
+- `client/src/components/pro/ProviderNotesModal.tsx` (modified)
+- `client/src/pages/More.tsx` (modified)
+
+**Expected impact:** Delete/edit/archive buttons now usable on mobile (iOS). No hover required. Desktop unaffected (buttons just visible all the time now). No backend changes.
+
+**Golden Path:** Pass — zero `group-hover` patterns remain in ProCare UI.
+
+---
+
 ## 2026-02-28: Phase 6 — Builder Update Digest Notifications + Immediate Message Push
 
 **Change scope:** Wire push notifications for tablet messages (immediate) and builder edits (daily digest at midnight server time). No UI changes. No builder/routing/auth changes.

@@ -297,7 +297,7 @@ export default function ProviderNotesModal({
                 {currentNotes.map((note) => (
                   <div
                     key={note.id}
-                    className="rounded-md p-2.5 border bg-white/5 border-white/10 group"
+                    className="rounded-md p-2.5 border bg-white/5 border-white/10"
                   >
                     {editingId === note.id ? (
                       <div className="space-y-2">
@@ -336,11 +336,11 @@ export default function ProviderNotesModal({
                               <> &middot; edited {formatTimestamp(note.updatedAt)}</>
                             )}
                           </span>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1">
                             {!note.archived && note.authorUserId === currentUserId && (
                               <button
                                 onClick={() => { setEditingId(note.id); setEditBody(note.body); }}
-                                className="text-white/30 hover:text-white/60 p-0.5"
+                                className="text-white/40 active:text-white/70 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center"
                                 title="Edit"
                               >
                                 <Pencil className="w-3 h-3" />
@@ -349,7 +349,7 @@ export default function ProviderNotesModal({
                             <button
                               onClick={() => handleArchiveToggle(note)}
                               disabled={archivingId === note.id}
-                              className="text-white/30 hover:text-amber-400 p-0.5"
+                              className="text-white/40 active:text-amber-400 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center"
                               title={note.archived ? "Unarchive" : "Archive"}
                             >
                               {archivingId === note.id ? (
@@ -362,7 +362,7 @@ export default function ProviderNotesModal({
                               <button
                                 onClick={() => handleDelete(note.id)}
                                 disabled={deletingId === note.id}
-                                className="text-white/30 hover:text-red-400 p-0.5"
+                                className="text-white/40 active:text-red-400 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center"
                                 title="Delete permanently"
                               >
                                 {deletingId === note.id ? (

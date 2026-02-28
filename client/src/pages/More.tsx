@@ -485,7 +485,7 @@ export default function MorePage() {
                       {tabletMessages.map((entry: any) => (
                         <div
                           key={entry.id}
-                          className={`rounded-md p-2.5 border group ${
+                          className={`rounded-md p-2.5 border ${
                             entry.sender === "client"
                               ? "bg-blue-500/10 border-blue-500/20 ml-6"
                               : "bg-white/5 border-white/5 mr-6"
@@ -514,7 +514,7 @@ export default function MorePage() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleTabletDelete(entry); }}
                                   disabled={tabletDeletingId === entry.id}
-                                  className="text-white/20 hover:text-red-400 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="text-white/40 active:text-red-400 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center"
                                   title="Delete for you"
                                 >
                                   {tabletDeletingId === entry.id ? (
