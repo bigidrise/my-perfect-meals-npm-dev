@@ -131,7 +131,7 @@ export default function TrainerClientDashboard() {
   };
 
   const handleBuilderAssignment = async (builderKey: BuilderKey) => {
-    const clientUid = client?.clientUserId || client?.userId;
+    const clientUid = resolvedClientUserId;
     const studioId = client?.studioId;
     
     if (!clientUid) {
