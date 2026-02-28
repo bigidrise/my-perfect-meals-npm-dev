@@ -86,6 +86,7 @@ The application is structured as a full-stack TypeScript project.
 - Dev and production share the SAME database — no staging DB
 
 ## Recent Changes
+- 2026-02-28: ProCare Phase 4 — Pro Portal Restructure. ProClients "Open" → "Open Folder" modal, builder badge on cards, ProClientFolderModal with View Biometrics/Macro Calculator/Dashboard buttons.
 - 2026-02-28: ProCare Phase 3 — Client Workspace UI Shell. Upgraded WorkspaceShell with structured layout: header (name/status), biometrics, macros, meal boards placeholder. Read-only display only.
 - 2026-02-28: ProCare Phase 2 — Workspace Governance Wiring. Created requireWorkspaceAccess middleware (client_links only, hard 403), GET /api/pro/workspace/:clientId read-only endpoint, /pro/workspace/:clientId frontend route + WorkspaceShell component
 - 2026-02-28: ProCare Phase 1 — Single Active Professional Relationship enforcement. Created clientLinkService.ts, POST /api/pro/end-relationship, wired createLink into /connect, endLink into /revoke, hardened requireBoardAccess

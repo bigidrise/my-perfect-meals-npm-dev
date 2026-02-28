@@ -9,8 +9,9 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { proStore, ClientProfile, ProRole, WorkspaceType, BuilderType } from "@/lib/proData";
-import { Plus, User2, ArrowRight, ArrowLeft, Archive, RotateCcw, LinkIcon } from "lucide-react";
+import { Plus, User2, ArrowLeft, Archive, RotateCcw, LinkIcon, FolderOpen } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
+import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
 
 interface ProClientsProps {
   workspace?: WorkspaceType;
@@ -26,6 +27,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [dbSynced, setDbSynced] = useState(false);
+  const [folderClient, setFolderClient] = useState<ClientProfile | null>(null);
+  const [folderOpen, setFolderOpen] = useState(false);
 
   const defaultRole: ProRole = isPhysician ? "doctor" : "trainer";
 
@@ -120,6 +123,29 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
 
   const go = (id: string) => {
     setLocation(`/pro/clients/${id}/${resolvedWorkspace}`);
+  };
+
+  const openFolder = (c: ClientProfile) => {
+    setFolderClient(c);
+    setFolderOpen(true);
+  };
+
+  const BUILDER_LABELS: Record<string, string> = {
+    general: "General Nutrition",
+    general_nutrition: "General Nutrition",
+    performance: "Performance & Competition",
+    performance_competition: "Performance & Competition",
+    diabetic: "Diabetic",
+    glp1: "GLP-1",
+    "anti-inflammatory": "Anti-Inflammatory",
+    anti_inflammatory: "Anti-Inflammatory",
+    weekly: "Weekly",
+  };
+
+  const getBuilderBadge = (c: ClientProfile): string | null => {
+    const raw = c.assignedBuilder || c.activeBoardId;
+    if (!raw) return null;
+    return BUILDER_LABELS[raw] || raw.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
   };
 
   const backPath = isPhysician ? "/care-team/physician" : "/care-team/trainer";
@@ -242,6 +268,11 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                           {c.role === "doctor" ? "Doctor" : c.role === "np" ? "Nurse Practitioner" : c.role === "rn" ? "RN" : c.role === "pa" ? "PA" : c.role === "nutritionist" ? "Nutritionist" : c.role === "dietitian" ? "Dietitian" : "Trainer"}
                         </div>
                       )}
+                      {getBuilderBadge(c) && (
+                        <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
+                          {getBuilderBadge(c)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -279,8 +310,9 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                         <Archive className="h-4 w-4 mr-1" />
                         Archive
                       </Button>
-                      <Button onClick={() => go(c.id)} className="bg-purple-600 text-white active:scale-[0.98]" data-testid="button-open-client">
-                        Open <ArrowRight className="h-4 w-4 ml-2" />
+                      <Button onClick={() => openFolder(c)} className="bg-purple-600 text-white active:scale-[0.98]" data-testid="button-open-client">
+                        <FolderOpen className="h-4 w-4 mr-1" />
+                        Open Folder
                       </Button>
                     </>
                   )}
@@ -297,6 +329,14 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         title={`${portalTitle} Guide`}
         steps={PRO_CLIENTS_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+
+      <ProClientFolderModal
+        client={folderClient}
+        open={folderOpen}
+        onOpenChange={setFolderOpen}
+        onNavigate={setLocation}
+        isPhysician={isPhysician}
       />
     </motion.div>
   );

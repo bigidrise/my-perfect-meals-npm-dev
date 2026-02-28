@@ -4,6 +4,32 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: ProCare Phase 4 — Pro Portal Restructure
+
+**Change scope:** We are restructuring the Pro Portal client list to use a central Client Folder Modal instead of direct navigation. We are adding builder badges to client cards. We are NOT touching ProClientDashboard, macro logic, guardrails, translation, onboarding, builder internals, studio DB schema, or routing structure.
+
+**What changed:**
+- Modified `client/src/pages/pro/ProClients.tsx`:
+  - "Open" button renamed to "Open Folder" with FolderOpen icon
+  - Added Active Builder badge (orange) to client cards — shows assignedBuilder or activeBoardId with readable labels
+  - Added modal state (folderClient, folderOpen) and openFolder handler
+  - Wired ProClientFolderModal component
+- Created `client/src/components/pro/ProClientFolderModal.tsx`:
+  - Uses shadcn Dialog (existing pattern, decentralized state)
+  - Header: client name, email, Active/Archived status badge, role badge, builder badge (conditional)
+  - Body: Tablet placeholder ("Coming soon"), View Biometrics button (→ workspace), View Macro Calculator button (→ /macro-counter), Go To Client Dashboard button (→ existing dashboard route)
+  - Builder badge uses BUILDER_LABELS map with fallback formatting, conditional display (null if unassigned)
+
+**Files touched:**
+- `client/src/pages/pro/ProClients.tsx` (modified)
+- `client/src/components/pro/ProClientFolderModal.tsx` (new)
+
+**Expected impact:** Pro Portal flow only. No backend changes, no routing changes, no dashboard logic changes.
+
+**Golden Path:** App compiles and runs. Pro Portal accessible, client cards display correctly.
+
+---
+
 ## 2026-02-28: ProCare Phase 3 — Client Workspace UI Shell
 
 **Change scope:** We are upgrading the WorkspaceShell component from a bare-bones display to a structured workspace layout with display sections. We are ONLY modifying `WorkspaceShell.tsx`. We are NOT touching backend, routes, middleware, onboarding, macro calculator, builder switching, Stripe, or any other file.
