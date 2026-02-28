@@ -308,6 +308,8 @@ export const users = pgTable("users", {
   role: text("role").$type<"admin"|"coach"|"client">().notNull().default("client"), // admin = full access, coach = Pro Care tools, client = assigned board only
   isProCare: boolean("is_pro_care").default(false), // true if user is managed by a coach
   activeBoard: text("active_board"), // assigned meal builder for Pro Care clients (null = locked state)
+  boardUpdatePending: boolean("board_update_pending").default(false),
+  boardUpdatedAt: timestamp("board_updated_at", { withTimezone: true }),
   // Extended Onboarding System
   onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }), // null = onboarding not complete
   macrosDefined: boolean("macros_defined").default(false), // true when user has set macro targets

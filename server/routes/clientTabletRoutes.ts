@@ -4,6 +4,7 @@ import { clientNotes, studios } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { eq, and, asc } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { notifyMessageRecipient } from "../services/tabletNotify";
 
 const router = Router();
 
@@ -114,6 +115,8 @@ router.post("/messages", async (req: Request, res: Response) => {
       sender: clientNotes.sender,
       createdAt: clientNotes.createdAt,
     });
+
+  notifyMessageRecipient(link.proUserId, "Your client");
 
   res.status(201).json({ entry });
 });

@@ -4,6 +4,35 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Phase 6 — Builder Update Digest Notifications + Immediate Message Push
+
+**Change scope:** Wire push notifications for tablet messages (immediate) and builder edits (daily digest at midnight server time). No UI changes. No builder/routing/auth changes.
+
+**What changed:**
+- `shared/schema.ts`: Added `boardUpdatePending` (boolean, default false) and `boardUpdatedAt` (timestamp) columns to users table
+- `server/routes/proBoardRoutes.ts`: Added `markBoardUpdatePending()` helper. Called after every coach mutation (add item, delete item, repeat day) — sets `board_update_pending=true` + `board_updated_at=now()` on client user
+- `server/services/boardDigestJob.ts`: New file — midnight server-time job. Queries all users with `board_update_pending=true`, sends push notification ("Your Meal Plan Was Updated"), resets flag. Uses `web-push` with DB-backed `pushTokens`
+- `server/services/tabletNotify.ts`: New file — `notifyMessageRecipient()` function for immediate push on tablet messages. Reads `pushTokens` from users table, fires push via `web-push`
+- `server/routes/proTabletRoutes.ts`: Added import + call to `notifyMessageRecipient(clientId, "Your coach")` after pro sends message
+- `server/routes/clientTabletRoutes.ts`: Added import + call to `notifyMessageRecipient(link.proUserId, "Your client")` after client sends message
+- `server/index.ts`: Wired `startBoardDigestJob()` at server startup
+
+**Files touched:**
+- `shared/schema.ts` (modified)
+- `server/routes/proBoardRoutes.ts` (modified)
+- `server/services/boardDigestJob.ts` (new)
+- `server/services/tabletNotify.ts` (new)
+- `server/routes/proTabletRoutes.ts` (modified)
+- `server/routes/clientTabletRoutes.ts` (modified)
+- `server/index.ts` (modified)
+- `CHANGE_LOG.md` (this entry)
+
+**Expected impact:** Coach edits board → client gets ONE push at midnight. Coach sends message → client gets immediate push. Client sends message → coach gets immediate push. No SMS. No impact on auth, onboarding, macros, builders, or meal boards.
+
+**Golden Path:** Pass — DB columns verified, server compiles and runs, digest job scheduled.
+
+---
+
 ## 2026-02-28: Phase 5 Fix Pack — Soft Delete + Provider Notes CRUD + Modal Restructure
 
 **Change scope:** Tablet UX enhancement. Soft delete for shared messages (per-side visibility), provider notes CRUD (create/edit/archive/permanent delete/bulk archive), modal restructure (ProClientFolderModal → button hub, separate MessagesModal + ProviderNotesModal). Client More page updated with soft delete for own messages. No builders or routing touched.

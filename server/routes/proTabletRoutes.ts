@@ -4,6 +4,7 @@ import { clientNotes, studios } from "../db/schema/studio";
 import { eq, and, asc, desc, lt, sql } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { notifyMessageRecipient } from "../services/tabletNotify";
 
 const router = Router();
 
@@ -86,6 +87,8 @@ router.post("/:clientId/messages", requireWorkspaceAccess, async (req: Request, 
       sender: clientNotes.sender,
       createdAt: clientNotes.createdAt,
     });
+
+  notifyMessageRecipient(clientId, "Your coach");
 
   res.status(201).json({ entry });
 });
