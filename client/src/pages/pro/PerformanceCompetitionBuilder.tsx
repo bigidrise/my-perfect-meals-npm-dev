@@ -182,23 +182,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   );
   const routeClientId = athleteParams?.clientId || proParams?.id;
 
-  // Get current user ID for standalone mode
-  const getCurrentUserId = () => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        return user.id;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  };
-
   // In standalone mode, use current user's ID; in procare mode, use route clientId
   const clientId =
-    mode === "procare" ? routeClientId : routeClientId || getCurrentUserId();
+    mode === "procare" ? routeClientId : routeClientId || user?.id || null;
 
   // Safety check: redirect only if procare mode without clientId
   useEffect(() => {
@@ -243,7 +229,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
-      userId: user?.id,
+      userId: clientId,
       builderId: 'performance-competition-builder',
       weekStartISO,
     },
@@ -325,7 +311,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const resolved = clientId ? getResolvedTargets(clientId) : null;
     const strategy = resolved?.starchStrategy || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
@@ -336,7 +322,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       }
     }
     return { strategy, existingMeals };
-  }, [board, activeDayISO, user?.id]);
+  }, [board, activeDayISO, clientId]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -1777,7 +1763,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           {/* Daily Targets Card */}
           <div className="col-span-full">
             <DailyTargetsCard
-              userId={user?.id}
+              userId={clientId}
               showQuickAddButton={false}
               targetsOverride={(() => {
                 const coachTargets = proStore.getTargets(clientId);
@@ -1822,7 +1808,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
                 fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
-              const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
+              const dayAlreadyLocked = isDayLocked(activeDayISO, clientId);
               
               // Get coach targets from proStore for this client
               const coachTargets = proStore.getTargets(clientId);
@@ -1856,7 +1842,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         targets,
                         consumed,
                         slots,
-                      }, user?.id);
+                      }, clientId);
                       
                       if (result.alreadyLocked) {
                         toast({

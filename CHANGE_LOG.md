@@ -4,6 +4,32 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Fix Performance builder — client 404 + coach sees own data
+
+**Change scope:** Two bugs in PerformanceCompetitionBuilder.tsx. (1) Client gets blank/404 because standalone mode read user from wrong localStorage key ("user" instead of "mpm_current_user"), so clientId resolved to null. (2) Coach opens client builder but sees their own macro data because all data resolution calls used user.id (coach) instead of clientId (from URL param). No schema, auth, or other builder changes.
+
+**Root causes:**
+1. `getCurrentUserId()` read from `localStorage.getItem("user")` — app stores user as `mpm_current_user`. Replaced with `user?.id` from auth context.
+2. `useMealBoardDraft`, `getResolvedTargets`, `DailyTargetsCard`, `isDayLocked`, `lockDay` all used `user?.id` (coach) instead of `clientId` (from URL param or auth context).
+
+**What changed:**
+- `client/src/pages/pro/PerformanceCompetitionBuilder.tsx`:
+  - Removed broken `getCurrentUserId()` function, replaced with `user?.id` from auth context
+  - `useMealBoardDraft({ userId: clientId })` — draft saves under client
+  - `getResolvedTargets(clientId)` — starch context resolves from client
+  - `DailyTargetsCard userId={clientId}` — targets display client's data
+  - `isDayLocked(activeDayISO, clientId)` — lock checks client's days
+  - `lockDay({...}, clientId)` — lock saves under client
+
+**Files touched:**
+- `client/src/pages/pro/PerformanceCompetitionBuilder.tsx` (modified)
+
+**Expected impact:** Performance builder only. Client can now access builder. Coach sees client's data. No other builders affected.
+
+**Golden Path:** App compiles. Performance builder resolves data from correct user context.
+
+---
+
 ## 2026-02-28: Shared BUILDER_MAP, expand all 7 builders, rewire dashboard routing
 
 **Change scope:** Create single source of truth for builder keys/routes, expand assignment from 2 to 7 builders, fix "Client Dashboard" button routing to assigned builder. Routing + mapping only — no schema, auth, switch logic, or guardrail changes.
