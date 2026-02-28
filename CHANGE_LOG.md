@@ -4,6 +4,30 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-02-28: Fix Anti-Inflammatory builder context + Folder Modal always→dashboard
+
+**Change scope:** Two bugs. (1) AntiInflammatoryMenuBuilder uses `user?.id` (coach) for all data resolution in procare mode — macro targets, drafts, day locks, starch context, daily targets, nutrition budget. Should use client ID from route param. (2) ProClientFolderModal dashboard button dynamically changed to navigate directly to builder when assignedBuilder was set. Should always navigate to client dashboard. Builders are reached from the dashboard, not the folder modal.
+
+**What changed:**
+- `client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx`:
+  - Added `effectiveUserId = proClientId || user?.id` — resolves to client ID in procare mode, coach ID in standalone mode
+  - Replaced all 15 instances of `user?.id` with `effectiveUserId`: useMealBoardDraft, getResolvedTargets, isDayLocked, lockDay, getMacroTargets, DailyTargetsCard, midnight macro reset query, AdditionalMacrosModal deficits
+- `client/src/components/pro/ProClientFolderModal.tsx`:
+  - Dashboard button always navigates to `/pro/clients/:id/{workspace}` (client dashboard)
+  - Removed conditional builder-direct routing and dynamic label
+  - Label always reads "Go To Client Dashboard"
+  - Removed unused `BUILDER_MAP` / `BuilderKey` imports
+
+**Files touched:**
+- `client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx` (modified)
+- `client/src/components/pro/ProClientFolderModal.tsx` (modified)
+
+**Expected impact:** Anti-Inflammatory builder now shows client data in procare mode. Folder modal never bypasses dashboard layer. Other builders still need the same effectiveUserId fix (one at a time per protocol).
+
+**Golden Path:** App compiles. Only 2 files changed. No router/auth/schema changes.
+
+---
+
 ## 2026-02-28: Fix Performance builder — client 404 + coach sees own data
 
 **Change scope:** Two bugs in PerformanceCompetitionBuilder.tsx. (1) Client gets blank/404 because standalone mode read user from wrong localStorage key ("user" instead of "mpm_current_user"), so clientId resolved to null. (2) Coach opens client builder but sees their own macro data because all data resolution calls used user.id (coach) instead of clientId (from URL param). No schema, auth, or other builder changes.

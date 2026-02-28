@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
-import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -351,23 +350,13 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"
               onClick={() => {
                 onOpenChange(false);
-                const builderKey = (client.assignedBuilder || client.activeBoardId) as BuilderKey | undefined;
                 const navId = client.clientUserId || client.userId || client.id;
-                if (builderKey && BUILDER_MAP[builderKey]) {
-                  onNavigate(`/pro/clients/${navId}/${BUILDER_MAP[builderKey].proRoute}`);
-                } else {
-                  onNavigate(`/pro/clients/${navId}/${workspace}`);
-                }
+                onNavigate(`/pro/clients/${navId}/${workspace}`);
               }}
             >
               <span className="flex items-center gap-2">
                 <LayoutDashboard className="w-4 h-4" />
-                {(() => {
-                  const bk = (client.assignedBuilder || client.activeBoardId) as BuilderKey | undefined;
-                  return bk && BUILDER_MAP[bk]
-                    ? `Open ${BUILDER_MAP[bk].label} Builder`
-                    : "Go To Client Dashboard";
-                })()}
+                Go To Client Dashboard
               </span>
               <ArrowRight className="w-4 h-4" />
             </Button>
