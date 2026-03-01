@@ -225,6 +225,8 @@ export default function CareTeamPage() {
     }
   }
 
+  const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
+
   async function revokeMember(id: string) {
     try {
       await apiRequest(`/api/care-team/${id}/revoke`, { method: "POST" });
@@ -233,6 +235,7 @@ export default function CareTeamPage() {
           m.id === id ? { ...m, status: "revoked" as const } : m,
         ),
       );
+      setRevokeConfirmId(null);
       alert("✅ Access revoked successfully!");
     } catch {
       setError("Failed to revoke access.");
@@ -429,7 +432,7 @@ export default function CareTeamPage() {
               key={m.id}
               member={m}
               onApprove={undefined}
-              onRevoke={() => revokeMember(m.id)}
+              onRevoke={() => setRevokeConfirmId(m.id)}
               setLocation={setLocation}
             />
           ))}
@@ -447,6 +450,32 @@ export default function CareTeamPage() {
         steps={CARE_TEAM_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
+
+      {revokeConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-lg font-bold text-white">Revoke Access?</h3>
+            <p className="text-sm text-white/70">
+              This will remove this professional's access to your nutrition data. You can re-add them later with a new invite code.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setRevokeConfirmId(null)}
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => revokeMember(revokeConfirmId)}
+                variant="destructive"
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                Revoke Access
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
