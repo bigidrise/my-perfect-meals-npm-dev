@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { clientLinks } from "../db/schema/procare";
+import { studios, studioMemberships } from "../db/schema/studio";
 import { eq, and } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
 
@@ -38,11 +39,29 @@ export async function requireWorkspaceAccess(
     )
     .limit(1);
 
-  if (!activeLink) {
-    res.status(403).json({ error: "No active workspace access for this client" });
+  if (activeLink) {
+    (req as WorkspaceAccessRequest).workspaceClientId = clientId;
+    next();
     return;
   }
 
-  (req as WorkspaceAccessRequest).workspaceClientId = clientId;
-  next();
+  const [studioMember] = await db
+    .select({ id: studioMemberships.id })
+    .from(studioMemberships)
+    .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
+    .where(
+      and(
+        eq(studios.ownerUserId, authUser.id),
+        eq(studioMemberships.clientUserId, clientId)
+      )
+    )
+    .limit(1);
+
+  if (studioMember) {
+    (req as WorkspaceAccessRequest).workspaceClientId = clientId;
+    next();
+    return;
+  }
+
+  res.status(403).json({ error: "No active workspace access for this client" });
 }
