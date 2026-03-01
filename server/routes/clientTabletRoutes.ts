@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { clientNotes, studios } from "../db/schema/studio";
+import { clientNotes, studios, studioMemberships } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { eq, and, asc } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
@@ -32,6 +32,15 @@ async function getStudioIdByOwner(proUserId: string): Promise<string | null> {
   return studio?.id ?? null;
 }
 
+async function getStudioIdByMembership(clientUserId: string): Promise<string | null> {
+  const [membership] = await db
+    .select({ studioId: studioMemberships.studioId })
+    .from(studioMemberships)
+    .where(eq(studioMemberships.clientUserId, clientUserId))
+    .limit(1);
+  return membership?.studioId ?? null;
+}
+
 router.get("/", async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
@@ -39,8 +48,16 @@ router.get("/", async (req: Request, res: Response) => {
     return;
   }
 
+  let studioId: string | null = null;
+
   const link = await getActiveProLink(authUser.id);
-  if (!link) {
+  if (link) {
+    studioId = await getStudioIdByOwner(link.proUserId);
+  } else {
+    studioId = await getStudioIdByMembership(authUser.id);
+  }
+
+  if (!studioId) {
     res.status(404).json({ error: "No active professional connection" });
     return;
   }
@@ -81,15 +98,17 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
+  let studioId: string | null = null;
+
   const link = await getActiveProLink(authUser.id);
-  if (!link) {
-    res.status(404).json({ error: "No active professional connection" });
-    return;
+  if (link) {
+    studioId = await getStudioIdByOwner(link.proUserId);
+  } else {
+    studioId = await getStudioIdByMembership(authUser.id);
   }
 
-  const studioId = await getStudioIdByOwner(link.proUserId);
   if (!studioId) {
-    res.status(404).json({ error: "Professional studio not found" });
+    res.status(404).json({ error: "No active professional connection" });
     return;
   }
 
