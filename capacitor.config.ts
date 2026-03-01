@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'My Perfect Meals',
   webDir: 'client/dist',
   server: {
-    url: 'https://my-perfect-meals-production-do-not-touch--bigidrise.replit.app',
+    url: 'https://my-perfect-meals-npm-dev.replit.app',
     cleartext: false,
   },
   ios: {
