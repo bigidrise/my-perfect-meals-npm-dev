@@ -25,11 +25,6 @@ export const IOS_PAYMENT_MESSAGE = {
     "This feature requires a subscription. Tap 'Subscribe' to view available plans in the App Store.",
 };
 
-// Open Apple subscription management in the most reliable way.
-// Order:
-// 1) Subscriptions plugin (manageSubscriptions) if available
-// 2) AppLauncher openUrl with itms-apps scheme
-// 3) Web fallback
 export async function openAppleSubscriptions(): Promise<void> {
   const httpsUrl = "https://apps.apple.com/account/subscriptions";
   const itmsUrl = "itms-apps://apps.apple.com/account/subscriptions";
@@ -39,7 +34,6 @@ export async function openAppleSubscriptions(): Promise<void> {
     return;
   }
 
-  // 1) Preferred: Subscriptions plugin (this avoids the UNIMPLEMENTED you saw)
   try {
     const Subscriptions: any = registerPlugin("Subscriptions");
     if (Subscriptions?.manageSubscriptions) {
@@ -53,7 +47,6 @@ export async function openAppleSubscriptions(): Promise<void> {
     );
   }
 
-  // 2) Fallback: AppLauncher
   try {
     const { AppLauncher } = await import("@capacitor/app-launcher");
     await AppLauncher.openUrl({ url: itmsUrl });
@@ -62,7 +55,6 @@ export async function openAppleSubscriptions(): Promise<void> {
     console.warn("[Platform] AppLauncher openUrl failed:", e);
   }
 
-  // 3) Last resort: open the web page
   try {
     if (typeof window !== "undefined") {
       window.open(httpsUrl, "_blank");
@@ -72,6 +64,5 @@ export async function openAppleSubscriptions(): Promise<void> {
     console.error("[Platform] Final fallback failed:", e);
   }
 
-  // If we got here, everything failed
   throw new Error("Unable to open Apple Subscriptions on this device.");
 }

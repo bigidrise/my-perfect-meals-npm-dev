@@ -104,11 +104,7 @@ export default function PricingPage() {
   }
 
   if (isIosNativeShell()) {
-    const iosSubscriptionPlans = [
-      "mpm_basic_monthly",
-      "mpm_premium_monthly",
-      "mpm_ultimate_monthly",
-    ];
+    const iosSubscriptionPlans = IOS_PRODUCTS.map((p) => p.internalSku);
 
     const planKey = user?.planLookupKey || "";
     const hasIosSubscription =

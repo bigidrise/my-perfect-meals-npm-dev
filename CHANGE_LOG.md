@@ -4,6 +4,29 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-01: iOS StoreKit Product ID Fix + Capacitor Config Sync
+
+**Change scope:** Fix wrong product IDs that prevented StoreKit from loading any products on iOS. Align product IDs with App Store Connect. Add server.url to capacitor.config.ts source. Update server-side verification to accept new product IDs.
+
+**What changed:**
+- `client/src/lib/iosProducts.ts`: Updated 3 product IDs from `mpm_basic_plan_999`/`mpm_premium_plan_1999`/`mpm_ultimate_plan_2999` to `mpm.iap.basic_upgrade.v1`/`mpm.iap.premium_upgrade.v1`/`mpm.iap.ultimate_upgrade.v1` (matching App Store Connect)
+- `server/routes/iosVerify.ts`: Added new product IDs to `IOS_PRODUCT_TO_PLAN` mapping (kept old IDs for backward compat). Updated restore-purchases tier ordering to include new IDs.
+- `capacitor.config.ts`: Added `server.url` pointing to production Replit app (was only in ios/App/App/capacitor.config.json, would be lost on next cap copy)
+- `client/src/pages/PricingPage.tsx`: Changed `iosSubscriptionPlans` from hardcoded array to derive from `IOS_PRODUCTS.map()` so it stays in sync
+
+**Files touched:**
+- `client/src/lib/iosProducts.ts` (modified)
+- `server/routes/iosVerify.ts` (modified)
+- `capacitor.config.ts` (modified)
+- `client/src/pages/PricingPage.tsx` (modified)
+- `CHANGE_LOG.md` (this entry)
+
+**Expected impact:** iOS app will now request correct product IDs from StoreKit, products should load and appear on pricing page. Server-side purchase verification will accept both old and new product IDs. No impact on auth, onboarding, macros, or meal boards.
+
+**Golden Path:** N/A (iOS-only change, requires Xcode rebuild to test)
+
+---
+
 ## 2026-02-28: Phase 5 Tablet System — Full Install (Messages + Provider Notes)
 
 **Change scope:** Install the complete tablet architecture with two modes inside the Client Folder Modal (Messages = shared two-way thread with translation, Provider Notes = private provider-only running history without translation), plus client-side access to shared thread on the More page. Extended client_notes table with entry_type and sender columns. Created client tablet routes for client read/write access to shared messages only.
