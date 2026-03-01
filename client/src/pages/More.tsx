@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, MessageSquare, Send, Loader2, Globe, ChevronDown, ChevronUp } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, MessageSquare, Send, Loader2, Globe, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
@@ -128,6 +128,20 @@ export default function MorePage() {
       setTabletError("Translation failed");
     } finally {
       setTabletTranslatingId(null);
+    }
+  };
+
+  const handleTabletDelete = async (entry: any) => {
+    try {
+      const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete");
+      setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
+    } catch {
+      setTabletError("Failed to delete message");
     }
   };
 
@@ -474,18 +488,29 @@ export default function MorePage() {
                               {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
                               {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
                             </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleTabletTranslate(entry); }}
-                              disabled={tabletTranslatingId === entry.id}
-                              className="text-white/30 hover:text-white/60 p-0.5"
-                              title="Translate"
-                            >
-                              {tabletTranslatingId === entry.id ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Globe className="w-3 h-3" />
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleTabletTranslate(entry); }}
+                                disabled={tabletTranslatingId === entry.id}
+                                className="text-blue-400 p-0.5"
+                                title="Translate"
+                              >
+                                {tabletTranslatingId === entry.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Globe className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              {entry.sender === "client" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleTabletDelete(entry); }}
+                                  className="text-red-500 p-0.5"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               )}
-                            </button>
+                            </div>
                           </div>
                           <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
                             {entry.translatedBody || entry.body}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
-import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare } from "lucide-react";
+import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -217,6 +217,25 @@ export default function ProClientFolderModal({
     }
   };
 
+  const handleDeleteEntry = async (entry: TabletEntry) => {
+    if (!clientId) return;
+    try {
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/entry/${entry.id}`), {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete");
+      if (entry.entryType === "message") {
+        setMessages((prev) => prev.filter((m) => m.id !== entry.id));
+      } else {
+        setNotes((prev) => prev.filter((n) => n.id !== entry.id));
+      }
+    } catch {
+      setError("Failed to delete entry");
+    }
+  };
+
   if (!client) return null;
 
   const builderLabel = getBuilderLabel(client);
@@ -242,20 +261,31 @@ export default function ProClientFolderModal({
             <span className="text-[10px] text-white/40">
               {entry.sender === "client" ? "Client" : "Coach"} &middot; {formatTimestamp(entry.createdAt)}
             </span>
-            {showTranslate && (
-              <button
-                onClick={() => handleTranslate(entry)}
-                disabled={translatingId === entry.id}
-                className="text-white/30 hover:text-white/60 p-0.5"
-                title="Translate"
-              >
-                {translatingId === entry.id ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Globe className="w-3 h-3" />
-                )}
-              </button>
-            )}
+            <div className="flex items-center gap-1.5">
+              {showTranslate && (
+                <button
+                  onClick={() => handleTranslate(entry)}
+                  disabled={translatingId === entry.id}
+                  className="text-blue-400 p-0.5"
+                  title="Translate"
+                >
+                  {translatingId === entry.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Globe className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+              {entry.sender === "pro" && (
+                <button
+                  onClick={() => handleDeleteEntry(entry)}
+                  className="text-red-500 p-0.5"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
             {entry.translatedBody || entry.body}

@@ -136,4 +136,34 @@ router.post("/message", async (req: Request, res: Response) => {
   res.status(201).json({ entry });
 });
 
+router.delete("/entry/:entryId", async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  const { entryId } = req.params;
+
+  const [deleted] = await db
+    .delete(clientNotes)
+    .where(
+      and(
+        eq(clientNotes.id, entryId),
+        eq(clientNotes.authorUserId, authUser.id),
+        eq(clientNotes.clientUserId, authUser.id),
+        eq(clientNotes.entryType, "message"),
+        eq(clientNotes.visibility, "shared_with_client")
+      )
+    )
+    .returning({ id: clientNotes.id });
+
+  if (!deleted) {
+    res.status(404).json({ error: "Entry not found or not yours" });
+    return;
+  }
+
+  res.json({ ok: true });
+});
+
 export default router;

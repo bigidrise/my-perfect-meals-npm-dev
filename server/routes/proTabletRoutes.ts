@@ -134,4 +134,34 @@ router.post("/:clientId/note", requireWorkspaceAccess, async (req: Request, res:
   res.status(201).json({ entry });
 });
 
+router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const { clientId, entryId } = req.params;
+
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No studio found" });
+    return;
+  }
+
+  const [deleted] = await db
+    .delete(clientNotes)
+    .where(
+      and(
+        eq(clientNotes.id, entryId),
+        eq(clientNotes.authorUserId, authUser.id),
+        eq(clientNotes.studioId, studioId),
+        eq(clientNotes.clientUserId, clientId)
+      )
+    )
+    .returning({ id: clientNotes.id });
+
+  if (!deleted) {
+    res.status(404).json({ error: "Entry not found or not yours" });
+    return;
+  }
+
+  res.json({ ok: true });
+});
+
 export default router;
