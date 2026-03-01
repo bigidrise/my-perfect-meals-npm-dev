@@ -1,4 +1,5 @@
-import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Capacitor } from "@capacitor/core";
+import { Subscriptions } from "@squareetlabs/capacitor-subscriptions";
 
 export function isIosNativeShell(): boolean {
   if (typeof window === "undefined") return false;
@@ -35,9 +36,8 @@ export async function openAppleSubscriptions(): Promise<void> {
   }
 
   try {
-    const Subscriptions: any = registerPlugin("Subscriptions");
     if (Subscriptions?.manageSubscriptions) {
-      await Subscriptions.manageSubscriptions();
+      await (Subscriptions as any).manageSubscriptions();
       return;
     }
   } catch (e) {

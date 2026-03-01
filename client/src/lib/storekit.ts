@@ -6,23 +6,13 @@ import {
 } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { registerPlugin } from "@capacitor/core";
+import { Subscriptions } from "@squareetlabs/capacitor-subscriptions";
 
-let SubscriptionsPlugin: any = null;
-
-async function getPlugin() {
+function getPlugin(): any | null {
   if (!isIosNativeShell()) {
     return null;
   }
-  if (!SubscriptionsPlugin) {
-    try {
-      SubscriptionsPlugin = registerPlugin('Subscriptions');
-    } catch (e) {
-      console.warn("[StoreKit] Failed to load plugin:", e);
-      return null;
-    }
-  }
-  return SubscriptionsPlugin;
+  return Subscriptions;
 }
 
 export interface StoreKitProduct {
@@ -43,7 +33,7 @@ export interface PurchaseResult {
 export async function isStoreKitAvailable(): Promise<boolean> {
   if (!isIosNativeShell()) return false;
   try {
-    const plugin = await getPlugin();
+    const plugin = getPlugin();
     return plugin !== null;
   } catch (e) {
     console.warn("[StoreKit] isStoreKitAvailable check failed:", e);
@@ -52,7 +42,7 @@ export async function isStoreKitAvailable(): Promise<boolean> {
 }
 
 export async function fetchProducts(): Promise<StoreKitProduct[]> {
-  const plugin = await getPlugin();
+  const plugin = getPlugin();
   if (!plugin) {
     console.log("[StoreKit] Not available, returning empty products");
     return [];
@@ -97,7 +87,7 @@ export async function purchaseProduct(
 ): Promise<PurchaseResult> {
   let plugin;
   try {
-    plugin = await getPlugin();
+    plugin = getPlugin();
   } catch (e: any) {
     console.error("[StoreKit] Failed to initialize plugin:", e);
     return { success: false, error: "In-app purchases temporarily unavailable. Please try again later." };
@@ -162,7 +152,7 @@ export async function purchaseProduct(
 }
 
 export async function restorePurchases(): Promise<PurchaseResult[]> {
-  const plugin = await getPlugin();
+  const plugin = getPlugin();
   if (!plugin) {
     return [];
   }
@@ -206,7 +196,7 @@ export async function restorePurchases(): Promise<PurchaseResult[]> {
 }
 
 export async function getCurrentEntitlements(): Promise<string[]> {
-  const plugin = await getPlugin();
+  const plugin = getPlugin();
   if (!plugin) {
     return [];
   }
@@ -227,7 +217,7 @@ export async function getCurrentEntitlements(): Promise<string[]> {
 }
 
 export async function manageSubscriptions(): Promise<void> {
-  const plugin = await getPlugin();
+  const plugin = getPlugin();
   if (!plugin) {
     console.warn("[StoreKit] Plugin not available for manageSubscriptions");
     return;
