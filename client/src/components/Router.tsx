@@ -230,21 +230,14 @@ export default function Router() {
     user?.role === "trainer" ||
     user?.role === "physician";
 
-  const clinicWorkspaceRoutes = [
-    "/care-team",
-    "/pro-portal",
-    "/pro/clients",
-    "/pro/physician-clients",
-    "/pro/physician",
-  ];
-
   const isInPersonalBuilder =
     location === "/pro/general-nutrition-builder" ||
     location === "/performance-competition-builder";
 
-  const isInClinicWorkspace = clinicWorkspaceRoutes.some(route =>
-    location.startsWith(route)
-  );
+  const isInClinicWorkspace =
+    location.startsWith("/care-team") ||
+    location.startsWith("/pro-portal") ||
+    location.startsWith("/pro/");
 
   const showClinicianNav = isClinicianUser && isInClinicWorkspace && !isInPersonalBuilder;
 
