@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
 import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
+import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -474,6 +475,8 @@ export default function ProClientFolderModal({
             </div>
 
             {clientId && <StudioMetricsSnapshot clientId={clientId} />}
+
+            {clientId && <ProClientWeightSnapshot clientId={clientId} />}
 
             <Button
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"

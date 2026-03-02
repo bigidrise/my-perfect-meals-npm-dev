@@ -69,6 +69,12 @@ The application is a full-stack TypeScript project with a focus on personalized 
     - `useWeeklyBoard` hook and `boardApi.ts` functions support `proClientId` for contextual data loading.
     - Pro builder routes render actual builder components, not a separate viewer.
     - `builderMap.ts` centralizes builder keys and routes.
+- **Studio Metrics Architecture**:
+    - Studio reads DATABASE only, never localStorage. Consumer pages (my-biometrics, macro-calculator) are coach's personal space.
+    - `StudioMetricsSnapshot` shows macro targets (from proStore), today's logged macros, and body composition via database APIs.
+    - `ProClientWeightSnapshot` shows weight trend chart + 30D/90D deltas via `GET /api/pro/clients/:clientId/biometrics/weight`.
+    - `proBiometricsRoutes.ts` provides pro-scoped weight API using `requireBoardAccess` middleware.
+    - Both components render inline in `ProClientFolderModal` — no consumer page routing needed.
 
 ## External Dependencies
 - **PostgreSQL**: Primary database (Neon-backed on Replit).

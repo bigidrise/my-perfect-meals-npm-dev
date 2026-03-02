@@ -4,6 +4,32 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-02: ProClientWeightSnapshot — Database-Only Weight Trend in Studio
+
+**Change scope:** Add weight trend visibility to Studio Client Folder. Coach needs to see client's weight history from the database — not localStorage. Built a new pro-scoped API route and a read-only weight snapshot component.
+
+**What changed:**
+- Created `server/routes/proBiometricsRoutes.ts` — GET `/api/pro/clients/:clientId/biometrics/weight?range=365d` using `requireBoardAccess` middleware. Queries `biometricSample` table for weight entries scoped to clientId. Returns same format as consumer `/api/biometrics/weight`.
+- Created `client/src/components/pro/ProClientWeightSnapshot.tsx` — Read-only weight trend component:
+  - Top snapshot: Current weight, last weigh-in date, 30D change, 90D change (color-coded green/red)
+  - Toggleable chart: 30D / 90D / 6M / 12M using Recharts LineChart
+  - Data fetched exclusively from database API (no localStorage)
+  - State resets on clientId change to prevent stale/cross-client data
+- Updated `server/routes.ts` — Mounted `proBiometricsRoutes` at `/api/pro` with `requireAuth`
+- Updated `client/src/components/pro/ProClientFolderModal.tsx` — Renders `ProClientWeightSnapshot` below `StudioMetricsSnapshot`
+
+**Files touched:**
+- `server/routes/proBiometricsRoutes.ts` (new)
+- `client/src/components/pro/ProClientWeightSnapshot.tsx` (new)
+- `server/routes.ts` (modified)
+- `client/src/components/pro/ProClientFolderModal.tsx` (modified)
+
+**Expected impact:** Coach sees client's weight trend chart and deltas in the Client Folder modal. Consumer biometrics page completely untouched. No new database tables. Studio architectural rule enforced: database reads only.
+
+**Golden Path:** App compiles and runs. Architect review: identified stale state bug on client switch → fixed with state reset on clientId change. PASS after fix.
+
+---
+
 ## 2026-03-02: Studio-Scoped Routes — Biometrics & Macro Calculator
 
 **Change scope:** When a coach clicked "View Biometrics" or "Macro Calculator" from the ProClientFolderModal, navigation went to consumer routes (/biometrics, /macro-counter), which exited studio context entirely — loading consumer bottom nav and coach's own data. Created studio-scoped routes that keep the coach inside the studio shell with client data.
