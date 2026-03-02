@@ -209,23 +209,8 @@ export default function PricingPage() {
                   </ul>
 
                   <Button
-                    onClick={async () => {
-                      try {
-                        await openAppleSubscriptions();
-                      } catch (e) {
-                        console.error(
-                          "[Pricing] Failed to open manage subscriptions:",
-                          e,
-                        );
-                        toast({
-                          title: "Unable to open subscriptions",
-                          description:
-                            "Please go to Settings > Apple ID > Subscriptions to manage your plan.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    disabled={isCurrentPlan}
+                    onClick={() => handleIosPurchase(product)}
+                    disabled={isCurrentPlan || isPurchasing}
                     className={`w-full ${
                       isCurrentPlan
                         ? "bg-lime-500/20 text-lime-300 border border-lime-500/30 cursor-not-allowed"
@@ -234,7 +219,12 @@ export default function PricingPage() {
                           : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
                     }`}
                   >
-                    {isCurrentPlan ? (
+                    {isPurchasing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : isCurrentPlan ? (
                       "Current Plan"
                     ) : (
                       <>
