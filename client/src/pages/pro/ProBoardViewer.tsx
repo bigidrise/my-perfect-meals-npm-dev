@@ -125,10 +125,12 @@ export default function ProBoardViewer() {
   const programLabel = (() => {
     switch (program) {
       case "smart": return "General Nutrition";
-      case "athlete": return "Performance";
+      case "athlete": return "Performance & Competition";
       case "diabetic": return "Diabetic";
       case "glp1": return "GLP-1";
       case "medical": return "Anti-Inflammatory";
+      case "weekly": return "Weekly";
+      case "beach_body": return "Beach Body";
       default: return program;
     }
   })();

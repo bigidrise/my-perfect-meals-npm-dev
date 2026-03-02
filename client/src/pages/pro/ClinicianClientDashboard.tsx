@@ -519,19 +519,19 @@ export default function ClinicianClientDashboard() {
               Access specialized medical meal guidance for your patient.
             </p>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/diabetic-builder`)}
+              onClick={() => setLocation(`/pro/clients/${clientId}/board/diabetic`)}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               Diabetic Meal Builder
             </Button>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/glp1-builder`)}
+              onClick={() => setLocation(`/pro/clients/${clientId}/board/glp1`)}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               GLP-1 Meal Builder
             </Button>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/anti-inflammatory-builder`)}
+              onClick={() => setLocation(`/pro/clients/${clientId}/board/medical`)}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               Anti-Inflammatory Meal Builder
