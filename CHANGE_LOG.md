@@ -4,6 +4,44 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-02: Pro Week Board Unification — Coach edits client's actual week_boards
+
+**Change scope:** Coaches now edit a client's real `week_boards` data through pro-scoped endpoints. All 7 builders (Weekly, Diabetic, GLP-1, Anti-Inflammatory, Beach Body, General Nutrition, Performance) support `proClientId` override. ProBoardViewer/meal_boards system bypassed. Dashboard navigation updated to use builder routes.
+
+**What changed:**
+- `server/routes/proWeekBoard.ts` (new): Pro-scoped week board endpoints — GET/PUT `/api/pro/weekly-board/:clientId`, GET `/api/pro/week-board/:clientId/:weekStartISO`, GET `/api/pro/week-boards/:clientId/current-week`. All use `requireBoardAccess` middleware, resolve `access.clientUserId`.
+- `server/routes.ts`: Mounted proWeekBoard routes under `/api/pro`
+- `client/src/hooks/useWeeklyBoard.ts`: Added optional `proClientId` parameter. When set, calls pro endpoints instead of client endpoints and skips localStorage caching.
+- `client/src/lib/boardApi.ts`: `getCurrentWeekBoard`, `getWeekBoardByDate`, `putWeekBoard` all accept optional `proClientId`. When set, routes to `/api/pro/weekly-board/:clientId` or `/api/pro/week-board/:clientId/:weekStartISO`.
+- `client/src/lib/builderMap.ts`: Updated `proRoute` values from `board/*` paths to builder-specific names (`weekly-builder`, `diabetic-builder`, etc.)
+- `client/src/components/Router.tsx`: Pro builder routes now render actual builder components (not ProBoardViewer)
+- All 7 builder files updated to detect pro context via `useRoute("/pro/clients/:id/...")`, extract `proClientId`, pass to `useWeeklyBoard` and all direct `boardApi` calls
+- `client/src/pages/pro/TrainerClientDashboard.tsx`: Dashboard navigation updated to route to builder pages
+- `client/src/pages/pro/ClinicianClientDashboard.tsx`: Dashboard navigation updated to route to builder pages
+
+**Files touched:**
+- `server/routes/proWeekBoard.ts` (new)
+- `server/routes.ts` (modified)
+- `client/src/hooks/useWeeklyBoard.ts` (modified)
+- `client/src/lib/boardApi.ts` (modified)
+- `client/src/lib/builderMap.ts` (modified)
+- `client/src/components/Router.tsx` (modified)
+- `client/src/pages/WeeklyMenuBuilder.tsx` (modified)
+- `client/src/pages/diabetic/DiabeticMenuBuilder.tsx` (modified)
+- `client/src/pages/glp1/GLP1MenuBuilder.tsx` (modified)
+- `client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx` (modified)
+- `client/src/pages/pro/BeachBodyBuilder.tsx` (modified)
+- `client/src/pages/pro/GeneralNutritionBuilder.tsx` (modified)
+- `client/src/pages/pro/PerformanceCompetitionBuilder.tsx` (modified)
+- `client/src/pages/pro/TrainerClientDashboard.tsx` (modified)
+- `client/src/pages/pro/ClinicianClientDashboard.tsx` (modified)
+
+**Expected impact:** Coach builder editing only. Client standalone builder usage unchanged (proClientId=undefined, all calls remain the same). No changes to auth, onboarding, macros, or client-side meal generation.
+
+**Golden Path:** Verified — bigidrise (coach) can open myperfectmeals (client) builder, load client data, save changes. Client sees coach's changes. No regressions on client standalone flow.
+
+---
+
 ## 2026-03-02: Tablet Messaging Cache-Busting + Auto-Refresh Polling
 
 **Change scope:** Fix tablet messaging not syncing between pro and client. Messages sent by one side were not appearing for the other due to browser HTTP caching (304 responses). Added cache-busting and 10-second auto-refresh polling.
