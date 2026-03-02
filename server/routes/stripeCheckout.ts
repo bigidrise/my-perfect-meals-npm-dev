@@ -6,9 +6,12 @@ import type { LookupKey } from "../../client/src/data/planSkus";
 
 const router = Router();
 
+const stripeKey = process.env.STRIPE_SECRET_KEY || "";
+const keyMode = stripeKey.startsWith("sk_live_") ? "LIVE" : stripeKey.startsWith("sk_test_") ? "TEST" : "UNKNOWN";
+
 let stripe: Stripe | null = null;
-if (process.env.STRIPE_SECRET_KEY) {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+if (stripeKey) {
+  stripe = new Stripe(stripeKey, {
     apiVersion: "2025-09-30.clover",
   });
 }
@@ -22,37 +25,32 @@ function getUserId(req: any): string {
 
 router.post("/checkout", async (req, res) => {
   if (!stripe) {
-    return res.status(503).json({ error: "Payment system not configured" });
+    return res.status(503).json({ error: "Payment system not configured — STRIPE_SECRET_KEY is missing" });
   }
   try {
     const { sku, priceLookupKey, context } = req.body;
     const userId = getUserId(req);
 
-    // Accept either 'sku' or 'priceLookupKey' for compatibility
     const lookupKey = (sku || priceLookupKey) as LookupKey;
-    
+
     if (!lookupKey) {
-      return res.status(400).json({ error: "Missing SKU or priceLookupKey" });
+      return res.status(400).json({ error: "Missing plan selection (sku or priceLookupKey)" });
     }
 
     const priceId = STRIPE_PRICE_IDS[lookupKey];
     if (!priceId) {
-      return res.status(400).json({ 
-        error: "Invalid SKU", 
-        receivedKey: lookupKey,
-        validKeys: Object.keys(STRIPE_PRICE_IDS)
+      console.error(`❌ No Stripe price configured for plan "${lookupKey}". Check environment variables.`);
+      return res.status(500).json({
+        error: `No Stripe price configured for plan "${lookupKey}". Please contact support.`,
       });
     }
 
-    console.log(`📋 Checkout request - Lookup Key: ${lookupKey}`);
-    console.log(`📋 Resolved Price ID: "${priceId}"`);
-    console.log(`📋 Price ID length: ${priceId.length} characters`);
+    console.log(`📋 Checkout: plan=${lookupKey} | priceId=${priceId} | keyMode=${keyMode} | user=${userId}`);
 
-    const appUrl = process.env.APP_URL 
+    const appUrl = process.env.APP_URL
       || (process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : null)
       || "http://localhost:5000";
 
-    console.log(`📋 Sending to Stripe - Price ID: "${priceId}"`);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
@@ -71,15 +69,15 @@ router.post("/checkout", async (req, res) => {
       },
     });
 
-    console.log(`✅ Created checkout session for user ${userId}, plan ${lookupKey}`);
+    console.log(`✅ Checkout session created: plan=${lookupKey} | sessionId=${session.id}`);
     return res.json({ url: session.url });
   } catch (err: any) {
-    console.error("❌ Stripe checkout error:", err);
+    console.error("❌ Stripe checkout error:", err?.message || err);
     const msg = err?.message || "";
-    if (msg.includes("live mode") && msg.includes("test mode")) {
-      return res.status(500).json({ error: "Stripe configuration error: price ID mode does not match API key mode. Please contact support." });
+    if (msg.includes("No such price")) {
+      return res.status(500).json({ error: "Invalid Stripe price ID. The configured price does not exist in this Stripe account/mode." });
     }
-    return res.status(500).json({ error: "Failed to create checkout session" });
+    return res.status(500).json({ error: "Failed to create checkout session. Please try again." });
   }
 });
 

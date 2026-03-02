@@ -85,7 +85,17 @@ The application is structured as a full-stack TypeScript project.
 - DB schema: `height` stored in cm, `weight` stored in lbs
 - Dev and production share the SAME database — no staging DB
 
+## Stripe Configuration
+- **Mode**: TEST (sk_test_...) — all prices must be test-mode IDs
+- **Env vars**: `STRIPE_SECRET_KEY` (one global key), `STRIPE_PRICE_BASIC`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_ULTIMATE`, `STRIPE_PRICE_FAMILY_BASE`, `STRIPE_PRICE_FAMILY_ALL_PREMIUM`, `STRIPE_PRICE_FAMILY_ALL_ULTIMATE`, `STRIPE_PRICE_PROCARE`
+- **Strict mapping**: Each plan maps 1:1 to its env var. No fallback, no auto-substitution. Missing price = hard error.
+- **Config file**: `server/config/stripePrices.ts` — reads env vars, logs each mapping at startup
+- **Checkout route**: `server/routes/stripeCheckout.ts` — logs plan/priceId/keyMode/userId per request
+
 ## Recent Changes
+- 2026-03-02: Stripe standardized to TEST mode — removed fallback/auto-substitution logic. Strict 1:1 mapping: Basic→STRIPE_PRICE_BASIC, Premium→STRIPE_PRICE_PREMIUM, Ultimate→STRIPE_PRICE_ULTIMATE. Clear startup logging of key mode and all resolved price IDs. No mixed-mode logic.
+- 2026-03-02: Revoke confirmation dialog added to CareTeam.tsx, TrainerCareTeam.tsx, PhysicianCareTeam.tsx — prevents accidental one-tap revokes.
+- 2026-03-02: Delete own messages — trash icon only shows on entries you authored (pro sees trash on pro entries, client on client entries). Backend delete endpoints scoped to authorUserId + entryType + visibility.
 - 2026-03-01: iOS StoreKit Product ID Fix — Updated 3 product IDs to match App Store Connect (mpm.iap.basic_upgrade.v1, mpm.iap.premium_upgrade.v1, mpm.iap.ultimate_upgrade.v1). Old IDs were wrong and StoreKit returned empty products. Server-side verification updated with both old and new IDs. capacitor.config.ts now includes server.url. PricingPage iOS subscription plan list now derives from IOS_PRODUCTS.
 - 2026-02-28: Fix Anti-Inflammatory builder context + Folder Modal always→dashboard. Added `effectiveUserId = proClientId || user?.id` to AntiInflammatoryMenuBuilder, replaced all 15 `user?.id` refs with it. ProClientFolderModal dashboard button always routes to client dashboard, never directly to builder. Studio navigation rule: Folder→Dashboard→Builder (never Folder→Builder).
 - 2026-02-28: Shared BUILDER_MAP + expand all 7 builders + dashboard routing. New `builderMap.ts` = single source of truth for builder keys/routes. TrainerClientDashboard shows all 7 builders for assignment. "Client Dashboard" button routes to assigned builder. Backend validation expanded to 7 keys. Missing pro-client routes added (weekly-builder, beach-body-builder).
