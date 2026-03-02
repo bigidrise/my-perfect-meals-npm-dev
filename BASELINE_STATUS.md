@@ -1,7 +1,7 @@
 # MPM Baseline Status
 
-Last updated: 2026-03-02 (Pro Week Board Unification complete)
-Checkpoint: `2e8c971279b6ebcc295a4641b2e83eb785748194`
+Last updated: 2026-03-02 (effectiveUserId identity fix across all builders)
+Checkpoint: pending
 
 ## Golden Path Status
 

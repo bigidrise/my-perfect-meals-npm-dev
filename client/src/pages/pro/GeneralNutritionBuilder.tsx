@@ -115,6 +115,8 @@ export default function WeeklyMealBoard() {
   const clientId = params?.id || "1";
   const isProCareMode = !!params?.id;
 
+  const effectiveUserId = proClientId || user?.id;
+
   // Coach Targets - READ ONLY (set from Client Dashboard)
   const coachTargetsDisplay = useMemo(() => {
     const targets = proStore.getTargets(clientId);
@@ -140,7 +142,7 @@ export default function WeeklyMealBoard() {
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
-      userId: user?.id,
+      userId: effectiveUserId,
       builderId: 'general-nutrition-builder',
       weekStartISO,
     },
@@ -220,7 +222,7 @@ export default function WeeklyMealBoard() {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
     const strategy = resolved?.starchStrategy || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
@@ -231,7 +233,7 @@ export default function WeeklyMealBoard() {
       }
     }
     return { strategy, existingMeals };
-  }, [board, activeDayISO, user?.id]);
+  }, [board, activeDayISO, effectiveUserId]);
 
   // Handler for Create With Chef meal selection
   // NOTE: slot is passed from the modal to avoid stale state issues
@@ -643,7 +645,7 @@ export default function WeeklyMealBoard() {
     console.log('🌅 Midnight macro reset triggered');
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: ["/api/users", user?.id || "", "macros", "today"]
+      queryKey: ["/api/users", effectiveUserId || "", "macros", "today"]
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));
@@ -1374,7 +1376,7 @@ export default function WeeklyMealBoard() {
         {/* Daily Targets Card */}
         <div className="col-span-full">
           <DailyTargetsCard
-            userId={user?.id}
+            userId={effectiveUserId}
             showQuickAddButton={false}
             targetsOverride={(() => {
               const coachTargets = proStore.getTargets(clientId);
@@ -1419,7 +1421,7 @@ export default function WeeklyMealBoard() {
               starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
               fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
             };
-            const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
+            const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
             
             // Get coach targets from proStore for this client
             const coachTargets = proStore.getTargets(clientId);
@@ -1453,7 +1455,7 @@ export default function WeeklyMealBoard() {
                       targets,
                       consumed,
                       slots,
-                    }, user?.id);
+                    }, effectiveUserId);
                     
                     if (result.alreadyLocked) {
                       toast({

@@ -4,6 +4,34 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-02: effectiveUserId — Macro + Biometrics Identity Resolution in Pro Context
+
+**Change scope:** When a coach opens a client's builder, macro targets, biometrics, day locking, starch context, and daily targets were pulling the coach's own data instead of the client's. Applied the proven `effectiveUserId = proClientId || user?.id` pattern (already in AntiInflammatoryMenuBuilder) to all 5 remaining builders. No backend, hook, route, or auth changes.
+
+**What changed:**
+- Each builder now defines `const effectiveUserId = proClientId || user?.id;` near the top
+- All macro/biometric calls replaced from `user?.id` to `effectiveUserId`:
+  - `getMacroTargets()`, `getResolvedTargets()`, `isDayLocked()`, `lockDay()`, `hasLockedDaysInWeek()`
+  - `DailyTargetsCard userId={}` prop
+  - `useMealBoardDraft({ userId: ... })`
+  - `queryKey: ["/api/users", ..., "macros", "today"]`
+  - `initLockedDaysCache()` (WeeklyMealBoard)
+- Board API calls (`putWeekBoard`, `getCurrentWeekBoard`, `getWeekBoardByDate`) NOT touched
+- PerformanceCompetitionBuilder already used `clientId` correctly — verified, no changes needed
+
+**Files touched:**
+- `client/src/pages/WeeklyMealBoard.tsx` (modified)
+- `client/src/pages/physician/DiabeticMenuBuilder.tsx` (modified)
+- `client/src/pages/physician/GLP1MealBuilder.tsx` (modified)
+- `client/src/pages/BeachBodyMealBoard.tsx` (modified)
+- `client/src/pages/pro/GeneralNutritionBuilder.tsx` (modified)
+
+**Expected impact:** Coach now sees client's macro targets, day locks, and biometric data in all 7 builders. Client standalone mode unchanged (effectiveUserId falls back to user?.id). No backend changes.
+
+**Golden Path:** App compiles and runs. Architect review: PASS.
+
+---
+
 ## 2026-03-02: Pro Week Board Unification — Coach edits client's actual week_boards
 
 **Change scope:** Coaches now edit a client's real `week_boards` data through pro-scoped endpoints. All 7 builders (Weekly, Diabetic, GLP-1, Anti-Inflammatory, Beach Body, General Nutrition, Performance) support `proClientId` override. ProBoardViewer/meal_boards system bypassed. Dashboard navigation updated to use builder routes.

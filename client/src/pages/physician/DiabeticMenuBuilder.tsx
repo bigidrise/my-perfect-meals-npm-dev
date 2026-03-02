@@ -183,6 +183,8 @@ export default function DiabeticMenuBuilder() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  const effectiveUserId = proClientId || user?.id;
+
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] = React.useState<string>(
@@ -205,7 +207,7 @@ export default function DiabeticMenuBuilder() {
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
-      userId: user?.id,
+      userId: effectiveUserId,
       builderId: "diabetic-menu-builder",
       weekStartISO,
     },
@@ -299,7 +301,7 @@ export default function DiabeticMenuBuilder() {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
     const strategy = resolved?.starchStrategy || "one";
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext["existingMeals"] = [];
@@ -313,7 +315,7 @@ export default function DiabeticMenuBuilder() {
       }
     }
     return { strategy, existingMeals };
-  }, [board, activeDayISO, user?.id]);
+  }, [board, activeDayISO, effectiveUserId]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -333,7 +335,7 @@ export default function DiabeticMenuBuilder() {
       if (
         planningMode === "day" &&
         dayToCheck &&
-        isDayLocked(dayToCheck, user?.id)
+        isDayLocked(dayToCheck, effectiveUserId)
       ) {
         setPendingLockedDayISO(dayToCheck);
         setLockedDayDialogOpen(true);
@@ -341,7 +343,7 @@ export default function DiabeticMenuBuilder() {
       }
       return false; // Day is not locked, allow edit
     },
-    [activeDayISO, planningMode, user?.id],
+    [activeDayISO, planningMode, effectiveUserId],
   );
 
   // Handle "Go to Today" from locked day dialog
@@ -652,7 +654,7 @@ export default function DiabeticMenuBuilder() {
       if (!board || !activeDayISO) return;
 
       // Guard: Check if any TARGET date is locked before allowing edits
-      const lockedTarget = targetDates.find((d) => isDayLocked(d, user?.id));
+      const lockedTarget = targetDates.find((d) => isDayLocked(d, effectiveUserId));
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
         setLockedDayDialogOpen(true);
@@ -723,7 +725,7 @@ export default function DiabeticMenuBuilder() {
         "America/Chicago",
       );
       const lockedTarget = targetWeekDates.find((d) =>
-        isDayLocked(d, user?.id),
+        isDayLocked(d, effectiveUserId),
       );
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
@@ -984,7 +986,7 @@ export default function DiabeticMenuBuilder() {
     console.log("🌅 Midnight macro reset triggered");
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: ["/api/users", user?.id || "", "macros", "today"],
+      queryKey: ["/api/users", effectiveUserId || "", "macros", "today"],
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));
@@ -1764,10 +1766,10 @@ export default function DiabeticMenuBuilder() {
         {/* Daily Targets Card with Quick Add */}
         <div className="col-span-full">
           <DailyTargetsCard
-            userId={user?.id}
+            userId={effectiveUserId}
             onQuickAddClick={() => setAdditionalMacrosOpen(true)}
             targetsOverride={(() => {
-              const targetMacros = getMacroTargets(user?.id);
+              const targetMacros = getMacroTargets(effectiveUserId);
               if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
               return {
                 protein_g: targetMacros.protein_g || 0,
@@ -1853,7 +1855,7 @@ export default function DiabeticMenuBuilder() {
                 slots.dinner.fibrousCarbs +
                 slots.snacks.fibrousCarbs,
             };
-            const dayAlreadyLocked = isDayLocked(activeDayISO, user?.id);
+            const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
 
             return (
               <div className="col-span-full mb-6">
@@ -1862,7 +1864,7 @@ export default function DiabeticMenuBuilder() {
                   showSaveButton={!dayAlreadyLocked}
                   layoutMode="inline"
                   onSaveDay={async () => {
-                    const raw = getMacroTargets(user?.id);
+                    const raw = getMacroTargets(effectiveUserId);
                     const targets = raw
                       ? {
                           calories: raw.calories,
@@ -1878,7 +1880,7 @@ export default function DiabeticMenuBuilder() {
                         consumed,
                         slots,
                       },
-                      user?.id,
+                      effectiveUserId,
                     );
 
                     if (result.alreadyLocked) {
@@ -2247,14 +2249,14 @@ export default function DiabeticMenuBuilder() {
         onClose={() => setAdditionalMacrosOpen(false)}
         onAdd={(meal) => quickAdd("snacks", meal)}
         proteinDeficit={(() => {
-          const resolved = getResolvedTargets(user?.id);
+          const resolved = getResolvedTargets(effectiveUserId);
           return Math.max(
             0,
             (resolved.protein_g || 0) - Math.round(totals.protein),
           );
         })()}
         carbsDeficit={(() => {
-          const resolved = getResolvedTargets(user?.id);
+          const resolved = getResolvedTargets(effectiveUserId);
           return Math.max(
             0,
             (resolved.carbs_g || 0) - Math.round(totals.carbs),

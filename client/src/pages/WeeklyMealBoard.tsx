@@ -196,6 +196,8 @@ export default function WeeklyMealBoard() {
   const [, proParams] = useRoute("/pro/clients/:id/weekly-builder");
   const proClientId = proParams?.id;
 
+  const effectiveUserId = proClientId || user?.id;
+
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
@@ -219,10 +221,10 @@ export default function WeeklyMealBoard() {
 
   // Initialize locked days cache from server on component load
   React.useEffect(() => {
-    if (user?.id) {
-      initLockedDaysCache(user.id);
+    if (effectiveUserId) {
+      initLockedDaysCache(effectiveUserId);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   // Guest mode: Hard gate enforcement - redirect if 4 meal days used
   // Checks on mount AND listens for guestProgressUpdate events during session
@@ -290,7 +292,7 @@ export default function WeeklyMealBoard() {
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
-      userId: user?.id,
+      userId: effectiveUserId,
       builderId: "weekly-meal-board",
       weekStartISO,
     },
@@ -399,8 +401,8 @@ export default function WeeklyMealBoard() {
   // Computed: check if week mode is read-only (any day in week is locked)
   const weekModeReadOnly = React.useMemo(() => {
     if (planningMode !== "week") return false;
-    return hasLockedDaysInWeek(weekStartISO, user?.id);
-  }, [planningMode, weekStartISO, user?.id]);
+    return hasLockedDaysInWeek(weekStartISO, effectiveUserId);
+  }, [planningMode, weekStartISO, effectiveUserId]);
 
   // Build StarchContext for Create With Chef modal
   // This enables intelligent carb distribution based on existing meals
@@ -408,7 +410,7 @@ export default function WeeklyMealBoard() {
     if (!board || !activeDayISO) return undefined;
 
     // Get the starch strategy from resolved targets (default to 'one' if no user/targets)
-    const resolved = user?.id ? getResolvedTargets(user.id) : null;
+    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
     const strategy = resolved?.starchStrategy || "one";
 
     // Get existing meals for the active day
@@ -430,7 +432,7 @@ export default function WeeklyMealBoard() {
       strategy,
       existingMeals,
     };
-  }, [board, activeDayISO, user?.id]);
+  }, [board, activeDayISO, effectiveUserId]);
 
   // Guard function: checks if current day is locked before allowing edits
   // NOTE: Always recompute lock state fresh to avoid stale closure issues
@@ -440,20 +442,20 @@ export default function WeeklyMealBoard() {
       // (banner already informs user - no dialog needed)
       if (planningMode === "week") {
         // Recompute fresh instead of using memoized value
-        const isWeekLocked = hasLockedDaysInWeek(weekStartISO, user?.id);
+        const isWeekLocked = hasLockedDaysInWeek(weekStartISO, effectiveUserId);
         return isWeekLocked;
       }
 
       // Day mode: check specific day and show dialog
       const dayToCheck = forDayISO || activeDayISO;
-      if (dayToCheck && isDayLocked(dayToCheck, user?.id)) {
+      if (dayToCheck && isDayLocked(dayToCheck, effectiveUserId)) {
         setPendingLockedDayISO(dayToCheck);
         setLockedDayDialogOpen(true);
         return true; // Day is locked, block edit
       }
       return false; // Day is not locked, allow edit
     },
-    [activeDayISO, planningMode, weekStartISO, user?.id],
+    [activeDayISO, planningMode, weekStartISO, effectiveUserId],
   );
 
   // Handle "Go to Today" from locked day dialog
@@ -843,7 +845,7 @@ export default function WeeklyMealBoard() {
     async (targetDates: string[]) => {
       if (!board || !activeDayISO) return;
 
-      const lockedTarget = targetDates.find((d) => isDayLocked(d, user?.id));
+      const lockedTarget = targetDates.find((d) => isDayLocked(d, effectiveUserId));
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
         setLockedDayDialogOpen(true);
@@ -915,7 +917,7 @@ export default function WeeklyMealBoard() {
         "America/Chicago",
       );
       const lockedTarget = targetWeekDates.find((d) =>
-        isDayLocked(d, user?.id),
+        isDayLocked(d, effectiveUserId),
       );
       if (lockedTarget) {
         setPendingLockedDayISO(lockedTarget);
@@ -1124,7 +1126,7 @@ export default function WeeklyMealBoard() {
     console.log("🌅 Midnight macro reset triggered");
     // Force refresh of today's macros at midnight
     queryClient.invalidateQueries({
-      queryKey: ["/api/users", user?.id || "", "macros", "today"],
+      queryKey: ["/api/users", effectiveUserId || "", "macros", "today"],
     });
     // Also dispatch the global event for other components
     window.dispatchEvent(new Event("macros:updated"));
@@ -1975,7 +1977,7 @@ export default function WeeklyMealBoard() {
           {/* Quick Add - Daily Targets Reference Card */}
           <div className="col-span-full">
             {(() => {
-              const resolved = getResolvedTargets(user?.id);
+              const resolved = getResolvedTargets(effectiveUserId);
               const hasTargets =
                 (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
 
@@ -2142,7 +2144,7 @@ export default function WeeklyMealBoard() {
                   slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDay
-                ? isDayLocked(activeDayISO, user?.id)
+                ? isDayLocked(activeDayISO, effectiveUserId)
                 : false;
 
               return (
@@ -2160,7 +2162,7 @@ export default function WeeklyMealBoard() {
                     onSaveDay={
                       isDay
                         ? async () => {
-                            const raw = getMacroTargets(user?.id);
+                            const raw = getMacroTargets(effectiveUserId);
                             const targets = raw
                               ? {
                                   calories: raw.calories,
@@ -2181,7 +2183,7 @@ export default function WeeklyMealBoard() {
                                 consumed,
                                 slots,
                               },
-                              user?.id,
+                              effectiveUserId,
                             );
 
                             if (result.alreadyLocked) {
@@ -2483,14 +2485,14 @@ export default function WeeklyMealBoard() {
           onClose={() => setAdditionalMacrosOpen(false)}
           onAdd={(meal) => quickAdd("snacks", meal)}
           proteinDeficit={(() => {
-            const resolved = getResolvedTargets(user?.id);
+            const resolved = getResolvedTargets(effectiveUserId);
             return Math.max(
               0,
               (resolved.protein_g || 0) - Math.round(totals.protein),
             );
           })()}
           carbsDeficit={(() => {
-            const resolved = getResolvedTargets(user?.id);
+            const resolved = getResolvedTargets(effectiveUserId);
             return Math.max(
               0,
               (resolved.carbs_g || 0) - Math.round(totals.carbs),
