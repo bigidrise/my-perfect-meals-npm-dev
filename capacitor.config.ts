@@ -4,10 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.myperfectmeals.app',
   appName: 'My Perfect Meals',
   webDir: 'client/dist',
-  server: {
-    url: 'https://my-perfect-meals-npm-dev.replit.app',
-    cleartext: false,
-  },
   ios: {
     backgroundColor: '#000000',
     scrollEnabled: false,
