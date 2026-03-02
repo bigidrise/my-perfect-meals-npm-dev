@@ -75,6 +75,10 @@ router.post("/checkout", async (req, res) => {
     return res.json({ url: session.url });
   } catch (err: any) {
     console.error("❌ Stripe checkout error:", err);
+    const msg = err?.message || "";
+    if (msg.includes("live mode") && msg.includes("test mode")) {
+      return res.status(500).json({ error: "Stripe configuration error: price ID mode does not match API key mode. Please contact support." });
+    }
     return res.status(500).json({ error: "Failed to create checkout session" });
   }
 });
