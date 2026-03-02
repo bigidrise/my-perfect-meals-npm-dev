@@ -4,6 +4,29 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-02: Tablet Messaging Cache-Busting + Auto-Refresh Polling
+
+**Change scope:** Fix tablet messaging not syncing between pro and client. Messages sent by one side were not appearing for the other due to browser HTTP caching (304 responses). Added cache-busting and 10-second auto-refresh polling.
+
+**What changed:**
+- `client/src/pages/More.tsx`: Added `cache: "no-store"` to client tablet GET fetch, added 10s polling interval when messages section is open, loading spinner only shows on initial load (not polls)
+- `client/src/components/pro/ProClientFolderModal.tsx`: Added `cache: "no-store"` to pro tablet GET fetch, added 10s polling interval when folder modal is open, loading spinner only shows on initial load
+- `server/routes/clientTabletRoutes.ts`: Added `Cache-Control: no-store` response header on GET endpoint
+- `server/routes/proTabletRoutes.ts`: Added `Cache-Control: no-store` response header on GET endpoint
+
+**Files touched:**
+- `client/src/pages/More.tsx` (modified)
+- `client/src/components/pro/ProClientFolderModal.tsx` (modified)
+- `server/routes/clientTabletRoutes.ts` (modified)
+- `server/routes/proTabletRoutes.ts` (modified)
+- `CHANGE_LOG.md` (this entry)
+
+**Expected impact:** Messages between pro and client will now sync properly — no stale cached responses, and new messages appear within 10 seconds without manual refresh. No impact on auth, onboarding, macros, or meal boards.
+
+**Golden Path:** N/A (messaging feature only)
+
+---
+
 ## 2026-03-01: iOS StoreKit Product ID Fix + Capacitor Config Sync
 
 **Change scope:** Fix wrong product IDs that prevented StoreKit from loading any products on iOS. Align product IDs with App Store Connect. Add server.url to capacitor.config.ts source. Update server-side verification to accept new product IDs.

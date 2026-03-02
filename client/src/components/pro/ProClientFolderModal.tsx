@@ -115,14 +115,19 @@ export default function ProClientFolderModal({
     return () => { cancelled = true; };
   }, [open, hasDbBackedId, client?.email]);
 
+  const proInitialLoad = useRef(true);
+
   const fetchTablet = useCallback(async () => {
     if (!clientId) return;
-    setLoading(true);
+    if (proInitialLoad.current) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}`), {
         headers: { ...getAuthHeaders() },
         credentials: "include",
+        cache: "no-store",
       });
       if (!res.ok) {
         if (res.status === 403) setError("This client hasn't connected to your studio yet. Ask them to enter your access code on their More page.");
@@ -137,12 +142,16 @@ export default function ProClientFolderModal({
       setError("Failed to load tablet");
     } finally {
       setLoading(false);
+      proInitialLoad.current = false;
     }
   }, [clientId]);
 
   useEffect(() => {
     if (open && clientId) {
+      proInitialLoad.current = true;
       fetchTablet();
+      const interval = setInterval(fetchTablet, 10000);
+      return () => clearInterval(interval);
     }
     if (!open) {
       setMessages([]);

@@ -49,6 +49,7 @@ router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Respo
   const messages = entries.filter(e => e.entryType === "message");
   const notes = entries.filter(e => e.entryType === "note");
 
+  res.set("Cache-Control", "no-store");
   res.json({ messages, notes });
 });
 

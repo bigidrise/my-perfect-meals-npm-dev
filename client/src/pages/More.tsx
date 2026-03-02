@@ -50,13 +50,18 @@ export default function MorePage() {
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
 
+  const tabletInitialLoad = useRef(true);
+
   const fetchClientTablet = useCallback(async () => {
-    setTabletLoading(true);
+    if (tabletInitialLoad.current) {
+      setTabletLoading(true);
+    }
     setTabletError(null);
     try {
       const res = await fetch(apiUrl("/api/client/tablet"), {
         headers: { ...getAuthHeaders() },
         credentials: "include",
+        cache: "no-store",
       });
       if (!res.ok) {
         if (res.status === 404) setTabletError("No active coach connection");
@@ -69,6 +74,7 @@ export default function MorePage() {
       setTabletError("Failed to load messages");
     } finally {
       setTabletLoading(false);
+      tabletInitialLoad.current = false;
     }
   }, []);
 
@@ -147,7 +153,10 @@ export default function MorePage() {
 
   useEffect(() => {
     if (tabletOpen && isProCareClient) {
+      tabletInitialLoad.current = true;
       fetchClientTablet();
+      const interval = setInterval(fetchClientTablet, 10000);
+      return () => clearInterval(interval);
     }
   }, [tabletOpen, isProCareClient, fetchClientTablet]);
 

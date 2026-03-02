@@ -82,6 +82,7 @@ router.get("/", async (req: Request, res: Response) => {
     .orderBy(asc(clientNotes.createdAt))
     .limit(200);
 
+  res.set("Cache-Control", "no-store");
   res.json({ messages: entries });
 });
 
