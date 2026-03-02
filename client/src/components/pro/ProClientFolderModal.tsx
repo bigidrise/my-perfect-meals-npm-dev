@@ -86,7 +86,34 @@ export default function ProClientFolderModal({
   const msgScrollRef = useRef<HTMLDivElement>(null);
   const noteScrollRef = useRef<HTMLDivElement>(null);
 
-  const clientId = client?.clientUserId || client?.userId || client?.id;
+  const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
+  const clientId = resolvedClientId || client?.clientUserId || client?.userId || null;
+  const hasDbBackedId = !!(client?.clientUserId || client?.userId);
+
+  useEffect(() => {
+    if (!open || hasDbBackedId || !client?.email) {
+      setResolvedClientId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const headers: Record<string, string> = { ...getAuthHeaders() };
+        const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers, credentials: "include" });
+        if (!studioRes.ok || cancelled) return;
+        const { studio } = await studioRes.json();
+        if (!studio || cancelled) return;
+        const clientsRes = await fetch(apiUrl(`/api/studios/${studio.id}/clients`), { headers, credentials: "include" });
+        if (!clientsRes.ok || cancelled) return;
+        const { clients: dbClients } = await clientsRes.json();
+        const match = dbClients?.find((dc: any) => dc.email === client.email);
+        if (match?.clientUserId && !cancelled) {
+          setResolvedClientId(match.clientUserId);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [open, hasDbBackedId, client?.email]);
 
   const fetchTablet = useCallback(async () => {
     if (!clientId) return;
@@ -98,7 +125,8 @@ export default function ProClientFolderModal({
         credentials: "include",
       });
       if (!res.ok) {
-        if (res.status === 403) setError("No access to this client");
+        if (res.status === 403) setError("This client hasn't connected to your studio yet. Ask them to enter your access code on their More page.");
+        else if (res.status === 401) setError("Session expired. Please log out and log back in.");
         else setError("Failed to load tablet");
         return;
       }
