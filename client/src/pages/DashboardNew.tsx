@@ -78,7 +78,7 @@ export default function DashboardNew() {
   // =========================================
   useEffect(() => {
     const triggerFlag = localStorage.getItem("trigger-copilot-intro");
-    
+
     if (triggerFlag === "true") {
       // Open Copilot sheet - use minimal delay to preserve user gesture context
       // CopilotSheet will handle flag removal and intro playback
@@ -97,7 +97,8 @@ export default function DashboardNew() {
   }, [user]);
 
   // Greeting priority: nickname > firstName > username-derived name > fallback
-  const firstName = user?.nickname || user?.firstName || user?.name?.split(" ")[0] || "there";
+  const firstName =
+    user?.nickname || user?.firstName || user?.name?.split(" ")[0] || "there";
 
   const features: FeatureCard[] = [
     {
@@ -173,7 +174,6 @@ export default function DashboardNew() {
         </ProfileSheet>
       </div>
 
-
       {/* Header Banner */}
       <div
         className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -184,14 +184,12 @@ export default function DashboardNew() {
         </div>
       </div>
 
-
       {/* Main Content */}
       {/* Main Content */}
       <div
-        className="max-w-6xl mx-auto px-4 pb-32 flex flex-col gap-4"
+        className="max-w-6xl mx-auto px-4 pb-20 flex flex-col gap-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-
         {/* Hero Image Section with Welcome Text */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -408,14 +406,18 @@ export default function DashboardNew() {
       {/* Removed the BarcodeScanner card and its onClick handler from the dashboard.
           The BarcodeScanner component itself might still be used in the shopping list feature. */}
 
-      <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
+      <Dialog
+        open={showSubscriptionModal}
+        onOpenChange={setShowSubscriptionModal}
+      >
         <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-center">
               Unlock Full Access
             </DialogTitle>
             <DialogDescription className="text-white/80 text-center mt-2">
-              AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.
+              AI-powered meal planning, personalized macros, restaurant
+              guidance, and advanced coaching tools.
             </DialogDescription>
           </DialogHeader>
 
@@ -451,7 +453,6 @@ export default function DashboardNew() {
           </div>
         </DialogContent>
       </Dialog>
-
     </motion.div>
   );
 }
