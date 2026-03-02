@@ -277,7 +277,7 @@ function BodyCompositionGuidedStep({
     goalBF: number | null;
   } | null>(null);
 
-  const userId = studioClientId || getCurrentUser()?.id;
+  const userId = getCurrentUser()?.id;
 
   useEffect(() => {
     if (!userId) return;
@@ -497,16 +497,12 @@ const getStarchyCarbs = (sex: Sex, goal: Goal) => {
   return 25;
 };
 
-interface MacroCounterProps {
-  studioClientId?: string | null;
-}
-export default function MacroCounter({ studioClientId }: MacroCounterProps = {}) {
+export default function MacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
-  const effectiveUserId = studioClientId || user?.id;
-  const [isProSession] = useState(() => !!studioClientId || localStorage.getItem("pro-session") === "true");
+  const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
 
   const isFromOnboarding = window.location.search.includes("from=onboarding");
 
@@ -569,7 +565,7 @@ export default function MacroCounter({ studioClientId }: MacroCounterProps = {})
 
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
   // Start with undefined so user must make an active choice (UX improvement)
-  const existingTargets = getMacroTargets(effectiveUserId);
+  const existingTargets = getMacroTargets(user?.id);
   const [starchStrategy, setStarchStrategy] = useState<
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
@@ -846,7 +842,7 @@ export default function MacroCounter({ studioClientId }: MacroCounterProps = {})
     units === "imperial" ? cmFromFeetInches(heightFt, heightIn) : heightCm;
 
   const saveBiometricsToProfile = async () => {
-    if (!effectiveUserId || effectiveUserId.startsWith("guest-")) return;
+    if (!user?.id || user.id.startsWith("guest-")) return;
     try {
       const heightVal = Math.round(cm);
       const weightVal = Math.round(kg * 2.205);
@@ -919,15 +915,11 @@ export default function MacroCounter({ studioClientId }: MacroCounterProps = {})
             {isProSession && (
               <button
                 onClick={() => {
-                  if (studioClientId) {
-                    setLocation(`/pro/clients`);
-                  } else {
-                    const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
-                    localStorage.removeItem("pro-session");
-                    localStorage.removeItem("pro-client-id");
-                    localStorage.removeItem("pro-return-route");
-                    setLocation(returnRoute);
-                  }
+                  const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
+                  localStorage.removeItem("pro-session");
+                  localStorage.removeItem("pro-client-id");
+                  localStorage.removeItem("pro-return-route");
+                  setLocation(returnRoute);
                 }}
                 className="flex items-center gap-1 text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded-lg text-sm font-medium -ml-2"
               >
@@ -1891,7 +1883,7 @@ export default function MacroCounter({ studioClientId }: MacroCounterProps = {})
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
                             },
-                            effectiveUserId,
+                            user?.id,
                           );
 
                           window.dispatchEvent(
@@ -2665,7 +2657,7 @@ export default function MacroCounter({ studioClientId }: MacroCounterProps = {})
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
                             },
-                            effectiveUserId,
+                            user?.id,
                           );
 
                           // Keep this so Biometrics screen updates if they go there later
@@ -2756,7 +2748,7 @@ export default function MacroCounter({ studioClientId }: MacroCounterProps = {})
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
                             },
-                            effectiveUserId,
+                            user?.id,
                           );
 
                           // Dispatch event for real-time refresh on Biometrics/other pages

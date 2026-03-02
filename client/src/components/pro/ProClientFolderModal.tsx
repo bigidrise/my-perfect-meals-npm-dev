@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile } from "@/lib/proData";
-import { Activity, Target, LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
+import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
+import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -472,37 +473,7 @@ export default function ProClientFolderModal({
               )}
             </div>
 
-            <Button
-              variant="outline"
-              className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
-              onClick={() => {
-                onOpenChange(false);
-                const navId = client.clientUserId || client.userId || client.id;
-                onNavigate(`/pro/clients/${navId}/biometrics`);
-              }}
-            >
-              <span className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-blue-400" />
-                View Biometrics
-              </span>
-              <ArrowRight className="w-4 h-4 text-white/40" />
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
-              onClick={() => {
-                onOpenChange(false);
-                const navId = client.clientUserId || client.userId || client.id;
-                onNavigate(`/pro/clients/${navId}/macro-calculator`);
-              }}
-            >
-              <span className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-green-400" />
-                Macro Calculator
-              </span>
-              <ArrowRight className="w-4 h-4 text-white/40" />
-            </Button>
+            {clientId && <StudioMetricsSnapshot clientId={clientId} />}
 
             <Button
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"

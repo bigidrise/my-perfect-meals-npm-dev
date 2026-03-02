@@ -22,8 +22,6 @@ export function ProClientProvider({ children }: { children: ReactNode }) {
   const [, diabeticParams] = useRoute("/pro/clients/:id/diabetic-builder");
   const [, glp1Params] = useRoute("/pro/clients/:id/glp1-builder");
   const [, antiInflamParams] = useRoute("/pro/clients/:id/anti-inflammatory-builder");
-  const [, biometricsParams] = useRoute("/pro/clients/:id/biometrics");
-  const [, macroCalcParams] = useRoute("/pro/clients/:id/macro-calculator");
   const [, dashParams] = useRoute("/pro/clients/:id");
 
   const clientId =
@@ -34,8 +32,6 @@ export function ProClientProvider({ children }: { children: ReactNode }) {
     diabeticParams?.id ||
     glp1Params?.id ||
     antiInflamParams?.id ||
-    biometricsParams?.id ||
-    macroCalcParams?.id ||
     dashParams?.id ||
     null;
 

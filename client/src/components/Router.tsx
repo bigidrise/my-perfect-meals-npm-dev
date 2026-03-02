@@ -101,8 +101,6 @@ import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
 import ProBoardViewer from "@/pages/pro/ProBoardViewer";
 import WorkspaceShell from "@/pages/pro/WorkspaceShell";
 import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
-import ProClientBiometrics from "@/pages/pro/ProClientBiometrics";
-import ProClientMacroCalculator from "@/pages/pro/ProClientMacroCalculator";
 
 // Physician Hub Pages
 import DiabeticHub from "@/pages/physician/DiabeticHub";
@@ -186,8 +184,6 @@ const SafeTrainerClientDashboard = withPageErrorBoundary(TrainerClientDashboard,
 const SafeClinicianClientDashboard = withPageErrorBoundary(ClinicianClientDashboard, "Clinician Dashboard");
 const SafeProBoardViewer = withPageErrorBoundary(ProBoardViewer, "Pro Board Viewer");
 const SafeWorkspaceShell = withPageErrorBoundary(WorkspaceShell, "Client Workspace");
-const SafeProClientBiometrics = withPageErrorBoundary(ProClientBiometrics, "Pro Client Biometrics");
-const SafeProClientMacroCalculator = withPageErrorBoundary(ProClientMacroCalculator, "Pro Client Macro Calculator");
 const SafeDiabeticHub = withPageErrorBoundary(DiabeticHub, "Diabetic Hub");
 const SafeDiabetesSupport = withPageErrorBoundary(DiabetesSupportPage, "Diabetes Support");
 const SafeDiabeticMenuBuilder = withPageErrorBoundary(DiabeticMenuBuilder, "Diabetic Menu Builder");
@@ -438,8 +434,6 @@ export default function Router() {
           path="/pro/general-nutrition-builder"
           component={GeneralNutritionBuilder}
         />
-        <Route path="/pro/clients/:id/biometrics" component={SafeProClientBiometrics} />
-        <Route path="/pro/clients/:id/macro-calculator" component={SafeProClientMacroCalculator} />
         <Route path="/pro/clients/:id/general-nutrition-builder" component={GeneralNutritionBuilder} />
         <Route path="/pro/clients/:id/performance-competition-builder" component={PerformanceCompetitionBuilderProCare} />
         <Route path="/pro/clients/:id/diabetic-builder" component={SafeDiabeticMenuBuilder} />
