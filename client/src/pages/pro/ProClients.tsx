@@ -129,7 +129,28 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     setLocation(`/pro/clients/${id}/${resolvedWorkspace}`);
   };
 
-  const openFolder = (c: ClientProfile) => {
+  const openFolder = async (c: ClientProfile) => {
+    if (!c.clientUserId && !c.userId && c.email) {
+      try {
+        const headers: Record<string, string> = { ...getAuthHeaders() };
+        const studioRes = await fetch("/api/studios/my-studio", { headers });
+        if (studioRes.ok) {
+          const { studio } = await studioRes.json();
+          if (studio) {
+            const clientsRes = await fetch(`/api/studios/${studio.id}/clients`, { headers });
+            if (clientsRes.ok) {
+              const { clients: dbClients } = await clientsRes.json();
+              const match = dbClients?.find((dc: any) => dc.email === c.email);
+              if (match?.clientUserId) {
+                c = { ...c, clientUserId: match.clientUserId, userId: match.clientUserId, studioId: studio.id, dbBacked: true };
+                proStore.upsertClient(c);
+                setClients([...proStore.listClients()]);
+              }
+            }
+          }
+        }
+      } catch {}
+    }
     setFolderClient(c);
     setFolderOpen(true);
   };
