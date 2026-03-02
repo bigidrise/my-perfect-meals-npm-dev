@@ -9,15 +9,12 @@ export function isIosNativeShell(): boolean {
   }
 
   const ua = window.navigator.userAgent ?? "";
-  const isiOSDevice = /iphone|ipad|ipod/i.test(ua);
-
-  const hasStandalone = (window.navigator as any).standalone === true;
   const hasWebkitBridge =
     typeof (window as any).webkit?.messageHandlers?.mpmNativeBridge !==
     "undefined";
   const brandedUA = ua.includes("MyPerfectMealsApp");
 
-  return isiOSDevice && (hasStandalone || hasWebkitBridge || brandedUA);
+  return hasWebkitBridge || brandedUA;
 }
 
 export const IOS_PAYMENT_MESSAGE = {
