@@ -2189,9 +2189,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: `Invalid builder. Must be one of: ${validBuilders.join(", ")}` });
       }
       
-      // Verify the trainer has coach/admin role
-      const [trainer] = await db.select({ role: users.role }).from(users).where(eq(users.id, trainerId)).limit(1);
-      if (!trainer || !["admin", "coach"].includes(trainer.role || "")) {
+      const [trainer] = await db.select({ role: users.role, professionalRole: users.professionalRole }).from(users).where(eq(users.id, trainerId)).limit(1);
+      const isCoachOrAdmin = ["admin", "coach"].includes(trainer?.role || "");
+      const isTrainerPro = ["trainer", "physician"].includes(trainer?.professionalRole || "");
+      if (!trainer || (!isCoachOrAdmin && !isTrainerPro)) {
         return res.status(403).json({ error: "Only coaches and admins can assign pro builders" });
       }
       

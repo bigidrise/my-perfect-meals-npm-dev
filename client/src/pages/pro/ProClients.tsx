@@ -70,7 +70,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
 
         const profile: ClientProfile = {
           id: existing?.id || dbClient.id,
-          name: existing?.name || dbClient.name || `Client`,
+          name: (existing?.name && existing.name !== "Client" ? existing.name : null) || dbClient.name || existing?.name || `Client`,
           email: dbClient.email || existing?.email,
           role: existing?.role || defaultRole,
           workspace: resolvedWorkspace,
