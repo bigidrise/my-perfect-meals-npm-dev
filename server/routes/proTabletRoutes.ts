@@ -149,7 +149,6 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
     .where(
       and(
         eq(clientNotes.id, entryId),
-        eq(clientNotes.authorUserId, authUser.id),
         eq(clientNotes.studioId, studioId),
         eq(clientNotes.clientUserId, clientId)
       )
@@ -157,7 +156,7 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
     .returning({ id: clientNotes.id });
 
   if (!deleted) {
-    res.status(404).json({ error: "Entry not found or not yours" });
+    res.status(404).json({ error: "Entry not found" });
     return;
   }
 

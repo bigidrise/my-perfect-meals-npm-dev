@@ -501,15 +501,13 @@ export default function MorePage() {
                                   <Globe className="w-3.5 h-3.5" />
                                 )}
                               </button>
-                              {entry.sender === "client" && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleTabletDelete(entry); }}
-                                  className="text-red-500 p-0.5"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleTabletDelete(entry); }}
+                                className="text-red-500 p-0.5"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
                           <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">

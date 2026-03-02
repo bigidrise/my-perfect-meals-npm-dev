@@ -150,7 +150,6 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
     .where(
       and(
         eq(clientNotes.id, entryId),
-        eq(clientNotes.authorUserId, authUser.id),
         eq(clientNotes.clientUserId, authUser.id),
         eq(clientNotes.entryType, "message"),
         eq(clientNotes.visibility, "shared_with_client")
@@ -159,7 +158,7 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
     .returning({ id: clientNotes.id });
 
   if (!deleted) {
-    res.status(404).json({ error: "Entry not found or not yours" });
+    res.status(404).json({ error: "Entry not found" });
     return;
   }
 
