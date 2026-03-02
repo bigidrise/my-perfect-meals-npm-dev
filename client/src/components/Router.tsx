@@ -228,7 +228,9 @@ export default function Router() {
   const isClinicianUser =
     user?.role === "coach" ||
     user?.role === "trainer" ||
-    user?.role === "physician";
+    user?.role === "physician" ||
+    user?.professionalRole === "trainer" ||
+    user?.professionalRole === "physician";
 
   const isInPersonalBuilder =
     location === "/pro/general-nutrition-builder" ||
