@@ -63,6 +63,5 @@ export async function requireWorkspaceAccess(
     return;
   }
 
-  console.log(`[requireWorkspaceAccess] 403 DENIED: authUser=${authUser.id} (${authUser.email}) trying to access clientId=${clientId}`);
   res.status(403).json({ error: "No active workspace access for this client" });
 }
