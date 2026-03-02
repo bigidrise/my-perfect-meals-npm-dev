@@ -127,11 +127,15 @@ const saveJSON = (k: string, v: any) => {
 };
 
 // ============================== PAGE ==============================
-export default function MyBiometrics() {
+interface MyBiometricsProps {
+  studioClientId?: string | null;
+}
+export default function MyBiometrics({ studioClientId }: MyBiometricsProps = {}) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const effectiveUserId = studioClientId || user?.id;
   
-  const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
+  const [isProSession] = useState(() => !!studioClientId || localStorage.getItem("pro-session") === "true");
 
   // === DEFERRED STORAGE READS (Option A: No localStorage during render) ===
   const [storageLoaded, setStorageLoaded] = useState(false);
@@ -354,7 +358,7 @@ export default function MyBiometrics() {
   const [proName, setProName] = useState<string>("");
 
   const refreshTargets = () => {
-    const resolved = getResolvedTargets(user?.id);
+    const resolved = getResolvedTargets(effectiveUserId);
     if (resolved.source !== "none") {
       setTargets({
         calories: resolved.calories,
@@ -374,7 +378,7 @@ export default function MyBiometrics() {
 
   useEffect(() => {
     refreshTargets();
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
@@ -866,9 +870,8 @@ export default function MyBiometrics() {
   const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (!currentUser?.id) return;
-    const uid = currentUser.id;
+    const uid = effectiveUserId || getCurrentUser()?.id;
+    if (!uid) return;
 
     fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
       .then((r) => (r.ok ? r.json() : null))
@@ -1350,11 +1353,15 @@ export default function MyBiometrics() {
           {isProSession && (
             <Button
               onClick={() => {
-                const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
-                localStorage.removeItem("pro-session");
-                localStorage.removeItem("pro-client-id");
-                localStorage.removeItem("pro-return-route");
-                setLocation(returnRoute);
+                if (studioClientId) {
+                  setLocation(`/pro/clients`);
+                } else {
+                  const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
+                  localStorage.removeItem("pro-session");
+                  localStorage.removeItem("pro-client-id");
+                  localStorage.removeItem("pro-return-route");
+                  setLocation(returnRoute);
+                }
               }}
               variant="ghost"
               size="sm"

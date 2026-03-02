@@ -477,10 +477,8 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
               onClick={() => {
                 onOpenChange(false);
-                localStorage.setItem("pro-client-id", client.clientUserId || client.userId || client.id);
-                localStorage.setItem("pro-return-route", "/pro/clients");
-                localStorage.setItem("pro-session", "true");
-                onNavigate("/biometrics");
+                const navId = client.clientUserId || client.userId || client.id;
+                onNavigate(`/pro/clients/${navId}/biometrics`);
               }}
             >
               <span className="flex items-center gap-2">
@@ -495,10 +493,8 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10"
               onClick={() => {
                 onOpenChange(false);
-                localStorage.setItem("pro-client-id", client.clientUserId || client.userId || client.id);
-                localStorage.setItem("pro-return-route", "/pro/clients");
-                localStorage.setItem("pro-session", "true");
-                onNavigate("/macro-counter");
+                const navId = client.clientUserId || client.userId || client.id;
+                onNavigate(`/pro/clients/${navId}/macro-calculator`);
               }}
             >
               <span className="flex items-center gap-2">

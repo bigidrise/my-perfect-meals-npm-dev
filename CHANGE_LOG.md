@@ -4,6 +4,28 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-02: Studio-Scoped Routes — Biometrics & Macro Calculator
+
+**Change scope:** When a coach clicked "View Biometrics" or "Macro Calculator" from the ProClientFolderModal, navigation went to consumer routes (/biometrics, /macro-counter), which exited studio context entirely — loading consumer bottom nav and coach's own data. Created studio-scoped routes that keep the coach inside the studio shell with client data.
+
+**What changed:**
+- Created `client/src/pages/pro/ProClientBiometrics.tsx` — thin wrapper reading clientId from `/pro/clients/:id/biometrics` URL param, passes `studioClientId` to existing MyBiometrics component
+- Created `client/src/pages/pro/ProClientMacroCalculator.tsx` — thin wrapper reading clientId from `/pro/clients/:id/macro-calculator`, passes `studioClientId` to existing MacroCounter component
+- Updated `client/src/pages/my-biometrics.tsx` — accepts optional `studioClientId` prop; uses `effectiveUserId = studioClientId || user?.id` for getResolvedTargets, body-composition fetches, and all data calls
+- Updated `client/src/pages/MacroCalculator.tsx` — accepts optional `studioClientId` prop; uses `effectiveUserId` for getMacroTargets, setMacroTargets (3 locations), body-composition fetch, saveBiometricsToProfile guard
+- Updated `client/src/components/Router.tsx` — registered two new routes, imported wrapper pages, created Safe error boundary wrappers
+- Updated `client/src/contexts/ProClientContext.tsx` — added biometrics and macro-calculator route patterns so ProClientContext resolves clientId on those pages
+- Updated `client/src/components/pro/ProClientFolderModal.tsx` — navigation buttons now go to `/pro/clients/${navId}/biometrics` and `/pro/clients/${navId}/macro-calculator` instead of consumer routes; removed localStorage pro-session flags (not needed with studio routes)
+- "Return to Pro Portal" button in both pages routes to /pro/clients when studioClientId is present
+
+**Files touched:** ProClientBiometrics.tsx (new), ProClientMacroCalculator.tsx (new), my-biometrics.tsx, MacroCalculator.tsx, Router.tsx, ProClientContext.tsx, ProClientFolderModal.tsx
+
+**Expected impact:** Coach stays inside studio shell when viewing client biometrics/macro calculator. Studio bottom nav persists. Client data loads correctly. Consumer routes remain unaffected.
+
+**Golden Path result:** Architect PASS
+
+---
+
 ## 2026-03-02: effectiveUserId — Macro + Biometrics Identity Resolution in Pro Context
 
 **Change scope:** When a coach opens a client's builder, macro targets, biometrics, day locking, starch context, and daily targets were pulling the coach's own data instead of the client's. Applied the proven `effectiveUserId = proClientId || user?.id` pattern (already in AntiInflammatoryMenuBuilder) to all 5 remaining builders. No backend, hook, route, or auth changes.

@@ -277,7 +277,7 @@ function BodyCompositionGuidedStep({
     goalBF: number | null;
   } | null>(null);
 
-  const userId = getCurrentUser()?.id;
+  const userId = studioClientId || getCurrentUser()?.id;
 
   useEffect(() => {
     if (!userId) return;
@@ -497,12 +497,16 @@ const getStarchyCarbs = (sex: Sex, goal: Goal) => {
   return 25;
 };
 
-export default function MacroCounter() {
+interface MacroCounterProps {
+  studioClientId?: string | null;
+}
+export default function MacroCounter({ studioClientId }: MacroCounterProps = {}) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
-  const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
+  const effectiveUserId = studioClientId || user?.id;
+  const [isProSession] = useState(() => !!studioClientId || localStorage.getItem("pro-session") === "true");
 
   const isFromOnboarding = window.location.search.includes("from=onboarding");
 
@@ -565,7 +569,7 @@ export default function MacroCounter() {
 
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
   // Start with undefined so user must make an active choice (UX improvement)
-  const existingTargets = getMacroTargets(user?.id);
+  const existingTargets = getMacroTargets(effectiveUserId);
   const [starchStrategy, setStarchStrategy] = useState<
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
@@ -842,7 +846,7 @@ export default function MacroCounter() {
     units === "imperial" ? cmFromFeetInches(heightFt, heightIn) : heightCm;
 
   const saveBiometricsToProfile = async () => {
-    if (!user?.id || user.id.startsWith("guest-")) return;
+    if (!effectiveUserId || effectiveUserId.startsWith("guest-")) return;
     try {
       const heightVal = Math.round(cm);
       const weightVal = Math.round(kg * 2.205);
@@ -915,11 +919,15 @@ export default function MacroCounter() {
             {isProSession && (
               <button
                 onClick={() => {
-                  const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
-                  localStorage.removeItem("pro-session");
-                  localStorage.removeItem("pro-client-id");
-                  localStorage.removeItem("pro-return-route");
-                  setLocation(returnRoute);
+                  if (studioClientId) {
+                    setLocation(`/pro/clients`);
+                  } else {
+                    const returnRoute = localStorage.getItem("pro-return-route") || "/pro/clients";
+                    localStorage.removeItem("pro-session");
+                    localStorage.removeItem("pro-client-id");
+                    localStorage.removeItem("pro-return-route");
+                    setLocation(returnRoute);
+                  }
                 }}
                 className="flex items-center gap-1 text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded-lg text-sm font-medium -ml-2"
               >
@@ -1883,7 +1891,7 @@ export default function MacroCounter() {
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
                             },
-                            user?.id,
+                            effectiveUserId,
                           );
 
                           window.dispatchEvent(
@@ -2657,7 +2665,7 @@ export default function MacroCounter() {
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
                             },
-                            user?.id,
+                            effectiveUserId,
                           );
 
                           // Keep this so Biometrics screen updates if they go there later
@@ -2748,7 +2756,7 @@ export default function MacroCounter() {
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
                             },
-                            user?.id,
+                            effectiveUserId,
                           );
 
                           // Dispatch event for real-time refresh on Biometrics/other pages
