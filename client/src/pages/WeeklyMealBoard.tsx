@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PillButton } from "@/components/ui/pill-button";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   getWeekBoard,
@@ -193,6 +193,9 @@ export default function WeeklyMealBoard() {
   const { runAction, open, startWalkthrough } = useCopilot();
   const { user } = useAuth();
 
+  const [, proParams] = useRoute("/pro/clients/:id/weekly-builder");
+  const proClientId = proParams?.id;
+
   const quickTour = useQuickTour("weekly-meal-board");
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
@@ -206,7 +209,7 @@ export default function WeeklyMealBoard() {
     error,
     save: saveToHook,
     source,
-  } = useWeeklyBoard("1", weekStartISO);
+  } = useWeeklyBoard("1", weekStartISO, proClientId);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -943,7 +946,7 @@ export default function WeeklyMealBoard() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
         // Navigate to the new week
         setWeekStartISO(targetWeekStartISO);
         toast({
@@ -1223,7 +1226,7 @@ export default function WeeklyMealBoard() {
       if (!eventWeekISO || eventWeekISO === weekStartISO) {
         try {
           console.log("✅ Refetching current week board data...");
-          const { week } = await getWeekBoardByDate(weekStartISO);
+          const { week } = await getWeekBoardByDate(weekStartISO, proClientId);
           setBoard(week);
           console.log("✅ Board data refetched successfully");
         } catch (error) {
@@ -1312,7 +1315,7 @@ export default function WeeklyMealBoard() {
             snacks: [...(dayLists.snacks ?? []), newSnack],
           };
           const updatedBoard = setDayLists(board, activeDayISO, updatedDay);
-          const { week } = await putWeekBoard(weekStartISO, updatedBoard);
+          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId);
           setBoard(week);
         } else {
           // ✅ WEEK (legacy) MODE: write into legacy week lists
@@ -1322,7 +1325,7 @@ export default function WeeklyMealBoard() {
             lists: { ...board.lists, snacks: [...snacks, newSnack] },
           };
           setBoard(updated);
-          await putWeekBoard(weekStartISO, updated);
+          await putWeekBoard(weekStartISO, updated, proClientId);
         }
 
         // Only dispatch macros:updated - do NOT refetch board after local mutation
@@ -1335,7 +1338,7 @@ export default function WeeklyMealBoard() {
         console.error("Failed to save snack:", e);
         // Best-effort rollback if we had optimistically set state in week mode
         try {
-          const { week } = await getWeekBoardByDate(weekStartISO);
+          const { week } = await getWeekBoardByDate(weekStartISO, proClientId);
           setBoard(week);
         } catch {}
       }
@@ -1804,7 +1807,7 @@ export default function WeeklyMealBoard() {
                               // Update local state first to prevent race condition
                               setBoard(updatedBoard);
                               boardRef.current = updatedBoard;
-                              putWeekBoard(weekStartISO, updatedBoard)
+                              putWeekBoard(weekStartISO, updatedBoard, proClientId)
                                 .then(({ week }) => {
                                   if (week) setBoard(week);
                                 })
@@ -1834,7 +1837,7 @@ export default function WeeklyMealBoard() {
                                 activeDayISO,
                                 updatedDayLists,
                               );
-                              putWeekBoard(weekStartISO, updatedBoard).then(
+                              putWeekBoard(weekStartISO, updatedBoard, proClientId).then(
                                 ({ week }) => setBoard(week),
                               );
                             }

@@ -434,14 +434,13 @@ export default function Router() {
           path="/pro/general-nutrition-builder"
           component={GeneralNutritionBuilder}
         />
-        {/* Legacy pro builder routes — redirect to ProBoardViewer */}
-        <Route path="/pro/clients/:id/general-nutrition-builder">{(params) => { window.location.replace(`/pro/clients/${params.id}/board/smart`); return null; }}</Route>
-        <Route path="/pro/clients/:id/performance-competition-builder">{(params) => { window.location.replace(`/pro/clients/${params.id}/board/athlete`); return null; }}</Route>
-        <Route path="/pro/clients/:id/diabetic-builder">{(params) => { window.location.replace(`/pro/clients/${params.id}/board/diabetic`); return null; }}</Route>
-        <Route path="/pro/clients/:id/glp1-builder">{(params) => { window.location.replace(`/pro/clients/${params.id}/board/glp1`); return null; }}</Route>
-        <Route path="/pro/clients/:id/anti-inflammatory-builder">{(params) => { window.location.replace(`/pro/clients/${params.id}/board/medical`); return null; }}</Route>
-        <Route path="/pro/clients/:id/weekly-builder">{(params) => { window.location.replace(`/pro/clients/${params.id}/board/weekly`); return null; }}</Route>
-        <Route path="/pro/clients/:id/beach-body-builder">{(params) => { window.location.replace(`/pro/clients/${params.id}/board/beach_body`); return null; }}</Route>
+        <Route path="/pro/clients/:id/general-nutrition-builder" component={GeneralNutritionBuilder} />
+        <Route path="/pro/clients/:id/performance-competition-builder" component={PerformanceCompetitionBuilderProCare} />
+        <Route path="/pro/clients/:id/diabetic-builder" component={SafeDiabeticMenuBuilder} />
+        <Route path="/pro/clients/:id/glp1-builder" component={SafeGLP1MealBuilder} />
+        <Route path="/pro/clients/:id/anti-inflammatory-builder" component={SafeAntiInflammatoryMenuBuilder} />
+        <Route path="/pro/clients/:id/weekly-builder" component={SafeWeeklyMealBoard} />
+        <Route path="/pro/clients/:id/beach-body-builder" component={BeachBodyMealBoard} />
         {/* Physician Hub Routes (Diabetic, GLP-1, Medical Diets, Clinical Lifestyle) */}
         <Route path="/diabetic-hub" component={SafeDiabeticHub} />
         <Route path="/diabetes-support" component={SafeDiabetesSupport} />

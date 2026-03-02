@@ -8,10 +8,8 @@ const FETCH_TIMEOUT_MS = 8000;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 300;
 
-// Apple Review mode user ID - must match server
 const APPLE_REVIEW_USER_ID = '00000000-0000-0000-0000-000000000001';
 
-// Helper to get Apple Review headers if applicable
 function getAppleReviewHeaders(userId: string): Record<string, string> {
   if (userId === APPLE_REVIEW_USER_ID) {
     return { 'x-apple-review-user': APPLE_REVIEW_USER_ID };
@@ -19,12 +17,10 @@ function getAppleReviewHeaders(userId: string): Record<string, string> {
   return {};
 }
 
-// Cache key helper
 function cacheKey(userId: string, weekStartISO: string): string {
   return `${CACHE_NS}:${userId}:${weekStartISO}`;
 }
 
-// Fetch with timeout and abort controller
 async function fetchWithTimeout(
   url: string,
   opts: RequestInit = {},
@@ -39,7 +35,6 @@ async function fetchWithTimeout(
   }
 }
 
-// Retry wrapper with exponential backoff
 async function fetchWithRetry(
   url: string,
   opts: RequestInit = {},
@@ -61,80 +56,102 @@ async function fetchWithRetry(
   throw lastError;
 }
 
-// Load weekly board with instant cache-first strategy
 function loadWeeklyBoard({
   userId,
   weekStartISO,
   onData,
+  proClientId,
 }: {
   userId: string;
   weekStartISO: string;
   onData: (data: WeekBoardResponse) => void;
+  proClientId?: string;
 }): Promise<void> {
-  const key = cacheKey(userId, weekStartISO);
+  const key = cacheKey(proClientId || userId, weekStartISO);
   const empty = createEmptyWeekStructure(weekStartISO);
 
-  // 1) INSTANT: Try cache first and emit immediately
-  let cached: WeekBoardResponse | null = null;
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Validate with Zod
-      cached = WeekBoardResponseSchema.parse(parsed);
-      onData(cached); // Emit cached data immediately
-    } else {
-      onData(empty); // Emit empty seed immediately
+  if (!proClientId) {
+    let cached: WeekBoardResponse | null = null;
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        cached = WeekBoardResponseSchema.parse(parsed);
+        onData(cached);
+      } else {
+        onData(empty);
+      }
+    } catch (e) {
+      console.warn("Cache parse/validation failed, using empty:", e);
+      onData(empty);
     }
-  } catch (e) {
-    console.warn("Cache parse/validation failed, using empty:", e);
-    onData(empty); // Emit empty seed on cache error
+
+    return (async () => {
+      try {
+        const url = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
+        const res = await fetchWithRetry(url, { 
+          credentials: "include",
+          headers: { ...getAuthHeaders(), ...getAppleReviewHeaders(userId) },
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        
+        const json = await res.json();
+        const validated = WeekBoardResponseSchema.parse(json);
+        
+        localStorage.setItem(key, JSON.stringify(validated));
+        
+        if (JSON.stringify(validated) !== JSON.stringify(cached)) {
+          onData(validated);
+        }
+      } catch (e) {
+        console.warn("Weekly board refresh failed (using cached/empty):", e);
+        throw e;
+      }
+    })();
   }
 
-  // 2) BACKGROUND: Refresh from server with retries
+  onData(empty);
   return (async () => {
     try {
-      const url = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
-      const res = await fetchWithRetry(url, { 
+      const url = apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}`);
+      const res = await fetchWithRetry(url, {
         credentials: "include",
-        headers: { ...getAuthHeaders(), ...getAppleReviewHeaders(userId) },
+        headers: { ...getAuthHeaders() },
       });
-      
+
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
-      
+
       const json = await res.json();
       const validated = WeekBoardResponseSchema.parse(json);
-      
-      // Update cache
-      localStorage.setItem(key, JSON.stringify(validated));
-      
-      // Emit fresh data if different from cache
-      if (JSON.stringify(validated) !== JSON.stringify(cached)) {
-        onData(validated);
-      }
+      onData(validated);
     } catch (e) {
-      // Soft fail: keep cached/empty already emitted
-      console.warn("Weekly board refresh failed (using cached/empty):", e);
-      throw e; // Propagate for error state
+      console.warn("Pro weekly board load failed:", e);
+      throw e;
     }
   })();
 }
 
-// Save weekly board with idempotent operation ID
 async function saveWeeklyBoard({
   userId,
   weekStartISO,
   board,
   opId,
+  proClientId,
 }: {
   userId: string;
   weekStartISO: string;
   board: WeekBoard;
   opId?: string;
+  proClientId?: string;
 }): Promise<WeekBoardResponse> {
-  const url = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
+  const url = proClientId
+    ? apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}`)
+    : apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
   const payload = { week: board, opId };
 
   const res = await fetchWithRetry(url, {
@@ -142,7 +159,7 @@ async function saveWeeklyBoard({
     headers: { 
       "Content-Type": "application/json",
       ...getAuthHeaders(),
-      ...getAppleReviewHeaders(userId),
+      ...(proClientId ? {} : getAppleReviewHeaders(userId)),
     },
     credentials: "include",
     body: JSON.stringify(payload),
@@ -155,17 +172,15 @@ async function saveWeeklyBoard({
   const json = await res.json();
   const validated = WeekBoardResponseSchema.parse(json);
 
-  // Update cache
-  const key = cacheKey(userId, weekStartISO);
-  localStorage.setItem(key, JSON.stringify(validated));
+  if (!proClientId) {
+    const key = cacheKey(userId, weekStartISO);
+    localStorage.setItem(key, JSON.stringify(validated));
+  }
 
   return validated;
 }
 
-// Main hook - weekStartISO should be provided by caller for correct runtime date
-// Fallback uses getCurrentWeekStartISO() which is computed at call time
-export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
-  // Import dynamically to avoid build-time evaluation
+export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proClientId?: string) {
   const monday = weekStartISO ?? (() => {
     const now = new Date();
     const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -177,11 +192,9 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load board with instant cache-first
   useEffect(() => {
     let mounted = true;
 
-    // Callback to receive data instantly from cache
     const handleData = (boardData: WeekBoardResponse) => {
       if (mounted) {
         setData(boardData);
@@ -189,12 +202,10 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
       }
     };
 
-    // Start load (emits cached data immediately, then refreshes in background)
-    loadWeeklyBoard({ userId, weekStartISO: monday, onData: handleData })
+    loadWeeklyBoard({ userId, weekStartISO: monday, onData: handleData, proClientId })
       .catch((e) => {
         if (mounted) {
           setError(e as Error);
-          // Data already set from cache/empty by onData callback
         }
       })
       .finally(() => {
@@ -206,9 +217,8 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
     return () => {
       mounted = false;
     };
-  }, [userId, monday]);
+  }, [userId, monday, proClientId]);
 
-  // Save board callback
   const save = useCallback(
     async (board: WeekBoard, opId?: string): Promise<void> => {
       try {
@@ -217,6 +227,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
           weekStartISO: monday,
           board,
           opId,
+          proClientId,
         });
         setData(result);
         setError(null);
@@ -225,10 +236,9 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
         throw e;
       }
     },
-    [userId, monday]
+    [userId, monday, proClientId]
   );
 
-  // Refresh callback
   const refresh = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
@@ -238,7 +248,8 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
         onData: (result) => {
           setData(result);
           setError(null);
-        }
+        },
+        proClientId,
       });
     } catch (e) {
       setError(e as Error);
@@ -246,7 +257,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string) {
     } finally {
       setLoading(false);
     }
-  }, [userId, monday]);
+  }, [userId, monday, proClientId]);
 
   return {
     board: data?.week ?? null,

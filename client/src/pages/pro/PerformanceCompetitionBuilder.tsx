@@ -181,6 +181,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     "/pro/clients/:id/performance-competition-builder",
   );
   const routeClientId = athleteParams?.clientId || proParams?.id;
+  const proClientId = proParams?.id;
 
   // In standalone mode, use current user's ID; in procare mode, use route clientId
   const clientId =
@@ -218,7 +219,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     error,
     save: saveToHook,
     source,
-  } = useWeeklyBoard(clientId, weekStartISO);
+  } = useWeeklyBoard(clientId, weekStartISO, proClientId);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -587,7 +588,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       };
 
       try {
-        await putWeekBoard(targetWeekStartISO, clonedBoard);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",

@@ -79,20 +79,30 @@ async function apiPut<T>(url: string, body: unknown): Promise<T> {
 
 // ---------- NEW Week-aware API ----------
 /** Get current week board (server computes Monday in America/Chicago). */
-export function getCurrentWeekBoard(): Promise<WeekBoardResponse> {
+export function getCurrentWeekBoard(proClientId?: string): Promise<WeekBoardResponse> {
+  if (proClientId) {
+    return apiGet<WeekBoardResponse>(`/api/pro/week-boards/${proClientId}/current-week`);
+  }
   return apiGet<WeekBoardResponse>('/api/week-boards/current-week');
 }
 
 /** Get a specific week by its Monday ISO date (YYYY-MM-DD). */
-export function getWeekBoardByDate(weekStartISO: string): Promise<WeekBoardResponse> {
+export function getWeekBoardByDate(weekStartISO: string, proClientId?: string): Promise<WeekBoardResponse> {
+  if (proClientId) {
+    return apiGet<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}`);
+  }
   return apiGet<WeekBoardResponse>(`/api/week-board/${weekStartISO}`);
 }
 
 /** Save/replace a specific week (expects WeekBoard shape under 'week'). */
 export function putWeekBoard(
   weekStartISO: string,
-  week: WeekBoard
+  week: WeekBoard,
+  proClientId?: string
 ): Promise<WeekBoardResponse> {
+  if (proClientId) {
+    return apiPut<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}`, { week });
+  }
   return apiPut<WeekBoardResponse>(`/api/week-board/${weekStartISO}`, { week });
 }
 

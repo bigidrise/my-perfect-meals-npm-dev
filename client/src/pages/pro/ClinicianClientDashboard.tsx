@@ -500,7 +500,7 @@ export default function ClinicianClientDashboard() {
             <Button
               onClick={() => {
                 const boardUserId = client?.clientUserId || client?.userId || clientId;
-                setLocation(`/pro/clients/${boardUserId}/board/smart`);
+                setLocation(`/pro/clients/${boardUserId}/general-nutrition-builder`);
               }}
               className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
@@ -519,19 +519,19 @@ export default function ClinicianClientDashboard() {
               Access specialized medical meal guidance for your patient.
             </p>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/board/diabetic`)}
+              onClick={() => setLocation(`/pro/clients/${clientId}/diabetic-builder`)}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               Diabetic Meal Builder
             </Button>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/board/glp1`)}
+              onClick={() => setLocation(`/pro/clients/${clientId}/glp1-builder`)}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               GLP-1 Meal Builder
             </Button>
             <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/board/medical`)}
+              onClick={() => setLocation(`/pro/clients/${clientId}/anti-inflammatory-builder`)}
               className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               Anti-Inflammatory Meal Builder

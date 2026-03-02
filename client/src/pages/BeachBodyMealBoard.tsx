@@ -198,6 +198,9 @@ export default function BeachBodyMealBoard() {
 
   const clientId = getCurrentUserId();
 
+  const [, proParams] = useRoute("/pro/clients/:id/beach-body-builder");
+  const proClientId = proParams?.id;
+
   // Board loading
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
@@ -207,7 +210,7 @@ export default function BeachBodyMealBoard() {
     loading: hookLoading,
     error,
     save: saveToHook,
-  } = useWeeklyBoard(clientId, weekStartISO);
+  } = useWeeklyBoard(clientId, weekStartISO, proClientId);
 
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -747,7 +750,7 @@ export default function BeachBodyMealBoard() {
       };
 
       try {
-        await putWeekBoard(targetWeekStartISO, clonedBoard);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",

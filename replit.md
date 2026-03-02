@@ -92,10 +92,19 @@ The application is structured as a full-stack TypeScript project.
 - **Config file**: `server/config/stripePrices.ts` — reads env vars, logs each mapping at startup
 - **Checkout route**: `server/routes/stripeCheckout.ts` — logs plan/priceId/keyMode/userId per request
 
+## Pro Week Board Architecture
+- **Unified system**: Pro editing uses the SAME `week_boards` table as clients — no separate `meal_boards` system
+- **Server**: `server/routes/proWeekBoard.ts` — pro-scoped endpoints (`/api/pro/week-boards/:clientId/current-week`, `/api/pro/week-board/:clientId/:weekStartISO`, `/api/pro/weekly-board/:clientId`) using `requireBoardAccess` middleware
+- **Client hook**: `useWeeklyBoard(userId, weekStartISO, proClientId?)` — when `proClientId` is set, calls pro endpoints instead of client endpoints, skips localStorage caching
+- **Client API**: `boardApi.ts` functions `getCurrentWeekBoard`, `getWeekBoardByDate`, `putWeekBoard` all accept optional `proClientId` parameter
+- **Builder pattern**: Each builder detects pro context via `useRoute("/pro/clients/:id/...")`, extracts `proClientId`, passes it to both `useWeeklyBoard` and direct `boardApi` calls
+- **Router**: Pro builder routes (`/pro/clients/:id/weekly-builder`, etc.) render actual builder components — NOT ProBoardViewer
+- **builderMap.ts**: `proRoute` values are builder-specific (`weekly-builder`, `diabetic-builder`, etc.) — NOT `board/*` paths
+
 ## Recent Changes
+- 2026-03-02: Pro week board unification — coaches now edit client's actual week_boards data through pro-scoped endpoints. All 7 builders (Weekly, Diabetic, GLP-1, Anti-Inflammatory, Beach Body, General Nutrition, Performance) support proClientId override. ProBoardViewer/meal_boards system bypassed. Dashboard navigation updated to use builder routes.
 - 2026-03-02: Stripe standardized to TEST mode — removed fallback/auto-substitution logic. Strict 1:1 mapping: Basic→STRIPE_PRICE_BASIC, Premium→STRIPE_PRICE_PREMIUM, Ultimate→STRIPE_PRICE_ULTIMATE. Clear startup logging of key mode and all resolved price IDs. No mixed-mode logic.
 - 2026-03-02: Revoke confirmation dialog added to CareTeam.tsx, TrainerCareTeam.tsx, PhysicianCareTeam.tsx — prevents accidental one-tap revokes.
-- 2026-03-02: Pro builder navigation fix — coaches now route to ProBoardViewer (`/pro/clients/:id/board/:program`) instead of client builder components that use localStorage. All pro builder navigation in TrainerClientDashboard, ProClientDashboard, ClinicianClientDashboard updated. Old `/pro/clients/:id/*-builder` routes converted to redirects. Program key mapping: weekly→weekly, diabetic→diabetic, glp1→glp1, anti_inflammatory→medical, beach_body→beach_body, general_nutrition→smart, performance_competition→athlete.
 - 2026-03-02: StudioBottomNav fix — Router now checks `professionalRole` ("trainer"/"physician") in addition to `role` for showing studio nav. User with `role="client"` + `professionalRole="trainer"` was not seeing studio nav.
 - 2026-03-02: Delete on all messages — trash icon shows on every message (incoming and outgoing) for both pro and client sides. Backend delete endpoints no longer restrict by authorUserId.
 - 2026-03-02: iOS native detection fix — `isIosNativeShell()` no longer detects Safari on iPhone as native app. Removed `standalone` and `isiOSDevice` checks. Only Capacitor native, webkit bridge, or branded UA triggers iOS mode.

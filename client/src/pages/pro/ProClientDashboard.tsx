@@ -842,7 +842,7 @@ export default function ProClientDashboard() {
             <Button
               onClick={() => {
                 setLocation(
-                  `/pro/clients/${clientId}/board/medical`,
+                  `/pro/clients/${clientId}/anti-inflammatory-builder`,
                 );
               }}
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
@@ -860,7 +860,7 @@ export default function ProClientDashboard() {
             <Button
               onClick={() =>
                 setLocation(
-                  `/pro/clients/${clientId}/board/athlete`,
+                  `/pro/clients/${clientId}/performance-competition-builder`,
                 )
               }
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
@@ -874,7 +874,7 @@ export default function ProClientDashboard() {
                 if (!clientId) return; // safety guard
 
                 setLocation(
-                  `/pro/clients/${clientId}/board/smart`,
+                  `/pro/clients/${clientId}/general-nutrition-builder`,
                 );
               }}
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
