@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
+import {
   Check,
   ArrowLeft,
   CreditCard,
@@ -17,7 +17,10 @@ import {
 } from "lucide-react";
 import AffiliateOnPricing from "@/components/AffiliateOnPricing";
 import { PLAN_SKUS, getPlansByGroup } from "@/data/planSkus";
-import { getDisplayFeaturesForTier, IOS_DISPLAY_FEATURES } from "@shared/planFeatures";
+import {
+  getDisplayFeaturesForTier,
+  IOS_DISPLAY_FEATURES,
+} from "@shared/planFeatures";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
 import {
   isIosNativeShell,
@@ -26,10 +29,7 @@ import {
 } from "@/lib/platform";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  restorePurchases,
-  purchaseProduct,
-} from "@/lib/storekit";
+import { restorePurchases, purchaseProduct } from "@/lib/storekit";
 import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 
@@ -159,88 +159,93 @@ export default function PricingPage() {
             </h2>
 
             {IOS_PRODUCTS.map((product) => {
-                const displayPrice = `$${product.price.toFixed(2)}/mo`;
-                const isPurchasing = purchasingProduct === product.productId;
-                const isPremium =
-                  product.internalSku === "mpm_premium_monthly";
-                const isCurrentPlan = planKey === product.internalSku;
+              const displayPrice = `$${product.price.toFixed(2)}/mo`;
+              const isPurchasing = purchasingProduct === product.productId;
+              const isPremium = product.internalSku === "mpm_premium_monthly";
+              const isCurrentPlan = planKey === product.internalSku;
 
-                return (
-                  <div
-                    key={product.productId}
-                    className={`bg-black/40 backdrop-blur-lg border rounded-xl p-5 ${
-                      isPremium
-                        ? "border-orange-400/50 ring-1 ring-orange-400/30"
-                        : "border-white/15"
+              return (
+                <div
+                  key={product.productId}
+                  className={`bg-black/40 backdrop-blur-lg border rounded-xl p-5 ${
+                    isPremium
+                      ? "border-orange-400/50 ring-1 ring-orange-400/30"
+                      : "border-white/15"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-white font-bold text-lg">
+                        {product.label}
+                      </h3>
+                      <p className="text-white/60 text-sm">{displayPrice}</p>
+                    </div>
+                    {isCurrentPlan ? (
+                      <Badge className="bg-lime-500/80 text-white text-xs">
+                        Current
+                      </Badge>
+                    ) : isPremium ? (
+                      <Badge className="bg-orange-500/80 text-white text-xs">
+                        Most Popular
+                      </Badge>
+                    ) : null}
+                  </div>
+
+                  <ul className="text-white/70 text-xs space-y-1.5 mb-4">
+                    {(
+                      IOS_DISPLAY_FEATURES[
+                        product.internalSku === "mpm_basic_monthly"
+                          ? "basic"
+                          : product.internalSku === "mpm_premium_monthly"
+                            ? "premium"
+                            : "ultimate"
+                      ] || []
+                    ).map((label, fi) => (
+                      <li key={fi} className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-lime-400" />
+                        {label}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await openAppleSubscriptions();
+                      } catch (e) {
+                        console.error(
+                          "[Pricing] Failed to open manage subscriptions:",
+                          e,
+                        );
+                        toast({
+                          title: "Unable to open subscriptions",
+                          description:
+                            "Please go to Settings > Apple ID > Subscriptions to manage your plan.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={isCurrentPlan}
+                    className={`w-full ${
+                      isCurrentPlan
+                        ? "bg-lime-500/20 text-lime-300 border border-lime-500/30 cursor-not-allowed"
+                        : isPremium
+                          ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold"
+                          : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-white font-bold text-lg">
-                          {product.label}
-                        </h3>
-                        <p className="text-white/60 text-sm">
-                          {displayPrice}
-                        </p>
-                      </div>
-                      {isCurrentPlan ? (
-                        <Badge className="bg-lime-500/80 text-white text-xs">
-                          Current
-                        </Badge>
-                      ) : isPremium ? (
-                        <Badge className="bg-orange-500/80 text-white text-xs">
-                          Most Popular
-                        </Badge>
-                      ) : null}
-                    </div>
-
-                    <ul className="text-white/70 text-xs space-y-1.5 mb-4">
-                      {(IOS_DISPLAY_FEATURES[
-                        product.internalSku === "mpm_basic_monthly" ? "basic"
-                          : product.internalSku === "mpm_premium_monthly" ? "premium"
-                          : "ultimate"
-                      ] || []).map((label, fi) => (
-                        <li key={fi} className="flex items-center gap-1.5">
-                          <Check className="w-3 h-3 text-lime-400" />
-                          {label}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Button
-                      onClick={async () => {
-                        try {
-                          await openAppleSubscriptions();
-                        } catch (e) {
-                          console.error("[Pricing] Failed to open manage subscriptions:", e);
-                          toast({
-                            title: "Unable to open subscriptions",
-                            description: "Please go to Settings > Apple ID > Subscriptions to manage your plan.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      disabled={isCurrentPlan}
-                      className={`w-full ${
-                        isCurrentPlan
-                          ? "bg-lime-500/20 text-lime-300 border border-lime-500/30 cursor-not-allowed"
-                          : isPremium
-                            ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold"
-                            : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                      }`}
-                    >
-                      {isCurrentPlan ? (
-                        "Current Plan"
-                      ) : (
-                        <>
-                          <Apple className="w-4 h-4 mr-2" />
-                          Subscribe with Apple
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                );
-              })}
+                    {isCurrentPlan ? (
+                      "Current Plan"
+                    ) : (
+                      <>
+                        <Apple className="w-4 h-4 mr-2" />
+                        Subscribe with Apple
+                      </>
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
           </div>
 
           <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-2xl p-6 text-center space-y-4">
@@ -263,10 +268,14 @@ export default function PricingPage() {
                 try {
                   await openAppleSubscriptions();
                 } catch (e) {
-                  console.error("[Pricing] Failed to open manage subscriptions:", e);
+                  console.error(
+                    "[Pricing] Failed to open manage subscriptions:",
+                    e,
+                  );
                   toast({
                     title: "Unable to open subscriptions",
-                    description: "Please go to Settings > Apple ID > Subscriptions to manage your plan.",
+                    description:
+                      "Please go to Settings > Apple ID > Subscriptions to manage your plan.",
                     variant: "destructive",
                   });
                 }
@@ -461,7 +470,9 @@ export default function PricingPage() {
             <CardHeader className="pb-4">
               <div className="space-y-2">
                 <h3 className="text-xl font-bold">Free</h3>
-                <p className="text-sm text-white/80">Explore the app at your own pace</p>
+                <p className="text-sm text-white/80">
+                  Explore the app at your own pace
+                </p>
                 <p className="text-lg font-semibold">$0.00 / month</p>
               </div>
             </CardHeader>
@@ -479,7 +490,8 @@ export default function PricingPage() {
             <Separator className="bg-white/10" />
             <div className="p-6">
               <p className="text-xs text-white/50 text-center">
-                Upgrade anytime to unlock AI meal generation, builders, and more.
+                Upgrade anytime to unlock AI meal generation, builders, and
+                more.
               </p>
             </div>
           </Card>
@@ -565,22 +577,14 @@ export default function PricingPage() {
           </h2>
 
           <Card className="relative bg-black/60 backdrop-blur-lg border border-amber-400/50 ring-2 ring-amber-400/30 text-white shadow-2xl max-w-2xl mx-auto">
-            <Badge className="absolute top-4 right-4 bg-amber-500/80 text-white">
-              Limited Founding Access
-            </Badge>
-
             <CardHeader>
               <div className="space-y-3 text-center">
-                <h3 className="text-2xl font-bold">
-                  MPM Personal Guidance
-                </h3>
+                <h3 className="text-2xl font-bold">MPM Personal Guidance</h3>
                 <p className="text-white/80 text-sm">
-                  Work directly with the founder of My Perfect Meals through structured,
-                  in-app, async guidance.
+                  Work directly with the founder of My Perfect Meals through
+                  structured, in-app, async guidance.
                 </p>
-                <p className="text-2xl font-semibold">
-                  $299 / month
-                </p>
+                <p className="text-2xl font-semibold">$299 / month</p>
                 <p className="text-xs text-white/60">
                   6-Month Commitment · Async Only · In-App Messaging
                 </p>
@@ -624,8 +628,9 @@ export default function PricingPage() {
               </div>
 
               <p className="text-xs text-center text-white/50 pt-2">
-                This is a structured, professional coaching layer. No video calls.
-                No off-platform contact. Designed for long-term confidence.
+                This is a structured, professional coaching layer. No video
+                calls. No off-platform contact. Designed for long-term
+                confidence.
               </p>
             </CardContent>
           </Card>
