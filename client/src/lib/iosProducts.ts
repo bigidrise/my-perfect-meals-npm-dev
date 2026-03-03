@@ -9,19 +9,19 @@ export interface IosProduct {
 
 export const IOS_PRODUCTS: IosProduct[] = [
   {
-    productId: "mpm.iap.basic_upgrade.v1",
+    productId: "mpm.sub.basic.monthly.v1",
     internalSku: "mpm_basic_monthly",
     label: "Basic",
     price: 9.99,
   },
   {
-    productId: "mpm.iap.premium_upgrade.v1",
+    productId: "mpm.sub.premium.monthly.v1",
     internalSku: "mpm_premium_monthly",
     label: "Premium",
     price: 19.99,
   },
   {
-    productId: "mpm.iap.ultimate_upgrade.v1",
+    productId: "mpm.sub.ultimate.monthly.v1",
     internalSku: "mpm_ultimate_monthly",
     label: "Ultimate",
     price: 29.99,

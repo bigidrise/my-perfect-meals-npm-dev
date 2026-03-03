@@ -6,9 +6,9 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 const IOS_PRODUCT_TO_PLAN: Record<string, string> = {
-  "mpm.iap.basic_upgrade.v1": "mpm_basic_monthly",
-  "mpm.iap.premium_upgrade.v1": "mpm_premium_monthly",
-  "mpm.iap.ultimate_upgrade.v1": "mpm_ultimate_monthly",
+  "mpm.sub.basic.monthly.v1": "mpm_basic_monthly",
+  "mpm.sub.premium.monthly.v1": "mpm_premium_monthly",
+  "mpm.sub.ultimate.monthly.v1": "mpm_ultimate_monthly",
   mpm_basic_plan_999: "mpm_basic_monthly",
   mpm_premium_plan_1999: "mpm_premium_monthly",
   mpm_ultimate_plan_2999: "mpm_ultimate_monthly",
@@ -140,7 +140,7 @@ router.post("/restore-purchases", async (req: Request, res: Response) => {
 
     const highestTierProduct = entitlements.reduce((highest: string, productId: string) => {
       const tierOrder = [
-        "mpm.iap.ultimate_upgrade.v1", "mpm.iap.premium_upgrade.v1", "mpm.iap.basic_upgrade.v1",
+        "mpm.sub.ultimate.monthly.v1", "mpm.sub.premium.monthly.v1", "mpm.sub.basic.monthly.v1",
         "mpm_ultimate_plan_2999", "mpm_premium_plan_1999", "mpm_basic_plan_999",
       ];
       const currentIndex = tierOrder.indexOf(productId);
