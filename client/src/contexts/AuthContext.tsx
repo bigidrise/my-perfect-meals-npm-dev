@@ -105,6 +105,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   useEffect(() => {
+    const handleUserUpdated = () => {
+      console.log("📡 [AuthContext] mpm:user-updated received — refreshing");
+      refreshUser();
+    };
+    window.addEventListener("mpm:user-updated", handleUserUpdated);
+    return () => window.removeEventListener("mpm:user-updated", handleUserUpdated);
+  }, [refreshUser]);
+
+  useEffect(() => {
     const initializeAuth = async () => {
       const currentUser = getCurrentUser();
       const token = getAuthToken();

@@ -106,6 +106,13 @@ router.post("/verify-purchase", async (req: Request, res: Response) => {
       lastName: updatedUser.lastName,
       planLookupKey: updatedUser.planLookupKey,
       entitlements: updatedUser.entitlements,
+      subscriptionStatus: updatedUser.subscriptionStatus,
+      role: updatedUser.role,
+      onboardingCompletedAt: updatedUser.onboardingCompletedAt,
+      selectedMealBuilder: updatedUser.selectedMealBuilder,
+      activeBoard: (updatedUser as any).activeBoard ?? null,
+      profilePhotoUrl: updatedUser.profilePhotoUrl,
+      nickname: (updatedUser as any).nickname ?? null,
     };
 
     return res.json({
@@ -172,6 +179,13 @@ router.post("/restore-purchases", async (req: Request, res: Response) => {
       lastName: updatedUser.lastName,
       planLookupKey: updatedUser.planLookupKey,
       entitlements: updatedUser.entitlements,
+      subscriptionStatus: updatedUser.subscriptionStatus,
+      role: updatedUser.role,
+      onboardingCompletedAt: updatedUser.onboardingCompletedAt,
+      selectedMealBuilder: updatedUser.selectedMealBuilder,
+      activeBoard: (updatedUser as any).activeBoard ?? null,
+      profilePhotoUrl: updatedUser.profilePhotoUrl,
+      nickname: (updatedUser as any).nickname ?? null,
     };
 
     return res.json({

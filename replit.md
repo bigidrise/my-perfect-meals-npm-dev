@@ -90,6 +90,13 @@ The application is a full-stack TypeScript project with a focus on personalized 
     - `useWeeklyBoard` polls every 45s while visible (stops when hidden), refreshes on `mpm:visibility-resumed`.
     - `TrainerClientDashboard` re-reads proStore + refetches body composition on `mpm:visibility-resumed`.
     - Pattern: global hook fires once → dispatches `mpm:visibility-resumed` → per-component listeners react. No duplicate fetches.
+    - Push notifications: `pushToUser()` and `pushToCoachOfClient()` in `server/services/pushNotify.ts`. Wired into studioRoutes (builder assign → client), manualMacros (macro targets → client), proWeekBoard (board save → client), weekBoard (client board save → coach).
+- **iOS Purchase Flow**:
+    - StoreKit plugin: `@squareetlabs/capacitor-subscriptions` via `client/src/lib/storekit.ts`.
+    - `verifyAndActivate()` POSTs to `/api/ios/verify-purchase`, MERGES server response with existing localStorage user (never overwrites — preserves `onboardingCompletedAt`, `role`, `activeBoard`, etc.).
+    - `mpm:user-updated` event dispatched after purchase → `AuthContext` listener calls `refreshUser()` to sync React state with server.
+    - Server (`iosVerify.ts`) returns complete `safeUser` with `role`, `onboardingCompletedAt`, `selectedMealBuilder`, `activeBoard`, `profilePhotoUrl`, `nickname`.
+    - Defensive JSON parsing on all `response.json()` calls to prevent crashes from non-JSON error responses.
 - **Studio Metrics Architecture**:
     - Studio reads DATABASE only, never localStorage. Consumer pages (my-biometrics, macro-calculator) are coach's personal space.
     - `StudioMetricsSnapshot` shows macro targets (from proStore), today's logged macros, and body composition via database APIs.

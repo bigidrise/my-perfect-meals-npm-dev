@@ -236,9 +236,14 @@ async function verifyAndActivate(
   productId: string
 ): Promise<void> {
   const userStr = localStorage.getItem("mpm_current_user");
-  const user = userStr ? JSON.parse(userStr) : null;
+  let existingUser: Record<string, any> | null = null;
+  try {
+    existingUser = userStr ? JSON.parse(userStr) : null;
+  } catch {
+    existingUser = null;
+  }
 
-  if (!user?.id) {
+  if (!existingUser?.id) {
     throw new Error("User not logged in");
   }
 
@@ -250,8 +255,9 @@ async function verifyAndActivate(
   const response = await fetch(apiUrl("/api/ios/verify-purchase"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({
-      userId: user.id,
+      userId: existingUser.id,
       transactionId,
       productId,
       internalSku,
@@ -259,15 +265,28 @@ async function verifyAndActivate(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Verification failed");
+    let errorMsg = "Verification failed";
+    try {
+      const error = await response.json();
+      errorMsg = error.error || errorMsg;
+    } catch {
+      errorMsg = `Verification failed (HTTP ${response.status})`;
+    }
+    throw new Error(errorMsg);
   }
 
-  const data = await response.json();
+  let data: any;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Invalid response from server");
+  }
+
   console.log("[StoreKit] Verification successful:", data);
 
   if (data.user) {
-    localStorage.setItem("mpm_current_user", JSON.stringify(data.user));
+    const mergedUser = { ...existingUser, ...data.user };
+    localStorage.setItem("mpm_current_user", JSON.stringify(mergedUser));
     window.dispatchEvent(new Event("mpm:user-updated"));
   }
 }
