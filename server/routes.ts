@@ -84,6 +84,7 @@ import bodyCompositionRoutes from "./routes/bodyComposition"; // Body fat tracki
 import { diabetesRouter } from "./routes/diabetes"; // Diabetes profile and glucose logging
 import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for stripeCheckoutRouter
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
+import iosVerifyRouter from "./routes/iosVerify";
 import lockedDaysRouter from "./routes/lockedDays";
 import usersProfileRouter from "./routes/usersProfile";
 import { loadStudioMembership } from "./middleware/studioAccess";
@@ -365,6 +366,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", loadStudioMembership);
 
   // Mount auth session and alcohol log
+  app.use("/api/ios", iosVerifyRouter);
+
   app.use(authSessionRouter);
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);
