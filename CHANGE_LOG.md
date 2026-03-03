@@ -4,6 +4,28 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-03: Coach Dashboard Save → Database Sync for Macro Targets
+
+**Change scope:** When coach saves macro targets on any client dashboard, the targets now also write to the database (`users` table) so the client's biometrics page can read them. Previously, saveTargets() only wrote to coach's browser localStorage, which the client could never see. This is the single missing sync link.
+
+**What changed:**
+- Updated `saveTargets()` in `ProClientDashboard.tsx`, `TrainerClientDashboard.tsx`, `ClinicianClientDashboard.tsx` — after writing to proStore (localStorage), now also POSTs to `POST /api/users/:userId/macro-targets` with the client's actual database user ID (`clientUserId || userId`). Guarded: skips POST if no valid database user ID is resolved (prevents writing to wrong row). Checks `res.ok` and logs errors.
+- Added `GET /api/users/:userId/macro-targets` endpoint in `server/routes/manualMacros.ts` — returns `{ calories, protein_g, carbs_g, fat_g, hasTargets }` from the `users` table.
+- Updated `refreshTargets()` in `client/src/pages/my-biometrics.tsx` — after checking localStorage (proStore + self-set), now falls back to fetching from the database GET endpoint. If DB has targets, uses them with source "pro".
+
+**Files touched:**
+- `client/src/pages/pro/ProClientDashboard.tsx` (modified — added imports, async saveTargets with DB POST)
+- `client/src/pages/pro/TrainerClientDashboard.tsx` (modified — async saveTargets with DB POST)
+- `client/src/pages/pro/ClinicianClientDashboard.tsx` (modified — added getAuthHeaders import, async saveTargets with DB POST)
+- `server/routes/manualMacros.ts` (modified — added GET endpoint)
+- `client/src/pages/my-biometrics.tsx` (modified — async refreshTargets with DB fallback)
+
+**Expected impact:** Coach saves targets → writes to DB → client loads biometrics page → fetches from DB → sees updated targets. No changes to meal builders, board APIs, auth, or StudioMetricsSnapshot.
+
+**Golden Path:** App compiles and runs. Architect review: identified incorrect `clientId` fallback (proStore ID, not users.id) → fixed by using only `clientUserId || userId` with guard. PASS after fix.
+
+---
+
 ## 2026-03-02: ProClientWeightSnapshot — Database-Only Weight Trend in Studio
 
 **Change scope:** Add weight trend visibility to Studio Client Folder. Coach needs to see client's weight history from the database — not localStorage. Built a new pro-scoped API route and a read-only weight snapshot component.

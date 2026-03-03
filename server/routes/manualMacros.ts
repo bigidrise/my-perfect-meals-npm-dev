@@ -296,6 +296,43 @@ router.get("/users/:userId/macro-logs/daily", async (req, res) => {
   }
 });
 
+// GET /api/users/:userId/macro-targets - Get user's macro targets from database
+router.get("/users/:userId/macro-targets", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const [user] = await db
+      .select({
+        dailyCalorieTarget: users.dailyCalorieTarget,
+        dailyProteinTarget: users.dailyProteinTarget,
+        dailyCarbsTarget: users.dailyCarbsTarget,
+        dailyFatTarget: users.dailyFatTarget,
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({
+      calories: user.dailyCalorieTarget || 0,
+      protein_g: user.dailyProteinTarget || 0,
+      carbs_g: user.dailyCarbsTarget || 0,
+      fat_g: user.dailyFatTarget || 0,
+      hasTargets: !!(
+        user.dailyCalorieTarget ||
+        user.dailyProteinTarget ||
+        user.dailyCarbsTarget ||
+        user.dailyFatTarget
+      ),
+    });
+  } catch (e: any) {
+    console.error("get macro targets error:", e);
+    res.status(500).json({ error: e.message || "Failed to get macro targets" });
+  }
+});
+
 // POST /api/users/:userId/macro-targets - Save user's macro targets
 router.post("/users/:userId/macro-targets", async (req, res) => {
   try {

@@ -353,7 +353,7 @@ export default function MyBiometrics() {
   );
   const [proName, setProName] = useState<string>("");
 
-  const refreshTargets = () => {
+  const refreshTargets = async () => {
     const resolved = getResolvedTargets(user?.id);
     if (resolved.source !== "none") {
       setTargets({
@@ -366,10 +366,34 @@ export default function MyBiometrics() {
       if (resolved.source === "pro" && resolved.setBy) {
         setProName(resolved.setBy);
       }
-    } else {
-      setTargets(null);
-      setTargetSource("none");
+      return;
     }
+
+    if (user?.id) {
+      try {
+        const res = await fetch(apiUrl(`/api/users/${user.id}/macro-targets`), {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasTargets) {
+            setTargets({
+              calories: data.calories,
+              protein_g: data.protein_g,
+              carbs_g: data.carbs_g,
+              fat_g: data.fat_g,
+            });
+            setTargetSource("pro");
+            setProName("Your professional");
+            return;
+          }
+        }
+      } catch {
+      }
+    }
+
+    setTargets(null);
+    setTargetSource("none");
   };
 
   useEffect(() => {

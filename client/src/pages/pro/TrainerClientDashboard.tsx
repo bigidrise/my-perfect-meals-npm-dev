@@ -111,8 +111,34 @@ export default function TrainerClientDashboard() {
       .catch(() => {});
   }, [clientId]);
 
-  const saveTargets = () => {
+  const saveTargets = async () => {
     proStore.setTargets(clientId, t);
+
+    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+    const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
+    const dbUserId = client?.clientUserId || client?.userId;
+
+    if (dbUserId) {
+      try {
+        const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            calories: totalCal,
+            protein_g: t.protein,
+            carbs_g: totalCarbs,
+            fat_g: t.fat,
+          }),
+        });
+        if (!res.ok) {
+          console.error("Failed to sync macro targets to database:", res.status);
+        }
+      } catch (e) {
+        console.error("Failed to sync macro targets to database:", e);
+      }
+    }
+
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
     }
