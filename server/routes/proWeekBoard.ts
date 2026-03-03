@@ -79,6 +79,7 @@ function normalizeBoard(raw: any): any {
       snacks: normalizeMealArray(lists.snacks),
     },
     meta: {
+      ...(base.meta ?? {}),
       createdAt: base.meta?.createdAt ?? new Date().toISOString(),
       lastUpdatedAt: base.meta?.lastUpdatedAt ?? new Date().toISOString(),
     },
@@ -253,13 +254,14 @@ router.put(
       }
 
       const now = new Date().toISOString();
+      const existingBoard = await getWeekBoard(clientUserId, weekStartISO);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
         meta: {
-          createdAt:
-            (await getWeekBoard(clientUserId, weekStartISO))?.meta?.createdAt ??
-            now,
+          ...existingBoard?.meta,
+          ...processedBoard.meta,
+          createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
         },
       };
@@ -316,13 +318,14 @@ router.put(
       }
 
       const now = new Date().toISOString();
+      const existingBoard = await getWeekBoard(clientUserId, weekStartISO);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
         meta: {
-          createdAt:
-            (await getWeekBoard(clientUserId, weekStartISO))?.meta?.createdAt ??
-            now,
+          ...existingBoard?.meta,
+          ...processedBoard.meta,
+          createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
         },
       };

@@ -206,6 +206,7 @@ function normalizeBoard(raw: any): any {
     // NEW: 7-day structure
     days: days,
     meta: {
+      ...(base.meta ?? {}),
       createdAt: String(base.meta?.createdAt ?? new Date().toISOString()),
       lastUpdatedAt: String(new Date().toISOString()),
     },
@@ -473,11 +474,14 @@ export default function weekBoardRoutes(app: Express) {
       
       // enforce id + timestamps for consistency
       const now = new Date().toISOString();
+      const existingBoard2 = await getWeekBoard(userId, weekStartISO);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
         meta: {
-          createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
+          ...existingBoard2?.meta,
+          ...processedBoard.meta,
+          createdAt: existingBoard2?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
         },
       };
@@ -540,11 +544,14 @@ export default function weekBoardRoutes(app: Express) {
       }
       
       const now = new Date().toISOString();
+      const existingBoard = await getWeekBoard(userId, weekStartISO);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
         meta: {
-          createdAt: (await getWeekBoard(userId, weekStartISO))?.meta?.createdAt ?? now,
+          ...existingBoard?.meta,
+          ...processedBoard.meta,
+          createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
         },
       };

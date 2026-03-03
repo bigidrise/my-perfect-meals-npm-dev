@@ -4,6 +4,24 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-03: Fix Liver Support toggle not persisting — meta stripped on board save
+
+**Change scope:** Fixed the liver support clinical mode toggle in the Anti-Inflammatory Builder not staying active after clicking. The root cause was that all 3 PUT board save endpoints (`/api/weekly-board`, `/api/week-board/:weekStartISO`, and `/api/pro/weekly-board/:clientId`) were replacing `board.meta` with only `createdAt` and `lastUpdatedAt`, discarding any other meta fields including `clinicalMode`. When the server response came back, the sync effect overwrote the optimistic local state with the stripped meta, reverting `clinicalMode` to undefined (which defaults to "anti-inflammatory").
+
+**What changed:**
+- All 3 PUT endpoints now spread existing meta and incoming meta before setting timestamps: `{ ...existingBoard?.meta, ...processedBoard.meta, createdAt, lastUpdatedAt }`.
+- This preserves `clinicalMode` and any other future meta fields through the save-refetch cycle.
+
+**Files touched:**
+- `server/routes/weekBoard.ts` (2 PUT handlers fixed — `/api/weekly-board` and `/api/week-board/:weekStartISO`)
+- `server/routes/proWeekBoard.ts` (2 PUT handlers fixed — pro board save endpoints)
+
+**Expected impact:** Liver Support toggle now stays active. No impact on meals, auth, onboarding, or macro sync.
+
+**Golden Path result:** App compiles and runs. No new errors in console.
+
+---
+
 ## 2026-03-03: Option B Macro Sync — Save Day writes to macro_logs, Biometrics reads server
 
 **Change scope:** Wired Save Day in all 7 builders to POST locked-day summaries to `macro_logs` via new daily-summary upsert endpoint. Removed all DEV_USER_ID contamination from client code. Biometrics page (`my-biometrics.tsx`) now reads macro history from server with locked-day priority, using localStorage as offline fallback only. No schema changes, no new tables — uses existing `macro_logs` table with new unique index.
