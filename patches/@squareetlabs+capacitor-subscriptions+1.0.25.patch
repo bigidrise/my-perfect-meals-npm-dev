@@ -1,0 +1,54 @@
+diff --git a/node_modules/@squareetlabs/capacitor-subscriptions/ios/Sources/SubscriptionsPlugin/Subscriptions.swift b/node_modules/@squareetlabs/capacitor-subscriptions/ios/Sources/SubscriptionsPlugin/Subscriptions.swift
+index bf5ea87..6164b1f 100644
+--- a/node_modules/@squareetlabs/capacitor-subscriptions/ios/Sources/SubscriptionsPlugin/Subscriptions.swift
++++ b/node_modules/@squareetlabs/capacitor-subscriptions/ios/Sources/SubscriptionsPlugin/Subscriptions.swift
+@@ -176,7 +176,7 @@ import UIKit
+                         "originalStartDate": transaction!.originalPurchaseDate,
+                         "originalId": transaction!.originalID,
+                         "transactionId": transaction!.id,
+-                        "expiryDate": transaction!.expirationDate!,
++                        "expiryDate": transaction?.expirationDate as Any,
+                         "purchaseToken": ""
+                     ]
+                     
+@@ -229,9 +229,13 @@ import UIKit
+                 ]
+             }
+             
+-            print("expiration" + String(decoding: formatDate(transaction.expirationDate)!, as: UTF8.self))
+-            print("transaction.expirationDate", transaction.expirationDate!)
+-            print("transaction.originalID", transaction.originalID);
++            if let exp = transaction.expirationDate, let expData = formatDate(exp) {
++                print("expiration" + String(decoding: expData, as: UTF8.self))
++                print("transaction.expirationDate", exp)
++            } else {
++                print("transaction.expirationDate nil")
++            }
++            print("transaction.originalID", transaction.originalID)
+             
+             var receiptString = "";
+             
+@@ -262,7 +266,7 @@ import UIKit
+                     "originalStartDate": transaction.originalPurchaseDate,
+                     "originalId": transaction.originalID,
+                     "transactionId": transaction.id,
+-                    "expiryDate": transaction.expirationDate!,
++                    "expiryDate": transaction.expirationDate as Any,
+                     "purchaseToken": receiptString
+                 ]
+             ];
+@@ -312,11 +316,10 @@ import UIKit
+     
+     @available(iOS 15.0.0, *)
+     @objc private func formatDate(_ date: Date?) -> Data? {
+-     
+-        let df = DateFormatter();
++        guard let date = date else { return nil }
++        let df = DateFormatter()
+         df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+-        return df.string(for: date)?.data(using: String.Encoding.utf8)!;
+-        
++        return df.string(from: date).data(using: .utf8)
+     }
+     
+     @available(iOS 15.0.0, *)
