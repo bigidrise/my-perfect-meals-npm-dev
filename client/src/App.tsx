@@ -13,6 +13,7 @@ import { ChefVoiceAssistant } from "@/components/ChefVoiceAssistant";
 import { VoiceConcierge } from "@/components/VoiceConcierge";
 import ScrollManager from "@/components/ScrollManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 import { loadRewardful } from "@/lib/rewardful";
 import { AudioProvider } from "@/audio/AudioProvider";
 import { CopilotSystem } from "@/components/copilot/CopilotSystem";
@@ -42,6 +43,11 @@ if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
 }
 
 
+
+function VisibilityRefreshMount() {
+  useVisibilityRefresh();
+  return null;
+}
 
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
@@ -137,6 +143,7 @@ export default function App() {
             <FontSizeProvider>
             <AudioProvider>
               <VoiceProvider>
+                <VisibilityRefreshMount />
                 <ScrollManager />
                 <WhatsNewBanner />
 

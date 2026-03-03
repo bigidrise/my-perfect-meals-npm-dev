@@ -219,6 +219,56 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     };
   }, [userId, monday, proClientId]);
 
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (intervalId) return;
+      intervalId = setInterval(() => {
+        loadWeeklyBoard({
+          userId,
+          weekStartISO: monday,
+          onData: (result) => { setData(result); setError(null); },
+          proClientId,
+        }).catch(() => {});
+      }, 45_000);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    const handleMpmResume = () => {
+      loadWeeklyBoard({
+        userId,
+        weekStartISO: monday,
+        onData: (result) => { setData(result); setError(null); },
+        proClientId,
+      }).catch(() => {});
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("mpm:visibility-resumed", handleMpmResume);
+
+    if (document.visibilityState === "visible") {
+      startPolling();
+    }
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("mpm:visibility-resumed", handleMpmResume);
+    };
+  }, [userId, monday, proClientId]);
+
   const save = useCallback(
     async (board: WeekBoard, opId?: string): Promise<void> => {
       try {

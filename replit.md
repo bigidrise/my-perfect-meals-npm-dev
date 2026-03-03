@@ -83,6 +83,13 @@ The application is a full-stack TypeScript project with a focus on personalized 
     - Biometrics page (`my-biometrics.tsx`) fetches from `GET /api/users/:userId/macro-logs/daily-with-source` (locked-day priority SQL). localStorage is offline fallback only.
     - `macros:updated` window event triggers refetch in biometrics when Save Day fires.
     - DEV_USER_ID removed from all client files except: `AuthContext.tsx` (guest fallback), `useWeeklyBoard.ts` (Apple review flag), `api.ts` (localStorage migration keys).
+- **Reactivity & Refresh Architecture**:
+    - Global `refetchOnWindowFocus` is OFF in `queryClient.ts`. Selective per-query opt-in only.
+    - `useVisibilityRefresh` hook (mounted in `App.tsx`) listens for `visibilitychange` and invalidates critical query prefixes (`/api/users`, `/api/weekly-board`, `/api/pro/weekly-board`), then dispatches `mpm:visibility-resumed` window event.
+    - `useTodayMacros` has `refetchOnWindowFocus: true` and `refetchOnReconnect: true` per-query.
+    - `useWeeklyBoard` polls every 45s while visible (stops when hidden), refreshes on `mpm:visibility-resumed`.
+    - `TrainerClientDashboard` re-reads proStore + refetches body composition on `mpm:visibility-resumed`.
+    - Pattern: global hook fires once → dispatches `mpm:visibility-resumed` → per-component listeners react. No duplicate fetches.
 - **Studio Metrics Architecture**:
     - Studio reads DATABASE only, never localStorage. Consumer pages (my-biometrics, macro-calculator) are coach's personal space.
     - `StudioMetricsSnapshot` shows macro targets (from proStore), today's logged macros, and body composition via database APIs.

@@ -36,6 +36,8 @@ export function useTodayMacros(userId: string): MacroTotals {
     {
       queryKey: ["/api/users", userId, "macros", "today"],
       enabled: !!userId,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       queryFn: async () => {
         const { startUTC, endUTC } = localDayRangeAsUTCISO(new Date());
         const url = `/api/users/${userId}/macros?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;

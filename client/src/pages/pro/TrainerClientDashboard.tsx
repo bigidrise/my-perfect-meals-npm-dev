@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
@@ -96,7 +96,7 @@ export default function TrainerClientDashboard() {
     }
   }, [clientId]);
 
-  useEffect(() => {
+  const fetchBodyComp = useCallback(() => {
     const c = proStore.getClient(clientId);
     const uid = c?.clientUserId || c?.userId;
     if (!uid) return;
@@ -110,6 +110,26 @@ export default function TrainerClientDashboard() {
       })
       .catch(() => {});
   }, [clientId]);
+
+  useEffect(() => {
+    fetchBodyComp();
+  }, [fetchBodyComp]);
+
+  useEffect(() => {
+    const handleResume = () => {
+      const c = proStore.getClient(clientId);
+      if (c) {
+        setClient(c);
+        setAssignedBuilder(c.assignedBuilder);
+        setT(proStore.getTargets(clientId));
+        setCtx(proStore.getContext(clientId));
+      }
+      fetchBodyComp();
+    };
+
+    window.addEventListener("mpm:visibility-resumed", handleResume);
+    return () => window.removeEventListener("mpm:visibility-resumed", handleResume);
+  }, [clientId, fetchBodyComp]);
 
   const saveTargets = async () => {
     proStore.setTargets(clientId, t);
