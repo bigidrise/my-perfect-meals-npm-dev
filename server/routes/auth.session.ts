@@ -223,14 +223,14 @@ router.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Generate new auth token on login and sync tester status
-    const authToken = generateAuthToken();
     const isTester = isTesterEmail(email);
-    await db.update(users).set({
-      authToken,
-      authTokenCreatedAt: new Date(),
-      isTester,
-    }).where(eq(users.id, user.id));
+    const authToken = user.authToken || generateAuthToken();
+    const updateFields: any = { isTester };
+    if (!user.authToken) {
+      updateFields.authToken = authToken;
+      updateFields.authTokenCreatedAt = new Date();
+    }
+    await db.update(users).set(updateFields).where(eq(users.id, user.id));
 
     // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
     if (req.session) {

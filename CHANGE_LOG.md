@@ -4,6 +4,25 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-03: Fix auth token invalidation across environments + standardize care-team auth
+
+**Change scope:** Fixed login route regenerating auth tokens on every login, which caused cross-environment session invalidation (dev/production share the same database). Also standardized care-team routes to use `requireAuth` middleware instead of a custom `getUserId` function with an insecure `x-user-id` header fallback.
+
+**What changed:**
+- Login route (`POST /api/auth/login`) now reuses the existing `authToken` from the database if one exists. Only generates a new token if the user has no token. This prevents logging in on one environment from invalidating sessions on all other environments.
+- All care-team routes (`GET /`, `POST /invite`, `POST /connect`, `POST /:id/approve`, `POST /:id/revoke`) now use `requireAuth` middleware instead of the custom `getUserId` function.
+- Removed the insecure `x-user-id` header fallback from care-team auth — all auth now goes through the standard `x-auth-token` / session-based `requireAuth` middleware.
+
+**Files touched:**
+- `server/routes/auth.session.ts` (login token reuse)
+- `server/routes/careTeamRoutes.ts` (replaced custom getUserId with requireAuth middleware)
+
+**Expected impact:** Logging in on the deployed app no longer invalidates auth on dev (and vice versa). Care-team routes now have consistent auth with all other routes. No impact on signup (signup always generates new token for new users).
+
+**Golden Path result:** App compiles and runs. Code review passed.
+
+---
+
 ## 2026-03-03: Fix Liver Support toggle not persisting — meta stripped on board save
 
 **Change scope:** Fixed the liver support clinical mode toggle in the Anti-Inflammatory Builder not staying active after clicking. The root cause was that all 3 PUT board save endpoints (`/api/weekly-board`, `/api/week-board/:weekStartISO`, and `/api/pro/weekly-board/:clientId`) were replacing `board.meta` with only `createdAt` and `lastUpdatedAt`, discarding any other meta fields including `clinicalMode`. When the server response came back, the sync effect overwrote the optimistic local state with the stripped meta, reverting `clinicalMode` to undefined (which defaults to "anti-inflammatory").

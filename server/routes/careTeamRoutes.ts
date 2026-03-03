@@ -7,31 +7,13 @@ import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
 import { bridgeToStudio } from "../services/studioBridge";
 import { createLink, endLink, ClientLinkError } from "../services/clientLinkService";
+import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
-async function getUserId(req: any): Promise<string | null> {
-  if (req.session?.userId) return req.session.userId as string;
-
-  const authToken = req.headers["x-auth-token"] as string;
-  if (authToken) {
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.authToken, authToken))
-      .limit(1);
-    if (user) return user.id;
-  }
-
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
-  return null;
-}
-
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const userId = (req as AuthenticatedRequest).authUser.id;
 
     const members = await db
       .select()
@@ -45,10 +27,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/invite", async (req, res) => {
+router.post("/invite", requireAuth, async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const userId = (req as AuthenticatedRequest).authUser.id;
 
     const { email: rawEmail, role, permissions } = req.body;
     if (!rawEmail || !role || !permissions) {
@@ -105,10 +86,9 @@ router.post("/invite", async (req, res) => {
   }
 });
 
-router.post("/connect", async (req, res) => {
+router.post("/connect", requireAuth, async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const userId = (req as AuthenticatedRequest).authUser.id;
 
     const { code } = req.body;
     if (!code) {
@@ -225,10 +205,9 @@ router.post("/connect", async (req, res) => {
   }
 });
 
-router.post("/:id/approve", async (req, res) => {
+router.post("/:id/approve", requireAuth, async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const userId = (req as AuthenticatedRequest).authUser.id;
 
     const { id } = req.params;
 
@@ -255,10 +234,9 @@ router.post("/:id/approve", async (req, res) => {
   }
 });
 
-router.post("/:id/revoke", async (req, res) => {
+router.post("/:id/revoke", requireAuth, async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const userId = (req as AuthenticatedRequest).authUser.id;
 
     const { id } = req.params;
 
