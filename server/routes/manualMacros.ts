@@ -6,6 +6,7 @@ import { and, gte, lte, eq, sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { careTeamMember } from "../db/schema/careTeam";
 import { clientLinks } from "../db/schema/procare";
+import { pushToUser, pushToCoachOfClient } from "../services/pushNotify";
 
 const router = express.Router();
 
@@ -365,6 +366,15 @@ router.post("/users/:userId/macro-targets", async (req, res) => {
     }
 
     console.log(`✅ Saved macro targets for user ${userId}: ${calories}cal, ${protein_g}p/${carbs_g}c/${fat_g}f`);
+
+    const authUserId = (req as any).authUser?.id;
+    if (authUserId && authUserId !== userId) {
+      pushToUser(userId, {
+        title: "Your coach updated your targets",
+        body: `New macro targets: ${calories} cal, ${protein_g}g protein.`,
+        url: "/my-biometrics",
+      });
+    }
 
     res.json({ 
       ok: true, 

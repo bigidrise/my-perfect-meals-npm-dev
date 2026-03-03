@@ -5,6 +5,7 @@ import { getWeekStartISO, isValidISODate } from "../utils/week";
 import { getWeekBoard, upsertWeekBoard } from "../data/weekBoardsRepo";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import { logActivityFireAndForget } from "../services/activityLog";
+import { pushToUser } from "../services/pushNotify";
 
 type WeekBoard = {
   id: string;
@@ -277,6 +278,12 @@ router.put(
         { weekStartISO, imagesProcessed, imagesPending, updatedBy: "pro" }
       );
 
+      pushToUser(clientUserId, {
+        title: "Your coach updated your meal plan",
+        body: "Your weekly meal board has been updated. Tap to review.",
+        url: "/weekly",
+      });
+
       return res.json({
         weekStartISO,
         week: normalizeBoard(saved),
@@ -340,6 +347,12 @@ router.put(
         `week-${weekStartISO}`,
         { weekStartISO, imagesProcessed, imagesPending, updatedBy: "pro" }
       );
+
+      pushToUser(clientUserId, {
+        title: "Your coach updated your meal plan",
+        body: "Your weekly meal board has been updated. Tap to review.",
+        url: "/weekly",
+      });
 
       return res.json({
         weekStartISO,

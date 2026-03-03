@@ -8,6 +8,7 @@ import { users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
+import { pushToUser } from "../services/pushNotify";
 
 const router = Router();
 
@@ -364,6 +365,12 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       membership.id,
       { assignedBuilder, activeBoardId }
     );
+
+    pushToUser(clientUserId, {
+      title: "Your coach updated your plan",
+      body: "A new meal builder has been assigned. Tap to review.",
+      url: "/weekly",
+    });
 
     res.json({ membership });
   } catch (error) {

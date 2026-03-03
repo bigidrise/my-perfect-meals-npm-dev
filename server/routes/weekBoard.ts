@@ -4,6 +4,7 @@ import { buildShoppingList } from '../services/shopping-list/list-builder';
 import { resolveUserId, getWeekBoard, upsertWeekBoard, AuthenticationRequiredError } from '../data/weekBoardsRepo';
 import { processMealImageForSave } from '../services/imageLifecycle';
 import { logActivityFireAndForget } from '../services/activityLog';
+import { pushToCoachOfClient } from '../services/pushNotify';
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -566,6 +567,12 @@ export default function weekBoardRoutes(app: Express) {
         `week-${weekStartISO}`,
         { weekStartISO, imagesProcessed, imagesPending }
       );
+
+      pushToCoachOfClient(userId, {
+        title: "Client updated their meal plan",
+        body: "A client modified their weekly meal board.",
+        url: "/care-team/trainer",
+      });
       
       return res.json({ 
         weekStartISO, 
