@@ -69,6 +69,23 @@ MEDITERRANEAN DIET PRINCIPLES (MANDATORY):
 - Limited red meat and processed foods
 - Cooking methods: grilling, roasting, sautéing with olive oil` : '';
 
+  const liverSupportRules = diet === 'liver-support' ? `
+
+LIVER SUPPORT CLINICAL GUARDRAILS (MANDATORY):
+- No alcohol of any kind (beer, wine, liquor, cocktails)
+- No deep fried foods (fried chicken, french fries, fried anything)
+- No high added sugar (candy, donuts, pastries, heavy syrup, soda, sweet tea, energy drinks, juice cocktails)
+- No ultra-processed foods (fast food, instant noodles, processed junk)
+- Avoid processed meats (bacon, sausage, hot dogs, deli meat)
+- Avoid heavy butter/cream-based dishes
+- Avoid high sodium foods (jerky, heavily salted items, ramen)
+- Prioritize leafy greens: spinach, kale, arugula
+- Prioritize cruciferous vegetables: broccoli, cauliflower, brussels sprouts
+- Prioritize omega-3 rich foods: salmon, sardines, tuna, chia, flax, walnuts
+- Prioritize legumes and whole grains: beans, lentils, oats, quinoa, brown rice
+- Use olive oil and avocado as primary fat sources
+- These guardrails apply to meal composition only. Do NOT override the user's macro targets.` : '';
+
   const sys = `
 You are a meticulous nutrition chef AI. Your job is to generate SAFE, PRECISE, REALISTIC meals that strictly obey user rules.
 
@@ -76,7 +93,7 @@ ABSOLUTE RULES:
 - Respect ALLERGIES and AVOIDS with zero exceptions.
 - If user has diabetes (T1 or T2), use low/medium GI carbs, balance carbs with protein/fiber, avoid added sugars.
 - Respect diet type (${diet}) and ingredient bans.
-- Use straightforward, kitchen-ready instructions only. No fluff, no tips, no equipment essays.${mediterraneanRules}
+- Use straightforward, kitchen-ready instructions only. No fluff, no tips, no equipment essays.${mediterraneanRules}${liverSupportRules}
 
 ${BASELINE_MACROS_PROMPT}
 

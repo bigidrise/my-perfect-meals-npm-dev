@@ -4,6 +4,40 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-03: Liver Support Mode — Clinical Guardrail Layer in Anti-Inflammatory Builder
+
+**Change scope:** Added Liver Support Mode as a clinical guardrail layer inside the existing Anti-Inflammatory Builder. No new builder created. Clinical mode is stored in `board.meta.clinicalMode` (database, not localStorage). Toggles between "anti-inflammatory" (default) and "liver-support". Affects AI generation, premade/snack filtering, and snack creation when in liver-support mode.
+
+**What changed:**
+- Created `shared/clinical/guardrails.ts` — shared guardrail module with `getGuardrails()`, `applyGuardrailsToPrompt()`, `filterPremadesByGuardrails()`, `isMealAllowed()`. Hard blocks: alcohol, fried foods, soda, processed foods. Soft discourage: bacon, sausage, butter-heavy. Prioritize: leafy greens, omega-3 sources, beans, olive oil.
+- Extended `shared/schema/weeklyBoard.ts` — added `clinicalMode` to meta (optional, backward compatible), `ClinicalMode` type, `resolveClinicalMode()` helper (defaults to "anti-inflammatory").
+- Added mode toggle UI in `AntiInflammatoryMenuBuilder.tsx` — segmented button selector in main content area. Optimistic local update + PUT board on change, revert + toast on failure. All 4 hardcoded `dietType="anti-inflammatory"` replaced with `dietType={clinicalMode}`.
+- Created `server/services/guardrails/prompt/liverSupportPromptBuilder.ts`, `rules/liverSupportRules.ts`, `validators/liverSupportValidator.ts` — AI generation guardrails for liver-support mode.
+- Wired liver-support into `server/services/guardrails/index.ts` and `server/services/promptBuilder.ts`.
+- Updated `MealPremadePicker.tsx` and `SnackPickerDrawer.tsx` — added "liver-support" to dietType unions, filter premades through guardrails when in liver-support mode.
+- Added "liver-support" to `DietType` unions in `useCreateWithChefRequest.ts` and `useSnackCreatorRequest.ts`.
+
+**Files touched:**
+- `shared/clinical/guardrails.ts` (new)
+- `shared/schema/weeklyBoard.ts` (modified — clinicalMode in meta, ClinicalMode type, resolveClinicalMode helper)
+- `client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx` (modified — toggle UI, clinicalMode variable, dynamic dietType)
+- `client/src/hooks/useCreateWithChefRequest.ts` (modified — liver-support in DietType)
+- `client/src/hooks/useSnackCreatorRequest.ts` (modified — liver-support in DietType)
+- `client/src/components/pickers/MealPremadePicker.tsx` (modified — liver-support filtering)
+- `client/src/components/pickers/SnackPickerDrawer.tsx` (modified — liver-support filtering)
+- `server/services/guardrails/types.ts` (modified — liver-support in DietType)
+- `server/services/guardrails/index.ts` (modified — liver-support case)
+- `server/services/guardrails/prompt/liverSupportPromptBuilder.ts` (new)
+- `server/services/guardrails/rules/liverSupportRules.ts` (new)
+- `server/services/guardrails/validators/liverSupportValidator.ts` (new)
+- `server/services/promptBuilder.ts` (modified — liver-support inline guardrails)
+
+**Expected impact:** Anti-Inflammatory Builder gains a clinical mode toggle. Default behavior unchanged (anti-inflammatory). When liver-support is selected: AI meals avoid blocked ingredients, premade lists are filtered, snack options are filtered. Mode persists via board.meta in database. No changes to auth, onboarding, macros, or other builders.
+
+**Golden Path:** App compiles and runs without errors. No console errors, no 404s. Pending architect review.
+
+---
+
 ## 2026-03-03: Coach Dashboard Save → Database Sync for Macro Targets
 
 **Change scope:** When coach saves macro targets on any client dashboard, the targets now also write to the database (`users` table) so the client's biometrics page can read them. Previously, saveTargets() only wrote to coach's browser localStorage, which the client could never see. This is the single missing sync link.

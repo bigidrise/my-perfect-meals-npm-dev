@@ -69,6 +69,7 @@ import {
   proteinFibrousOptions,
   proteinFibrousStarchyOptions,
 } from "@/data/competitionMealCatalog";
+import { filterPremadesByGuardrails } from "../../../../shared/clinical/guardrails";
 
 interface MealPremadePickerProps {
   open: boolean;
@@ -80,6 +81,7 @@ interface MealPremadePickerProps {
     | "diabetic"
     | "glp1"
     | "anti-inflammatory"
+    | "liver-support"
     | "competition";
   showMacroTargeting?: boolean;
 }
@@ -458,24 +460,34 @@ export default function MealPremadePicker({
   const { user } = useAuth();
   const userId = user?.id?.toString() || "";
   
-  // Determine which premade set to use based on meal type and diet type
-  // Competition mode uses macro-based categories (same data for all meal slots)
-  const premadeData =
-    dietType === "competition"
+  const isLiverSupport = dietType === "liver-support";
+  const effectiveDietType = isLiverSupport ? "anti-inflammatory" : dietType;
+
+  const basePremadeData =
+    effectiveDietType === "competition"
       ? competitionPremades
       : mealType === "breakfast"
-        ? dietType === "diabetic"
+        ? effectiveDietType === "diabetic"
           ? diabeticBreakfastPremades
           : breakfastPremades
         : mealType === "lunch"
-          ? dietType === "diabetic"
+          ? effectiveDietType === "diabetic"
             ? diabeticLunchPremades
             : lunchPremades
           : mealType === "snack"
             ? diabeticSnackPremades
-            : dietType === "diabetic"
+            : effectiveDietType === "diabetic"
               ? diabeticDinnerPremades
               : dinnerPremades;
+
+  const premadeData = isLiverSupport
+    ? Object.fromEntries(
+        Object.entries(basePremadeData).map(([cat, meals]) => [
+          cat,
+          filterPremadesByGuardrails("liver-support", meals as any[]),
+        ]),
+      )
+    : basePremadeData;
 
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [generating, setGenerating] = useState(false);
@@ -653,6 +665,7 @@ export default function MealPremadePicker({
       dietType === "diabetic" ||
       dietType === "glp1" ||
       dietType === "anti-inflammatory" ||
+      dietType === "liver-support" ||
       dietType === "competition";
     const hasMealIngredients =
       meal.actualIngredients &&

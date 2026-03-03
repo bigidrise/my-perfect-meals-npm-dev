@@ -13,12 +13,13 @@ import { GLP1_SNACK_CATEGORIES } from '@/data/glp1Snacks';
 import antiInflammatorySnacks from '@/data/antiInflammatory.snacks';
 import { competitionSnackOptions } from '@/data/competitionSnacks';
 import { getStaticSnackImage } from '../../../../shared/staticSnackMappings';
+import { filterPremadesByGuardrails } from '../../../../shared/clinical/guardrails';
 
 interface SnackPickerDrawerProps {
   open: boolean;
   onClose: () => void;
   onSnackSelect?: (snack: any) => void;
-  dietType?: 'normal' | 'diabetic' | 'glp1' | 'anti-inflammatory' | 'competition';
+  dietType?: 'normal' | 'diabetic' | 'glp1' | 'anti-inflammatory' | 'liver-support' | 'competition';
 }
 
 // Build snack data based on diet type
@@ -79,30 +80,39 @@ function getSnackDataByDiet(dietType: string) {
         name: item
       }))
     };
-  } else if (dietType === 'anti-inflammatory') {
-    // Anti-inflammatory snacks
-    return {
+  } else if (dietType === 'anti-inflammatory' || dietType === 'liver-support') {
+    const prefix = dietType === 'liver-support' ? 'liver-support' : 'anti-inflammatory';
+    const baseSnacks = {
       'Sweet': antiInflammatorySnacks.Sweet.map((item, idx) => ({
-        id: `anti-inflammatory-snack-sweet-${idx}`,
+        id: `${prefix}-snack-sweet-${idx}`,
         name: item
       })),
       'Savory': antiInflammatorySnacks.Savory.map((item, idx) => ({
-        id: `anti-inflammatory-snack-savory-${idx}`,
+        id: `${prefix}-snack-savory-${idx}`,
         name: item
       })),
       'Crunchy': antiInflammatorySnacks.Crunchy.map((item, idx) => ({
-        id: `anti-inflammatory-snack-crunchy-${idx}`,
+        id: `${prefix}-snack-crunchy-${idx}`,
         name: item
       })),
       'Creamy': antiInflammatorySnacks.Creamy.map((item, idx) => ({
-        id: `anti-inflammatory-snack-creamy-${idx}`,
+        id: `${prefix}-snack-creamy-${idx}`,
         name: item
       })),
       'High Protein': antiInflammatorySnacks.HighProtein.map((item, idx) => ({
-        id: `anti-inflammatory-snack-protein-${idx}`,
+        id: `${prefix}-snack-protein-${idx}`,
         name: item
       }))
     };
+    if (dietType === 'liver-support') {
+      return Object.fromEntries(
+        Object.entries(baseSnacks).map(([cat, snacks]) => [
+          cat,
+          filterPremadesByGuardrails('liver-support', snacks),
+        ])
+      );
+    }
+    return baseSnacks;
   } else if (dietType === 'competition') {
     // Competition prep snacks - ONE CATEGORY ONLY
     // 20 prep-safe snacks: low sugar, clean fats, high protein

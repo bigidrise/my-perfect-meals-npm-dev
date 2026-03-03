@@ -101,6 +101,7 @@ import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
+import { resolveClinicalMode, type ClinicalMode } from "../../../../shared/schema/weeklyBoard";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -160,6 +161,8 @@ export default function AntiInflammatoryMenuBuilder() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
+  const clinicalMode = resolveClinicalMode(board);
+
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
@@ -213,6 +216,26 @@ export default function AntiInflammatoryMenuBuilder() {
     },
     [saveToHook, clearDraft, markClean],
   );
+
+  const handleClinicalModeChange = useCallback(
+    async (nextMode: ClinicalMode) => {
+      if (!board) return;
+      const prevMode = clinicalMode;
+      const updatedBoard: WeekBoard = {
+        ...board,
+        meta: { ...board.meta, clinicalMode: nextMode, lastUpdatedAt: new Date().toISOString() },
+      };
+      setBoard(updatedBoard);
+      try {
+        await saveBoard(updatedBoard);
+      } catch {
+        setBoard({ ...board, meta: { ...board.meta, clinicalMode: prevMode } });
+        toast({ title: "Failed to save mode", description: "Could not update clinical mode. Please try again." });
+      }
+    },
+    [board, clinicalMode, saveBoard, toast],
+  );
+
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
@@ -1341,6 +1364,7 @@ export default function AntiInflammatoryMenuBuilder() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20 overflow-x-hidden"
     >
       <BuilderHeader title="Anti-Inflammatory Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+
       <TrialBanner />
 
       {/* Main Content */}
@@ -1348,6 +1372,40 @@ export default function AntiInflammatoryMenuBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
+        <div className="flex items-center justify-between bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/50 font-medium">Clinical Mode:</span>
+            <div className="flex rounded-lg overflow-hidden border border-zinc-700/50">
+              <button
+                type="button"
+                disabled={!board}
+                onClick={() => handleClinicalModeChange("anti-inflammatory")}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  clinicalMode === "anti-inflammatory"
+                    ? "bg-orange-600 text-white"
+                    : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
+                }`}
+              >
+                Anti-Inflammatory
+              </button>
+              <button
+                type="button"
+                disabled={!board}
+                onClick={() => handleClinicalModeChange("liver-support")}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  clinicalMode === "liver-support"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
+                }`}
+              >
+                Liver Support
+              </button>
+            </div>
+          </div>
+          {clinicalMode === "liver-support" && (
+            <span className="text-[10px] text-emerald-400 font-medium">Liver Support Active</span>
+          )}
+        </div>
         <NutritionBudgetBanner className="mb-2" />
         <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
@@ -1885,7 +1943,7 @@ export default function AntiInflammatoryMenuBuilder() {
           open={premadePickerOpen}
           onClose={() => setPremadePickerOpen(false)}
           mealType={premadePickerSlot}
-          dietType="anti-inflammatory"
+          dietType={clinicalMode}
           onMealSelect={handlePremadeSelect}
         />
 
@@ -1893,26 +1951,26 @@ export default function AntiInflammatoryMenuBuilder() {
         <SnackPickerDrawer
           open={snackPickerOpen}
           onClose={() => setSnackPickerOpen(false)}
-          dietType="anti-inflammatory"
+          dietType={clinicalMode}
           onSnackSelect={handleSnackSelect}
         />
 
-        {/* Create With Chef Modal - with anti-inflammatory guardrails */}
+        {/* Create With Chef Modal - with clinical mode guardrails */}
         <CreateWithChefModal
           open={createWithChefOpen}
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
           onMealGenerated={handleChefMealGenerated}
-          dietType="anti-inflammatory"
+          dietType={clinicalMode}
           starchContext={starchContext}
         />
 
-        {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with anti-inflammatory guardrails */}
+        {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with clinical mode guardrails */}
         <SnackCreatorModal
           open={snackCreatorOpen}
           onOpenChange={setSnackCreatorOpen}
           onSnackGenerated={handleSnackSelect}
-          dietType="anti-inflammatory"
+          dietType={clinicalMode}
         />
 
         {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}

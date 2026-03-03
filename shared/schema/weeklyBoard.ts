@@ -70,6 +70,7 @@ export const WeekBoardSchema = z.object({
     createdAt: z.string(),
     lastUpdatedAt: z.string(),
     excludedItems: z.array(z.string()).optional(),
+    clinicalMode: z.enum(["anti-inflammatory", "liver-support"]).optional(),
   }),
 });
 
@@ -160,4 +161,10 @@ export function getCurrentWeekStartISOInTZ(todayISO: string): string {
 export function getMondayISOFromString(dateISO: string): string {
   const d = new Date(`${dateISO}T00:00:00Z`);
   return getMondayISO(d);
+}
+
+export type ClinicalMode = "anti-inflammatory" | "liver-support";
+
+export function resolveClinicalMode(board: WeekBoard | null | undefined): ClinicalMode {
+  return board?.meta?.clinicalMode || "anti-inflammatory";
 }

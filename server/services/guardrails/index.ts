@@ -28,6 +28,9 @@ import { ProCareRulePack, PROCARE_FIXED_RULES } from './rules/procareTypes';
 import { resolveProCareRules, getProCareSystemPrompt } from './rules/procareRules';
 import { buildProCarePrompt, buildProCareSnackPrompt } from './prompt/procarePromptBuilder';
 import { validateProCareMeal, validateProCareSnack } from './validators/procareValidator';
+import { liverSupportRules } from './rules/liverSupportRules';
+import { buildLiverSupportPrompt, buildLiverSupportSnackPrompt, getLiverSupportSystemPrompt } from './prompt/liverSupportPromptBuilder';
+import { validateLiverSupportMeal } from './validators/liverSupportValidator';
 
 /**
  * Apply diet-specific guardrails to a meal generation request
@@ -63,6 +66,19 @@ export function applyGuardrails(
       appliedRules.push('anti-inflammatory-oil-restriction');
       appliedRules.push('anti-inflammatory-protein-guidance');
       console.log(`🛡️ Guardrails: Applied anti-inflammatory rules for ${mealType}`);
+      break;
+
+    case 'liver-support':
+      if (mealType === 'snack') {
+        modifiedPrompt = buildLiverSupportSnackPrompt(basePrompt);
+      } else {
+        modifiedPrompt = buildLiverSupportPrompt(basePrompt);
+      }
+      appliedRules.push('liver-support-alcohol-block');
+      appliedRules.push('liver-support-fried-food-block');
+      appliedRules.push('liver-support-sugar-restriction');
+      appliedRules.push('liver-support-omega3-priority');
+      console.log(`🛡️ Guardrails: Applied liver-support rules for ${mealType}`);
       break;
 
     case 'diabetic':
@@ -158,6 +174,8 @@ export function getSystemPromptForDiet(dietType: DietType): string | null {
   switch (dietType) {
     case 'anti-inflammatory':
       return getAntiInflammatorySystemPrompt();
+    case 'liver-support':
+      return getLiverSupportSystemPrompt();
     case 'diabetic':
       return buildDiabeticPromptConditions();
     case 'general-nutrition':
@@ -198,6 +216,14 @@ export function validateMealForDiet(
       const antiInflamResult = validateAntiInflammatoryMeal(meal);
       console.log(getValidationSummary(antiInflamResult));
       return antiInflamResult;
+
+    case 'liver-support':
+      const liverResult = validateLiverSupportMeal(meal);
+      if (liverResult.violations.length > 0) {
+        console.log(`🛡️ Liver Support Validation: ${liverResult.violations.length} violations found`);
+        liverResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+      }
+      return liverResult;
 
     case 'diabetic':
       const diabeticResult = validateDiabeticMeal({
@@ -299,6 +325,8 @@ export function getBlockedIngredientsForDiet(dietType: DietType, dietPhase?: Bea
   switch (dietType) {
     case 'anti-inflammatory':
       return antiInflammatoryRules.blockedIngredients;
+    case 'liver-support':
+      return liverSupportRules.blockedIngredients;
     case 'diabetic':
       return diabeticRules.blockedIngredients;
     case 'beachbody':
@@ -325,6 +353,8 @@ export function getPreferredIngredientsForDiet(dietType: DietType, dietPhase?: B
   switch (dietType) {
     case 'anti-inflammatory':
       return antiInflammatoryRules.preferredIngredients;
+    case 'liver-support':
+      return liverSupportRules.preferredIngredients;
     case 'diabetic':
       return diabeticRules.preferredIngredients;
     case 'beachbody':

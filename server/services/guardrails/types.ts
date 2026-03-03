@@ -8,6 +8,7 @@
 
 export type DietType = 
   | 'anti-inflammatory'
+  | 'liver-support'
   | 'diabetic'
   | 'glp1'
   | 'beachbody'

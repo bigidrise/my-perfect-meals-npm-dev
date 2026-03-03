@@ -69,6 +69,13 @@ The application is a full-stack TypeScript project with a focus on personalized 
     - `useWeeklyBoard` hook and `boardApi.ts` functions support `proClientId` for contextual data loading.
     - Pro builder routes render actual builder components, not a separate viewer.
     - `builderMap.ts` centralizes builder keys and routes.
+- **Clinical Mode Architecture**:
+    - Anti-Inflammatory Builder supports clinical modes via `board.meta.clinicalMode` (database-persisted, not localStorage).
+    - `shared/clinical/guardrails.ts` provides shared guardrail functions: `getGuardrails()`, `applyGuardrailsToPrompt()`, `filterPremadesByGuardrails()`, `isMealAllowed()`.
+    - `resolveClinicalMode(board)` helper in `shared/schema/weeklyBoard.ts` defaults to "anti-inflammatory" when undefined.
+    - Liver-support mode: hard blocks alcohol/fried/soda/processed, soft discourages bacon/sausage/butter-heavy, prioritizes leafy greens/omega-3/beans/olive oil.
+    - Server guardrails: `liverSupportPromptBuilder.ts`, `liverSupportRules.ts`, `liverSupportValidator.ts` in `server/services/guardrails/`.
+    - Client pickers (`MealPremadePicker`, `SnackPickerDrawer`) filter premades through guardrails when `dietType === "liver-support"`.
 - **Studio Metrics Architecture**:
     - Studio reads DATABASE only, never localStorage. Consumer pages (my-biometrics, macro-calculator) are coach's personal space.
     - `StudioMetricsSnapshot` shows macro targets (from proStore), today's logged macros, and body composition via database APIs.
