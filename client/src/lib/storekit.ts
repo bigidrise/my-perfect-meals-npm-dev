@@ -157,42 +157,49 @@ export async function restorePurchases(): Promise<PurchaseResult[]> {
     return [];
   }
 
-  try {
-    const result = await plugin.getCurrentEntitlements();
-    console.log("[StoreKit] Entitlements result:", JSON.stringify(result));
+  const results: PurchaseResult[] = [];
 
-    if (!result || result.responseCode !== 0 || !result.data || result.data.length === 0) {
-      console.log("[StoreKit] No purchases to restore");
-      return [];
-    }
+  for (const productId of IOS_PRODUCT_IDS) {
+    try {
+      console.log("[StoreKit] Checking restore for:", productId);
+      const latestTx = await plugin.getLatestTransaction({
+        productIdentifier: productId,
+      });
+      console.log("[StoreKit] Restore check result:", productId, JSON.stringify(latestTx));
 
-    const results: PurchaseResult[] = [];
-
-    for (const ent of result.data) {
-      const productId = ent.productIdentifier;
-      const transactionId = ent.transactionId || ent.originalId || `restore_${Date.now()}`;
-
-      try {
-        await verifyAndActivate(transactionId, productId);
-        results.push({
-          success: true,
-          productId,
-          transactionId,
-        });
-      } catch (e: any) {
-        results.push({
-          success: false,
-          productId,
-          error: e.message,
-        });
+      if (latestTx && latestTx.responseCode === 0 && latestTx.data) {
+        const txData = latestTx.data;
+        const expirationDate = txData.expirationDate || txData.expiresDate;
+        if (expirationDate) {
+          const expiresMs = typeof expirationDate === "number" ? expirationDate : Date.parse(expirationDate);
+          if (!isNaN(expiresMs) && expiresMs < Date.now()) {
+            console.log("[StoreKit] Subscription expired for:", productId);
+            continue;
+          }
+        }
+        if (txData.revocationDate || txData.isRevoked) {
+          console.log("[StoreKit] Subscription revoked for:", productId);
+          continue;
+        }
+        const transactionId = txData.transactionId || txData.originalId || `restore_${Date.now()}`;
+        try {
+          await verifyAndActivate(transactionId, productId);
+          results.push({ success: true, productId, transactionId });
+        } catch (e: any) {
+          console.warn("[StoreKit] Restore verify failed for:", productId, e.message);
+          results.push({ success: false, productId, error: e.message });
+        }
       }
+    } catch (e: any) {
+      console.warn("[StoreKit] Restore check failed for:", productId, e.message);
     }
-
-    return results;
-  } catch (e: any) {
-    console.error("[StoreKit] Restore failed:", e);
-    return [{ success: false, error: e.message }];
   }
+
+  if (results.length === 0) {
+    console.log("[StoreKit] No purchases to restore");
+  }
+
+  return results;
 }
 
 export async function getCurrentEntitlements(): Promise<string[]> {
@@ -201,19 +208,30 @@ export async function getCurrentEntitlements(): Promise<string[]> {
     return [];
   }
 
-  try {
-    const result = await plugin.getCurrentEntitlements();
-    console.log("[StoreKit] getCurrentEntitlements result:", JSON.stringify(result));
+  const entitled: string[] = [];
 
-    if (!result || result.responseCode !== 0 || !result.data || result.data.length === 0) {
-      return [];
+  for (const productId of IOS_PRODUCT_IDS) {
+    try {
+      const latestTx = await plugin.getLatestTransaction({
+        productIdentifier: productId,
+      });
+      if (latestTx && latestTx.responseCode === 0 && latestTx.data) {
+        const txData = latestTx.data;
+        const expirationDate = txData.expirationDate || txData.expiresDate;
+        if (expirationDate) {
+          const expiresMs = typeof expirationDate === "number" ? expirationDate : Date.parse(expirationDate);
+          if (!isNaN(expiresMs) && expiresMs < Date.now()) continue;
+        }
+        if (txData.revocationDate || txData.isRevoked) continue;
+        entitled.push(productId);
+      }
+    } catch (e) {
+      console.warn("[StoreKit] Entitlement check failed for:", productId);
     }
-
-    return result.data.map((e: any) => e.productIdentifier);
-  } catch (e) {
-    console.error("[StoreKit] Failed to get entitlements:", e);
-    return [];
   }
+
+  console.log("[StoreKit] Current entitlements:", entitled);
+  return entitled;
 }
 
 export async function manageSubscriptions(): Promise<void> {

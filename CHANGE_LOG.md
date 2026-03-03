@@ -4,6 +4,22 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-03: iOS StoreKit subscription migration + restore crash fix
+
+**Change scope:** Migrated iOS in-app purchase product IDs from non-consumable (`mpm.iap.*`) to auto-renewable subscription (`mpm.sub.*`) format to match App Store Connect configuration. Fixed fatal crash in restore flow caused by native plugin (`getCurrentEntitlements`) force-unwrapping nil on non-consumable transactions. Added subscription expiration and revocation validation.
+
+**Files touched:**
+- `client/src/lib/iosProducts.ts`: Updated 3 product IDs from `mpm.iap.basic_upgrade.v1`/`mpm.iap.premium_upgrade.v1`/`mpm.iap.ultimate_upgrade.v1` to `mpm.sub.basic.monthly.v1`/`mpm.sub.premium.monthly.v1`/`mpm.sub.ultimate.monthly.v1`
+- `server/routes/iosVerify.ts`: Updated product-to-plan mapping and restore tier order to use new subscription IDs
+- `client/src/lib/storekit.ts`: Replaced `getCurrentEntitlements()` with per-product `getLatestTransaction()` calls to avoid native Swift crash; added expiration/revocation checks
+- `client/src/components/ProfileSheet.tsx`: Connected restore handler to actual StoreKit `restorePurchases()` instead of placeholder timeout
+
+**Expected impact:** iOS purchases work with new auto-renewable subscription products; restore no longer crashes the app; expired/revoked subscriptions are properly rejected.
+
+**Golden Path:** Build clean, no regressions.
+
+---
+
 ## 2026-03-03: Fix auth token invalidation across environments + standardize care-team auth
 
 **Change scope:** Fixed login route regenerating auth tokens on every login, which caused cross-environment session invalidation (dev/production share the same database). Also standardized care-team routes to use `requireAuth` middleware instead of a custom `getUserId` function with an insecure `x-user-id` header fallback.

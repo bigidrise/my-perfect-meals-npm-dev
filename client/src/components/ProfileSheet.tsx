@@ -229,15 +229,21 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     });
 
     try {
-      // TODO: Integrate with StoreKit restore when Capacitor plugin is ready
-      // For now, show feedback that the feature is ready for iOS integration
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      toast({
-        title: "Restore Complete",
-        description:
-          "No active subscription found. If you believe this is an error, please contact support.",
-      });
+      const { restorePurchases } = await import("@/lib/storekit");
+      const results = await restorePurchases();
+      const successful = results.filter((r) => r.success);
+      if (successful.length > 0) {
+        toast({
+          title: "Purchases Restored",
+          description: "Your subscription has been restored successfully.",
+        });
+      } else {
+        toast({
+          title: "Restore Complete",
+          description:
+            "No active subscription found. If you believe this is an error, please contact support.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Restore Failed",
