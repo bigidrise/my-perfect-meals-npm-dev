@@ -304,6 +304,8 @@ export default function Router() {
     <>
       <ScrollRestorer />
       <Switch>
+        {/* Root route — AppRouter handles redirect to /welcome, /onboarding, or /dashboard */}
+        <Route path="/">{() => null}</Route>
         {/* Core Routes */}
         <Route path="/welcome" component={Welcome} />
         <Route path="/guest-builder" component={GuestBuilder} />
