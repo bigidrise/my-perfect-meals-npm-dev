@@ -151,6 +151,39 @@ export async function purchaseProduct(
   }
 }
 
+function isSubscriptionActive(txData: any): boolean {
+  const expiryRaw = txData.expiryDate || txData.expirationDate || txData.expiresDate;
+  console.log("[StoreKit] Checking expiry:", expiryRaw, "type:", typeof expiryRaw);
+
+  if (expiryRaw) {
+    let expiresMs: number;
+    if (typeof expiryRaw === "number") {
+      expiresMs = expiryRaw;
+    } else if (typeof expiryRaw === "string") {
+      expiresMs = Date.parse(expiryRaw);
+    } else if (expiryRaw instanceof Date) {
+      expiresMs = expiryRaw.getTime();
+    } else {
+      expiresMs = Number(expiryRaw);
+    }
+
+    if (!isNaN(expiresMs)) {
+      const now = Date.now();
+      console.log("[StoreKit] Expiry ms:", expiresMs, "Now:", now, "Active:", expiresMs > now);
+      if (expiresMs < now) {
+        return false;
+      }
+    }
+  }
+
+  if (txData.revocationDate || txData.isRevoked) {
+    console.log("[StoreKit] Subscription revoked");
+    return false;
+  }
+
+  return true;
+}
+
 export async function restorePurchases(): Promise<PurchaseResult[]> {
   const plugin = getPlugin();
   if (!plugin) {
@@ -165,23 +198,17 @@ export async function restorePurchases(): Promise<PurchaseResult[]> {
       const latestTx = await plugin.getLatestTransaction({
         productIdentifier: productId,
       });
-      console.log("[StoreKit] Restore check result:", productId, JSON.stringify(latestTx));
+      console.log("[StoreKit] Restore tx result:", productId, "code:", latestTx?.responseCode, "data:", JSON.stringify(latestTx?.data));
 
       if (latestTx && latestTx.responseCode === 0 && latestTx.data) {
         const txData = latestTx.data;
-        const expirationDate = txData.expirationDate || txData.expiresDate;
-        if (expirationDate) {
-          const expiresMs = typeof expirationDate === "number" ? expirationDate : Date.parse(expirationDate);
-          if (!isNaN(expiresMs) && expiresMs < Date.now()) {
-            console.log("[StoreKit] Subscription expired for:", productId);
-            continue;
-          }
-        }
-        if (txData.revocationDate || txData.isRevoked) {
-          console.log("[StoreKit] Subscription revoked for:", productId);
+
+        if (!isSubscriptionActive(txData)) {
+          console.log("[StoreKit] Subscription not active for:", productId);
           continue;
         }
-        const transactionId = txData.transactionId || txData.originalId || `restore_${Date.now()}`;
+
+        const transactionId = String(txData.transactionId || txData.originalId || `restore_${Date.now()}`);
         try {
           await verifyAndActivate(transactionId, productId);
           results.push({ success: true, productId, transactionId });
@@ -189,6 +216,8 @@ export async function restorePurchases(): Promise<PurchaseResult[]> {
           console.warn("[StoreKit] Restore verify failed for:", productId, e.message);
           results.push({ success: false, productId, error: e.message });
         }
+      } else {
+        console.log("[StoreKit] No transaction found for:", productId, "code:", latestTx?.responseCode);
       }
     } catch (e: any) {
       console.warn("[StoreKit] Restore check failed for:", productId, e.message);
@@ -216,14 +245,9 @@ export async function getCurrentEntitlements(): Promise<string[]> {
         productIdentifier: productId,
       });
       if (latestTx && latestTx.responseCode === 0 && latestTx.data) {
-        const txData = latestTx.data;
-        const expirationDate = txData.expirationDate || txData.expiresDate;
-        if (expirationDate) {
-          const expiresMs = typeof expirationDate === "number" ? expirationDate : Date.parse(expirationDate);
-          if (!isNaN(expiresMs) && expiresMs < Date.now()) continue;
+        if (isSubscriptionActive(latestTx.data)) {
+          entitled.push(productId);
         }
-        if (txData.revocationDate || txData.isRevoked) continue;
-        entitled.push(productId);
       }
     } catch (e) {
       console.warn("[StoreKit] Entitlement check failed for:", productId);
@@ -270,6 +294,8 @@ async function verifyAndActivate(
     throw new Error(`Unknown product: ${productId}`);
   }
 
+  console.log("[StoreKit] Verifying with server:", { userId: existingUser.id, transactionId, productId, internalSku });
+
   const response = await fetch(apiUrl("/api/ios/verify-purchase"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -300,7 +326,7 @@ async function verifyAndActivate(
     throw new Error("Invalid response from server");
   }
 
-  console.log("[StoreKit] Verification successful:", data);
+  console.log("[StoreKit] Verification successful:", JSON.stringify(data));
 
   if (data.user) {
     const mergedUser = { ...existingUser, ...data.user };
