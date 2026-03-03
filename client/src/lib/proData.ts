@@ -242,7 +242,7 @@ export const proStore = {
     return state.clients;
   },
   getClient(id: string): ClientProfile | undefined {
-    return state.clients.find((c) => c.id === id);
+    return state.clients.find((c) => c.id === id || c.clientUserId === id || c.userId === id);
   },
   saveClients(list: ClientProfile[]) {
     state.clients = list;

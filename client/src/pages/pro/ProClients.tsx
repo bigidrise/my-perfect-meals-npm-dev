@@ -68,6 +68,11 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           (lc) => lc.clientUserId === dbClient.clientUserId || lc.email === dbClient.email
         );
 
+        const resolvedBuilder: BuilderType | undefined =
+          dbClient.assignedBuilder
+            ? builderMap[dbClient.assignedBuilder]
+            : existing?.assignedBuilder;
+
         const profile: ClientProfile = {
           id: existing?.id || dbClient.id,
           name: (existing?.name && existing.name !== "Client" ? existing.name : null) || dbClient.name || existing?.name || `Client`,
@@ -77,7 +82,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           userId: dbClient.clientUserId,
           clientUserId: dbClient.clientUserId,
           studioId: studio.id,
-          assignedBuilder: dbClient.assignedBuilder ? builderMap[dbClient.assignedBuilder] || undefined : existing?.assignedBuilder,
+          ...(resolvedBuilder ? { assignedBuilder: resolvedBuilder } : {}),
           activeBoardId: dbClient.activeBoardId || existing?.activeBoardId,
           dbBacked: true,
           archived: existing?.archived,

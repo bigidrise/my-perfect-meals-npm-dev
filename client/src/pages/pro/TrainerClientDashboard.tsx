@@ -176,9 +176,10 @@ export default function TrainerClientDashboard() {
       };
 
       if (studioId) {
-        const studioRes = await fetch(`/api/studios/${studioId}/clients/${clientUid}/assign`, {
+        const studioRes = await fetch(apiUrl(`/api/studios/${studioId}/clients/${clientUid}/assign`), {
           method: "PATCH",
           headers,
+          credentials: "include",
           body: JSON.stringify({ assignedBuilder: builderKey }),
         });
         if (!studioRes.ok) {
@@ -187,9 +188,10 @@ export default function TrainerClientDashboard() {
         }
       }
 
-      const proRes = await fetch("/api/pro/assign-builder", {
+      const proRes = await fetch(apiUrl("/api/pro/assign-builder"), {
         method: "POST",
         headers,
+        credentials: "include",
         body: JSON.stringify({
           clientId: clientUid,
           builder: builderKey,

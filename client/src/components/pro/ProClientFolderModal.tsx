@@ -482,8 +482,7 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"
               onClick={() => {
                 onOpenChange(false);
-                const navId = client.clientUserId || client.userId || client.id;
-                onNavigate(`/pro/clients/${navId}/${workspace}`);
+                onNavigate(`/pro/clients/${client.id}/${workspace}`);
               }}
             >
               <span className="flex items-center gap-2">
