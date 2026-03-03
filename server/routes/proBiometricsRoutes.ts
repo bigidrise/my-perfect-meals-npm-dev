@@ -2,7 +2,6 @@ import { Router } from "express";
 import { requireBoardAccess, BoardAccessRequest } from "../middleware/requireBoardAccess";
 import { db } from "../db";
 import { biometricSample } from "../../shared/biometricsSchema";
-import { users } from "../../shared/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 
 const router = Router();
@@ -50,50 +49,6 @@ router.get(
       console.error("Pro weight fetch error:", error);
       res.status(500).json({
         error: "Failed to fetch client weight history",
-        detail: error?.message,
-      });
-    }
-  },
-);
-
-router.get(
-  "/clients/:clientId/macro-targets",
-  requireBoardAccess,
-  async (req: BoardAccessRequest, res) => {
-    try {
-      const clientUserId = req.boardAccess!.clientUserId;
-
-      const [user] = await db
-        .select({
-          dailyCalorieTarget: users.dailyCalorieTarget,
-          dailyProteinTarget: users.dailyProteinTarget,
-          dailyCarbsTarget: users.dailyCarbsTarget,
-          dailyFatTarget: users.dailyFatTarget,
-        })
-        .from(users)
-        .where(eq(users.id, clientUserId));
-
-      if (!user) {
-        res.status(404).json({ error: "Client not found" });
-        return;
-      }
-
-      res.json({
-        calories: user.dailyCalorieTarget || 0,
-        protein_g: user.dailyProteinTarget || 0,
-        carbs_g: user.dailyCarbsTarget || 0,
-        fat_g: user.dailyFatTarget || 0,
-        hasTargets: !!(
-          user.dailyCalorieTarget ||
-          user.dailyProteinTarget ||
-          user.dailyCarbsTarget ||
-          user.dailyFatTarget
-        ),
-      });
-    } catch (error: any) {
-      console.error("Pro macro targets fetch error:", error);
-      res.status(500).json({
-        error: "Failed to fetch client macro targets",
         detail: error?.message,
       });
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { proStore, type Targets } from "@/lib/proData";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { Loader2, TrendingDown, TrendingUp, Minus } from "lucide-react";
@@ -12,14 +13,6 @@ interface MacroTotals {
   protein: number;
   carbs: number;
   fat: number;
-}
-
-interface MacroTargetsDB {
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  hasTargets: boolean;
 }
 
 interface BodyCompEntry {
@@ -51,18 +44,17 @@ function DeltaBadge({ delta }: { delta: number }) {
 
 export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapshotProps) {
   const [todayMacros, setTodayMacros] = useState<MacroTotals | null>(null);
-  const [targets, setTargets] = useState<MacroTargetsDB | null>(null);
   const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const targets = proStore.getTargets(clientId);
+  const totalCarbs = (targets.starchyCarbs || 0) + (targets.fibrousCarbs || 0);
+  const totalCal = (targets.protein * 4) + (totalCarbs * 4) + (targets.fat * 9);
+
   useEffect(() => {
     if (!clientId) return;
     let cancelled = false;
-
-    setTodayMacros(null);
-    setTargets(null);
-    setBodyComp(null);
 
     const fetchData = async () => {
       setLoading(true);
@@ -71,12 +63,8 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
         const { start, end } = todayRange();
         const headers: Record<string, string> = { ...getAuthHeaders() };
 
-        const [macroRes, targetsRes, bodyCompRes] = await Promise.all([
+        const [macroRes, bodyCompRes] = await Promise.all([
           fetch(apiUrl(`/api/users/${clientId}/macros?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`), {
-            headers,
-            credentials: "include",
-          }),
-          fetch(apiUrl(`/api/pro/clients/${clientId}/macro-targets`), {
             headers,
             credentials: "include",
           }),
@@ -96,11 +84,6 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
             carbs: Math.round(Number(data.carbs || 0)),
             fat: Math.round(Number(data.fat || 0)),
           });
-        }
-
-        if (targetsRes.ok) {
-          const data = await targetsRes.json();
-          setTargets(data);
         }
 
         if (bodyCompRes.ok) {
@@ -130,83 +113,75 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
     return <p className="text-xs text-red-400 py-2">{error}</p>;
   }
 
-  const tCal = targets?.calories ?? 0;
-  const tProtein = targets?.protein_g ?? 0;
-  const tCarbs = targets?.carbs_g ?? 0;
-  const tFat = targets?.fat_g ?? 0;
-
   const rows = [
-    { label: "Calories", target: tCal, logged: todayMacros?.kcal ?? 0, unit: "" },
-    { label: "Protein", target: tProtein, logged: todayMacros?.protein ?? 0, unit: "g" },
-    { label: "Carbs", target: tCarbs, logged: todayMacros?.carbs ?? 0, unit: "g" },
-    { label: "Fat", target: tFat, logged: todayMacros?.fat ?? 0, unit: "g" },
+    { label: "Calories", target: totalCal, logged: todayMacros?.kcal ?? 0, unit: "" },
+    { label: "Protein", target: targets.protein, logged: todayMacros?.protein ?? 0, unit: "g" },
+    { label: "Carbs", target: totalCarbs, logged: todayMacros?.carbs ?? 0, unit: "g" },
+    { label: "Fat", target: targets.fat, logged: todayMacros?.fat ?? 0, unit: "g" },
   ];
 
   return (
     <div className="space-y-3">
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-        <h4 className="text-xs font-medium text-white/60 mb-2">Client Macro Targets</h4>
-        {targets?.hasTargets ? (
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <div>
-              <p className="text-sm font-bold text-white">{tCal}</p>
-              <p className="text-[10px] text-white/40">Cal</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-blue-300">{tProtein}g</p>
-              <p className="text-[10px] text-white/40">Protein</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-orange-300">{tCarbs}g</p>
-              <p className="text-[10px] text-white/40">Carbs</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-yellow-300">{tFat}g</p>
-              <p className="text-[10px] text-white/40">Fat</p>
-            </div>
+        <h4 className="text-xs font-medium text-white/60 mb-2">Active Macro Targets</h4>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div>
+            <p className="text-sm font-bold text-white">{totalCal}</p>
+            <p className="text-[10px] text-white/40">Cal</p>
           </div>
-        ) : (
-          <p className="text-[10px] text-white/30 italic text-center">
-            Client has not set macro targets yet
+          <div>
+            <p className="text-sm font-bold text-blue-300">{targets.protein}g</p>
+            <p className="text-[10px] text-white/40">Protein</p>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-orange-300">{totalCarbs}g</p>
+            <p className="text-[10px] text-white/40">Carbs</p>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-yellow-300">{targets.fat}g</p>
+            <p className="text-[10px] text-white/40">Fat</p>
+          </div>
+        </div>
+        {targets.starchStrategy && (
+          <p className="text-[10px] text-white/30 mt-1.5 text-center">
+            Starch strategy: {targets.starchStrategy === "one" ? "1 starch meal/day" : "Split across 2 meals"}
           </p>
         )}
       </div>
 
-      {targets?.hasTargets && (
-        <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-          <h4 className="text-xs font-medium text-white/60 mb-2">Today's Logged vs Target</h4>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-white/40">
-                <th className="text-left font-medium py-1">Macro</th>
-                <th className="text-right font-medium py-1">Target</th>
-                <th className="text-right font-medium py-1">Logged</th>
-                <th className="text-right font-medium py-1">Delta</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const delta = row.logged - row.target;
-                return (
-                  <tr key={row.label} className="border-t border-white/5">
-                    <td className="py-1.5 text-white/70">{row.label}</td>
-                    <td className="py-1.5 text-right text-white/50">{row.target}{row.unit}</td>
-                    <td className="py-1.5 text-right text-white">{row.logged}{row.unit}</td>
-                    <td className="py-1.5 text-right">
-                      <DeltaBadge delta={delta} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {todayMacros && todayMacros.kcal === 0 && todayMacros.protein === 0 && (
-            <p className="text-[10px] text-white/30 mt-1.5 text-center italic">
-              No macros logged by client today
-            </p>
-          )}
-        </div>
-      )}
+      <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+        <h4 className="text-xs font-medium text-white/60 mb-2">Today's Logged vs Target</h4>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-white/40">
+              <th className="text-left font-medium py-1">Macro</th>
+              <th className="text-right font-medium py-1">Target</th>
+              <th className="text-right font-medium py-1">Logged</th>
+              <th className="text-right font-medium py-1">Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const delta = row.logged - row.target;
+              return (
+                <tr key={row.label} className="border-t border-white/5">
+                  <td className="py-1.5 text-white/70">{row.label}</td>
+                  <td className="py-1.5 text-right text-white/50">{row.target}{row.unit}</td>
+                  <td className="py-1.5 text-right text-white">{row.logged}{row.unit}</td>
+                  <td className="py-1.5 text-right">
+                    <DeltaBadge delta={delta} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {todayMacros && todayMacros.kcal === 0 && todayMacros.protein === 0 && (
+          <p className="text-[10px] text-white/30 mt-1.5 text-center italic">
+            No macros logged by client today
+          </p>
+        )}
+      </div>
 
       {bodyComp && (
         <div className="bg-white/5 rounded-lg p-3 border border-white/10">
