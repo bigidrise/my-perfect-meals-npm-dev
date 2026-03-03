@@ -195,30 +195,75 @@ export default function MyBiometrics() {
     }
   }, []);
 
-  // ------- MACROS (local) -------
-  // SAFE: Start with empty array, load from storage in useEffect
+  // ------- MACROS (server-first, localStorage fallback) -------
   const [macroRows, setMacroRows] = useState<OfflineDay[]>([]);
-  
-  // Load macro rows from storage on mount (deferred read)
+  const userId = user?.id || "";
+
   useEffect(() => {
-    try {
+    if (!userId) {
       const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
-      if (stored.rows && stored.rows.length > 0) {
-        setMacroRows(stored.rows);
-      }
+      if (stored.rows && stored.rows.length > 0) setMacroRows(stored.rows);
       setStorageLoaded(true);
-    } catch (e) {
-      console.error("Failed to load macro rows:", e);
-      setStorageLoaded(true);
+      return;
     }
-  }, []);
-  
-  // Save macro rows to storage when they change (after initial load)
+
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 90);
+    const startISO = start.toISOString();
+    const endISO = end.toISOString();
+
+    fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((rows: any[]) => {
+        const mapped: OfflineDay[] = rows.map(r => ({
+          day: typeof r.date === "string" ? r.date.slice(0, 10) : r.date,
+          kcal: Number(r.kcal) || 0,
+          protein: Number(r.protein) || 0,
+          carbs: Number(r.carbs) || 0,
+          fat: Number(r.fat) || 0,
+          starchyCarbs: Number(r.starchyCarbs) || 0,
+          fibrousCarbs: Number(r.fibrousCarbs) || 0,
+        }));
+        setMacroRows(mapped);
+        saveJSON(LS_MACROS, { rows: mapped });
+        setStorageLoaded(true);
+      })
+      .catch(() => {
+        const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
+        if (stored.rows && stored.rows.length > 0) setMacroRows(stored.rows);
+        setStorageLoaded(true);
+      });
+  }, [userId]);
+
   useEffect(() => {
-    if (storageLoaded) {
-      saveJSON(LS_MACROS, { rows: macroRows });
-    }
-  }, [macroRows, storageLoaded]);
+    if (!userId) return;
+    const refetch = () => {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 90);
+      fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`)
+        .then(r => r.ok ? r.json() : null)
+        .then((rows: any[] | null) => {
+          if (rows) {
+            const mapped: OfflineDay[] = rows.map(r => ({
+              day: typeof r.date === "string" ? r.date.slice(0, 10) : r.date,
+              kcal: Number(r.kcal) || 0,
+              protein: Number(r.protein) || 0,
+              carbs: Number(r.carbs) || 0,
+              fat: Number(r.fat) || 0,
+              starchyCarbs: Number(r.starchyCarbs) || 0,
+              fibrousCarbs: Number(r.fibrousCarbs) || 0,
+            }));
+            setMacroRows(mapped);
+            saveJSON(LS_MACROS, { rows: mapped });
+          }
+        })
+        .catch(() => {});
+    };
+    window.addEventListener("macros:updated", refetch);
+    return () => window.removeEventListener("macros:updated", refetch);
+  }, [userId]);
 
   const today = todayKey();
   const sortedRows = useMemo(

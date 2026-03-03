@@ -363,7 +363,7 @@ function GoalCard({
 }
 
 export default function ProteinGuidelinesCards({
-  userId = "00000000-0000-0000-0000-000000000001",
+  userId = "",
   weekStartISO = "2025-01-01",
   mealsPerDay = 4,
 }: {

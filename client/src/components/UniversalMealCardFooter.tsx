@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { Check } from "lucide-react";
 import type { MealTemplateBase, NutritionInfo } from "@/data/models";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UniversalMealCardFooterProps {
   meal: MealTemplateBase;
@@ -25,6 +26,7 @@ export default function UniversalMealCardFooter({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [isLoggingMacros, setIsLoggingMacros] = useState(false);
   const [macrosLogged, setMacrosLogged] = useState(false);
   const [planAdded, setPlanAdded] = useState(false);
@@ -56,7 +58,7 @@ export default function UniversalMealCardFooter({
 
       // Create the meal log entry for unified endpoint
       const logEntry = {
-        userId: "00000000-0000-0000-0000-000000000001",
+        userId: user?.id || "",
         mealId: meal.id,
         mealType: meal.mealType || "snack",
         source: "template_hub",

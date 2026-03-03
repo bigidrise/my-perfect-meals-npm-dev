@@ -2,16 +2,14 @@ import { useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { logAlcoholToBiometrics } from "@/utils/alcoholLog";
-
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Props = {
-  // Provide values from your existing page state/inputs
   drinkType: string;
-  volumeMl: number;      // e.g., 355 for a can, 150 for a glass of wine
-  abvPercent: number;    // e.g., 5 for beer, 12 for wine, 40 for spirits
+  volumeMl: number;
+  abvPercent: number;
   notes?: string;
-  // Called when saved (optional)
+  userId?: string;
   onLogged?: () => void;
 };
 
@@ -21,14 +19,18 @@ export default function AlcoholLoggerWireup({
   volumeMl,
   abvPercent,
   notes,
+  userId: userIdProp,
   onLogged,
 }: Props) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const userId = userIdProp || user?.id || "";
 
   const handleLog = useCallback(async () => {
+    if (!userId) return;
     try {
       await logAlcoholToBiometrics({
-        userId: DEV_USER_ID,
+        userId,
         drinkType: drinkType || "unspecified",
         volumeMl: Number(volumeMl) || 0,
         abvPercent: Number(abvPercent) || 0,

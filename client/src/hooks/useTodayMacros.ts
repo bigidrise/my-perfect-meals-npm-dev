@@ -23,33 +23,33 @@ type MacroTotals = {
   };
 };
 
-const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
+const EMPTY: MacroTotals = {
+  kcal: 0, protein: 0, carbs: 0, fat: 0, starchyCarbs: 0, fibrousCarbs: 0,
+  foodTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+  alcoholTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+};
 
-/** Today totals (uses local-day start/end to avoid UTC shift) */
-export function useTodayMacros(): MacroTotals {
+export function useTodayMacros(userId: string): MacroTotals {
   const queryClient = useQueryClient();
 
-  const { data: macros = { kcal: 0, protein: 0, carbs: 0, fat: 0, starchyCarbs: 0, fibrousCarbs: 0, foodTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 }, alcoholTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 } } } = useQuery(
+  const { data: macros = EMPTY } = useQuery(
     {
-      queryKey: ["/api/users", DEV_USER_ID, "macros", "today"],
+      queryKey: ["/api/users", userId, "macros", "today"],
+      enabled: !!userId,
       queryFn: async () => {
-        // Use proper local day boundaries → UTC conversion (same as steps system)
         const { startUTC, endUTC } = localDayRangeAsUTCISO(new Date());
-        const url = `/api/users/${DEV_USER_ID}/macros?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
+        const url = `/api/users/${userId}/macros?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
         const response = await fetch(url);
         if (!response.ok) {
           console.warn("Failed to fetch macros:", response.status);
-          return { kcal: 0, protein: 0, carbs: 0, fat: 0, starchyCarbs: 0, fibrousCarbs: 0, foodTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 }, alcoholTotals: { kcal: 0, protein: 0, carbs: 0, fat: 0 } };
+          return EMPTY;
         }
         const data = await response.json();
         
-        // Ensure alcoholTotals exists first
         if (!data.alcoholTotals) {
           data.alcoholTotals = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
         }
         
-        // Synthesize foodTotals if not provided by backend
-        // Subtract alcohol totals from merged totals to get food-only values
         if (!data.foodTotals) {
           data.foodTotals = {
             kcal: Math.max(0, (data.kcal || 0) - data.alcoholTotals.kcal),
@@ -59,7 +59,6 @@ export function useTodayMacros(): MacroTotals {
           };
         }
         
-        // Ensure starchy/fibrous carbs exist
         if (typeof data.starchyCarbs !== 'number') {
           data.starchyCarbs = 0;
         }
@@ -72,23 +71,23 @@ export function useTodayMacros(): MacroTotals {
     },
   );
 
-  // Refetch Today when macros:updated fires (midnight rollover or manual reset)
   useEffect(() => {
+    if (!userId) return;
     const refetchToday = () => {
       queryClient.invalidateQueries({
-        queryKey: ["/api/users", DEV_USER_ID, "macros", "today"],
+        queryKey: ["/api/users", userId, "macros", "today"],
       });
     };
     window.addEventListener("macros:updated", refetchToday);
     return () => window.removeEventListener("macros:updated", refetchToday);
-  }, [queryClient]);
+  }, [queryClient, userId]);
 
-  // Midnight reset timer - automatically refreshes at midnight in user's timezone
   useEffect(() => {
+    if (!userId) return;
     const scheduleMidnightReset = () => {
       const now = new Date();
       const tomorrow = new Date(now);
-      tomorrow.setHours(24, 0, 0, 0); // Next midnight
+      tomorrow.setHours(24, 0, 0, 0);
       const msUntilMidnight = tomorrow.getTime() - now.getTime();
 
       console.log(`⏰ Midnight reset scheduled in ${Math.round(msUntilMidnight / 1000 / 60)} minutes`);
@@ -96,14 +95,13 @@ export function useTodayMacros(): MacroTotals {
       const timeoutId = setTimeout(() => {
         console.log("🌙 Midnight reset triggered - refreshing daily macros");
         queryClient.invalidateQueries({
-          queryKey: ["/api/users", DEV_USER_ID, "macros", "today"],
+          queryKey: ["/api/users", userId, "macros", "today"],
         });
         queryClient.invalidateQueries({
-          queryKey: ["/api/users", DEV_USER_ID, "macros-daily"],
+          queryKey: ["/api/users", userId, "macros-daily"],
         });
         window.dispatchEvent(new Event("macros:updated"));
         
-        // Schedule next midnight reset
         scheduleMidnightReset();
       }, msUntilMidnight);
 
@@ -112,7 +110,7 @@ export function useTodayMacros(): MacroTotals {
 
     const timeoutId = scheduleMidnightReset();
     return () => clearTimeout(timeoutId);
-  }, [queryClient]);
+  }, [queryClient, userId]);
 
   return macros;
 }

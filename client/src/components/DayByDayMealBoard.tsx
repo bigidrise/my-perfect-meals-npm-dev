@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Meal } from "@/components/MealCard";
 import { weekDates } from "@/lib/boardApi";
 import { formatDateDisplay } from "@/utils/midnight";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface DayMeals {
   breakfast: Meal[];
@@ -33,6 +34,8 @@ export function DayByDayMealBoard({
 }: DayByDayMealBoardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id || "";
   
   const weekDatesList = useMemo(() => weekDates(weekStartISO), [weekStartISO]);
   const [activeDayISO, setActiveDayISO] = useState(weekDatesList[0] || '');
@@ -73,7 +76,6 @@ export function DayByDayMealBoard({
 
     try {
       const { post } = await import("@/lib/api");
-      const userId = "00000000-0000-0000-0000-000000000001";
       const logDate = activeDayISO;
 
       // Log each meal

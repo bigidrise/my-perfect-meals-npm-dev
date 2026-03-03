@@ -45,7 +45,7 @@ export function RemainingMacrosFooter({
   layoutMode = "sticky",
 }: RemainingMacrosFooterProps) {
   const { user } = useAuth();
-  const todayMacros = useTodayMacros();
+  const todayMacros = useTodayMacros(user?.id || "");
 
   const targets = useMemo(() => {
     if (targetsOverride) {

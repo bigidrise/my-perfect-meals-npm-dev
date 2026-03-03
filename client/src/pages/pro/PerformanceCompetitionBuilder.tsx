@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -170,6 +171,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const quickTour = useQuickTour("performance-competition-builder");
   
   // Body fat-based starch slot adjustment (includes +1 bonus if below goal for performance builders)
@@ -1852,6 +1854,28 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           variant: "destructive",
                         });
                       } else {
+                        try {
+                          await fetch(`/api/users/${clientId}/macros/daily-summary`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({
+                              dateISO: activeDayISO,
+                              calories: consumed.calories,
+                              protein: consumed.protein,
+                              carbs: consumed.carbs,
+                              fat: consumed.fat,
+                              starchyCarbs: consumed.starchyCarbs || 0,
+                              fibrousCarbs: consumed.fibrousCarbs || 0,
+                              source: "locked-day",
+                            }),
+                          });
+                        } catch (e) {
+                          console.error("Failed to write daily summary:", e);
+                        }
+                        queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macros", "today"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macro-logs", "daily"] });
+                        window.dispatchEvent(new Event("macros:updated"));
                         setQuickView({
                           protein: consumed.protein,
                           carbs: consumed.carbs,

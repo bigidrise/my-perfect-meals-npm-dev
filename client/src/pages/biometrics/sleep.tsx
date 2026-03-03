@@ -162,9 +162,11 @@ async function saveSleep(userId: string, session: SleepSession) {
 export default function SleepPage() {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id || "";
 
-  const todayQ = useSleepToday();
-  const histQ  = useSleepHistory30();
+  const todayQ = useSleepToday(userId);
+  const histQ  = useSleepHistory30(userId);
 
   const [timeframe, setTimeframe] = useState<"7day" | "30day" | "90day">("7day");
   const [start, setStart] = useState("");
@@ -272,11 +274,11 @@ export default function SleepPage() {
 
                 try {
                   setSaving(true);
-                  await saveSleep(DEV_USER_ID, session);
+                  await saveSleep(userId, session);
                   setStart(""); setEnd("");
                   await Promise.all([
-                    qc.invalidateQueries({ queryKey: ["sleep", DEV_USER_ID, "today"] }),
-                    qc.invalidateQueries({ queryKey: ["sleep", DEV_USER_ID, "daily", 30] }),
+                    qc.invalidateQueries({ queryKey: ["sleep", userId, "today"] }),
+                    qc.invalidateQueries({ queryKey: ["sleep", userId, "daily", 30] }),
                   ]);
                 } catch (e: any) {
                   setErr(e?.message || "Failed to save");

@@ -4,6 +4,47 @@ Every change is recorded here with scope, files touched, expected impact, and Go
 
 ---
 
+## 2026-03-03: Option B Macro Sync — Save Day writes to macro_logs, Biometrics reads server
+
+**Change scope:** Wired Save Day in all 7 builders to POST locked-day summaries to `macro_logs` via new daily-summary upsert endpoint. Removed all DEV_USER_ID contamination from client code. Biometrics page (`my-biometrics.tsx`) now reads macro history from server with locked-day priority, using localStorage as offline fallback only. No schema changes, no new tables — uses existing `macro_logs` table with new unique index.
+
+**What changed:**
+- `useTodayMacros` refactored: `userId` is now a required parameter (no default), no hardcoded UUID.
+- DEV_USER_ID removed from 10+ consumer files. All pass `effectiveUserId || user?.id`.
+- Intentionally kept: `AuthContext.tsx` guest fallback, `useWeeklyBoard.ts` Apple review flag, `api.ts` localStorage migration keys.
+- `POST /api/users/:userId/macros/daily-summary` added to `manualMacros.ts` — upserts via `ON CONFLICT (user_id, source, date)`. ProCare access enforced via careTeamMember/clientLinks check.
+- Unique index `macro_logs_daily_source_idx` created on `(user_id, source, timezone('UTC', at)::date)`.
+- All 7 builders (AntiInflammatory, Diabetic, GLP1, GeneralNutrition, BeachBody, WeeklyMealBoard, PerformanceCompetition) POST locked-day summary after `lockDay()`, invalidate React Query keys, dispatch `macros:updated` event.
+- `GET /api/users/:userId/macro-logs/daily-with-source` added — returns per-day rows with locked-day priority SQL (locked-day rows used when present, other sources aggregated when not).
+- `my-biometrics.tsx` refactored: fetches macro history from server on mount, listens for `macros:updated` event to refetch, uses localStorage as offline fallback for unauthenticated/offline users.
+
+**Files touched:**
+- `client/src/hooks/useTodayMacros.ts` (modified — userId required param)
+- `client/src/components/AlcoholLoggerWireup.tsx` (modified — DEV_USER_ID removed)
+- `client/src/pages/DayByDayMealBoard.tsx` (modified — DEV_USER_ID removed)
+- `client/src/components/social/PostComments.tsx` (modified — DEV_USER_ID removed)
+- `client/src/components/UniversalMealCardFooter.tsx` (modified — DEV_USER_ID removed)
+- `client/src/components/ProteinGuidelinesCards.tsx` (modified — DEV_USER_ID removed)
+- `client/src/components/modals/QuickAddMacrosModal.tsx` (modified — DEV_USER_ID removed)
+- `client/src/hooks/useSleep.ts` (modified — DEV_USER_ID removed)
+- `client/src/pages/sleep.tsx` (modified — DEV_USER_ID removed)
+- `client/src/components/biometrics/RemainingMacrosFooter.tsx` (modified — passes userId)
+- `server/routes/manualMacros.ts` (modified — daily-summary upsert + daily-with-source endpoints)
+- `client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx` (modified — Save Day POST)
+- `client/src/pages/physician/DiabeticMenuBuilder.tsx` (modified — Save Day POST)
+- `client/src/pages/physician/GLP1MealBuilder.tsx` (modified — Save Day POST)
+- `client/src/pages/pro/GeneralNutritionBuilder.tsx` (modified — Save Day POST)
+- `client/src/pages/pro/PerformanceCompetitionBuilder.tsx` (modified — Save Day POST + useQueryClient import)
+- `client/src/pages/BeachBodyMealBoard.tsx` (modified — Save Day POST)
+- `client/src/pages/WeeklyMealBoard.tsx` (modified — Save Day POST)
+- `client/src/pages/my-biometrics.tsx` (modified — server-first macro fetch with locked-day priority)
+
+**Expected impact:** Save Day now persists macro totals to database. Biometrics page shows server-sourced data. Studio/ProCare reads from DATABASE only. No changes to auth, onboarding, or meal board structure.
+
+**Golden Path result:** App compiles and loads. DEV_USER_ID audit passes (only 3 intentional refs remain).
+
+---
+
 ## 2026-03-03: Liver Support Mode — Clinical Guardrail Layer in Anti-Inflammatory Builder
 
 **Change scope:** Added Liver Support Mode as a clinical guardrail layer inside the existing Anti-Inflammatory Builder. No new builder created. Clinical mode is stored in `board.meta.clinicalMode` (database, not localStorage). Toggles between "anti-inflammatory" (default) and "liver-support". Affects AI generation, premade/snack filtering, and snack creation when in liver-support mode.

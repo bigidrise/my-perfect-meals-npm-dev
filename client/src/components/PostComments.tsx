@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { type Comment } from "@shared/schema";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PostCommentsProps {
   postId: string;
 }
 
 export default function PostComments({ postId }: PostCommentsProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function PostComments({ postId }: PostCommentsProps) {
     const temp: Comment = {
       id: `local_${Date.now()}`,
       postId,
-      userId: "00000000-0000-0000-0000-000000000001",
+      userId: user?.id || "",
       authorDisplay: "You",
       createdAt: new Date(),
       text: payload.text,

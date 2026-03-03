@@ -50,7 +50,7 @@ export interface NutritionBudget {
 
 export function useNutritionBudget(): NutritionBudget {
   const { user } = useAuth();
-  const todayMacros = useTodayMacros();
+  const todayMacros = useTodayMacros(user?.id || "");
 
   return useMemo(() => {
     const resolved = getResolvedTargets(user?.id);

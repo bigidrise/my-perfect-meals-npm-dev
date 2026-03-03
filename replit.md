@@ -76,6 +76,13 @@ The application is a full-stack TypeScript project with a focus on personalized 
     - Liver-support mode: hard blocks alcohol/fried/soda/processed, soft discourages bacon/sausage/butter-heavy, prioritizes leafy greens/omega-3/beans/olive oil.
     - Server guardrails: `liverSupportPromptBuilder.ts`, `liverSupportRules.ts`, `liverSupportValidator.ts` in `server/services/guardrails/`.
     - Client pickers (`MealPremadePicker`, `SnackPickerDrawer`) filter premades through guardrails when `dietType === "liver-support"`.
+- **Macro Sync Architecture (Option B)**:
+    - Save Day in all 7 builders POSTs locked-day summary to `POST /api/users/:userId/macros/daily-summary` (upsert via `ON CONFLICT`).
+    - `macro_logs` table with unique index `macro_logs_daily_source_idx` on `(user_id, source, date)`.
+    - `useTodayMacros(userId)` requires explicit userId — no hardcoded fallback.
+    - Biometrics page (`my-biometrics.tsx`) fetches from `GET /api/users/:userId/macro-logs/daily-with-source` (locked-day priority SQL). localStorage is offline fallback only.
+    - `macros:updated` window event triggers refetch in biometrics when Save Day fires.
+    - DEV_USER_ID removed from all client files except: `AuthContext.tsx` (guest fallback), `useWeeklyBoard.ts` (Apple review flag), `api.ts` (localStorage migration keys).
 - **Studio Metrics Architecture**:
     - Studio reads DATABASE only, never localStorage. Consumer pages (my-biometrics, macro-calculator) are coach's personal space.
     - `StudioMetricsSnapshot` shows macro targets (from proStore), today's logged macros, and body composition via database APIs.

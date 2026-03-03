@@ -844,7 +844,7 @@ export default function GLP1MealBuilder() {
   const targets = computeTargetsFromOnboarding(profile);
 
   // 🔧 FIX #1: Use real macro tracking instead of board state
-  const macroData = useTodayMacros();
+  const macroData = useTodayMacros(effectiveUserId || "");
   const totals = {
     calories: macroData.kcal || 0,
     protein: macroData.protein || 0,
@@ -1703,6 +1703,28 @@ export default function GLP1MealBuilder() {
                         variant: "destructive",
                       });
                     } else {
+                      try {
+                        await fetch(`/api/users/${effectiveUserId}/macros/daily-summary`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          credentials: "include",
+                          body: JSON.stringify({
+                            dateISO: activeDayISO,
+                            calories: consumed.calories,
+                            protein: consumed.protein,
+                            carbs: consumed.carbs,
+                            fat: consumed.fat,
+                            starchyCarbs: consumed.starchyCarbs || 0,
+                            fibrousCarbs: consumed.fibrousCarbs || 0,
+                            source: "locked-day",
+                          }),
+                        });
+                      } catch (e) {
+                        console.error("Failed to write daily summary:", e);
+                      }
+                      queryClient.invalidateQueries({ queryKey: ["/api/users", effectiveUserId, "macros", "today"] });
+                      queryClient.invalidateQueries({ queryKey: ["/api/users", effectiveUserId, "macro-logs", "daily"] });
+                      window.dispatchEvent(new Event("macros:updated"));
                       setQuickView({
                         protein: consumed.protein,
                         carbs: consumed.carbs,

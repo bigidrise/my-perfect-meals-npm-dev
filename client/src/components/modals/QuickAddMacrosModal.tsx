@@ -26,7 +26,7 @@ export default function QuickAddMacrosModal({
   open,
   onOpenChange,
   trigger,
-  userId = "00000000-0000-0000-0000-000000000001",
+  userId: userIdProp,
 }: QuickAddMacrosModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = open !== undefined && onOpenChange !== undefined;
@@ -36,6 +36,7 @@ export default function QuickAddMacrosModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const userId = userIdProp || user?.id || "";
   
   const targets = useMemo(() => getResolvedTargets(user?.id), [user?.id]);
   const hasStarchyFibrousTargets = (targets.starchyCarbs_g ?? 0) > 0 || (targets.fibrousCarbs_g ?? 0) > 0;

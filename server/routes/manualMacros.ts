@@ -3,6 +3,9 @@ import express from "express";
 import { db } from "../db";
 import { macroLogs, users } from "../../shared/schema";
 import { and, gte, lte, eq, sql } from "drizzle-orm";
+import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { careTeamMember } from "../db/schema/careTeam";
+import { clientLinks } from "../db/schema/procare";
 
 const router = express.Router();
 
@@ -375,6 +378,195 @@ router.post("/users/:userId/macro-targets", async (req, res) => {
   } catch (e: any) {
     console.error("save macro targets error:", e);
     res.status(500).json({ error: e.message || "Failed to save macro targets" });
+  }
+});
+
+// POST /api/users/:userId/macros/daily-summary
+// Upserts a locked-day summary row into macro_logs.
+// If userId !== auth user, enforces ProCare access via careTeamMember or clientLinks.
+router.post("/users/:userId/macros/daily-summary", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const targetUserId = req.params.userId;
+    const authUserId = authReq.authUser.id;
+
+    if (targetUserId !== authUserId) {
+      const [teamRow] = await db
+        .select()
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, targetUserId),
+            eq(careTeamMember.proUserId, authUserId),
+          ),
+        )
+        .limit(1);
+
+      if (!teamRow) {
+        const [linkRow] = await db
+          .select()
+          .from(clientLinks)
+          .where(
+            and(
+              eq(clientLinks.clientUserId, targetUserId),
+              eq(clientLinks.proUserId, authUserId),
+              eq(clientLinks.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (!linkRow) {
+          return res.status(403).json({ error: "No access to this client" });
+        }
+      }
+    }
+
+    const {
+      dateISO,
+      calories = 0,
+      protein = 0,
+      carbs = 0,
+      fat = 0,
+      starchyCarbs = 0,
+      fibrousCarbs = 0,
+      source = "locked-day",
+    } = req.body ?? {};
+
+    if (!dateISO) {
+      return res.status(400).json({ error: "dateISO is required" });
+    }
+
+    const when = new Date(dateISO + "T12:00:00Z");
+    if (isNaN(when.getTime())) {
+      return res.status(400).json({ error: "Invalid dateISO" });
+    }
+
+    const resolvedKcal = typeof calories === "number" && calories > 0
+      ? calories
+      : Math.round(4 * Number(protein) + 4 * Number(carbs) + 9 * Number(fat));
+
+    const [row] = await db.execute(sql`
+      INSERT INTO macro_logs (user_id, at, source, kcal, protein, carbs, fat, fiber, alcohol, starchy_carbs, fibrous_carbs)
+      VALUES (
+        ${targetUserId},
+        ${when},
+        ${source},
+        ${resolvedKcal.toString()},
+        ${(Number(protein) || 0).toString()},
+        ${(Number(carbs) || 0).toString()},
+        ${(Number(fat) || 0).toString()},
+        ${"0"},
+        ${"0"},
+        ${(Number(starchyCarbs) || 0).toString()},
+        ${(Number(fibrousCarbs) || 0).toString()}
+      )
+      ON CONFLICT (user_id, source, (timezone('UTC', at)::date))
+      DO UPDATE SET
+        kcal = EXCLUDED.kcal,
+        protein = EXCLUDED.protein,
+        carbs = EXCLUDED.carbs,
+        fat = EXCLUDED.fat,
+        starchy_carbs = EXCLUDED.starchy_carbs,
+        fibrous_carbs = EXCLUDED.fibrous_carbs,
+        at = EXCLUDED.at
+      RETURNING *
+    `);
+
+    console.log(`✅ Daily summary upserted for user ${targetUserId}: ${dateISO} (source=${source})`);
+    res.json({ ok: true, row: row ?? null });
+  } catch (e: any) {
+    console.error("daily-summary upsert error:", e);
+    res.status(400).json({ error: e.message || "Failed to upsert daily summary." });
+  }
+});
+
+// GET /api/users/:userId/macro-logs/daily-with-source?start&end
+// Returns per-day rows with locked-day priority for biometrics charts.
+// If a locked-day row exists for a date, only that row is used; otherwise all sources are summed.
+router.get("/users/:userId/macro-logs/daily-with-source", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const userId = req.params.userId;
+    const authUserId = authReq.authUser.id;
+
+    if (userId !== authUserId) {
+      const [teamRow] = await db
+        .select()
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, userId),
+            eq(careTeamMember.proUserId, authUserId),
+          ),
+        )
+        .limit(1);
+
+      if (!teamRow) {
+        const [linkRow] = await db
+          .select()
+          .from(clientLinks)
+          .where(
+            and(
+              eq(clientLinks.clientUserId, userId),
+              eq(clientLinks.proUserId, authUserId),
+              eq(clientLinks.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (!linkRow) {
+          return res.status(403).json({ error: "No access to this client" });
+        }
+      }
+    }
+
+    const start = req.query.start ? new Date(String(req.query.start)) : null;
+    const end = req.query.end ? new Date(String(req.query.end)) : null;
+    if (!start || !end)
+      return res.status(400).json({ error: "start & end required (ISO)." });
+
+    const rows = await db.execute(sql`
+      WITH day_data AS (
+        SELECT
+          (${macroLogs.at})::date AS date,
+          ${macroLogs.source} AS source,
+          SUM(${macroLogs.kcal})::int AS kcal,
+          SUM(${macroLogs.protein})::int AS protein,
+          SUM(${macroLogs.carbs})::int AS carbs,
+          SUM(${macroLogs.fat})::int AS fat,
+          SUM(${macroLogs.starchyCarbs})::int AS "starchyCarbs",
+          SUM(${macroLogs.fibrousCarbs})::int AS "fibrousCarbs"
+        FROM ${macroLogs}
+        WHERE ${macroLogs.userId} = ${userId}
+          AND ${macroLogs.at} >= ${start}
+          AND ${macroLogs.at} <= ${end}
+        GROUP BY 1, 2
+      ),
+      locked_dates AS (
+        SELECT DISTINCT date FROM day_data WHERE source = 'locked-day'
+      )
+      SELECT
+        d.date,
+        SUM(d.kcal)::int AS kcal,
+        SUM(d.protein)::int AS protein,
+        SUM(d.carbs)::int AS carbs,
+        SUM(d.fat)::int AS fat,
+        SUM(d."starchyCarbs")::int AS "starchyCarbs",
+        SUM(d."fibrousCarbs")::int AS "fibrousCarbs",
+        BOOL_OR(d.source = 'locked-day') AS "hasLockedDay"
+      FROM day_data d
+      WHERE
+        (d.date IN (SELECT date FROM locked_dates) AND d.source = 'locked-day')
+        OR
+        (d.date NOT IN (SELECT date FROM locked_dates))
+      GROUP BY d.date
+      ORDER BY d.date ASC
+    `);
+
+    res.json(rows.rows);
+  } catch (e: any) {
+    console.error("daily-with-source error:", e);
+    res.status(400).json({ error: e.message || "Failed to load daily." });
   }
 });
 

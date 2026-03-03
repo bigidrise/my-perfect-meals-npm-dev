@@ -1096,7 +1096,7 @@ export default function BeachBodyMealBoard() {
     () => computeTargetsFromOnboarding(profile),
     [profile],
   );
-  const macroData = useTodayMacros();
+  const macroData = useTodayMacros(effectiveUserId || "");
 
   const totals = useMemo(() => {
     if (!board) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -1946,6 +1946,28 @@ export default function BeachBodyMealBoard() {
                           variant: "destructive",
                         });
                       } else {
+                        try {
+                          await fetch(`/api/users/${effectiveUserId}/macros/daily-summary`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({
+                              dateISO: activeDayISO,
+                              calories: consumed.calories,
+                              protein: consumed.protein,
+                              carbs: consumed.carbs,
+                              fat: consumed.fat,
+                              starchyCarbs: consumed.starchyCarbs || 0,
+                              fibrousCarbs: consumed.fibrousCarbs || 0,
+                              source: "locked-day",
+                            }),
+                          });
+                        } catch (e) {
+                          console.error("Failed to write daily summary:", e);
+                        }
+                        queryClient.invalidateQueries({ queryKey: ["/api/users", effectiveUserId, "macros", "today"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/users", effectiveUserId, "macro-logs", "daily"] });
+                        window.dispatchEvent(new Event("macros:updated"));
                         setQuickView({
                           protein: consumed.protein,
                           carbs: consumed.carbs,
