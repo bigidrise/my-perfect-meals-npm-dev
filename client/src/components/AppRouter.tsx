@@ -143,13 +143,6 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      if (userIsProfessional) {
-        const isPhysician = user?.professionalRole === "physician";
-        const defaultProRoute = isPhysician ? "/care-team/physician" : "/care-team/trainer";
-        setLocation(defaultProRoute);
-        return;
-      }
-
       const destination = getPersonalDestination();
       setLocation(destination);
       setTimeout(() => {
