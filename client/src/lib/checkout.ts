@@ -1,7 +1,10 @@
 import type { LookupKey } from "@/data/planSkus";
 import { isIosNativeShell } from "@/lib/platform";
-import { apiUrl } from '@/lib/resolveApiBase';
-import { purchaseProduct as iosPurchase, isStoreKitAvailable } from "@/lib/storekit";
+import { apiUrl } from "@/lib/resolveApiBase";
+import {
+  purchaseProduct as iosPurchase,
+  isStoreKitAvailable,
+} from "@/lib/storekit";
 
 export const IOS_BLOCK_ERROR = "IOS_APP_EXTERNAL_PAYMENTS_BLOCKED";
 
@@ -10,63 +13,89 @@ export interface CheckoutOptions {
   context?: string;
 }
 
+function getCurrentUser() {
+  try {
+    const raw =
+      localStorage.getItem("mpm_current_user") || localStorage.getItem("user");
+
+    if (!raw) return null;
+
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error("[Checkout] Failed to parse user from localStorage", err);
+    return null;
+  }
+}
+
 export async function startCheckout(
   priceLookupKey: LookupKey,
-  opts?: CheckoutOptions
+  opts?: CheckoutOptions,
 ) {
+  // iOS native shell handling
   if (isIosNativeShell()) {
     try {
       const storeKitAvailable = await isStoreKitAvailable();
+
       if (storeKitAvailable) {
         const result = await iosPurchase(priceLookupKey);
+
         if (!result.success) {
           throw new Error(result.error || "Purchase failed");
         }
+
         return { success: true, method: "storekit" };
       }
     } catch (storeKitError: any) {
       console.error("[Checkout] StoreKit error:", storeKitError);
-      // Re-throw user-friendly error instead of crashing
-      throw new Error(storeKitError?.message || "In-app purchase temporarily unavailable. Please try again.");
+
+      throw new Error(
+        storeKitError?.message ||
+          "In-app purchase temporarily unavailable. Please try again.",
+      );
     }
 
-    const error = new Error("Stripe checkout is unavailable inside the iOS app.");
+    const error = new Error(
+      "Stripe checkout is unavailable inside the iOS app.",
+    );
     (error as any).code = IOS_BLOCK_ERROR;
     throw error;
   }
 
   try {
-    const userStr = localStorage.getItem("mpm_current_user");
-    const user = userStr ? JSON.parse(userStr) : null;
+    const user = getCurrentUser();
 
     if (!user?.id) {
       throw new Error("Please log in to checkout");
     }
 
-    const res = await fetch(apiUrl("/api/stripe/checkout"), {
+    const response = await fetch(apiUrl("/api/stripe/checkout"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         priceLookupKey,
-        customerEmail: opts?.customerEmail || user.email,
-        metadata: { 
-          context: opts?.context || "unknown",
-          user_id: user.id,
-        },
+        context: opts?.context || "unknown",
       }),
     });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Checkout failed");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Checkout failed");
     }
 
-    const { url } = await res.json();
-    
+    if (!data?.url) {
+      throw new Error("Checkout session did not return a URL");
+    }
+
+    const checkoutUrl = data.url;
+
+    // handle iframe vs top window safely
     if (window.self !== window.top) {
-      window.open(url, '_blank');
+      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
     } else {
-      window.location.href = url;
+      window.location.assign(checkoutUrl);
     }
   } catch (error) {
     console.error("[Checkout Error]", error);
@@ -74,34 +103,46 @@ export async function startCheckout(
   }
 }
 
-export async function openCustomerPortal(customerId: string, returnUrl?: string) {
+export async function openCustomerPortal(
+  customerId: string,
+  returnUrl?: string,
+) {
   if (isIosNativeShell()) {
-    const error = new Error("Customer portal is unavailable inside the iOS app.");
+    const error = new Error(
+      "Customer portal is unavailable inside the iOS app.",
+    );
     (error as any).code = IOS_BLOCK_ERROR;
     throw error;
   }
 
   try {
-    const res = await fetch(apiUrl("/api/stripe/create-portal-session"), {
+    const response = await fetch(apiUrl("/api/stripe/create-portal-session"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         customerId,
         returnUrl: returnUrl || window.location.href,
       }),
     });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Portal failed");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Portal failed");
     }
 
-    const { url } = await res.json();
-    
+    if (!data?.url) {
+      throw new Error("Portal session did not return a URL");
+    }
+
+    const portalUrl = data.url;
+
     if (window.self !== window.top) {
-      window.open(url, '_blank');
+      window.open(portalUrl, "_blank", "noopener,noreferrer");
     } else {
-      window.location.href = url;
+      window.location.assign(portalUrl);
     }
   } catch (error) {
     console.error("[Portal Error]", error);

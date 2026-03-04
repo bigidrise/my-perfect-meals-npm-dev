@@ -1,17 +1,16 @@
 export type LookupKey =
-  | "mpm_basic_monthly"
-  | "mpm_premium_monthly"
-  | "mpm_premium_beta_monthly"
-  | "mpm_ultimate_monthly"
-  | "mpm_family_base_monthly"
-  | "mpm_family_all_premium_monthly"
-  | "mpm_family_all_ultimate_monthly"
-  | "mpm_procare_monthly"
-  | "mpm_procare_trainer_5"
-  | "mpm_procare_trainer_10"
-  | "mpm_procare_trainer_25"
-  | "mpm_procare_trainer_50"
-  | "mpm_procare_trainer_150";
+  | "mpm_basic"
+  | "mpm_premium"
+  | "mpm_ultimate"
+  | "mpm_family_base"
+  | "mpm_family_ultimate"
+  | "mpm_trainer_5"
+  | "mpm_trainer_10"
+  | "mpm_trainer_25"
+  | "mpm_trainer_50"
+  | "mpm_physician_50"
+  | "mpm_physician_150"
+  | "mpm_guidance";
 
 export type BillingCycle = "monthly";
 
@@ -30,7 +29,7 @@ export type PlanSku = {
 
 export const PLAN_SKUS: PlanSku[] = [
   {
-    sku: "mpm_basic_monthly",
+    sku: "mpm_basic",
     label: "Basic",
     price: 14.99,
     group: "consumer",
@@ -43,7 +42,7 @@ export const PLAN_SKUS: PlanSku[] = [
     ],
   },
   {
-    sku: "mpm_premium_monthly",
+    sku: "mpm_premium",
     label: "Premium",
     price: 24.99,
     group: "consumer",
@@ -58,7 +57,7 @@ export const PLAN_SKUS: PlanSku[] = [
     badge: "Popular",
   },
   {
-    sku: "mpm_ultimate_monthly",
+    sku: "mpm_ultimate",
     label: "Ultimate",
     price: 34.99,
     group: "consumer",
@@ -71,9 +70,10 @@ export const PLAN_SKUS: PlanSku[] = [
       "Voice commands",
     ],
   },
+
   {
-    sku: "mpm_family_base_monthly",
-    label: "Base Family",
+    sku: "mpm_family_base",
+    label: "Family Base",
     price: 49.99,
     seats: 4,
     group: "family",
@@ -88,51 +88,23 @@ export const PLAN_SKUS: PlanSku[] = [
     badge: "Best for Families",
   },
   {
-    sku: "mpm_family_all_premium_monthly",
-    label: "Family Premium",
-    price: 99.99,
-    seats: 4,
-    group: "family",
-    blurb: "All 4 seats include Premium features",
-    features: [
-      "All Family Base features",
-      "Premium tier for all 4 profiles",
-      "Advanced presets for everyone",
-      "Specialty diets per profile",
-      "Alcohol tracking per profile",
-    ],
-  },
-  {
-    sku: "mpm_family_all_ultimate_monthly",
-    label: "Ultimate Family",
+    sku: "mpm_family_ultimate",
+    label: "Family Ultimate",
     price: 159.99,
     seats: 4,
     group: "family",
     blurb: "All 4 seats include Ultimate features",
     features: [
-      "All Family All-Premium features",
+      "All Family Base features",
       "Ultimate tier for all 4 profiles",
       "Priority family support",
       "Advanced analytics per profile",
       "Voice commands for everyone",
     ],
   },
+
   {
-    sku: "mpm_procare_monthly",
-    label: "ProCare",
-    price: 49.99,
-    group: "pro",
-    blurb: "Doctors/trainers toolkit with client linking",
-    features: [
-      "Client management dashboard",
-      "Professional meal templates",
-      "Client progress tracking",
-      "Nutrition coaching tools",
-      "Priority professional support",
-    ],
-  },
-  {
-    sku: "mpm_procare_trainer_5",
+    sku: "mpm_trainer_5",
     label: "ProCare Trainer 5",
     price: 19.99,
     group: "pro",
@@ -147,7 +119,7 @@ export const PLAN_SKUS: PlanSku[] = [
     ],
   },
   {
-    sku: "mpm_procare_trainer_10",
+    sku: "mpm_trainer_10",
     label: "ProCare Trainer 10",
     price: 29.99,
     group: "pro",
@@ -162,7 +134,7 @@ export const PLAN_SKUS: PlanSku[] = [
     ],
   },
   {
-    sku: "mpm_procare_trainer_25",
+    sku: "mpm_trainer_25",
     label: "ProCare Trainer 25",
     price: 59.0,
     group: "pro",
@@ -178,7 +150,7 @@ export const PLAN_SKUS: PlanSku[] = [
     badge: "Most Popular",
   },
   {
-    sku: "mpm_procare_trainer_50",
+    sku: "mpm_trainer_50",
     label: "ProCare Trainer 50",
     price: 199.0,
     group: "pro",
@@ -193,21 +165,49 @@ export const PLAN_SKUS: PlanSku[] = [
       "Priority support",
     ],
   },
+
   {
-    sku: "mpm_procare_trainer_150",
-    label: "ProCare Trainer 150+",
-    price: 399.0,
+    sku: "mpm_physician_50",
+    label: "ProCare Physician 50",
+    price: 299.0,
+    group: "pro",
+    clients: 50,
+    blurb: "For physicians managing up to 50 patients",
+    features: [
+      "Patient nutrition dashboards",
+      "Medical nutrition protocols",
+      "Assign meal builders",
+      "Biometric tracking",
+      "Messaging and progress monitoring",
+    ],
+  },
+  {
+    sku: "mpm_physician_150",
+    label: "ProCare Physician 150",
+    price: 599.0,
     group: "pro",
     clients: 150,
-    blurb: "For large coaching businesses",
+    blurb: "For clinics and large practices",
     features: [
-      "Manage up to 150+ clients",
-      "Client nutrition dashboards",
-      "Assign meal builders",
-      "Macro target management",
-      "Messaging & progress tracking",
-      "Priority support",
+      "Manage up to 150 patients",
+      "Medical nutrition dashboards",
+      "Biometric monitoring",
+      "Patient progress tracking",
       "Advanced analytics",
+    ],
+  },
+
+  {
+    sku: "mpm_guidance",
+    label: "Personal Guidance",
+    price: 79.99,
+    group: "pro",
+    blurb: "Direct guidance from a My Perfect Meals coach",
+    features: [
+      "Direct nutrition coaching",
+      "Custom meal adjustments",
+      "Progress monitoring",
+      "Priority support",
     ],
   },
 ];
