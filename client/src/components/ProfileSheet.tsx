@@ -303,7 +303,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     );
 
   const menuItems = [
-    // ✅ NEW: Personal profile editing entry
+    // Personal
     {
       title: "My Profile",
       description: "Update your personal info & preferences",
@@ -312,7 +312,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       testId: "menu-my-profile",
     },
 
-    // Only show "Change Meal Builder" if NOT a Pro Care client
+    // Product
     ...(!isProCareClient
       ? [
           {
@@ -324,35 +324,16 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
           },
         ]
       : []),
-    {
-      title: "Privacy & Security",
-      description: "Manage your privacy settings",
-      icon: Shield,
-      route: "/privacy",
-      testId: "menu-privacy",
-    },
-    {
-      title: "Restore Purchases",
-      description: "Restore an active subscription on this device",
-      icon: RefreshCcw,
-      action: "restorePurchases",
-      testId: "menu-restore-purchases",
-    },
-    {
-      title: "Subscription",
-      description: "Manage your plan & billing",
-      icon: CreditCard,
-      route: "/pricing",
-      testId: "menu-subscription",
-    },
+
     {
       title: "App Library",
       description:
-        "Learn the systems, the nutrition basics, and how to get the most out of the app.",
+        "Learn how Emotion AI, Safety Guard™, Glucose Guard™, Starch Guard™, and all core systems work.",
       icon: Video,
       route: "/learn",
-      testId: "menu-tutorials",
+      testId: "menu-app-library",
     },
+
     {
       title: "MPM Team",
       description: "Message from our founders",
@@ -360,6 +341,33 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       route: "/founders",
       testId: "menu-about",
     },
+
+    // Billing
+    {
+      title: "Subscription",
+      description: "Manage your plan & billing",
+      icon: CreditCard,
+      route: "/pricing",
+      testId: "menu-subscription",
+    },
+
+    {
+      title: "Restore Purchases",
+      description: "Restore an active subscription on this device",
+      icon: RefreshCcw,
+      action: "restorePurchases",
+      testId: "menu-restore-purchases",
+    },
+
+    // Legal
+    {
+      title: "Privacy & Security",
+      description: "Manage your privacy settings",
+      icon: Shield,
+      route: "/privacy",
+      testId: "menu-privacy",
+    },
+
     {
       title: "Terms of Service",
       description: "Review our terms and conditions",

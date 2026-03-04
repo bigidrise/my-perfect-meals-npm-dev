@@ -47,11 +47,11 @@ export default function Founder() {
                 Founder & Lead Coach
               </p>
               <p className="text-white/80 text-sm leading-relaxed max-w-xl">
-                I’ve spent over 2 1/2 decades working in performance nutrition,
-                body composition, and structured meal design. My background
-                combines competitive athletics, clinical awareness, and
-                real-world coaching experience. My Perfect Meals was built to
-                remove confusion, eliminate food stress, and help people eat
+                I’ve spent over 25 years working in performance nutrition, body
+                composition, and structured meal design. My background combines
+                competitive athletics, clinical awareness, and real-world
+                coaching experience. My Perfect Meals was built to remove
+                confusion, eliminate food stress, and help people eat
                 confidently without restriction.
               </p>
 

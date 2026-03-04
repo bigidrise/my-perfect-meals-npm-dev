@@ -27,6 +27,7 @@ import { useNarration } from "@/hooks/useNarration";
 interface LibraryTopic {
   id: string;
   title: string;
+  subtitle?: string;
   icon: React.ElementType;
   content: {
     sections: Array<{
@@ -216,7 +217,8 @@ const libraryTopics: LibraryTopic[] = [
   },
   {
     id: "glucoseguard",
-    title: "GlucoseGuard™ — Diabetic Meal Adjustment",
+    title: "GlucoseGuard™",
+    subtitle: "Diabetic Meal Adjustment",
     icon: Heart,
     content: {
       sections: [
@@ -288,7 +290,8 @@ const libraryTopics: LibraryTopic[] = [
   },
   {
     id: "palate-preferences",
-    title: "Palate Preferences — Flavor Customization",
+    title: "Palate Preferences",
+    subtitle: "Flavor Customization",
     icon: Utensils,
     content: {
       sections: [
@@ -400,7 +403,8 @@ const libraryTopics: LibraryTopic[] = [
   },
   {
     id: "procare",
-    title: "ProCare — Professional Coaching & Medical Oversight",
+    title: "ProCare",
+    subtitle: "Professional Coaching & Medical Oversight",
     icon: Users,
     content: {
       sections: [
@@ -520,23 +524,30 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
     <div className="w-full">
       <button
         onClick={handleToggle}
-        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-200 ${
+        className={`w-full flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 ${
           isExpanded
             ? "bg-black/70 border border-white/20 shadow-lg"
             : "bg-black/50 border border-white/10 hover:bg-black/60 hover:border-white/15"
         }`}
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-white/5">
-            <Icon className="h-4 w-4 text-white/80" />
-          </div>
-          <span className="text-white font-medium text-sm">{topic.title}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-white font-medium text-sm leading-tight">
+            {topic.title}
+          </span>
+          {topic.subtitle && (
+            <span className="text-[11px] text-white/60 leading-tight">
+              {topic.subtitle}
+            </span>
+          )}
         </div>
-        {isExpanded ? (
-          <ChevronUp className="h-4 w-4 text-white/60" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-white/60" />
-        )}
+
+        <div className="ml-3 flex-shrink-0">
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4 text-white/60" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-white/60" />
+          )}
+        </div>
       </button>
 
       <AnimatePresence>
@@ -570,7 +581,9 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                 {mode === "listen" && (
                   <div className="flex items-center gap-2">
                     <PillButton
-                      onClick={narration.isPlaying ? narration.pause : narration.play}
+                      onClick={
+                        narration.isPlaying ? narration.pause : narration.play
+                      }
                       active={narration.isPlaying}
                     >
                       {narration.isPlaying ? (
@@ -583,7 +596,8 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                       <Square className="h-3 w-3" />
                     </PillButton>
                     <span className="text-[10px] text-white/50 ml-1">
-                      {narration.currentSectionIndex + 1}/{narration.totalSections}
+                      {narration.currentSectionIndex + 1}/
+                      {narration.totalSections}
                     </span>
                   </div>
                 )}
@@ -594,7 +608,8 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                   <div
                     key={index}
                     className={`space-y-2 transition-all ${
-                      mode === "listen" && narration.currentSectionIndex === index
+                      mode === "listen" &&
+                      narration.currentSectionIndex === index
                         ? "bg-white/5 -mx-2 px-2 py-2 rounded-lg"
                         : ""
                     }`}
@@ -655,13 +670,15 @@ export default function Learn() {
           </Button>
           <div>
             <h1 className="text-lg font-bold text-white">App Library</h1>
-            <p className="text-xs text-white/60">Learn how My Perfect Meals works</p>
+            <p className="text-xs text-white/60">
+              Learn how My Perfect Meals works
+            </p>
           </div>
         </div>
       </div>
 
       {/* Content with padding for fixed header */}
-      <div 
+      <div
         className="max-w-lg mx-auto pb-24"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
