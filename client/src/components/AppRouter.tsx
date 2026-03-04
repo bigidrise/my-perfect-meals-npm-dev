@@ -108,7 +108,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    const inProWorkspace = isInProfessionalWorkspace(location);
+    const inProWorkspace = isInProfessionalWorkspace(location) || localStorage.getItem("mpm_active_space") === "workspace";
     if (
       isAuthenticated &&
       !isPublicRoute &&

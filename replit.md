@@ -61,7 +61,8 @@ The application is a full-stack TypeScript project with a focus on personalized 
     - Free-first: Free users land on `/macro-counter` after WelcomeGate. Paid users land on `/dashboard`.
     - `client/src/lib/subscriptionCheck.ts`: `hasActivePaidSubscription(user)` is the single source of truth for subscription state. Checks `planLookupKey`, `isTester`, `accessTier`, `trialEndsAt`.
     - Onboarding is gated behind paid subscription — free users skip it entirely.
-    - WelcomeGate: Shows once per session via `sessionStorage("mpm.welcomeGateDone")`. Skippable via `localStorage("mpm.skipWelcomeGate")`. Not shown in professional workspace (route-based detection via `/care-team`, `/pro-portal`, `/pro/` prefixes).
+    - WelcomeGate: Shows once per session via `sessionStorage("mpm.welcomeGateDone")`. Skippable via `localStorage("mpm.skipWelcomeGate")`. Not shown in professional workspace (route-based detection via `/care-team`, `/pro-portal`, `/pro/` prefixes OR `localStorage("mpm_active_space") === "workspace"`).
+    - Workspace switching: `mpm_active_space` localStorage key tracks "personal" vs "workspace". Set by WorkspaceChooser in Auth.tsx, More.tsx, StudioBottomNav.tsx.
     - Auth.tsx: No routing decisions — authenticates only, then routes to `/` (AppRouter decides) or `/onboarding` (paid + incomplete). Professionals see WorkspaceChooser.
     - Profile.tsx: "Reset Tutorial & Coach Mode" clears session flag; "Skip Welcome Screen" toggle writes `mpm.skipWelcomeGate`.
     - `PRE_LAUNCH_FULL_ACCESS = true` in `server/lib/accessTier.ts` grants PAID_FULL server-side; client subscription check uses `planLookupKey` directly.

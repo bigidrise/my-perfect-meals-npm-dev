@@ -22,8 +22,11 @@ export default function StudioBottomNav() {
           onChoose={(choice) => {
             setShowChooser(false);
             if (choice === "personal") {
+              localStorage.setItem("mpm_active_space", "personal");
               sessionStorage.removeItem("mpm.welcomeGateDone");
               setLocation("/");
+            } else {
+              localStorage.setItem("mpm_active_space", "workspace");
             }
           }}
         />

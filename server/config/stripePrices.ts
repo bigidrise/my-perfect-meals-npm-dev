@@ -31,44 +31,45 @@ const ultimate = requirePrice("STRIPE_PRICE_ULTIMATE", "Ultimate");
 /* Family Plans */
 
 const familyBase = requirePrice("STRIPE_PRICE_FAMILY_BASE", "Family Base");
-const familyAllPremium = requirePrice(
-  "STRIPE_PRICE_FAMILY_ALL_PREMIUM",
-  "Family Premium",
-);
-const familyAllUltimate = requirePrice(
+const familyUltimate = requirePrice(
   "STRIPE_PRICE_FAMILY_ALL_ULTIMATE",
   "Family Ultimate",
 );
 
 /* Trainer Plans */
 
-const trainer5 = requirePrice("STRIPE_PRICE_TRAINER_5", "Trainer 5");
-const trainer10 = requirePrice("STRIPE_PRICE_TRAINER_10", "Trainer 10");
-const trainer25 = requirePrice("STRIPE_PRICE_TRAINER_25", "Trainer 25");
-const trainer50 = requirePrice("STRIPE_PRICE_TRAINER_50", "Trainer 50");
-const trainer150 = requirePrice("STRIPE_PRICE_TRAINER_150", "Trainer 150");
+const trainer5 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_5", "Trainer 5");
+const trainer10 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_10", "Trainer 10");
+const trainer25 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_25", "Trainer 25");
+const trainer50 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_50_PLUS", "Trainer 50");
 
-/* ProCare */
+/* Physician Plans */
+
+const physician50 = requirePrice("STRIPE_PRICE_PROCARE_PHYSICIAN_50", "Physician 50");
+const physician150 = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL_150", "Physician 150");
+
+/* ProCare / Guidance */
 
 const procare = requirePrice("STRIPE_PRICE_PROCARE", "ProCare");
+const guidance = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL", "Personal Guidance");
 
 /* Mapping must match LookupKey exactly */
 
 export const STRIPE_PRICE_IDS: Record<LookupKey, string> = {
-  mpm_basic_monthly: basic,
-  mpm_premium_monthly: premium,
-  mpm_premium_beta_monthly: premium,
-  mpm_ultimate_monthly: ultimate,
+  mpm_basic: basic,
+  mpm_premium: premium,
+  mpm_ultimate: ultimate,
 
-  mpm_family_base_monthly: familyBase,
-  mpm_family_all_premium_monthly: familyAllPremium,
-  mpm_family_all_ultimate_monthly: familyAllUltimate,
+  mpm_family_base: familyBase,
+  mpm_family_ultimate: familyUltimate,
 
-  mpm_procare_monthly: procare,
+  mpm_trainer_5: trainer5,
+  mpm_trainer_10: trainer10,
+  mpm_trainer_25: trainer25,
+  mpm_trainer_50: trainer50,
 
-  mpm_procare_trainer_5: trainer5,
-  mpm_procare_trainer_10: trainer10,
-  mpm_procare_trainer_25: trainer25,
-  mpm_procare_trainer_50: trainer50,
-  mpm_procare_trainer_150: trainer150,
+  mpm_physician_50: physician50,
+  mpm_physician_150: physician150,
+
+  mpm_guidance: guidance,
 };

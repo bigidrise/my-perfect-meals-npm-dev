@@ -308,9 +308,11 @@ export default function MorePage() {
               onChoose={(choice: "personal" | "workspace") => {
                 setShowWorkspaceChooser(false);
                 if (choice === "workspace") {
+                  localStorage.setItem("mpm_active_space", "workspace");
                   const workspaceRoute = userRole === "physician" ? "/care-team/physician" : "/care-team/trainer";
                   setLocation(workspaceRoute);
                 } else {
+                  localStorage.setItem("mpm_active_space", "personal");
                   sessionStorage.removeItem("mpm.welcomeGateDone");
                   setLocation("/");
                 }

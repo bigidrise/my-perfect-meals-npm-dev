@@ -67,8 +67,10 @@ export default function Auth() {
       <WorkspaceChooser
         onChoose={(choice: "personal" | "workspace") => {
           if (choice === "workspace") {
+            localStorage.setItem("mpm_active_space", "workspace");
             setLocation(workspaceRoute);
           } else {
+            localStorage.setItem("mpm_active_space", "personal");
             setLocation("/");
           }
         }}
