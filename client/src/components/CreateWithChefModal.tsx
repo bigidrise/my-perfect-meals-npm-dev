@@ -460,9 +460,8 @@ export function CreateWithChefModal({
                   variant="outline"
                   className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
                   onClick={() => onOpenChange(false)}
-                  disabled={isProcessing}
                 >
-                  Cancel
+                  {isProcessing ? "Stop" : "Cancel"}
                 </Button>
               </div>
             </>

@@ -243,9 +243,8 @@ export function SnackCreatorModal({
               variant="outline"
               className="bg-black/60 backdrop-blur border-white/30 text-white"
               onClick={() => onOpenChange(false)}
-              disabled={isProcessing}
             >
-              Cancel
+              {isProcessing ? "Stop" : "Cancel"}
             </Button>
           </div>
         </div>
