@@ -6,7 +6,12 @@ export type LookupKey =
   | "mpm_family_base_monthly"
   | "mpm_family_all_premium_monthly"
   | "mpm_family_all_ultimate_monthly"
-  | "mpm_procare_monthly";
+  | "mpm_procare_monthly"
+  | "mpm_procare_trainer_5"
+  | "mpm_procare_trainer_10"
+  | "mpm_procare_trainer_25"
+  | "mpm_procare_trainer_50"
+  | "mpm_procare_trainer_150";
 
 export type BillingCycle = "monthly";
 
@@ -15,6 +20,7 @@ export type PlanSku = {
   label: string;
   price: number;
   seats?: number;
+  clients?: number;
   hidden?: boolean;
   blurb?: string;
   features?: string[];
@@ -26,7 +32,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_basic_monthly",
     label: "Basic",
-    price: 9.99,
+    price: 14.99,
     group: "consumer",
     blurb: "$9.99 / month (Access to ONE meal builder only)",
     features: [
@@ -39,7 +45,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_premium_monthly",
     label: "Premium",
-    price: 19.99,
+    price: 24.99,
     group: "consumer",
     blurb: "Advanced features for serious meal planning",
     features: [
@@ -54,7 +60,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_premium_beta_monthly",
     label: "Premium (Beta)",
-    price: 9.99,
+    price: 24.99,
     group: "consumer",
     hidden: true,
     blurb: "Special beta pricing for early adopters",
@@ -66,7 +72,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_ultimate_monthly",
     label: "Ultimate",
-    price: 29.99,
+    price: 34.99,
     group: "consumer",
     blurb: "Complete nutrition toolkit with all features",
     features: [
@@ -79,8 +85,8 @@ export const PLAN_SKUS: PlanSku[] = [
   },
   {
     sku: "mpm_family_base_monthly",
-    label: "Family Base",
-    price: 39.99,
+    label: "Base Family",
+    price: 49.99,
     seats: 4,
     group: "family",
     blurb: "One household, 4 profiles, shared menus & shopping",
@@ -95,8 +101,8 @@ export const PLAN_SKUS: PlanSku[] = [
   },
   {
     sku: "mpm_family_all_premium_monthly",
-    label: "Family All-Premium",
-    price: 49.99,
+    label: "Family Premium",
+    price: 99.99,
     seats: 4,
     group: "family",
     blurb: "All 4 seats include Premium features",
@@ -110,8 +116,8 @@ export const PLAN_SKUS: PlanSku[] = [
   },
   {
     sku: "mpm_family_all_ultimate_monthly",
-    label: "Family All-Ultimate",
-    price: 79.99,
+    label: "Ultimate Family",
+    price: 159.99,
     seats: 4,
     group: "family",
     blurb: "All 4 seats include Ultimate features",
@@ -136,7 +142,86 @@ export const PLAN_SKUS: PlanSku[] = [
       "Nutrition coaching tools",
       "Priority professional support"
     ]
-  }
+  },
+  {
+    sku: "mpm_procare_trainer_5",
+    label: "ProCare Trainer 5",
+    price: 19.99,
+    group: "pro",
+    clients: 5,
+    blurb: "For trainers managing up to 5 clients",
+    features: [
+      "Manage up to 5 clients",
+      "Client nutrition dashboards",
+      "Assign meal builders",
+      "Macro target management",
+      "Messaging & progress tracking"
+    ]
+  },
+  {
+    sku: "mpm_procare_trainer_10",
+    label: "ProCare Trainer 10",
+    price: 29.99,
+    group: "pro",
+    clients: 10,
+    blurb: "For trainers managing up to 10 clients",
+    features: [
+      "Manage up to 10 clients",
+      "Client nutrition dashboards",
+      "Assign meal builders",
+      "Macro target management",
+      "Messaging & progress tracking"
+    ]
+  },
+  {
+    sku: "mpm_procare_trainer_25",
+    label: "ProCare Trainer 25",
+    price: 59.00,
+    group: "pro",
+    clients: 25,
+    blurb: "For trainers managing up to 25 clients",
+    features: [
+      "Manage up to 25 clients",
+      "Client nutrition dashboards",
+      "Assign meal builders",
+      "Macro target management",
+      "Messaging & progress tracking"
+    ],
+    badge: "Most Popular"
+  },
+  {
+    sku: "mpm_procare_trainer_50",
+    label: "ProCare Trainer 50",
+    price: 199.00,
+    group: "pro",
+    clients: 50,
+    blurb: "For trainers managing up to 50 clients",
+    features: [
+      "Manage up to 50 clients",
+      "Client nutrition dashboards",
+      "Assign meal builders",
+      "Macro target management",
+      "Messaging & progress tracking",
+      "Priority support"
+    ]
+  },
+  {
+    sku: "mpm_procare_trainer_150",
+    label: "ProCare Trainer 150+",
+    price: 399.00,
+    group: "pro",
+    clients: 150,
+    blurb: "For large coaching businesses",
+    features: [
+      "Manage up to 150+ clients",
+      "Client nutrition dashboards",
+      "Assign meal builders",
+      "Macro target management",
+      "Messaging & progress tracking",
+      "Priority support",
+      "Advanced analytics"
+    ]
+  },
 ];
 
 export function getPlanBySku(sku: LookupKey): PlanSku | undefined {

@@ -12,44 +12,44 @@ export const IOS_PRODUCTS: IosProduct[] = [
     productId: "mpm.sub.basic.monthly.v1",
     internalSku: "mpm_basic_monthly",
     label: "Basic",
-    price: 9.99,
+    price: 14.99,
   },
   {
     productId: "mpm.sub.premium.monthly.v1",
     internalSku: "mpm_premium_monthly",
     label: "Premium",
-    price: 19.99,
+    price: 24.99,
   },
   {
     productId: "mpm.sub.ultimate.monthly.v1",
     internalSku: "mpm_ultimate_monthly",
     label: "Ultimate",
-    price: 29.99,
+    price: 34.99,
   },
 ];
 
 export const IOS_PRODUCT_IDS = IOS_PRODUCTS.map((p) => p.productId);
 
 export function getIosProductByInternalSku(
-  internalSku: LookupKey
+  internalSku: LookupKey,
 ): IosProduct | undefined {
   return IOS_PRODUCTS.find((p) => p.internalSku === internalSku);
 }
 
 export function getIosProductByProductId(
-  productId: string
+  productId: string,
 ): IosProduct | undefined {
   return IOS_PRODUCTS.find((p) => p.productId === productId);
 }
 
 export function internalSkuToIosProductId(
-  internalSku: LookupKey
+  internalSku: LookupKey,
 ): string | undefined {
   return getIosProductByInternalSku(internalSku)?.productId;
 }
 
 export function iosProductIdToInternalSku(
-  productId: string
+  productId: string,
 ): LookupKey | undefined {
   return getIosProductByProductId(productId)?.internalSku;
 }

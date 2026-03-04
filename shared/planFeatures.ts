@@ -167,7 +167,12 @@ export type PlanLookupKey =
   | "mpm_family_all_upgrade_monthly"
   | "mpm_family_all_premium_monthly"
   | "mpm_family_all_ultimate_monthly"
-  | "mpm_procare_monthly";
+  | "mpm_procare_monthly"
+  | "mpm_procare_trainer_5"
+  | "mpm_procare_trainer_10"
+  | "mpm_procare_trainer_25"
+  | "mpm_procare_trainer_50"
+  | "mpm_procare_trainer_150";
 
 export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_free: "free",
@@ -182,6 +187,11 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_family_all_premium_monthly: "premium",
   mpm_family_all_ultimate_monthly: "ultimate",
   mpm_procare_monthly: "ultimate",
+  mpm_procare_trainer_5: "ultimate",
+  mpm_procare_trainer_10: "ultimate",
+  mpm_procare_trainer_25: "ultimate",
+  mpm_procare_trainer_50: "ultimate",
+  mpm_procare_trainer_150: "ultimate",
 };
 
 export const TRIAL_UNLOCKS_TIER: PlanTier = "ultimate";
