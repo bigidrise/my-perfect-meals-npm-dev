@@ -20,6 +20,22 @@ function isInProfessionalWorkspace(path: string): boolean {
   return PROFESSIONAL_ROUTE_PREFIXES.some(prefix => path.startsWith(prefix));
 }
 
+function hasMacroProfile(user: any): boolean {
+  if (user?.age && user?.height && user?.weight) return true;
+  try {
+    const s = localStorage.getItem("macro_calculator_settings");
+    if (!s) return false;
+    const p = JSON.parse(s);
+    return !!(p.age && (p.heightFt || p.heightCm) && (p.weightLbs || p.weightKg));
+  } catch {
+    return false;
+  }
+}
+
+function isProfessional(user: any): boolean {
+  return user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+}
+
 export default function AppRouter({ children }: AppRouterProps) {
   const [location, setLocation] = useLocation();
   const [showWelcomeGate, setShowWelcomeGate] = useState(false);
@@ -54,7 +70,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (!user) return false;
     if (user.role === "admin") return false;
     if (user.id.startsWith("guest-")) return false;
-    if (user.professionalRole === "trainer" || user.professionalRole === "physician") return false;
+    if (isProfessional(user)) return false;
     if (user.studioMembership) return false;
     if (!hasActivePaidSubscription(user)) return false;
     return !user.onboardingCompletedAt;
@@ -64,6 +80,15 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (!user) return false;
     return hasActivePaidSubscription(user);
   }, [user]);
+
+  const userIsProfessional = useMemo(() => {
+    return isProfessional(user);
+  }, [user]);
+
+  function getPersonalDestination(): string {
+    if (hasMacroProfile(user)) return "/dashboard";
+    return "/macro-counter";
+  }
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
@@ -93,6 +118,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       !isPublicRoute &&
       !inProWorkspace &&
       !isAppleReviewMode &&
+      !userIsProfessional &&
       !welcomeGateDoneThisSession &&
       !skipWelcomeGate &&
       needsOnboarding === false &&
@@ -117,7 +143,14 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      const destination = isPaidUser ? "/dashboard" : "/macro-counter";
+      if (userIsProfessional) {
+        const isPhysician = user?.professionalRole === "physician";
+        const defaultProRoute = isPhysician ? "/care-team/physician" : "/care-team/trainer";
+        setLocation(defaultProRoute);
+        return;
+      }
+
+      const destination = getPersonalDestination();
       setLocation(destination);
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "instant" });
@@ -135,14 +168,14 @@ export default function AppRouter({ children }: AppRouterProps) {
         setLocation("/welcome");
       }
     }
-  }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode]);
+  }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode, userIsProfessional]);
 
   if (showWelcomeGate) {
-    const destination = isPaidUser ? "/dashboard" : "/macro-counter";
     return (
       <WelcomeGate
         onComplete={() => {
           setShowWelcomeGate(false);
+          const destination = getPersonalDestination();
           setLocation(destination);
         }}
       />
