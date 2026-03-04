@@ -257,7 +257,7 @@ export default function TrainerClientDashboard() {
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
-            onClick={() => setLocation("/pro/clients")}
+            onClick={() => setLocation("/care-team/trainer")}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -474,68 +474,6 @@ export default function TrainerClientDashboard() {
                 Send Macros to Biometrics
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/5 border border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <ClipboardList className="h-5 w-5" /> Coach Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
-              className="bg-black/30 border-white/30 text-white min-h-[100px]"
-              placeholder="Training notes, progress tracking, observations..."
-              value={ctx.coachNote || ""}
-              onChange={(e) => setCtx({ ...ctx, coachNote: e.target.value })}
-            />
-            <Button
-              onClick={saveContext}
-              className="bg-lime-600 border border-white/20 text-white active:bg-white/30"
-            >
-              Save Coach Notes
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/5 border border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Ruler className="h-5 w-5" /> Body Composition
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {bodyComp ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Body Fat</div>
-                    <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
-                  </div>
-                  {bodyComp.goalBodyFatPct && (
-                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                      <div className="text-xs text-white/60">Goal</div>
-                      <div className="text-lg font-bold text-lime-400">{parseFloat(bodyComp.goalBodyFatPct).toFixed(1)}%</div>
-                    </div>
-                  )}
-                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Scan Method</div>
-                    <div className="text-sm font-medium text-white">{bodyComp.scanMethod}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-white/50">
-                  <span>Last scan: {new Date(bodyComp.recordedAt).toLocaleDateString()}</span>
-                  {bodyCompSource && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
-                      recorded by {bodyCompSource}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-white/50 text-sm">No body composition data recorded for this client yet.</p>
-            )}
           </CardContent>
         </Card>
 
