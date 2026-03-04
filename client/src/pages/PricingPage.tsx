@@ -158,6 +158,53 @@ export default function PricingPage() {
               Choose Your Plan
             </h2>
 
+            <div
+              className={`bg-black/40 backdrop-blur-lg border rounded-xl p-5 ${
+                !planKey || planKey === "mpm_free"
+                  ? "border-lime-400/50 ring-1 ring-lime-400/30"
+                  : "border-white/15"
+              }`}
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="text-white font-bold text-lg">Free</h3>
+                  <p className="text-white/60 text-sm">$0/mo</p>
+                </div>
+                {(!planKey || planKey === "mpm_free") && (
+                  <Badge className="bg-lime-500/80 text-white text-xs">
+                    Current
+                  </Badge>
+                )}
+              </div>
+              <ul className="text-white/70 text-xs space-y-1.5 mb-4">
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-lime-400" />
+                  Basic meal builder access
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-lime-400" />
+                  Limited daily meal generation
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-lime-400" />
+                  Basic macro tracking
+                </li>
+              </ul>
+              <Button
+                onClick={() => setLocation("/dashboard")}
+                disabled={!planKey || planKey === "mpm_free"}
+                className={`w-full ${
+                  !planKey || planKey === "mpm_free"
+                    ? "bg-lime-500/20 text-lime-300 border border-lime-500/30 cursor-not-allowed"
+                    : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                }`}
+              >
+                {!planKey || planKey === "mpm_free"
+                  ? "Current Plan"
+                  : "Start Free"}
+              </Button>
+            </div>
+
             {IOS_PRODUCTS.map((product) => {
               const displayPrice = `$${product.price.toFixed(2)}/mo`;
               const isPurchasing = purchasingProduct === product.productId;
