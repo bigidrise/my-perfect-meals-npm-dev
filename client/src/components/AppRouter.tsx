@@ -81,10 +81,6 @@ export default function AppRouter({ children }: AppRouterProps) {
     return hasActivePaidSubscription(user);
   }, [user]);
 
-  const userIsProfessional = useMemo(() => {
-    return isProfessional(user);
-  }, [user]);
-
   function getPersonalDestination(): string {
     if (hasMacroProfile(user)) return "/dashboard";
     return "/macro-counter";
@@ -118,7 +114,6 @@ export default function AppRouter({ children }: AppRouterProps) {
       !isPublicRoute &&
       !inProWorkspace &&
       !isAppleReviewMode &&
-      !userIsProfessional &&
       !welcomeGateDoneThisSession &&
       !skipWelcomeGate &&
       needsOnboarding === false &&
@@ -161,7 +156,7 @@ export default function AppRouter({ children }: AppRouterProps) {
         setLocation("/welcome");
       }
     }
-  }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode, userIsProfessional]);
+  }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode]);
 
   if (showWelcomeGate) {
     return (
