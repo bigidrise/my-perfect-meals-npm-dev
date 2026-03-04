@@ -1,10 +1,10 @@
-// client/src/pages/Auth.tsx
 import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp, getProCareSignupData, clearProCareSignupData } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -45,27 +45,15 @@ export default function Auth() {
       const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
       const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
 
-      const hasStudioMembership = u?.studioMembership || fullUser?.studioMembership;
-
       const onboardingDone = fullUser?.onboardingCompletedAt;
 
-      if (mode === "signup" && !isProfessional) {
-        setLocation("/onboarding");
-      } else if (isProfessional && mode === "login") {
+      if (isProfessional) {
         localStorage.removeItem("mpm_workspace_preference");
         setShowWorkspaceChooser(true);
-      } else if (isProfessional && mode === "signup") {
-        setShowWorkspaceChooser(true);
-      } else if (!onboardingDone && !isProfessional) {
+      } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
         setLocation("/onboarding");
-      } else if (hasStudioMembership && mode === "login") {
-        localStorage.setItem("coachMode", "self");
-        setLocation("/dashboard");
       } else {
-        if (!localStorage.getItem("coachMode")) {
-          localStorage.setItem("coachMode", "self");
-        }
-        setLocation("/dashboard");
+        setLocation("/");
       }
     } catch (e: any) {
       setErr(e?.message || "Authentication failed.");
@@ -78,11 +66,10 @@ export default function Auth() {
     return (
       <WorkspaceChooser
         onChoose={(choice: "personal" | "workspace") => {
-          localStorage.setItem("coachMode", "self");
           if (choice === "workspace") {
             setLocation(workspaceRoute);
           } else {
-            setLocation("/dashboard");
+            setLocation("/");
           }
         }}
       />
@@ -91,13 +78,11 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
-      {/* Auth card (black glass) */}
       <div className="relative isolate w-full max-w-sm rounded-2xl p-6
                       bg-black/25 backdrop-blur-xl border border-white/10 shadow-xl">
         <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
                          bg-gradient-to-br from-white/10 via-transparent to-transparent" />
 
-        {/* ProCare Badge */}
         {isProCare && mode === "signup" && (
           <div className="relative z-10 mb-4 flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-900/40 rounded-full border border-blue-400/30">

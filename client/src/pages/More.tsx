@@ -310,6 +310,9 @@ export default function MorePage() {
                 if (choice === "workspace") {
                   const workspaceRoute = userRole === "physician" ? "/care-team/physician" : "/care-team/trainer";
                   setLocation(workspaceRoute);
+                } else {
+                  sessionStorage.removeItem("mpm.welcomeGateDone");
+                  setLocation("/");
                 }
               }}
             />

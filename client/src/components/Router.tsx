@@ -11,6 +11,7 @@ import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
@@ -266,8 +267,8 @@ export default function Router() {
     if (user.id.startsWith("guest-") || user.isTester) return;
     if (guardRedirectedRef.current) return;
 
-    // Guard 1: Onboarding must be complete
-    if (!user.onboardingCompletedAt) {
+    // Guard 1: Onboarding must be complete (only for paid users)
+    if (hasActivePaidSubscription(user) && !user.onboardingCompletedAt) {
       guardRedirectedRef.current = true;
       toast({
         title: "Almost there!",

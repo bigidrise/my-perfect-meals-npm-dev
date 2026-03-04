@@ -22,8 +22,8 @@ export default function StudioBottomNav() {
           onChoose={(choice) => {
             setShowChooser(false);
             if (choice === "personal") {
-              localStorage.setItem("coachMode", "self");
-              setLocation("/dashboard");
+              sessionStorage.removeItem("mpm.welcomeGateDone");
+              setLocation("/");
             }
           }}
         />

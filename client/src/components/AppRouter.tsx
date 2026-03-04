@@ -4,9 +4,20 @@ import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 
 interface AppRouterProps {
   children: React.ReactNode;
+}
+
+const PROFESSIONAL_ROUTE_PREFIXES = [
+  "/care-team",
+  "/pro-portal",
+  "/pro/",
+];
+
+function isInProfessionalWorkspace(path: string): boolean {
+  return PROFESSIONAL_ROUTE_PREFIXES.some(prefix => path.startsWith(prefix));
 }
 
 export default function AppRouter({ children }: AppRouterProps) {
@@ -33,14 +44,10 @@ export default function AppRouter({ children }: AppRouterProps) {
     return !hideOnRoutes.some(route => location.startsWith(route));
   }, [location]);
 
-  // Check for Apple Review Full Access mode - bypasses ALL onboarding/gates
   const isAppleReviewMode = useMemo(() => {
     return localStorage.getItem("appleReviewFullAccess") === "true";
   }, []);
 
-  // Determine if user needs onboarding - returns null while loading (unknown state)
-  // CRITICAL: onboardingCompletedAt is THE sole gate. activeBoard/selectedMealBuilder
-  // may be pre-assigned by coaches before the user creates their account.
   const needsOnboarding = useMemo(() => {
     if (isAppleReviewMode) return false;
     if (loading) return null;
@@ -49,12 +56,19 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (user.id.startsWith("guest-")) return false;
     if (user.professionalRole === "trainer" || user.professionalRole === "physician") return false;
     if (user.studioMembership) return false;
+    if (!hasActivePaidSubscription(user)) return false;
     return !user.onboardingCompletedAt;
   }, [user, loading, isAppleReviewMode]);
 
+  const isPaidUser = useMemo(() => {
+    if (!user) return false;
+    return hasActivePaidSubscription(user);
+  }, [user]);
+
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-    const hasChosenCoachMode = localStorage.getItem("coachMode") !== null;
+    const welcomeGateDoneThisSession = sessionStorage.getItem("mpm.welcomeGateDone") === "true";
+    const skipWelcomeGate = localStorage.getItem("mpm.skipWelcomeGate") === "true";
 
     if (location.startsWith("/onboarding") || location.startsWith("/macro-counter")) {
       return;
@@ -63,19 +77,27 @@ export default function AppRouter({ children }: AppRouterProps) {
     const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-attestation", "/consumer-welcome", "/more"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
-    // Don't make routing decisions while auth is loading - wait for user state
     if (loading && isAuthenticated && !isPublicRoute) {
-      return; // Wait for auth to finish loading before routing
+      return;
     }
 
     if (isAuthenticated && needsOnboarding === true && !isPublicRoute) {
-      console.log("🚨 [AppRouter] User needs onboarding - forcing redirect to /onboarding");
+      console.log("[AppRouter] Paid user needs onboarding — redirecting to /onboarding");
       setLocation("/onboarding");
       return;
     }
 
-    // Only show WelcomeGate when we KNOW user doesn't need onboarding (not loading)
-    if (isAuthenticated && !hasChosenCoachMode && !isPublicRoute && needsOnboarding === false) {
+    const inProWorkspace = isInProfessionalWorkspace(location);
+    if (
+      isAuthenticated &&
+      !isPublicRoute &&
+      !inProWorkspace &&
+      !isAppleReviewMode &&
+      !welcomeGateDoneThisSession &&
+      !skipWelcomeGate &&
+      needsOnboarding === false &&
+      !loading
+    ) {
       setShowWelcomeGate(true);
       return;
     }
@@ -86,9 +108,8 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      // Wait for auth to finish loading before deciding where to route
       if (needsOnboarding === null) {
-        return; // Still loading - don't route yet
+        return;
       }
 
       if (needsOnboarding === true) {
@@ -96,7 +117,8 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      setLocation("/dashboard");
+      const destination = isPaidUser ? "/dashboard" : "/macro-counter";
+      setLocation(destination);
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "instant" });
       }, 100);
@@ -113,14 +135,15 @@ export default function AppRouter({ children }: AppRouterProps) {
         setLocation("/welcome");
       }
     }
-  }, [location, setLocation, needsOnboarding, loading]);
+  }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode]);
 
   if (showWelcomeGate) {
+    const destination = isPaidUser ? "/dashboard" : "/macro-counter";
     return (
       <WelcomeGate
         onComplete={() => {
           setShowWelcomeGate(false);
-          setLocation("/dashboard");
+          setLocation(destination);
         }}
       />
     );

@@ -10,8 +10,8 @@ export default function WelcomeGate({
 
   const chooseMode = (mode: "guided" | "self") => {
     localStorage.setItem("coachMode", mode);
+    sessionStorage.setItem("mpm.welcomeGateDone", "true");
 
-    // If user chose "My Perfect Copilot", flag for intro
     if (mode === "guided") {
       localStorage.setItem("trigger-copilot-intro", "true");
     }
@@ -41,14 +41,14 @@ export default function WelcomeGate({
                 className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl border border-white/20 transition-all"
                 data-testid="button-coach-mode"
               >
-                ✨ My Perfect Copilot
+                My Perfect Copilot
               </button>
               <button
                 onClick={() => chooseMode("self")}
                 className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl border border-white/20 transition-all"
                 data-testid="button-self-mode"
               >
-                🧭 Do-it-Yourself
+                Do-it-Yourself
               </button>
             </div>
             <p className="text-xs text-white/40 pt-4">

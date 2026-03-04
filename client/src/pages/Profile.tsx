@@ -385,16 +385,14 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Tutorial Reset */}
+        {/* Tutorial Reset & Welcome Screen */}
         <Card className="mt-6 bg-black/30 backdrop-blur-lg border border-white/10">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-3">
             <Button
               variant="ghost"
               className="w-full justify-start text-white hover:text-white hover:bg-purple-900/20"
               onClick={() => {
-                // Clear coach mode to trigger WelcomeGate again
-                localStorage.removeItem("coachMode");
-                // Redirect to home which will show WelcomeGate
+                sessionStorage.removeItem("mpm.welcomeGateDone");
                 setLocation("/");
               }}
               data-testid="button-reset-tutorial"
@@ -402,6 +400,35 @@ export default function Profile() {
               <RotateCcw className="mr-2 h-5 w-5" />
               Reset Tutorial & Coach Mode
             </Button>
+            <div className="flex items-center justify-between px-4 py-2">
+              <span className="text-sm text-white/80">Skip Welcome Screen</span>
+              <button
+                onClick={() => {
+                  const current = localStorage.getItem("mpm.skipWelcomeGate") === "true";
+                  localStorage.setItem("mpm.skipWelcomeGate", current ? "false" : "true");
+                  toast({
+                    title: current ? "Welcome screen enabled" : "Welcome screen disabled",
+                    description: current
+                      ? "You'll see the welcome screen next session."
+                      : "The welcome screen won't appear on startup.",
+                  });
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  localStorage.getItem("mpm.skipWelcomeGate") === "true"
+                    ? "bg-lime-600"
+                    : "bg-white/20"
+                }`}
+                data-testid="toggle-skip-welcome"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    localStorage.getItem("mpm.skipWelcomeGate") === "true"
+                      ? "translate-x-6"
+                      : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
           </CardContent>
         </Card>
 
