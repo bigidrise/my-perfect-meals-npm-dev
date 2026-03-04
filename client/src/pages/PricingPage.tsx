@@ -698,8 +698,8 @@ export default function PricingPage() {
           {/* Subscription Terms - Apple Required */}
           <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
             <p className="text-white/90 text-sm font-medium">
-              7-Day Free Trial, then $9.99/month (Basic), $19.99/month
-              (Premium), or $29.99/month (Ultimate)
+              7-Day Free Trial, then $14.99/month (Basic), $24.99/month
+              (Premium), or $34.99/month (Ultimate)
             </p>
             <p className="text-white/60 text-xs leading-relaxed">
               Payment will be charged to your account at confirmation of
