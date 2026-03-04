@@ -788,6 +788,25 @@ export default function PricingPage() {
             </button>
           </div>
 
+          {/* Apple App Store Compliance Section */}
+          <div className="mb-12 space-y-6">
+            <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
+              <p className="text-white/90 text-sm font-medium">
+                Free Plan available. Premium subscriptions include a 7-Day Free Trial,
+                then $14.99/month (Basic), $24.99/month (Premium), or $34.99/month
+                (Ultimate).
+              </p>
+              <p className="text-white/60 text-xs leading-relaxed">
+                Payment will be charged to your Apple account at confirmation of
+                purchase. Subscriptions automatically renew unless auto-renew is turned
+                off at least 24 hours before the end of the current billing period. Your
+                account will be charged for renewal within 24 hours prior to the end of
+                the current period. You can manage or cancel your subscription at any
+                time in your App Store account settings.
+              </p>
+            </div>
+          </div>
+
           {/* Support Contact */}
           <p className="text-white/50 text-xs text-center">
             Need help? Contact us at{" "}

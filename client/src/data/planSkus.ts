@@ -34,13 +34,13 @@ export const PLAN_SKUS: PlanSku[] = [
     label: "Basic",
     price: 14.99,
     group: "consumer",
-    blurb: "$9.99 / month (Access to ONE meal builder only)",
+    blurb: "$14.99 / month (Access to ONE meal builder only)",
     features: [
       "Macro calculator",
       "Smart Menu Builder (basic)",
       "Biometrics with daily limits",
-      "Basic meal presets"
-    ]
+      "Basic meal presets",
+    ],
   },
   {
     sku: "mpm_premium_monthly",
@@ -53,9 +53,9 @@ export const PLAN_SKUS: PlanSku[] = [
       "Advanced presets & alerts",
       "Shopping list export",
       "Specialty diet menus",
-      "Alcohol calculator"
+      "Alcohol calculator",
     ],
-    badge: "Popular"
+    badge: "Popular",
   },
   {
     sku: "mpm_premium_beta_monthly",
@@ -64,10 +64,7 @@ export const PLAN_SKUS: PlanSku[] = [
     group: "consumer",
     hidden: true,
     blurb: "Special beta pricing for early adopters",
-    features: [
-      "All Premium features",
-      "Beta access pricing"
-    ]
+    features: ["All Premium features", "Beta access pricing"],
   },
   {
     sku: "mpm_ultimate_monthly",
@@ -80,8 +77,8 @@ export const PLAN_SKUS: PlanSku[] = [
       "Priority support",
       "Advanced analytics",
       "Custom meal templates",
-      "Voice commands"
-    ]
+      "Voice commands",
+    ],
   },
   {
     sku: "mpm_family_base_monthly",
@@ -95,9 +92,9 @@ export const PLAN_SKUS: PlanSku[] = [
       "Shared Smart Menu Builder",
       "Shared Shopping List",
       "Individual macro tracking per profile",
-      "Parental controls"
+      "Parental controls",
     ],
-    badge: "Best for Families"
+    badge: "Best for Families",
   },
   {
     sku: "mpm_family_all_premium_monthly",
@@ -111,8 +108,8 @@ export const PLAN_SKUS: PlanSku[] = [
       "Premium tier for all 4 profiles",
       "Advanced presets for everyone",
       "Specialty diets per profile",
-      "Alcohol tracking per profile"
-    ]
+      "Alcohol tracking per profile",
+    ],
   },
   {
     sku: "mpm_family_all_ultimate_monthly",
@@ -126,8 +123,8 @@ export const PLAN_SKUS: PlanSku[] = [
       "Ultimate tier for all 4 profiles",
       "Priority family support",
       "Advanced analytics per profile",
-      "Voice commands for everyone"
-    ]
+      "Voice commands for everyone",
+    ],
   },
   {
     sku: "mpm_procare_monthly",
@@ -140,8 +137,8 @@ export const PLAN_SKUS: PlanSku[] = [
       "Professional meal templates",
       "Client progress tracking",
       "Nutrition coaching tools",
-      "Priority professional support"
-    ]
+      "Priority professional support",
+    ],
   },
   {
     sku: "mpm_procare_trainer_5",
@@ -155,8 +152,8 @@ export const PLAN_SKUS: PlanSku[] = [
       "Client nutrition dashboards",
       "Assign meal builders",
       "Macro target management",
-      "Messaging & progress tracking"
-    ]
+      "Messaging & progress tracking",
+    ],
   },
   {
     sku: "mpm_procare_trainer_10",
@@ -170,13 +167,13 @@ export const PLAN_SKUS: PlanSku[] = [
       "Client nutrition dashboards",
       "Assign meal builders",
       "Macro target management",
-      "Messaging & progress tracking"
-    ]
+      "Messaging & progress tracking",
+    ],
   },
   {
     sku: "mpm_procare_trainer_25",
     label: "ProCare Trainer 25",
-    price: 59.00,
+    price: 59.0,
     group: "pro",
     clients: 25,
     blurb: "For trainers managing up to 25 clients",
@@ -185,14 +182,14 @@ export const PLAN_SKUS: PlanSku[] = [
       "Client nutrition dashboards",
       "Assign meal builders",
       "Macro target management",
-      "Messaging & progress tracking"
+      "Messaging & progress tracking",
     ],
-    badge: "Most Popular"
+    badge: "Most Popular",
   },
   {
     sku: "mpm_procare_trainer_50",
     label: "ProCare Trainer 50",
-    price: 199.00,
+    price: 199.0,
     group: "pro",
     clients: 50,
     blurb: "For trainers managing up to 50 clients",
@@ -202,13 +199,13 @@ export const PLAN_SKUS: PlanSku[] = [
       "Assign meal builders",
       "Macro target management",
       "Messaging & progress tracking",
-      "Priority support"
-    ]
+      "Priority support",
+    ],
   },
   {
     sku: "mpm_procare_trainer_150",
     label: "ProCare Trainer 150+",
-    price: 399.00,
+    price: 399.0,
     group: "pro",
     clients: 150,
     blurb: "For large coaching businesses",
@@ -219,19 +216,21 @@ export const PLAN_SKUS: PlanSku[] = [
       "Macro target management",
       "Messaging & progress tracking",
       "Priority support",
-      "Advanced analytics"
-    ]
+      "Advanced analytics",
+    ],
   },
 ];
 
 export function getPlanBySku(sku: LookupKey): PlanSku | undefined {
-  return PLAN_SKUS.find(p => p.sku === sku);
+  return PLAN_SKUS.find((p) => p.sku === sku);
 }
 
 export function getPublicPlans(): PlanSku[] {
-  return PLAN_SKUS.filter(p => !p.hidden);
+  return PLAN_SKUS.filter((p) => !p.hidden);
 }
 
-export function getPlansByGroup(group: "consumer" | "family" | "pro"): PlanSku[] {
-  return PLAN_SKUS.filter(p => p.group === group && !p.hidden);
+export function getPlansByGroup(
+  group: "consumer" | "family" | "pro",
+): PlanSku[] {
+  return PLAN_SKUS.filter((p) => p.group === group && !p.hidden);
 }
