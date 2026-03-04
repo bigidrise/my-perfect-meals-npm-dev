@@ -58,15 +58,6 @@ export const PLAN_SKUS: PlanSku[] = [
     badge: "Popular",
   },
   {
-    sku: "mpm_premium_beta_monthly",
-    label: "Premium (Beta)",
-    price: 24.99,
-    group: "consumer",
-    hidden: true,
-    blurb: "Special beta pricing for early adopters",
-    features: ["All Premium features", "Beta access pricing"],
-  },
-  {
     sku: "mpm_ultimate_monthly",
     label: "Ultimate",
     price: 34.99,
