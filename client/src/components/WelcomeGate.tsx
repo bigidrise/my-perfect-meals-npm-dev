@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PillButton } from "@/components/ui/pill-button";
 
 export default function WelcomeGate({
   onComplete,
@@ -60,23 +61,15 @@ export default function WelcomeGate({
               </button>
             </div>
 
-            <label className="flex items-center justify-center gap-2 pt-4 cursor-pointer select-none">
-              <button
-                type="button"
+            <div className="flex justify-center pt-4">
+              <PillButton
+                active={skipNextTime}
                 onClick={() => setSkipNextTime(!skipNextTime)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  skipNextTime ? "bg-lime-600" : "bg-white/20"
-                }`}
                 data-testid="toggle-skip-welcome"
               >
-                <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                    skipNextTime ? "translate-x-4" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-              <span className="text-xs text-white/50">Don't show this again</span>
-            </label>
+                Don't show this again
+              </PillButton>
+            </div>
 
             <p className="text-xs text-white/40">
               You can change this anytime in Settings under "Coach Mode."
