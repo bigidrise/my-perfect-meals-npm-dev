@@ -1,34 +1,38 @@
-
 import { Router } from "express";
 import Stripe from "stripe";
-import { updateUserSubscription, cancelUserSubscription } from "../services/subscriptionService";
+import {
+  updateUserSubscription,
+  cancelUserSubscription,
+} from "../services/subscriptionService";
 import type { LookupKey } from "../../client/src/data/planSkus";
 
 const router = Router();
 
 let stripe: Stripe | null = null;
+
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2025-09-30.clover",
+    apiVersion: "2024-06-20",
   });
 }
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 router.post("/", async (req, res) => {
   if (!stripe || !webhookSecret) {
     return res.status(503).send("Stripe webhook not configured");
   }
+
   const sig = req.headers["stripe-signature"] as string;
+
+  if (!sig) {
+    return res.status(400).send("Missing Stripe signature");
+  }
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      webhookSecret
-    );
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err: any) {
     console.error("❌ Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -44,7 +48,9 @@ router.post("/", async (req, res) => {
         const sku = metadata.sku as LookupKey;
 
         if (!userId || !sku) {
-          console.warn("⚠️ Missing userId or sku in checkout.session.completed");
+          console.warn(
+            "⚠️ Missing userId or sku in checkout.session.completed",
+          );
           break;
         }
 
@@ -62,23 +68,29 @@ router.post("/", async (req, res) => {
         break;
       }
 
-      case "invoice.paid": {
+      case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        console.log(`✅ Invoice paid: ${invoice.id}`);
+
+        console.log(`💰 Invoice payment succeeded: ${invoice.id}`);
         break;
       }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
-        
+
+        await cancelUserSubscription(customerId);
+
         console.log(`⚠️ Subscription cancelled for customer: ${customerId}`);
         break;
       }
 
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log(`✅ Subscription updated: ${subscription.id}, status: ${subscription.status}`);
+
+        console.log(
+          `🔄 Subscription updated: ${subscription.id} status=${subscription.status}`,
+        );
         break;
       }
 
@@ -86,10 +98,10 @@ router.post("/", async (req, res) => {
         console.log(`ℹ️ Unhandled event type: ${event.type}`);
     }
 
-    res.json({ received: true });
+    return res.json({ received: true });
   } catch (err: any) {
     console.error("❌ Webhook handler error:", err);
-    res.status(500).send("Webhook handler error");
+    return res.status(500).send("Webhook handler error");
   }
 });
 
