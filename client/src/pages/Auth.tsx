@@ -39,6 +39,7 @@ export default function Auth() {
       
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mpm.hasSeenWelcome", "true");
+      sessionStorage.removeItem("mpm.welcomeGateDone");
 
       const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
       const fullUser = await refreshUser();
