@@ -4,6 +4,11 @@
 MyPerfectMeals is a full-stack TypeScript application for comprehensive meal planning and nutrition. It features AI-powered meal generation, diverse dietary tracking, biometrics monitoring, and specialized meal builders (e.g., craving, dessert, holiday). The project aims to provide a robust platform for personalized nutrition management with a significant market impact in health and wellness technology.
 
 ## User Preferences
+
+### UI Component Rules (MANDATORY)
+- **NEVER use radio buttons.** The app uses a pill button system for all selection inputs. Always use pill buttons instead of radio buttons, no exceptions.
+- Dismissible UI must follow the `mpm.dismiss.<featureName>` localStorage pattern (see Dismissible UI Pattern below).
+
 ### Change Control Protocol (MANDATORY)
 
 #### Pre-Change
