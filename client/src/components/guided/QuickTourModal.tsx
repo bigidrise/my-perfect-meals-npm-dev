@@ -6,6 +6,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { useState } from "react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
@@ -78,15 +79,13 @@ export function QuickTourModal({
 
         <div className="flex flex-col gap-3 pt-2 border-t border-white/10">
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-white/60 select-none">
-              <input
-                type="checkbox"
-                checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
-              />
+            <PillButton
+              active={dontShowAgain}
+              onClick={() => setDontShowAgain(!dontShowAgain)}
+              data-testid="toggle-dismiss-tour"
+            >
               Don't show again
-            </label>
+            </PillButton>
 
             <Button
               onClick={() => onClose(dontShowAgain)}

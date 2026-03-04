@@ -417,15 +417,15 @@ export function ProfessionalIntroOverlay({
                 <ChevronRight className="h-5 w-5 ml-2" />
               </Button>
 
-              <label className="flex items-center justify-center gap-2 cursor-pointer py-2 text-sm text-white/60 select-none">
-                <input
-                  type="checkbox"
-                  checked={dontShowAgain}
-                  onChange={(e) => setDontShowAgain(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
-                />
-                Don't show this again
-              </label>
+              <div className="flex justify-center py-2">
+                <PillButton
+                  active={dontShowAgain}
+                  onClick={() => setDontShowAgain(!dontShowAgain)}
+                  data-testid="toggle-dismiss-pro-intro"
+                >
+                  Don't show this again
+                </PillButton>
+              </div>
             </motion.div>
           </div>
         </div>
