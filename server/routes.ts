@@ -5849,8 +5849,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Mount builder plans routes
   app.use(builderPlansRoutes);
 
-  // Mount Stripe webhook BEFORE express.json() with raw body
-  app.use(stripeWebhookRouter);
+  // Mount Stripe webhook with explicit path
+  app.use("/api/stripe/webhook", stripeWebhookRouter);
   
   // Mount Stripe checkout router with correct prefix
   app.use("/api/stripe", stripeCheckoutRouter);

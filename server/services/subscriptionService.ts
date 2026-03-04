@@ -24,14 +24,14 @@ export async function updateUserSubscription(opts: {
   console.log(`✅ Updated user ${userId} to plan ${lookupKey}`);
 }
 
-export async function cancelUserSubscription(userId: string) {
-  await db
+export async function cancelUserSubscription(stripeCustomerId: string) {
+  const result = await db
     .update(users)
     .set({
       planLookupKey: null,
       stripeSubscriptionId: null,
     })
-    .where(eq(users.id, userId));
+    .where(eq(users.stripeCustomerId, stripeCustomerId));
 
-  console.log(`✅ Cancelled subscription for user ${userId}`);
+  console.log(`✅ Cancelled subscription for Stripe customer ${stripeCustomerId}`);
 }
