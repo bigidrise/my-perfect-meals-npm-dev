@@ -75,6 +75,16 @@ router.post("/", async (req, res) => {
         break;
       }
 
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+
+        await cancelUserSubscription(customerId);
+
+        console.warn(`⚠️ Payment failed for customer: ${customerId} — access revoked`);
+        break;
+      }
+
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;

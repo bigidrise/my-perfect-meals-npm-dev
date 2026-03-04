@@ -5849,11 +5849,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Mount builder plans routes
   app.use(builderPlansRoutes);
 
-  // Mount Stripe webhook with explicit path
-  app.use("/api/stripe/webhook", stripeWebhookRouter);
-  
-  // Mount Stripe checkout router with correct prefix
-  app.use("/api/stripe", stripeCheckoutRouter);
+  // NOTE: Stripe webhook and checkout routers are mounted in index.ts (before express.json)
+  // Do NOT mount them here — they require specific middleware ordering.
 
   // ── Saved Meals / Favorites ──────────────────────────────────────
   const crypto = await import("crypto");

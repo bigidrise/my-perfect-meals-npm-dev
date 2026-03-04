@@ -1,4 +1,3 @@
-
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -12,16 +11,20 @@ export async function updateUserSubscription(opts: {
 }) {
   const { userId, lookupKey, stripeCustomerId, stripeSubscriptionId } = opts;
 
-  await db
+  const result = await db
     .update(users)
     .set({
       planLookupKey: lookupKey,
-      stripeCustomerId: stripeCustomerId ?? undefined,
-      stripeSubscriptionId: stripeSubscriptionId ?? undefined,
+      stripeCustomerId,
+      stripeSubscriptionId,
     })
     .where(eq(users.id, userId));
 
   console.log(`✅ Updated user ${userId} to plan ${lookupKey}`);
+
+  if (!result) {
+    console.warn(`⚠️ No user updated for subscription activation: ${userId}`);
+  }
 }
 
 export async function cancelUserSubscription(stripeCustomerId: string) {
@@ -33,5 +36,11 @@ export async function cancelUserSubscription(stripeCustomerId: string) {
     })
     .where(eq(users.stripeCustomerId, stripeCustomerId));
 
-  console.log(`✅ Cancelled subscription for Stripe customer ${stripeCustomerId}`);
+  console.log(
+    `⚠️ Cancelled subscription for Stripe customer ${stripeCustomerId}`,
+  );
+
+  if (!result) {
+    console.warn(`⚠️ No user found for Stripe customer ${stripeCustomerId}`);
+  }
 }
