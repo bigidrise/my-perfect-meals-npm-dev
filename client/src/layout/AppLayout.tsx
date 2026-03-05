@@ -1,12 +1,15 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode } from "react";
 import { useLocation } from "wouter";
 import DesktopLayout from "./DesktopLayout";
 import MobileLayout from "./MobileLayout";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const FULL_SCREEN_ROUTES = [
   "/welcome",
   "/auth",
   "/onboarding",
+  "/onboarding-v2",
+  "/onboarding-legacy",
   "/forgot-password",
   "/reset-password",
   "/pricing",
@@ -23,21 +26,6 @@ const FULL_SCREEN_ROUTES = [
   "/affiliates",
   "/founders",
 ];
-
-function useIsDesktop() {
-  const [desktop, setDesktop] = useState(
-    typeof window !== "undefined" && window.innerWidth >= 1024
-  );
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const handler = (e: MediaQueryListEvent) => setDesktop(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  return desktop;
-}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();

@@ -12,6 +12,7 @@ import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
@@ -196,6 +197,7 @@ export default function Router() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const guardRedirectedRef = useRef(false);
+  const isDesktopView = useIsDesktop();
 
   // Add fallback protection
   if (!location) {
@@ -484,8 +486,8 @@ export default function Router() {
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
-      {shouldShowBottomNav && !showClinicianNav && <BottomNav />}
-      {showClinicianNav && <StudioBottomNav />}
+      {!isDesktopView && shouldShowBottomNav && !showClinicianNav && <BottomNav />}
+      {!isDesktopView && showClinicianNav && <StudioBottomNav />}
     </>
   );
 }
