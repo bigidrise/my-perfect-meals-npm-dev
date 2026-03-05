@@ -39,6 +39,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface FeatureCard {
   title: string;
@@ -63,6 +64,7 @@ export default function DashboardNew() {
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const { open: openCopilot } = useCopilot();
+  const isDesktop = useIsDesktop();
   const handlePhotoLog = () => {
     setLocation("/my-biometrics?capture=1");
   };
@@ -163,32 +165,36 @@ export default function DashboardNew() {
     >
       <TrialBanner />
       <TrialExpiredModal />
-      <div
-        className="fixed right-4 z-50"
-        style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-      >
-        <ProfileSheet>
-          <button
-            className="p-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
-            data-testid="button-my-hub"
-          >
-            <HubControlIcon size="md" />
-          </button>
-        </ProfileSheet>
-      </div>
-
-      <div
-        className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 pb-3 h-14 flex items-center justify-center">
-          <h1 className="text-md font-bold text-white">MPM</h1>
+      {!isDesktop && (
+        <div
+          className="fixed right-4 z-50"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+        >
+          <ProfileSheet>
+            <button
+              className="p-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
+              data-testid="button-my-hub"
+            >
+              <HubControlIcon size="md" />
+            </button>
+          </ProfileSheet>
         </div>
-      </div>
+      )}
+
+      {!isDesktop && (
+        <div
+          className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 pb-3 h-14 flex items-center justify-center">
+            <h1 className="text-md font-bold text-white">MPM</h1>
+          </div>
+        </div>
+      )}
 
       <div
         className="max-w-6xl mx-auto px-4 pb-8 flex flex-col gap-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}

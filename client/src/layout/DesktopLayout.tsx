@@ -1,6 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import DesktopHeader from "./DesktopHeader";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Calculator,
@@ -20,12 +21,18 @@ interface Props {
   children: ReactNode;
 }
 
-interface NavSection {
+interface NavItem {
+  path: string;
   label: string;
-  items: { path: string; label: string; icon: any }[];
+  icon: any;
 }
 
-const navSections: NavSection[] = [
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const coreNavSections: NavSection[] = [
   {
     label: "HOME",
     items: [
@@ -48,16 +55,9 @@ const navSections: NavSection[] = [
       { path: "/my-biometrics", label: "My Biometrics", icon: Activity },
     ],
   },
-  {
-    label: "PROFESSIONAL",
-    items: [
-      { path: "/care-team", label: "Care Team", icon: Users },
-      { path: "/pro-portal", label: "Pro Portal", icon: Building2 },
-    ],
-  },
 ];
 
-const accountItems = [
+const accountItems: NavItem[] = [
   { path: "/pricing", label: "Billing", icon: CreditCard },
   { path: "/profile", label: "Settings", icon: Settings },
   { path: "/more", label: "More", icon: MoreHorizontal },
@@ -65,6 +65,27 @@ const accountItems = [
 
 export default function DesktopLayout({ children }: Props) {
   const [location] = useLocation();
+  const { user } = useAuth();
+
+  const navSections = useMemo(() => {
+    const sections = [...coreNavSections];
+
+    const role = user?.professionalRole;
+    if (role === "physician" || role === "trainer") {
+      const careTeamPath = role === "physician" ? "/care-team/physician" : "/care-team/trainer";
+      const proPortalPath = role === "physician" ? "/pro/physician-clients" : "/pro/clients";
+
+      sections.push({
+        label: "PROFESSIONAL",
+        items: [
+          { path: careTeamPath, label: "Care Team", icon: Users },
+          { path: proPortalPath, label: "Pro Portal", icon: Building2 },
+        ],
+      });
+    }
+
+    return sections;
+  }, [user?.professionalRole]);
 
   return (
     <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">

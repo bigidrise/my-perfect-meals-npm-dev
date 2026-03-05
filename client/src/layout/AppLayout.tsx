@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import DesktopLayout from "./DesktopLayout";
 import MobileLayout from "./MobileLayout";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useAuth } from "@/contexts/AuthContext";
 
 const FULL_SCREEN_ROUTES = [
   "/welcome",
@@ -12,8 +13,6 @@ const FULL_SCREEN_ROUTES = [
   "/onboarding-legacy",
   "/forgot-password",
   "/reset-password",
-  "/pricing",
-  "/paywall",
   "/guest-builder",
   "/guest-suite",
   "/guest",
@@ -25,6 +24,11 @@ const FULL_SCREEN_ROUTES = [
   "/privacy",
   "/affiliates",
   "/founders",
+];
+
+const UNAUTHENTICATED_FULL_SCREEN_ROUTES = [
+  "/pricing",
+  "/paywall",
 ];
 
 function shouldUseDesktopLayout(): boolean {
@@ -39,12 +43,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const isDesktop = useIsDesktop();
   const desktopDomain = shouldUseDesktopLayout();
+  const { isAuthenticated } = useAuth();
 
   const isFullScreen = FULL_SCREEN_ROUTES.some(
     (r) => location === r || location.startsWith(r + "/")
   );
 
-  if (!isDesktop || isFullScreen || !desktopDomain) {
+  const isUnauthFullScreen = !isAuthenticated && UNAUTHENTICATED_FULL_SCREEN_ROUTES.some(
+    (r) => location === r || location.startsWith(r + "/")
+  );
+
+  if (!isDesktop || isFullScreen || isUnauthFullScreen || !desktopDomain) {
     return <MobileLayout>{children}</MobileLayout>;
   }
 
