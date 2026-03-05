@@ -237,10 +237,14 @@ async function initializeApp() {
     
     app.use(express.static(clientDist, {
       setHeaders: (res, filePath) => {
-        if (/\.(js|css|png|jpg|jpeg|gif|svg|woff2?)$/i.test(filePath)) {
+        if (/\.(js|css)$/i.test(filePath) && /[\.\-][a-f0-9]{8,}\./.test(filePath)) {
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (/\.(png|jpg|jpeg|gif|svg|woff2?)$/i.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=86400");
+        } else if (/index\.html$/i.test(filePath)) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         } else {
-          res.setHeader("Cache-Control", "public, max-age=3600");
+          res.setHeader("Cache-Control", "no-cache, must-revalidate");
         }
       }
     }));
