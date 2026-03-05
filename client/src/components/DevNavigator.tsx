@@ -9,16 +9,20 @@ interface NavSection {
 
 const NAV_SECTIONS: NavSection[] = [
   {
-    title: "Meal Builders",
+    title: "Auth & Onboarding",
     routes: [
-      { path: "/weekly-meal-board", label: "Weekly Meal Board" },
-      { path: "/beach-body-meal-board", label: "Beach Body Builder" },
-      { path: "/diabetic-menu-builder", label: "Diabetic Builder" },
-      { path: "/glp1-meal-builder", label: "GLP-1 Builder" },
-      { path: "/anti-inflammatory-menu-builder", label: "Anti-Inflammatory Builder" },
-      { path: "/performance-competition-builder", label: "Performance Builder" },
-      { path: "/pro/general-nutrition-builder", label: "General Nutrition Builder" },
-      { path: "/select-builder", label: "Builder Selection Page" },
+      { path: "/welcome", label: "Welcome" },
+      { path: "/auth", label: "Auth / Login" },
+      { path: "/forgot-password", label: "Forgot Password" },
+      { path: "/reset-password", label: "Reset Password" },
+      { path: "/guest-builder", label: "Guest Builder" },
+      { path: "/guest-suite", label: "Guest Suite" },
+      { path: "/onboarding", label: "Onboarding (V3)" },
+      { path: "/onboarding-v2", label: "Onboarding V2" },
+      { path: "/onboarding-legacy", label: "Onboarding Legacy" },
+      { path: "/onboarding/extended", label: "Extended Onboarding" },
+      { path: "/consumer-welcome", label: "Consumer Welcome" },
+      { path: "/apply-guidance", label: "Apply Guidance" },
     ],
   },
   {
@@ -26,18 +30,36 @@ const NAV_SECTIONS: NavSection[] = [
     routes: [
       { path: "/dashboard", label: "Dashboard" },
       { path: "/home", label: "Home" },
+      { path: "/planner", label: "Planner" },
+      { path: "/more", label: "More" },
       { path: "/macro-counter", label: "Macro Calculator" },
       { path: "/my-biometrics", label: "My Biometrics" },
+      { path: "/biometrics", label: "Biometrics" },
       { path: "/biometrics/body-composition", label: "Body Composition" },
       { path: "/biometrics/sleep", label: "Sleep Tracking" },
       { path: "/profile", label: "Profile / Edit" },
+      { path: "/saved-meals", label: "Saved Meals" },
       { path: "/shopping-list", label: "Shopping List" },
       { path: "/pricing", label: "Pricing Page" },
-      { path: "/planner", label: "Planner" },
+      { path: "/paywall", label: "Paywall" },
       { path: "/checkout/success", label: "Checkout Success" },
+      { path: "/family-info", label: "Family Info" },
       { path: "/admin-moderation", label: "Admin Moderation" },
       { path: "/cafeteria-setup", label: "Cafeteria Setup" },
       { path: "/ab-testing-demo", label: "AB Testing Demo" },
+    ],
+  },
+  {
+    title: "Meal Builders",
+    routes: [
+      { path: "/select-builder", label: "Builder Selection" },
+      { path: "/weekly-meal-board", label: "Weekly Meal Board" },
+      { path: "/beach-body-meal-board", label: "Beach Body Builder" },
+      { path: "/diabetic-menu-builder", label: "Diabetic Builder" },
+      { path: "/glp1-meal-builder", label: "GLP-1 Builder" },
+      { path: "/anti-inflammatory-menu-builder", label: "Anti-Inflammatory Builder" },
+      { path: "/performance-competition-builder", label: "Performance Builder" },
+      { path: "/pro/general-nutrition-builder", label: "General Nutrition Builder" },
     ],
   },
   {
@@ -64,35 +86,23 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "More",
+    title: "ProCare & Care Team",
     routes: [
-      { path: "/more", label: "More" },
-    ],
-  },
-  {
-    title: "Physician Section",
-    routes: [
+      { path: "/procare-welcome", label: "ProCare Welcome" },
+      { path: "/procare-identity", label: "ProCare Identity" },
+      { path: "/procare-attestation", label: "ProCare Attestation" },
+      { path: "/care-team", label: "Care Team" },
       { path: "/care-team/physician", label: "Physician Care Team" },
-      { path: "/pro/clients", label: "Physician ProPortal" },
-      { path: "/pro/clients/demo-physician/clinician", label: "Physician Dashboard" },
-    ],
-  },
-  {
-    title: "Trainer Section",
-    routes: [
       { path: "/care-team/trainer", label: "Trainer Care Team" },
-      { path: "/pro/clients", label: "Trainer ProPortal" },
-      { path: "/pro/clients/demo-trainer/trainer", label: "Trainer Dashboard" },
     ],
   },
   {
-    title: "Beverage (Remaining)",
+    title: "Pro Portal",
     routes: [
-      { path: "/beer-pairing", label: "Beer Pairing" },
-      { path: "/bourbon-spirits", label: "Bourbon & Spirits" },
-      { path: "/wine-pairing", label: "Wine Pairing" },
-      { path: "/meal-pairing-ai", label: "Meal Pairing AI" },
-      { path: "/weaning-off-tool", label: "Weaning Off Tool" },
+      { path: "/pro-portal", label: "Pro Portal" },
+      { path: "/pro/clients", label: "Pro Clients (Trainer)" },
+      { path: "/pro/physician-clients", label: "Pro Clients (Physician)" },
+      { path: "/pro/physician", label: "Physician Portal" },
     ],
   },
   {
@@ -104,10 +114,13 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Kids & Family",
+    title: "Beverage",
     routes: [
-      { path: "/family-info", label: "Family Info" },
-      { path: "/glp1-meals-tracking", label: "GLP-1 Meals Tracking" },
+      { path: "/beer-pairing", label: "Beer Pairing" },
+      { path: "/bourbon-spirits", label: "Bourbon & Spirits" },
+      { path: "/wine-pairing", label: "Wine Pairing" },
+      { path: "/meal-pairing-ai", label: "Meal Pairing AI" },
+      { path: "/weaning-off-tool", label: "Weaning Off Tool" },
     ],
   },
   {
@@ -122,16 +135,6 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/privacy", label: "Privacy & Security" },
       { path: "/privacy-policy", label: "Privacy Policy" },
       { path: "/terms", label: "Terms of Service" },
-    ],
-  },
-  {
-    title: "Auth & Onboarding",
-    routes: [
-      { path: "/welcome", label: "Welcome" },
-      { path: "/auth", label: "Auth / Login" },
-      { path: "/guest-builder", label: "Guest Builder" },
-      { path: "/onboarding", label: "Onboarding" },
-      { path: "/onboarding/extended", label: "Extended Onboarding" },
     ],
   },
 ];

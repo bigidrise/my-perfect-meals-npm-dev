@@ -1,8 +1,7 @@
-import { ReactNode, useState, useCallback } from "react";
+import { ReactNode, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import DesktopHeader from "./DesktopHeader";
 import { useAuth } from "@/contexts/AuthContext";
-import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
@@ -14,7 +13,8 @@ import {
   ChefHat,
   MoreHorizontal,
   Home,
-  Briefcase,
+  Users,
+  FolderOpen,
 } from "lucide-react";
 
 interface Props {
@@ -37,7 +37,6 @@ const navItems: NavItem[] = [
 export default function DesktopLayout({ children }: Props) {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
-  const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const { open, close, isOpen, setLastResponse } = useCopilot();
 
   const handleChefClick = useCallback(() => {
@@ -78,25 +77,6 @@ export default function DesktopLayout({ children }: Props) {
     : typeof window !== "undefined"
     ? localStorage.getItem("mpm_active_space")
     : null;
-
-  const handleWorkspaceChoice = (choice: "personal" | "workspace") => {
-    setShowWorkspaceChooser(false);
-
-    if (choice === "workspace") {
-      localStorage.setItem("mpm_active_space", "workspace");
-
-      const route =
-        user?.professionalRole === "physician"
-          ? "/care-team/physician"
-          : "/care-team/trainer";
-
-      setLocation(route);
-    } else {
-      localStorage.setItem("mpm_active_space", "personal");
-      sessionStorage.removeItem("mpm.welcomeGateDone");
-      setLocation("/dashboard");
-    }
-  };
 
   const handlePersonalSpace = () => {
     localStorage.setItem("mpm_active_space", "personal");
@@ -156,6 +136,10 @@ export default function DesktopLayout({ children }: Props) {
         {isProfessional && (
           <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-1">
 
+            <div className="px-3 pb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Workspaces</span>
+            </div>
+
             <button
               onClick={handlePersonalSpace}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -168,16 +152,46 @@ export default function DesktopLayout({ children }: Props) {
               Personal Space
             </button>
 
+            <div className="px-3 pt-2 pb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Professional</span>
+            </div>
+
             <button
-              onClick={() => setShowWorkspaceChooser(true)}
+              onClick={() => {
+                localStorage.setItem("mpm_active_space", "workspace");
+                setLocation(
+                  user?.professionalRole === "physician"
+                    ? "/care-team/physician"
+                    : "/care-team/trainer"
+                );
+              }}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                activeSpace === "workspace"
+                location.startsWith("/care-team")
                   ? "bg-orange-500/15 text-orange-400 font-medium"
                   : "text-white/60 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Briefcase className="w-4 h-4 shrink-0" />
-              Professional Workspace
+              <Users className="w-4 h-4 shrink-0" />
+              Care Team
+            </button>
+
+            <button
+              onClick={() => {
+                localStorage.setItem("mpm_active_space", "workspace");
+                setLocation(
+                  user?.professionalRole === "physician"
+                    ? "/pro/physician-clients"
+                    : "/pro/clients"
+                );
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                location.startsWith("/pro/")
+                  ? "bg-orange-500/15 text-orange-400 font-medium"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <FolderOpen className="w-4 h-4 shrink-0" />
+              Pro Portal
             </button>
 
           </div>
@@ -191,10 +205,6 @@ export default function DesktopLayout({ children }: Props) {
           {children}
         </main>
       </div>
-
-      {showWorkspaceChooser && (
-        <WorkspaceChooser onChoose={handleWorkspaceChoice} />
-      )}
 
     </div>
   );
