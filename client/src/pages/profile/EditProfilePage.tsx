@@ -31,6 +31,14 @@ type FitnessGoal = "weight_loss" | "muscle_gain" | "maintenance" | "endurance";
 type SpiceTolerance = "none" | "mild" | "medium" | "hot";
 type SeasoningIntensity = "light" | "balanced" | "bold";
 type FlavorStyle = "classic" | "herb" | "savory" | "bright";
+type SweetenerPreference =
+  | "regular_sugar"
+  | "honey"
+  | "stevia"
+  | "monk_fruit"
+  | "equal"
+  | "splenda"
+  | "avoid_sweeteners";
 
 type EditProfilePayload = {
   firstName?: string;
@@ -43,6 +51,7 @@ type EditProfilePayload = {
   palateSpiceTolerance?: SpiceTolerance;
   palateSeasoningIntensity?: SeasoningIntensity;
   palateFlavorStyle?: FlavorStyle;
+  sweetenerPreferences?: SweetenerPreference[];
 };
 
 function StepShell({
@@ -133,6 +142,9 @@ export default function EditProfilePage() {
       palateSpiceTolerance: (u?.palateSpiceTolerance || "mild") as SpiceTolerance,
       palateSeasoningIntensity: (u?.palateSeasoningIntensity || "balanced") as SeasoningIntensity,
       palateFlavorStyle: (u?.palateFlavorStyle || "classic") as FlavorStyle,
+      sweetenerPreferences: Array.isArray(u?.sweetenerPreferences)
+        ? u.sweetenerPreferences
+        : [],
     };
   }, [user]);
 
@@ -144,6 +156,10 @@ export default function EditProfilePage() {
     initial.allergies.join(", "),
   );
   
+  const [sweetenerPreferences, setSweetenerPreferences] = useState<SweetenerPreference[]>(
+    initial.sweetenerPreferences || []
+  );
+
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -269,6 +285,7 @@ export default function EditProfilePage() {
         ...form,
         dietaryRestrictions: dietaryArray,
         allergies: allergiesChanged ? allergiesArray : undefined,
+        sweetenerPreferences,
         ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
       };
 
@@ -652,6 +669,37 @@ export default function EditProfilePage() {
                       ))}
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-xs flex items-center gap-1">
+                      <span>🍯</span> Sweetener Preference
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        ["regular_sugar", "Regular Sugar"],
+                        ["honey", "Honey"],
+                        ["stevia", "Stevia"],
+                        ["monk_fruit", "Monk Fruit"],
+                        ["equal", "Equal"],
+                        ["splenda", "Splenda"],
+                        ["avoid_sweeteners", "Avoid Sweeteners"],
+                      ] as const).map(([value, label]) => (
+                        <PillButton
+                          key={value}
+                          active={sweetenerPreferences.includes(value as SweetenerPreference)}
+                          onClick={() =>
+                            setSweetenerPreferences((prev) =>
+                              prev.includes(value as SweetenerPreference)
+                                ? prev.filter((v) => v !== value)
+                                : [...prev, value as SweetenerPreference]
+                            )
+                          }
+                        >
+                          {label}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -857,6 +905,9 @@ export default function EditProfilePage() {
                 </p>
                 <p className="text-white/80 text-xs">
                   Flavor: {form.palateSpiceTolerance === "none" ? "No spice" : (form.palateSpiceTolerance?.charAt(0).toUpperCase() ?? "") + (form.palateSpiceTolerance?.slice(1) ?? "")} spice, {form.palateSeasoningIntensity} seasoning
+                </p>
+                <p className="text-white/80 text-xs">
+                  Sweeteners: {sweetenerPreferences.length > 0 ? sweetenerPreferences.join(", ") : "None selected"}
                 </p>
                 <p className="text-white/80 text-xs">
                   Glycemic Carbs: {preferredCarbs.length > 0 ? preferredCarbs.join(", ") : "None selected"}

@@ -1,4 +1,28 @@
 // shared/schema/index.ts
+/*
+⚠️ PROFILE DATA CONTRACT
+
+The following fields are required across the system:
+
+firstName
+lastName
+email
+activityLevel
+fitnessGoal
+dietaryRestrictions
+allergies
+palateSpiceTolerance
+palateSeasoningIntensity
+palateFlavorStyle
+sweetenerPreferences
+
+These fields are validated by:
+server/guards/profileFieldGuard.ts
+
+Do NOT remove or rename these without updating the guard.
+
+This prevents silent data corruption.
+*/
 import { pgTable, varchar, boolean, serial, integer, timestamp, jsonb, index, uniqueIndex, pgEnum, uuid, text, decimal, real, time, date, numeric, unique, check, primaryKey } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";

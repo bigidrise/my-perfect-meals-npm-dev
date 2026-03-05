@@ -1,3 +1,4 @@
+import { validateProfilePayload } from "./guards/profileFieldGuard";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { familyRecipesRouter } from "./routes/familyRecipes";
@@ -1917,6 +1918,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CRITICAL: This is the single source of truth for allergies, dietary restrictions, etc.
   app.put("/api/users/profile", requireAuth, async (req: any, res) => {
     try {
+      const validation = validateProfilePayload(req.body);
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: `Profile payload missing required fields: ${validation.missing?.join(", ")}`,
+        });
+      }
+
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
       
