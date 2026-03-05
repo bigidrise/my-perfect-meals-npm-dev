@@ -12,8 +12,8 @@ const ROUTE_TITLES: Record<string, string> = {
   "/saved-meals": "Saved Meals",
   "/care-team/physician": "Care Team",
   "/care-team/trainer": "Care Team",
-  "/pro/clients": "Pro Portal",
-  "/pro/physician-clients": "Pro Portal",
+  "/pro/clients": "Professional Workspace",
+  "/pro/physician-clients": "Professional Workspace",
   "/profile": "Settings",
   "/more": "More",
   "/my-biometrics": "My Biometrics",
@@ -39,7 +39,7 @@ function getPageTitle(location: string): string {
   for (const [route, title] of Object.entries(ROUTE_TITLES)) {
     if (location.startsWith(route + "/")) return title;
   }
-  if (location.startsWith("/pro/")) return "Professional Portal";
+  if (location.startsWith("/pro/")) return "Professional Workspace";
   if (location.startsWith("/builder") || location.includes("-builder")) return "Meal Builder";
   return "My Perfect Meals";
 }

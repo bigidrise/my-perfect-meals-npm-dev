@@ -1,7 +1,8 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import DesktopHeader from "./DesktopHeader";
 import { useAuth } from "@/contexts/AuthContext";
+import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import {
   LayoutDashboard,
   Calculator,
@@ -10,8 +11,8 @@ import {
   Refrigerator,
   Heart,
   Activity,
-  Users,
-  Building2,
+  Home,
+  Briefcase,
   CreditCard,
   Settings,
   MoreHorizontal,
@@ -32,7 +33,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const coreNavSections: NavSection[] = [
+const navSections: NavSection[] = [
   {
     label: "HOME",
     items: [
@@ -64,28 +65,32 @@ const accountItems: NavItem[] = [
 ];
 
 export default function DesktopLayout({ children }: Props) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
+  const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
 
-  const navSections = useMemo(() => {
-    const sections = [...coreNavSections];
+  const isProfessional = user?.professionalRole === "physician" || user?.professionalRole === "trainer";
+  const isOnProRoute = location.startsWith("/care-team/") || location.startsWith("/pro/");
+  const activeSpace = isOnProRoute ? "workspace" : (typeof window !== "undefined" ? localStorage.getItem("mpm_active_space") : null);
 
-    const role = user?.professionalRole;
-    if (role === "physician" || role === "trainer") {
-      const careTeamPath = role === "physician" ? "/care-team/physician" : "/care-team/trainer";
-      const proPortalPath = role === "physician" ? "/pro/physician-clients" : "/pro/clients";
-
-      sections.push({
-        label: "PROFESSIONAL",
-        items: [
-          { path: careTeamPath, label: "Care Team", icon: Users },
-          { path: proPortalPath, label: "Pro Portal", icon: Building2 },
-        ],
-      });
+  const handleWorkspaceChoice = (choice: "personal" | "workspace") => {
+    setShowWorkspaceChooser(false);
+    if (choice === "workspace") {
+      localStorage.setItem("mpm_active_space", "workspace");
+      const route = user?.professionalRole === "physician" ? "/care-team/physician" : "/care-team/trainer";
+      setLocation(route);
+    } else {
+      localStorage.setItem("mpm_active_space", "personal");
+      sessionStorage.removeItem("mpm.welcomeGateDone");
+      setLocation("/dashboard");
     }
+  };
 
-    return sections;
-  }, [user?.professionalRole]);
+  const handlePersonalSpace = () => {
+    localStorage.setItem("mpm_active_space", "personal");
+    sessionStorage.removeItem("mpm.welcomeGateDone");
+    setLocation("/dashboard");
+  };
 
   return (
     <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">
@@ -122,6 +127,38 @@ export default function DesktopLayout({ children }: Props) {
               </div>
             </div>
           ))}
+
+          {isProfessional && (
+            <div>
+              <div className="px-3 pb-1.5 text-[10px] font-semibold tracking-widest text-white/30 uppercase">
+                WORKSPACES
+              </div>
+              <div className="space-y-0.5">
+                <button
+                  onClick={handlePersonalSpace}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    activeSpace === "personal" || !activeSpace
+                      ? "bg-emerald-500/15 text-emerald-400 font-medium"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Home className="w-4 h-4 shrink-0" />
+                  Personal Space
+                </button>
+                <button
+                  onClick={() => setShowWorkspaceChooser(true)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    activeSpace === "workspace"
+                      ? "bg-orange-500/15 text-orange-400 font-medium"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4 shrink-0" />
+                  Professional Workspace
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-0.5">
@@ -152,6 +189,10 @@ export default function DesktopLayout({ children }: Props) {
         <DesktopHeader />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
+
+      {showWorkspaceChooser && (
+        <WorkspaceChooser onChoose={handleWorkspaceChoice} />
+      )}
     </div>
   );
 }
