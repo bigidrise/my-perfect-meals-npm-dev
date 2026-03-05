@@ -116,6 +116,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "Beverage",
     routes: [
+      { path: "/lifestyle/beverage-creator", label: "Beverage Creator" },
       { path: "/beer-pairing", label: "Beer Pairing" },
       { path: "/bourbon-spirits", label: "Bourbon & Spirits" },
       { path: "/wine-pairing", label: "Wine Pairing" },

@@ -1,7 +1,7 @@
 # MyPerfectMeals (MPM)
 
 ## Overview
-MyPerfectMeals is a full-stack TypeScript application for comprehensive meal planning and nutrition. It features AI-powered meal generation, diverse dietary tracking, biometrics monitoring, and specialized meal builders (e.g., craving, dessert, holiday). The project aims to provide a robust platform for personalized nutrition management with a significant market impact in health and wellness technology.
+MyPerfectMeals is a full-stack TypeScript application for comprehensive meal planning and nutrition. It features AI-powered meal generation, diverse dietary tracking, biometrics monitoring, and specialized meal builders (e.g., craving, dessert, beverage, holiday). The project aims to provide a robust platform for personalized nutrition management with a significant market impact in health and wellness technology.
 
 ## User Preferences
 

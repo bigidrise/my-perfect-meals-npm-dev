@@ -21,6 +21,11 @@ const ROUTE_TITLES: Record<string, string> = {
   "/planner": "Meal Planner",
   "/get-inspiration": "Inspiration",
   "/pricing": "Plans & Pricing",
+  "/lifestyle": "Lifestyle",
+  "/lifestyle/beverage-creator": "Beverage Creator",
+  "/lifestyle/chefs-kitchen": "Chef's Kitchen",
+  "/craving-creator-landing": "Craving Creator",
+  "/craving-desserts": "Dessert Creator",
 };
 
 function getPlanLabel(planLookupKey?: string | null): string | null {

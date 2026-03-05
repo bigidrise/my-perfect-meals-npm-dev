@@ -214,9 +214,11 @@ async function initializeApp() {
     // Import and mount routers
     console.log("📋 [INIT] Loading routes...");
     const dessertCreatorRouter = (await import("./routes/dessert-creator")).default;
+    const beverageCreatorRouter = (await import("./routes/beverage-creator")).default;
     const restaurantRoutes = (await import("./routes/restaurants")).default;
     
     app.use("/api/meals/dessert-creator", dessertCreatorRouter);
+    app.use("/api/meals/beverage-creator", beverageCreatorRouter);
     app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
     console.log("✅ [INIT] Additional routes mounted");
     

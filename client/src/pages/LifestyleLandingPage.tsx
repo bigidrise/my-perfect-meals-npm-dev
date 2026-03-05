@@ -10,6 +10,7 @@ import {
   UtensilsCrossed,
   ChefHat,
   ArrowLeft,
+  Wine,
 } from "lucide-react";
 import { isPublicProduction, getGatedMessage } from "@/lib/productionGates";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -57,6 +58,15 @@ export default function LifestyleLandingPage() {
       route: "/craving-creator-landing",
       gradient: "from-purple-500/20 to-pink-500/20",
       testId: "card-craving-creator",
+    },
+    {
+      title: "Beverage Creator",
+      description:
+        "Create smoothies, protein shakes, coffee drinks, mocktails, cocktails, and more with AI.",
+      icon: Wine,
+      route: "/lifestyle/beverage-creator",
+      gradient: "from-blue-500/20 to-cyan-500/20",
+      testId: "card-beverage-creator",
     },
     {
       title: "Fridge Rescue",
