@@ -1938,6 +1938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medicalConditions,
         preferredBuilder,
         flavorPreference,
+        sweetenerPreferences,
       } = req.body;
       
       // Build update object with only provided fields
@@ -1962,6 +1963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (medicalConditions !== undefined) updateData.medicalConditions = medicalConditions;
       if (preferredBuilder !== undefined) updateData.preferredBuilder = preferredBuilder;
       if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
+      if (sweetenerPreferences !== undefined) updateData.sweetenerPreferences = sweetenerPreferences;
       
       if (allergies !== undefined) {
         const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })

@@ -201,6 +201,7 @@ export default function CravingCreator() {
   const tickerRef = useRef<number | null>(null);
   // Get actual user ID from auth context for medical safety
   const { user } = useAuth();
+  const sweetenerPreferences = user?.sweetenerPreferences || [];
   const userId = user?.id || "";
 
   // 🎯 Auto-start walkthrough on first visit
@@ -476,6 +477,7 @@ export default function CravingCreator() {
           dietaryRestrictions: selectedDiet || dietaryRestrictions,
           userId: userId,
           servings: servings,
+          sweetenerPreferences,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,

@@ -45,6 +45,16 @@ const FLAVOR_OPTIONS = [
   { label: "Not sure", value: "unsure" },
 ];
 
+const SWEETENER_OPTIONS = [
+  { label: "Regular Sugar", value: "sugar" },
+  { label: "Honey / Natural Sugar", value: "honey" },
+  { label: "Stevia", value: "stevia" },
+  { label: "Monk Fruit", value: "monk-fruit" },
+  { label: "Equal (Aspartame)", value: "equal" },
+  { label: "Splenda (Sucralose)", value: "splenda" },
+  { label: "Avoid Sweeteners", value: "avoid" }
+];
+
 const BUILDER_OPTIONS = [
   { id: "general", name: "General Nutrition", description: "Balanced, healthy meals for everyday life" },
   { id: "diabetic", name: "Diabetes Support", description: "Blood-sugar awareness and stability" },
@@ -86,6 +96,7 @@ export default function OnboardingV3() {
   const [medicalConditions, setMedicalConditions] = useState<string[]>([]);
   const [customConditionInput, setCustomConditionInput] = useState("");
   const [flavorPreference, setFlavorPreference] = useState("");
+  const [sweetenerPreferences, setSweetenerPreferences] = useState<string[]>([]);
   const [selectedBuilder, setSelectedBuilder] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -131,6 +142,14 @@ export default function OnboardingV3() {
       setAllergies((prev) => [...prev.filter((a) => a !== "None"), trimmed]);
       setCustomAllergyInput("");
     }
+  };
+
+  const toggleSweetener = (value: string) => {
+    setSweetenerPreferences(prev =>
+      prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev, value]
+    );
   };
 
   const handleMedicalToggle = (value: string) => {
@@ -183,7 +202,10 @@ export default function OnboardingV3() {
             setSaving(false);
             return;
           }
-          await saveProfile({ flavorPreference });
+          await saveProfile({
+            flavorPreference,
+            sweetenerPreferences
+          });
           break;
       }
       setStep((s) => s + 1);
@@ -438,6 +460,26 @@ export default function OnboardingV3() {
                   onClick={() => setFlavorPreference(opt.value)}
                   className={`px-6 py-3 rounded-full border text-sm font-medium transition-all ${
                     flavorPreference === opt.value
+                      ? "bg-orange-500 border-orange-500 text-white"
+                      : "bg-white/5 border-white/20 text-white/80 hover:border-white/40"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="text-center space-y-2 mt-8">
+              <h2 className="text-xl font-bold text-white">Sweetener Preference</h2>
+              <p className="text-white/60 text-sm">Select all that apply</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 max-w-md mx-auto">
+              {SWEETENER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => toggleSweetener(opt.value)}
+                  className={`px-6 py-3 rounded-full border text-sm font-medium transition-all ${
+                    sweetenerPreferences.includes(opt.value)
                       ? "bg-orange-500 border-orange-500 text-white"
                       : "bg-white/5 border-white/20 text-white/80 hover:border-white/40"
                   }`}
