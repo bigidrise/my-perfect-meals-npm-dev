@@ -27,27 +27,24 @@ const FULL_SCREEN_ROUTES = [
   "/founders",
 ];
 
-const DESKTOP_DOMAINS = [
-  "app.myperfectmeals.com",
-];
-
-function isDesktopDomain(): boolean {
+function shouldUseDesktopLayout(): boolean {
   const host = window.location.hostname;
-  if (DESKTOP_DOMAINS.includes(host)) return true;
+  if (host === "app.myperfectmeals.com") return true;
   if (host === "localhost" || host === "127.0.0.1") return true;
-  if (host.endsWith(".replit.dev") || host.endsWith(".replit.app")) return true;
+  if (host.endsWith(".replit.dev")) return true;
   return false;
 }
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const isDesktop = useIsDesktop();
+  const desktopDomain = shouldUseDesktopLayout();
 
   const isFullScreen = FULL_SCREEN_ROUTES.some(
     (r) => location === r || location.startsWith(r + "/")
   );
 
-  if (!isDesktop || isFullScreen || !isDesktopDomain()) {
+  if (!isDesktop || isFullScreen || !desktopDomain) {
     return <MobileLayout>{children}</MobileLayout>;
   }
 
