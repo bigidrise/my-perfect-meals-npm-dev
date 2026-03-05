@@ -29,7 +29,6 @@ import {
   Heart,
   ChefHat,
   Refrigerator,
-  ArrowRight,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -39,7 +38,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
-import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 
 interface FeatureCard {
@@ -65,8 +63,6 @@ export default function DashboardNew() {
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const { open: openCopilot } = useCopilot();
-  const isDesktop = useIsDesktop();
-
   const handlePhotoLog = () => {
     setLocation("/my-biometrics?capture=1");
   };
@@ -157,167 +153,6 @@ export default function DashboardNew() {
   };
 
   const isPaid = hasActivePaidSubscription(user);
-
-  const planLabel = (() => {
-    const key = user?.planLookupKey?.toLowerCase() || "";
-    if (key.includes("ultimate")) return "Ultimate";
-    if (key.includes("premium")) return "Premium";
-    if (key.includes("basic")) return "Basic";
-    if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) return "Professional";
-    if (key.includes("family")) return "Family";
-    if (user?.isTester) return "Tester";
-    return "Free";
-  })();
-
-  const quickActions = [
-    { label: "Create Meal", icon: ChefHat, route: "/select-builder", color: "orange" },
-    { label: "Macro Calculator", icon: Calculator, route: "/macro-counter", color: "blue" },
-    { label: "Shopping List", icon: ShoppingCart, route: "/shopping-list", color: "green" },
-    { label: "Fridge Rescue", icon: Refrigerator, route: "/fridge-rescue", color: "purple" },
-  ];
-
-  const toolCards = [
-    { label: "Meal Builders", description: "AI-powered meal generation", icon: ChefHat, route: "/select-builder" },
-    { label: "Fridge Rescue", description: "Cook with what you have", icon: Refrigerator, route: "/fridge-rescue" },
-    { label: "Saved Meals", description: "Your favorites library", icon: Heart, route: "/saved-meals" },
-    { label: "MacroScan", description: "Scan nutrition labels", icon: Camera, route: "/my-biometrics?capture=1" },
-  ];
-
-  if (isDesktop) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="min-h-full bg-neutral-950 p-8"
-      >
-        <TrialBanner />
-        <TrialExpiredModal />
-
-        <div className="max-w-6xl mx-auto space-y-8">
-          <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-2 relative h-56 rounded-2xl overflow-hidden">
-              <img src="/images/home-hero.png" alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              <div className="absolute bottom-6 left-6 right-6">
-                <h2 className="text-3xl font-bold text-white mb-1">Welcome back, {firstName}</h2>
-                <p className="text-white/70">Ready to hit your macro goals today?</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-black/40 border border-white/10 p-6 flex flex-col justify-between">
-              <div>
-                <div className="text-xs text-white/40 uppercase tracking-wider font-semibold mb-1">Your Plan</div>
-                <div className="text-xl font-bold text-white">{planLabel}</div>
-              </div>
-              <div className="space-y-3 mt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Flame className="h-4 w-4 text-blue-400" />
-                    <span className="text-sm text-white/60">Protein</span>
-                  </div>
-                  <span className="text-sm font-semibold text-white">{Math.round(todayMacros.protein)}g</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-orange-400" />
-                    <span className="text-sm text-white/60">Carbs</span>
-                  </div>
-                  <span className="text-sm font-semibold text-white">{Math.round(todayMacros.carbs)}g</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-purple-400" />
-                    <span className="text-sm text-white/60">Fat</span>
-                  </div>
-                  <span className="text-sm font-semibold text-white">{Math.round(todayMacros.fat)}g</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-4 gap-4">
-              {quickActions.map(({ label, icon: Icon, route }) => (
-                <button
-                  key={route}
-                  onClick={() => setLocation(route)}
-                  className="group flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-orange-500/40 hover:bg-black/60 transition-all"
-                >
-                  <div className="p-2.5 rounded-lg bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                    <Icon className="h-5 w-5 text-orange-400" />
-                  </div>
-                  <span className="text-sm font-medium text-white">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">Your Tools</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {toolCards.map(({ label, description, icon: Icon, route }) => (
-                <button
-                  key={route}
-                  onClick={() => setLocation(route)}
-                  className="group flex items-center gap-4 p-5 rounded-xl bg-black/40 border border-white/10 hover:border-orange-500/30 hover:bg-black/60 transition-all text-left"
-                >
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/15 to-orange-700/15 border border-orange-500/20 group-hover:from-orange-500/25 group-hover:to-orange-700/25 transition-all">
-                    <Icon className="h-6 w-6 text-orange-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-white">{label}</div>
-                    <div className="text-xs text-white/50 mt-0.5">{description}</div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-white/20 group-hover:text-orange-400/60 transition-colors" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <MedicalSourcesInfo
-            trigger={
-              <button className="w-full flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-blue-400/30 transition-all text-left">
-                <div className="p-2.5 rounded-lg bg-blue-500/10">
-                  <Activity className="h-5 w-5 text-blue-400" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-white">Sources & Medical Information</div>
-                  <div className="text-xs text-white/40">NIH · USDA · WHO · ADA</div>
-                </div>
-              </button>
-            }
-          />
-        </div>
-
-        <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
-          <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-center">Unlock Full Access</DialogTitle>
-              <DialogDescription className="text-white/80 text-center mt-2">
-                AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-4 space-y-2 text-sm text-white/80">
-              <div>• Unlimited AI meal creation</div>
-              <div>• Advanced macro targeting</div>
-              <div>• Restaurant & craving tools</div>
-              <div>• Premium coaching access</div>
-            </div>
-            <div className="mt-6 space-y-3">
-              <Button className="w-full bg-orange-600 hover:bg-orange-700" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); setLocation("/pricing"); }}>
-                Explore Premium Plans
-              </Button>
-              <Button variant="ghost" className="w-full text-orange-400 hover:bg-orange-500/10" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); }}>
-                Continue with Free Features
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
