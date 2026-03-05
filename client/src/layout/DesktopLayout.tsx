@@ -110,9 +110,15 @@ export default function DesktopLayout({ children }: Props) {
       <aside className="w-60 shrink-0 bg-black border-r border-white/10 flex flex-col overflow-y-auto">
 
         <div className="px-5 pt-5 pb-4">
-          <div className="flex items-center justify-center pb-3">
-            <ChefEmojiButton onClick={handleChefClick} size={48} />
-          </div>
+          <button
+            onClick={handleChefClick}
+            className="flex items-center justify-center gap-2 w-full pb-3 group"
+          >
+            <ChefEmojiButton onClick={handleChefClick} size={40} />
+            <span className="text-sm font-medium text-white/60 group-hover:text-orange-400 transition-colors">
+              Ask Chef
+            </span>
+          </button>
           <div className="text-lg font-bold tracking-tight text-center">
             My Perfect Meals
           </div>
