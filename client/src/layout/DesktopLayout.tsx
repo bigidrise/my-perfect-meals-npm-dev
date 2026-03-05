@@ -146,7 +146,7 @@ export default function DesktopLayout({ children }: Props) {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <DesktopHeader />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto px-6 py-6">
           {children}
         </main>
       </div>
