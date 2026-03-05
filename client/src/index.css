@@ -1310,7 +1310,6 @@ button, a, [role="button"], .interactive {
    and zero out iOS safe-area insets (not needed on desktop) */
 .desktop-content .fixed.top-0.z-40,
 .desktop-content .fixed.top-0.z-50,
-.desktop-content .fixed.right-4.z-50,
 .desktop-content .fixed.top-0.z-\[40\],
 .desktop-content .fixed.top-0.z-\[50\] {
   display: none !important;

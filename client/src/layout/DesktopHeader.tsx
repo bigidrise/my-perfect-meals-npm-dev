@@ -1,6 +1,8 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { User } from "lucide-react";
+import { ProfileSheet } from "@/components/ProfileSheet";
+import { HubControlIcon } from "@/components/icons/HubControlIcon";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -62,13 +64,18 @@ export default function DesktopHeader() {
             {planLabel}
           </span>
         )}
-        <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
-          {user?.profilePhotoUrl ? (
-            <img src={user.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-xs font-medium text-white/70">{initials.toUpperCase()}</span>
-          )}
-        </div>
+        <ProfileSheet>
+          <button className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors">
+            <HubControlIcon size="md" />
+            <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+              {user?.profilePhotoUrl ? (
+                <img src={user.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-medium text-white/70">{initials.toUpperCase()}</span>
+              )}
+            </div>
+          </button>
+        </ProfileSheet>
       </div>
     </header>
   );
