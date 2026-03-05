@@ -5,6 +5,7 @@ import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import AppLayout from "@/layout/AppLayout";
 
 interface AppRouterProps {
   children: React.ReactNode;
@@ -170,5 +171,9 @@ export default function AppRouter({ children }: AppRouterProps) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <AppLayout>
+      {children}
+    </AppLayout>
+  );
 }
