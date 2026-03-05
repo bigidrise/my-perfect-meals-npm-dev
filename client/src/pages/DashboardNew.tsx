@@ -27,6 +27,10 @@ import {
   Flame,
   Camera,
   Heart,
+  ChefHat,
+  Refrigerator,
+  Briefcase,
+  ArrowRight,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -36,6 +40,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 
 interface FeatureCard {
   title: string;
@@ -60,6 +66,7 @@ export default function DashboardNew() {
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const { open: openCopilot } = useCopilot();
+  const isDesktop = useIsDesktop();
 
   const handlePhotoLog = () => {
     setLocation("/my-biometrics?capture=1");
@@ -150,6 +157,195 @@ export default function DashboardNew() {
     setShowScanner(false); // Close the scanner modal
   };
 
+  const isPaid = hasActivePaidSubscription(user);
+
+  const planLabel = (() => {
+    const key = user?.planLookupKey?.toLowerCase() || "";
+    if (key.includes("ultimate")) return "Ultimate";
+    if (key.includes("premium")) return "Premium";
+    if (key.includes("basic")) return "Basic";
+    if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) return "Professional";
+    if (key.includes("family")) return "Family";
+    if (user?.isTester) return "Tester";
+    return "Free";
+  })();
+
+  const quickActions = [
+    { label: "Create Meal", icon: ChefHat, route: "/select-builder", color: "orange" },
+    { label: "Macro Calculator", icon: Calculator, route: "/macro-counter", color: "blue" },
+    { label: "Shopping List", icon: ShoppingCart, route: "/shopping-list", color: "green" },
+    { label: "Fridge Rescue", icon: Refrigerator, route: "/fridge-rescue", color: "purple" },
+  ];
+
+  const toolCards = [
+    { label: "Meal Builders", description: "AI-powered meal generation", icon: ChefHat, route: "/select-builder" },
+    { label: "Fridge Rescue", description: "Cook with what you have", icon: Refrigerator, route: "/fridge-rescue" },
+    { label: "Saved Meals", description: "Your favorites library", icon: Heart, route: "/saved-meals" },
+    { label: "MacroScan", description: "Scan nutrition labels", icon: Camera, route: "/my-biometrics?capture=1" },
+  ];
+
+  if (isDesktop) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="min-h-full bg-neutral-950 p-8"
+      >
+        <TrialBanner />
+        <TrialExpiredModal />
+
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="grid grid-cols-3 gap-6">
+            <div className="col-span-2 relative h-56 rounded-2xl overflow-hidden">
+              <img src="/images/home-hero.png" alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6">
+                <h2 className="text-3xl font-bold text-white mb-1">Welcome back, {firstName}</h2>
+                <p className="text-white/70">Ready to hit your macro goals today?</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-black/40 border border-white/10 p-6 flex flex-col justify-between">
+              <div>
+                <div className="text-xs text-white/40 uppercase tracking-wider font-semibold mb-1">Your Plan</div>
+                <div className="text-xl font-bold text-white">{planLabel}</div>
+              </div>
+              <div className="space-y-3 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm text-white/60">Protein</span>
+                  </div>
+                  <span className="text-sm font-semibold text-white">{Math.round(todayMacros.protein)}g</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-orange-400" />
+                    <span className="text-sm text-white/60">Carbs</span>
+                  </div>
+                  <span className="text-sm font-semibold text-white">{Math.round(todayMacros.carbs)}g</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-purple-400" />
+                    <span className="text-sm text-white/60">Fat</span>
+                  </div>
+                  <span className="text-sm font-semibold text-white">{Math.round(todayMacros.fat)}g</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-4 gap-4">
+              {quickActions.map(({ label, icon: Icon, route }) => (
+                <button
+                  key={route}
+                  onClick={() => setLocation(route)}
+                  className="group flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-orange-500/40 hover:bg-black/60 transition-all"
+                >
+                  <div className="p-2.5 rounded-lg bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
+                    <Icon className="h-5 w-5 text-orange-400" />
+                  </div>
+                  <span className="text-sm font-medium text-white">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">Your Tools</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {toolCards.map(({ label, description, icon: Icon, route }) => (
+                <button
+                  key={route}
+                  onClick={() => setLocation(route)}
+                  className="group flex items-center gap-4 p-5 rounded-xl bg-black/40 border border-white/10 hover:border-orange-500/30 hover:bg-black/60 transition-all text-left"
+                >
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/15 to-orange-700/15 border border-orange-500/20 group-hover:from-orange-500/25 group-hover:to-orange-700/25 transition-all">
+                    <Icon className="h-6 w-6 text-orange-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-white">{label}</div>
+                    <div className="text-xs text-white/50 mt-0.5">{description}</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-white/20 group-hover:text-orange-400/60 transition-colors" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {isPaid && (
+            <div>
+              <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">Professional</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <button
+                  onClick={() => setLocation("/care-team")}
+                  className="group flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-blue-500/30 hover:bg-black/60 transition-all"
+                >
+                  <div className="p-2.5 rounded-lg bg-blue-500/10">
+                    <Briefcase className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <span className="text-sm font-medium text-white">Care Team</span>
+                </button>
+                <button
+                  onClick={() => setLocation("/pro-portal")}
+                  className="group flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-blue-500/30 hover:bg-black/60 transition-all"
+                >
+                  <div className="p-2.5 rounded-lg bg-blue-500/10">
+                    <Activity className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <span className="text-sm font-medium text-white">Pro Portal</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <MedicalSourcesInfo
+            trigger={
+              <button className="w-full flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-blue-400/30 transition-all text-left">
+                <div className="p-2.5 rounded-lg bg-blue-500/10">
+                  <Activity className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">Sources & Medical Information</div>
+                  <div className="text-xs text-white/40">NIH · USDA · WHO · ADA</div>
+                </div>
+              </button>
+            }
+          />
+        </div>
+
+        <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
+          <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-center">Unlock Full Access</DialogTitle>
+              <DialogDescription className="text-white/80 text-center mt-2">
+                AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 space-y-2 text-sm text-white/80">
+              <div>• Unlimited AI meal creation</div>
+              <div>• Advanced macro targeting</div>
+              <div>• Restaurant & craving tools</div>
+              <div>• Premium coaching access</div>
+            </div>
+            <div className="mt-6 space-y-3">
+              <Button className="w-full bg-orange-600 hover:bg-orange-700" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); setLocation("/pricing"); }}>
+                Explore Premium Plans
+              </Button>
+              <Button variant="ghost" className="w-full text-orange-400 hover:bg-orange-500/10" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); }}>
+                Continue with Free Features
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -159,7 +355,6 @@ export default function DashboardNew() {
     >
       <TrialBanner />
       <TrialExpiredModal />
-      {/* Fixed My Hub - Top Right */}
       <div
         className="fixed right-4 z-50"
         style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
@@ -174,7 +369,6 @@ export default function DashboardNew() {
         </ProfileSheet>
       </div>
 
-      {/* Header Banner */}
       <div
         className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -184,87 +378,55 @@ export default function DashboardNew() {
         </div>
       </div>
 
-      {/* Main Content */}
-      {/* Main Content */}
       <div
         className="max-w-6xl mx-auto px-4 pb-8 flex flex-col gap-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        {/* Hero Image Section with Welcome Text */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
           className="mb-4"
         >
-          <div className="relative h-48 lg:h-64 rounded-xl overflow-hidden">
-            <img
-              src="/images/home-hero.png"
-              alt="My Perfect Meals Dashboard"
-              className="w-full h-full object-cover"
-            />
+          <div className="relative h-48 rounded-xl overflow-hidden">
+            <img src="/images/home-hero.png" alt="My Perfect Meals Dashboard" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <h2 className="text-2xl lg:text-4xl font-bold text-white mb-2">
-                Welcome back, {firstName}! 👋
-              </h2>
-              <p className="text-white/90 text-sm lg:text-base mb-4">
-                Ready to hit your macro goals today?
-              </p>
-
-              {/* Quick Stats - Real Macro Data */}
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome back, {firstName}!</h2>
+              <p className="text-white/90 text-sm mb-4">Ready to hit your macro goals today?</p>
               <div className="grid grid-cols-3 gap-3">
-                <div className="flex flex-col items-center p-2 lg:p-3 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <Flame className="h-4 w-4 lg:h-5 lg:w-5 text-blue-500 mb-1" />
+                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
+                  <Flame className="h-4 w-4 text-blue-500 mb-1" />
                   <div className="text-xs text-white/60">Protein</div>
-                  <div className="text-sm lg:text-lg font-bold text-white">
-                    {Math.round(todayMacros.protein)}g
-                  </div>
+                  <div className="text-sm font-bold text-white">{Math.round(todayMacros.protein)}g</div>
                 </div>
-                <div className="flex flex-col items-center p-2 lg:p-3 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <TrendingUp className="h-4 w-4 lg:h-5 lg:w-5 text-orange-500 mb-1" />
+                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
+                  <TrendingUp className="h-4 w-4 text-orange-500 mb-1" />
                   <div className="text-xs text-white/60">Carbs</div>
-                  <div className="text-sm lg:text-lg font-bold text-white">
-                    {Math.round(todayMacros.carbs)}g
-                  </div>
+                  <div className="text-sm font-bold text-white">{Math.round(todayMacros.carbs)}g</div>
                 </div>
-                <div className="flex flex-col items-center p-2 lg:p-3 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <Activity className="h-4 w-4 lg:h-5 lg:w-5 text-purple-500 mb-1" />
+                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
+                  <Activity className="h-4 w-4 text-purple-500 mb-1" />
                   <div className="text-xs text-white/60">Fat</div>
-                  <div className="text-sm lg:text-lg font-bold text-white">
-                    {Math.round(todayMacros.fat)}g
-                  </div>
+                  <div className="text-sm font-bold text-white">{Math.round(todayMacros.fat)}g</div>
                 </div>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Medical Safety & Sources Card - Apple App Store Compliance (Guideline 1.4.1) */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.5 }}
-          className="mb-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }} className="mb-4">
           <MedicalSourcesInfo
             trigger={
-              <Card
-                className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-blue-400/50 rounded-xl group"
-                data-testid="card-medical-safety"
-              >
+              <Card className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-blue-400/50 rounded-xl group" data-testid="card-medical-safety">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30">
                       <Activity className="h-6 w-6 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-white text-lg">
-                        Sources & Medical Information
-                      </CardTitle>
-                      <CardDescription className="text-white/70 text-sm mt-1">
-                        NIH · USDA · WHO · ADA
-                      </CardDescription>
+                      <CardTitle className="text-white text-lg">Sources & Medical Information</CardTitle>
+                      <CardDescription className="text-white/70 text-sm mt-1">NIH · USDA · WHO · ADA</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -273,100 +435,54 @@ export default function DashboardNew() {
           />
         </motion.div>
 
-        {/* Shopping List Quick Access Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="mb-4"
-        >
-          <Card
-            className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
-            onClick={() => setLocation("/shopping-list-v2")}
-            data-testid="card-shopping-list"
-          >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }} className="mb-4">
+          <Card className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group" onClick={() => setLocation("/shopping-list-v2")} data-testid="card-shopping-list">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
                   <ShoppingCart className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-white text-lg">
-                    Master Shopping List
-                  </CardTitle>
-                  <CardDescription className="text-white/70 text-sm mt-1">
-                    Smart grocery list manager
-                  </CardDescription>
+                  <CardTitle className="text-white text-lg">Master Shopping List</CardTitle>
+                  <CardDescription className="text-white/70 text-sm mt-1">Smart grocery list manager</CardDescription>
                 </div>
               </div>
             </CardHeader>
           </Card>
         </motion.div>
 
-        {/* Quick Log from Photo Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.5 }}
-          className="mb-4"
-        >
-          <Card
-            className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
-            onClick={handlePhotoLog} // Use the new photo log handler
-            data-testid="card-photo-log"
-          >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }} className="mb-4">
+          <Card className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group" onClick={handlePhotoLog} data-testid="card-photo-log">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
                   <Camera className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-white text-lg">
-                    MacroScan
-                  </CardTitle>
-                  <CardDescription className="text-white/70 text-sm mt-1">
-                    Scan nutrition. Log macros instantly
-                  </CardDescription>
+                  <CardTitle className="text-white text-lg">MacroScan</CardTitle>
+                  <CardDescription className="text-white/70 text-sm mt-1">Scan nutrition. Log macros instantly</CardDescription>
                 </div>
               </div>
             </CardHeader>
           </Card>
         </motion.div>
 
-        {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             const isMacroCalculator = feature.testId === "macro-calculator";
             const shouldFlash = isGuidedMode && isMacroCalculator;
-
             return (
-              <motion.div
-                key={feature.testId}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-                className={
-                  feature.size === "large" ? "md:col-span-1" : "md:col-span-1"
-                }
-              >
-                <Card
-                  onClick={() => handleCardClick(feature.route)}
-                  className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group ${shouldFlash ? "flash-border" : ""}`}
-                  data-testid={feature.testId}
-                >
+              <motion.div key={feature.testId} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }} className="md:col-span-1">
+                <Card onClick={() => handleCardClick(feature.route)} className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group ${shouldFlash ? "flash-border" : ""}`} data-testid={feature.testId}>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
                       <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
                         <Icon className="h-6 w-6 text-orange-500" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">
-                          {feature.title}
-                        </h3>
-                        <p className="text-sm text-white/70">
-                          {feature.description}
-                        </p>
+                        <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
+                        <p className="text-sm text-white/70">{feature.description}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -376,25 +492,12 @@ export default function DashboardNew() {
           })}
         </div>
 
-        {/* Bottom CTA Section - Go to Planner */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6, duration: 0.5 }}>
           <Card className="bg-black/30 backdrop-blur-lg border border-white/10 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] transition-all">
             <CardContent className="p-6 text-center">
-              <h3 className="text-white font-semibold mb-2">
-                Ready to Plan Your Meals?
-              </h3>
-              <p className="text-white/70 text-sm mb-4">
-                Start building your perfect week with AI-powered meal planning
-              </p>
-              <button
-                onClick={() => setLocation("/planner")}
-                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
-                data-testid="button-go-to-planner"
-              >
+              <h3 className="text-white font-semibold mb-2">Ready to Plan Your Meals?</h3>
+              <p className="text-white/70 text-sm mb-4">Start building your perfect week with AI-powered meal planning</p>
+              <button onClick={() => setLocation("/planner")} className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl" data-testid="button-go-to-planner">
                 Go to Planner
               </button>
             </CardContent>
@@ -402,52 +505,25 @@ export default function DashboardNew() {
         </motion.div>
       </div>
 
-      {/* Barcode Scanner Modal - This will be removed or modified based on the new requirements */}
-      {/* Removed the BarcodeScanner card and its onClick handler from the dashboard.
-          The BarcodeScanner component itself might still be used in the shopping list feature. */}
-
-      <Dialog
-        open={showSubscriptionModal}
-        onOpenChange={setShowSubscriptionModal}
-      >
+      <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
         <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">
-              Unlock Full Access
-            </DialogTitle>
+            <DialogTitle className="text-xl font-bold text-center">Unlock Full Access</DialogTitle>
             <DialogDescription className="text-white/80 text-center mt-2">
-              AI-powered meal planning, personalized macros, restaurant
-              guidance, and advanced coaching tools.
+              AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.
             </DialogDescription>
           </DialogHeader>
-
           <div className="mt-4 space-y-2 text-sm text-white/80">
             <div>• Unlimited AI meal creation</div>
             <div>• Advanced macro targeting</div>
             <div>• Restaurant & craving tools</div>
             <div>• Premium coaching access</div>
           </div>
-
           <div className="mt-6 space-y-3">
-            <Button
-              className="w-full bg-orange-600 hover:bg-orange-700"
-              onClick={() => {
-                localStorage.setItem("mpm_subscription_modal_shown", "true");
-                setShowSubscriptionModal(false);
-                setLocation("/pricing");
-              }}
-            >
+            <Button className="w-full bg-orange-600 hover:bg-orange-700" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); setLocation("/pricing"); }}>
               Explore Premium Plans
             </Button>
-
-            <Button
-              variant="ghost"
-              className="w-full text-orange-400 hover:bg-orange-500/10"
-              onClick={() => {
-                localStorage.setItem("mpm_subscription_modal_shown", "true");
-                setShowSubscriptionModal(false);
-              }}
-            >
+            <Button variant="ghost" className="w-full text-orange-400 hover:bg-orange-500/10" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); }}>
               Continue with Free Features
             </Button>
           </div>

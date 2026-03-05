@@ -57,7 +57,7 @@ The application is a full-stack TypeScript project with a focus on personalized 
 - **Database**: PostgreSQL via Drizzle ORM.
 - **AI Integration**: OpenAI API for meal generation and content translation.
 - **Navigation**: Role and workspace-based navigation (client and clinician views), `BuilderHeader` for builders, `ProClientContext` for clinician-client interactions.
-- **Desktop Layout**: `client/src/layout/AppLayout.tsx` wraps content in `DesktopLayout` (sidebar + workspace, >=1024px) or `MobileLayout`. Full-screen routes (auth, onboarding, etc.) bypass the desktop layout. Mobile bottom nav hidden on desktop via `useIsDesktop` hook in `Router.tsx`. Sidebar uses wouter `Link` for SPA navigation with active state highlighting.
+- **Desktop Layout**: `client/src/layout/AppLayout.tsx` wraps content in `DesktopLayout` (sidebar + workspace, >=1024px) or `MobileLayout`. Full-screen routes (auth, onboarding, etc.) bypass the desktop layout. Mobile bottom nav hidden on desktop via `useIsDesktop` hook in `Router.tsx`. Sidebar uses wouter `Link` for SPA navigation with active state highlighting. `DesktopLayout.tsx` renders a sectioned sidebar (HOME, MEAL INTELLIGENCE, TOOLS, PROFESSIONAL, ACCOUNT) plus `DesktopHeader.tsx` (page title, plan badge, user avatar). `DashboardNew.tsx` has a dedicated desktop branch with hero+plan card grid, quick actions, tools grid, and professional section.
 - **Routing & Gating Architecture**:
     - Free-first: Free users land on `/macro-counter` after WelcomeGate. Paid users land on `/dashboard`.
     - `client/src/lib/subscriptionCheck.ts`: `hasActivePaidSubscription(user)` is the single source of truth for subscription state. Checks `planLookupKey`, `isTester`, `accessTier`, `trialEndsAt`.
