@@ -15,8 +15,6 @@ import {
   MoreHorizontal,
   Home,
   Briefcase,
-  Users,
-  FolderOpen,
 } from "lucide-react";
 
 interface Props {
@@ -81,25 +79,29 @@ export default function DesktopLayout({ children }: Props) {
     ? localStorage.getItem("mpm_active_space")
     : null;
 
-  const careTeamPath =
-    user?.professionalRole === "physician"
-      ? "/care-team/physician"
-      : "/care-team/trainer";
+  const handleWorkspaceChoice = (choice: "personal" | "workspace") => {
+    setShowWorkspaceChooser(false);
 
-  const proPortalPath =
-    user?.professionalRole === "physician"
-      ? "/pro/physician-clients"
-      : "/pro/clients";
+    if (choice === "workspace") {
+      localStorage.setItem("mpm_active_space", "workspace");
+
+      const route =
+        user?.professionalRole === "physician"
+          ? "/care-team/physician"
+          : "/care-team/trainer";
+
+      setLocation(route);
+    } else {
+      localStorage.setItem("mpm_active_space", "personal");
+      sessionStorage.removeItem("mpm.welcomeGateDone");
+      setLocation("/dashboard");
+    }
+  };
 
   const handlePersonalSpace = () => {
     localStorage.setItem("mpm_active_space", "personal");
     sessionStorage.removeItem("mpm.welcomeGateDone");
     setLocation("/dashboard");
-  };
-
-  const handleProNavigation = (path: string) => {
-    localStorage.setItem("mpm_active_space", "workspace");
-    setLocation(path);
   };
 
   return (
