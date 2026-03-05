@@ -274,7 +274,7 @@ export default function TrainerClientDashboard() {
       </div>
 
       <div
-        className="max-w-5xl mx-auto px-4 space-y-6 pb-16"
+        className="max-w-6xl mx-auto px-6 space-y-6 pb-16"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">

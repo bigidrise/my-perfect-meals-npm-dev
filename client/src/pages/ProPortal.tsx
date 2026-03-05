@@ -45,7 +45,7 @@ export default function ProPortal() {
       </div>
 
       <div
-        className="max-w-5xl mx-auto px-4 space-y-6"
+        className="max-w-6xl mx-auto px-6 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <Card className="bg-black/20 backdrop-blur-lg border-white/20">

@@ -277,7 +277,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       </div>
 
       <div
-        className="max-w-5xl mx-auto px-4 space-y-6"
+        className="max-w-6xl mx-auto px-6 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <Card className="bg-white/5 border border-white/20">
@@ -352,7 +352,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {clients.filter((c) => (showArchived ? c.archived : !c.archived))
             .length === 0 ? (
             <div className="text-white">
@@ -411,7 +411,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       {c.archived ? (
                         <>
                           <Button
