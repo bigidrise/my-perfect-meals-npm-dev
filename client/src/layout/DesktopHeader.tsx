@@ -1,6 +1,5 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { User } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { HubControlIcon } from "@/components/icons/HubControlIcon";
 
@@ -52,7 +51,6 @@ export default function DesktopHeader() {
 
   const title = getPageTitle(location);
   const planLabel = getPlanLabel(user?.planLookupKey);
-  const initials = user?.nickname?.[0] || user?.firstName?.[0] || user?.name?.[0] || "U";
 
   return (
     <header className="h-14 shrink-0 bg-black/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6">
@@ -65,15 +63,8 @@ export default function DesktopHeader() {
           </span>
         )}
         <ProfileSheet>
-          <button className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors">
+          <button className="p-2 rounded-lg hover:bg-white/5 transition-colors">
             <HubControlIcon size="md" />
-            <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
-              {user?.profilePhotoUrl ? (
-                <img src={user.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xs font-medium text-white/70">{initials.toUpperCase()}</span>
-              )}
-            </div>
           </button>
         </ProfileSheet>
       </div>
