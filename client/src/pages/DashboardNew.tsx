@@ -29,7 +29,6 @@ import {
   Heart,
   ChefHat,
   Refrigerator,
-  Briefcase,
   ArrowRight,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
@@ -276,32 +275,6 @@ export default function DashboardNew() {
               ))}
             </div>
           </div>
-
-          {isPaid && (
-            <div>
-              <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">Professional</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <button
-                  onClick={() => setLocation("/care-team")}
-                  className="group flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-blue-500/30 hover:bg-black/60 transition-all"
-                >
-                  <div className="p-2.5 rounded-lg bg-blue-500/10">
-                    <Briefcase className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <span className="text-sm font-medium text-white">Care Team</span>
-                </button>
-                <button
-                  onClick={() => setLocation("/pro-portal")}
-                  className="group flex items-center gap-3 p-4 rounded-xl bg-black/40 border border-white/10 hover:border-blue-500/30 hover:bg-black/60 transition-all"
-                >
-                  <div className="p-2.5 rounded-lg bg-blue-500/10">
-                    <Activity className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <span className="text-sm font-medium text-white">Pro Portal</span>
-                </button>
-              </div>
-            </div>
-          )}
 
           <MedicalSourcesInfo
             trigger={

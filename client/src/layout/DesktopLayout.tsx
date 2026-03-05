@@ -8,9 +8,7 @@ import {
   ShoppingCart,
   Refrigerator,
   Heart,
-  Briefcase,
-  Users,
-  Building2,
+  Activity,
   CreditCard,
   Settings,
   MoreHorizontal,
@@ -45,13 +43,7 @@ const navSections: NavSection[] = [
     items: [
       { path: "/shopping-list", label: "Shopping List", icon: ShoppingCart },
       { path: "/saved-meals", label: "Saved Meals", icon: Heart },
-    ],
-  },
-  {
-    label: "PROFESSIONAL",
-    items: [
-      { path: "/care-team", label: "Care Team", icon: Users },
-      { path: "/pro-portal", label: "Pro Portal", icon: Building2 },
+      { path: "/my-biometrics", label: "My Biometrics", icon: Activity },
     ],
   },
 ];

@@ -27,6 +27,18 @@ const FULL_SCREEN_ROUTES = [
   "/founders",
 ];
 
+const DESKTOP_DOMAINS = [
+  "app.myperfectmeals.com",
+];
+
+function isDesktopDomain(): boolean {
+  const host = window.location.hostname;
+  if (DESKTOP_DOMAINS.includes(host)) return true;
+  if (host === "localhost" || host === "127.0.0.1") return true;
+  if (host.endsWith(".replit.dev") || host.endsWith(".replit.app")) return true;
+  return false;
+}
+
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const isDesktop = useIsDesktop();
@@ -35,7 +47,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     (r) => location === r || location.startsWith(r + "/")
   );
 
-  if (!isDesktop || isFullScreen) {
+  if (!isDesktop || isFullScreen || !isDesktopDomain()) {
     return <MobileLayout>{children}</MobileLayout>;
   }
 
