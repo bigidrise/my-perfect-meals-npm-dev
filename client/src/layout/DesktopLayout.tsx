@@ -1,8 +1,13 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import DesktopHeader from "./DesktopHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
+import { useCopilot } from "@/components/copilot/CopilotContext";
+import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
+import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
+import { isGuestMode } from "@/lib/guestMode";
+import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
 import {
   LayoutDashboard,
   Calendar,
@@ -33,6 +38,32 @@ export default function DesktopLayout({ children }: Props) {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
+  const { open, close, isOpen, setLastResponse } = useCopilot();
+
+  const handleChefClick = useCallback(() => {
+    if (isOpen) {
+      close();
+      return;
+    }
+
+    const normalizedPath = location.replace(/\/+$/, "").split("?")[0];
+    const explanation = getGuestPageExplanation(normalizedPath, isGuestMode());
+
+    CopilotExplanationStore.resetPath(normalizedPath);
+
+    open();
+
+    if (explanation) {
+      setTimeout(() => {
+        setLastResponse({
+          title: explanation.title,
+          description: explanation.description,
+          spokenText: explanation.spokenText,
+          autoClose: false,
+        });
+      }, 300);
+    }
+  }, [isOpen, open, close, location, setLastResponse]);
 
   const isProfessional =
     user?.professionalRole === "physician" ||
@@ -110,6 +141,10 @@ export default function DesktopLayout({ children }: Props) {
               </Link>
             );
           })}
+
+          <div className="pt-4 flex justify-center">
+            <ChefEmojiButton onClick={handleChefClick} size={48} />
+          </div>
         </nav>
 
         {isProfessional && (
