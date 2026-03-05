@@ -357,7 +357,7 @@ export default function BeverageCreator() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-blue-600 to-black/80 pb-safe-nav"
+        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
       >
         <div
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -550,7 +550,7 @@ export default function BeverageCreator() {
               ) : (
                 <GlassButton
                   onClick={() => handleGenerateBeverage()}
-                  className="w-full bg-blue-600 flex items-center justify-center"
+                  className="w-full bg-lime-600 flex items-center justify-center"
                 >
                   Create My Drink
                 </GlassButton>
