@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface ProCareFeature {
   title: string;
@@ -30,6 +31,7 @@ type ConnectedResult = {
 export default function MorePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
+  const isDesktop = useIsDesktop();
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
 
@@ -239,22 +241,22 @@ export default function MorePage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-20 flex flex-col"
     >
-      {/* Header Banner - ProCare */}
-      <div
-        className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-          <div className="px-6 py-3 flex items-center gap-3">
-          <Crown className="h-6 w-6 text-orange-500" />
-          <h1 className="text-lg font-bold text-white flex-1">More</h1>
-          
+      {!isDesktop && (
+        <div
+          className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+            <div className="px-6 py-3 flex items-center gap-3">
+            <Crown className="h-6 w-6 text-orange-500" />
+            <h1 className="text-lg font-bold text-white flex-1">More</h1>
+            
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Main Content */}
       <div
         className="flex-1 px-4 py-8"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
           {/* Hero Image Section */}

@@ -6,6 +6,7 @@ import { Calendar, Activity, Pill, Trophy, Lock, Dumbbell, Utensils } from "luci
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface PlannerFeature {
   title: string;
@@ -18,6 +19,7 @@ interface PlannerFeature {
 
 export default function Planner() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { user, refreshUser } = useAuth();
 
   useEffect(() => {
@@ -144,21 +146,21 @@ export default function Planner() {
       transition={{ duration: 0.6 }}
       className="min-h-full bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav flex flex-col"
     >
-          {/* Header Banner - Planner */}
-          <div
-            className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
-            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-          >
-              <div className="px-8 pb-3 flex items-center gap-3">
-              <Calendar className="h-6 w-6 text-orange-500" />
-              <h1 className="text-lg font-bold text-white">Planner</h1>
+          {!isDesktop && (
+            <div
+              className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+              style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+            >
+                <div className="px-8 pb-3 flex items-center gap-3">
+                <Calendar className="h-6 w-6 text-orange-500" />
+                <h1 className="text-lg font-bold text-white">Planner</h1>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Main Content */}
           <div
             className="flex-1 px-4 py-8"
-            style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+            style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
           >
             <div className="max-w-2xl mx-auto space-y-4">
               {/* Needs Onboarding Banner */}

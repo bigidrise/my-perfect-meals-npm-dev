@@ -12,6 +12,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { isPublicProduction, getGatedMessage } from "@/lib/productionGates";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface AIFeature {
   title: string;
@@ -25,6 +26,7 @@ interface AIFeature {
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
@@ -85,21 +87,21 @@ export default function LifestyleLandingPage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-20 flex flex-col"
     >
-      {/* Header */}
-      <div
-        className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-8 py-3 flex items-center gap-3">
-          <Sparkles className="h-6 w-6 text-orange-500" />
-          <h1 className="text-lg font-bold text-white">Lifestyle</h1>
+      {!isDesktop && (
+        <div
+          className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-8 py-3 flex items-center gap-3">
+            <Sparkles className="h-6 w-6 text-orange-500" />
+            <h1 className="text-lg font-bold text-white">Lifestyle</h1>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Content */}
       <div
         className="flex-1 px-4 py-8"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
           {/* Hero */}
