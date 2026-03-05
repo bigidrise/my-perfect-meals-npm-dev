@@ -110,10 +110,13 @@ export default function DesktopLayout({ children }: Props) {
       <aside className="w-60 shrink-0 bg-black border-r border-white/10 flex flex-col overflow-y-auto">
 
         <div className="px-5 pt-5 pb-4">
-          <div className="text-lg font-bold tracking-tight">
+          <div className="flex items-center justify-center pb-3">
+            <ChefEmojiButton onClick={handleChefClick} size={48} />
+          </div>
+          <div className="text-lg font-bold tracking-tight text-center">
             My Perfect Meals
           </div>
-          <div className="text-[11px] text-white/40 mt-0.5">
+          <div className="text-[11px] text-white/40 mt-0.5 text-center">
             Coach in Your Pocket
           </div>
         </div>
@@ -142,9 +145,6 @@ export default function DesktopLayout({ children }: Props) {
             );
           })}
 
-          <div className="pt-4 flex justify-center">
-            <ChefEmojiButton onClick={handleChefClick} size={48} />
-          </div>
         </nav>
 
         {isProfessional && (
