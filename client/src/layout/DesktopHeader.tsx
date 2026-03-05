@@ -10,6 +10,8 @@ const ROUTE_TITLES: Record<string, string> = {
   "/shopping-list-v2": "Shopping List",
   "/fridge-rescue": "Fridge Rescue",
   "/saved-meals": "Saved Meals",
+  "/care-team": "Care Team",
+  "/pro-portal": "Pro Portal",
   "/profile": "Settings",
   "/more": "More",
   "/my-biometrics": "My Biometrics",

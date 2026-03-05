@@ -9,6 +9,8 @@ import {
   Refrigerator,
   Heart,
   Activity,
+  Users,
+  Building2,
   CreditCard,
   Settings,
   MoreHorizontal,
@@ -44,6 +46,13 @@ const navSections: NavSection[] = [
       { path: "/shopping-list", label: "Shopping List", icon: ShoppingCart },
       { path: "/saved-meals", label: "Saved Meals", icon: Heart },
       { path: "/my-biometrics", label: "My Biometrics", icon: Activity },
+    ],
+  },
+  {
+    label: "PROFESSIONAL",
+    items: [
+      { path: "/care-team", label: "Care Team", icon: Users },
+      { path: "/pro-portal", label: "Pro Portal", icon: Building2 },
     ],
   },
 ];
