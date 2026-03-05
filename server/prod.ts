@@ -137,6 +137,7 @@ async function initializeApp() {
       const isProductionOrigin = origin && (
         origin === 'https://myperfectmeals.com' ||
         origin === 'https://www.myperfectmeals.com' ||
+        origin === 'https://app.myperfectmeals.com' ||
         origin.endsWith('.vercel.app')
       );
 

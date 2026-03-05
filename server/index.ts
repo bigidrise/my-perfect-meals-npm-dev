@@ -104,8 +104,9 @@ app.use((req, res, next) => {
     'https://my-perfect-meals-frontend-clean.vercel.app',
     'https://myperfectmeals.com',
     'https://www.myperfectmeals.com',
-    'http://localhost:5173', // for local dev
-    'http://localhost:5000'  // for Replit dev
+    'https://app.myperfectmeals.com',
+    'http://localhost:5173',
+    'http://localhost:5000'
   ];
 
   const origin = req.headers.origin;
@@ -173,9 +174,10 @@ app.use((req, res, next) => {
     "http://localhost:5173",
     "http://localhost:5000",
     "http://127.0.0.1:5000",
-    // Vercel production domain
+    // Production domains
     "https://myperfectmeals.com",
     "https://www.myperfectmeals.com",
+    "https://app.myperfectmeals.com",
     // Capacitor iOS/Android native app origins
     "capacitor://localhost",
     "ionic://localhost",
