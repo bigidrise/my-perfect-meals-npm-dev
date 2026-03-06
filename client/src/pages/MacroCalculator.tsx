@@ -547,6 +547,12 @@ export default function MacroCounter() {
   const [weightKg, setWeightKg] = useState<number>(
     savedSettings?.weightKg ?? 72.5,
   );
+  const [waistIn, setWaistIn] = useState<number>(
+    savedSettings?.waistIn ?? 0,
+  );
+  const [waistCm, setWaistCm] = useState<number>(
+    savedSettings?.waistCm ?? 0,
+  );
   const [activity, setActivity] = useState<keyof typeof ACTIVITY_FACTORS | "">(
     savedSettings?.activity ?? "sedentary",
   );
@@ -807,6 +813,8 @@ export default function MacroCounter() {
         weightLbs,
         heightCm,
         weightKg,
+        waistIn,
+        waistCm,
         activity,
         proteinPerKg,
         fatPct,
@@ -831,15 +839,64 @@ export default function MacroCounter() {
     weightLbs,
     heightCm,
     weightKg,
+    waistIn,
+    waistCm,
     activity,
     proteinPerKg,
     fatPct,
     sugarCapMode,
   ]);
 
+  useEffect(() => {
+    if (!user?.id || user.id.startsWith("guest-")) return;
+    if (savedSettings?.waistIn || savedSettings?.waistCm) return;
+    const ctrl = new AbortController();
+    fetch(apiUrl("/api/biometrics/latest"), {
+      headers: getAuthHeaders(),
+      signal: ctrl.signal,
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.waist_circumference && data.waist_circumference > 0) {
+          const wcCm = data.waist_circumference;
+          setWaistCm(Math.round(wcCm * 10) / 10);
+          setWaistIn(Math.round(wcCm / 2.54 * 10) / 10);
+        }
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [user?.id]);
+
   const kg = units === "imperial" ? kgFromLbs(weightLbs) : weightKg;
   const cm =
     units === "imperial" ? cmFromFeetInches(heightFt, heightIn) : heightCm;
+  const waistVal = units === "imperial" ? waistIn : waistCm;
+
+  const isCalcInputValid =
+    age > 0 &&
+    cm > 0 &&
+    kg > 0 &&
+    waistVal > 0 &&
+    !!activity;
+
+  const saveWaistToBiometrics = async () => {
+    if (!user?.id || user.id.startsWith("guest-")) return;
+    try {
+      const wUnit = units === "imperial" ? "in" : "cm";
+      const wVal = units === "imperial" ? waistIn : waistCm;
+      if (!wVal || wVal <= 0) return;
+      await fetch(apiUrl("/api/biometrics/ingest"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          userId: user.id,
+          samples: [{ type: "waist_circumference", value: wVal, unit: wUnit }],
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save waist to biometrics:", err);
+    }
+  };
 
   const saveBiometricsToProfile = async () => {
     if (!user?.id || user.id.startsWith("guest-")) return;
@@ -864,8 +921,7 @@ export default function MacroCounter() {
   };
 
   const results = useMemo(() => {
-    // Don't calculate until activity is selected
-    if (!activity) return null;
+    if (!isCalcInputValid) return null;
 
     const bmr = mifflin({ sex, kg, cm, age });
     const tdee = Math.round(
@@ -881,7 +937,7 @@ export default function MacroCounter() {
     });
     const macros = applyBodyTypeTilt(base, bodyType);
     return { bmr, tdee, target, macros };
-  }, [sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
+  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
 
   // Dispatch "completed" event when results are calculated (500ms debounce)
   useEffect(() => {
@@ -1424,8 +1480,69 @@ export default function MacroCounter() {
                       }}
                     />
                     <Button
-                      onClick={() => advanceGuided("activity")}
+                      onClick={() => advanceGuided("waist")}
                       disabled={units === "imperial" ? !weightLbs : !weightKg}
+                      className="
+                        w-full py-4
+                        bg-black/30
+                        text-white font-semibold text-lg
+                        rounded-xl
+                        border border-white/60
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                      "
+                    >
+                      Continue
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {guidedStep === "waist" && (
+              <motion.div
+                key="guided-waist"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">
+                        Waist Measurement
+                      </h3>
+                    </div>
+                    <p className="text-white text-base">
+                      What's your waist circumference?
+                    </p>
+                    <Input
+                      type="number"
+                      placeholder={
+                        units === "imperial"
+                          ? "Enter waist in inches..."
+                          : "Enter waist in cm..."
+                      }
+                      className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
+                      value={
+                        units === "imperial" ? waistIn || "" : waistCm || ""
+                      }
+                      onChange={(e) => {
+                        const val =
+                          e.target.value === "" ? 0 : toNum(e.target.value);
+                        if (units === "imperial") {
+                          setWaistIn(val);
+                          setWaistCm(Math.round(val * 2.54 * 10) / 10);
+                        } else {
+                          setWaistCm(val);
+                          setWaistIn(Math.round((val / 2.54) * 10) / 10);
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={() => advanceGuided("activity")}
+                      disabled={!waistVal}
                       className="
                         w-full py-4
                         bg-black/30
@@ -1847,7 +1964,7 @@ export default function MacroCounter() {
                     </div>
 
                     <Button
-                      disabled={isSaving}
+                      disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
                         setIsSaving(true);
                         try {
@@ -1906,6 +2023,7 @@ export default function MacroCounter() {
                           setLocation(assignedBuilder.path);
 
                           saveBiometricsToProfile().catch(() => {});
+                          saveWaistToBiometrics().catch(() => {});
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
@@ -2295,6 +2413,45 @@ export default function MacroCounter() {
                             </div>
                           </>
                         )}
+
+                        <div className="col-span-3">
+                          <div className="text-xs text-white font-semibold">
+                            Waist ({units === "imperial" ? "in" : "cm"})
+                          </div>
+                          <Input
+                            data-testid="macro-waist"
+                            type="number"
+                            placeholder={units === "imperial" ? "e.g. 32" : "e.g. 81"}
+                            className="bg-black/60 border-white/50 text-white placeholder-white/50"
+                            value={
+                              units === "imperial"
+                                ? waistIn || ""
+                                : waistCm || ""
+                            }
+                            onChange={(e) => {
+                              const v =
+                                e.target.value === ""
+                                  ? 0
+                                  : toNum(e.target.value);
+                              if (units === "imperial") {
+                                setWaistIn(v);
+                                setWaistCm(
+                                  Math.round(v * 2.54 * 10) / 10,
+                                );
+                              } else {
+                                setWaistCm(v);
+                                setWaistIn(
+                                  Math.round((v / 2.54) * 10) / 10,
+                                );
+                              }
+                            }}
+                          />
+                          {!waistVal && (
+                            <p className="text-xs text-orange-300 mt-1">
+                              Required for calculation
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -2619,7 +2776,7 @@ export default function MacroCounter() {
                     {/* Secondary: Save & Go to Biometrics (restores original flow for weight sync) */}
                     <Button
                       data-testid="macro-save-biometrics-button"
-                      disabled={isSaving}
+                      disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
                         advance("calc");
                         setIsSaving(true);
@@ -2670,13 +2827,13 @@ export default function MacroCounter() {
                             markMacrosCompleted();
                           }
 
+                          saveBiometricsToProfile().catch(() => {});
+                          saveWaistToBiometrics().catch(() => {});
+
                           toast({
                             title: "Macro Targets Saved",
                             description: "Your biometrics have been updated.",
                           });
-
-                          // ❌ REMOVE this:
-                          // setLocation("/my-biometrics");
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
@@ -2699,7 +2856,7 @@ export default function MacroCounter() {
                     {/* Primary CTA: Use These Macros → Build Meals */}
                     <Button
                       data-testid="macro-build-meals-button"
-                      disabled={isSaving}
+                      disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
                         const interactedEvent = new CustomEvent(
                           "walkthrough:event",
@@ -2770,6 +2927,7 @@ export default function MacroCounter() {
                           setLocation(assignedBuilder.path);
 
                           saveBiometricsToProfile().catch(() => {});
+                          saveWaistToBiometrics().catch(() => {});
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
