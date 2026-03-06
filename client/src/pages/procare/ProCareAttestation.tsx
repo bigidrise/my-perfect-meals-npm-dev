@@ -135,7 +135,7 @@ export default function ProCareAttestation() {
       <div className="flex-1 overflow-y-auto px-4 pb-32">
         <div className="pt-6 pb-2">
           <button
-            onClick={() => setLocation("/procare-identity")}
+            onClick={() => setLocation("/procare-rewards")}
             className="flex items-center gap-1 text-white/60 text-sm mb-4 active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />

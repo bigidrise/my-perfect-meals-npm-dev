@@ -124,7 +124,7 @@ export default function ProCareIdentity() {
       localStorage.removeItem("procare_credential_year");
     }
 
-    setLocation("/procare-attestation");
+    setLocation("/procare-rewards");
   };
 
   return (
