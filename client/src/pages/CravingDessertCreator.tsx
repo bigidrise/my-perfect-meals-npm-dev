@@ -330,21 +330,9 @@ export default function DessertCreator() {
 
       console.log("🍨 [DESSERT] API response received:", res.status);
 
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => null);
-        console.error("🍨 Dessert Creator API Error:", res.status, errorBody);
+      const data = await res.json().catch(() => null);
 
-        if (errorBody?.error === "ALLERGY_SAFETY_BLOCK") {
-          throw new Error(`🚨 Safety Alert: ${errorBody.message}`);
-        }
-
-        throw new Error(errorBody?.error || "Generation failed");
-      }
-
-      const data = await res.json();
-
-      // Check for safety blocks/ambiguous - show banner instead of error
-      if (data.safetyBlocked || data.safetyAmbiguous) {
+      if (data?.safetyBlocked || data?.safetyAmbiguous) {
         stopProgressTicker();
         setIsGenerating(false);
         setSafetyAlert({
@@ -359,9 +347,19 @@ export default function DessertCreator() {
         return;
       }
 
-      // Auto-reset safety to ON after generation attempt
       setSafetyEnabled(true);
       clearSafetyAlert();
+
+      if (!res.ok) {
+        console.error("🍨 Dessert Creator API Error:", res.status, data);
+
+        if (data?.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+
+        throw new Error(data?.error || "Generation failed");
+      }
+
       console.log("🍨 [DESSERT] Parsed response data:", data);
       const meal = data.meal || data;
 

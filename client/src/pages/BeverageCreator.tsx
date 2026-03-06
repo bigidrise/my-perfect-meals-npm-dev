@@ -279,36 +279,36 @@ export default function BeverageCreator() {
 
       console.log("🍹 [BEVERAGE] API response received:", res.status);
 
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => null);
-        console.error("🍹 Beverage Creator API Error:", res.status, errorBody);
+      const data = await res.json().catch(() => null);
 
-        if (errorBody?.safetyBlocked || errorBody?.safetyAmbiguous) {
-          stopProgressTicker();
-          setIsGenerating(false);
-          setSafetyAlert({
-            show: true,
-            result: errorBody.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
-            blockedTerms: errorBody.blockedTerms || [],
-            blockedCategories: [],
-            ambiguousTerms: errorBody.ambiguousTerms || [],
-            message: errorBody.error || "Safety alert detected",
-            suggestion: errorBody.suggestion,
-          });
-          return;
-        }
-
-        if (errorBody?.error === "ALLERGY_SAFETY_BLOCK") {
-          throw new Error(`🚨 Safety Alert: ${errorBody.message}`);
-        }
-
-        throw new Error(errorBody?.error || "Generation failed");
+      if (data?.safetyBlocked || data?.safetyAmbiguous) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        setSafetyAlert({
+          show: true,
+          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+          blockedTerms: data.blockedTerms || [],
+          blockedCategories: [],
+          ambiguousTerms: data.ambiguousTerms || [],
+          message: data.error || "Safety alert detected",
+          suggestion: data.suggestion,
+        });
+        return;
       }
-
-      const data = await res.json();
 
       setSafetyEnabled(true);
       clearSafetyAlert();
+
+      if (!res.ok) {
+        console.error("🍹 Beverage Creator API Error:", res.status, data);
+
+        if (data?.error === "ALLERGY_SAFETY_BLOCK") {
+          throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+
+        throw new Error(data?.error || "Generation failed");
+      }
+
       console.log("🍹 [BEVERAGE] Parsed response data:", data);
       const meal = data.meal || data;
 
