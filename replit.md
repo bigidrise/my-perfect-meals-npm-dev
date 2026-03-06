@@ -112,6 +112,17 @@ The application is a full-stack TypeScript project with a focus on personalized 
     - `mpm:user-updated` event dispatched after purchase → `AuthContext` listener calls `refreshUser()` to sync React state with server.
     - Server (`iosVerify.ts`) returns complete `safeUser` with `role`, `onboardingCompletedAt`, `selectedMealBuilder`, `activeBoard`, `profilePhotoUrl`, `nickname`.
     - Defensive JSON parsing on all `response.json()` calls to prevent crashes from non-JSON error responses.
+- **Compliance Engine Architecture**:
+    - `server/services/complianceEngine.ts`: Pure service with `getUserCompliance(userId, windowDays)`.
+    - Calculates 7-day (configurable, max 30) rolling compliance score from existing macro pipeline.
+    - Weighted score: calories 40%, protein 40%, logging consistency 20%.
+    - Uses locked-day priority CTE (same as `daily-with-source`) — no second macro pipeline.
+    - Endpoint: `GET /api/users/:userId/compliance?window=N` in `manualMacros.ts`.
+    - Access: self-access + care-team/client-links (same pattern as macro endpoints).
+    - Edge cases: no targets → `{complianceScore: null, reason: "no_targets"}`, no logs → zeros.
+    - Dashboard card: `client/src/components/dashboard/ComplianceCard.tsx` renders on home dashboard between hero and Medical Sources.
+    - Color thresholds: >=90 green, 70-89 yellow, <70 red.
+    - React Query with 5-min staleTime. Card click → `/my-biometrics` (or `/macro-counter` if no targets).
 - **Studio Metrics Architecture**:
     - Studio reads DATABASE only, never localStorage. Consumer pages (my-biometrics, macro-calculator) are coach's personal space.
     - `StudioMetricsSnapshot` shows macro targets (from proStore), today's logged macros, and body composition via database APIs.

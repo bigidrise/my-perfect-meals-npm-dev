@@ -40,6 +40,7 @@ import { TrialBanner } from "@/components/TrialBanner";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 
 interface FeatureCard {
   title: string;
@@ -227,6 +228,10 @@ export default function DashboardNew() {
               </div>
             </div>
           </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }} className="mb-4">
+          <ComplianceCard userId={user?.id} />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }} className="mb-4">
