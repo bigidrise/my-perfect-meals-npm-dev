@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiUrl } from '@/lib/resolveApiBase';
+import { getAuthHeaders } from '@/lib/auth';
 
 interface PushSubscriptionData {
   endpoint: string;
@@ -89,9 +90,9 @@ export function usePushNotifications(userId?: string): UsePushNotificationsResul
 
       const response = await fetch(apiUrl('/api/push/subscribe'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
         body: JSON.stringify({
-          userId,
           subscription: subscriptionData
         })
       });
@@ -128,8 +129,9 @@ export function usePushNotifications(userId?: string): UsePushNotificationsResul
       // Notify server of unsubscription
       const response = await fetch(apiUrl('/api/push/unsubscribe'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({})
       });
 
       if (!response.ok) {

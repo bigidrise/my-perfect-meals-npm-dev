@@ -23,7 +23,12 @@ export const activityActionEnum = pgEnum("activity_action", [
   "settings_changed",
   "invite_sent",
   "invite_accepted",
-  "note_added"
+  "note_added",
+  "message_sent",
+  "message_deleted",
+  "note_deleted",
+  "message_blocked",
+  "message_flagged"
 ]);
 
 export const studios = pgTable("studios", {

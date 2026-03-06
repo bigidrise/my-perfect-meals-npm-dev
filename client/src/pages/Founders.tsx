@@ -96,6 +96,78 @@ export default function Founder() {
             is long-term confidence with food.
           </p>
         </section>
+        {/* MEDICAL COMPLIANCE */}
+        <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-2xl font-semibold mb-6">Medical Compliance</h2>
+
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-sm ring-1 ring-white/20">
+              Photo
+            </div>
+
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                Dr. Lindsey Prescher, MD
+              </h3>
+
+              <p className="text-orange-400 text-sm font-medium">
+                Chief Medical Compliance Officer
+              </p>
+
+              <p className="text-white/70 text-sm mt-1">
+                Cardiothoracic Surgeon
+              </p>
+            </div>
+          </div>
+        </section>
+        {/* LEGAL ADVISORY */}
+        <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-2xl font-semibold mb-6">Legal Advisory</h2>
+
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-sm ring-1 ring-white/20">
+              Photo
+            </div>
+
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                Mark Sherman
+              </h3>
+
+              <p className="text-orange-400 text-sm font-medium">
+                Legal Counsel
+              </p>
+
+              <p className="text-white/70 text-sm mt-1">
+                Legal Advisory & Regulatory Guidance
+              </p>
+            </div>
+          </div>
+        </section>
+        {/* FOUNDING COACHES */}
+        <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-2xl font-semibold mb-6">Founding Coaches</h2>
+
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-sm ring-1 ring-white/20">
+              Photo
+            </div>
+
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                Kristen Bogan
+              </h3>
+
+              <p className="text-orange-400 text-sm font-medium">
+                Founding Coach
+              </p>
+
+              <p className="text-white/70 text-sm mt-1">
+                Performance & Nutrition Coaching
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* CONTACT */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl text-center">

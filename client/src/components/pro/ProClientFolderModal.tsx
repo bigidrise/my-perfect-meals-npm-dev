@@ -89,6 +89,7 @@ export default function ProClientFolderModal({
   const [translatingId, setTranslatingId] = useState<string | null>(null);
   const msgScrollRef = useRef<HTMLDivElement>(null);
   const noteScrollRef = useRef<HTMLDivElement>(null);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
 
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const clientId = resolvedClientId || client?.clientUserId || client?.userId || null;
@@ -140,8 +141,21 @@ export default function ProClientFolderModal({
         return;
       }
       const data = await res.json();
-      setMessages(data.messages || []);
+      const msgs: TabletEntry[] = data.messages || [];
+      setMessages(msgs);
       setNotes(data.notes || []);
+
+      const lastSeenKey = `mpm.tablet.lastSeen.${clientId}`;
+      const lastSeen = localStorage.getItem(lastSeenKey);
+      const clientMsgs = msgs.filter((m) => m.sender === "client");
+      if (clientMsgs.length > 0) {
+        const latestClientMsg = clientMsgs[clientMsgs.length - 1];
+        const latestTime = new Date(latestClientMsg.createdAt).getTime();
+        const seenTime = lastSeen ? parseInt(lastSeen, 10) : 0;
+        setHasUnreadMessages(latestTime > seenTime);
+      } else {
+        setHasUnreadMessages(false);
+      }
     } catch {
       setError("Failed to load tablet");
     } finally {
@@ -168,6 +182,13 @@ export default function ProClientFolderModal({
   }, [open, clientId, fetchTablet]);
 
   useEffect(() => {
+    if (activeTab === "messages" && clientId && hasUnreadMessages) {
+      localStorage.setItem(`mpm.tablet.lastSeen.${clientId}`, Date.now().toString());
+      setHasUnreadMessages(false);
+    }
+  }, [activeTab, clientId, hasUnreadMessages]);
+
+  useEffect(() => {
     if (activeTab === "messages" && msgScrollRef.current) {
       msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
     }
@@ -186,7 +207,14 @@ export default function ProClientFolderModal({
         credentials: "include",
         body: JSON.stringify({ body: msgInput.trim() }),
       });
-      if (!res.ok) throw new Error("Failed to send");
+      if (!res.ok) {
+        if (res.status === 422) {
+          const errData = await res.json().catch(() => ({}));
+          setError(errData.error || "Message blocked by content policy");
+          return;
+        }
+        throw new Error("Failed to send");
+      }
       const data = await res.json();
       setMessages((prev) => [...prev, data.entry]);
       setMsgInput("");
@@ -385,6 +413,9 @@ export default function ProClientFolderModal({
                 >
                   <MessageSquare className="w-3 h-3" />
                   Messages
+                  {hasUnreadMessages && activeTab !== "messages" && (
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                  )}
                 </button>
                 <button
                   onClick={() => setActiveTab("notes")}

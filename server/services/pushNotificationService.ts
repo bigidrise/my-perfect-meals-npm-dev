@@ -4,7 +4,7 @@ import { storage } from '../storage';
 // VAPID keys for push notifications
 const vapidKeys = {
   publicKey: 'BOX8GMIv1Y8E14t5Vc9elEjswXS-N-xvRVjqUsV2dGQwyXH0yyXvVUD94nyocUyG-V8f2Gdj4tfVzYaxKNHybqg',
-  privateKey: process.env.VAPID_PRIVATE_KEY || 'eL1DYWIqgUTnsxfS9uXe17YgnqzOT7SUONeJym_liNE'
+  privateKey: process.env.VAPID_PRIVATE_KEY || ''
 };
 
 webpush.setVapidDetails(

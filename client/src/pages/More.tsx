@@ -49,6 +49,7 @@ export default function MorePage() {
   const [tabletInput, setTabletInput] = useState("");
   const [tabletSending, setTabletSending] = useState(false);
   const [tabletTranslatingId, setTabletTranslatingId] = useState<string | null>(null);
+  const [tabletHasUnread, setTabletHasUnread] = useState(false);
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
 
@@ -71,7 +72,19 @@ export default function MorePage() {
         return;
       }
       const data = await res.json();
-      setTabletMessages(data.messages || []);
+      const msgs = data.messages || [];
+      setTabletMessages(msgs);
+
+      const lastSeenKey = "mpm.tablet.client.lastSeen";
+      const lastSeen = localStorage.getItem(lastSeenKey);
+      const coachMsgs = msgs.filter((m: any) => m.sender === "pro");
+      if (coachMsgs.length > 0) {
+        const latestTime = new Date(coachMsgs[coachMsgs.length - 1].createdAt).getTime();
+        const seenTime = lastSeen ? parseInt(lastSeen, 10) : 0;
+        setTabletHasUnread(latestTime > seenTime);
+      } else {
+        setTabletHasUnread(false);
+      }
     } catch {
       setTabletError("Failed to load messages");
     } finally {
@@ -90,7 +103,14 @@ export default function MorePage() {
         credentials: "include",
         body: JSON.stringify({ body: tabletInput.trim() }),
       });
-      if (!res.ok) throw new Error("Failed to send");
+      if (!res.ok) {
+        if (res.status === 422) {
+          const errData = await res.json().catch(() => ({}));
+          setTabletError(errData.error || "Message blocked by content policy");
+          return;
+        }
+        throw new Error("Failed to send");
+      }
       const data = await res.json();
       setTabletMessages((prev) => [...prev, data.entry]);
       setTabletInput("");
@@ -154,10 +174,20 @@ export default function MorePage() {
   };
 
   useEffect(() => {
+    if (isProCareClient && !tabletOpen) {
+      fetchClientTablet();
+      const bgInterval = setInterval(fetchClientTablet, 30000);
+      return () => clearInterval(bgInterval);
+    }
+  }, [isProCareClient, tabletOpen, fetchClientTablet]);
+
+  useEffect(() => {
     if (tabletOpen && isProCareClient) {
       tabletInitialLoad.current = true;
       fetchClientTablet();
       const interval = setInterval(fetchClientTablet, 10000);
+      localStorage.setItem("mpm.tablet.client.lastSeen", Date.now().toString());
+      setTabletHasUnread(false);
       return () => clearInterval(interval);
     }
   }, [tabletOpen, isProCareClient, fetchClientTablet]);
@@ -456,8 +486,11 @@ export default function MorePage() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-purple-500/20">
+                    <div className="p-2 rounded-lg bg-purple-500/20 relative">
                       <MessageSquare className="h-5 w-5 text-purple-400" />
+                      {tabletHasUnread && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <h3 className="text-sm font-semibold text-white">Messages From Your Coach</h3>

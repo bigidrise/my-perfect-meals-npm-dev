@@ -2,7 +2,8 @@ import { sendPushToSubscription } from "./push";
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { studios, studioMemberships } from "../db/schema/studio";
-import { eq } from "drizzle-orm";
+import { clientLinks } from "../db/schema/procare";
+import { eq, and } from "drizzle-orm";
 
 interface PushPayload {
   title: string;
@@ -54,9 +55,20 @@ export async function pushToCoachOfClient(clientUserId: string, payload: PushPay
       .where(eq(studioMemberships.clientUserId, clientUserId))
       .limit(1);
 
-    if (rows.length === 0) return;
+    if (rows.length > 0) {
+      await pushToUser(rows[0].ownerUserId, payload);
+      return;
+    }
 
-    await pushToUser(rows[0].ownerUserId, payload);
+    const linkRows = await db
+      .select({ proUserId: clientLinks.proUserId })
+      .from(clientLinks)
+      .where(and(eq(clientLinks.clientUserId, clientUserId), eq(clientLinks.active, true)))
+      .limit(1);
+
+    if (linkRows.length > 0) {
+      await pushToUser(linkRows[0].proUserId, payload);
+    }
   } catch (error) {
     console.error(`Push to coach of client ${clientUserId} failed:`, error);
   }

@@ -2,8 +2,12 @@ import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { clientNotes, studios, studioMemberships } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
+import { users } from "../../shared/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { moderateContent } from "../services/tabletModerationService";
+import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
+import { logClientActivity } from "../services/activityLog";
 
 const router = Router();
 
@@ -41,6 +45,14 @@ async function getStudioIdByMembership(clientUserId: string): Promise<string | n
   return membership?.studioId ?? null;
 }
 
+async function resolveStudioId(clientUserId: string): Promise<string | null> {
+  const link = await getActiveProLink(clientUserId);
+  if (link) {
+    return await getStudioIdByOwner(link.proUserId);
+  }
+  return await getStudioIdByMembership(clientUserId);
+}
+
 router.get("/", async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
@@ -48,15 +60,7 @@ router.get("/", async (req: Request, res: Response) => {
     return;
   }
 
-  let studioId: string | null = null;
-
-  const link = await getActiveProLink(authUser.id);
-  if (link) {
-    studioId = await getStudioIdByOwner(link.proUserId);
-  } else {
-    studioId = await getStudioIdByMembership(authUser.id);
-  }
-
+  const studioId = await resolveStudioId(authUser.id);
   if (!studioId) {
     res.status(404).json({ error: "No active professional connection" });
     return;
@@ -99,18 +103,41 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  let studioId: string | null = null;
-
-  const link = await getActiveProLink(authUser.id);
-  if (link) {
-    studioId = await getStudioIdByOwner(link.proUserId);
-  } else {
-    studioId = await getStudioIdByMembership(authUser.id);
-  }
-
+  const studioId = await resolveStudioId(authUser.id);
   if (!studioId) {
     res.status(404).json({ error: "No active professional connection" });
     return;
+  }
+
+  const moderation = moderateContent(body.trim());
+  if (!moderation.allowed) {
+    logClientActivity(
+      studioId,
+      authUser.id,
+      authUser.id,
+      "message_blocked",
+      "message",
+      undefined,
+      { severity: moderation.severity, reason: moderation.reason, sender: "client" }
+    );
+    res.status(422).json({
+      error: "Message blocked due to content policy violation",
+      severity: moderation.severity,
+      reason: moderation.reason,
+    });
+    return;
+  }
+
+  if (moderation.severity === "low") {
+    logClientActivity(
+      studioId,
+      authUser.id,
+      authUser.id,
+      "message_flagged",
+      "message",
+      undefined,
+      { severity: moderation.severity, reason: moderation.reason, sender: "client" }
+    );
   }
 
   const [entry] = await db
@@ -134,6 +161,25 @@ router.post("/message", async (req: Request, res: Response) => {
       createdAt: clientNotes.createdAt,
     });
 
+  logClientActivity(
+    studioId,
+    authUser.id,
+    authUser.id,
+    "message_sent",
+    "message",
+    entry.id,
+    { sender: "client" }
+  );
+
+  const [clientUser] = await db
+    .select({ firstName: users.firstName, nickname: users.nickname })
+    .from(users)
+    .where(eq(users.id, authUser.id))
+    .limit(1);
+  const clientName = clientUser?.nickname || clientUser?.firstName || "Client";
+
+  notifyProfessionalOfMessage(authUser.id, clientName);
+
   res.status(201).json({ entry });
 });
 
@@ -145,6 +191,8 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
   }
 
   const { entryId } = req.params;
+
+  const studioId = await resolveStudioId(authUser.id);
 
   const [deleted] = await db
     .delete(clientNotes)
@@ -161,6 +209,18 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
   if (!deleted) {
     res.status(404).json({ error: "Entry not found" });
     return;
+  }
+
+  if (studioId) {
+    logClientActivity(
+      studioId,
+      authUser.id,
+      authUser.id,
+      "message_deleted",
+      "message",
+      entryId,
+      { deletedBy: "client" }
+    );
   }
 
   res.json({ ok: true });

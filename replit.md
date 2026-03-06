@@ -73,6 +73,12 @@ The application is a full-stack TypeScript project focused on personalized nutri
 -   **Studio Metrics Architecture**: Studio reads directly from the database for macro targets, logged macros, and body composition. `ProClientWeightSnapshot` displays weight trends.
 -   **Program Adjustment History**: `macro_program_history` table stores historical macro target changes. Every macro target save inserts a history row. An API endpoint `/api/pro/clients/:clientId/program-history` provides this data.
 -   **Macro Targets Auth**: Both GET and POST `/api/users/:userId/macro-targets` require `requireAuth` and `assertSelfOrProAccess` for secure data access.
+-   **Tablet Communication Layer**: Full coach-client messaging system via `client_notes` table with `proTabletRoutes.ts` (pro side) and `clientTabletRoutes.ts` (client side).
+    -   **Moderation**: `tabletModerationService.ts` — server-side blocklist/regex with severity levels (high=blocked, medium=blocked, low=flagged+allowed). Returns `{allowed, severity, reason, matchedTerms}`. Blocked messages return 422 and are logged as `message_blocked` in audit. Low-severity messages are `message_flagged`.
+    -   **Notifications**: `tabletNotificationService.ts` — three functions: `notifyClientOfMessage()`, `notifyProfessionalOfMessage()`, `notifyClientOfNote()`. Fire post-commit, non-blocking. Reuses existing `pushToUser`/`pushToCoachOfClient` infrastructure.
+    -   **Audit Logging**: Extended `activity_action` enum with `message_sent`, `message_deleted`, `note_deleted`, `message_blocked`, `message_flagged`. All tablet operations logged via `logClientActivity`.
+    -   **Unread Indicators**: Pro side uses `mpm.tablet.lastSeen.<clientId>` localStorage; client side uses `mpm.tablet.client.lastSeen`. Orange pulsing badge on Messages tab (pro) and tablet card (client). Poll-driven (10s active, 30s background), works without push.
+    -   **Push Route Security**: All `/api/push/*` routes now require `requireAuth`. UserId derived from session, not request body. Hardcoded VAPID private key fallback removed.
 
 ## External Dependencies
 -   **PostgreSQL**: Primary database (Neon-backed).

@@ -6,7 +6,9 @@ type ActivityAction =
   | "membership_created" | "membership_activated" | "membership_paused"
   | "builder_assigned" | "board_created" | "board_updated" | "board_deleted"
   | "program_updated" | "macros_updated" | "settings_changed"
-  | "invite_sent" | "invite_accepted" | "note_added";
+  | "invite_sent" | "invite_accepted" | "note_added"
+  | "message_sent" | "message_deleted" | "note_deleted"
+  | "message_blocked" | "message_flagged";
 
 export async function logClientActivity(
   studioId: string,

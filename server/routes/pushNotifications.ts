@@ -1,26 +1,26 @@
 import { Router } from 'express';
 import { PushNotificationService } from '../services/pushNotificationService';
+import { requireAuth, AuthenticatedRequest } from '../middleware/requireAuth';
 
 const router = Router();
 
-// Get VAPID public key for client subscription
 router.get('/vapid-key', (req, res) => {
   res.json({ publicKey: PushNotificationService.getVapidPublicKey() });
 });
 
-// Subscribe to push notifications
-router.post('/subscribe', async (req, res) => {
+router.post('/subscribe', requireAuth, async (req, res) => {
   try {
-    const { userId, subscription } = req.body;
-    
-    if (!userId || !subscription) {
-      return res.status(400).json({ 
-        error: 'userId and subscription are required' 
+    const authUser = (req as AuthenticatedRequest).authUser;
+    const { subscription } = req.body;
+
+    if (!subscription) {
+      return res.status(400).json({
+        error: 'subscription is required'
       });
     }
 
-    const result = await PushNotificationService.subscribeToPush(userId, subscription);
-    
+    const result = await PushNotificationService.subscribeToPush(authUser.id, subscription);
+
     if (result.success) {
       res.json({ success: true, message: 'Subscribed to push notifications' });
     } else {
@@ -32,17 +32,12 @@ router.post('/subscribe', async (req, res) => {
   }
 });
 
-// Unsubscribe from push notifications
-router.post('/unsubscribe', async (req, res) => {
+router.post('/unsubscribe', requireAuth, async (req, res) => {
   try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const authUser = (req as AuthenticatedRequest).authUser;
 
-    const result = await PushNotificationService.unsubscribe(userId);
-    
+    const result = await PushNotificationService.unsubscribe(authUser.id);
+
     if (result.success) {
       res.json({ success: true, message: 'Unsubscribed from push notifications' });
     } else {
@@ -54,23 +49,19 @@ router.post('/unsubscribe', async (req, res) => {
   }
 });
 
-// Send test notification (for development/testing)
-router.post('/test', async (req, res) => {
+router.post('/test', requireAuth, async (req, res) => {
   try {
-    const { userId, title, body } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const authUser = (req as AuthenticatedRequest).authUser;
+    const { title, body } = req.body;
 
-    const result = await PushNotificationService.sendNotification(userId, {
+    const result = await PushNotificationService.sendNotification(authUser.id, {
       title: title || 'Test Notification',
       body: body || 'This is a test notification from My Perfect Meals!',
       icon: '/notification-icon.png',
       tag: 'test-notification',
       url: '/dashboard'
     });
-    
+
     if (result.success) {
       res.json({ success: true, message: 'Test notification sent' });
     } else {
@@ -82,19 +73,19 @@ router.post('/test', async (req, res) => {
   }
 });
 
-// Send meal reminder notification
-router.post('/meal-reminder', async (req, res) => {
+router.post('/meal-reminder', requireAuth, async (req, res) => {
   try {
-    const { userId, mealType, time } = req.body;
-    
-    if (!userId || !mealType || !time) {
-      return res.status(400).json({ 
-        error: 'userId, mealType, and time are required' 
+    const authUser = (req as AuthenticatedRequest).authUser;
+    const { mealType, time } = req.body;
+
+    if (!mealType || !time) {
+      return res.status(400).json({
+        error: 'mealType and time are required'
       });
     }
 
-    const result = await PushNotificationService.sendMealReminder(userId, mealType, time);
-    
+    const result = await PushNotificationService.sendMealReminder(authUser.id, mealType, time);
+
     if (result.success) {
       res.json({ success: true, message: 'Meal reminder sent' });
     } else {

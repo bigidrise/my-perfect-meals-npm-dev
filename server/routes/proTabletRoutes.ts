@@ -4,6 +4,9 @@ import { clientNotes, studios } from "../db/schema/studio";
 import { eq, and, asc } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { moderateContent } from "../services/tabletModerationService";
+import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
+import { logClientActivity } from "../services/activityLog";
 
 const router = Router();
 
@@ -69,6 +72,37 @@ router.post("/:clientId/message", requireWorkspaceAccess, async (req: Request, r
     return;
   }
 
+  const moderation = moderateContent(body.trim());
+  if (!moderation.allowed) {
+    logClientActivity(
+      studioId,
+      clientId,
+      authUser.id,
+      "message_blocked",
+      "message",
+      undefined,
+      { severity: moderation.severity, reason: moderation.reason, sender: "pro" }
+    );
+    res.status(422).json({
+      error: "Message blocked due to content policy violation",
+      severity: moderation.severity,
+      reason: moderation.reason,
+    });
+    return;
+  }
+
+  if (moderation.severity === "low") {
+    logClientActivity(
+      studioId,
+      clientId,
+      authUser.id,
+      "message_flagged",
+      "message",
+      undefined,
+      { severity: moderation.severity, reason: moderation.reason, sender: "pro" }
+    );
+  }
+
   const [entry] = await db
     .insert(clientNotes)
     .values({
@@ -90,6 +124,18 @@ router.post("/:clientId/message", requireWorkspaceAccess, async (req: Request, r
       sender: clientNotes.sender,
       createdAt: clientNotes.createdAt,
     });
+
+  logClientActivity(
+    studioId,
+    clientId,
+    authUser.id,
+    "message_sent",
+    "message",
+    entry.id,
+    { sender: "pro" }
+  );
+
+  notifyClientOfMessage(clientId);
 
   res.status(201).json({ entry });
 });
@@ -132,6 +178,18 @@ router.post("/:clientId/note", requireWorkspaceAccess, async (req: Request, res:
       createdAt: clientNotes.createdAt,
     });
 
+  logClientActivity(
+    studioId,
+    clientId,
+    authUser.id,
+    "note_added",
+    "note",
+    entry.id,
+    { sender: "pro" }
+  );
+
+  notifyClientOfNote(clientId);
+
   res.status(201).json({ entry });
 });
 
@@ -144,6 +202,18 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
     res.status(404).json({ error: "No studio found" });
     return;
   }
+
+  const [existing] = await db
+    .select({ entryType: clientNotes.entryType })
+    .from(clientNotes)
+    .where(
+      and(
+        eq(clientNotes.id, entryId),
+        eq(clientNotes.studioId, studioId),
+        eq(clientNotes.clientUserId, clientId)
+      )
+    )
+    .limit(1);
 
   const [deleted] = await db
     .delete(clientNotes)
@@ -160,6 +230,17 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
     res.status(404).json({ error: "Entry not found" });
     return;
   }
+
+  const action = existing?.entryType === "note" ? "note_deleted" : "message_deleted";
+  logClientActivity(
+    studioId,
+    clientId,
+    authUser.id,
+    action as any,
+    existing?.entryType || "message",
+    entryId,
+    { deletedBy: "pro" }
+  );
 
   res.json({ ok: true });
 });
