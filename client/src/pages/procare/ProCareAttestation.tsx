@@ -3,7 +3,10 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, ShieldCheck, FileCheck, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getProCareSignupData, upgradeToProCare, clearProCareSignupData } from "@/lib/auth";
+import { getProCareSignupData, upgradeToProCare, clearProCareSignupData, getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { LEGAL_DOCUMENTS } from "../../../../shared/legalDocuments";
+import ProfessionalLegalModal from "@/components/pro/ProfessionalLegalModal";
 
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
@@ -26,6 +29,7 @@ export default function ProCareAttestation() {
   const [category, setCategory] = useState<ProfessionalCategory | null>(null);
   const [upgrading, setUpgrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showProfessionalModal, setShowProfessionalModal] = useState(false);
 
   const isLoggedIn = !!user;
 
@@ -42,31 +46,78 @@ export default function ProCareAttestation() {
 
   const attestationText = ATTESTATION_V1[category];
 
+  const acceptAttestationInDB = async () => {
+    const res = await fetch(apiUrl("/api/legal/accept"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      credentials: "include",
+      body: JSON.stringify({
+        documentType: "professional_attestation",
+        version: LEGAL_DOCUMENTS.attestation[0].version,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to record attestation");
+    }
+  };
+
+  const checkProfessionalDocs = async (): Promise<boolean> => {
+    const res = await fetch(apiUrl("/api/legal/status?flow=professional"), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.allAccepted === true;
+  };
+
+  const performUpgrade = async () => {
+    setUpgrading(true);
+    setError(null);
+    try {
+      const procareData = getProCareSignupData();
+      if (!procareData) {
+        setError("Missing professional information. Please go back and complete the identity step.");
+        setUpgrading(false);
+        return;
+      }
+      await upgradeToProCare(procareData);
+      clearProCareSignupData();
+      await refreshUser();
+      localStorage.setItem("coachMode", "self");
+      setLocation("/dashboard");
+    } catch (err: any) {
+      if (err.message?.includes("LEGAL_REACCEPT_REQUIRED") || err.message?.includes("legal documents")) {
+        setShowProfessionalModal(true);
+      } else {
+        setError(err.message || "Failed to upgrade account. Please try again.");
+      }
+      setUpgrading(false);
+    }
+  };
+
   const handleContinue = async () => {
     if (!accepted) return;
 
-    localStorage.setItem("procare_attestation_text", attestationText);
-    localStorage.setItem("procare_attestation_version", "v1");
-    localStorage.setItem("procare_attested_at", new Date().toISOString());
     localStorage.setItem("procare_entry_path", category);
 
     if (isLoggedIn) {
       setUpgrading(true);
       setError(null);
       try {
-        const procareData = getProCareSignupData();
-        if (!procareData) {
-          setError("Missing professional information. Please go back and complete the identity step.");
+        await acceptAttestationInDB();
+
+        const proDocsAccepted = await checkProfessionalDocs();
+        if (!proDocsAccepted) {
+          setShowProfessionalModal(true);
           setUpgrading(false);
           return;
         }
-        await upgradeToProCare(procareData);
-        clearProCareSignupData();
-        await refreshUser();
-        localStorage.setItem("coachMode", "self");
-        setLocation("/dashboard");
+
+        await performUpgrade();
       } catch (err: any) {
-        setError(err.message || "Failed to upgrade account. Please try again.");
+        setError(err.message || "Failed to process attestation. Please try again.");
         setUpgrading(false);
       }
     } else {
@@ -74,10 +125,14 @@ export default function ProCareAttestation() {
     }
   };
 
+  const handleProfessionalDocsAccepted = async () => {
+    setShowProfessionalModal(false);
+    await performUpgrade();
+  };
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-32">
-        {/* Header */}
         <div className="pt-6 pb-2">
           <button
             onClick={() => setLocation("/procare-identity")}
@@ -102,7 +157,6 @@ export default function ProCareAttestation() {
           </div>
         </div>
 
-        {/* Upgrade Notice for Logged-in Users */}
         {isLoggedIn && (
           <div className="mb-6 p-4 rounded-xl border border-emerald-400/20 bg-emerald-900/10">
             <p className="text-sm text-emerald-300">
@@ -111,7 +165,6 @@ export default function ProCareAttestation() {
           </div>
         )}
 
-        {/* Selected Role Summary */}
         <div className="mb-6 p-4 rounded-xl border border-white/10 bg-white/5">
           <div className="flex items-center gap-2 mb-1">
             <FileCheck className="w-4 h-4 text-blue-400" />
@@ -120,7 +173,6 @@ export default function ProCareAttestation() {
           <p className="text-sm font-semibold">{CATEGORY_LABELS[category]}</p>
         </div>
 
-        {/* Attestation Text */}
         <div className="mb-6 p-5 rounded-xl border border-blue-400/20 bg-blue-900/10">
           <div className="flex items-center gap-2 mb-3">
             <ShieldCheck className="w-5 h-5 text-blue-400" />
@@ -131,7 +183,6 @@ export default function ProCareAttestation() {
           </p>
         </div>
 
-        {/* Acceptance Checkbox */}
         <button
           onClick={() => setAccepted(!accepted)}
           className="w-full flex items-start gap-3 p-4 rounded-xl border border-white/10 bg-white/5 active:scale-[0.98] transition-transform"
@@ -150,14 +201,12 @@ export default function ProCareAttestation() {
           </p>
         </button>
 
-        {/* Error Message */}
         {error && (
           <div className="mt-4 p-3 rounded-xl border border-red-400/30 bg-red-900/20">
             <p className="text-sm text-red-300">{error}</p>
           </div>
         )}
 
-        {/* Trust Message */}
         <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-400/10">
           <p className="text-xs text-white/50 text-center">
             This acknowledgment is recorded for platform safety and clarity. My Perfect Meals values your professional expertise and is designed to support — not replace — your judgment.
@@ -165,7 +214,6 @@ export default function ProCareAttestation() {
         </div>
       </div>
 
-      {/* Fixed Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
         <Button
           onClick={handleContinue}
@@ -190,6 +238,11 @@ export default function ProCareAttestation() {
           )}
         </Button>
       </div>
+
+      <ProfessionalLegalModal
+        open={showProfessionalModal}
+        onAccepted={handleProfessionalDocsAccepted}
+      />
     </div>
   );
 }

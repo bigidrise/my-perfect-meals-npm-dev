@@ -1766,3 +1766,5 @@ export const macroProgramHistory = pgTable("macro_program_history", {
 }));
 
 export type MacroProgramHistory = typeof macroProgramHistory.$inferSelect;
+
+export { userDocumentAcceptance } from "../server/db/schema/legal";

@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/inviteAutoAccept";
+import { checkLegalAcceptance } from "../services/legalCheck";
 
 const router = Router();
 
@@ -145,6 +146,17 @@ router.post("/api/auth/upgrade-to-procare", requireAuth, async (req: any, res) =
     }
     if (!procare.attestationText || !procare.attestedAt) {
       return res.status(400).json({ error: "Attestation is required for professional accounts" });
+    }
+
+    const attestationCheck = await checkLegalAcceptance(userId, "attestation");
+    const professionalCheck = await checkLegalAcceptance(userId, "professional");
+    const allMissing = [...attestationCheck.missing, ...professionalCheck.missing];
+    if (allMissing.length > 0) {
+      return res.status(409).json({
+        code: "LEGAL_REACCEPT_REQUIRED",
+        missing: allMissing,
+        error: "Please accept all required legal documents before upgrading.",
+      });
     }
 
     const updateValues: any = {

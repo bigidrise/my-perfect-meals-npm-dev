@@ -8,6 +8,7 @@ import { sendCareTeamInvite } from "../services/emailService";
 import { bridgeToStudio } from "../services/studioBridge";
 import { createLink, endLink, ClientLinkError } from "../services/clientLinkService";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { checkLegalAcceptance } from "../services/legalCheck";
 
 const router = Router();
 
@@ -97,6 +98,15 @@ router.post("/connect", requireAuth, async (req, res) => {
 
     const trimmedCode = String(code).trim();
     console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}" (original: "${code}")`);
+
+    const clientCheck = await checkLegalAcceptance(userId, "client");
+    if (!clientCheck.allAccepted) {
+      return res.status(409).json({
+        code: "LEGAL_REACCEPT_REQUIRED",
+        missing: clientCheck.missing,
+        error: "Please accept all required legal documents before connecting with a coach.",
+      });
+    }
 
     const [invite] = await db
       .select()

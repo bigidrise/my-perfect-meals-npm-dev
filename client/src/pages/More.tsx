@@ -13,6 +13,7 @@ import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import ClientLegalModal from "@/components/pro/ClientLegalModal";
 
 interface ProCareFeature {
   title: string;
@@ -50,6 +51,7 @@ export default function MorePage() {
   const [tabletSending, setTabletSending] = useState(false);
   const [tabletTranslatingId, setTabletTranslatingId] = useState<string | null>(null);
   const [tabletHasUnread, setTabletHasUnread] = useState(false);
+  const [showClientLegalModal, setShowClientLegalModal] = useState(false);
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
 
@@ -258,10 +260,20 @@ export default function MorePage() {
       setConnectedResult(response);
       await refreshUser();
     } catch (e: any) {
-      setError(e?.message ?? "Invalid or expired access code.");
+      const msg = e?.message ?? "";
+      if (msg.includes("LEGAL_REACCEPT_REQUIRED") || msg.includes("legal documents")) {
+        setShowClientLegalModal(true);
+      } else {
+        setError(msg || "Invalid or expired access code.");
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleClientLegalAccepted() {
+    setShowClientLegalModal(false);
+    await connectWithCode();
   }
 
   return (
@@ -631,6 +643,11 @@ export default function MorePage() {
           </div>
         </div>
       </div>
+      <ClientLegalModal
+        open={showClientLegalModal}
+        onAccepted={handleClientLegalAccepted}
+        onCancel={() => setShowClientLegalModal(false)}
+      />
     </motion.div>
   );
 }

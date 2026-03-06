@@ -159,11 +159,9 @@ export interface ProCareSignupData {
 export function getProCareSignupData(): ProCareSignupData | null {
   const role = localStorage.getItem("procare_role") as ProCareSignupData["professionalRole"] | null;
   const category = localStorage.getItem("procare_category") as ProCareSignupData["professionalCategory"] | null;
-  const attestationText = localStorage.getItem("procare_attestation_text");
-  const attestedAt = localStorage.getItem("procare_attested_at");
   const entryPath = localStorage.getItem("procare_entry_path");
 
-  if (!role || !category || !attestationText || !attestedAt || !entryPath) return null;
+  if (!role || !category || !entryPath) return null;
 
   return {
     professionalRole: role,
@@ -172,8 +170,8 @@ export function getProCareSignupData(): ProCareSignupData | null {
     credentialBody: localStorage.getItem("procare_credential_body") || undefined,
     credentialNumber: localStorage.getItem("procare_credential_number") || undefined,
     credentialYear: localStorage.getItem("procare_credential_year") || undefined,
-    attestationText,
-    attestedAt,
+    attestationText: "Accepted via legal document system",
+    attestedAt: new Date().toISOString(),
     procareEntryPath: entryPath,
   };
 }

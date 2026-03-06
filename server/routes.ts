@@ -5855,6 +5855,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
   app.use("/api/studios", requireAuth, requirePremiumAccess, studioRoutes);
+  const legalRoutes = (await import("./routes/legalRoutes")).default;
+  app.use("/api/legal", legalRoutes);
+
   app.use("/api/founders", foundersRoutes);
   app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
   app.use("/api/users", usersProfileRouter);

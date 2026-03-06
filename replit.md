@@ -79,6 +79,15 @@ The application is a full-stack TypeScript project focused on personalized nutri
     -   **Audit Logging**: Extended `activity_action` enum with `message_sent`, `message_deleted`, `note_deleted`, `message_blocked`, `message_flagged`. All tablet operations logged via `logClientActivity`.
     -   **Unread Indicators**: Pro side uses `mpm.tablet.lastSeen.<clientId>` localStorage; client side uses `mpm.tablet.client.lastSeen`. Orange pulsing badge on Messages tab (pro) and tablet card (client). Poll-driven (10s active, 30s background), works without push.
     -   **Push Route Security**: All `/api/push/*` routes now require `requireAuth`. UserId derived from session, not request body. Hardcoded VAPID private key fallback removed.
+-   **Legal Document Acceptance System**: DB-backed legal acceptance with version enforcement.
+    -   **Registry**: `shared/legalDocuments.ts` — single source of truth for document types, versions, and flow grouping (client, professional, attestation).
+    -   **Database**: `user_document_acceptance` table stores userId, documentType, version, acceptedAt, ipAddress, userAgent. Schema in `server/db/schema/legal.ts`.
+    -   **API**: `POST /api/legal/accept` (requireAuth, userId from session), `GET /api/legal/status?flow=` returns required/accepted docs and missing list.
+    -   **Server Enforcement**: `upgrade-to-procare` checks attestation + professional docs; `care-team/connect` checks client docs. Both return 409 with missing list if docs not accepted.
+    -   **ProCare Flow**: Attestation → DB record → ProfessionalLegalModal (3 docs) → upgrade. localStorage no longer stores attestation text/version.
+    -   **Client Flow**: Connect with code → ClientLegalModal (4 docs) if 409 → retry after acceptance.
+    -   **Version Enforcement**: Bumping version in registry forces reacceptance; server rejects outdated versions.
+    -   **Legal Documents**: 7 files in `client/src/legal/` (clientCoachingAgreement, clientLiabilityWaiver, clientDataConsent, nutritionDisclaimer, coachProfessionalAgreement, coachConductPolicy, scopeOfPractice).
 
 ## External Dependencies
 -   **PostgreSQL**: Primary database (Neon-backed).
