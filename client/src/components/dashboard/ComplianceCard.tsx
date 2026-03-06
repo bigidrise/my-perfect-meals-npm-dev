@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Target, Flame, Drumstick, CalendarCheck, AlertCircle } from "lucide-react";
+import { Target, AlertCircle } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 interface ComplianceResponse {
   complianceScore: number | null;
@@ -13,6 +15,14 @@ interface ComplianceResponse {
   loggedDays7: number;
   windowDays: number;
   reason?: string;
+}
+
+interface MacroTargetsResponse {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  hasTargets: boolean;
 }
 
 function getScoreColor(score: number): string {
@@ -42,6 +52,19 @@ function getComplianceMessage(score: number | null, reason?: string, loggedDays?
   return "Low compliance. Results will stall without consistent tracking.";
 }
 
+function TargetMacrosStrip({ targets }: { targets: MacroTargetsResponse }) {
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-white/40 font-medium uppercase tracking-wide">Target Macros</div>
+      <div className="flex gap-3 text-sm">
+        <span className="text-white/70">P <span className="text-white font-semibold">{targets.protein_g}g</span></span>
+        <span className="text-white/70">C <span className="text-white font-semibold">{targets.carbs_g}g</span></span>
+        <span className="text-white/70">Fat <span className="text-white font-semibold">{targets.fat_g}g</span></span>
+      </div>
+    </div>
+  );
+}
+
 interface ComplianceCardProps {
   userId: string | undefined;
 }
@@ -52,7 +75,10 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   const { data, isLoading, isError } = useQuery<ComplianceResponse>({
     queryKey: ["compliance", userId],
     queryFn: async () => {
-      const res = await fetch(`/api/users/${userId}/compliance`);
+      const res = await fetch(apiUrl(`/api/users/${userId}/compliance`), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
       if (!res.ok) {
         throw new Error(`Compliance fetch failed: ${res.status}`);
       }
@@ -61,6 +87,22 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
     retry: 1,
+  });
+
+  const { data: targets } = useQuery<MacroTargetsResponse>({
+    queryKey: ["macro-targets", userId],
+    queryFn: async () => {
+      const res = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(`Macro targets fetch failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
   });
 
   if (!userId || isLoading) {
@@ -78,35 +120,17 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     );
   }
 
-  if (isError) {
+  if (isError || !data) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <AlertCircle className="h-6 w-6 text-white/40" />
+            <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/10 to-red-700/10 border border-red-500/20">
+              <AlertCircle className="h-6 w-6 text-red-400" />
             </div>
             <div>
               <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-white/40 text-sm">Unable to load compliance data</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data) {
-    return (
-      <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <AlertCircle className="h-6 w-6 text-white/40" />
-            </div>
-            <div>
-              <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-white/40 text-sm">Unable to load compliance data</p>
+              <p className="text-red-400/70 text-sm">Unable to load compliance data</p>
             </div>
           </div>
         </CardContent>
@@ -138,20 +162,21 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   if (data.loggedDays7 === 0) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-        <CardContent className="p-6 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/20 to-red-700/20 border border-red-500/30">
-              <Target className="h-6 w-6 text-red-400" />
+        <CardContent className="p-6 space-y-3">
+          <div className={isDesktop ? "flex items-center justify-between" : "space-y-3"}>
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/20 to-red-700/20 border border-red-500/30">
+                <Target className="h-6 w-6 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-white text-lg font-semibold">Compliance</h3>
+                <p className="text-white/40 text-xs">Last {data.windowDays} days</p>
+                <p className="text-red-400 text-2xl font-bold">0%</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-white/40 text-xs">Last {data.windowDays} days</p>
-              <p className="text-red-400 text-2xl font-bold">0%</p>
-            </div>
+            {targets?.hasTargets && <TargetMacrosStrip targets={targets} />}
           </div>
-          <p className="text-sm text-white/50">
-            No meals logged yet
-          </p>
+          <p className="text-sm text-white/50">No meals logged yet</p>
           <p className="text-sm text-white/40 italic">
             {getComplianceMessage(0, undefined, 0)}
           </p>
@@ -164,9 +189,9 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
 
   return (
     <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-      <CardContent className="p-6">
-        <div className={isDesktop ? "flex items-center gap-6" : "space-y-4"}>
-          <div className={`flex items-center gap-3 ${isDesktop ? "flex-shrink-0" : ""}`}>
+      <CardContent className="p-6 space-y-3">
+        <div className={isDesktop ? "flex items-center justify-between" : "space-y-3"}>
+          <div className="flex items-center gap-3">
             <div className={`p-3 rounded-lg bg-gradient-to-br ${getScoreBgColor(score)} border ${getScoreBorderColor(score)}`}>
               <Target className={`h-6 w-6 ${getScoreColor(score)}`} />
             </div>
@@ -176,33 +201,10 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
               <p className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</p>
             </div>
           </div>
-
-          <div className={`grid grid-cols-3 gap-3 ${isDesktop ? "flex-1" : ""}`}>
-            <div className="flex flex-col items-center p-2 rounded-lg bg-black/20 border border-white/5">
-              <Flame className={`h-4 w-4 mb-1 ${getScoreColor(data.calorieCompliance)}`} />
-              <div className="text-xs text-white/50">Calories</div>
-              <div className={`text-sm font-bold ${getScoreColor(data.calorieCompliance)}`}>
-                {data.calorieCompliance}%
-              </div>
-            </div>
-            <div className="flex flex-col items-center p-2 rounded-lg bg-black/20 border border-white/5">
-              <Drumstick className={`h-4 w-4 mb-1 ${getScoreColor(data.proteinCompliance)}`} />
-              <div className="text-xs text-white/50">Protein</div>
-              <div className={`text-sm font-bold ${getScoreColor(data.proteinCompliance)}`}>
-                {data.proteinCompliance}%
-              </div>
-            </div>
-            <div className="flex flex-col items-center p-2 rounded-lg bg-black/20 border border-white/5">
-              <CalendarCheck className={`h-4 w-4 mb-1 ${getScoreColor(data.loggingCompliance)}`} />
-              <div className="text-xs text-white/50">Logging</div>
-              <div className={`text-sm font-bold ${getScoreColor(data.loggingCompliance)}`}>
-                {data.loggingCompliance}%
-              </div>
-            </div>
-          </div>
+          {targets?.hasTargets && <TargetMacrosStrip targets={targets} />}
         </div>
 
-        <p className="text-sm text-white/50 italic mt-3">
+        <p className="text-sm text-white/50 italic">
           {getComplianceMessage(score, undefined, data.loggedDays7)}
         </p>
       </CardContent>
