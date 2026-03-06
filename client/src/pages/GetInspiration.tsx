@@ -342,7 +342,7 @@ export default function GetInspiration() {
         <div className="px-8 py-3 flex items-center gap-3">
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>Get Inspiration</span>
+            <span>Daily Journal & Inspiration</span>
           </h1>
 
           <div className="ml-auto" />

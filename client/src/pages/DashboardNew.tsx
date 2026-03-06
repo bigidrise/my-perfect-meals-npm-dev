@@ -131,7 +131,7 @@ export default function DashboardNew() {
       testId: "card-saved-meals",
     },
     {
-      title: "Get Inspiration",
+      title: "Daily Journal & Inspiration",
       description: "Daily motivation",
       icon: Lightbulb,
       route: "/get-inspiration",
