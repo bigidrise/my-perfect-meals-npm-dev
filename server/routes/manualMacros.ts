@@ -7,6 +7,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { careTeamMember } from "../db/schema/careTeam";
 import { clientLinks } from "../db/schema/procare";
 import { pushToUser, pushToCoachOfClient } from "../services/pushNotify";
+import { getUserCompliance } from "../services/complianceEngine";
 
 const router = express.Router();
 
@@ -577,6 +578,53 @@ router.get("/users/:userId/macro-logs/daily-with-source", requireAuth, async (re
   } catch (e: any) {
     console.error("daily-with-source error:", e);
     res.status(400).json({ error: e.message || "Failed to load daily." });
+  }
+});
+
+router.get("/users/:userId/compliance", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const userId = req.params.userId;
+    const authUserId = authReq.authUser.id;
+
+    if (userId !== authUserId) {
+      const [teamRow] = await db
+        .select()
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, userId),
+            eq(careTeamMember.proUserId, authUserId),
+          ),
+        )
+        .limit(1);
+
+      if (!teamRow) {
+        const [linkRow] = await db
+          .select()
+          .from(clientLinks)
+          .where(
+            and(
+              eq(clientLinks.clientUserId, userId),
+              eq(clientLinks.proUserId, authUserId),
+              eq(clientLinks.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (!linkRow) {
+          return res.status(403).json({ error: "No access to this client" });
+        }
+      }
+    }
+
+    const rawWindow = req.query.window ? parseInt(String(req.query.window), 10) : 7;
+    const windowDays = Number.isFinite(rawWindow) ? rawWindow : 7;
+    const result = await getUserCompliance(userId, windowDays);
+    res.json(result);
+  } catch (e: any) {
+    console.error("compliance error:", e);
+    res.status(500).json({ error: e.message || "Failed to compute compliance." });
   }
 });
 
