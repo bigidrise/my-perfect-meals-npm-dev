@@ -18,6 +18,31 @@ export interface SafetyGuardrails {
 const normalize = (s: string) => s.trim().toLowerCase();
 
 /**
+ * PLANT MILK SAFE LIST
+ * These compound phrases are NOT dairy and must not be blocked by the bare "milk" term.
+ * Each prefix (e.g. "almond") may still be blocked by its OWN allergen category
+ * (e.g. "almond milk" blocked for tree-nut allergy via the "almond" term, not "milk").
+ */
+export const PLANT_MILK_PREFIXES = [
+  "almond", "soy", "oat", "coconut", "cashew", "rice", "hemp",
+  "pea", "flax", "macadamia", "hazelnut", "pistachio", "walnut",
+  "banana", "quinoa", "sesame", "sunflower", "tiger nut",
+];
+
+const PLANT_MILK_PATTERN = new RegExp(
+  `\\b(${PLANT_MILK_PREFIXES.join("|")})[\\s-]+milk\\b`, "gi"
+);
+
+/**
+ * Remove plant-milk phrases from text so bare "milk" matching doesn't false-positive.
+ * Returns text with plant milks replaced by a safe placeholder.
+ */
+export function maskPlantMilks(text: string): string {
+  return text.replace(PLANT_MILK_PATTERN, "__PLANT_MILK__");
+}
+
+
+/**
  * COMPREHENSIVE ALLERGEN EXPANSION MAP
  * Maps user-selected allergies to ALL related ingredients that must be blocked
  * This is the single source of truth for allergen blocking
@@ -383,6 +408,8 @@ export function scanForViolations(
   }
   
   const fullText = textParts.join(" ").toLowerCase();
+  const maskedText = maskPlantMilks(fullText);
+  const maskedTextNormalized = maskPlantMilks(fullText.replace(/[-_]/g, ' '));
   
   // Check each forbidden ingredient
   for (const forbidden of forbiddenIngredients) {
@@ -391,7 +418,11 @@ export function scanForViolations(
     // Use word boundary matching to avoid false positives
     // e.g., "shrimp" should match "shrimp" but not "shrimply"
     const pattern = new RegExp(`\\b${escapeRegex(forbidden)}\\b`, 'i');
-    if (pattern.test(fullText)) {
+    
+    // For bare "milk", scan masked text so plant milks don't false-positive
+    // Use both original-cased and hyphen-normalized masking for compound forms like "almond-milk"
+    const textToScan = (forbidden === "milk") ? maskedTextNormalized : fullText;
+    if (pattern.test(textToScan)) {
       violations.push(forbidden);
     }
   }
@@ -465,6 +496,10 @@ export function preCheckRequest(
     .replace(/\s+/g, ' ')   // Normalize whitespace
     .trim();
   
+  // Mask plant milks so bare "milk" doesn't false-positive on "almond milk" etc.
+  const maskedRequest = maskPlantMilks(normalizedRequest);
+  const maskedOriginal = maskPlantMilks(requestText.toLowerCase());
+  
   const violations: string[] = [];
   
   for (const forbidden of forbiddenIngredients) {
@@ -473,16 +508,21 @@ export function preCheckRequest(
     // Also normalize the forbidden term
     const normalizedForbidden = forbidden.toLowerCase().replace(/[-_]/g, ' ').trim();
     
+    // For bare "milk", use masked text to avoid plant-milk false positives
+    const isBareMilk = (normalizedForbidden === "milk");
+    const textToCheck = isBareMilk ? maskedRequest : normalizedRequest;
+    const origToCheck = isBareMilk ? maskedOriginal : requestText.toLowerCase();
+    
     // Check with word boundaries (handles both original and normalized)
     const pattern = new RegExp(`\\b${escapeRegex(normalizedForbidden)}\\b`, 'i');
-    if (pattern.test(normalizedRequest)) {
+    if (pattern.test(textToCheck)) {
       violations.push(forbidden);
       continue;
     }
     
     // Also check original request for edge cases
     const originalPattern = new RegExp(`\\b${escapeRegex(forbidden)}\\b`, 'i');
-    if (originalPattern.test(requestText.toLowerCase())) {
+    if (originalPattern.test(origToCheck)) {
       violations.push(forbidden);
     }
   }

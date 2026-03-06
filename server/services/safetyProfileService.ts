@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile, maskPlantMilks } from "./allergyGuardrails";
 import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
@@ -234,6 +234,8 @@ export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
 
 function findMatchedTerms(text: string, termBank: Set<string>): string[] {
   const normalizedText = normalize(text);
+  const maskedText = maskPlantMilks(normalizedText);
+  const maskedOriginal = maskPlantMilks(text.toLowerCase());
   const matches: string[] = [];
   const termsArray = Array.from(termBank);
   
@@ -241,7 +243,12 @@ function findMatchedTerms(text: string, termBank: Set<string>): string[] {
     if (!term) continue;
     
     const pattern = new RegExp(`\\b${escapeRegex(term)}\\b`, 'i');
-    if (pattern.test(normalizedText) || pattern.test(text.toLowerCase())) {
+    
+    const isBareMilk = (term === "milk");
+    const textToScan = isBareMilk ? maskedText : normalizedText;
+    const origToScan = isBareMilk ? maskedOriginal : text.toLowerCase();
+    
+    if (pattern.test(textToScan) || pattern.test(origToScan)) {
       matches.push(term);
     }
   }
