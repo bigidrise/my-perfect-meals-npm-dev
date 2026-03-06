@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Target, Flame, Drumstick, CalendarCheck } from "lucide-react";
+import { Target, Flame, Drumstick, CalendarCheck, AlertCircle } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface ComplianceResponse {
@@ -49,18 +49,21 @@ interface ComplianceCardProps {
 export function ComplianceCard({ userId }: ComplianceCardProps) {
   const isDesktop = useIsDesktop();
 
-  const { data, isLoading } = useQuery<ComplianceResponse | null>({
+  const { data, isLoading, isError } = useQuery<ComplianceResponse>({
     queryKey: ["compliance", userId],
     queryFn: async () => {
       const res = await fetch(`/api/users/${userId}/compliance`);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        throw new Error(`Compliance fetch failed: ${res.status}`);
+      }
       return res.json();
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
+    retry: 1,
   });
 
-  if (isLoading) {
+  if (!userId || isLoading) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6">
@@ -75,7 +78,43 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     );
   }
 
-  if (!data || data.reason === "no_targets") {
+  if (isError) {
+    return (
+      <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
+              <AlertCircle className="h-6 w-6 text-white/40" />
+            </div>
+            <div>
+              <h3 className="text-white text-lg font-semibold">Compliance</h3>
+              <p className="text-white/40 text-sm">Unable to load compliance data</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
+              <AlertCircle className="h-6 w-6 text-white/40" />
+            </div>
+            <div>
+              <h3 className="text-white text-lg font-semibold">Compliance</h3>
+              <p className="text-white/40 text-sm">Unable to load compliance data</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (data.reason === "no_targets") {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6 space-y-2">
