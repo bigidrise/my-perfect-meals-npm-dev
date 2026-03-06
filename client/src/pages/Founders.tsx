@@ -115,7 +115,7 @@ export default function Founder() {
               </p>
 
               <p className="text-white/70 text-sm mt-1">
-                Cardiothoracic Surgeon
+                Cardiothoracic Surgeon DO FASC FACC Ret. CDR USN MC 
               </p>
             </div>
           </div>

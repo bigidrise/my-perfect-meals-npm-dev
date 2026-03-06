@@ -40,30 +40,56 @@ interface LibraryTopic {
 
 const libraryTopics: LibraryTopic[] = [
   {
-    id: "emotion-ai",
-    title: "How Emotion AI Works",
-    icon: Brain,
+    id: "founder-story",
+    title: "Why My Perfect Meals Exists",
+    subtitle: "The Story Behind the App",
+    icon: BookOpenText,
     content: {
       sections: [
         {
-          heading: "What is Emotion AI?",
-          text: "Emotion AI doesn't suggest meals. It enforces rules. That's the difference. While other apps generate random options, My Perfect Meals uses behavioral guardrails to ensure every meal fits your goals.",
+          heading: "The Problem I Saw For 30 Years",
+          text: "For more than three decades I worked as a coach helping people lose weight, improve health, and rebuild confidence. The pattern was always the same. When clients trained with me, they succeeded. But when they left the gym and went back into real life, everything became harder."
         },
         {
-          heading: "How It Works",
+          heading: "Real Life Is Where Diets Fail",
+          text: "Clients struggled at restaurants, on vacation, while traveling for work, or even just going out with friends. Many would tell me the same thing: I wish you were here right now so you could tell me what to eat."
+        },
+        {
+          heading: "The Phrase That Started Everything",
+          text: "Over time one sentence kept coming up again and again from clients: I wish you were in my pocket. That idea stayed with me for years."
+        },
+        {
+          heading: "What I Saw In Other Nutrition Apps",
+          text: "When I started studying nutrition apps on the market, I realized something frustrating. Most were built by technology companies focused on calorie tracking and generic recipes. They were not built by coaches who actually work with clients every day."
+        },
+        {
+          heading: "Why Those Apps Didn't Work",
           list: [
-            "Analyzes your macro targets and dietary preferences",
-            "Enforces portion control based on your goals",
-            "Prevents meals that would exceed your daily limits",
-            "Adapts to your metabolic profile and activity level",
-          ],
+            "Recipes were generic and not personalized",
+            "Medical conditions like diabetes were rarely considered",
+            "Liver issues, inflammation, and allergies were ignored",
+            "Users were left to figure everything out themselves",
+            "Many apps called themselves coaching, but there was no real guidance"
+          ]
         },
         {
-          heading: "Why It Matters",
-          text: "This isn't a calorie counter that lets you eat anything. It's a coaching system that keeps you on track, even when cravings hit.",
+          heading: "Real Coaching Works Differently",
+          text: "A real coach does not simply watch and hope the client figures things out. A coach provides structure, direction, and accountability."
         },
-      ],
-    },
+        {
+          heading: "The Turning Point",
+          text: "After a neck injury caused by a drunk driver forced me to rethink my career path, I began exploring whether technology could finally solve this problem."
+        },
+        {
+          heading: "Building The System",
+          text: "In June of last year I began building what would become My Perfect Meals."
+        },
+        {
+          heading: "The Mission",
+          text: "The goal is simple. To give people what my clients asked for years ago: a coach in their pocket."
+        }
+      ]
+    }
   },
   {
     id: "meal-generation",
@@ -770,9 +796,6 @@ export default function Learn() {
         className="max-w-lg mx-auto pb-24"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
-        <p className="text-xs text-white/60 mb-3 text-center">
-          Every guide can be read or listened to.
-        </p>
         <div className="space-y-2">
           {libraryTopics.map((topic) => (
             <LibraryItem key={topic.id} topic={topic} />
