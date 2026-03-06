@@ -5,6 +5,7 @@ import { ClientProfile } from "@/lib/proData";
 import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
+import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -475,6 +476,8 @@ export default function ProClientFolderModal({
             </div>
 
             {clientId && <StudioMetricsSnapshot clientId={clientId} />}
+
+            {clientId && <ProClientComplianceSnapshot clientId={clientId} />}
 
             {clientId && <ProClientWeightSnapshot clientId={clientId} />}
 
