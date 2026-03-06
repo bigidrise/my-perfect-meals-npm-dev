@@ -170,7 +170,9 @@
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.3"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.2.8",
@@ -194,8 +196,6 @@
     "postcss": "^8.4.47",
     "postinstall-postinstall": "^2.1.0",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.21.0",
-    "typescript": "^5.6.3",
     "vite": "^5.4.19"
   },
   "optionalDependencies": {
