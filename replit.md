@@ -89,6 +89,18 @@ The application is a full-stack TypeScript project focused on personalized nutri
     -   **Version Enforcement**: Bumping version in registry forces reacceptance; server rejects outdated versions.
     -   **Legal Documents**: 7 files in `client/src/legal/` (clientCoachingAgreement, clientLiabilityWaiver, clientDataConsent, nutritionDisclaimer, coachProfessionalAgreement, coachConductPolicy, scopeOfPractice).
 
+## Future System: ProCare Integrity System (Phase 4 — Not Yet Built)
+Includes:
+- **Monthly Mutual Ratings**: Client rates professional, professional rates client, once per month for relationship health monitoring.
+- **Incident Reporting**: Manual report button for serious issues (abuse, harassment, threats, misconduct).
+- **Strike Engine**: Warning → Strike 1 → Strike 2 → Probation → Suspension → Removal.
+  - Professionals held to a **professional standard** (abuse, misconduct, harassment, unsafe guidance, repeated poor ratings).
+  - Clients held to a **respect standard only** (abuse, harassment, threats, repeated disrespect). Clients CANNOT be struck for poor compliance, not following the plan, switching coaches, or lack of progress.
+- **Appeals Process**: Every strike allows "Submit appeal" — system must never appear arbitrary.
+- **AI-Assisted Moderation Layer** (later): Clustering complaints, detecting patterns, summarizing evidence, recommending actions. AI does NOT auto-ban — it recommends actions to the platform rules engine.
+
+Build order: Android → Master Shopping List + Delivery → Tablet Notifications → ProCare Integrity System.
+
 ## External Dependencies
 -   **PostgreSQL**: Primary database (Neon-backed).
 -   **OpenAI API**: AI-powered features.
