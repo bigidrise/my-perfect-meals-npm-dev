@@ -13,6 +13,7 @@ import {
   MACRO_CALC_AGE,
   MACRO_CALC_HEIGHT,
   MACRO_CALC_WEIGHT,
+  MACRO_CALC_WAIST,
   MACRO_CALC_ACTIVITY,
   MACRO_CALC_SYNC_WEIGHT,
   MACRO_CALC_METABOLIC,
@@ -55,6 +56,8 @@ import {
   Check,
   Sparkles,
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 // Guided flow step type
@@ -67,6 +70,7 @@ type GuidedStep =
   | "age"
   | "height"
   | "weight"
+  | "waist"
   | "activity"
   | "syncWeight"
   | "metabolic"
@@ -99,6 +103,12 @@ import {
   capCombinedDeltas,
 } from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { calculateWaistHeightRatio, classifyWaistRisk } from "@shared/waistRisk";
 import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
 import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -116,6 +126,85 @@ const toNum = (v: string | number) => {
 
 const kgFromLbs = (lbs: number) => lbs * 0.45359237;
 const cmFromFeetInches = (ft: number, inch: number) => ft * 30.48 + inch * 2.54;
+
+function WaistEducationBlock({ waistCm, heightCm }: { waistCm: number; heightCm: number }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const hasRatio = waistCm > 0 && heightCm > 0;
+  const ratio = hasRatio ? calculateWaistHeightRatio(waistCm, heightCm) : 0;
+  const risk = hasRatio ? classifyWaistRisk(ratio) : null;
+
+  const riskColorMap = {
+    green: "text-emerald-400",
+    yellow: "text-yellow-400",
+    red: "text-red-400",
+  };
+  const riskBgMap = {
+    green: "bg-emerald-500/10 border-emerald-500/20",
+    yellow: "bg-yellow-500/10 border-yellow-500/20",
+    red: "bg-red-500/10 border-red-500/20",
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-white/50">
+        Healthy guideline: your waist should be less than half your height.
+      </p>
+
+      {hasRatio && risk && (
+        <div className={`flex items-center gap-3 p-2.5 rounded-lg border ${riskBgMap[risk.level]}`}>
+          <div>
+            <span className="text-xs text-white/50">Waist-to-Height Ratio: </span>
+            <span className={`text-sm font-bold ${riskColorMap[risk.level]}`}>
+              {ratio.toFixed(2)}
+            </span>
+          </div>
+          <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${riskColorMap[risk.level]} bg-white/5`}>
+            {risk.label}
+          </div>
+        </div>
+      )}
+
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between text-xs text-white/40 hover:text-white/60 transition-colors py-1.5">
+            <span className="flex items-center gap-1.5">
+              <Info className="h-3 w-3" />
+              Why does My Perfect Meals ask for waist size?
+            </span>
+            {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="bg-black/30 border border-white/10 rounded-lg p-3 mt-1 space-y-2 text-xs text-white/70 leading-relaxed">
+            <p>
+              Doctors and nutrition scientists use waist circumference to estimate visceral fat.
+              Visceral fat is the fat stored around your organs, and it is strongly linked to heart disease,
+              insulin resistance, and metabolic syndrome.
+            </p>
+            <p>
+              Instead of using BMI alone, My Perfect Meals uses a measurement called the waist-to-height ratio.
+            </p>
+            <p>
+              Research from organizations such as the World Health Organization (WHO), National Institutes of
+              Health (NIH), and American Diabetes Association (ADA) shows that keeping your waist less than
+              half of your height is associated with better metabolic health.
+            </p>
+            <p>Your waist measurement helps My Perfect Meals:</p>
+            <ul className="list-disc list-inside space-y-1 pl-1">
+              <li>Estimate visceral fat risk</li>
+              <li>Adjust carbohydrate targets when necessary</li>
+              <li>Improve macro precision for long-term metabolic health</li>
+            </ul>
+            <p className="text-white/50 italic">
+              This measurement does not diagnose disease. It simply helps the system make smarter nutrition recommendations.
+            </p>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
+}
 
 const ACTIVITY_FACTORS = {
   sedentary: 1.2,
@@ -592,7 +681,7 @@ export default function MacroCounter() {
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
       if (persisted) {
-        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","activity","syncWeight","metabolic","results","starch","bodyComposition","save","done"];
+        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","starch","bodyComposition","save","done"];
         if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
       }
     } catch {}
@@ -623,6 +712,7 @@ export default function MacroCounter() {
       age: MACRO_CALC_AGE,
       height: MACRO_CALC_HEIGHT,
       weight: MACRO_CALC_WEIGHT,
+      waist: MACRO_CALC_WAIST,
       activity: MACRO_CALC_ACTIVITY,
       syncWeight: MACRO_CALC_SYNC_WEIGHT,
       metabolic: MACRO_CALC_METABOLIC,
@@ -710,6 +800,7 @@ export default function MacroCounter() {
       "age",
       "height",
       "weight",
+      "waist",
       "activity",
       "syncWeight",
       "metabolic",
@@ -1561,6 +1652,7 @@ export default function MacroCounter() {
                         }
                       }}
                     />
+                    <WaistEducationBlock waistCm={waistCm} heightCm={cm} />
                     <Button
                       onClick={() => advanceGuided("activity")}
                       disabled={!waistVal}
@@ -2510,6 +2602,9 @@ export default function MacroCounter() {
                             </p>
                           )}
                         </div>
+                      </div>
+                      <div className="col-span-6 mt-1">
+                        <WaistEducationBlock waistCm={waistCm} heightCm={cm} />
                       </div>
                     </div>
 

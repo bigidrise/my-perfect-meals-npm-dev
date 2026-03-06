@@ -21,6 +21,9 @@ export const MACRO_CALC_HEIGHT = "How tall are you?";
 
 export const MACRO_CALC_WEIGHT = "What's your current weight?";
 
+export const MACRO_CALC_WAIST =
+  "Next we measure your waist circumference. This is one of the most important indicators of metabolic health. Scientists often use a rule called the waist-to-height ratio. Ideally your waist should be less than half your height. If your ratio is higher, the system may recommend slightly lower carbohydrates to support metabolic health. This measurement helps My Perfect Meals personalize your nutrition plan.";
+
 export const MACRO_CALC_ACTIVITY =
   "How active are you? Sedentary, lightly active, moderately active, very active, or athlete level?";
 
