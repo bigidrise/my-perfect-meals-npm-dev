@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Target, Flame, Drumstick, CalendarCheck } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 
@@ -37,7 +35,7 @@ function getScoreBgColor(score: number): string {
 
 function getComplianceMessage(score: number | null, reason?: string, loggedDays?: number): string {
   if (reason === "no_targets") return "Set your macro targets to begin compliance tracking.";
-  if (score === null || score === 0 || loggedDays === 0) return "Start logging meals to activate your compliance score.";
+  if (score === null || score === 0 || loggedDays === 0) return "Start recording your meals to activate compliance tracking.";
   if (score >= 90) return "Excellent consistency. Your program is working.";
   if (score >= 75) return "Good progress. A little more consistency will improve results.";
   if (score >= 50) return "Your adherence is slipping. Focus on logging meals this week.";
@@ -49,7 +47,6 @@ interface ComplianceCardProps {
 }
 
 export function ComplianceCard({ userId }: ComplianceCardProps) {
-  const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
 
   const { data, isLoading } = useQuery<ComplianceResponse | null>({
@@ -78,42 +75,22 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     );
   }
 
-  const handleCardClick = () => {
-    if (!data || data.reason === "no_targets") {
-      setLocation("/macro-counter");
-    } else {
-      setLocation("/my-biometrics");
-    }
-  };
-
   if (!data || data.reason === "no_targets") {
     return (
-      <Card
-        className="cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl"
-        onClick={handleCardClick}
-      >
-        <CardContent className="p-6 space-y-3">
+      <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
+        <CardContent className="p-6 space-y-2">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
               <Target className="h-6 w-6 text-white/60" />
             </div>
             <div>
               <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-white/50 text-sm">Set your macro targets to begin tracking adherence</p>
+              <p className="text-white/50 text-sm">Macro targets not set yet</p>
             </div>
           </div>
           <p className="text-sm text-white/40 italic">
             {getComplianceMessage(null, "no_targets")}
           </p>
-          <Button
-            className="w-full bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLocation("/macro-counter");
-            }}
-          >
-            Go to Macro Calculator
-          </Button>
         </CardContent>
       </Card>
     );
@@ -121,21 +98,22 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
 
   if (data.loggedDays7 === 0) {
     return (
-      <Card
-        className="cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl"
-        onClick={handleCardClick}
-      >
-        <CardContent className="p-6 space-y-3">
+      <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
+        <CardContent className="p-6 space-y-2">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/20 to-red-700/20 border border-red-500/30">
               <Target className="h-6 w-6 text-red-400" />
             </div>
             <div>
-              <h3 className="text-white text-lg font-semibold">Compliance Score</h3>
+              <h3 className="text-white text-lg font-semibold">Compliance</h3>
+              <p className="text-white/40 text-xs">Last {data.windowDays} days</p>
               <p className="text-red-400 text-2xl font-bold">0%</p>
             </div>
           </div>
-          <p className="text-sm text-white/50 italic">
+          <p className="text-sm text-white/50">
+            No meals logged yet
+          </p>
+          <p className="text-sm text-white/40 italic">
             {getComplianceMessage(0, undefined, 0)}
           </p>
         </CardContent>
@@ -146,16 +124,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   const score = data.complianceScore ?? 0;
 
   return (
-    <Card
-      className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl ${
-        score >= 90
-          ? "hover:border-emerald-500/30"
-          : score >= 70
-            ? "hover:border-yellow-500/30"
-            : "hover:border-red-500/30"
-      }`}
-      onClick={handleCardClick}
-    >
+    <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
       <CardContent className="p-6">
         <div className={isDesktop ? "flex items-center gap-6" : "space-y-4"}>
           <div className={`flex items-center gap-3 ${isDesktop ? "flex-shrink-0" : ""}`}>
@@ -164,6 +133,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
             </div>
             <div>
               <h3 className="text-white/70 text-sm font-medium">Compliance</h3>
+              <p className="text-white/30 text-xs">Last {data.windowDays} days</p>
               <p className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</p>
             </div>
           </div>
@@ -196,10 +166,6 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
         <p className="text-sm text-white/50 italic mt-3">
           {getComplianceMessage(score, undefined, data.loggedDays7)}
         </p>
-
-        <div className="mt-2 text-right">
-          <span className="text-xs text-white/30">Last {data.windowDays} days</span>
-        </div>
       </CardContent>
     </Card>
   );
