@@ -1,4 +1,5 @@
 import { apiUrl } from '@/lib/resolveApiBase';
+import { getAuthHeaders } from '@/lib/auth';
 
 export type DailyLimits = {
   date: string;
@@ -42,7 +43,8 @@ export async function setMacroTargets(targets: MacroTargets, userId?: string): P
   try {
     const response = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      credentials: 'include',
       body: JSON.stringify(targets),
     });
 

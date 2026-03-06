@@ -6,6 +6,7 @@ import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
 import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
+import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -478,6 +479,8 @@ export default function ProClientFolderModal({
             {clientId && <StudioMetricsSnapshot clientId={clientId} />}
 
             {clientId && <ProClientComplianceSnapshot clientId={clientId} />}
+
+            {clientId && <ProClientProgramHistory clientId={clientId} />}
 
             {clientId && <ProClientWeightSnapshot clientId={clientId} />}
 

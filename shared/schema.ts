@@ -1750,3 +1750,19 @@ export const insertPhysicianReportSchema = createInsertSchema(physicianReports, 
 
 export type PhysicianReport = typeof physicianReports.$inferSelect;
 export type InsertPhysicianReport = z.infer<typeof insertPhysicianReportSchema>;
+
+export const macroProgramHistory = pgTable("macro_program_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientUserId: varchar("client_user_id").notNull(),
+  coachUserId: varchar("coach_user_id"),
+  calories: integer("calories"),
+  proteinG: integer("protein_g"),
+  carbsG: integer("carbs_g"),
+  fatG: integer("fat_g"),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  clientDateIdx: index("idx_macro_program_history_client_date").on(t.clientUserId, t.createdAt),
+}));
+
+export type MacroProgramHistory = typeof macroProgramHistory.$inferSelect;

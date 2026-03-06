@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -417,6 +418,7 @@ export default function MyBiometrics() {
     if (user?.id) {
       try {
         const res = await fetch(apiUrl(`/api/users/${user.id}/macro-targets`), {
+          headers: { ...getAuthHeaders() },
           credentials: "include",
         });
         if (res.ok) {

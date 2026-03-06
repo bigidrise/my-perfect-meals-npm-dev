@@ -5840,6 +5840,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
   app.use("/api/pro", requireAuth, proBiometricsRoutes);
 
+  const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
+  app.use("/api/pro", requireAuth, proProgramHistoryRoutes);
+
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
   app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
 

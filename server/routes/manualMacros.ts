@@ -8,6 +8,7 @@ import { careTeamMember } from "../db/schema/careTeam";
 import { clientLinks } from "../db/schema/procare";
 import { pushToUser, pushToCoachOfClient } from "../services/pushNotify";
 import { getUserCompliance } from "../services/complianceEngine";
+import { macroProgramHistory } from "../../shared/schema";
 
 const router = express.Router();
 
@@ -301,10 +302,44 @@ router.get("/users/:userId/macro-logs/daily", async (req, res) => {
   }
 });
 
+async function assertSelfOrProAccess(req: AuthenticatedRequest, targetUserId: string): Promise<boolean> {
+  const authUser = req.authUser;
+  if (!authUser) return false;
+  if (authUser.id === targetUserId) return true;
+  const [ctm] = await db
+    .select({ id: careTeamMember.id })
+    .from(careTeamMember)
+    .where(
+      and(
+        eq(careTeamMember.userId, targetUserId),
+        eq(careTeamMember.proUserId, authUser.id),
+        eq(careTeamMember.status, "active")
+      )
+    )
+    .limit(1);
+  if (ctm) return true;
+  const [link] = await db
+    .select({ id: clientLinks.id })
+    .from(clientLinks)
+    .where(
+      and(
+        eq(clientLinks.clientUserId, targetUserId),
+        eq(clientLinks.proUserId, authUser.id),
+        eq(clientLinks.active, true)
+      )
+    )
+    .limit(1);
+  return !!link;
+}
+
 // GET /api/users/:userId/macro-targets - Get user's macro targets from database
-router.get("/users/:userId/macro-targets", async (req, res) => {
+router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
   try {
     const userId = req.params.userId;
+    const hasAccess = await assertSelfOrProAccess(req as AuthenticatedRequest, userId);
+    if (!hasAccess) {
+      return res.status(403).json({ error: "Access denied" });
+    }
 
     const [user] = await db
       .select({
@@ -339,28 +374,48 @@ router.get("/users/:userId/macro-targets", async (req, res) => {
 });
 
 // POST /api/users/:userId/macro-targets - Save user's macro targets
-router.post("/users/:userId/macro-targets", async (req, res) => {
+router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { calories, protein_g, carbs_g, fat_g } = req.body;
+    const hasAccess = await assertSelfOrProAccess(req as AuthenticatedRequest, userId);
+    if (!hasAccess) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    const { calories, protein_g, carbs_g, fat_g, reason } = req.body;
 
-    // Validate inputs
     if (typeof calories !== 'number' || typeof protein_g !== 'number' || 
         typeof carbs_g !== 'number' || typeof fat_g !== 'number') {
       return res.status(400).json({ error: "All macro values must be numbers" });
     }
 
-    // Update user's macro targets
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        dailyCalorieTarget: calories,
-        dailyProteinTarget: protein_g,
-        dailyCarbsTarget: carbs_g,
-        dailyFatTarget: fat_g,
-      })
-      .where(eq(users.id, userId))
-      .returning();
+    const authUserId = (req as AuthenticatedRequest).authUser?.id ?? null;
+
+    const updatedUser = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(users)
+        .set({
+          dailyCalorieTarget: calories,
+          dailyProteinTarget: protein_g,
+          dailyCarbsTarget: carbs_g,
+          dailyFatTarget: fat_g,
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updated) return null;
+
+      await tx.insert(macroProgramHistory).values({
+        clientUserId: userId,
+        coachUserId: authUserId,
+        calories,
+        proteinG: protein_g,
+        carbsG: carbs_g,
+        fatG: fat_g,
+        reason: typeof reason === "string" ? reason : null,
+      });
+
+      return updated;
+    });
 
     if (!updatedUser) {
       return res.status(404).json({ error: "User not found" });
@@ -368,7 +423,6 @@ router.post("/users/:userId/macro-targets", async (req, res) => {
 
     console.log(`✅ Saved macro targets for user ${userId}: ${calories}cal, ${protein_g}p/${carbs_g}c/${fat_g}f`);
 
-    const authUserId = (req as any).authUser?.id;
     if (authUserId && authUserId !== userId) {
       pushToUser(userId, {
         title: "Your coach updated your targets",
