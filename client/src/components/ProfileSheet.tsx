@@ -36,6 +36,7 @@ import {
   Camera,
   Loader2,
   ImageIcon,
+  Users,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
