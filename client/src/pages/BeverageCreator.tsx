@@ -283,6 +283,21 @@ export default function BeverageCreator() {
         const errorBody = await res.json().catch(() => null);
         console.error("🍹 Beverage Creator API Error:", res.status, errorBody);
 
+        if (errorBody?.safetyBlocked || errorBody?.safetyAmbiguous) {
+          stopProgressTicker();
+          setIsGenerating(false);
+          setSafetyAlert({
+            show: true,
+            result: errorBody.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+            blockedTerms: errorBody.blockedTerms || [],
+            blockedCategories: [],
+            ambiguousTerms: errorBody.ambiguousTerms || [],
+            message: errorBody.error || "Safety alert detected",
+            suggestion: errorBody.suggestion,
+          });
+          return;
+        }
+
         if (errorBody?.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${errorBody.message}`);
         }
@@ -291,21 +306,6 @@ export default function BeverageCreator() {
       }
 
       const data = await res.json();
-
-      if (data.safetyBlocked || data.safetyAmbiguous) {
-        stopProgressTicker();
-        setIsGenerating(false);
-        setSafetyAlert({
-          show: true,
-          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
-          blockedTerms: data.blockedTerms || [],
-          blockedCategories: [],
-          ambiguousTerms: data.ambiguousTerms || [],
-          message: data.error || "Safety alert detected",
-          suggestion: data.suggestion,
-        });
-        return;
-      }
 
       setSafetyEnabled(true);
       clearSafetyAlert();
