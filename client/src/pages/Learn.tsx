@@ -624,6 +624,11 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
           </div>
         </div>
 
+        <div className="flex items-center gap-1 text-[10px] text-white/50 mr-2">
+          <Headphones className="h-3 w-3" />
+          <span>Audio</span>
+        </div>
+
         <div className="ml-3 flex-shrink-0">
           {isExpanded ? (
             <ChevronUp className="h-4 w-4 text-white/60" />
@@ -765,6 +770,9 @@ export default function Learn() {
         className="max-w-lg mx-auto pb-24"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
+        <p className="text-xs text-white/60 mb-3 text-center">
+          Every guide can be read or listened to.
+        </p>
         <div className="space-y-2">
           {libraryTopics.map((topic) => (
             <LibraryItem key={topic.id} topic={topic} />
