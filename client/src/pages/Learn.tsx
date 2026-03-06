@@ -796,6 +796,9 @@ export default function Learn() {
         className="max-w-lg mx-auto pb-24"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
+        <p className="text-xs text-white/60 mb-3 text-center">
+          Start with the founder story to understand why this app exists.
+        </p>
         <div className="space-y-2">
           {libraryTopics.map((topic) => (
             <LibraryItem key={topic.id} topic={topic} />
