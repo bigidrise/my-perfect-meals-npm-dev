@@ -106,14 +106,15 @@ export default function DashboardNew() {
     user?.nickname || user?.firstName || user?.name?.split(" ")[0] || "there";
 
   const features: FeatureCard[] = [
-    {
-      title: "Macro Calculator",
-      description: "Precision macro targeting",
-      icon: Calculator,
-      route: "/macro-counter",
-      size: "large",
-      testId: "macro-calculator", // Updated testId for tour
-    },
+    // Hidden: Macro Calculator card — compliance card now provides the /macro-counter CTA
+    // {
+    //   title: "Macro Calculator",
+    //   description: "Precision macro targeting",
+    //   icon: Calculator,
+    //   route: "/macro-counter",
+    //   size: "large",
+    //   testId: "macro-calculator",
+    // },
     {
       title: "My Biometrics",
       description: "Track your health metrics",
