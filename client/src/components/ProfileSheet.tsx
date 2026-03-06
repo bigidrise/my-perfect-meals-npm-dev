@@ -333,7 +333,20 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       route: "/learn",
       testId: "menu-app-library",
     },
-
+    {
+      title: "Compliance & Coaching System",
+      description: "How compliance scoring, macro adherence, and coaching analytics work.",
+      icon: Shield,
+      route: "/library/compliance-system",
+      testId: "menu-compliance-system",
+    },
+    {
+      title: "Waist & Health Risk Guide",
+      description: "Learn why waist-to-height ratio and metabolic risk matter.",
+      icon: FileText,
+      route: "/library/waist-risk",
+      testId: "menu-waist-risk",
+    },
     {
       title: "MPM Team",
       description: "Message from our founders",

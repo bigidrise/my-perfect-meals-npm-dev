@@ -142,6 +142,86 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "compliance-system",
+    title: "Compliance System",
+    subtitle: "Macro Adherence & Coaching Analytics",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "What Is Compliance?",
+          text: "Compliance measures how closely your daily nutrition matches the macro targets set in the Macro Calculator. Instead of judging foods, the system measures consistency with the plan designed for you.",
+        },
+        {
+          heading: "What Gets Measured",
+          list: [
+            "Macro adherence \u2014 how closely your protein, carbs, and fat match your targets",
+            "Logging consistency \u2014 how regularly meals are recorded",
+            "Daily averages across the last 7 days",
+          ],
+        },
+        {
+          heading: "Why Compliance Matters",
+          text: "In nutrition coaching, results come from consistency. Compliance helps your coach understand whether a program needs adjustment or whether the strategy simply needs more time.",
+        },
+        {
+          heading: "How Coaches Use It",
+          list: [
+            "Identify when a client is following the program closely",
+            "Detect when logging habits drop off",
+            "Determine whether program changes are necessary",
+          ],
+        },
+        {
+          heading: "Important",
+          text: "Compliance is not a grade. It is simply a signal that helps you and your coach understand what is happening so better decisions can be made.",
+        },
+      ],
+    },
+  },
+  {
+    id: "waist-risk",
+    title: "Waist-to-Height Risk",
+    subtitle: "Metabolic Health Indicator",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "Why Waist Size Matters",
+          text: "Waist circumference is one of the strongest predictors of metabolic and cardiovascular risk. Fat stored around the abdomen is more strongly linked to insulin resistance and heart disease than overall body weight.",
+        },
+        {
+          heading: "Waist-to-Height Ratio",
+          text: "A common guideline used in medical research is keeping waist circumference less than half of your height.",
+        },
+        {
+          heading: "Risk Categories",
+          list: [
+            "Green: Ratio below 0.50",
+            "Yellow: Ratio between 0.50 and 0.59",
+            "Red: Ratio 0.60 or higher",
+          ],
+        },
+        {
+          heading: "How The App Uses This",
+          list: [
+            "Provides a visual risk indicator",
+            "Helps coaches understand metabolic health trends",
+            "Supports adjustments to nutrition strategies",
+          ],
+        },
+        {
+          heading: "Medical Sources",
+          list: [
+            "World Health Organization",
+            "National Institutes of Health",
+            "American Diabetes Association",
+          ],
+        },
+      ],
+    },
+  },
+  {
     id: "safetyguard",
     title: "SafetyGuard\u2122 \u2014 Allergy Protection",
     icon: Shield,
@@ -530,15 +610,18 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
             : "bg-black/50 border border-white/10 hover:bg-black/60 hover:border-white/15"
         }`}
       >
-        <div className="flex flex-col min-w-0">
-          <span className="text-white font-medium text-sm leading-tight">
-            {topic.title}
-          </span>
-          {topic.subtitle && (
-            <span className="text-[11px] text-white/60 leading-tight">
-              {topic.subtitle}
+        <div className="flex items-center gap-3 min-w-0">
+          <Icon className="h-4 w-4 text-orange-400 flex-shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <span className="text-white font-medium text-sm leading-tight">
+              {topic.title}
             </span>
-          )}
+            {topic.subtitle && (
+              <span className="text-[11px] text-white/60 leading-tight">
+                {topic.subtitle}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="ml-3 flex-shrink-0">
