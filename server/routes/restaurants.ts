@@ -31,7 +31,20 @@ router.post("/guide", async (req, res) => {
     console.log(`🍽️ Smart Restaurant Guide: "${craving}" at "${restaurantName}" near ZIP ${zipCode}`);
     
     const generationStart = Date.now();
-    
+
+    let user = undefined;
+    if (userId) {
+      try {
+        const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
+        if (foundUser) {
+          user = foundUser;
+          console.log(`👤 [Guide] User profile loaded — allergies: ${foundUser.allergies?.join(', ') || 'none'}, conditions: ${foundUser.healthConditions?.join(', ') || 'none'}`);
+        }
+      } catch (userError) {
+        console.warn(`⚠️ Could not fetch user ${userId}:`, userError);
+      }
+    }
+
     // Step 1: Use shared resolver to find the restaurant
     const resolverResult = await resolveRestaurantsByZip({
       query: restaurantName,
@@ -71,7 +84,7 @@ router.post("/guide", async (req, res) => {
       restaurantName: restaurantInfo.name,
       cuisine: detectedCuisine,
       cravingContext: craving,
-      user: undefined
+      user
     });
 
     const generationTime = Date.now() - generationStart;

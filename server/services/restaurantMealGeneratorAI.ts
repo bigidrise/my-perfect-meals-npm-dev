@@ -107,7 +107,22 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
 
   console.log(`🤖 AI Generator: Creating restaurant-specific meals for ${restaurantName} (${cuisine} cuisine)${cravingContext ? ` featuring ${cravingContext}` : ''}`);
 
-  // Build medical context for AI
+  const userAllergies = user?.allergies || [];
+  const userDietaryRestrictions = user?.dietaryRestrictions || [];
+  const userAvoidedFoods = user?.avoidedFoods || user?.dislikedFoods || [];
+
+  const allergyContext = userAllergies.length > 0
+    ? `\n\nCRITICAL ALLERGY SAFETY: User is allergic to: ${userAllergies.join(", ")}. NEVER suggest meals containing these ingredients or any derivatives. This is a medical safety requirement.`
+    : "";
+
+  const dietaryContext = userDietaryRestrictions.length > 0
+    ? `\nDietary restrictions: ${userDietaryRestrictions.join(", ")}. All meals must comply.`
+    : "";
+
+  const avoidContext = userAvoidedFoods.length > 0
+    ? `\nUser avoids these foods: ${userAvoidedFoods.join(", ")}. Do not include them.`
+    : "";
+
   const medicalContext = userConditions.length > 0
     ? `User has the following health conditions: ${userConditions.join(", ")}. Consider these when suggesting modifications.`
     : "User has no specified health conditions.";
@@ -132,7 +147,7 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     // Use OpenAI to generate restaurant-specific meals
     const prompt = `You are a nutrition expert helping someone choose healthy meals at "${restaurantName}", a ${cuisine} restaurant.
 
-${medicalContext}${cravingInstructions}
+${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}
 
 IMPORTANT: Generate 3 UNIQUE and DIFFERENT meal recommendations. Each time this request is made, create completely different meals from previous suggestions. ${randomVarietyHint}
 
@@ -243,6 +258,35 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
     });
 
     console.log(`✅ AI generated ${meals.length} restaurant-specific meals for ${restaurantName}`);
+
+    if (userAllergies.length > 0) {
+      const allergyTerms = userAllergies.map(a => a.toLowerCase());
+      const safeMeals = meals.filter(meal => {
+        const ingredientText = meal.ingredients.join(" ").toLowerCase();
+        const nameText = meal.name.toLowerCase();
+        const descText = meal.description.toLowerCase();
+        const fullText = `${nameText} ${descText} ${ingredientText}`;
+
+        const matchedAllergen = allergyTerms.find(allergen => fullText.includes(allergen));
+        if (matchedAllergen) {
+          console.log(`🚫 [ALLERGY FILTER] Removed "${meal.name}" — contains "${matchedAllergen}" (user allergy)`);
+          return false;
+        }
+        return true;
+      });
+
+      if (safeMeals.length < meals.length) {
+        console.log(`🛡️ [ALLERGY FILTER] Filtered ${meals.length - safeMeals.length} unsafe meal(s), ${safeMeals.length} remaining`);
+      }
+
+      if (safeMeals.length === 0) {
+        console.warn(`⚠️ [ALLERGY FILTER] All meals removed due to allergen matches — falling back to locked generator`);
+        return generateFallbackMeals(request);
+      }
+
+      meals.length = 0;
+      meals.push(...safeMeals);
+    }
 
     // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
     const enforcedMeals = meals.map(meal => enforceCarbs(meal));
