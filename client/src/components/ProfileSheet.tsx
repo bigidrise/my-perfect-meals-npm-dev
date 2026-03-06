@@ -335,10 +335,17 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     },
     {
       title: "MPM Team",
-      description: "Message from our founders",
+      description: "Meet the team behind My Perfect Meals.",
       icon: MessageCircle,
       route: "/founders",
       testId: "menu-about",
+    },
+    {
+      title: "Find a Coach",
+      description: "Browse certified trainers and professionals on My Perfect Meals.",
+      icon: Users,
+      route: "/coaches",
+      testId: "menu-find-coach",
     },
 
     // Billing
