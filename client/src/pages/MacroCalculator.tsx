@@ -91,7 +91,13 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import BodyCompositionSection from "@/components/macro-targeting/BodyCompositionSection";
-import { MacroDeltas } from "@/lib/clinicalAdvisory";
+import WaistRiskSection from "@/components/macro-targeting/WaistRiskSection";
+import {
+  MacroDeltas,
+  AdvisorySources,
+  sumAdvisorySources,
+  capCombinedDeltas,
+} from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
 import { getCurrentUser } from "@/lib/auth";
@@ -265,12 +271,14 @@ function BodyCompositionGuidedStep({
   getStarchyCarbs: getStarch,
   onSkip,
   onContinue,
+  onApplyAdjustments,
 }: {
   sex: Sex;
   goal: Goal;
   getStarchyCarbs: (s: Sex, g: Goal) => number;
   onSkip: () => void;
   onContinue: () => void;
+  onApplyAdjustments?: (deltas: MacroDeltas) => void;
 }) {
   const [bodyCompData, setBodyCompData] = useState<{
     currentBF: number;
@@ -378,7 +386,7 @@ function BodyCompositionGuidedStep({
             </div>
           </div>
 
-          <BodyCompositionSection />
+          <BodyCompositionSection onApplyAdjustments={onApplyAdjustments} />
 
           {impact && bodyCompData && (
             <motion.div
@@ -563,10 +571,10 @@ export default function MacroCounter() {
   const [sugarCapMode, setSugarCapMode] = useState<"AHA" | "DGA">(
     savedSettings?.sugarCapMode ?? "AHA",
   );
-  const [advisoryDeltas, setAdvisoryDeltas] = useState<MacroDeltas>({
-    protein: 0,
-    carbs: 0,
-    fat: 0,
+  const [advisorySources, setAdvisorySources] = useState<AdvisorySources>({
+    metabolic: null,
+    bodyComposition: null,
+    waistRisk: null,
   });
 
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
@@ -938,6 +946,19 @@ export default function MacroCounter() {
     const macros = applyBodyTypeTilt(base, bodyType);
     return { bmr, tdee, target, macros };
   }, [isCalcInputValid, sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
+
+  const advisoryDeltas = useMemo(() => {
+    const raw = sumAdvisorySources(advisorySources);
+    if (!results) return raw;
+    return capCombinedDeltas(
+      {
+        protein: results.macros.protein.g,
+        carbs: results.macros.carbs.g,
+        fat: results.macros.fat.g,
+      },
+      raw,
+    );
+  }, [advisorySources, results]);
 
   // Dispatch "completed" event when results are calculated (500ms debounce)
   useEffect(() => {
@@ -1698,19 +1719,45 @@ export default function MacroCounter() {
                       You can adjust these now or skip and do it later.
                     </p>
                     {results && (
-                      <MetabolicConsiderations
-                        currentTargets={{
-                          protein:
-                            results.macros.protein.g + advisoryDeltas.protein,
-                          carbs: results.macros.carbs.g + advisoryDeltas.carbs,
-                          fat: results.macros.fat.g + advisoryDeltas.fat,
+                      <WaistRiskSection
+                        waistCm={waistCm}
+                        heightCm={cm}
+                        baseTargets={{
+                          protein: results.macros.protein.g,
+                          carbs: results.macros.carbs.g,
+                          fat: results.macros.fat.g,
                         }}
                         onApplyAdjustments={(deltas) => {
-                          setAdvisoryDeltas({
-                            protein: advisoryDeltas.protein + deltas.protein,
-                            carbs: advisoryDeltas.carbs + deltas.carbs,
-                            fat: advisoryDeltas.fat + deltas.fat,
+                          setAdvisorySources((prev) => ({
+                            ...prev,
+                            waistRisk: deltas,
+                          }));
+                          toast({
+                            title: "Adjustments Applied",
+                            description:
+                              "Waist risk adjustments have been applied.",
                           });
+                        }}
+                        onClearAdjustments={() => {
+                          setAdvisorySources((prev) => ({
+                            ...prev,
+                            waistRisk: null,
+                          }));
+                        }}
+                      />
+                    )}
+                    {results && (
+                      <MetabolicConsiderations
+                        baseTargets={{
+                          protein: results.macros.protein.g,
+                          carbs: results.macros.carbs.g,
+                          fat: results.macros.fat.g,
+                        }}
+                        onApplyAdjustments={(deltas) => {
+                          setAdvisorySources((prev) => ({
+                            ...prev,
+                            metabolic: deltas,
+                          }));
                           toast({
                             title: "Adjustments Applied",
                             description:
@@ -1898,6 +1945,17 @@ export default function MacroCounter() {
                 getStarchyCarbs={getStarchyCarbs}
                 onSkip={() => advanceGuided("save")}
                 onContinue={() => advanceGuided("save")}
+                onApplyAdjustments={(deltas) => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    bodyComposition: deltas,
+                  }));
+                  toast({
+                    title: "Adjustments Applied",
+                    description:
+                      "Body composition adjustments have been applied to your macros.",
+                  });
+                }}
               />
             )}
 
@@ -2565,20 +2623,53 @@ export default function MacroCounter() {
                 </CardContent>
               </Card>
 
+              {results && (
+                <WaistRiskSection
+                  waistCm={waistCm}
+                  heightCm={cm}
+                  baseTargets={{
+                    protein: results.macros.protein.g,
+                    carbs: results.macros.carbs.g,
+                    fat: results.macros.fat.g,
+                  }}
+                  onApplyAdjustments={(deltas) => {
+                    setAdvisorySources((prev) => ({
+                      ...prev,
+                      waistRisk: deltas,
+                    }));
+                    toast({
+                      title: "Adjustments Applied",
+                      description:
+                        "Waist risk adjustments have been applied to your macros.",
+                    });
+                  }}
+                  onClearAdjustments={() => {
+                    setAdvisorySources((prev) => ({
+                      ...prev,
+                      waistRisk: null,
+                    }));
+                    toast({
+                      title: "Adjustment Cleared",
+                      description:
+                        "Waist risk adjustments have been removed.",
+                    });
+                  }}
+                />
+              )}
+
               {/* Metabolic & Hormonal Considerations - V1 Clinical Advisory */}
               {results && (
                 <MetabolicConsiderations
-                  currentTargets={{
-                    protein: results.macros.protein.g + advisoryDeltas.protein,
-                    carbs: results.macros.carbs.g + advisoryDeltas.carbs,
-                    fat: results.macros.fat.g + advisoryDeltas.fat,
+                  baseTargets={{
+                    protein: results.macros.protein.g,
+                    carbs: results.macros.carbs.g,
+                    fat: results.macros.fat.g,
                   }}
                   onApplyAdjustments={(deltas) => {
-                    setAdvisoryDeltas({
-                      protein: advisoryDeltas.protein + deltas.protein,
-                      carbs: advisoryDeltas.carbs + deltas.carbs,
-                      fat: advisoryDeltas.fat + deltas.fat,
-                    });
+                    setAdvisorySources((prev) => ({
+                      ...prev,
+                      metabolic: deltas,
+                    }));
                     toast({
                       title: "Adjustments Applied",
                       description:
@@ -2592,11 +2683,10 @@ export default function MacroCounter() {
               {results && (
                 <BodyCompositionSection
                   onApplyAdjustments={(deltas) => {
-                    setAdvisoryDeltas({
-                      protein: advisoryDeltas.protein + deltas.protein,
-                      carbs: advisoryDeltas.carbs + deltas.carbs,
-                      fat: advisoryDeltas.fat + deltas.fat,
-                    });
+                    setAdvisorySources((prev) => ({
+                      ...prev,
+                      bodyComposition: deltas,
+                    }));
                     toast({
                       title: "Adjustments Applied",
                       description:

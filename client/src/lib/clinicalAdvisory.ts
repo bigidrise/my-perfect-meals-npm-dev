@@ -35,6 +35,38 @@ export type MacroDeltas = {
   fat: number;
 };
 
+export type AdvisorySourceKey = 'metabolic' | 'bodyComposition' | 'waistRisk';
+
+export type AdvisorySources = Record<AdvisorySourceKey, MacroDeltas | null>;
+
+export function sumAdvisorySources(sources: AdvisorySources): MacroDeltas {
+  const vals = Object.values(sources).filter(Boolean) as MacroDeltas[];
+  return vals.reduce(
+    (acc, s) => ({
+      protein: acc.protein + s.protein,
+      carbs: acc.carbs + s.carbs,
+      fat: acc.fat + s.fat,
+    }),
+    { protein: 0, carbs: 0, fat: 0 },
+  );
+}
+
+export function capCombinedDeltas(
+  baseTargets: MacroTargets,
+  deltas: MacroDeltas,
+): MacroDeltas {
+  const totalCarbs =
+    (baseTargets.starchyCarbs || 0) + (baseTargets.fibrousCarbs || 0) ||
+    baseTargets.carbs ||
+    0;
+  const maxCarbCut = -Math.round(totalCarbs * 0.3);
+  return {
+    protein: deltas.protein,
+    carbs: Math.max(deltas.carbs, maxCarbCut),
+    fat: deltas.fat,
+  };
+}
+
 export type AdvisoryDefinition = {
   key: AdvisoryConditionKey;
   label: string;

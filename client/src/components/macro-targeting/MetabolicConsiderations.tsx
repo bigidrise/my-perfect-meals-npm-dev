@@ -46,12 +46,12 @@ import {
 } from "@/lib/clinicalAdvisory";
 
 interface MetabolicConsiderationsProps {
-  currentTargets: MacroTargets;
+  baseTargets: MacroTargets;
   onApplyAdjustments: (deltas: MacroDeltas) => void;
 }
 
 export default function MetabolicConsiderations({
-  currentTargets,
+  baseTargets,
   onApplyAdjustments,
 }: MetabolicConsiderationsProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -79,7 +79,7 @@ export default function MetabolicConsiderations({
     }
   };
 
-  const suggestions = calculateAdvisorySuggestions(advisory, currentTargets);
+  const suggestions = calculateAdvisorySuggestions(advisory, baseTargets);
   const aggregated = aggregateDeltas(suggestions);
   const hasActive = hasAnyActiveAdvisory(advisory);
 
