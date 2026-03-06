@@ -35,6 +35,15 @@ function getScoreBgColor(score: number): string {
   return "from-red-500/20 to-red-700/20";
 }
 
+function getComplianceMessage(score: number | null, reason?: string, loggedDays?: number): string {
+  if (reason === "no_targets") return "Set your macro targets to begin compliance tracking.";
+  if (score === null || score === 0 || loggedDays === 0) return "Start logging meals to activate your compliance score.";
+  if (score >= 90) return "Excellent consistency. Your program is working.";
+  if (score >= 75) return "Good progress. A little more consistency will improve results.";
+  if (score >= 50) return "Your adherence is slipping. Focus on logging meals this week.";
+  return "Low compliance. Results will stall without consistent tracking.";
+}
+
 interface ComplianceCardProps {
   userId: string | undefined;
 }
@@ -69,17 +78,15 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     );
   }
 
-  if (!data) return null;
-
   const handleCardClick = () => {
-    if (data.reason === "no_targets") {
+    if (!data || data.reason === "no_targets") {
       setLocation("/macro-counter");
     } else {
       setLocation("/my-biometrics");
     }
   };
 
-  if (data.reason === "no_targets") {
+  if (!data || data.reason === "no_targets") {
     return (
       <Card
         className="cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl"
@@ -91,10 +98,13 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
               <Target className="h-6 w-6 text-white/60" />
             </div>
             <div>
-              <h3 className="text-white text-lg font-semibold">Your Compliance</h3>
-              <p className="text-white/50 text-sm">Set your macros to enable compliance tracking</p>
+              <h3 className="text-white text-lg font-semibold">Compliance</h3>
+              <p className="text-white/50 text-sm">Set your macro targets to begin tracking adherence</p>
             </div>
           </div>
+          <p className="text-sm text-white/40 italic">
+            {getComplianceMessage(null, "no_targets")}
+          </p>
           <Button
             className="w-full bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30"
             onClick={(e) => {
@@ -121,12 +131,12 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
               <Target className="h-6 w-6 text-red-400" />
             </div>
             <div>
-              <h3 className="text-white text-lg font-semibold">Your Compliance</h3>
+              <h3 className="text-white text-lg font-semibold">Compliance Score</h3>
               <p className="text-red-400 text-2xl font-bold">0%</p>
             </div>
           </div>
-          <p className="text-white/50 text-sm">
-            Start logging meals to build your compliance score
+          <p className="text-sm text-white/50 italic">
+            {getComplianceMessage(0, undefined, 0)}
           </p>
         </CardContent>
       </Card>
@@ -153,7 +163,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
               <Target className={`h-6 w-6 ${getScoreColor(score)}`} />
             </div>
             <div>
-              <h3 className="text-white/70 text-sm font-medium">Your Compliance</h3>
+              <h3 className="text-white/70 text-sm font-medium">Compliance</h3>
               <p className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</p>
             </div>
           </div>
@@ -183,7 +193,11 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
           </div>
         </div>
 
-        <div className="mt-3 text-right">
+        <p className="text-sm text-white/50 italic mt-3">
+          {getComplianceMessage(score, undefined, data.loggedDays7)}
+        </p>
+
+        <div className="mt-2 text-right">
           <span className="text-xs text-white/30">Last {data.windowDays} days</span>
         </div>
       </CardContent>
