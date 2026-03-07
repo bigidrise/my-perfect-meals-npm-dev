@@ -75,7 +75,7 @@ export default function ConsumerWelcome() {
 
         <div className="flex flex-col items-center mb-4 -mt-2">
           <img
-            src="/assets/ProCareChef.jpg"
+            src="/assets/ProCareChef.png"
             alt="Chef"
             className="w-[26rem] h-auto -mb-3"
           />
