@@ -4,7 +4,7 @@
 d2f7eb874c7290cccff13763490862b6  client/src/pages/BeachBodyMealBoard.tsx
 c3c149ae3e28c403beb4aca16c228f34  client/src/pages/pro/PerformanceCompetitionBuilder.tsx
 2c196aafbfb4eaaece3e72473b7572dc  client/src/pages/Planner.tsx
-01024d2fd9320d79d09f6804d77aaeec  server/routes/manualMacros.ts
+3a922dfa19f274db037e1422d65b583e  server/routes/manualMacros.ts
 1aa7fa1969fb40ca75599f640ee50bc0  server/services/stableMealGenerator.ts
 bef4030fccb6de53b8178872b8a5aa4b  server/services/universalMealGenerator.ts
 b87604b3b2fd5cdfa4da1df71d0cb0df  server/services/unifiedMealPipeline.ts
