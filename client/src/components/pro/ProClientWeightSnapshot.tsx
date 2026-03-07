@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { Loader2, Scale } from "lucide-react";
+import { Loader2, Scale, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -256,6 +256,37 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
         </h4>
       </div>
 
+      {weeklyChange != null ? (
+        <div className={`flex items-center justify-center gap-2 rounded-md py-1.5 px-3 ${
+          weeklyChange < 0 ? "bg-emerald-500/15 border border-emerald-500/30" :
+          weeklyChange > 0 ? "bg-red-500/15 border border-red-500/30" :
+          "bg-white/5 border border-white/10"
+        }`}>
+          {weeklyChange < 0 ? (
+            <TrendingDown className="w-4 h-4 text-emerald-400" />
+          ) : weeklyChange > 0 ? (
+            <TrendingUp className="w-4 h-4 text-red-400" />
+          ) : (
+            <Minus className="w-4 h-4 text-white/50" />
+          )}
+          <span className={`text-sm font-bold ${
+            weeklyChange < 0 ? "text-emerald-400" : weeklyChange > 0 ? "text-red-400" : "text-white/50"
+          }`}>
+            {weeklyChange > 0 ? "+" : ""}{weeklyChange} lb this week
+          </span>
+          <span className={`text-[10px] ${
+            weeklyChange < 0 ? "text-emerald-400/60" : weeklyChange > 0 ? "text-red-400/60" : "text-white/30"
+          }`}>
+            {weeklyChange < 0 ? "↓ Down" : weeklyChange > 0 ? "↑ Up" : "No change"}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-2 rounded-md py-1.5 px-3 bg-white/5 border border-white/10">
+          <Minus className="w-4 h-4 text-white/30" />
+          <span className="text-xs text-white/30">Need 2+ weeks of data for trend</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <p className="text-sm font-bold text-white">
@@ -271,8 +302,15 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
         <div>
           <p className="text-sm font-bold">
             {weeklyChange != null ? (
-              <span className={weeklyChange < 0 ? "text-emerald-400" : weeklyChange > 0 ? "text-red-400" : "text-white/50"}>
-                {weeklyChange > 0 ? "+" : ""}{weeklyChange} lb
+              <span className="flex items-center justify-center gap-1">
+                {weeklyChange < 0 ? (
+                  <TrendingDown className="w-3 h-3 text-emerald-400" />
+                ) : weeklyChange > 0 ? (
+                  <TrendingUp className="w-3 h-3 text-red-400" />
+                ) : null}
+                <span className={weeklyChange < 0 ? "text-emerald-400" : weeklyChange > 0 ? "text-red-400" : "text-white/50"}>
+                  {weeklyChange > 0 ? "+" : ""}{weeklyChange} lb
+                </span>
               </span>
             ) : (
               <span className="text-white/30">—</span>
@@ -283,8 +321,15 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
         <div>
           <p className="text-sm font-bold">
             {totalChange != null ? (
-              <span className={totalChange < 0 ? "text-emerald-400" : totalChange > 0 ? "text-red-400" : "text-white/50"}>
-                {totalChange > 0 ? "+" : ""}{totalChange} lb
+              <span className="flex items-center justify-center gap-1">
+                {totalChange < 0 ? (
+                  <TrendingDown className="w-3 h-3 text-emerald-400" />
+                ) : totalChange > 0 ? (
+                  <TrendingUp className="w-3 h-3 text-red-400" />
+                ) : null}
+                <span className={totalChange < 0 ? "text-emerald-400" : totalChange > 0 ? "text-red-400" : "text-white/50"}>
+                  {totalChange > 0 ? "+" : ""}{totalChange} lb
+                </span>
               </span>
             ) : (
               <span className="text-white/30">—</span>
