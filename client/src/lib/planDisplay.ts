@@ -15,8 +15,10 @@ export function planDisplayName(lookupKey?: string): string {
       return "Ultimate";
     case "mpm_family_base_monthly":
       return "Family Base";
+    case "mpm_family_premium":
     case "mpm_family_all_upgrade_monthly":
-      return "Family All-Premium";
+    case "mpm_family_all_premium_monthly":
+      return "Family Premium";
     case "mpm_family_all_ultimate_monthly":
       return "Family All-Ultimate";
     case "mpm_procare_monthly":

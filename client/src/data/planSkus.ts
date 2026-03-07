@@ -3,6 +3,7 @@ export type LookupKey =
   | "mpm_premium"
   | "mpm_ultimate"
   | "mpm_family_base"
+  | "mpm_family_premium"
   | "mpm_family_ultimate"
   | "mpm_trainer_5"
   | "mpm_trainer_10"
@@ -88,6 +89,22 @@ export const PLAN_SKUS: PlanSku[] = [
     badge: "Best for Families",
   },
   {
+    sku: "mpm_family_premium",
+    label: "Family Premium",
+    price: 99.99,
+    seats: 4,
+    group: "family",
+    blurb: "All 4 seats include Premium features",
+    features: [
+      "All Family Base features",
+      "Premium tier for all 4 profiles",
+      "Advanced presets & alerts",
+      "Shopping list export",
+      "Specialty diet menus",
+    ],
+    badge: "Best Value",
+  },
+  {
     sku: "mpm_family_ultimate",
     label: "Family Ultimate",
     price: 159.99,
@@ -95,7 +112,7 @@ export const PLAN_SKUS: PlanSku[] = [
     group: "family",
     blurb: "All 4 seats include Ultimate features",
     features: [
-      "All Family Base features",
+      "All Family Premium features",
       "Ultimate tier for all 4 profiles",
       "Priority family support",
       "Advanced analytics per profile",

@@ -432,8 +432,12 @@ export default function PricingPage() {
 
     // Define tier hierarchy for family plans
     const familyTiers: Record<string, number> = {
+      mpm_family_base: 1,
       mpm_family_base_monthly: 1,
+      mpm_family_premium: 2,
       mpm_family_all_upgrade_monthly: 2,
+      mpm_family_all_premium_monthly: 2,
+      mpm_family_ultimate: 3,
       mpm_family_all_ultimate_monthly: 3,
     };
 

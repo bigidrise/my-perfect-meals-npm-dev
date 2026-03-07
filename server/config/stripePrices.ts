@@ -31,6 +31,7 @@ const ultimate = requirePrice("STRIPE_PRICE_ULTIMATE", "Ultimate");
 /* Family Plans */
 
 const familyBase = requirePrice("STRIPE_PRICE_FAMILY_BASE", "Family Base");
+const familyPremium = requirePrice("STRIPE_PRICE_FAMILY_ALL_PREMIUM", "Family Premium");
 const familyUltimate = requirePrice(
   "STRIPE_PRICE_FAMILY_ALL_ULTIMATE",
   "Family Ultimate",
@@ -61,6 +62,7 @@ export const STRIPE_PRICE_IDS: Record<LookupKey, string> = {
   mpm_ultimate: ultimate,
 
   mpm_family_base: familyBase,
+  mpm_family_premium: familyPremium,
   mpm_family_ultimate: familyUltimate,
 
   mpm_trainer_5: trainer5,

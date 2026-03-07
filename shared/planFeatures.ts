@@ -164,6 +164,7 @@ export type PlanLookupKey =
   | "mpm_premium_beta_monthly"
   | "mpm_ultimate_monthly"
   | "mpm_family_base_monthly"
+  | "mpm_family_premium"
   | "mpm_family_all_upgrade_monthly"
   | "mpm_family_all_premium_monthly"
   | "mpm_family_all_ultimate_monthly"
@@ -183,6 +184,7 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_premium_beta_monthly: "premium",
   mpm_ultimate_monthly: "ultimate",
   mpm_family_base_monthly: "basic",
+  mpm_family_premium: "premium",
   mpm_family_all_upgrade_monthly: "premium",
   mpm_family_all_premium_monthly: "premium",
   mpm_family_all_ultimate_monthly: "ultimate",

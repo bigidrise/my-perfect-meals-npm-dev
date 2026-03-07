@@ -17,7 +17,9 @@ export type PlanKey =
   | "mpm_upgrade_beta_monthly"
   | "mpm_ultimate_monthly"
   | "mpm_family_base_monthly"
+  | "mpm_family_premium"
   | "mpm_family_all_upgrade_monthly"
+  | "mpm_family_all_premium_monthly"
   | "mpm_family_all_ultimate_monthly"
   | "mpm_procare_monthly";
 
@@ -28,7 +30,9 @@ export const PLAN_ENTITLEMENTS: Record<PlanKey, Entitlement[]> = {
   mpm_upgrade_beta_monthly: getEntitlementsForTier("premium"),
   mpm_ultimate_monthly: getEntitlementsForTier("ultimate"),
   mpm_family_base_monthly: getEntitlementsForTier("basic"),
+  mpm_family_premium: getEntitlementsForTier("premium"),
   mpm_family_all_upgrade_monthly: getEntitlementsForTier("premium"),
+  mpm_family_all_premium_monthly: getEntitlementsForTier("premium"),
   mpm_family_all_ultimate_monthly: getEntitlementsForTier("ultimate"),
   mpm_procare_monthly: [...PROCARE_ENTITLEMENTS],
 };

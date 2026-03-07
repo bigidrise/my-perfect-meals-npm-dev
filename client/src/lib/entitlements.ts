@@ -69,8 +69,9 @@ export function getPlanDisplayName(lookupKey: string | null | undefined): string
     mpm_premium_beta_monthly: "Premium (Beta)",
     mpm_ultimate_monthly: "Ultimate",
     mpm_family_base_monthly: "Family Base",
-    mpm_family_all_upgrade_monthly: "Family All-Premium",
-    mpm_family_all_premium_monthly: "Family All-Premium",
+    mpm_family_premium: "Family Premium",
+    mpm_family_all_upgrade_monthly: "Family Premium",
+    mpm_family_all_premium_monthly: "Family Premium",
     mpm_family_all_ultimate_monthly: "Family All-Ultimate",
     mpm_procare_monthly: "ProCare",
   };

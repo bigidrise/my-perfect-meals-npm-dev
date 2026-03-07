@@ -3,6 +3,7 @@ const PAID_PLAN_KEYS = [
   "mpm_premium",
   "mpm_ultimate",
   "mpm_family_base",
+  "mpm_family_premium",
   "mpm_family_ultimate",
   "mpm_trainer_5",
   "mpm_trainer_10",
