@@ -69,6 +69,15 @@ export default function LifestyleLandingPage() {
       testId: "card-beverage-creator",
     },
     {
+      title: "Chef Pairings",
+      description:
+        "Ask Chef what wine, beer, or spirits pair perfectly with your meal.",
+      icon: Wine,
+      route: "/lifestyle/chef-pairings",
+      gradient: "from-amber-500/20 to-orange-500/20",
+      testId: "card-chef-pairings",
+    },
+    {
       title: "Fridge Rescue",
       description: "Transform ingredients in your kitchen into delicious meals",
       icon: RefrigeratorIcon,

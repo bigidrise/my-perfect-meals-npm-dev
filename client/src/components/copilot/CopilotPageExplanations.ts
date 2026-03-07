@@ -69,6 +69,26 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   },
 
 
+  "/lifestyle/beverage-creator": {
+    pageId: "beverage-creator",
+    title: "Beverage Creator",
+    description:
+      "Create personalized healthy beverages — smoothies, teas, coffees, juices, protein shakes, and more — tailored to your nutrition goals.",
+    spokenText:
+      "Welcome to the Beverage Creator — this is where you build drinks that actually fit your plan. Pick a category — smoothies, teas, coffees, juices, protein shakes, mocktails, or infused waters — then tell me what you're in the mood for. I'll create a custom beverage with full nutrition info, ingredients, and instructions. Every drink respects your SafetyGuard settings, allergies, and dietary preferences. If you're diabetic, GlucoseGuard adjusts sugar content based on your latest reading. You can save favorites, add drinks to your meal plan, or send ingredients straight to your shopping list. Flavor Preference lets you switch between personal and neutral taste when making drinks for others.",
+    autoClose: true,
+  },
+
+  "/lifestyle/chef-pairings": {
+    pageId: "chef-pairings",
+    title: "Chef Pairings",
+    description:
+      "Find the perfect wine, beer, and spirits to pair with any meal. Powered by AI sommelier expertise.",
+    spokenText:
+      "Welcome to Chef Pairings — your personal sommelier, beer expert, and spirits guide all in one place. Just type what you're eating — steak, salmon, pizza, tacos, whatever you're having — and I'll recommend wines, beers, and spirits that pair perfectly with your food. Each recommendation includes why it works, calorie info, and health notes for anyone watching sugar or calories. If you find a pairing you love, tap the heart to save it to your favorites. Your SafetyGuard and allergy protections are active here too, so everything stays safe.",
+    autoClose: true,
+  },
+
   "/fridge-rescue": {
     pageId: "fridge-rescue-studio",
     title: "Fridge Rescue",

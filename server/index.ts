@@ -73,6 +73,7 @@ import { resolveCuisineMiddleware } from "./middleware/resolveCuisineMiddleware"
 import cravingCreatorRouter from "./routes/craving-creator";
 import dessertCreatorRouter from "./routes/dessert-creator";
 import beverageCreatorRouter from "./routes/beverage-creator";
+import chefPairingsRouter from "./routes/chef-pairings";
 import holidayFeastRouter from "./routes/holiday-feast";
 import breakfastRouter from "./routes/breakfast";
 import lunchRouter from "./routes/lunch";
@@ -363,6 +364,7 @@ app.use("/api/avatar", avatarContextRoutes);
 app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouter);  
 app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouter);
 app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouter);
+app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouter);
 app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFeastRouter);
 
 // Studio Generation Facade (LibraryEngine + QueueEngine)
