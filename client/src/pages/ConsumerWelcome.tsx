@@ -12,17 +12,13 @@ import { voiceManager } from "@/voice/VoiceManager";
 
 const COPILOT_SCRIPT = `Hey, welcome to My Perfect Meals.
 
-I'm Chef — and I'm here to help you build meals you actually enjoy, while staying on track with your goals.
+I'm Chef — your nutrition coach in your pocket.
 
-Here's how this works. You tell me about yourself — your goals, your preferences, any dietary needs — and I build meals around you. Not the other way around.
+I’m here to help guide your food decisions so you can enjoy the meals you love while staying aligned with your goals.
 
-No food guilt. No guesswork. No cookie-cutter plans. Just real meals, built for your real life.
+Before we get started, take a moment to read the information below. It will explain how the system works and what to expect.
 
-The app uses science-backed nutrition guidelines to keep things safe and smart. But you're always in control. You decide what you eat. I just make sure the numbers work.
-
-Whether you're cooking at home, dining out, craving something sweet, or just don't know what to make — I've got you covered.
-
-When you're ready, tap Continue to create your account. Let's get you set up.`;
+When you're ready, continue to onboarding so we can set up your personal nutrition plan.`;
 
 export default function ConsumerWelcome() {
   const [, setLocation] = useLocation();
@@ -105,7 +101,7 @@ export default function ConsumerWelcome() {
               <p className="text-sm font-medium text-white">
                 {isPlaying
                   ? "Listening to Chef..."
-                  : "Meet Chef — Hear What We're About"}
+                  : "Meet Chef"}
               </p>
               <p className="text-xs text-white/50">
                 {isPlaying ? "Tap to stop" : "A quick intro from our Copilot"}
