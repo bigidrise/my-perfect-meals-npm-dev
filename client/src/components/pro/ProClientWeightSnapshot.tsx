@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { Loader2, TrendingDown, TrendingUp, Minus, Scale } from "lucide-react";
+import { Loader2, Scale } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -22,64 +22,113 @@ interface WeightRow {
   weight: number;
 }
 
-type RangeKey = "30" | "90" | "6" | "12";
+type ViewMode = "daily" | "weekly" | "monthly" | "90day";
 
-const RANGE_LABELS: Record<RangeKey, string> = {
-  "30": "30D",
-  "90": "90D",
-  "6": "6M",
-  "12": "12M",
+const VIEW_LABELS: Record<ViewMode, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+  "90day": "90 Day",
 };
 
-function buildDailyAvg(history: WeightRow[], daysBack: number) {
-  const days = new Map<string, number[]>();
-  for (const r of history) {
-    const key = r.date.slice(0, 10);
-    if (!days.has(key)) days.set(key, []);
-    days.get(key)!.push(r.weight);
-  }
-  const out: { date: string; weightAvg: number }[] = [];
-  for (let i = daysBack - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const vals = days.get(key);
-    const avg =
-      vals && vals.length
-        ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
-        : 0;
-    out.push({ date: key, weightAvg: avg });
-  }
-  return out;
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function findWeightNDaysAgo(history: WeightRow[], daysAgo: number): number | null {
-  const target = new Date();
-  target.setDate(target.getDate() - daysAgo);
-  const targetStr = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+function getMonday(d: Date): Date {
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const mon = new Date(d);
+  mon.setDate(diff);
+  mon.setHours(0, 0, 0, 0);
+  return mon;
+}
 
-  let closest: WeightRow | null = null;
-  let closestDiff = Infinity;
+function buildDailyData(history: WeightRow[]): { label: string; avg: number }[] {
+  const sorted = [...history].sort((a, b) => a.date.localeCompare(b.date));
+  return sorted.map((r) => ({
+    label: r.date.slice(0, 10),
+    avg: r.weight,
+  }));
+}
 
+interface WeekBucket {
+  label: string;
+  weekLabel: string;
+  avg: number;
+  change: number | null;
+}
+
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+function buildWeeklyData(history: WeightRow[]): WeekBucket[] {
+  const weeks = new Map<string, number[]>();
   for (const r of history) {
-    const rDate = new Date(r.date + "T12:00:00");
-    const diff = Math.abs(rDate.getTime() - target.getTime());
-    if (diff < closestDiff && r.date <= targetStr) {
-      closestDiff = diff;
-      closest = r;
-    }
+    const d = new Date(r.date + "T12:00:00");
+    const mon = getMonday(d);
+    const key = toDateKey(mon);
+    if (!weeks.has(key)) weeks.set(key, []);
+    weeks.get(key)!.push(r.weight);
   }
+  const sorted = Array.from(weeks.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const result: WeekBucket[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const [date, vals] = sorted[i];
+    const avg = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+    const prev = i > 0 ? result[i - 1].avg : null;
+    const change = prev != null ? Math.round((avg - prev) * 10) / 10 : null;
+    const sun = new Date(date + "T12:00:00");
+    sun.setDate(sun.getDate() + 6);
+    result.push({
+      label: date,
+      weekLabel: `${formatShortDate(date)}–${formatShortDate(toDateKey(sun))}`,
+      avg,
+      change,
+    });
+  }
+  return result;
+}
 
-  const sevenDayMs = 7 * 24 * 60 * 60 * 1000;
-  if (closest && closestDiff <= sevenDayMs) return closest.weight;
-  return null;
+function buildMonthlyData(history: WeightRow[]): { label: string; avg: number; change: number | null }[] {
+  const months = new Map<string, number[]>();
+  for (const r of history) {
+    const key = r.date.slice(0, 7);
+    if (!months.has(key)) months.set(key, []);
+    months.get(key)!.push(r.weight);
+  }
+  const sorted = Array.from(months.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const result: { label: string; avg: number; change: number | null }[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const [month, vals] = sorted[i];
+    const avg = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+    const prev = i > 0 ? result[i - 1].avg : null;
+    result.push({
+      label: month,
+      avg,
+      change: prev != null ? Math.round((avg - prev) * 10) / 10 : null,
+    });
+  }
+  return result;
+}
+
+function build90DayData(history: WeightRow[]): { label: string; avg: number }[] {
+  const now = new Date();
+  const cutoff = new Date();
+  cutoff.setDate(now.getDate() - 90);
+  const cutoffStr = toDateKey(cutoff);
+  const filtered = history.filter((r) => r.date >= cutoffStr);
+  return buildWeeklyData(filtered);
 }
 
 export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSnapshotProps) {
   const [weightHistory, setWeightHistory] = useState<WeightRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [range, setRange] = useState<RangeKey>("90");
+  const [view, setView] = useState<ViewMode>("weekly");
 
   useEffect(() => {
     if (!clientId) return;
@@ -126,28 +175,29 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
     return () => { cancelled = true; };
   }, [clientId]);
 
-  const rangeDays: Record<RangeKey, number> = { "30": 30, "90": 90, "6": 180, "12": 365 };
-  const chartData = useMemo(
-    () => buildDailyAvg(weightHistory, rangeDays[range]),
-    [weightHistory, range],
-  );
+  const dailyData = useMemo(() => buildDailyData(weightHistory), [weightHistory]);
+  const weeklyData = useMemo(() => buildWeeklyData(weightHistory), [weightHistory]);
+  const monthlyData = useMemo(() => buildMonthlyData(weightHistory), [weightHistory]);
+  const ninetyDayData = useMemo(() => build90DayData(weightHistory), [weightHistory]);
 
-  const filteredChart = useMemo(
-    () => chartData.filter((d) => d.weightAvg > 0),
-    [chartData],
-  );
+  const chartData = useMemo(() => {
+    switch (view) {
+      case "daily": return dailyData;
+      case "weekly": return weeklyData;
+      case "monthly": return monthlyData;
+      case "90day": return ninetyDayData;
+    }
+  }, [view, dailyData, weeklyData, monthlyData, ninetyDayData]);
 
   const latestWeight = weightHistory.length > 0 ? weightHistory[0].weight : null;
   const lastWeighIn = weightHistory.length > 0 ? weightHistory[0].date : null;
 
-  const weight30ago = findWeightNDaysAgo(weightHistory, 30);
-  const weight90ago = findWeightNDaysAgo(weightHistory, 90);
-
-  const delta30 = latestWeight != null && weight30ago != null
-    ? Math.round((latestWeight - weight30ago) * 10) / 10
+  const weeklyChange = weeklyData.length >= 2
+    ? weeklyData[weeklyData.length - 1].change
     : null;
-  const delta90 = latestWeight != null && weight90ago != null
-    ? Math.round((latestWeight - weight90ago) * 10) / 10
+
+  const totalChange = weeklyData.length >= 2
+    ? Math.round((weeklyData[weeklyData.length - 1].avg - weeklyData[0].avg) * 10) / 10
     : null;
 
   if (loading) {
@@ -173,11 +223,38 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
     );
   }
 
+  const formatTickLabel = (v: string) => {
+    if (view === "monthly") {
+      const parts = v.split("-");
+      return `${parts[1]}/${parts[0].slice(2)}`;
+    }
+    const d = new Date(v + "T12:00:00");
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  const formatTooltipLabel = (v: string) => {
+    if (view === "weekly" || view === "90day") {
+      const data = view === "weekly" ? weeklyData : ninetyDayData;
+      const found = data.find((w) => w.label === v);
+      if (found) return `Week of ${formatShortDate(v)}`;
+    }
+    if (view === "monthly") {
+      const d = new Date(v + "-01T12:00:00");
+      return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    }
+    return new Date(v + "T12:00:00").toLocaleDateString();
+  };
+
   return (
     <div className="bg-white/5 rounded-lg p-3 border border-white/10 space-y-3">
-      <h4 className="text-xs font-medium text-white/60 flex items-center gap-1.5">
-        <Scale className="w-3.5 h-3.5" /> Weight Trend
-      </h4>
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-medium text-white/60 flex items-center gap-1.5">
+          <Scale className="w-3.5 h-3.5" /> Weight Trend
+          <span className="text-[9px] text-white/30 ml-1">
+            ({VIEW_LABELS[view]})
+          </span>
+        </h4>
+      </div>
 
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
@@ -193,56 +270,76 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
         </div>
         <div>
           <p className="text-sm font-bold">
-            {delta30 != null ? (
-              <span className={delta30 < 0 ? "text-emerald-400" : delta30 > 0 ? "text-red-400" : "text-white/50"}>
-                {delta30 > 0 ? "+" : ""}{delta30} lb
+            {weeklyChange != null ? (
+              <span className={weeklyChange < 0 ? "text-emerald-400" : weeklyChange > 0 ? "text-red-400" : "text-white/50"}>
+                {weeklyChange > 0 ? "+" : ""}{weeklyChange} lb
               </span>
             ) : (
               <span className="text-white/30">—</span>
             )}
           </p>
-          <p className="text-[10px] text-white/40">30D Change</p>
+          <p className="text-[10px] text-white/40">Weekly Change</p>
         </div>
         <div>
           <p className="text-sm font-bold">
-            {delta90 != null ? (
-              <span className={delta90 < 0 ? "text-emerald-400" : delta90 > 0 ? "text-red-400" : "text-white/50"}>
-                {delta90 > 0 ? "+" : ""}{delta90} lb
+            {totalChange != null ? (
+              <span className={totalChange < 0 ? "text-emerald-400" : totalChange > 0 ? "text-red-400" : "text-white/50"}>
+                {totalChange > 0 ? "+" : ""}{totalChange} lb
               </span>
             ) : (
               <span className="text-white/30">—</span>
             )}
           </p>
-          <p className="text-[10px] text-white/40">90D Change</p>
+          <p className="text-[10px] text-white/40">Total Change</p>
         </div>
       </div>
 
       <div className="flex gap-1 bg-black/30 p-1 rounded-lg justify-center">
-        {(Object.keys(RANGE_LABELS) as RangeKey[]).map((k) => (
+        {(Object.keys(VIEW_LABELS) as ViewMode[]).map((k) => (
           <button
             key={k}
-            onClick={() => setRange(k)}
+            onClick={() => setView(k)}
             className={`px-3 py-1 rounded text-xs font-medium transition ${
-              range === k ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
+              view === k ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
             }`}
           >
-            {RANGE_LABELS[k]}
+            {VIEW_LABELS[k]}
           </button>
         ))}
       </div>
 
-      {filteredChart.length >= 2 ? (
+      {view === "weekly" && weeklyData.length > 0 && (
+        <div className="space-y-0.5 max-h-[120px] overflow-y-auto">
+          <div className="grid grid-cols-3 text-[9px] text-white/40 font-medium px-1 pb-1 border-b border-white/10">
+            <span>Week</span>
+            <span className="text-right">Avg Weight</span>
+            <span className="text-right">Change</span>
+          </div>
+          {weeklyData.slice().reverse().map((w, i) => (
+            <div key={w.label} className="grid grid-cols-3 text-[10px] px-1 py-0.5">
+              <span className="text-white/60">{w.weekLabel}</span>
+              <span className="text-right text-white font-medium">{w.avg} lb</span>
+              <span className={`text-right font-medium ${
+                w.change == null ? "text-white/30" :
+                w.change < 0 ? "text-emerald-400" :
+                w.change > 0 ? "text-red-400" : "text-white/50"
+              }`}>
+                {w.change == null ? "—" : `${w.change > 0 ? "+" : ""}${w.change}`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {chartData.length >= 2 ? (
         <div style={{ width: "100%", height: 180 }}>
           <ResponsiveContainer>
-            <LineChart data={filteredChart}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#444" />
               <XAxis
-                dataKey="date"
+                dataKey="label"
                 tick={{ fontSize: 9, fill: "#fff" }}
-                tickFormatter={(v: string) => {
-                  const d = new Date(v + "T12:00:00");
-                  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-                }}
+                tickFormatter={formatTickLabel}
               />
               <YAxis
                 tick={{ fontSize: 9, fill: "#fff" }}
@@ -254,15 +351,17 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
                   border: "1px solid #333",
                   color: "#fff",
                   borderRadius: 8,
+                  fontSize: 11,
                 }}
-                labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
+                labelFormatter={formatTooltipLabel}
+                formatter={(value: number) => [`${value} lb`, view === "daily" ? "Weight" : "Avg Weight"]}
               />
               <Line
                 type="monotone"
-                dataKey="weightAvg"
+                dataKey="avg"
                 stroke="#10b981"
-                dot={false}
-                name="Weight (lb)"
+                dot={chartData.length <= 14}
+                name={view === "daily" ? "Weight" : "Avg Weight"}
                 strokeWidth={2}
               />
             </LineChart>
