@@ -19,8 +19,9 @@ import { PillButton } from "@/components/ui/pill-button";
 import HeightInput from "@/components/inputs/HeightInput";
 import { getDeviceId } from "@/utils/deviceId";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthToken, getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import DisclaimerModal from "@/components/DisclaimerModal";
 
 const BUILDER_OPTIONS_DATA = [
   {
@@ -138,6 +139,9 @@ export default function OnboardingStandalone() {
   const [customAllergyInput, setCustomAllergyInput] = useState("");
   const [customMedicalInput, setCustomMedicalInput] = useState("");
   const [customDietaryInput, setCustomDietaryInput] = useState("");
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [disclaimerError, setDisclaimerError] = useState(false);
   
   // Page 4: Builder Selection + Safety PIN
   const [selectedBuilder, setSelectedBuilder] = useState("weekly");
@@ -172,6 +176,70 @@ export default function OnboardingStandalone() {
     palateSeasoningIntensity: "balanced",
     palateFlavorStyle: "classic",
   });
+
+  useEffect(() => {
+    if (disclaimerChecked) return;
+    const checkLegalStatus = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/legal/status?flow=client"), {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+        });
+        if (!res.ok) {
+          setShowDisclaimer(true);
+          setDisclaimerChecked(true);
+          return;
+        }
+        const status = await res.json();
+        const missing = status.missing || [];
+        if (missing.includes("nutrition_disclaimer")) {
+          setShowDisclaimer(true);
+        }
+        setDisclaimerChecked(true);
+      } catch (err) {
+        console.error("[Onboarding] Failed to check legal status:", err);
+        setShowDisclaimer(true);
+        setDisclaimerChecked(true);
+      }
+    };
+    checkLegalStatus();
+  }, [disclaimerChecked]);
+
+  const handleDisclaimerAccept = async () => {
+    setDisclaimerError(false);
+    try {
+      const res = await fetch(apiUrl("/api/legal/accept"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ documentType: "nutrition_disclaimer", version: 1 }),
+      });
+      if (!res.ok) {
+        console.error("[Onboarding] Failed to record disclaimer acceptance");
+        setDisclaimerError(true);
+        return;
+      }
+    } catch (err) {
+      console.error("[Onboarding] Error recording disclaimer acceptance:", err);
+      setDisclaimerError(true);
+      return;
+    }
+    localStorage.setItem("acceptedDisclaimer", "true");
+    setShowDisclaimer(false);
+  };
+
+  if (showDisclaimer) {
+    return (
+      <div>
+        <DisclaimerModal onAccept={handleDisclaimerAccept} />
+        {disclaimerError && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100000] bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
+            Unable to save acceptance. Please try again.
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
 

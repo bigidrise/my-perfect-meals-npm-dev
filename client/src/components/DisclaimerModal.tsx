@@ -17,7 +17,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DisclaimerModalProps {
   onAccept: () => void;
@@ -27,11 +26,14 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
   const [hasRead, setHasRead] = useState(false);
   const [hasAccepted, setHasAccepted] = useState(false);
 
+  const bypassEnabled =
+    import.meta.env.DEV &&
+    import.meta.env.VITE_ENABLE_DISCLAIMER_BYPASS === "true";
+
   console.log("DisclaimerModal mounted and rendering");
 
-  // DEV BYPASS: Auto-skip disclaimer in development with Ctrl+D (disabled in production)
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
+    if (!bypassEnabled) return;
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 'd') {
         e.preventDefault();
@@ -44,7 +46,7 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [onAccept]);
+  }, [onAccept, bypassEnabled]);
 
   const handleAccept = () => {
     console.log("Disclaimer accepted, calling onAccept");
@@ -55,28 +57,17 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
   return (
     <div className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-2 sm:p-4">
       <div className="w-full max-w-4xl h-[95vh] sm:max-h-[90vh] bg-white rounded-lg shadow-2xl border-4 border-red-600 overflow-hidden p-4 sm:p-6 flex flex-col">
-        <div className="relative mb-4 flex-shrink-0">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center text-red-600 pr-8">
+        <div className="mb-4 flex-shrink-0">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center text-red-600">
             ⚠️ IMPORTANT MEDICAL DISCLAIMER ⚠️
           </h1>
-          {import.meta.env.DEV && (
+          {bypassEnabled && (
             <div className="text-center mt-1">
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                 💡 Dev Tip: Press <kbd className="bg-white border border-gray-300 px-1 rounded">Ctrl+D</kbd> to skip
               </span>
             </div>
           )}
-          <button
-            onClick={() => {
-              localStorage.setItem("acceptedDisclaimer", "true");
-              localStorage.setItem("emotionalState", "excited");
-              localStorage.setItem("onboardingCompleted", "true");
-              onAccept();
-            }}
-            className="absolute top-0 right-0 text-white bg-red-600 hover:bg-red-700 text-lg font-bold w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full shadow-lg z-[10000] border-2 border-white"
-          >
-            ×
-          </button>
         </div>
 
         <div
@@ -84,6 +75,22 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
           style={{ maxHeight: "calc(100dvh - 200px)" }}
         >
           <div className="space-y-3 text-sm pb-2">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+              <h3 className="font-semibold text-blue-800 mb-2">
+                Welcome to My Perfect Meals
+              </h3>
+              <p className="text-blue-700">
+                My Perfect Meals is not a calorie tracking app. It is a guided nutrition
+                system designed to help direct your food decisions using structured macros,
+                meal builders, and coaching guidance.
+              </p>
+              <p className="text-blue-700 mt-2">
+                During setup you will answer questions about your goals, allergies, and
+                health considerations. These answers allow the system to personalize your
+                nutrition guidance and help guide your daily food decisions.
+              </p>
+            </div>
+
             <div className="bg-red-50 border-l-4 border-red-500 p-4">
               <h3 className="font-semibold text-red-800 mb-2">
                 MEDICAL DISCLAIMER

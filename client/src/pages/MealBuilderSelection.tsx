@@ -19,7 +19,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PillButton } from "@/components/ui/pill-button";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import DisclaimerModal from "@/components/DisclaimerModal";
 
 interface BuilderSwitchStatus {
   switchesUsed: number;
@@ -102,7 +101,6 @@ export default function MealBuilderSelection() {
   const [selected, setSelected] = useState<MealBuilderType | null>(null);
   const [confirmedBuilder, setConfirmedBuilder] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
@@ -239,13 +237,7 @@ export default function MealBuilderSelection() {
           "Your meal builder has been changed. You're all set to continue.",
       });
 
-      const disclaimerAccepted =
-        localStorage.getItem("acceptedDisclaimer") === "true";
-      if (disclaimerAccepted) {
-        setLocation("/dashboard");
-      } else {
-        setShowDisclaimer(true);
-      }
+      setLocation("/dashboard");
     } catch (error: any) {
       console.error("Failed to save meal builder selection:", error);
       toast({
@@ -470,14 +462,6 @@ export default function MealBuilderSelection() {
         )}
       </div>
 
-      {showDisclaimer && (
-        <DisclaimerModal
-          onAccept={() => {
-            setShowDisclaimer(false);
-            setLocation("/dashboard");
-          }}
-        />
-      )}
     </motion.div>
   );
 }
