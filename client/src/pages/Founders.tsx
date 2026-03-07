@@ -101,9 +101,11 @@ export default function Founder() {
           <h2 className="text-2xl font-semibold mb-6">Medical Compliance</h2>
 
           <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-sm ring-1 ring-white/20">
-              Photo
-            </div>
+            <img
+              src="/assets/dr-lindsey.jpg"
+              alt="Dr. Lindsey Prescher, MD"
+              className="w-24 h-24 rounded-full object-cover object-top ring-1 ring-white/20"
+            />
 
             <div>
               <h3 className="text-xl font-semibold text-white">

@@ -454,7 +454,7 @@ export default function PricingPage() {
 
     if (isFamilyPlan(currentPlan) && isConsumerPlan(sku)) {
       return "Switch to Individual";
-    }
+    } because
 
     // Same plan type comparison
     if (currentTier !== undefined && targetTier !== undefined) {
