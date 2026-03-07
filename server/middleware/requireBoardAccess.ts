@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { careTeamMember, type Permissions } from "../db/schema/careTeam";
 import { clientLinks } from "../db/schema/procare";
+import { studios, studioMemberships } from "../db/schema/studio";
 import { eq, and } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
 
@@ -78,6 +79,29 @@ export async function requireBoardAccess(
     .limit(1);
 
   if (activeLink) {
+    (req as BoardAccessRequest).boardAccess = {
+      clientUserId: clientId,
+      proUserId: authUser.id,
+      role: "professional",
+      permissions: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
+    };
+    return next();
+  }
+
+  const studioRows = await db
+    .select({ ownerUserId: studios.ownerUserId })
+    .from(studioMemberships)
+    .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
+    .where(
+      and(
+        eq(studioMemberships.clientUserId, clientId),
+        eq(studioMemberships.status, "active"),
+        eq(studios.status, "active"),
+      )
+    )
+    .limit(1);
+
+  if (studioRows.length > 0 && studioRows[0].ownerUserId === authUser.id) {
     (req as BoardAccessRequest).boardAccess = {
       clientUserId: clientId,
       proUserId: authUser.id,

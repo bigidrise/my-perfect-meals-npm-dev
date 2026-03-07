@@ -1078,11 +1078,12 @@ export default function MyBiometrics() {
       const localDate = today; // YYYY-MM-DD in user's local timezone
       const response = await fetch(apiUrl("/api/biometrics/weight"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           value: w,
           unit: "lb",
-          localDate, // Send local date string instead of ISO timestamp
+          localDate,
         }),
       });
 

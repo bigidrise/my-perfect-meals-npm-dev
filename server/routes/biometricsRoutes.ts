@@ -257,9 +257,10 @@ router.post('/log', async (req, res) => {
 
 // Simple weight save endpoint (from Macro Calculator)
 // Upserts weight by user_id + date to prevent duplicates
-router.post('/weight', async (req, res) => {
+router.post('/weight', requireAuth, async (req, res) => {
   try {
-    const userId = req.body.userId || "00000000-0000-0000-0000-000000000001";
+    const authUser = (req as any).authUser;
+    const userId = authUser?.id || req.body.userId;
     const { value, unit, localDate, measuredAt } = req.body;
 
     if (!value || !unit) {

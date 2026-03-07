@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { PushNotificationService } from '../services/pushNotificationService';
 import { requireAuth, AuthenticatedRequest } from '../middleware/requireAuth';
+import { db } from '../db';
+import { users } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -22,6 +25,32 @@ router.post('/subscribe', requireAuth, async (req, res) => {
     const result = await PushNotificationService.subscribeToPush(authUser.id, subscription);
 
     if (result.success) {
+      try {
+        const [user] = await db
+          .select({ pushTokens: users.pushTokens })
+          .from(users)
+          .where(eq(users.id, authUser.id))
+          .limit(1);
+
+        const existing: any[] = (user?.pushTokens as any[]) || [];
+        const isDuplicate = existing.some(
+          (sub: any) => sub.endpoint === subscription.endpoint
+        );
+
+        if (!isDuplicate) {
+          const updated = [...existing, subscription];
+          await db
+            .update(users)
+            .set({ pushTokens: updated })
+            .where(eq(users.id, authUser.id));
+          console.log(`📨 Push subscription persisted to DB for user ${authUser.id} (${updated.length} total)`);
+        }
+      } catch (dbErr) {
+        console.error('Failed to persist push subscription to DB:', dbErr);
+      }
+    }
+
+    if (result.success) {
       res.json({ success: true, message: 'Subscribed to push notifications' });
     } else {
       res.status(500).json({ error: result.error });
@@ -37,6 +66,15 @@ router.post('/unsubscribe', requireAuth, async (req, res) => {
     const authUser = (req as AuthenticatedRequest).authUser;
 
     const result = await PushNotificationService.unsubscribe(authUser.id);
+
+    try {
+      await db
+        .update(users)
+        .set({ pushTokens: [] })
+        .where(eq(users.id, authUser.id));
+    } catch (dbErr) {
+      console.error('Failed to clear push tokens from DB:', dbErr);
+    }
 
     if (result.success) {
       res.json({ success: true, message: 'Unsubscribed from push notifications' });
