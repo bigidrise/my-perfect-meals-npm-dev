@@ -73,9 +73,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "beverage-creator",
     title: "Beverage Creator",
     description:
-      "Create personalized healthy beverages — smoothies, teas, coffees, juices, protein shakes, and more — tailored to your nutrition goals.",
+      "Create personalized healthy beverages — smoothies, protein shakes, cocktails, mocktails, coffee drinks, tea drinks, milkshakes, frozen drinks, and hydration drinks — tailored to your nutrition goals.",
     spokenText:
-      "Welcome to the Beverage Creator — this is where you build drinks that actually fit your plan. Pick a category — smoothies, teas, coffees, juices, protein shakes, mocktails, or infused waters — then tell me what you're in the mood for. I'll create a custom beverage with full nutrition info, ingredients, and instructions. Every drink respects your SafetyGuard settings, allergies, and dietary preferences. If you're diabetic, GlucoseGuard adjusts sugar content based on your latest reading. You can save favorites, add drinks to your meal plan, or send ingredients straight to your shopping list. Flavor Preference lets you switch between personal and neutral taste when making drinks for others.",
+      "Welcome to the Beverage Creator — this is where you build drinks that actually fit your plan. Pick a category — smoothies, protein shakes, cocktails, mocktails, coffee drinks, tea drinks, milkshakes, frozen drinks, or hydration drinks — then tell me what you're in the mood for, or tap Surprise Me and let me pick. I'll create a custom beverage with full nutrition info, ingredients, and instructions. Every drink respects your SafetyGuard settings, allergies, and dietary preferences. If you're diabetic, GlucoseGuard adjusts sugar content based on your latest reading. You can save favorites, add drinks to your meal plan, or send ingredients straight to your shopping list. Flavor Preference lets you switch between personal and neutral taste when making drinks for others.",
     autoClose: true,
   },
 
