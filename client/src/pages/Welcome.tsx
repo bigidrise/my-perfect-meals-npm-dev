@@ -187,7 +187,7 @@ export default function Welcome() {
 
   const handleRegularSignUp = () => {
     closeModal();
-    setLocation("/consumer-welcome");
+    setLocation("/auth?mode=signup");
   };
 
   const handleProfessionalSignUp = () => {
