@@ -6,56 +6,9 @@ import {
   ArrowRight,
   Play,
   Pause,
-  Heart,
-  Utensils,
-  Shield,
-  Sparkles,
-  ChevronDown,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { voiceManager } from "@/voice/VoiceManager";
-
-const SECTIONS = [
-  {
-    id: "smart",
-    icon: <Sparkles className="w-6 h-6 text-orange-400" />,
-    title: "Meals Built Around You",
-    points: [
-      "Every meal is tailored to your goals, preferences, and lifestyle",
-      "AI-powered suggestions that actually taste good",
-      "No cookie-cutter plans — this is personalized nutrition",
-    ],
-  },
-  {
-    id: "easy",
-    icon: <Utensils className="w-6 h-6 text-lime-400" />,
-    title: "Simple, Not Stressful",
-    points: [
-      "No counting, no guessing, no guilt",
-      "Built-in guardrails keep you on track automatically",
-      "Enjoy your favorites while staying aligned with your goals",
-    ],
-  },
-  {
-    id: "safe",
-    icon: <Shield className="w-6 h-6 text-emerald-400" />,
-    title: "Science-Backed & Safe",
-    points: [
-      "Built on NIH guidelines and accepted nutritional standards",
-      "Allergy and dietary safety built in from day one",
-      "Transparent nutrition data — no hidden surprises",
-    ],
-  },
-  {
-    id: "enjoy",
-    icon: <Heart className="w-6 h-6 text-pink-400" />,
-    title: "Food You Actually Enjoy",
-    points: [
-      "Craving something? We've got a studio for that",
-      "Desserts, comfort food, dining out — all accounted for",
-      "No food guilt. Foods don't cause weight gain — context does",
-    ],
-  },
-];
 
 const COPILOT_SCRIPT = `Hey, welcome to My Perfect Meals.
 
@@ -73,10 +26,9 @@ When you're ready, tap Continue to create your account. Let's get you set up.`;
 
 export default function ConsumerWelcome() {
   const [, setLocation] = useLocation();
-  const [expandedSection, setExpandedSection] = useState<string | null>(
-    "smart",
-  );
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasReadExplanation, setHasReadExplanation] = useState(false);
+  const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false);
   const voiceRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -108,14 +60,9 @@ export default function ConsumerWelcome() {
     }
   };
 
-  const toggleSection = (id: string) => {
-    setExpandedSection(expandedSection === id ? null : id);
-  };
-
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-32">
-        {/* Back button */}
+      <div className="flex-1 overflow-y-auto px-4 pb-40">
         <div className="pt-10 pb-2">
           <button
             onClick={() => setLocation("/welcome")}
@@ -126,7 +73,6 @@ export default function ConsumerWelcome() {
           </button>
         </div>
 
-        {/* Chef Hero Section */}
         <div className="flex flex-col items-center mb-4 -mt-2">
           <img
             src="/assets/ProCareChef.jpg"
@@ -141,7 +87,6 @@ export default function ConsumerWelcome() {
           </p>
         </div>
 
-        {/* Copilot Audio Button */}
         <div className="mb-6">
           <button
             onClick={toggleCopilot}
@@ -169,58 +114,68 @@ export default function ConsumerWelcome() {
           </button>
         </div>
 
-        {/* Sections */}
-        <div className="space-y-3">
-          {SECTIONS.map((section) => {
-            const isExpanded = expandedSection === section.id;
-            return (
-              <div
-                key={section.id}
-                className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden"
-              >
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-transform"
-                >
-                  {section.icon}
-                  <span className="text-sm font-semibold flex-1 text-left">
-                    {section.title}
-                  </span>
-                  <ChevronDown
-                    className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                  />
-                </button>
-                {isExpanded && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {section.points.map((point, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white/30 mt-1.5 shrink-0" />
-                        <p className="text-sm text-white/70">{point}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 mb-6">
+          <h2 className="text-lg font-bold text-white mb-3">How My Perfect Meals Works</h2>
+          <div className="space-y-3 text-sm text-white/70 leading-relaxed">
+            <p>
+              My Perfect Meals works like a real nutrition coach.
+            </p>
+            <p>
+              During setup you will answer a few questions about your goals, how you normally eat,
+              your lifestyle, and any health considerations that may affect your food choices. This
+              information allows the system to calculate your personal nutrition targets and guide
+              your daily food decisions.
+            </p>
+            <p>
+              For people managing real health concerns such as diabetes, inflammation, digestive
+              sensitivities, or other dietary restrictions, the system includes built-in guardrails
+              designed to help filter and guide food choices more responsibly.
+            </p>
+            <p>
+              Instead of simply logging food after you eat it, My Perfect Meals helps guide what
+              to eat <span className="font-semibold text-white">before</span> you eat it.
+            </p>
+            <p>
+              Think of it as a <span className="font-semibold text-white">nutrition coach in your
+              pocket</span> helping you make smarter food decisions wherever you eat.
+            </p>
+          </div>
         </div>
 
-        {/* Philosophy Statement */}
-        <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-orange-900/20 to-amber-900/20 border border-orange-400/10">
-          <p className="text-sm text-white/60 italic text-center">
-            "No food guilt. No guesswork. Just real meals, built for your real
-            life."
-          </p>
+        <div className="space-y-4 mb-6">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="read-explanation"
+              checked={hasReadExplanation}
+              onCheckedChange={(checked) => setHasReadExplanation(checked as boolean)}
+              className="mt-0.5 border-white/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+            />
+            <label htmlFor="read-explanation" className="text-sm text-white/80 leading-tight cursor-pointer">
+              I have read and understand how My Perfect Meals works
+            </label>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="accept-disclaimer"
+              checked={hasAcceptedDisclaimer}
+              onCheckedChange={(checked) => setHasAcceptedDisclaimer(checked as boolean)}
+              className="mt-0.5 border-white/30 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+            />
+            <label htmlFor="accept-disclaimer" className="text-sm text-white/80 leading-tight cursor-pointer">
+              I accept the medical disclaimer and understand this app does not replace professional medical advice
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* Fixed Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
         <Button
-          onClick={() => setLocation("/auth?mode=signup")}
-          className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+          onClick={() => setLocation("/onboarding")}
+          disabled={!hasReadExplanation || !hasAcceptedDisclaimer}
+          className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Continue
+          Continue to Onboarding
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
