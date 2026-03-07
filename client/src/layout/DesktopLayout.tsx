@@ -1,4 +1,4 @@
-import { ReactNode, useCallback } from "react";
+import { ReactNode, useCallback, useState } from "react";
 import { Link, useLocation } from "wouter";
 import DesktopHeader from "./DesktopHeader";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ import {
   Home,
   Users,
   FolderOpen,
+  Briefcase,
 } from "lucide-react";
 
 interface Props {
@@ -34,10 +35,52 @@ const navItems: NavItem[] = [
   { path: "/more", label: "More", icon: MoreHorizontal },
 ];
 
+type WorkspaceMode = "personal" | "studio";
+
+function getInitialWorkspaceMode(location: string): WorkspaceMode {
+  const isOnProRoute =
+    location.startsWith("/care-team/") ||
+    location.startsWith("/pro/");
+  if (isOnProRoute) return "studio";
+  const stored = typeof window !== "undefined" ? localStorage.getItem("mpm_active_space") : null;
+  return stored === "workspace" ? "studio" : "personal";
+}
+
 export default function DesktopLayout({ children }: Props) {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const { open, close, isOpen, setLastResponse } = useCopilot();
+
+  const isProfessional =
+    user?.professionalRole === "physician" ||
+    user?.professionalRole === "trainer";
+
+  const isOnProRoute =
+    location.startsWith("/care-team/") ||
+    location.startsWith("/pro/");
+
+  const [workspaceMode, setWorkspaceModeState] = useState<WorkspaceMode>(() =>
+    getInitialWorkspaceMode(location)
+  );
+
+  const currentMode: WorkspaceMode = !isProfessional ? "personal" : isOnProRoute ? "studio" : workspaceMode;
+  const isStudioActive = currentMode === "studio";
+  const isPersonalActive = currentMode === "personal";
+
+  const isOnPersonalRoute =
+    location.startsWith("/dashboard") ||
+    location.startsWith("/planner") ||
+    location.startsWith("/lifestyle") ||
+    location.startsWith("/more");
+
+  const setWorkspaceMode = (mode: WorkspaceMode) => {
+    setWorkspaceModeState(mode);
+    if (mode === "studio") {
+      localStorage.setItem("mpm_active_space", "workspace");
+    } else {
+      localStorage.setItem("mpm_active_space", "personal");
+    }
+  };
 
   const handleChefClick = useCallback(() => {
     if (isOpen) {
@@ -64,30 +107,27 @@ export default function DesktopLayout({ children }: Props) {
     }
   }, [isOpen, open, close, location, setLastResponse]);
 
-  const isProfessional =
-    user?.professionalRole === "physician" ||
-    user?.professionalRole === "trainer";
-
-  const isOnProRoute =
-    location.startsWith("/care-team/") ||
-    location.startsWith("/pro/");
-
-  const activeSpace = isOnProRoute
-    ? "workspace"
-    : typeof window !== "undefined"
-    ? localStorage.getItem("mpm_active_space")
-    : null;
-
   const handlePersonalSpace = () => {
-    localStorage.setItem("mpm_active_space", "personal");
+    setWorkspaceMode("personal");
     sessionStorage.removeItem("mpm.welcomeGateDone");
     setLocation("/dashboard");
+  };
+
+  const handleStudioSpace = () => {
+    setWorkspaceMode("studio");
+    setLocation(
+      user?.professionalRole === "physician"
+        ? "/care-team/physician"
+        : "/care-team/trainer"
+    );
   };
 
   return (
     <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">
 
-      <aside className="w-60 shrink-0 bg-black border-r border-white/10 flex flex-col overflow-y-auto">
+      <aside className={`w-60 shrink-0 border-r border-white/10 flex flex-col overflow-y-auto transition-colors duration-300 ${
+        isStudioActive ? "bg-[rgba(30,90,180,0.06)]" : "bg-black"
+      }`}>
 
         <div className="px-5 pt-5 pb-4">
           <button
@@ -107,6 +147,19 @@ export default function DesktopLayout({ children }: Props) {
           </div>
         </div>
 
+        {isProfessional && (
+          <div className="px-5 pb-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Workspace /</span>
+              <span className={`text-sm font-semibold ${
+                isStudioActive ? "text-blue-400" : "text-emerald-400"
+              }`}>
+                {isStudioActive ? "Studio" : "Personal"}
+              </span>
+            </div>
+          </div>
+        )}
+
         <nav className="flex-1 px-3 space-y-1">
 
           {navItems.map(({ path, label, icon: Icon }) => {
@@ -114,6 +167,19 @@ export default function DesktopLayout({ children }: Props) {
             const active =
               location === path ||
               location.startsWith(path + "/");
+
+            if (isStudioActive) {
+              return (
+                <div
+                  key={path}
+                  aria-disabled="true"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {label}
+                </div>
+              );
+            }
 
             return (
               <Link
@@ -143,7 +209,7 @@ export default function DesktopLayout({ children }: Props) {
             <button
               onClick={handlePersonalSpace}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                activeSpace === "personal" || !activeSpace
+                isPersonalActive
                   ? "bg-emerald-500/15 text-emerald-400 font-medium"
                   : "text-white/60 hover:text-white hover:bg-white/5"
               }`}
@@ -152,47 +218,81 @@ export default function DesktopLayout({ children }: Props) {
               Personal Space
             </button>
 
+            <button
+              onClick={handleStudioSpace}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isStudioActive
+                  ? "bg-blue-500/15 text-blue-400 font-medium"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Briefcase className="w-4 h-4 shrink-0" />
+              Studio Workspace
+            </button>
+
             <div className="px-3 pt-2 pb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Professional</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Studio Tools</span>
             </div>
 
-            <button
-              onClick={() => {
-                localStorage.setItem("mpm_active_space", "workspace");
-                setLocation(
-                  user?.professionalRole === "physician"
-                    ? "/care-team/physician"
-                    : "/care-team/trainer"
-                );
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                location.startsWith("/care-team")
-                  ? "bg-orange-500/15 text-orange-400 font-medium"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Users className="w-4 h-4 shrink-0" />
-              Care Team
-            </button>
+            {isPersonalActive ? (
+              <>
+                <div
+                  aria-disabled="true"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
+                >
+                  <Users className="w-4 h-4 shrink-0" />
+                  Care Team
+                </div>
 
-            <button
-              onClick={() => {
-                localStorage.setItem("mpm_active_space", "workspace");
-                setLocation(
-                  user?.professionalRole === "physician"
-                    ? "/pro/physician-clients"
-                    : "/pro/clients"
-                );
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                location.startsWith("/pro/")
-                  ? "bg-orange-500/15 text-orange-400 font-medium"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <FolderOpen className="w-4 h-4 shrink-0" />
-              Pro Portal
-            </button>
+                <div
+                  aria-disabled="true"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
+                >
+                  <FolderOpen className="w-4 h-4 shrink-0" />
+                  Pro Portal
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    localStorage.setItem("mpm_active_space", "workspace");
+                    setLocation(
+                      user?.professionalRole === "physician"
+                        ? "/care-team/physician"
+                        : "/care-team/trainer"
+                    );
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    location.startsWith("/care-team")
+                      ? "bg-orange-500/15 text-orange-400 font-medium"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Users className="w-4 h-4 shrink-0" />
+                  Care Team
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem("mpm_active_space", "workspace");
+                    setLocation(
+                      user?.professionalRole === "physician"
+                        ? "/pro/physician-clients"
+                        : "/pro/clients"
+                    );
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    location.startsWith("/pro/")
+                      ? "bg-orange-500/15 text-orange-400 font-medium"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <FolderOpen className="w-4 h-4 shrink-0" />
+                  Pro Portal
+                </button>
+              </>
+            )}
 
           </div>
         )}
@@ -201,9 +301,14 @@ export default function DesktopLayout({ children }: Props) {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <DesktopHeader />
-        <main className="flex-1 overflow-y-auto px-6 py-6 desktop-content">
-          {children}
-        </main>
+        <div className="relative flex-1 overflow-hidden">
+          <main className="h-full overflow-y-auto px-6 py-6 desktop-content">
+            {children}
+          </main>
+          {isStudioActive && isOnPersonalRoute && (
+            <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 pointer-events-auto" />
+          )}
+        </div>
       </div>
 
     </div>
