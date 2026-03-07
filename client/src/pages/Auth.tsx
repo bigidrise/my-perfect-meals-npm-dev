@@ -50,6 +50,8 @@ export default function Auth() {
       if (isProfessional) {
         localStorage.removeItem("mpm_workspace_preference");
         setShowWorkspaceChooser(true);
+      } else if (mode === "signup") {
+        setLocation("/consumer-welcome");
       } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
         setLocation("/onboarding");
       } else {
