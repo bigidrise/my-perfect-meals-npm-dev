@@ -77,18 +77,37 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
           <div className="space-y-3 text-sm pb-2">
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
               <h3 className="font-semibold text-blue-800 mb-2">
-                Welcome to My Perfect Meals
+                How My Perfect Meals Works
               </h3>
+
               <p className="text-blue-700">
-                My Perfect Meals is not a calorie tracking app. It is a guided nutrition
-                system designed to help direct your food decisions using structured macros,
-                meal builders, and coaching guidance.
+                My Perfect Meals is designed to work like a real nutrition coach.
               </p>
+
               <p className="text-blue-700 mt-2">
-                During setup you will answer questions about your goals, allergies, and
-                health considerations. These answers allow the system to personalize your
-                nutrition guidance and help guide your daily food decisions.
+                During setup we’ll ask a few questions about your goals, eating habits,
+                lifestyle, and any health considerations that may affect how you should eat.
+                This information allows the system to calculate your personal nutrition
+                targets and guide your food decisions.
               </p>
+
+              <p className="text-blue-700 mt-2">
+                For people managing real health concerns such as diabetes, inflammation,
+                digestive sensitivities, or other dietary restrictions, the system includes
+                built-in guardrails designed to help filter and guide food choices more
+                responsibly.
+              </p>
+
+              <p className="text-blue-700 mt-2">
+                Instead of simply logging food after you eat it, My Perfect Meals helps guide
+                what to eat before you eat it.
+              </p>
+
+              <p className="text-blue-700 mt-2 font-medium">
+                Think of it as a nutrition coach in your pocket helping you make smarter food
+                decisions wherever you eat.
+              </p>
+
             </div>
 
             <div className="bg-red-50 border-l-4 border-red-500 p-4">
