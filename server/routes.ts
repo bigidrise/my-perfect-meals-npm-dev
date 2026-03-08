@@ -310,6 +310,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note: /api/health/ai is registered ABOVE this middleware so it remains public
   app.use("/api/ai", requireAuth, requireActiveAccess);
 
+  // Lifestyle AI routes (pairings, wine list, reduce drinking)
+  const pairingsAIRouter = (await import("./routes/ai-pairings")).default;
+  const wineListHelperRouter = (await import("./routes/ai-wine-list-helper")).default;
+  const reduceDrinkingPlanRouter = (await import("./routes/reduce-drinking-plan")).default;
+  app.use("/api/ai/pairings", pairingsAIRouter);
+  app.use("/api/ai/wine-list-helper", wineListHelperRouter);
+  app.use("/api/ai/reduce-drinking-plan", reduceDrinkingPlanRouter);
+
   // Public Object Storage - Serves meal images for Hybrid Meal Engine
   app.get("/public-objects/*", async (req, res) => {
     const filePath = (req.params as Record<string, string>)[0] || "";

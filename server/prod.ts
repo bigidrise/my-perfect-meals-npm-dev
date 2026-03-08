@@ -213,21 +213,13 @@ async function initializeApp() {
     
     // Import and mount routers
     console.log("📋 [INIT] Loading routes...");
-    const { requireAuth } = await import("./middleware/requireAuth");
-    const { requireActiveAccess } = await import("./middleware/requireActiveAccess");
     const dessertCreatorRouter = (await import("./routes/dessert-creator")).default;
     const beverageCreatorRouter = (await import("./routes/beverage-creator")).default;
     const restaurantRoutes = (await import("./routes/restaurants")).default;
-    const pairingsAIRouter = (await import("./routes/ai-pairings")).default;
-    const wineListHelperRouter = (await import("./routes/ai-wine-list-helper")).default;
-    const reduceDrinkingPlanRouter = (await import("./routes/reduce-drinking-plan")).default;
     
     app.use("/api/meals/dessert-creator", dessertCreatorRouter);
     app.use("/api/meals/beverage-creator", beverageCreatorRouter);
     app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
-    app.use("/api/ai/pairings", requireAuth, requireActiveAccess, pairingsAIRouter);
-    app.use("/api/ai/wine-list-helper", requireAuth, requireActiveAccess, wineListHelperRouter);
-    app.use("/api/ai/reduce-drinking-plan", requireAuth, requireActiveAccess, reduceDrinkingPlanRouter);
     console.log("✅ [INIT] Additional routes mounted");
     
     // Register main routes

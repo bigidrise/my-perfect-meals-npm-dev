@@ -74,9 +74,6 @@ import cravingCreatorRouter from "./routes/craving-creator";
 import dessertCreatorRouter from "./routes/dessert-creator";
 import beverageCreatorRouter from "./routes/beverage-creator";
 import chefPairingsRouter from "./routes/chef-pairings";
-import pairingsAIRouter from "./routes/ai-pairings";
-import wineListHelperRouter from "./routes/ai-wine-list-helper";
-import reduceDrinkingPlanRouter from "./routes/reduce-drinking-plan";
 import holidayFeastRouter from "./routes/holiday-feast";
 import breakfastRouter from "./routes/breakfast";
 import lunchRouter from "./routes/lunch";
@@ -368,9 +365,6 @@ app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreator
 app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouter);
 app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouter);
 app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouter);
-app.use("/api/ai/pairings", requireAuth, requireActiveAccess, pairingsAIRouter);
-app.use("/api/ai/wine-list-helper", requireAuth, requireActiveAccess, wineListHelperRouter);
-app.use("/api/ai/reduce-drinking-plan", requireAuth, requireActiveAccess, reduceDrinkingPlanRouter);
 app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFeastRouter);
 
 // Studio Generation Facade (LibraryEngine + QueueEngine)
