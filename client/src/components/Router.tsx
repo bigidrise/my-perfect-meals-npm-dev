@@ -34,6 +34,7 @@ import ProfileNew from "@/pages/Profile";
 import PrivacySecurity from "@/pages/privacy";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
+import DeleteAccount from "@/pages/DeleteAccount";
 // Onboarding V3 - 5-page safety-first flow
 import OnboardingV3 from "@/pages/OnboardingV3";
 import OnboardingStandalone from "@/pages/onboarding-standalone";
@@ -260,7 +261,7 @@ export default function Router() {
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
     "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation",
-    "/privacy", "/privacy-policy", "/terms",
+    "/privacy", "/privacy-policy", "/terms", "/delete-account",
     "/profile", "/settings",
     "/home",
   ];
@@ -346,6 +347,7 @@ export default function Router() {
         <Route path="/privacy" component={PrivacySecurity} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
+        <Route path="/delete-account" component={DeleteAccount} />
         {/* Profile Edit Page */}
         <Route path="/profile" component={EditProfilePage} />
         <Route path="/saved-meals" component={SavedMeals} />
