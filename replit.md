@@ -58,6 +58,7 @@ The application is a full-stack TypeScript project focused on personalized nutri
 -   **Database**: PostgreSQL via Drizzle ORM.
 -   **AI Integration**: OpenAI API for meal generation and content translation.
 -   **Navigation**: Role and workspace-based navigation (client and clinician views) with `BuilderHeader` and `ProClientContext`. Desktop layout (`DesktopLayout.tsx`) for larger screens and mobile layout for smaller. Specific routes bypass desktop layout (e.g., auth, onboarding).
+-   **MobileHeaderGuard**: `client/src/components/layout/MobileHeaderGuard.tsx` — global component that hides mobile fixed headers on desktop. Any `fixed top-0 left-0 right-0` header must be wrapped in `<MobileHeaderGuard>`. Uses `useIsDesktop()` hook; returns `null` on desktop, renders children on mobile. Applied across 43+ page files.
 -   **Routing & Gating**: Implements a free-first model. Subscription state is managed by `hasActivePaidSubscription(user)` in `subscriptionCheck.ts`. Onboarding is gated for paid users. `WelcomeGate` manages initial user experience, while `mpm_active_space` localStorage key tracks personal vs. workspace views.
 -   **Access Tier System**: Centralized `shared/planFeatures.ts` defines tiers and entitlements, enforced by backend middleware (`requireAuth`, `requireActiveAccess`).
 -   **Feature Flags**: `PhaseGate` component enables phased rollouts.
