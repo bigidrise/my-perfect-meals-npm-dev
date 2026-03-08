@@ -133,11 +133,8 @@ import EditProfilePage from "@/pages/profile/EditProfilePage";
 import SavedMeals from "@/pages/SavedMeals";
 
 // DELETED: AlcoholHubLanding, AlcoholLeanAndSocial, AlcoholSmartSips, MocktailsLowCalMixers, AlcoholLog
-import BeerPairing from "@/pages/beer-pairing";
-import BourbonSpirits from "@/pages/bourbon-spirits";
-import MealPairingAI from "@/pages/meal-pairing-ai";
+// DELETED: BeerPairing, BourbonSpirits, MealPairingAI, WinePairing (replaced by /lifestyle/pairings-ai)
 import WeaningOffTool from "@/pages/weaning-off-tool";
-import WinePairing from "@/pages/wine-pairing";
 
 // DELETED: MealFinder (moved to _quarantine - replaced by SocialFindMeals)
 
@@ -480,13 +477,8 @@ export default function Router() {
         <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
         <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
         {/* DELETED: /craving-presets, /alcohol-hub, /alcohol/lean-and-social, /alcohol-smart-sips, /mocktails-low-cal-mixers, /alcohol-log (Phase 1 cleanup) */}
-        <Route path="/beer-pairing" component={BeerPairing} />
-        <Route path="/bourbon-spirits" component={BourbonSpirits} />
-        <Route path="/meal-pairing-ai" component={MealPairingAI} />
+        {/* DELETED: /beer-pairing, /bourbon-spirits, /meal-pairing-ai, /wine-pairing (replaced by /lifestyle/pairings-ai) */}
         <Route path="/weaning-off-tool" component={WeaningOffTool} />
-        <Route path="/wine-pairing" component={WinePairing} />
-        {/* Lifestyle Hub (formerly Emotion AI) */}
-        <Route path="/lifestyle" component={LifestyleLandingPage} />
         <Route path="/emotion-ai" component={LifestyleLandingPage} />
         {/* DELETED: /meal-finder route (old MealFinder moved to _quarantine - use /social-hub/find instead) */}
         {/* Founders Route */}
