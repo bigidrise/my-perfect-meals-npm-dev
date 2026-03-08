@@ -303,7 +303,9 @@ export default function DesktopLayout({ children }: Props) {
         <DesktopHeader />
         <div className="relative flex-1 overflow-hidden">
           <main className="h-full overflow-y-auto px-6 py-6 desktop-content">
-            {children}
+            <div className="desktop-page-reset">
+              {children}
+            </div>
           </main>
           {isStudioActive && isOnPersonalRoute && (
             <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 pointer-events-auto" />
