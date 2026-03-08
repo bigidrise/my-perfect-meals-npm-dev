@@ -69,9 +69,9 @@ export default function LifestyleLandingPage() {
       testId: "card-beverage-creator",
     },
     {
-      title: "Pairings Hub",
+      title: "Spirit & Wine Pairing Hub",
       description:
-        "AI drink pairings, wine list translator, and a plan to reduce drinking — all in one place.",
+        "AI, spirit, wine & beer pairing,  wine list translator, and a drink reduceing tool.",
       icon: Wine,
       route: "/lifestyle/pairings-hub",
       gradient: "from-orange-500/20 to-amber-500/20",

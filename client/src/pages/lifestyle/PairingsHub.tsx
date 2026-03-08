@@ -2,7 +2,13 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { ArrowLeft, Wine, BookOpen, HeartPulse } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
@@ -18,22 +24,25 @@ interface PairingFeature {
 
 const pairingFeatures: PairingFeature[] = [
   {
-    title: "Drink Pairings",
-    description: "Find the perfect wine or beer for any meal or discover drinks you'll love.",
+    title: "Spirit, Beer & Wine Pairings",
+    description:
+      "Find the perfect wine or beer for any meal or discover drinks you'll love.",
     icon: Wine,
     route: "/lifestyle/pairings-ai",
     testId: "pairingshub-ai",
   },
   {
     title: "Wine List Translator",
-    description: "Paste a wine list and get simple explanations and a best choice.",
+    description:
+      "Paste a wine list and get simple explanations and a best choice.",
     icon: BookOpen,
     route: "/lifestyle/wine-list-helper",
     testId: "pairingshub-wine-list",
   },
   {
-    title: "Reduce Drinking Plan",
-    description: "Create a personalized plan to gradually reduce alcohol intake.",
+    title: "Reduce Drinking Tool",
+    description:
+      "Create a personalized plan to gradually reduce alcohol intake.",
     icon: HeartPulse,
     route: "/lifestyle/reduce-drinking-plan",
     testId: "pairingshub-reduction",
@@ -71,18 +80,26 @@ export default function PairingsHub() {
                 <ArrowLeft className="h-5 w-5" />
                 <span className="text-sm font-medium">Back</span>
               </button>
-              <h1 className="text-lg font-bold text-white truncate">Pairings Hub</h1>
+              <h1 className="text-lg font-bold text-white truncate">
+                Pairings Hub
+              </h1>
             </div>
           </div>
         )}
 
         <div
           className="flex-1 px-4 py-8"
-          style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+          style={{
+            paddingTop: isDesktop
+              ? "0"
+              : "calc(env(safe-area-inset-top, 0px) + 6rem)",
+          }}
         >
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">Drink Intelligence</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Drink Intelligence
+              </h2>
               <p className="text-sm text-white/70">
                 AI-powered drink pairings, wine education, and health planning.
               </p>
