@@ -16,17 +16,41 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import PairingResultCard from "@/components/pairings/PairingResultCard";
 
+const STORAGE_KEY = "mpm_wine_list_helper_results";
+
+function loadPersistedResults(): { results: any; wineListText: string; mealContext: string } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function persistResults(results: any, wineListText: string, mealContext: string) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ results, wineListText, mealContext }));
+  } catch {}
+}
+
+function clearPersistedResults() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 export default function WineListHelper() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   useCopilotPageExplanation();
 
-  const [wineListText, setWineListText] = useState("");
-  const [mealContext, setMealContext] = useState("");
+  const persisted = loadPersistedResults();
+
+  const [wineListText, setWineListText] = useState(persisted?.wineListText ?? "");
+  const [mealContext, setMealContext] = useState(persisted?.mealContext ?? "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<any>(persisted?.results ?? null);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -113,11 +137,20 @@ export default function WineListHelper() {
       const data = await res.json();
       setProgress(100);
       setResults(data);
+      persistResults(data, wineListText.trim(), mealContext.trim());
     } catch (err: any) {
       toast({ title: err.message || "Something went wrong", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  function handleStartOver() {
+    setResults(null);
+    setWineListText("");
+    setMealContext("");
+    clearPersistedResults();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -257,6 +290,15 @@ export default function WineListHelper() {
                     ))}
                   </>
                 )}
+
+                <div className="flex justify-center pt-4 pb-8">
+                  <GlassButton
+                    onClick={handleStartOver}
+                    className="bg-white/10 border border-white/20"
+                  >
+                    Start Over
+                  </GlassButton>
+                </div>
               </div>
             )}
           </div>

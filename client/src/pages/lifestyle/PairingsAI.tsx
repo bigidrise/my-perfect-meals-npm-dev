@@ -16,6 +16,7 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import PairingResultCard from "@/components/pairings/PairingResultCard";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
@@ -24,18 +25,42 @@ import {
 type Mode = "pairing" | "discovery";
 type Category = "wine" | "beer" | "both";
 
+const STORAGE_KEY = "mpm_pairings_ai_results";
+
+function loadPersistedResults(): { results: any; input: string; mode: Mode; category: Category } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function persistResults(results: any, input: string, mode: Mode, category: Category) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ results, input, mode, category }));
+  } catch {}
+}
+
+function clearPersistedResults() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 export default function PairingsAI() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   useCopilotPageExplanation();
 
-  const [mode, setMode] = useState<Mode>("pairing");
-  const [category, setCategory] = useState<Category>("both");
-  const [input, setInput] = useState("");
+  const persisted = loadPersistedResults();
+
+  const [mode, setMode] = useState<Mode>(persisted?.mode ?? "pairing");
+  const [category, setCategory] = useState<Category>(persisted?.category ?? "both");
+  const [input, setInput] = useState(persisted?.input ?? "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<any>(persisted?.results ?? null);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -138,11 +163,19 @@ export default function PairingsAI() {
       const data = await res.json();
       setProgress(100);
       setResults(data);
+      persistResults(data, input.trim(), mode, category);
     } catch (err: any) {
       toast({ title: err.message || "Something went wrong", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  function handleStartOver() {
+    setResults(null);
+    setInput("");
+    clearPersistedResults();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const modePills: { value: Mode; label: string }[] = [
@@ -210,17 +243,15 @@ export default function PairingsAI() {
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   {modePills.map((pill) => (
-                    <button
+                    <PillButton
                       key={pill.value}
+                      active={mode === pill.value}
+                      variant="amber"
                       onClick={() => setMode(pill.value)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        mode === pill.value
-                          ? "bg-orange-600 text-white border border-orange-400"
-                          : "bg-white/10 text-white/70 border border-white/20 hover:bg-white/20"
-                      }`}
+                      className="text-[11px] px-5 py-1.5"
                     >
                       {pill.label}
-                    </button>
+                    </PillButton>
                   ))}
                 </div>
 
@@ -228,18 +259,16 @@ export default function PairingsAI() {
                   <label className="block text-sm font-medium text-white/80 mb-2">Category</label>
                   <div className="flex flex-wrap gap-2">
                     {categoryPills.map((pill) => (
-                      <button
+                      <PillButton
                         key={pill.value}
+                        active={category === pill.value}
+                        variant="amber"
                         onClick={() => setCategory(pill.value)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
-                          category === pill.value
-                            ? "bg-orange-600 text-white border border-orange-400"
-                            : "bg-white/10 text-white/70 border border-white/20 hover:bg-white/20"
-                        }`}
+                        className="text-[11px] px-5 py-1.5"
                       >
-                        <pill.icon className="h-4 w-4" />
+                        <pill.icon className="h-3.5 w-3.5 mr-1" />
                         {pill.label}
-                      </button>
+                      </PillButton>
                     ))}
                   </div>
                 </div>
@@ -320,6 +349,15 @@ export default function PairingsAI() {
                     sourceType="pairings-ai"
                   />
                 ))}
+
+                <div className="flex justify-center pt-4 pb-8">
+                  <GlassButton
+                    onClick={handleStartOver}
+                    className="bg-white/10 border border-white/20"
+                  >
+                    Start Over
+                  </GlassButton>
+                </div>
               </div>
             )}
           </div>
