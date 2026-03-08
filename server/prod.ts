@@ -213,8 +213,8 @@ async function initializeApp() {
     
     // Import and mount routers
     console.log("📋 [INIT] Loading routes...");
-    const { requireAuth } = await import("./middleware/auth");
-    const { requireActiveAccess } = await import("./middleware/subscriptionCheck");
+    const { requireAuth } = await import("./middleware/requireAuth");
+    const { requireActiveAccess } = await import("./middleware/requireActiveAccess");
     const dessertCreatorRouter = (await import("./routes/dessert-creator")).default;
     const beverageCreatorRouter = (await import("./routes/beverage-creator")).default;
     const restaurantRoutes = (await import("./routes/restaurants")).default;
