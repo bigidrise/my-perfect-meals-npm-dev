@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   ArrowLeft,
   RefreshCw,
   Sparkles,
@@ -56,6 +55,7 @@ import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -609,7 +609,6 @@ const FridgeRescuePage = () => {
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
         <div
-        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
@@ -629,6 +628,7 @@ const FridgeRescuePage = () => {
             />
           </div>
         </div>
+        </MobileHeaderGuard>
 
         {/* Main Content */}
         <div

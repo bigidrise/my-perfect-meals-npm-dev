@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Select,
   SelectContent,
   SelectItem,
@@ -25,6 +24,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const GLP1_TOUR_STEPS: TourStep[] = [
   {
@@ -162,7 +162,6 @@ export default function GLP1Hub() {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -182,6 +181,7 @@ export default function GLP1Hub() {
           </div>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       {/* Main Content */}
       <div

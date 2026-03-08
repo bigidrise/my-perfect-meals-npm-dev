@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Dialog,
   DialogContent,
   DialogHeader,
@@ -79,6 +78,7 @@ import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNa
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { getCurrentUser } from "@/lib/auth";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -1416,7 +1416,6 @@ export default function MyBiometrics() {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -1465,6 +1464,7 @@ export default function MyBiometrics() {
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       {/* Main Content */}
       <div

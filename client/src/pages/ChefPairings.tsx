@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Wine, Beer, Martini } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   isAllergyRelatedError,
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
@@ -24,6 +23,7 @@ import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import AlcoholRecommendationCard from "@/components/AlcoholRecommendationCard";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const PAIRING_TOUR_STEPS: TourStep[] = [
   {
@@ -237,7 +237,6 @@ export default function ChefPairings() {
       >
         <MobileHeaderGuard>
         <div
-        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
@@ -261,6 +260,7 @@ export default function ChefPairings() {
             />
           </div>
         </div>
+        </MobileHeaderGuard>
 
         <div
           className="max-w-2xl mx-auto px-4 pb-32"

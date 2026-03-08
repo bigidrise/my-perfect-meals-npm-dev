@@ -19,7 +19,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Card,
   CardContent,
   CardHeader,
@@ -69,6 +68,7 @@ import {
 } from "@/components/copilot/scripts/socialDiningScripts";
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -546,7 +546,6 @@ export default function RestaurantGuidePage() {
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
         <div
-        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
@@ -572,6 +571,7 @@ export default function RestaurantGuidePage() {
             />
           </div>
         </div>
+        </MobileHeaderGuard>
 
         {/* Main Content */}
         <div

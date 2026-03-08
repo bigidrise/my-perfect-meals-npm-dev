@@ -157,7 +157,6 @@ export default function ProBoardViewer() {
     >
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -204,6 +203,7 @@ export default function ProBoardViewer() {
           ))}
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-3xl mx-auto px-4 space-y-4 pb-16"

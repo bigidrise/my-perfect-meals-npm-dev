@@ -10,7 +10,6 @@ import { proStore, Targets, ClinicalContext, BuilderType, StarchStrategy } from 
 import { BUILDER_MAP, ALL_BUILDER_KEYS, type BuilderKey } from "@/lib/builderMap";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Settings,
   ClipboardList,
   ArrowLeft,
@@ -24,6 +23,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -254,7 +254,6 @@ export default function TrainerClientDashboard() {
     >
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -275,6 +274,7 @@ export default function TrainerClientDashboard() {
         </div>
         <ProClientBanner />
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-6xl mx-auto px-6 space-y-6 pb-16"

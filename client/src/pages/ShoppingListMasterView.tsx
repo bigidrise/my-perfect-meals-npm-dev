@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Check,
   ChevronDown,
   ChevronUp,
@@ -37,6 +36,7 @@ import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
@@ -405,7 +405,6 @@ export default function ShoppingListMasterView() {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -435,6 +434,7 @@ export default function ShoppingListMasterView() {
           </h1>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="container mx-auto p-4 max-w-4xl space-y-4"

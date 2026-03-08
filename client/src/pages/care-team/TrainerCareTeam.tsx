@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Select,
   SelectContent,
   SelectItem,
@@ -42,6 +41,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
 import { ProfessionalIntroOverlay } from "@/components/pro/ProfessionalIntroOverlay";
 import { useAuth } from "@/contexts/AuthContext";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
@@ -267,7 +267,6 @@ export default function CareTeamPage() {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -279,6 +278,7 @@ export default function CareTeamPage() {
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 pb-8"

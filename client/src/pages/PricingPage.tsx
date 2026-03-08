@@ -7,7 +7,6 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Check,
   ArrowLeft,
   CreditCard,
@@ -33,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { restorePurchases, purchaseProduct } from "@/lib/storekit";
 import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 export default function PricingPage() {
   const [, setLocation] = useLocation();
@@ -120,7 +120,6 @@ export default function PricingPage() {
       >
         <MobileHeaderGuard>
         <div
-        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
@@ -137,6 +136,7 @@ export default function PricingPage() {
             <h1 className="text-lg font-bold text-white">Subscription</h1>
           </div>
         </div>
+        </MobileHeaderGuard>
 
         <div
           className="max-w-md mx-auto px-6 text-white"

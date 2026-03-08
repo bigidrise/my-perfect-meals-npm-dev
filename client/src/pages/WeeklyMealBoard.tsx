@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -69,6 +68,7 @@ import {
   isoToUtcNoonDate,
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import {
   Plus,
   Calendar1,
@@ -1562,7 +1562,6 @@ export default function WeeklyMealBoard() {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -1593,6 +1592,7 @@ export default function WeeklyMealBoard() {
           />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       {/* Main Content */}
       <div

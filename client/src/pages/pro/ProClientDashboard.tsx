@@ -12,7 +12,6 @@ import { getAuthHeaders } from "@/lib/auth";
 import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
 import WorkspaceSelectionModal from "@/components/pro/WorkspaceSelectionModal";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Settings,
   ClipboardList,
   ArrowLeft,
@@ -26,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const CLIENT_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -249,7 +249,6 @@ export default function ProClientDashboard() {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -270,6 +269,7 @@ export default function ProClientDashboard() {
           />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-6xl mx-auto px-6 space-y-6 pb-16"

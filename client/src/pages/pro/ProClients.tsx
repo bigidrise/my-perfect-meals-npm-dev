@@ -9,7 +9,6 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Select,
   SelectContent,
   SelectItem,
@@ -34,6 +33,7 @@ import {
 } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface ProClientsProps {
   workspace?: WorkspaceType;
@@ -259,7 +259,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     >
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -278,6 +277,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           </div>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-6xl mx-auto px-6 space-y-6"

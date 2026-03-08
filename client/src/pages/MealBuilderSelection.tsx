@@ -4,7 +4,6 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Utensils,
   Heart,
   Pill,
@@ -20,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PillButton } from "@/components/ui/pill-button";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface BuilderSwitchStatus {
   switchesUsed: number;
@@ -260,7 +260,6 @@ export default function MealBuilderSelection() {
       {/* Fixed Black Glass Navigation Banner */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -271,6 +270,7 @@ export default function MealBuilderSelection() {
           </h1>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       {/* Content area with padding for fixed header and bottom nav */}
       <div

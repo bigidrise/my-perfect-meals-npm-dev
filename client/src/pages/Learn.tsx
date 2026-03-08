@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   ArrowLeft,
   ChevronDown,
   ChevronUp,
@@ -24,6 +23,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { useNarration } from "@/hooks/useNarration";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface LibraryTopic {
   id: string;
@@ -773,7 +773,6 @@ export default function Learn() {
       {/* Fixed Black Glass Navigation Banner */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -793,6 +792,7 @@ export default function Learn() {
           </div>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       {/* Content with padding for fixed header */}
       <div

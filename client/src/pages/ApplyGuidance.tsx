@@ -58,7 +58,6 @@ export default function ApplyGuidance() {
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20">
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -72,6 +71,7 @@ export default function ApplyGuidance() {
           <h1 className="text-lg font-bold text-white">Apply for Personal Guidance</h1>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-2xl mx-auto px-4 pb-12"

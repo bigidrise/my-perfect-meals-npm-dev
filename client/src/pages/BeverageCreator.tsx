@@ -6,7 +6,6 @@ import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Select,
   SelectContent,
   SelectItem,
@@ -37,6 +36,7 @@ import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -364,7 +364,6 @@ export default function BeverageCreator() {
       >
         <MobileHeaderGuard>
         <div
-        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
@@ -389,6 +388,7 @@ export default function BeverageCreator() {
             />
           </div>
         </div>
+        </MobileHeaderGuard>
 
         <div
           className="max-w-2xl mx-auto px-4 pb-32"

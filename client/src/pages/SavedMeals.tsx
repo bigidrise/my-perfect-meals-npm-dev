@@ -73,7 +73,6 @@ export default function SavedMeals() {
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white pb-24 flex flex-col">
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -87,6 +86,7 @@ export default function SavedMeals() {
           </h1>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-lg mx-auto px-4 space-y-4 w-full"

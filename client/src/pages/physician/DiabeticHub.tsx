@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Activity,
   Target,
   TrendingUp,
@@ -36,6 +35,7 @@ import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { PillButton } from "@/components/ui/pill-button";
 import { GlucoseGuardExplainerModal } from "@/components/GlucoseGuardExplainerModal";
 import { GlycemicSettingsModal } from "@/components/diabetic/GlycemicSettingsModal";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const DIABETIC_TOUR_STEPS: TourStep[] = [
   {
@@ -212,7 +212,6 @@ export default function DiabeticHub() {
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
         <div
-        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
@@ -231,6 +230,7 @@ export default function DiabeticHub() {
             </div>
           </div>
         </div>
+        </MobileHeaderGuard>
 
         {/* Main Content */}
         <div

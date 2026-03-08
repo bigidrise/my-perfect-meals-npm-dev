@@ -155,7 +155,6 @@ const WeaningOffTool = () => {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -182,6 +181,7 @@ const WeaningOffTool = () => {
           
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-4xl mx-auto px-4 pb-12"

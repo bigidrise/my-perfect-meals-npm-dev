@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowUp, ArrowLeft, Info, Crown} from "lucide-react";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 // ---- LIVE PARTNER (Nutritional Frontiers) ----
 const AFFILIATE = {
@@ -115,7 +115,6 @@ export default function SupplementHub() {
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -127,6 +126,7 @@ export default function SupplementHub() {
           <h1 className="text-lg font-bold text-white">Supplement Hub</h1>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <main
         className="mx-auto max-w-screen-md px-4 pb-12"

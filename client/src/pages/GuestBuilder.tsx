@@ -7,7 +7,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   ChevronRight,
   Sparkles,
   UserPlus,
@@ -41,6 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GuestUpgradePromptModal } from "@/components/modals/GuestUpgradePromptModal";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface ActionButton {
   id: string;
@@ -307,7 +307,6 @@ export default function GuestBuilder() {
     >
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -320,6 +319,7 @@ export default function GuestBuilder() {
           <MedicalSourcesInfo asPillButton />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="max-w-2xl mx-auto px-4 space-y-6"

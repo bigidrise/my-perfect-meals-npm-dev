@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -79,6 +78,7 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import {
@@ -1186,7 +1186,6 @@ export default function BeachBodyMealBoard() {
       {/* Universal Safe-Area Header Bar */}
       <MobileHeaderGuard>
       <div
-      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -1204,6 +1203,7 @@ export default function BeachBodyMealBoard() {
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       {/* Main Content */}
       <div
