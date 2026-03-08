@@ -24,7 +24,6 @@ const FULL_SCREEN_ROUTES = [
   "/privacy",
   "/affiliates",
   "/founders",
-  "/delete-account",
 ];
 
 const UNAUTHENTICATED_FULL_SCREEN_ROUTES = [
