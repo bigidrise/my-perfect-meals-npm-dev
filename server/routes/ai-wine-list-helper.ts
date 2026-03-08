@@ -98,12 +98,9 @@ router.post("/", async (req, res) => {
     try {
       aiResult = await chatJson({
         model: "gpt-4o",
-        messages: [
-          { role: "system", content: "You are a premium wine education AI. Return only valid JSON." },
-          { role: "user", content: prompt },
-        ],
+        system: "You are a premium wine education AI. Return only valid JSON.",
+        user: prompt,
         temperature: 0.6,
-        timeout: 30000,
       });
     } catch (err: any) {
       log(`[WineListHelper] OpenAI call failed: ${err.message}`, "error");

@@ -133,12 +133,9 @@ router.post("/", async (req, res) => {
     try {
       aiResult = await chatJson({
         model: "gpt-4o",
-        messages: [
-          { role: "system", content: "You are a premium drink pairing AI. Return only valid JSON." },
-          { role: "user", content: prompt },
-        ],
+        system: "You are a premium drink pairing AI. Return only valid JSON.",
+        user: prompt,
         temperature: 0.7,
-        timeout: 30000,
       });
     } catch (err: any) {
       log(`[PairingsAI] OpenAI call failed: ${err.message}`, "error");
