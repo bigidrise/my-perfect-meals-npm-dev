@@ -222,14 +222,14 @@ export default function MorePage() {
       testId: "card-procare-trainer",
       roleKey: "trainer",
     },
-    {
-      title: "Supplement Hub",
-      description: "Evidence-based supplement guidance and trusted partners",
-      icon: Crown,
-      route: "/supplement-hub",
-      testId: "card-supplement-hub",
-      roleKey: null,
-    },
+    // {
+    //   title: "Supplement Hub",
+    //   description: "Evidence-based supplement guidance and trusted partners",
+    //   icon: Crown,
+    //   route: "/supplement-hub",
+    //   testId: "card-supplement-hub",
+    //   roleKey: null,
+    // },
   ];
 
   const isFeatureLocked = (feature: ProCareFeature) => {
