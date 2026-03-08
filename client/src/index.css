@@ -1321,3 +1321,13 @@ button, a, [role="button"], .interactive {
   --safe-area-inset-left: 0px;
   --safe-area-inset-right: 0px;
 }
+
+/* Desktop: neutralize mobile header-clearance padding.
+   Mobile pages set inline paddingTop (e.g. calc(env(safe-area-inset-top) + 6rem))
+   to clear the fixed mobile header. On desktop that header is hidden, so the
+   extra offset creates an unwanted gap. This rule zeros it globally.
+   Only the first two levels of content divs can carry header-clearance padding. */
+.desktop-content > div[style*="padding"],
+.desktop-content > div > div[style*="padding"] {
+  padding-top: 0.5rem !important;
+}
