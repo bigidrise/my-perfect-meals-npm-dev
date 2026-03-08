@@ -37,6 +37,7 @@ import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { FlavorToggle } from "@/components/FlavorToggle";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -538,6 +539,7 @@ export default function CravingStudio() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-40"
     >
       {/* Safe-Area Header (same pattern as Chef’s Kitchen) */}
+      <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -559,6 +561,7 @@ export default function CravingStudio() {
           <div className="flex-grow" />
         </div>
       </div>
+      </MobileHeaderGuard>
 
       <div
         className="px-4 space-y-4"

@@ -113,6 +113,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -636,6 +637,7 @@ export default function CravingCreator() {
         className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
       >
         {/* Universal Safe-Area Header */}
+        <MobileHeaderGuard>
         <div
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -663,6 +665,7 @@ export default function CravingCreator() {
             />
           </div>
         </div>
+        </MobileHeaderGuard>
 
         {/* Main Content */}
         <div
