@@ -1,30 +1,5 @@
-import { uploadImageToPermanentStorage } from "../permanentImageStorage";
+import { generateImage } from "../imageService";
 import { log } from "../../vite";
-
-let openaiInstance: any = null;
-
-function getOpenAI() {
-  if (!openaiInstance) {
-    const OpenAI = require("openai").default;
-    openaiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return openaiInstance;
-}
-
-function buildPairingImagePrompt(foodContext: string, drinkName: string, category: string): string {
-  const baseStyle = "professional cinematic food photography, elegant restaurant lighting, dark moody background, shallow depth of field, high resolution";
-
-  if (category === "wine") {
-    return `${baseStyle}, ${foodContext} beautifully plated alongside a glass of ${drinkName} wine, wine glass with rich color, fine dining presentation`;
-  }
-  if (category === "beer") {
-    return `${baseStyle}, ${foodContext} beautifully plated alongside a glass of ${drinkName} beer, craft beer glass with foam head, gastropub presentation`;
-  }
-  if (category === "spirits") {
-    return `${baseStyle}, ${foodContext} beautifully plated alongside a glass of ${drinkName}, premium spirits presentation, cocktail bar ambiance`;
-  }
-  return `${baseStyle}, ${foodContext} beautifully plated alongside ${drinkName}, elegant beverage presentation`;
-}
 
 export async function generatePairingImage(
   foodContext: string,
@@ -32,41 +7,34 @@ export async function generatePairingImage(
   category: string
 ): Promise<string | null> {
   try {
-    const openai = getOpenAI();
-    const prompt = buildPairingImagePrompt(foodContext, drinkName, category);
-
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-      style: "natural",
+    const imageUrl = await generateImage({
+      name: `${drinkName} paired with ${foodContext}`,
+      description: buildPairingDescription(foodContext, drinkName, category),
+      type: "beverage",
     });
 
-    const tempUrl = response.data?.[0]?.url;
-    if (!tempUrl) {
-      log(`[PairingsImage] No URL returned for ${drinkName}`, "warn");
-      return null;
+    if (imageUrl) {
+      log(`[PairingsImage] Generated image for ${drinkName}`, "info");
     }
 
-    const uniqueHash = `pairing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const result = await uploadImageToPermanentStorage({
-      imageUrl: tempUrl,
-      mealName: `${drinkName}-${category}`,
-      imageHash: uniqueHash,
-    });
-
-    if (result?.permanentUrl) {
-      log(`[PairingsImage] Generated fresh image for ${drinkName}`, "info");
-      return result.permanentUrl;
-    }
-
-    return null;
+    return imageUrl;
   } catch (error: any) {
     log(`[PairingsImage] Failed to generate image for ${drinkName}: ${error.message}`, "warn");
     return null;
   }
+}
+
+function buildPairingDescription(foodContext: string, drinkName: string, category: string): string {
+  if (category === "wine") {
+    return `elegant wine glass of ${drinkName} with rich color, fine dining presentation alongside ${foodContext}, dark moody background, shallow depth of field`;
+  }
+  if (category === "beer") {
+    return `craft beer glass of ${drinkName} with foam head, gastropub presentation alongside ${foodContext}, dark moody background, shallow depth of field`;
+  }
+  if (category === "spirits") {
+    return `premium spirits glass of ${drinkName}, cocktail bar ambiance alongside ${foodContext}, dark moody background, shallow depth of field`;
+  }
+  return `elegant beverage presentation of ${drinkName} alongside ${foodContext}, dark moody background, shallow depth of field`;
 }
 
 export async function generatePairingImages(
