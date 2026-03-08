@@ -232,7 +232,7 @@ export default function ChefPairings() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-purple-600 to-black/80 pb-safe-nav"
+        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
       >
         <div
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -266,7 +266,7 @@ export default function ChefPairings() {
           <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-white">
-                <Wine className="h-5 w-5 text-purple-400" />
+                <Wine className="h-5 w-5 text-orange-400" />
                 Find Perfect Pairings
               </CardTitle>
             </CardHeader>
@@ -274,7 +274,7 @@ export default function ChefPairings() {
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  What are you eating? <span className="text-purple-400">*</span>
+                  What are you eating? <span className="text-orange-400">*</span>
                 </label>
                 <input
                   value={foodItem}
@@ -334,7 +334,7 @@ export default function ChefPairings() {
               ) : (
                 <GlassButton
                   onClick={() => handleFindPairings()}
-                  className="w-full bg-purple-600 flex items-center justify-center"
+                  className="w-full bg-orange-600 flex items-center justify-center"
                 >
                   Find Pairings
                 </GlassButton>
