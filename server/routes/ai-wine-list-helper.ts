@@ -16,6 +16,8 @@ function buildWineListPrompt(wineListText: string, mealContext: string | undefin
 
   return `You are a world-class sommelier and wine educator.
 
+MULTILINGUAL SUPPORT: The user may submit requests in any language. Interpret the intent regardless of language and generate results in the same language as the input unless the user asks otherwise.
+
 The user has pasted a wine list from a restaurant and needs help understanding it.
 
 WINE LIST:

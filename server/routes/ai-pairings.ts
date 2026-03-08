@@ -23,6 +23,8 @@ function buildPairingPrompt(
   if (mode === "discovery") {
     return `You are a world-class sommelier, cicerone, and spirits expert.
 
+MULTILINGUAL SUPPORT: The user may submit requests in any language. Interpret the intent regardless of language and generate results in the same language as the input unless the user asks otherwise. Geographic discovery queries (e.g., "Beer from Switzerland", "啤酒来自瑞士") should return drinks from that region.
+
 The user wants to discover drinks similar to: "${input}"
 Category focus: ${category}
 
@@ -63,6 +65,8 @@ Return 3-5 recommendations.`;
   }
 
   return `You are a world-class sommelier, cicerone, and spirits expert.
+
+MULTILINGUAL SUPPORT: The user may submit requests in any language. Interpret the intent regardless of language and generate results in the same language as the input unless the user asks otherwise. Geographic discovery queries (e.g., "Beer from Switzerland", "啤酒来自瑞士") should return drinks from that region.
 
 The user is eating: "${input}"
 ${categoryInstruction}
