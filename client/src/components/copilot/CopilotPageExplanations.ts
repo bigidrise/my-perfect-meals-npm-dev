@@ -89,6 +89,46 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/lifestyle/pairings-hub": {
+    pageId: "pairings-hub",
+    title: "Pairings Hub",
+    description:
+      "Your drink intelligence center — AI pairings, wine list translation, and a plan to reduce drinking.",
+    spokenText:
+      "Welcome to the Pairings Hub — your complete drink intelligence center. You have three tools here. Pairings AI finds the perfect wine, beer, or spirits for any meal, or helps you discover new drinks similar to ones you already love. Wine List Translator lets you paste any restaurant wine list and get plain-English explanations with flavor profiles and a best-choice recommendation. And if you want to cut back, the Reduce Drinking Plan creates a personalized, evidence-based plan at your own pace. Tap any card to get started.",
+    autoClose: true,
+  },
+
+  "/lifestyle/pairings-ai": {
+    pageId: "pairings-ai",
+    title: "Pairings AI",
+    description:
+      "Find the perfect drink for any meal — or discover new drinks similar to ones you love.",
+    spokenText:
+      "Welcome to Pairings AI — your personal sommelier, beer expert, and spirits guide. You have two modes. Pair food with drinks — just type what you're eating and I'll recommend wines, beers, and spirits that pair perfectly, with science-based explanations of why each works. Or use Find similar drinks — enter a drink you already love and I'll find others with similar flavor profiles. Every recommendation includes flavor notes, serving tips, and alternatives. Your SafetyGuard, allergy protections, and glucose guard are all active here.",
+    autoClose: true,
+  },
+
+  "/lifestyle/wine-list-helper": {
+    pageId: "wine-list-helper",
+    title: "Wine List Translator",
+    description:
+      "Paste a restaurant wine list and get plain-English explanations, flavor profiles, and a best-choice pick.",
+    spokenText:
+      "Welcome to the Wine List Translator. Next time you're at a restaurant and the wine list looks intimidating, just snap a photo or type the wines in here. I'll explain each one in plain English — what it tastes like, what foods it pairs with, and why. I'll also pick the best choice for your meal if you tell me what you're eating. Each wine gets a flavor profile breakdown so you know exactly what to expect before you order.",
+    autoClose: true,
+  },
+
+  "/lifestyle/reduce-drinking-plan": {
+    pageId: "reduce-drinking-plan",
+    title: "Reduce Drinking Plan",
+    description:
+      "Create a personalized, evidence-based plan to reduce your drinking at your own pace.",
+    spokenText:
+      "Welcome to the Reduce Drinking Plan. This tool creates a personalized plan to help you cut back on drinking at whatever pace feels right for you. Just enter how much you currently drink, how many days a week, and choose your reduction pace — gentle, standard, or custom. I'll generate a week-by-week plan with clear targets, harm reduction tips backed by research, and any medical flags to be aware of. This is private, judgment-free, and based on evidence-based approaches.",
+    autoClose: true,
+  },
+
   "/fridge-rescue": {
     pageId: "fridge-rescue-studio",
     title: "Fridge Rescue",

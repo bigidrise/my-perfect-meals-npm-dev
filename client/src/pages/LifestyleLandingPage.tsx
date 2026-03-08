@@ -78,6 +78,15 @@ export default function LifestyleLandingPage() {
       testId: "card-chef-pairings",
     },
     {
+      title: "Pairings Hub",
+      description:
+        "AI drink pairings, wine list translator, and a plan to reduce drinking — all in one place.",
+      icon: Wine,
+      route: "/lifestyle/pairings-hub",
+      gradient: "from-orange-500/20 to-amber-500/20",
+      testId: "card-pairings-hub",
+    },
+    {
       title: "Fridge Rescue",
       description: "Transform ingredients in your kitchen into delicious meals",
       icon: RefrigeratorIcon,

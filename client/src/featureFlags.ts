@@ -18,6 +18,7 @@ export const LAUNCH_PHASES = {
     "dessert-creator",
     "beverage-creator",
     "chef-pairings",
+    "pairings-hub",
     "fridge-rescue",
     "restaurant-guide",
     "weekly-meal-board",

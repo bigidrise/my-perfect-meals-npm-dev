@@ -121,6 +121,10 @@ import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import BeverageCreator from "@/pages/BeverageCreator";
 import ChefPairings from "@/pages/ChefPairings";
+import PairingsHub from "@/pages/lifestyle/PairingsHub";
+import PairingsAI from "@/pages/lifestyle/PairingsAI";
+import WineListHelper from "@/pages/lifestyle/WineListHelper";
+import ReduceDrinkingPlan from "@/pages/lifestyle/ReduceDrinkingPlan";
 // DELETED: CravingPresets
 import CravingStudio from "@/pages/craving-creator/CravingStudio";
 import DessertStudio from "@/pages/dessert-creator/DessertStudio";
@@ -356,6 +360,10 @@ export default function Router() {
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/lifestyle/beverage-creator" component={BeverageCreator} />
         <Route path="/lifestyle/chef-pairings" component={ChefPairings} />
+        <Route path="/lifestyle/pairings-hub" component={PairingsHub} />
+        <Route path="/lifestyle/pairings-ai" component={PairingsAI} />
+        <Route path="/lifestyle/wine-list-helper" component={WineListHelper} />
+        <Route path="/lifestyle/reduce-drinking-plan" component={ReduceDrinkingPlan} />
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
