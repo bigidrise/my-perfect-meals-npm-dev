@@ -69,15 +69,6 @@ export default function LifestyleLandingPage() {
       testId: "card-beverage-creator",
     },
     {
-      title: "Chef Pairings",
-      description:
-        "Ask Chef what wine, beer, or spirits pair perfectly with your meal.",
-      icon: Wine,
-      route: "/lifestyle/chef-pairings",
-      gradient: "from-amber-500/20 to-orange-500/20",
-      testId: "card-chef-pairings",
-    },
-    {
       title: "Pairings Hub",
       description:
         "AI drink pairings, wine list translator, and a plan to reduce drinking — all in one place.",

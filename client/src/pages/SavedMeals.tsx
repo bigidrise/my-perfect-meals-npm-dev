@@ -18,7 +18,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "fridge-rescue": "Fridge Rescue",
   "chefs-kitchen": "Chef's Kitchen",
   "weekly-board": "Weekly Board",
-  "pairings-ai": "Pairings AI",
+  "pairings-ai": "Drink Pairings",
   "wine-list-helper": "Wine List Helper",
   unknown: "Meal",
 };
