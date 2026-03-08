@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
 import { 
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Utensils, 
   Brain, 
   UserCheck, 
@@ -43,12 +44,14 @@ export default function Home() {
       <Navigation />
       
       {/* Header Banner */}
+      <MobileHeaderGuard>
       <div className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10">
         <div className="px-4 py-3 flex items-center gap-3">
           <Utensils className="h-6 w-6 text-orange-500" />
           <h1 className="text-lg font-bold text-white">My Perfect Meals</h1>
         </div>
       </div>
+      </MobileHeaderGuard>
 
       {/* Hero Section with Image */}
       <section className="bg-black py-8 lg:py-16 pt-24">

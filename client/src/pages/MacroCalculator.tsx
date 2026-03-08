@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import {
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   MACRO_CALC_ENTRY,
   MACRO_CALC_GOAL,
   MACRO_CALC_BODY_TYPE,
@@ -1075,7 +1076,9 @@ export default function MacroCounter() {
       >
         <TrialBanner />
         {/* Universal Safe-Area Header */}
+        <MobileHeaderGuard>
         <div
+        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >

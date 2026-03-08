@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 export default function Founder() {
   const [, setLocation] = useLocation();
@@ -8,7 +9,9 @@ export default function Founder() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pt-0 pb-24">
       {/* Safe Area Header with Title */}
+      <MobileHeaderGuard>
       <div
+      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >

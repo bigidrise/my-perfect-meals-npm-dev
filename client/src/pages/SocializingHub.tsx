@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Utensils, MapPin } from "lucide-react";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface SocialFeature {
   title: string;
@@ -69,7 +70,9 @@ export default function SocializingHub() {
       className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav"
     >
       {/* Universal Safe-Area Header */}
+      <MobileHeaderGuard>
       <div
+      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >

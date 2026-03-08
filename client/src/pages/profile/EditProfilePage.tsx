@@ -17,6 +17,7 @@ import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplana
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 import { isGuestMode } from "@/lib/guestMode";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
@@ -327,7 +328,9 @@ export default function EditProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24">
+      <MobileHeaderGuard>
       <div
+      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >

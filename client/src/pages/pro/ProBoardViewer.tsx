@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { proStore } from "@/lib/proData";
 import { getAuthHeaders } from "@/lib/auth";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface BoardItem {
   id: string;
@@ -154,7 +155,9 @@ export default function ProBoardViewer() {
       transition={{ duration: 0.5 }}
       className="min-h-screen text-white bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
+      <MobileHeaderGuard>
       <div
+      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >

@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Wine, Beer, Martini } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   isAllergyRelatedError,
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
@@ -234,7 +235,9 @@ export default function ChefPairings() {
         transition={{ duration: 0.6 }}
         className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
       >
+        <MobileHeaderGuard>
         <div
+        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >

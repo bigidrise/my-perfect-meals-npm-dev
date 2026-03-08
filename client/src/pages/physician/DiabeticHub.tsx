@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
   Activity,
   Target,
   TrendingUp,
@@ -209,7 +210,9 @@ export default function DiabeticHub() {
         <div className="absolute inset-0 bg-gradient-to-br from-black/5 via-transparent to-black/10 pointer-events-none" />
 
         {/* Universal Safe-Area Header */}
+        <MobileHeaderGuard>
         <div
+        </MobileHeaderGuard>
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >

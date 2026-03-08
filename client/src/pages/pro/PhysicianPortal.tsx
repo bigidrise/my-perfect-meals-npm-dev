@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const PRO_PORTAL_TOUR_STEPS: TourStep[] = [
   {
@@ -37,7 +38,9 @@ export default function ProPortal() {
   return (
     <div className="min-h-screen text-white bg-gradient-to-br from-black/60 via-indigo-600 to-black/80 pb-safe-nav">
       {/* Universal Safe-Area Header */}
+      <MobileHeaderGuard>
       <div
+      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >

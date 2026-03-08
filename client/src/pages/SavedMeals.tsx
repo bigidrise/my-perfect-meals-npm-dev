@@ -5,6 +5,7 @@ import { useSavedMealsList, useToggleSavedMeal } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import MealCardActions from "@/components/MealCardActions";
 import { setQuickView } from "@/lib/macrosQuickView";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const SOURCE_LABELS: Record<string, string> = {
   "meal-builder": "Meal Builder",
@@ -70,7 +71,9 @@ export default function SavedMeals() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white pb-24 flex flex-col">
+      <MobileHeaderGuard>
       <div
+      </MobileHeaderGuard>
         className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
