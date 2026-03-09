@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator } from "lucide-react";
 import { useLocation } from "wouter";
+import { estimateBodyFatHybrid } from "@/lib/bodyFatEstimation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import {
@@ -1039,6 +1040,34 @@ export default function MacroCounter() {
     const macros = applyBodyTypeTilt(base, bodyType);
     return { bmr, tdee, target, macros };
   }, [isCalcInputValid, sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
+
+  const estimatedBodyFat = useMemo(() => {
+    const waistCmVal = units === "imperial" ? waistIn * 2.54 : waistCm;
+    if (!kg || !cm || !waistCmVal || !age || !sex) return null;
+    return estimateBodyFatHybrid({ weightKg: kg, heightCm: cm, waistCm: waistCmVal, age, sex });
+  }, [kg, cm, waistIn, waistCm, age, sex, units]);
+
+  const saveEstimatedBodyFat = async () => {
+    if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return;
+    try {
+      const goalBF = bodyCompData?.goalBF ?? null;
+      await fetch(apiUrl(`/api/users/${user.id}/body-composition`), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          currentBodyFatPct: estimatedBodyFat,
+          goalBodyFatPct: goalBF,
+          scanMethod: "Other",
+          source: "client",
+          notes: "AUTO_ESTIMATED",
+          recordedAt: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save estimated body fat:", err);
+    }
+  };
 
   const advisoryDeltas = useMemo(() => {
     const raw = sumAdvisorySources(advisorySources);
@@ -2178,6 +2207,7 @@ export default function MacroCounter() {
 
                           saveBiometricsToProfile().catch(() => {});
                           saveWaistToBiometrics().catch(() => {});
+                          saveEstimatedBodyFat().catch(() => {});
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
@@ -2960,6 +2990,23 @@ export default function MacroCounter() {
                     </CardContent>
                   </Card>
 
+                  {estimatedBodyFat && !bodyCompData && (
+                    <Card className="bg-zinc-900/80 border border-orange-500/30 text-white">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-xs text-white/60">Estimated Body Fat</div>
+                            <div className="text-xl font-bold text-orange-400">{estimatedBodyFat}%</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-white/40">Deurenberg + Waist hybrid</div>
+                            <div className="text-xs text-white/30">Saved when you confirm macros</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Save Targets - Two Options */}
                   <div className="flex flex-col gap-3">
                     {/* Secondary: Save & Go to Biometrics (restores original flow for weight sync) */}
@@ -3018,6 +3065,7 @@ export default function MacroCounter() {
 
                           saveBiometricsToProfile().catch(() => {});
                           saveWaistToBiometrics().catch(() => {});
+                          saveEstimatedBodyFat().catch(() => {});
 
                           toast({
                             title: "Macro Targets Saved",
@@ -3117,6 +3165,7 @@ export default function MacroCounter() {
 
                           saveBiometricsToProfile().catch(() => {});
                           saveWaistToBiometrics().catch(() => {});
+                          saveEstimatedBodyFat().catch(() => {});
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({

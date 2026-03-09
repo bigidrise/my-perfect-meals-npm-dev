@@ -2140,7 +2140,7 @@ export default function MyBiometrics() {
           </CardContent>
         </Card>
 
-        {/* BODY COMPOSITION */}
+        {/* BODY COMPOSITION — Read-Only Dashboard */}
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
@@ -2148,10 +2148,10 @@ export default function MyBiometrics() {
             </CardTitle>
             <Button
               size="sm"
-              onClick={() => setLocation("/biometrics/body-composition")}
-              className="bg-white/10 border border-white/20 text-white text-xs"
+              onClick={() => setLocation("/macro-calculator")}
+              className="bg-orange-600/80 border border-orange-400/40 text-white text-xs"
             >
-              Full History
+              Update Body Composition
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -2162,48 +2162,29 @@ export default function MyBiometrics() {
                     <div className="text-xs text-white/60">Body Fat</div>
                     <div className="text-lg font-bold text-white">{parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%</div>
                   </div>
-                  {bodyCompLatest.goalBodyFatPct && (
-                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                      <div className="text-xs text-white/60">Goal</div>
-                      <div className="text-lg font-bold text-lime-400">{parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%</div>
-                    </div>
-                  )}
+                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                    <div className="text-xs text-white/60">Goal</div>
+                    <div className="text-lg font-bold text-lime-400">{bodyCompLatest.goalBodyFatPct ? `${parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%` : "—"}</div>
+                  </div>
                   <div className="p-3 rounded-xl bg-black/25 border border-white/10">
                     <div className="text-xs text-white/60">Method</div>
                     <div className="text-sm font-medium text-white">{bodyCompLatest.scanMethod}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-white/50">
-                  <span>Last scan: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
-                  {bodyCompSource && bodyCompSource !== "client" && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                  <span>Recorded: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
+                  {bodyCompSource && (
+                    <span className={`px-2 py-0.5 rounded-full ${bodyCompSource !== "client" ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-white/50"}`}>
                       {bodyCompSource}
                     </span>
                   )}
                 </div>
-                {bodyCompHistory.length > 1 && (
-                  <div className="pt-2 space-y-2">
-                    <div className="text-xs text-white/50 font-medium">Recent History</div>
-                    {bodyCompHistory.slice(0, 5).map((entry) => (
-                      <div key={entry.id} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg bg-black/20 border border-white/5">
-                        <span className="text-white/70">{new Date(entry.recordedAt).toLocaleDateString()}</span>
-                        <span className="text-white font-medium">{parseFloat(entry.currentBodyFatPct).toFixed(1)}%</span>
-                        <span className="text-white/50 text-xs">{entry.scanMethod}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </>
             ) : (
               <div className="text-center py-6">
                 <Ruler className="h-8 w-8 text-white/30 mx-auto mb-2" />
                 <p className="text-white/60 text-sm mb-3">No body composition data yet</p>
-                <Button
-                  onClick={() => setLocation("/biometrics/body-composition")}
-                  className="bg-green-600 text-white text-sm rounded-xl"
-                >
-                  Add First Measurement
-                </Button>
+                <p className="text-white/40 text-xs">Use the Macro Calculator to estimate or enter your body fat</p>
               </div>
             )}
           </CardContent>
