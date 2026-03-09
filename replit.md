@@ -1,7 +1,7 @@
 # MyPerfectMeals (MPM)
 
 ## Overview
-MyPerfectMeals is a full-stack TypeScript application dedicated to comprehensive meal planning and nutrition. It leverages AI for meal generation, offers diverse dietary tracking, biometrics monitoring, and specialized meal builders (e.g., for cravings, desserts, beverages, and holidays). The project aims to establish a robust platform for personalized nutrition management, addressing a significant market need in health and wellness technology.
+MyPerfectMeals is a full-stack TypeScript application for comprehensive meal planning and nutrition. It features AI-powered meal generation, detailed dietary tracking, biometrics monitoring, and specialized meal builders. The project aims to provide a robust platform for personalized nutrition management, addressing a significant market need in health and wellness technology.
 
 ## User Preferences
 
@@ -57,58 +57,31 @@ The application is a full-stack TypeScript project focused on personalized nutri
 -   **Backend**: Express.js (Node.js 20) for API routes and serving the frontend.
 -   **Database**: PostgreSQL via Drizzle ORM.
 -   **AI Integration**: OpenAI API for meal generation and content translation.
--   **Navigation**: Role and workspace-based navigation (client and clinician views) with `BuilderHeader` and `ProClientContext`. Desktop layout (`DesktopLayout.tsx`) for larger screens and mobile layout for smaller. Specific routes bypass desktop layout (e.g., auth, onboarding).
--   **MobileHeaderGuard**: `client/src/components/layout/MobileHeaderGuard.tsx` — global component that hides mobile fixed headers on desktop. Any `fixed top-0 left-0 right-0` header must be wrapped in `<MobileHeaderGuard>`. Uses `useIsDesktop()` hook; returns `null` on desktop, renders children on mobile. Applied across 43+ page files.
--   **Routing & Gating**: Implements a free-first model. Subscription state is managed by `hasActivePaidSubscription(user)` in `subscriptionCheck.ts`. Onboarding is gated for paid users. `WelcomeGate` manages initial user experience, while `mpm_active_space` localStorage key tracks personal vs. workspace views.
--   **Access Tier System**: Centralized `shared/planFeatures.ts` defines tiers and entitlements, enforced by backend middleware (`requireAuth`, `requireActiveAccess`).
+-   **Navigation**: Role and workspace-based navigation (client and clinician views) with `BuilderHeader` and `ProClientContext`. Desktop layout for larger screens, mobile for smaller. Specific routes bypass desktop layout (e.g., auth, onboarding). `MobileHeaderGuard` hides mobile fixed headers on desktop.
+-   **Routing & Gating**: Implements a free-first model with subscription state managed by `hasActivePaidSubscription(user)`. Onboarding is gated for paid users. `WelcomeGate` manages initial user experience, and `mpm_active_space` localStorage key tracks personal vs. workspace views.
+-   **Access Tier System**: `shared/planFeatures.ts` defines tiers and entitlements, enforced by backend middleware (`requireAuth`, `requireActiveAccess`).
 -   **Feature Flags**: `PhaseGate` component enables phased rollouts.
 -   **Versioned Storage**: `APP_STORAGE_VERSION` for schema versioning.
 -   **Deployment**: Designed for autoscale with separate build/start scripts.
 -   **iOS/Capacitor Integration**: Supports iOS via Capacitor, including StoreKit for in-app purchases, with global error handling.
--   **ProCare Architecture**: Enforces a single active professional per client via unique partial indexes. `clientLinkService` manages links, and `requireBoardAccess` middleware ensures proper access.
--   **Pro Week Board Architecture**: Uses a unified `week_boards` table. Pro-scoped API endpoints (`/api/pro/week-boards/:clientId/...`) with `requireBoardAccess`. `useWeeklyBoard` hook supports `proClientId`.
--   **Clinical Mode Architecture**: Supports clinical modes (e.g., Anti-Inflammatory, Liver Support) via `board.meta.clinicalMode`. `shared/clinical/guardrails.ts` provides functions for applying dietary guardrails to prompts and filtering premade meals. Server-side guardrails are implemented for specific clinical modes.
+-   **ProCare Architecture**: Enforces a single active professional per client via unique partial indexes. `clientLinkService` manages links, and `requireBoardAccess` middleware ensures proper access. Pro-scoped API endpoints (`/api/pro/week-boards/:clientId/...`) with `requireBoardAccess`. `useWeeklyBoard` hook supports `proClientId`.
+-   **Clinical Mode Architecture**: Supports clinical modes (e.g., Anti-Inflammatory, Liver Support) via `board.meta.clinicalMode`. `shared/clinical/guardrails.ts` provides functions for applying dietary guardrails to prompts and filtering premade meals. Server-side guardrails are implemented.
 -   **Macro Sync Architecture**: `macro_logs` table stores daily macro summaries. `useTodayMacros(userId)` fetches data from `daily-with-source` API, with localStorage as an offline fallback. `macros:updated` window event triggers refetches.
--   **Reactivity & Refresh Architecture**: Global `refetchOnWindowFocus` is off; selective per-query opt-in. `useVisibilityRefresh` invalidates critical queries on visibility change. Push notifications are implemented via `pushToUser()` and `pushToCoachOfClient()`.
+-   **Reactivity & Refresh Architecture**: Selective per-query opt-in for refresh. `useVisibilityRefresh` invalidates critical queries on visibility change. Push notifications implemented via `pushToUser()` and `pushToCoachOfClient()`.
 -   **iOS Purchase Flow**: Uses `@squareetlabs/capacitor-subscriptions`. `verifyAndActivate()` merges server response with existing user data after purchase, dispatching `mpm:user-updated` event to sync React state.
 -   **Compliance Engine Architecture**: `server/services/complianceEngine.ts` calculates a rolling compliance score based on calories, protein, and logging consistency. It uses the `macro_logs` table and provides an API endpoint `/api/users/:userId/compliance`.
 -   **Studio Metrics Architecture**: Studio reads directly from the database for macro targets, logged macros, and body composition. `ProClientWeightSnapshot` displays weight trends.
 -   **Program Adjustment History**: `macro_program_history` table stores historical macro target changes. Every macro target save inserts a history row. An API endpoint `/api/pro/clients/:clientId/program-history` provides this data.
--   **Macro Targets Auth**: Both GET and POST `/api/users/:userId/macro-targets` require `requireAuth` and `assertSelfOrProAccess` for secure data access.
--   **Biometrics Weight Auth**: `POST /api/biometrics/weight` requires `requireAuth`; uses `authUser.id` server-side (not request body). Frontend sends `credentials: "include"` + `getAuthHeaders()`.
--   **Auth Hardening (Completed)**: All core user-data routes use `requireAuth` + `getAuthUserId(req)` from `server/utils/getAuthUserId.ts`. No dummy UUID fallbacks (`00000000-...`), no `x-user-id` header trust, no mock auth in hardened files. Hardened subsystems: biometrics, manualMacros, shoppingList (v1+v2), mealPlans, meals, userMealPrefs, alcohol-log. Delegated endpoints (macro-targets, daily-with-source, compliance) use `:userId` param with `assertSelfOrProAccess` for coach/client flows. Route deduplication: canonical mounts in `server/index.ts`, duplicates removed from `server/routes.ts`. Route map artifacts: `scripts/routes-before.txt`, `scripts/routes-after.txt`.
--   **Board Access (requireBoardAccess)**: Checks in order: self-access → `careTeamMember` → `clientLinks` → `studioMemberships` (active status required for all). Grants full permissions on match.
--   **Tablet Communication Layer**: Full coach-client messaging system via `client_notes` table with `proTabletRoutes.ts` (pro side) and `clientTabletRoutes.ts` (client side).
-    -   **Moderation**: `tabletModerationService.ts` — server-side blocklist/regex with severity levels (high=blocked, medium=blocked, low=flagged+allowed). Returns `{allowed, severity, reason, matchedTerms}`. Blocked messages return 422 and are logged as `message_blocked` in audit. Low-severity messages are `message_flagged`.
-    -   **Notifications**: `tabletNotificationService.ts` — three functions: `notifyClientOfMessage()`, `notifyProfessionalOfMessage()`, `notifyClientOfNote()`. Fire post-commit, non-blocking. Reuses existing `pushToUser`/`pushToCoachOfClient` infrastructure.
-    -   **Audit Logging**: Extended `activity_action` enum with `message_sent`, `message_deleted`, `note_deleted`, `message_blocked`, `message_flagged`. All tablet operations logged via `logClientActivity`.
-    -   **Unread Indicators**: Pro side uses `mpm.tablet.lastSeen.<clientId>` localStorage; client side uses `mpm.tablet.client.lastSeen`. Orange pulsing badge on Messages tab (pro) and tablet card (client). Poll-driven (10s active, 30s background), works without push.
-    -   **Push Route Security**: All `/api/push/*` routes now require `requireAuth`. UserId derived from session, not request body. Hardcoded VAPID private key fallback removed. Push subscriptions are persisted to both in-memory store and `users.pushTokens` DB column (with endpoint dedup) so `pushToUser` can read them.
--   **Legal Document Acceptance System**: DB-backed legal acceptance with version enforcement.
-    -   **Registry**: `shared/legalDocuments.ts` — single source of truth for document types, versions, and flow grouping (client, professional, attestation).
-    -   **Database**: `user_document_acceptance` table stores userId, documentType, version, acceptedAt, ipAddress, userAgent. Schema in `server/db/schema/legal.ts`.
-    -   **API**: `POST /api/legal/accept` (requireAuth, userId from session), `GET /api/legal/status?flow=` returns required/accepted docs and missing list.
-    -   **Server Enforcement**: `upgrade-to-procare` checks attestation + professional docs; `care-team/connect` checks client docs. Both return 409 with missing list if docs not accepted.
-    -   **ProCare Flow**: Attestation → DB record → ProfessionalLegalModal (3 docs) → upgrade. localStorage no longer stores attestation text/version.
-    -   **Client Flow**: Connect with code → ClientLegalModal (4 docs) if 409 → retry after acceptance.
-    -   **Version Enforcement**: Bumping version in registry forces reacceptance; server rejects outdated versions.
-    -   **Legal Documents**: 7 files in `client/src/legal/` (clientCoachingAgreement, clientLiabilityWaiver, clientDataConsent, nutritionDisclaimer, coachProfessionalAgreement, coachConductPolicy, scopeOfPractice).
--   **AI Quota System**: Per-feature daily usage limits for free tier users. `ai_usage` table (schema: `server/db/schema/aiUsage.ts`) tracks per-user per-feature daily counts. `server/services/aiQuotaService.ts` provides `checkAndIncrementQuota()` (atomic, race-safe) and `checkDailyQuota()` (read-only). Currently enforces 1/day Fridge Rescue for free users; paid users bypass. Enforced on both `/api/meals/fridge-rescue` (requireAuth + getAuthUserId) and `/api/meals/generate` (type=fridge-rescue). Frontend handles 429 responses with `limitCode: FREE_DAILY_LIMIT_REACHED`, showing upgrade nudge UI. `shared/planFeatures.ts` free tier includes `fridge_rescue` entitlement and "AI Fridge Rescue (1/day)" display feature. `client/src/components/upgrade/LockedBuilderCard.tsx` shows locked builder previews for upsell.
-
-## Future System: ProCare Integrity System (Phase 4 — Not Yet Built)
-Includes:
-- **Monthly Mutual Ratings**: Client rates professional, professional rates client, once per month for relationship health monitoring.
-- **Incident Reporting**: Manual report button for serious issues (abuse, harassment, threats, misconduct).
-- **Strike Engine**: Warning → Strike 1 → Strike 2 → Probation → Suspension → Removal.
-  - Professionals held to a **professional standard** (abuse, misconduct, harassment, unsafe guidance, repeated poor ratings).
-  - Clients held to a **respect standard only** (abuse, harassment, threats, repeated disrespect). Clients CANNOT be struck for poor compliance, not following the plan, switching coaches, or lack of progress.
-- **Appeals Process**: Every strike allows "Submit appeal" — system must never appear arbitrary.
-- **AI-Assisted Moderation Layer** (later): Clustering complaints, detecting patterns, summarizing evidence, recommending actions. AI does NOT auto-ban — it recommends actions to the platform rules engine.
-
-Build order: Android → Master Shopping List + Delivery → Tablet Notifications → ProCare Integrity System.
+-   **Auth Hardening**: All core user-data routes use `requireAuth` + `getAuthUserId(req)` from `server/utils/getAuthUserId.ts`. Hardened subsystems include biometrics, manualMacros, shoppingList, mealPlans, meals, userMealPrefs, alcohol-log. Delegated endpoints (macro-targets, daily-with-source, compliance) use `:userId` param with `assertSelfOrProAccess` for coach/client flows.
+-   **Board Access**: `requireBoardAccess` checks for self-access, care team membership, client links, and studio memberships.
+-   **Tablet Communication Layer**: Full coach-client messaging system via `client_notes` table with `proTabletRoutes.ts` (pro side) and `clientTabletRoutes.ts` (client side). Includes `tabletModerationService.ts` for server-side moderation, `tabletNotificationService.ts` for notifications, and audit logging for all tablet operations. Unread indicators are poll-driven via localStorage.
+-   **Push Route Security**: All `/api/push/*` routes require `requireAuth`. User ID derived from session. Push subscriptions are persisted to both in-memory store and `users.pushTokens` DB column.
+-   **Legal Document Acceptance System**: DB-backed legal acceptance with version enforcement. `shared/legalDocuments.ts` is the single source of truth. `user_document_acceptance` table stores acceptance records. API endpoints for acceptance and status (`POST /api/legal/accept`, `GET /api/legal/status`). Server enforcement checks during procare upgrade and client connection flows. Version bumping forces reacceptance.
+-   **AI Quota System**: Per-feature daily usage limits for free tier users tracked in `ai_usage` table. `server/services/aiQuotaService.ts` provides `checkAndIncrementQuota()` and `checkDailyQuota()`. Enforces 1/day Fridge Rescue for free users; paid users bypass. Frontend handles 429 responses with upgrade nudge UI.
+-   **Freemium "Show but Lock" System**: Free users see all features but only Fridge Rescue + macro tools are functional. Other features are visible but locked with icons and trigger an upgrade modal. `UpgradeLockModal` is a reusable modal. `useFreeLock` hook guards actions.
 
 ## External Dependencies
--   **PostgreSQL**: Primary database (Neon-backed).
+-   **PostgreSQL**: Primary database.
 -   **OpenAI API**: AI-powered features.
 -   **Stripe**: Payment processing.
 -   **Resend**: Email services.
