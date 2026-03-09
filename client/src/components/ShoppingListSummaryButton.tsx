@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { ShoppingCart, X } from "lucide-react";
+import { ShoppingCart, Lock } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
+import { useFreeLock } from "@/hooks/useFreeLock";
+import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 
 type Ingredient = {
   name: string;
@@ -23,6 +25,13 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const addItems = useShoppingListStore((state) => state.addItems);
+  const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
+
+  function handleClick() {
+    guardAction("Smart grocery lists unlock with Premium.", () => {
+      setOpen(true);
+    });
+  }
 
   function onAddToList() {
     if (ingredients.length === 0) return;
@@ -48,12 +57,13 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
-        className={className || "bg-green-500/20 hover:bg-green-500/30 text-green-200 border border-green-400/30"}
+        onClick={handleClick}
+        className={className || `${isFree ? "bg-green-500/10 text-green-200/50 border border-green-400/20" : "bg-green-500/20 hover:bg-green-500/30 text-green-200 border border-green-400/30"}`}
         data-testid="button-show-shopping-list"
       >
         <ShoppingCart className="h-4 w-4 mr-2" />
         Shopping
+        {isFree && <Lock className="h-3 w-3 ml-1 opacity-60" />}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -102,6 +112,8 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />
     </>
   );
 }

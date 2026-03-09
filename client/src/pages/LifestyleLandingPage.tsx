@@ -11,9 +11,12 @@ import {
   ChefHat,
   ArrowLeft,
   Wine,
+  Lock,
 } from "lucide-react";
 import { isPublicProduction, getGatedMessage } from "@/lib/productionGates";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useFreeLock } from "@/hooks/useFreeLock";
+import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 
 interface AIFeature {
   title: string;
@@ -22,12 +25,14 @@ interface AIFeature {
   route: string;
   gradient: string;
   testId: string;
+  freeAccess?: boolean;
 }
 
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const isDesktop = useIsDesktop();
+  const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
@@ -84,6 +89,7 @@ export default function LifestyleLandingPage() {
       route: "/fridge-rescue",
       gradient: "from-emerald-500/20 to-teal-500/20",
       testId: "card-fridge-rescue",
+      freeAccess: true,
     },
     {
       title: "Socializing Hub",
@@ -182,6 +188,10 @@ export default function LifestyleLandingPage() {
                           : "bg-black/30 backdrop-blur-lg border border-white/10"
                     }`}
                     onClick={() => {
+                      if (isFree && !feature.freeAccess) {
+                        guardAction(`${feature.title} unlocks with Premium.`, () => {});
+                        return;
+                      }
                       if (disableChefsKitchenEntry) {
                         setShowComingSoonModal(true);
                         return;
@@ -220,12 +230,15 @@ export default function LifestyleLandingPage() {
                     <CardContent className="p-3">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4 text-orange-500" />
-                          <h3 className="text-sm font-semibold text-white">
+                          <Icon className={`h-4 w-4 ${isFree && !feature.freeAccess ? "text-orange-500/50" : "text-orange-500"}`} />
+                          <h3 className={`text-sm font-semibold ${isFree && !feature.freeAccess ? "text-white/50" : "text-white"}`}>
                             {feature.title}
                           </h3>
+                          {isFree && !feature.freeAccess && (
+                            <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />
+                          )}
                         </div>
-                        <p className="text-xs text-white/80 ml-6">
+                        <p className={`text-xs ml-6 ${isFree && !feature.freeAccess ? "text-white/40" : "text-white/80"}`}>
                           {feature.description}
                         </p>
                       </div>
@@ -278,6 +291,8 @@ export default function LifestyleLandingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />
     </motion.div>
   );
 }

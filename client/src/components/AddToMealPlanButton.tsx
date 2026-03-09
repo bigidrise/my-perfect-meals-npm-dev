@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, Lock } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
+import { useFreeLock } from "@/hooks/useFreeLock";
+import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 
 interface AddToMealPlanButtonProps {
   meal: any;
@@ -37,8 +38,16 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
 
   if (!meal) return null;
+
+  const handleOpenDrawer = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    guardAction("Add meals to your weekly plan and track your nutrition with Premium.", () => {
+      setIsOpen(true);
+    });
+  };
 
   const handleAddToMealPlan = async (slot: string) => {
     setSelectedSlot(slot);
@@ -108,48 +117,54 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={setIsOpen}>
-      <DrawerTrigger asChild>
+    <>
+      <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <Button
           size="sm"
-          className="flex-1 text-xs bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
-          onClick={(e) => e.stopPropagation()}
+          className={`flex-1 text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 ${
+            isFree
+              ? "bg-green-600/50 text-white/60"
+              : "bg-green-600 hover:bg-green-700 text-white"
+          }`}
+          onClick={handleOpenDrawer}
         >
           <CalendarPlus className="h-4 w-4 mr-1" />
           Add to Plan
+          {isFree && <Lock className="h-3 w-3 ml-1 opacity-60" />}
         </Button>
-      </DrawerTrigger>
-      <DrawerContent className="bg-black/95 border-t border-white/20">
-        <DrawerHeader className="text-center">
-          <DrawerTitle className="text-white text-lg">
-            Add to Today's Meal Plan
-          </DrawerTitle>
-          <p className="text-sm text-white/70 mt-1">
-            {meal.name || meal.title}
-          </p>
-        </DrawerHeader>
-        <div className="p-4 pb-8 space-y-3">
-          {SLOT_OPTIONS.map((slot) => (
-            <Button
-              key={slot.value}
-              variant="outline"
-              className={`w-full h-14 text-lg justify-start gap-3 bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                selectedSlot === slot.value && isAdding
-                  ? "opacity-70 pointer-events-none"
-                  : ""
-              }`}
-              onClick={() => handleAddToMealPlan(slot.value)}
-              disabled={isAdding}
-            >
-              <span className="text-2xl">{slot.emoji}</span>
-              <span>{slot.label}</span>
-              {selectedSlot === slot.value && isAdding && (
-                <span className="ml-auto text-sm text-white/60">Adding...</span>
-              )}
-            </Button>
-          ))}
-        </div>
-      </DrawerContent>
-    </Drawer>
+        <DrawerContent className="bg-black/95 border-t border-white/20">
+          <DrawerHeader className="text-center">
+            <DrawerTitle className="text-white text-lg">
+              Add to Today's Meal Plan
+            </DrawerTitle>
+            <p className="text-sm text-white/70 mt-1">
+              {meal.name || meal.title}
+            </p>
+          </DrawerHeader>
+          <div className="p-4 pb-8 space-y-3">
+            {SLOT_OPTIONS.map((slot) => (
+              <Button
+                key={slot.value}
+                variant="outline"
+                className={`w-full h-14 text-lg justify-start gap-3 bg-white/5 border-white/20 text-white hover:bg-white/10 ${
+                  selectedSlot === slot.value && isAdding
+                    ? "opacity-70 pointer-events-none"
+                    : ""
+                }`}
+                onClick={() => handleAddToMealPlan(slot.value)}
+                disabled={isAdding}
+              >
+                <span className="text-2xl">{slot.emoji}</span>
+                <span>{slot.label}</span>
+                {selectedSlot === slot.value && isAdding && (
+                  <span className="ml-auto text-sm text-white/60">Adding...</span>
+                )}
+              </Button>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
+      <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />
+    </>
   );
 }
