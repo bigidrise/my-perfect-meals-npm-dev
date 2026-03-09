@@ -1578,7 +1578,7 @@ export default function MyBiometrics() {
                         {targetSource !== "pro" && !isGuestMode() && (
                           <div className="grid grid-cols-2 gap-3">
                             <Button
-                              onClick={() => setLocation("/macro-calculator")}
+                              onClick={() => setLocation("/macro-counter")}
                               className="bg-orange-600/20 text-orange-200 border border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-2 text-xs"
                               data-testid="button-go-macro-calculator"
                             >
@@ -2148,7 +2148,7 @@ export default function MyBiometrics() {
             </CardTitle>
             <Button
               size="sm"
-              onClick={() => setLocation("/macro-calculator")}
+              onClick={() => setLocation("/macro-counter")}
               className="bg-orange-600/80 border border-orange-400/40 text-white text-xs"
             >
               Update Body Composition
