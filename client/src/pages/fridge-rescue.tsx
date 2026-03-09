@@ -46,6 +46,7 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import PhaseGate from "@/components/PhaseGate";
+import { LockedBuilderCard } from "@/components/upgrade/LockedBuilderCard";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -1304,6 +1305,34 @@ const FridgeRescuePage = () => {
                     Back to Dashboard
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {userIsFree && (showResults || dailyLimitHit) && (
+            <div className="max-w-4xl mx-auto mt-8">
+              <h3 className="text-white/60 text-sm font-medium uppercase tracking-wider mb-4">More AI Builders with Upgrade</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <LockedBuilderCard
+                  icon="🍫"
+                  title="Craving Creator"
+                  description="Turn any craving into a macro-friendly meal"
+                />
+                <LockedBuilderCard
+                  icon="🍰"
+                  title="Dessert Builder"
+                  description="Guilt-free desserts that fit your macros"
+                />
+                <LockedBuilderCard
+                  icon="🍹"
+                  title="Beverage Creator"
+                  description="Custom drinks from smoothies to cocktails"
+                />
+                <LockedBuilderCard
+                  icon="📋"
+                  title="Weekly Meal Planner"
+                  description="Full AI-generated weekly meal plans"
+                />
               </div>
             </div>
           )}

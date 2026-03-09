@@ -8,7 +8,7 @@ import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
 import { getAuthUserId } from "./utils/getAuthUserId";
-import { checkDailyQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
+import { checkDailyQuota, checkAndIncrementQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
@@ -636,14 +636,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Feature gate for fridge-rescue and premade types
-      if (type === 'fridge-rescue' || type === 'premade') {
-        const featureCheck = checkFeatureAccess("FRIDGE_RESCUE", req);
-        if (!featureCheck.allowed) {
-          return res.status(403).json({
+      if (type === 'fridge-rescue') {
+        const authUser = (req as any).user;
+        if (!authUser?.id) {
+          return res.status(401).json({ success: false, error: "Authentication required for Fridge Rescue", source: 'error' });
+        }
+        const quotaCheck = await checkAndIncrementQuota(authUser.id, AiFeature.FRIDGE_RESCUE);
+        if (!quotaCheck.allowed) {
+          return res.status(429).json({
             success: false,
-            error: featureCheck.reason || "Fridge Rescue feature requires a subscription",
-            source: 'error'
+            error: "You've used today's Fridge Rescue. Upgrade to generate unlimited meals anytime.",
+            limitCode: quotaCheck.limitCode,
+            resetAt: quotaCheck.resetAt,
+            remaining: quotaCheck.remaining,
+            limit: quotaCheck.limit,
+            source: 'error',
           });
         }
       }
@@ -685,13 +692,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         safetyAlreadyChecked: true // Route already verified with enforceSafetyProfile (may include override token)
       });
 
-      // Record metrics for AI health tracking
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/generate', result.source as any, durationMs);
 
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
 
-      // Return consistent response format
       res.json(result);
 
     } catch (error: any) {
@@ -720,7 +725,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getAuthUserId(req);
       const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate } = req.body;
 
-      const quotaCheck = await checkDailyQuota(userId, AiFeature.FRIDGE_RESCUE);
+      if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
+        console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
+        return res.status(400).json({ 
+          error: "fridgeItems is required and must be a non-empty array"
+        });
+      }
+
+      const quotaCheck = await checkAndIncrementQuota(userId, AiFeature.FRIDGE_RESCUE);
       if (!quotaCheck.allowed) {
         return res.status(429).json({
           success: false,
@@ -731,17 +743,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           limit: quotaCheck.limit,
         });
       }
-
-      if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
-        console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
-        return res.status(400).json({ 
-          error: "fridgeItems is required and must be a non-empty array"
-        });
-      }
       
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
-      // Skip safety check if user has authenticated override token
-      if (userId && userId !== "demo-user") {
+      {
         const ingredientsText = fridgeItems.join(' ');
         const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue", {
           safetyMode: safetyMode || "STRICT",
@@ -801,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch user health conditions and palate preferences from database
       let userHealthConditions: string[] = [];
       let palatePrefs: { palateSpiceTolerance?: string; palateSeasoningIntensity?: string; palateFlavorStyle?: string } | undefined = undefined;
-      if (userId && userId !== "demo-user") {
+      {
         try {
           const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
           if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
@@ -834,10 +838,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         palatePrefs: palatePrefs as any
       });
 
-      await incrementDailyUsage(userId, AiFeature.FRIDGE_RESCUE);
-
-      const updatedQuota = await checkDailyQuota(userId, AiFeature.FRIDGE_RESCUE);
-
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
@@ -846,10 +846,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         meals,
         quota: {
-          remaining: updatedQuota.remaining,
-          limit: updatedQuota.limit,
-          used: updatedQuota.used,
-          resetAt: updatedQuota.resetAt,
+          remaining: quotaCheck.remaining,
+          limit: quotaCheck.limit,
+          used: quotaCheck.used,
+          resetAt: quotaCheck.resetAt,
         },
       });
     } catch (error: any) {

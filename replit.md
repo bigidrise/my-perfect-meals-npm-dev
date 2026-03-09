@@ -93,6 +93,7 @@ The application is a full-stack TypeScript project focused on personalized nutri
     -   **Client Flow**: Connect with code → ClientLegalModal (4 docs) if 409 → retry after acceptance.
     -   **Version Enforcement**: Bumping version in registry forces reacceptance; server rejects outdated versions.
     -   **Legal Documents**: 7 files in `client/src/legal/` (clientCoachingAgreement, clientLiabilityWaiver, clientDataConsent, nutritionDisclaimer, coachProfessionalAgreement, coachConductPolicy, scopeOfPractice).
+-   **AI Quota System**: Per-feature daily usage limits for free tier users. `ai_usage` table (schema: `server/db/schema/aiUsage.ts`) tracks per-user per-feature daily counts. `server/services/aiQuotaService.ts` provides `checkAndIncrementQuota()` (atomic, race-safe) and `checkDailyQuota()` (read-only). Currently enforces 1/day Fridge Rescue for free users; paid users bypass. Enforced on both `/api/meals/fridge-rescue` (requireAuth + getAuthUserId) and `/api/meals/generate` (type=fridge-rescue). Frontend handles 429 responses with `limitCode: FREE_DAILY_LIMIT_REACHED`, showing upgrade nudge UI. `shared/planFeatures.ts` free tier includes `fridge_rescue` entitlement and "AI Fridge Rescue (1/day)" display feature. `client/src/components/upgrade/LockedBuilderCard.tsx` shows locked builder previews for upsell.
 
 ## Future System: ProCare Integrity System (Phase 4 — Not Yet Built)
 Includes:

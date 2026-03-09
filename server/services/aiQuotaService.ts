@@ -47,7 +47,6 @@ export async function checkDailyQuota(
   feature: AiFeature,
 ): Promise<QuotaCheckResult> {
   const tier = await getUserTier(userId);
-
   const dailyLimit = FREE_DAILY_LIMITS[feature];
 
   if (tier !== "free" || !dailyLimit) {
@@ -92,6 +91,84 @@ export async function checkDailyQuota(
     remaining,
     limit: dailyLimit,
     used,
+    resetAt: getTomorrowMidnightUTC(),
+  };
+}
+
+export async function checkAndIncrementQuota(
+  userId: string,
+  feature: AiFeature,
+): Promise<QuotaCheckResult> {
+  const tier = await getUserTier(userId);
+  const dailyLimit = FREE_DAILY_LIMITS[feature];
+
+  if (tier !== "free" || !dailyLimit) {
+    return {
+      allowed: true,
+      remaining: -1,
+      limit: -1,
+      used: 0,
+      resetAt: getTomorrowMidnightUTC(),
+    };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const result = await db.execute(sql`
+    INSERT INTO ai_usage (user_id, feature, usage_date, count, last_used_at)
+    VALUES (${userId}, ${feature}, ${today}::date, 1, NOW())
+    ON CONFLICT (user_id, feature, usage_date)
+    DO UPDATE SET
+      count = CASE
+        WHEN ai_usage.count < ${dailyLimit} THEN ai_usage.count + 1
+        ELSE ai_usage.count
+      END,
+      last_used_at = NOW()
+    RETURNING count
+  `);
+
+  const newCount = Number((result as any).rows?.[0]?.count ?? 1);
+
+  if (newCount > dailyLimit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      limit: dailyLimit,
+      used: newCount,
+      resetAt: getTomorrowMidnightUTC(),
+      limitCode: "FREE_DAILY_LIMIT_REACHED",
+    };
+  }
+
+  if (newCount === dailyLimit && newCount > 1) {
+    const [check] = await db
+      .select({ count: aiUsage.count })
+      .from(aiUsage)
+      .where(
+        and(
+          eq(aiUsage.userId, userId),
+          eq(aiUsage.feature, feature),
+          eq(aiUsage.usageDate, today),
+        ),
+      )
+      .limit(1);
+    if ((check?.count ?? 0) > dailyLimit) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: dailyLimit,
+        used: newCount,
+        resetAt: getTomorrowMidnightUTC(),
+        limitCode: "FREE_DAILY_LIMIT_REACHED",
+      };
+    }
+  }
+
+  return {
+    allowed: true,
+    remaining: Math.max(0, dailyLimit - newCount),
+    limit: dailyLimit,
+    used: newCount,
     resetAt: getTomorrowMidnightUTC(),
   };
 }
