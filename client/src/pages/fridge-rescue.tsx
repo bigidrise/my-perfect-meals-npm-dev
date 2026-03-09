@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { isFreeTier } from "@/lib/subscriptionCheck";
+import { useFreeLock } from "@/hooks/useFreeLock";
+import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
+import { Lock } from "lucide-react";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import {
   ArrowLeft,
@@ -173,6 +176,7 @@ const FridgeRescuePage = () => {
   const [quotaInfo, setQuotaInfo] = useState<{ remaining: number; limit: number; used: number; resetAt: string } | null>(null);
   const [dailyLimitHit, setDailyLimitHit] = useState(false);
   const userIsFree = isFreeTier(user);
+  const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -1206,49 +1210,61 @@ const FridgeRescuePage = () => {
                             size="sm"
                             className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                             onClick={() => {
-                              const mealData = {
-                                id: meal.id || crypto.randomUUID(),
-                                name: meal.name,
-                                description: meal.description,
-                                ingredients: meal.ingredients || [],
-                                instructions: meal.instructions,
-                                imageUrl: meal.imageUrl,
-                              };
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_meal",
-                                JSON.stringify(mealData),
-                              );
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_external_prepare",
-                                "true",
-                              );
-                              setLocation("/lifestyle/chefs-kitchen");
+                              guardAction("Cook w/ Chef is a premium feature. Upgrade to cook meals step-by-step with our AI chef.", () => {
+                                const mealData = {
+                                  id: meal.id || crypto.randomUUID(),
+                                  name: meal.name,
+                                  description: meal.description,
+                                  ingredients: meal.ingredients || [],
+                                  instructions: meal.instructions,
+                                  imageUrl: meal.imageUrl,
+                                };
+                                localStorage.setItem(
+                                  "mpm_chefs_kitchen_meal",
+                                  JSON.stringify(mealData),
+                                );
+                                localStorage.setItem(
+                                  "mpm_chefs_kitchen_external_prepare",
+                                  "true",
+                                );
+                                setLocation("/lifestyle/chefs-kitchen");
+                              });
                             }}
                           >
+                            {isFree && <Lock className="h-3 w-3" />}
                             Cook w/ Chef
                           </Button>
-                          <ShareRecipeButton
-                            recipe={{
-                              name: meal.name,
-                              description: meal.description,
-                              nutrition: {
-                                calories: meal.calories,
-                                protein: meal.protein,
-                                carbs: meal.carbs,
-                                fat: meal.fat,
-                              },
-                              ingredients: (meal.ingredients ?? []).map(
-                                (ing: any) => ({
-                                  name:
-                                    typeof ing === "string" ? ing : ing.name,
-                                  amount:
-                                    typeof ing === "string" ? "" : ing.quantity,
-                                  unit: typeof ing === "string" ? "" : ing.unit,
-                                }),
-                              ),
-                            }}
-                            className="flex-1"
-                          />
+                          {isFree ? (
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-blue-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                              onClick={() => guardAction("Share Recipe is a premium feature. Upgrade to share your meals with friends and family.", () => {})}
+                            >
+                              <Lock className="h-3 w-3" />
+                              Share
+                            </Button>
+                          ) : (
+                            <ShareRecipeButton
+                              recipe={{
+                                name: meal.name,
+                                description: meal.description,
+                                nutrition: {
+                                  calories: meal.calories,
+                                  protein: meal.protein,
+                                  carbs: meal.carbs,
+                                  fat: meal.fat,
+                                },
+                                ingredients: (meal.ingredients ?? []).map(
+                                  (ing: any) => ({
+                                    name: typeof ing === "string" ? ing : ing.name,
+                                    amount: typeof ing === "string" ? "" : ing.quantity,
+                                    unit: typeof ing === "string" ? "" : ing.unit,
+                                  }),
+                                ),
+                              }}
+                              className="flex-1"
+                            />
+                          )}
                         </div>
                       </div>
                     </CardContent>
