@@ -952,6 +952,7 @@ export default function MacroCounter() {
     if (savedSettings?.waistIn || savedSettings?.waistCm) return;
     const ctrl = new AbortController();
     fetch(apiUrl("/api/biometrics/latest"), {
+      credentials: "include",
       headers: getAuthHeaders(),
       signal: ctrl.signal,
     })
@@ -987,9 +988,9 @@ export default function MacroCounter() {
       if (!wVal || wVal <= 0) return;
       await fetch(apiUrl("/api/biometrics/ingest"), {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
-          userId: user.id,
           samples: [{ type: "waist_circumference", value: wVal, unit: wUnit }],
         }),
       });

@@ -2,6 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { localDayRangeAsUTCISO } from "@/utils/dates";
 import { apiUrl } from '@/lib/resolveApiBase';
+import { getAuthHeaders } from '@/lib/auth';
 
 export type SleepSession = {
   id?: string;
@@ -17,8 +18,11 @@ export function useSleepToday(userId: string) {
     enabled: !!userId,
     queryFn: async () => {
       const { startUTC, endUTC } = localDayRangeAsUTCISO(new Date());
-      const url = `/api/biometrics/summary?userId=${userId}&from=${startUTC}&to=${endUTC}&type=sleep`;
-      const r = await fetch(apiUrl(url));
+      const url = `/api/biometrics/summary?from=${startUTC}&to=${endUTC}&type=sleep`;
+      const r = await fetch(apiUrl(url), {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
       if (!r.ok) throw new Error("Failed to load today sleep");
       return r.json();
     },
@@ -36,8 +40,11 @@ export function useSleepHistory(userId: string, days = 30) {
       start.setDate(end.getDate() - (days - 1));
       const { startUTC } = localDayRangeAsUTCISO(start);
       const { endUTC } = localDayRangeAsUTCISO(end);
-      const url = `/api/biometrics/summary?userId=${userId}&from=${startUTC}&to=${endUTC}&type=sleep&aggregate=day`;
-      const r = await fetch(apiUrl(url));
+      const url = `/api/biometrics/summary?from=${startUTC}&to=${endUTC}&type=sleep&aggregate=day`;
+      const r = await fetch(apiUrl(url), {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
       if (!r.ok) throw new Error("Failed to load sleep history");
       return r.json();
     },
@@ -61,7 +68,8 @@ export async function saveSleepSession(userId: string, session: SleepSession) {
   };
   const r = await fetch(apiUrl("/api/biometrics/ingest"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error("Failed to save sleep");

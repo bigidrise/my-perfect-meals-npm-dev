@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { normalizeMealToMacros } from "@/utils/normalizeMealToMacros";
 import { getApiUrl } from "@/lib/apiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 export function NewLogToMacrosButton({
   meal,
@@ -19,7 +20,8 @@ export function NewLogToMacrosButton({
     try {
       const res = await fetch(getApiUrl("/api/biometrics/log"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           date_iso: new Date().toISOString().split('T')[0],
           meal_type: defaultMealType,

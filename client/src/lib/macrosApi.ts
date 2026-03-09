@@ -58,12 +58,14 @@ export async function logMacrosToBiometrics(macros: MacroEntry): Promise<{ succe
     
     console.log('🔵 Payload:', payload);
     
+    const { getAuthHeaders } = await import('@/lib/auth');
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
-      credentials: 'include', // Important for Railway authentication
+      credentials: 'include',
       body: JSON.stringify(payload),
     });
 

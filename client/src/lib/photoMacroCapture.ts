@@ -41,9 +41,11 @@ async function analyzePhoto(base64Image: string, callbacks?: CaptureCallbacks): 
   try {
     callbacks?.onAnalyzing?.();
 
+    const { getAuthHeaders } = await import('@/lib/auth');
     const response = await fetch(apiUrl('/api/biometrics/analyze-photo'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ image: base64Image }),
     });
 

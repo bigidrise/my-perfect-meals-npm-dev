@@ -42,9 +42,10 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
 
     setLoading(true);
     try {
+      const { getAuthHeaders } = await import('@/lib/auth');
       const res = await fetch(apiUrl("/api/biometrics/estimate-macros"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({ description: description.trim() }),
       });

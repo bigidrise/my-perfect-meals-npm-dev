@@ -6,18 +6,19 @@ import { and, eq, gte, lte, desc } from 'drizzle-orm';
 import { openai, chatJson } from '../utils/openaiSafe';
 import { requireAuth } from '../middleware/requireAuth';
 import { requireActiveAccess } from '../middleware/requireActiveAccess';
+import { getAuthUserId } from '../utils/getAuthUserId';
+import { users } from '../../shared/schema';
 
 const router = express.Router();
 
 // Ingest endpoint - accepts biometric data from devices/apps
-router.post('/ingest', async (req, res) => {
+router.post('/ingest', requireAuth, async (req, res) => {
   try {
+    const userId = getAuthUserId(req);
     const body = biometricPayloadSchema.parse(req.body);
 
-    // Privacy enforcement: filter out any non-approved data types
     const filteredSamples = filterAllowedBiometrics(body.samples);
 
-    // Normalize units and prepare for database insertion
     const rows = filteredSamples.map(sample => {
       let normalizedValue = sample.value;
       let normalizedUnit = sample.unit;
@@ -31,7 +32,7 @@ router.post('/ingest', async (req, res) => {
       }
 
       return {
-        userId: body.userId as any,
+        userId: userId as any,
         provider: body.provider,
         deviceId: body.deviceId,
         type: sample.type,
@@ -43,7 +44,6 @@ router.post('/ingest', async (req, res) => {
       };
     });
 
-    // Insert biometric samples
     if (rows.length > 0) {
       await db.insert(biometricSample).values(rows);
     }
@@ -63,12 +63,9 @@ router.post('/ingest', async (req, res) => {
 });
 
 // Latest values endpoint - returns most recent weight, waist, BP, etc.
-router.get('/latest', async (req, res) => {
+router.get('/latest', requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId ?? '');
-    if (!userId) {
-      return res.status(400).json({ error: 'userId required' });
-    }
+    const userId = getAuthUserId(req);
 
     const latestWeight = await db.select().from(biometricSample).where(
       and(
@@ -84,7 +81,6 @@ router.get('/latest', async (req, res) => {
       )
     ).orderBy(desc(biometricSample.startTime)).limit(1);
 
-    // Get latest blood pressure from vital_bp table
     const { vitalBp } = await import('../../shared/schema');
     const latestBP = await db.select().from(vitalBp).where(
       eq(vitalBp.userId, userId as any)
@@ -105,17 +101,12 @@ router.get('/latest', async (req, res) => {
 });
 
 // Summary endpoint - provides daily biometric summaries for UI
-router.get('/summary', async (req, res) => {
+router.get('/summary', requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId ?? '');
+    const userId = getAuthUserId(req);
     const from = new Date(String(req.query.from ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
     const to = new Date(String(req.query.to ?? new Date()));
 
-    if (!userId) {
-      return res.status(400).json({ error: 'userId required' });
-    }
-
-    // Pull only steps/heart_rate/weight within the time range
     const samples = await db.select().from(biometricSample).where(
       and(
         eq(biometricSample.userId, userId as any),
@@ -157,9 +148,9 @@ router.get('/summary', async (req, res) => {
 });
 
 // Device connection status
-router.get('/sources/:userId', async (req, res) => {
+router.get('/sources/:userId', requireAuth, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = getAuthUserId(req);
 
     const sources = await db.select().from(biometricSource).where(
       eq(biometricSource.userId, userId as any)
@@ -173,15 +164,15 @@ router.get('/sources/:userId', async (req, res) => {
 });
 
 // Register a new device/source
-router.post('/sources', async (req, res) => {
+router.post('/sources', requireAuth, async (req, res) => {
   try {
-    const { userId, provider, allowedMetrics } = req.body;
+    const userId = getAuthUserId(req);
+    const { provider, allowedMetrics } = req.body;
 
-    if (!userId || !provider || !allowedMetrics) {
-      return res.status(400).json({ error: 'userId, provider, and allowedMetrics required' });
+    if (!provider || !allowedMetrics) {
+      return res.status(400).json({ error: 'provider and allowedMetrics required' });
     }
 
-    // Create scope hash from allowed metrics (for privacy tracking)
     const scopeHash = Buffer.from(JSON.stringify(allowedMetrics.sort())).toString('base64');
 
     const source = await db.insert(biometricSource).values({
@@ -198,14 +189,12 @@ router.post('/sources', async (req, res) => {
 });
 
 // Macro logging endpoint for meal generators
-router.post('/log', async (req, res) => {
+router.post('/log', requireAuth, async (req, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { date_iso, meal_type, calories_kcal, protein_g, carbs_g, fat_g, source, title, meal_id } = req.body;
 
-    // Use default user ID for development
-    const userId = "00000000-0000-0000-0000-000000000001";
-
-    console.log("📝 POST /api/biometrics/log", { userId, body: req.body });
+    console.log("POST /api/biometrics/log", { userId, body: req.body });
 
     // Validate required fields
     if (!calories_kcal && !protein_g && !carbs_g && !fat_g) {
@@ -257,10 +246,10 @@ router.post('/log', async (req, res) => {
 
 // Simple weight save endpoint (from Macro Calculator)
 // Upserts weight by user_id + date to prevent duplicates
+// Atomic: updates both biometric_sample (canonical history) and users.weight (denormalized current kg)
 router.post('/weight', requireAuth, async (req, res) => {
   try {
-    const authUser = (req as any).authUser;
-    const userId = authUser?.id || req.body.userId;
+    const userId = getAuthUserId(req);
     const { value, unit, localDate, measuredAt } = req.body;
 
     if (!value || !unit) {
@@ -271,84 +260,78 @@ router.post('/weight', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'unit must be lb or kg' });
     }
 
-    // Use localDate (client's local YYYY-MM-DD) if provided, otherwise fall back to measuredAt or today
-    // This ensures the date matches what the user sees in their timezone
     let dayKey: string;
     let measurementDate: Date;
     
     if (localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
-      // Client sent local date string - use it directly for day key
       dayKey = localDate;
-      // Create date at noon UTC to avoid timezone edge cases
       measurementDate = new Date(`${localDate}T12:00:00Z`);
     } else if (measuredAt) {
-      // Legacy: measuredAt ISO string
       measurementDate = new Date(measuredAt);
       dayKey = measurementDate.toISOString().slice(0, 10);
     } else {
-      // Default: use server's current date
       measurementDate = new Date();
       dayKey = measurementDate.toISOString().slice(0, 10);
     }
-    
-    // Check if weight already exists for this day
-    const existing = await db.select().from(biometricSample).where(
-      and(
-        eq(biometricSample.userId, userId as any),
-        eq(biometricSample.type, 'weight')
-      )
-    );
 
-    // Filter to find same-day entry
-    const sameDayEntry = existing.find(row => {
-      const rowDate = new Date(row.startTime).toISOString().slice(0, 10);
-      return rowDate === dayKey;
-    });
+    const weightKg = unit === 'lb' ? Math.round(Number(value) / 2.20462) : Math.round(Number(value));
 
-    if (sameDayEntry) {
-      // Update existing entry for this day
-      await db.update(biometricSample)
-        .set({ 
-          value: Number(value), 
+    const result = await db.transaction(async (tx) => {
+      const existing = await tx.select().from(biometricSample).where(
+        and(
+          eq(biometricSample.userId, userId as any),
+          eq(biometricSample.type, 'weight')
+        )
+      );
+
+      const sameDayEntry = existing.find(row => {
+        const rowDate = new Date(row.startTime).toISOString().slice(0, 10);
+        return rowDate === dayKey;
+      });
+
+      let sampleResult: { id: any; updated: boolean; created: boolean };
+
+      if (sameDayEntry) {
+        await tx.update(biometricSample)
+          .set({ 
+            value: Number(value), 
+            unit,
+            startTime: measurementDate,
+            endTime: measurementDate,
+          })
+          .where(eq(biometricSample.id, sameDayEntry.id));
+        sampleResult = { id: sameDayEntry.id, updated: true, created: false };
+      } else {
+        const [inserted] = await tx.insert(biometricSample).values({
+          userId: userId as any,
+          provider: 'macro-calculator',
+          type: 'weight',
+          value: Number(value),
           unit,
           startTime: measurementDate,
           endTime: measurementDate,
-        })
-        .where(eq(biometricSample.id, sameDayEntry.id));
+        }).returning();
+        sampleResult = { id: inserted.id, updated: false, created: true };
+      }
 
-      console.log(`✅ Updated weight for ${userId} on ${dayKey}: ${value} ${unit}`);
-      
-      return res.json({ 
-        ok: true,
-        id: sameDayEntry.id, 
-        value: Number(value), 
-        unit, 
-        measuredAt: measurementDate.toISOString(),
-        updated: true
-      });
-    } else {
-      // Insert new entry
-      const [inserted] = await db.insert(biometricSample).values({
-        userId: userId as any,
-        provider: 'macro-calculator',
-        type: 'weight',
-        value: Number(value),
-        unit,
-        startTime: measurementDate,
-        endTime: measurementDate,
-      }).returning();
+      await tx.update(users)
+        .set({ weight: weightKg })
+        .where(eq(users.id, userId as any));
 
-      console.log(`✅ Created weight entry for ${userId} on ${dayKey}: ${value} ${unit}`);
+      return sampleResult;
+    });
 
-      return res.json({ 
-        ok: true,
-        id: inserted.id, 
-        value: Number(value), 
-        unit, 
-        measuredAt: measurementDate.toISOString(),
-        created: true
-      });
-    }
+    console.log(`Weight saved for ${userId} on ${dayKey}: ${value} ${unit} (users.weight=${weightKg}kg)`);
+
+    return res.json({ 
+      ok: true,
+      id: result.id, 
+      value: Number(value), 
+      unit, 
+      measuredAt: measurementDate.toISOString(),
+      updated: result.updated,
+      created: result.created
+    });
   } catch (error: any) {
     console.error('Weight save error:', error);
     res.status(500).json({ 
@@ -478,7 +461,7 @@ Be realistic with portion sizes shown. If you cannot identify food, return zeros
 });
 
 // Estimate macros from natural language description
-router.post('/estimate-macros', async (req, res) => {
+router.post('/estimate-macros', requireAuth, async (req, res) => {
   try {
     const { description } = req.body;
     
