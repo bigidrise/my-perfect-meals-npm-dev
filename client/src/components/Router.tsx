@@ -61,8 +61,6 @@ import ProCareRewards from "@/pages/procare/ProCareRewards";
 // DELETED: MealPlanningHubRevised (comprehensive-meal-planning-revised)
 import CravingCreator from "@/pages/craving-creator";
 import FridgeRescuePage from "@/pages/fridge-rescue";
-// DELETED: RestaurantGuidePage (moved to _quarantine - replaced by SocialRestaurantGuide)
-// DELETED: PotluckPlanner, ToddlersMealsHub, CampingMealsHubPage, TailgatingHub, SmartWeekBuilder, MealsForKidsHubPage, KidsDrinksHubPage, KidsLunchboxPlanner, KidsIMadeItMyself
 import {
   BreakfastMealsHub,
   LunchMealsHub,
@@ -112,11 +110,9 @@ import DiabetesSupportPage from "@/pages/physician/DiabetesSupportPage";
 import DiabeticMenuBuilder from "@/pages/physician/DiabeticMenuBuilder";
 import GLP1Hub from "@/pages/physician/GLP1Hub";
 import GLP1MealBuilder from "@/pages/physician/GLP1MealBuilder";
-// QUARANTINED: MedicalDietsHub moved to _quarantine (not in active navigation)
 import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuBuilder";
 
 // Craving pages
-// DELETED: CravingHub (moved to _quarantine - replaced by CravingCreatorLanding)
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
@@ -136,8 +132,6 @@ import SavedMeals from "@/pages/SavedMeals";
 // DELETED: AlcoholHubLanding, AlcoholLeanAndSocial, AlcoholSmartSips, MocktailsLowCalMixers, AlcoholLog
 // DELETED: BeerPairing, BourbonSpirits, MealPairingAI, WinePairing (replaced by /lifestyle/pairings-ai)
 import WeaningOffTool from "@/pages/weaning-off-tool";
-
-// DELETED: MealFinder (moved to _quarantine - replaced by SocialFindMeals)
 
 // Socializing Hub pages
 import SocializingHub from "@/pages/SocializingHub";
@@ -466,14 +460,12 @@ export default function Router() {
         <Route path="/diabetic-menu-builder" component={SafeDiabeticMenuBuilder} />
         <Route path="/glp1-hub" component={SafeGLP1Hub} />
         <Route path="/glp1-meal-builder" component={SafeGLP1MealBuilder} />
-        {/* QUARANTINED: /medical-diets-hub route removed - MedicalDietsHub moved to _quarantine */}
         <Route path="/anti-inflammatory-menu-builder" component={SafeAntiInflammatoryMenuBuilder} />
         {/* Craving Creator Routes */}
         <Route
           path="/craving-creator-landing"
           component={CravingCreatorLanding}
         />
-        {/* DELETED: /craving-hub route (old CravingHub moved to _quarantine - use /craving-creator-landing instead) */}
         <Route path="/craving-desserts" component={CravingDessertCreator} />
         <Route path="/craving-studio" component={withGate(CravingStudio, 'studioCreators')} />
         <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
@@ -482,7 +474,6 @@ export default function Router() {
         {/* DELETED: /beer-pairing, /bourbon-spirits, /meal-pairing-ai, /wine-pairing (replaced by /lifestyle/pairings-ai) */}
         <Route path="/weaning-off-tool" component={WeaningOffTool} />
         <Route path="/emotion-ai" component={LifestyleLandingPage} />
-        {/* DELETED: /meal-finder route (old MealFinder moved to _quarantine - use /social-hub/find instead) */}
         {/* Founders Route */}
         <Route path="/founders" component={FoundersPage} />
         {/* Supplement Hub Routes */}
