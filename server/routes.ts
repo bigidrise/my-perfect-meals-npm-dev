@@ -714,6 +714,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  app.get("/api/ai-quota/fridge-rescue", requireAuth, async (req, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const result = await checkDailyQuota(userId, "fridge-rescue");
+      res.json({
+        used: result.used,
+        limit: result.limit,
+        remaining: result.remaining,
+        resetAt: result.resetAt,
+      });
+    } catch (err) {
+      console.error("Quota check error:", err);
+      res.status(500).json({ error: "Failed to check quota" });
+    }
+  });
+
   // Fridge Rescue API Main Route - Generate 3 meals with macros and amounts
   app.post("/api/meals/fridge-rescue", requireAuth, normalizeFridgeRescue, async (req, res) => {
     console.log("[FRIDGE] hit", { body: req.body, headers: req.headers["content-type"] });

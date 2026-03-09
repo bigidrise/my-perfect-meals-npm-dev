@@ -219,6 +219,23 @@ const FridgeRescuePage = () => {
     }
   }, [pendingGeneration, overrideToken, isLoading]);
 
+  useEffect(() => {
+    if (userIsFree) {
+      fetch(`${apiUrl}/api/ai-quota/fridge-rescue`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          if (data) {
+            setQuotaInfo(data);
+            if (data.remaining === 0) setDailyLimitHit(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [userIsFree]);
+
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
@@ -693,6 +710,30 @@ const FridgeRescuePage = () => {
               </CardContent>
             </Card>
           </div>
+
+          {userIsFree && quotaInfo && (
+            <div className="max-w-2xl mx-auto mb-4">
+              <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/70">Free AI Meals Today</span>
+                  <span className="font-semibold text-white">
+                    {quotaInfo.used} / {quotaInfo.limit}
+                  </span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2 mt-2">
+                  <div
+                    className="bg-orange-500 h-2 rounded-full transition-all"
+                    style={{ width: `${(quotaInfo.used / quotaInfo.limit) * 100}%` }}
+                  />
+                </div>
+                {quotaInfo.remaining === 0 && (
+                  <p className="text-xs text-amber-400 mt-2">
+                    You've used today's free AI meal.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
