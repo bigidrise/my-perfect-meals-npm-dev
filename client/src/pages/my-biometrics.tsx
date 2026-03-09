@@ -2146,13 +2146,6 @@ export default function MyBiometrics() {
             <CardTitle className="text-white text-xl flex items-center gap-2">
               <Ruler className="h-5 w-5" /> Body Composition
             </CardTitle>
-            <Button
-              size="sm"
-              onClick={() => setLocation("/macro-counter")}
-              className="bg-orange-600/80 border border-orange-400/40 text-white text-xs"
-            >
-              Update Body Composition
-            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             {bodyCompLatest ? (
