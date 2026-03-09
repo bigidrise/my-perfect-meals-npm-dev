@@ -1009,8 +1009,10 @@ export default function MyBiometrics() {
   useEffect(() => {
     const fetchWeightHistory = async () => {
       try {
+        const { getAuthHeaders } = await import("@/lib/auth");
         const response = await fetch(
           apiUrl("/api/biometrics/weight?range=365d"),
+          { credentials: "include", headers: getAuthHeaders() },
         );
         if (response.ok) {
           const data = await response.json();
@@ -1115,6 +1117,7 @@ export default function MyBiometrics() {
       try {
         const refreshResponse = await fetch(
           apiUrl("/api/biometrics/weight?range=365d"),
+          { credentials: "include", headers: getAuthHeaders() },
         );
         if (refreshResponse.ok) {
           const refreshData = await refreshResponse.json();

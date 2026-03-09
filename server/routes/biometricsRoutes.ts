@@ -359,9 +359,10 @@ router.post('/weight', requireAuth, async (req, res) => {
 });
 
 // Get weight history with optional date range
-router.get('/weight', async (req, res) => {
+router.get('/weight', requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId ?? "00000000-0000-0000-0000-000000000001");
+    const authUser = (req as any).authUser;
+    const userId = authUser?.id;
     const range = String(req.query.range ?? '90d');
     
     // Parse range (e.g., "90d", "30d", "7d")
