@@ -4,14 +4,10 @@ import { z } from "zod";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users, mealInstances, userRecipes } from "@shared/schema";
+import { requireAuth } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 const router = express.Router();
-
-// Mock authentication middleware - replace with real auth
-const requireAuth = (req: any, res: any, next: any) => {
-  req.user = { id: "mock-user-id" }; // Replace with actual user from session
-  next();
-};
 
 // Utility to recalculate daily nutrition (mock implementation)
 const recalcDailyNutrition = async (userId: string, date?: Date) => {
@@ -24,7 +20,7 @@ router.post('/:mealInstanceId/log', requireAuth, async (req: any, res) => {
   try {
     const { mealInstanceId } = req.params;
     const { recipeId, recipePayload, note } = req.body;
-    const userId = req.user.id;
+    const userId = getAuthUserId(req);
 
     let finalRecipeId = recipeId;
     if (!finalRecipeId && recipePayload) {
@@ -59,7 +55,7 @@ router.post('/:mealInstanceId/log', requireAuth, async (req: any, res) => {
 router.post('/:mealInstanceId/skip', requireAuth, async (req: any, res) => {
   try {
     const { mealInstanceId } = req.params;
-    const userId = req.user.id;
+    const userId = getAuthUserId(req);
 
     await db.update(mealInstances)
       .set({ status: 'skipped' })
@@ -81,7 +77,7 @@ router.post('/:mealInstanceId/replace-and-optional-log', requireAuth, async (req
   try {
     const { mealInstanceId } = req.params;
     const { recipeId, recipePayload, logNow, source, note } = req.body;
-    const userId = req.user.id;
+    const userId = getAuthUserId(req);
 
     // 1) Load original meal instance
     const [orig] = await db.select().from(mealInstances)
@@ -138,7 +134,7 @@ router.post('/:mealInstanceId/replace-and-optional-log', requireAuth, async (req
 router.get('/instances/:date', requireAuth, async (req: any, res) => {
   try {
     const { date } = req.params;
-    const userId = req.user.id;
+    const userId = getAuthUserId(req);
 
     const instances = await db.select()
       .from(mealInstances)
@@ -159,7 +155,7 @@ router.get('/instances/:date', requireAuth, async (req: any, res) => {
 router.post('/create-and-log', requireAuth, async (req: any, res) => {
   try {
     const { date, slot, recipePayload, source } = req.body;
-    const userId = req.user.id;
+    const userId = getAuthUserId(req);
 
     let recipeId = null;
     if (recipePayload) {
@@ -197,7 +193,7 @@ router.post('/create-and-log', requireAuth, async (req: any, res) => {
 router.post('/add-to-plan', requireAuth, async (req: any, res) => {
   try {
     const { date, slot, recipePayload, source } = req.body;
-    const userId = req.user.id;
+    const userId = getAuthUserId(req);
 
     let recipeId = null;
     if (recipePayload) {
@@ -228,10 +224,10 @@ router.post('/add-to-plan', requireAuth, async (req: any, res) => {
 });
 
 // Replace functionality for weekly meal plans
-router.post('/replace/fridge', async (req: any, res) => {
+router.post('/replace/fridge', requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { dayIndex, mealIndex, params } = req.body;
-    const userId = "00000000-0000-0000-0000-000000000001";
     
     const { getCurrentPlan, setCurrentPlan } = await import('../services/currentPlan');
     const { pickFromPantry } = await import('../services/replace/fridgeRescue');
@@ -258,10 +254,10 @@ router.post('/replace/fridge', async (req: any, res) => {
   }
 });
 
-router.post('/replace/craving', async (req: any, res) => {
+router.post('/replace/craving', requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { dayIndex, mealIndex, want, params } = req.body;
-    const userId = "00000000-0000-0000-0000-000000000001";
     
     const { getCurrentPlan, setCurrentPlan } = await import('../services/currentPlan');
     const { pickFromCraving } = await import('../services/replace/cravingCreator');
@@ -286,10 +282,10 @@ router.post('/replace/craving', async (req: any, res) => {
   }
 });
 
-router.post('/replace/library', async (req: any, res) => {
+router.post('/replace/library', requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { dayIndex, mealIndex, templateId } = req.body;
-    const userId = "00000000-0000-0000-0000-000000000001";
     
     const { getCurrentPlan, setCurrentPlan } = await import('../services/currentPlan');
     
@@ -334,10 +330,10 @@ router.post('/replace/library', async (req: any, res) => {
 });
 
 // Custom meal replacement - accepts a complete meal object
-router.post('/replace/custom', async (req: any, res) => {
+router.post('/replace/custom', requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { dayIndex, mealIndex, meal } = req.body;
-    const userId = "00000000-0000-0000-0000-000000000001";
     
     const { getCurrentPlan, setCurrentPlan } = await import('../services/currentPlan');
     

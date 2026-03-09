@@ -3,16 +3,15 @@ import { db } from "../db";
 import { shoppingListItems, shoppingListSources } from "@shared/schema";
 import { normalizeShopping } from "../services/shopping-list/builder-v2";
 import { eq, and } from "drizzle-orm";
+import { requireAuth } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 type MealInput = any;
 
-// PUBLIC router - no auth required (preview only)
 export const shoppingPreviewRouter = Router();
 
-// PROTECTED router - requires auth
 export const shoppingRouter = Router();
 
-// PREVIEW endpoint - NO AUTH REQUIRED
 shoppingPreviewRouter.post("/preview", async (req: any, res: any) => {
   try {
     const { meals } = req.body as { meals: MealInput[] };
@@ -30,11 +29,9 @@ shoppingPreviewRouter.post("/preview", async (req: any, res: any) => {
   }
 });
 
-// PROTECTED ENDPOINTS - These will require auth from global guard
-
-shoppingRouter.post("/commit", async (req: any, res: any) => {
+shoppingRouter.post("/commit", requireAuth, async (req: any, res: any) => {
   try {
-    const userId = req.session?.userId || req.headers["x-user-id"] as string || "00000000-0000-0000-0000-000000000001";
+    const userId = getAuthUserId(req);
 
     const { meals } = req.body as { meals: MealInput[] };
     
@@ -126,9 +123,9 @@ shoppingRouter.post("/commit", async (req: any, res: any) => {
   }
 });
 
-shoppingRouter.get("/", async (req: any, res: any) => {
+shoppingRouter.get("/", requireAuth, async (req: any, res: any) => {
   try {
-    const userId = req.session?.userId || req.headers["x-user-id"] as string || "00000000-0000-0000-0000-000000000001";
+    const userId = getAuthUserId(req);
 
     const items = await db.query.shoppingListItems.findMany({
       where: (items, { eq }) => eq(items.userId, userId),
@@ -145,9 +142,9 @@ shoppingRouter.get("/", async (req: any, res: any) => {
   }
 });
 
-shoppingRouter.patch("/:id", async (req: any, res: any) => {
+shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
   try {
-    const userId = req.session?.userId || req.headers["x-user-id"] as string || "00000000-0000-0000-0000-000000000001";
+    const userId = getAuthUserId(req);
     const { id } = req.params;
     const updates = req.body;
 
@@ -178,9 +175,9 @@ shoppingRouter.patch("/:id", async (req: any, res: any) => {
   }
 });
 
-shoppingRouter.delete("/:id", async (req: any, res: any) => {
+shoppingRouter.delete("/:id", requireAuth, async (req: any, res: any) => {
   try {
-    const userId = req.session?.userId || req.headers["x-user-id"] as string || "00000000-0000-0000-0000-000000000001";
+    const userId = getAuthUserId(req);
     const { id } = req.params;
 
     const existing = await db.query.shoppingListItems.findFirst({
@@ -204,9 +201,9 @@ shoppingRouter.delete("/:id", async (req: any, res: any) => {
   }
 });
 
-shoppingRouter.delete("/", async (req: any, res: any) => {
+shoppingRouter.delete("/", requireAuth, async (req: any, res: any) => {
   try {
-    const userId = req.session?.userId || req.headers["x-user-id"] as string || "00000000-0000-0000-0000-000000000001";
+    const userId = getAuthUserId(req);
 
     await db.delete(shoppingListItems)
       .where(eq(shoppingListItems.userId, userId));

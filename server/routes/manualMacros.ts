@@ -4,6 +4,7 @@ import { db } from "../db";
 import { macroLogs, users } from "../../shared/schema";
 import { and, gte, lte, eq, sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
 import { careTeamMember } from "../db/schema/careTeam";
 import { clientLinks } from "../db/schema/procare";
 import { pushToUser, pushToCoachOfClient } from "../services/pushNotify";
@@ -23,11 +24,11 @@ function kcalFrom(p = 0, c = 0, f = 0, alc = 0) {
 }
 
 // POST /api/macros/log - Legacy endpoint for backward compatibility
-router.post("/macros/log", async (req, res) => {
+router.post("/macros/log", requireAuth, async (req, res) => {
   try {
+    const userId = getAuthUserId(req);
     const deviceId = req.get("x-device-id") || "missing";
     const {
-      userId = "00000000-0000-0000-0000-000000000001",
       loggedAt,
       mealType,
       kcal,
@@ -85,9 +86,9 @@ router.post("/macros/log", async (req, res) => {
 });
 
 // POST /api/users/:userId/macros/quick
-router.post("/users/:userId/macros/quick", async (req, res) => {
+router.post("/users/:userId/macros/quick", requireAuth, async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = getAuthUserId(req);
     const {
       at,
       protein = 0,
@@ -141,9 +142,9 @@ router.post("/users/:userId/macros/quick", async (req, res) => {
 });
 
 // GET /api/users/:userId/macro-logs/summary?start&end
-router.get("/users/:userId/macro-logs/summary", async (req, res) => {
+router.get("/users/:userId/macro-logs/summary", requireAuth, async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = getAuthUserId(req);
     const start = req.query.start ? new Date(String(req.query.start)) : null;
     const end = req.query.end ? new Date(String(req.query.end)) : null;
     if (!start || !end)
@@ -184,9 +185,9 @@ router.get("/users/:userId/macro-logs/summary", async (req, res) => {
 });
 
 // GET /api/users/:userId/macros?start&end - Returns totals with separated food and alcohol
-router.get("/users/:userId/macros", async (req, res) => {
+router.get("/users/:userId/macros", requireAuth, async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = getAuthUserId(req);
     const start = req.query.start ? new Date(String(req.query.start)) : null;
     const end = req.query.end ? new Date(String(req.query.end)) : null;
     if (!start || !end)
@@ -269,9 +270,9 @@ router.get("/users/:userId/macros", async (req, res) => {
 });
 
 // GET /api/users/:userId/macro-logs/daily?start&end
-router.get("/users/:userId/macro-logs/daily", async (req, res) => {
+router.get("/users/:userId/macro-logs/daily", requireAuth, async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = getAuthUserId(req);
     const start = req.query.start ? new Date(String(req.query.start)) : null;
     const end = req.query.end ? new Date(String(req.query.end)) : null;
     if (!start || !end)

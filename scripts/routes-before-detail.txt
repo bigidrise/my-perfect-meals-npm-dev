@@ -1,0 +1,143 @@
+=== DUPLICATE MOUNT ANALYSIS ===
+
+--- server/index.ts mounts ---
+104:app.use((req, res, next) => {
+167:app.use((req, res, next) => {
+234:app.use((req, res, next) => {
+244:app.use((req, _res, next) => {
+260:app.use((req, res, next) => {
+269:app.use((req: Request, _res: Response, next: NextFunction) => {
+290:app.use("/api", healthRouter);
+291:app.use("/api", keepaliveRouter);
+294:app.use("/api/stripe", stripeCheckoutRouter);
+297:app.use("/api/stripe", stripeRouter);
+300:app.use("/api/ios", iosVerifyRouter);
+303:app.use("/api", foodLogsRouter);
+306:app.use("/api/meals", mealsRouter);
+307:app.use("/api", alcoholRouter);
+308:app.use("/api", glycemicRouter);
+309:app.use("/api", shoppingListRouter);
+310:app.use("/api", mealSummarizeRouter);
+311:app.use("/api", mealLogsRouter);
+312:app.use("/api", waterLogsRouter);
+313:app.use("/api", wmc2LogRouter);
+314:app.use("/api", wmc2TelemetryRouter);
+315:app.use("/api", wmc2EnhancedRouter);
+316:app.use("/admin", qaRouter);
+317:app.use("/api", mealEngineRouter);
+318:app.use("/api", weeklyPlanRoutes);
+320:app.use("/api/meal-plan", mealPlanRoutesV1);
+323:app.use("/api", mealScheduleRouter);
+324:app.use("/api", notifyRouter);
+325:app.use("/api", notifyAckRouter);
+326:app.use("/api", timePresetsRouter);
+327:app.use("/api", quickTestRouter);
+328:app.use("/api", healthRouter2);
+329:app.use("/api", notifyRegisterRouter);
+330:app.use("/api", notifyTestRouter);
+331:app.use("/api", quickTestEnhancedRouter);
+332:app.use("/api", adherenceRouter);
+333:app.use("/api", notifyExtrasRouter);
+334:app.use("/api", cookingTutorialsRouter);
+335:app.use("/api/trivia", triviaRouter);
+336:app.use("/api/challenges", challengeRoutes);
+337:app.use("/api/fitlife", fitlifeRouter);
+340:app.use("/api/my-best-life", mybestlifeRouter);
+343:app.use("/api/diabetes", diabetesRouter);
+344:app.use("/api/meal-engine", constraintsRouter);
+345:app.use("/api/generation", generationRouter);
+348:app.use("/api", onboardingProgressRouter);
+351:app.use("/api", preferencesRouter);
+354:app.use("/api/user-prefs/meals", userMealPrefsRouter);
+357:app.use(builderPlansRouter);
+361:app.use("/api/avatar", avatarContextRoutes);
+364:app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouter);  
+365:app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouter);
+366:app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouter);
+367:app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouter);
+368:app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFeastRouter);
+371:app.use("/api/studio", requireAuth, requireActiveAccess, studioGeneratorRouter);
+372:app.use("/api/breakfast", breakfastRouter);
+373:app.use("/api/lunch", lunchRouter);
+374:app.use("/api/dinner", dinnerRouter);
+375:app.use("/api/snacks", snacksRouter);
+378:app.use("/api/biometrics", biometricsRouter);
+381:app.use("/api", manualMacrosRouter);
+384:app.use("/api/meal-templates", templateRouter);
+387:app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
+390:app.use("/api/games", gamesRouter);
+393:app.use("/api/testimonials", testimonialsRouter);
+396:app.use("/api/restaurants", requireAuth, requireActiveAccess, resolveCuisineMiddleware, restaurantRoutes);
+507:  app.use("/api/facebook", facebookRouter);
+512:app.use("/api/sms", smsRoutes);
+578:app.use("/api/ai-voice-journal", aiVoiceJournalRoutes);
+611:  app.use("/api", (req, res) => {
+
+--- server/routes.ts mounts ---
+311:  app.use("/api/ai", requireAuth, requireActiveAccess);
+317:  app.use("/api/ai/pairings", pairingsAIRouter);
+318:  app.use("/api/ai/wine-list-helper", wineListHelperRouter);
+319:  app.use("/api/ai/reduce-drinking-plan", reduceDrinkingPlanRouter);
+375:  app.use("/api", loadStudioMembership);
+378:  app.use("/api/ios", iosVerifyRouter);
+380:  app.use(authSessionRouter);
+381:  app.use(alcoholLogRouter);
+382:  app.use('/api/vitals/bp', vitalsBpRouter);
+383:  app.use('/api', proteinTargetsRouter);
+384:  app.use('/api', cookingRouter);
+385:  app.use('/api', mealImagesRouter);
+387:  app.use('/api', onboardingProgressRoutes);
+388:  app.use('/api', mealFinderRouter);
+540:  app.use("/api", fridgeRescueRouter);
+1333:  app.use("/api", avatarChatRouter);
+1334:  app.use("/api", conciergeRouter);
+1335:  app.use("/api", chefRouter);
+1336:  app.use("/api/cooking-challenges", requireAuth, requireActiveAccess, cookingChallengesRouter);
+1337:  app.use("/api/cooking-classes", requireAuth, requireActiveAccess, cookingClassesRouter);
+1364:  app.use("/api/community", communityRouter);
+1368:  app.use("/api/recipe-gallery", recipeGalleryRouter);
+1371:  app.use("/api/biometrics", biometricsRouter);
+1374:  app.use("/api", manualMacrosRouter);
+1377:  app.use("/api", alcoholRouter);
+1380:  app.use(mealPlanReplaceRouter);
+1383:  app.use("/api/push", pushNotificationsRouter);
+1461:  app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFamilyRecipeRouter);
+1466:  app.use("/api", familyRecipesRouter);
+1469:  app.use("/api", uploadsRouter);
+1609:  app.use("/api/progress", myProgressRouter);
+4650:  app.use("/api", waterLogsRouter);
+4702:  app.use("/api", mealPlanArchiveRoutes);
+4707:  app.use("/api", phoneRouter);
+4708:  app.use("/api", twilioInboundRouter);
+5815:  app.use("/api", mealPlansRoutes);
+5816:  app.use("/api", mealLogsRoutes);
+5817:  app.use("/api", macroLogsRoutes);
+5822:  app.use("/api/locked-days", lockedDaysRouter);
+5829:  app.use("/api/glp1", glp1Routes);
+5832:  app.use("/api/diabetes", diabetesRouter);
+5835:  app.use("/api", bodyCompositionRoutes);
+5839:  app.use("/api", mealBoardsRoutes);
+5843:  app.use("/api/pro/board", requireAuth, requirePremiumAccess, proBoardRoutes);
+5846:  app.use("/api/pro", requireAuth, proWeekBoardRoutes);
+5849:  app.use("/api/pro", requireAuth, proBiometricsRoutes);
+5852:  app.use("/api/pro", requireAuth, proProgramHistoryRoutes);
+5855:  app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
+5858:  app.use("/api/pro/tablet", requireAuth, proTabletRoutes);
+5861:  app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
+5863:  app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
+5864:  app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
+5865:  app.use("/api/studios", requireAuth, requirePremiumAccess, studioRoutes);
+5867:  app.use("/api/legal", legalRoutes);
+5869:  app.use("/api/founders", foundersRoutes);
+5870:  app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
+5871:  app.use("/api/users", usersProfileRouter);
+5874:  app.use(builderPlansRoutes);
+
+--- SPECIFIC DUPLICATES TO REMOVE ---
+Looking for biometrics, manualMacros, alcohol, waterLogs in routes.ts:
+381:  app.use(alcoholLogRouter);
+1371:  app.use("/api/biometrics", biometricsRouter);
+1374:  app.use("/api", manualMacrosRouter);
+1377:  app.use("/api", alcoholRouter);
+4650:  app.use("/api", waterLogsRouter);
+5819:  app.use("/api", alcoholLogRoutes);              // alcohol routes expect "/api/..." internally

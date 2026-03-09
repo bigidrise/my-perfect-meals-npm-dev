@@ -46,8 +46,6 @@ import { saveGlycemicSettings, getGlycemicSettings } from './services/glycemicSe
 import multer from 'multer';
 import OpenAI from 'openai';
 import pushNotificationsRouter from './routes/pushNotifications';
-import biometricsRouter from './routes/biometricsRoutes';
-import alcoholRouter from './routes/alcohol';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
 import { MealEngineService } from "./services/mealEngineService";
@@ -61,7 +59,6 @@ import { cookingRouter } from './routes/cooking';
 import { mealImagesRouter } from './routes/mealImages';
 import weekBoardRoutes from './routes/weekBoard';
 // Deleted: diabeticHubRouter
-import manualMacrosRouter from './routes/manualMacros';
 // Import routes
 import mealPlansRoutes from "./routes/mealPlans";
 import mealLogsRoutes from "./routes/mealLogs";
@@ -1367,14 +1364,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const recipeGalleryRouter = (await import("./routes/recipeGallery")).default;
   app.use("/api/recipe-gallery", recipeGalleryRouter);
 
-  // Biometrics Routes
-  app.use("/api/biometrics", biometricsRouter);
-
-  // Manual Macros Routes
-  app.use("/api", manualMacrosRouter);
-
-  // Alcohol Routes
-  app.use("/api", alcoholRouter);
+  // Biometrics Routes — canonical mount in server/index.ts
+  // Manual Macros Routes — canonical mount in server/index.ts
+  // Alcohol Routes — canonical mount in server/index.ts
 
   // Meal plan replacement route
   app.use(mealPlanReplaceRouter);
@@ -1383,11 +1375,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/push", pushNotificationsRouter);
 
   // Enhanced Shopping List endpoint with scope support
-  app.post("/api/shopping-list", async (req, res) => {
+  app.post("/api/shopping-list", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.session?.userId || req.headers["x-user-id"] as string;
+      const authUser = req.authUser;
+      const userId = authUser?.id;
       if (!userId) {
-        console.log("❌ Shopping list: No userId in session or headers");
         return res.status(401).json({ 
           ok: false, 
           message: "Not authenticated. Please sign in." 
@@ -4645,9 +4637,7 @@ function getMealIngredientsDatabase() {
     }
   });
 
-  // Mount water logs routes
-  const waterLogsRouter = (await import("./routes/waterLogs")).default;
-  app.use("/api", waterLogsRouter);
+  // Water logs routes — canonical mount in server/index.ts
 
   // POST /api/meal-plan-archive - Direct route to avoid Vite middleware interference
   app.post("/api/meal-plan-archive", async (req, res) => {

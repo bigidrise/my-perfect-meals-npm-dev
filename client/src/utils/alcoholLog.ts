@@ -1,5 +1,6 @@
 // No UI imports here — logic only.
 import { apiUrl } from '@/lib/resolveApiBase';
+import { getAuthHeaders } from '@/lib/auth';
 
 export function computeAlcoholMetrics(volumeMl: number, abvPercent: number) {
   const abv = abvPercent / 100;
@@ -28,7 +29,8 @@ export async function logAlcoholToBiometrics({
 
   const res = await fetch(apiUrl(`/api/users/${userId}/alcohol-logs`), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({
       loggedAt,
       drinkType,

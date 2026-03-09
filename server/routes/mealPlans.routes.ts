@@ -7,13 +7,16 @@ import { createMealRemindersForWeek } from "../services/mealReminder";
 import { rescheduleSingleMealReminder } from "../services/mealReminderSingle";
 import { weeklyMealPlanningServiceA } from "../services/weeklyMealPlanningServiceA";
 import { weeklyMealPlanningServiceB } from "../services/weeklyMealPlanningServiceB";
+import { requireAuth } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 const r = Router();
 
 
 // Generate a new meal plan
-r.post("/generate", async (req, res) => {
+r.post("/generate", requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { 
       weeks = 1,
       mealsPerDay = 3, 
@@ -23,8 +26,6 @@ r.post("/generate", async (req, res) => {
       planningMode = "TURBO",
       variant = "AUTO"
     } = req.body;
-
-    const userId = req.body.userId || process.env.DEV_USER_ID || "00000000-0000-0000-0000-000000000001";
 
     // Determine which service to use (A/B testing)
     const chosen = variant === "AUTO" ? (Math.random() < 0.5 ? "A" : "B") : variant;
@@ -78,9 +79,9 @@ r.post("/generate", async (req, res) => {
 });
 
 // Get current plan from mealPlansCurrent table
-r.get("/current", async (req, res) => {
+r.get("/current", requireAuth, async (req: any, res) => {
   try {
-    const userId = req.query.userId as string || process.env.DEV_USER_ID || "00000000-0000-0000-0000-000000000001";
+    const userId = getAuthUserId(req);
 
     const row = await db.select().from(mealPlansCurrent)
       .where(eq(mealPlansCurrent.userId, userId))
@@ -98,13 +99,14 @@ r.get("/current", async (req, res) => {
 });
 
 // Save a new meal plan (archives previous active plan)
-r.post("/save", async (req, res) => {
+r.post("/save", requireAuth, async (req: any, res) => {
   try {
-    const { userId, planData, weekStartDate, weekEndDate, source = "ai_meal_creator" } = req.body;
+    const userId = getAuthUserId(req);
+    const { planData, weekStartDate, weekEndDate, source = "ai_meal_creator" } = req.body;
     
-    if (!userId || !planData || !weekStartDate || !weekEndDate) {
+    if (!planData || !weekStartDate || !weekEndDate) {
       return res.status(400).json({ 
-        error: "userId, planData, weekStartDate, and weekEndDate are required" 
+        error: "planData, weekStartDate, and weekEndDate are required" 
       });
     }
 
@@ -155,16 +157,13 @@ r.post("/save", async (req, res) => {
 });
 
 // Get meal plan history for a user
-r.get("/history", async (req, res) => {
+r.get("/history", requireAuth, async (req: any, res) => {
   try {
-    const { userId } = req.query;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
+    const userId = getAuthUserId(req);
 
     const mealPlanHistory = await db.select()
       .from(weeklyMealPlans)
-      .where(eq(weeklyMealPlans.userId, userId as string))
+      .where(eq(weeklyMealPlans.userId, userId))
       .orderBy(desc(weeklyMealPlans.createdAt));
 
     res.json({ history: mealPlanHistory });
@@ -175,12 +174,11 @@ r.get("/history", async (req, res) => {
 });
 
 // Delete/archive a meal plan
-r.delete("/:planId", async (req, res) => {
+r.delete("/:planId", requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { planId } = req.params;
-    const { userId } = req.body;
 
-    // Archive the meal plan (don't actually delete)
     await db.update(weeklyMealPlans)
       .set({ isActive: 0 })
       .where(and(
@@ -196,10 +194,10 @@ r.delete("/:planId", async (req, res) => {
 });
 
 // Schedule SMS reminders for a meal plan
-r.post("/:planId/schedule-reminders", async (req, res) => {
+r.post("/:planId/schedule-reminders", requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { planId } = req.params;
-    const { userId } = req.body;
 
     // Get the meal plan
     const mealPlan = await db.select()
@@ -229,14 +227,15 @@ r.post("/:planId/schedule-reminders", async (req, res) => {
 });
 
 // Update individual meal time and reschedule SMS
-r.patch("/:planId/meals/:mealId", async (req, res) => {
+r.patch("/:planId/meals/:mealId", requireAuth, async (req: any, res) => {
   try {
+    const userId = getAuthUserId(req);
     const { planId, mealId } = req.params;
-    const { userId, date, time, title, summary } = req.body;
+    const { date, time, title, summary } = req.body;
 
-    if (!userId || !date || !time) {
+    if (!date || !time) {
       return res.status(400).json({ 
-        error: "userId, date, and time are required" 
+        error: "date and time are required" 
       });
     }
 

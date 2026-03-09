@@ -1,0 +1,146 @@
+server/index.ts:104:app.use((req, res, next) => {
+server/index.ts:163:app.use(requestId);
+server/index.ts:164:app.use(logger);
+server/index.ts:167:app.use((req, res, next) => {
+server/index.ts:215:app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookRouter);
+server/index.ts:217:app.use(express.json({ limit: "10mb" }));
+server/index.ts:218:app.use(express.urlencoded({ extended: false }));
+server/index.ts:221:app.use(session({
+server/index.ts:234:app.use((req, res, next) => {
+server/index.ts:244:app.use((req, _res, next) => {
+server/index.ts:257:app.use("/api", apiRateLimit);
+server/index.ts:260:app.use((req, res, next) => {
+server/index.ts:269:app.use((req: Request, _res: Response, next: NextFunction) => {
+server/index.ts:284:app.use(express.static(path.join(import.meta.dirname, "../public")));
+server/index.ts:290:app.use("/api", healthRouter);
+server/index.ts:291:app.use("/api", keepaliveRouter);
+server/index.ts:294:app.use("/api/stripe", stripeCheckoutRouter);
+server/index.ts:297:app.use("/api/stripe", stripeRouter);
+server/index.ts:300:app.use("/api/ios", iosVerifyRouter);
+server/index.ts:303:app.use("/api", foodLogsRouter);
+server/index.ts:306:app.use("/api/meals", mealsRouter);
+server/index.ts:307:app.use("/api", alcoholRouter);
+server/index.ts:308:app.use("/api", glycemicRouter);
+server/index.ts:309:app.use("/api", shoppingListRouter);
+server/index.ts:310:app.use("/api", mealSummarizeRouter);
+server/index.ts:311:app.use("/api", mealLogsRouter);
+server/index.ts:312:app.use("/api", waterLogsRouter);
+server/index.ts:313:app.use("/api", wmc2LogRouter);
+server/index.ts:314:app.use("/api", wmc2TelemetryRouter);
+server/index.ts:315:app.use("/api", wmc2EnhancedRouter);
+server/index.ts:316:app.use("/admin", qaRouter);
+server/index.ts:317:app.use("/api", mealEngineRouter);
+server/index.ts:318:app.use("/api", weeklyPlanRoutes);
+server/index.ts:320:app.use("/api/meal-plan", mealPlanRoutesV1);
+server/index.ts:321:app.use("/api/meal-plans", mealPlanRoutesV1); // ✅ Add plural version for frontend compatibility
+server/index.ts:322:app.use(abTestingMealPlansRouter); // A/B testing for meal plans
+server/index.ts:323:app.use("/api", mealScheduleRouter);
+server/index.ts:324:app.use("/api", notifyRouter);
+server/index.ts:325:app.use("/api", notifyAckRouter);
+server/index.ts:326:app.use("/api", timePresetsRouter);
+server/index.ts:327:app.use("/api", quickTestRouter);
+server/index.ts:328:app.use("/api", healthRouter2);
+server/index.ts:329:app.use("/api", notifyRegisterRouter);
+server/index.ts:330:app.use("/api", notifyTestRouter);
+server/index.ts:331:app.use("/api", quickTestEnhancedRouter);
+server/index.ts:332:app.use("/api", adherenceRouter);
+server/index.ts:333:app.use("/api", notifyExtrasRouter);
+server/index.ts:334:app.use("/api", cookingTutorialsRouter);
+server/index.ts:335:app.use("/api/trivia", triviaRouter);
+server/index.ts:336:app.use("/api/challenges", challengeRoutes);
+server/index.ts:337:app.use("/api/fitlife", fitlifeRouter);
+server/index.ts:340:app.use("/api/my-best-life", mybestlifeRouter);
+server/index.ts:343:app.use("/api/diabetes", diabetesRouter);
+server/index.ts:344:app.use("/api/meal-engine", constraintsRouter);
+server/index.ts:345:app.use("/api/generation", generationRouter);
+server/index.ts:348:app.use("/api", onboardingProgressRouter);
+server/index.ts:351:app.use("/api", preferencesRouter);
+server/index.ts:354:app.use("/api/user-prefs/meals", userMealPrefsRouter);
+server/index.ts:357:app.use(builderPlansRouter);
+server/index.ts:361:app.use("/api/avatar", avatarContextRoutes);
+server/index.ts:364:app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouter);  
+server/index.ts:365:app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouter);
+server/index.ts:366:app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouter);
+server/index.ts:367:app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouter);
+server/index.ts:368:app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFeastRouter);
+server/index.ts:371:app.use("/api/studio", requireAuth, requireActiveAccess, studioGeneratorRouter);
+server/index.ts:372:app.use("/api/breakfast", breakfastRouter);
+server/index.ts:373:app.use("/api/lunch", lunchRouter);
+server/index.ts:374:app.use("/api/dinner", dinnerRouter);
+server/index.ts:375:app.use("/api/snacks", snacksRouter);
+server/index.ts:378:app.use("/api/biometrics", biometricsRouter);
+server/index.ts:381:app.use("/api", manualMacrosRouter);
+server/index.ts:384:app.use("/api/meal-templates", templateRouter);
+server/index.ts:387:app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
+server/index.ts:390:app.use("/api/games", gamesRouter);
+server/index.ts:393:app.use("/api/testimonials", testimonialsRouter);
+server/index.ts:396:app.use("/api/restaurants", requireAuth, requireActiveAccess, resolveCuisineMiddleware, restaurantRoutes);
+server/index.ts:400:app.use("/api/shopping-list-v2", shoppingPreviewRouter); // Preview endpoint (no auth)
+server/index.ts:401:app.use("/api/shopping-list-v2", shoppingRouter); // Protected endpoints (inherit auth from registerRoutes)
+server/index.ts:507:  app.use("/api/facebook", facebookRouter);
+server/index.ts:512:app.use("/api/sms", smsRoutes);
+server/index.ts:578:app.use("/api/ai-voice-journal", aiVoiceJournalRoutes);
+server/index.ts:611:  app.use("/api", (req, res) => {
+server/index.ts:632:  app.use(errorHandler);
+server/routes.ts:311:  app.use("/api/ai", requireAuth, requireActiveAccess);
+server/routes.ts:317:  app.use("/api/ai/pairings", pairingsAIRouter);
+server/routes.ts:318:  app.use("/api/ai/wine-list-helper", wineListHelperRouter);
+server/routes.ts:319:  app.use("/api/ai/reduce-drinking-plan", reduceDrinkingPlanRouter);
+server/routes.ts:375:  app.use("/api", loadStudioMembership);
+server/routes.ts:378:  app.use("/api/ios", iosVerifyRouter);
+server/routes.ts:380:  app.use(authSessionRouter);
+server/routes.ts:381:  app.use(alcoholLogRouter);
+server/routes.ts:382:  app.use('/api/vitals/bp', vitalsBpRouter);
+server/routes.ts:383:  app.use('/api', proteinTargetsRouter);
+server/routes.ts:384:  app.use('/api', cookingRouter);
+server/routes.ts:385:  app.use('/api', mealImagesRouter);
+server/routes.ts:387:  app.use('/api', onboardingProgressRoutes);
+server/routes.ts:388:  app.use('/api', mealFinderRouter);
+server/routes.ts:540:  app.use("/api", fridgeRescueRouter);
+server/routes.ts:1333:  app.use("/api", avatarChatRouter);
+server/routes.ts:1334:  app.use("/api", conciergeRouter);
+server/routes.ts:1335:  app.use("/api", chefRouter);
+server/routes.ts:1336:  app.use("/api/cooking-challenges", requireAuth, requireActiveAccess, cookingChallengesRouter);
+server/routes.ts:1337:  app.use("/api/cooking-classes", requireAuth, requireActiveAccess, cookingClassesRouter);
+server/routes.ts:1364:  app.use("/api/community", communityRouter);
+server/routes.ts:1368:  app.use("/api/recipe-gallery", recipeGalleryRouter);
+server/routes.ts:1371:  app.use("/api/biometrics", biometricsRouter);
+server/routes.ts:1374:  app.use("/api", manualMacrosRouter);
+server/routes.ts:1377:  app.use("/api", alcoholRouter);
+server/routes.ts:1380:  app.use(mealPlanReplaceRouter);
+server/routes.ts:1383:  app.use("/api/push", pushNotificationsRouter);
+server/routes.ts:1461:  app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFamilyRecipeRouter);
+server/routes.ts:1466:  app.use("/api", familyRecipesRouter);
+server/routes.ts:1469:  app.use("/api", uploadsRouter);
+server/routes.ts:1609:  app.use("/api/progress", myProgressRouter);
+server/routes.ts:3777:  // mounted at app.use("/api/restaurants", ...) in server/index.ts
+server/routes.ts:4650:  app.use("/api", waterLogsRouter);
+server/routes.ts:4702:  app.use("/api", mealPlanArchiveRoutes);
+server/routes.ts:4707:  app.use("/api", phoneRouter);
+server/routes.ts:4708:  app.use("/api", twilioInboundRouter);
+server/routes.ts:5815:  app.use("/api", mealPlansRoutes);
+server/routes.ts:5816:  app.use("/api", mealLogsRoutes);
+server/routes.ts:5817:  app.use("/api", macroLogsRoutes);
+server/routes.ts:5819:  app.use("/api", alcoholLogRoutes);              // alcohol routes expect "/api/..." internally
+server/routes.ts:5820:  app.use("/api/glucose-logs", glucoseLogRoutes); // <-- FIX: mount glucose router at explicit path
+server/routes.ts:5822:  app.use("/api/locked-days", lockedDaysRouter);
+server/routes.ts:5826:  app.use("/api", glp1ShotsRoutes); // Mounted glp1ShotsRoutes here
+server/routes.ts:5829:  app.use("/api/glp1", glp1Routes);
+server/routes.ts:5832:  app.use("/api/diabetes", diabetesRouter);
+server/routes.ts:5835:  app.use("/api", bodyCompositionRoutes);
+server/routes.ts:5839:  app.use("/api", mealBoardsRoutes);
+server/routes.ts:5843:  app.use("/api/pro/board", requireAuth, requirePremiumAccess, proBoardRoutes);
+server/routes.ts:5846:  app.use("/api/pro", requireAuth, proWeekBoardRoutes);
+server/routes.ts:5849:  app.use("/api/pro", requireAuth, proBiometricsRoutes);
+server/routes.ts:5852:  app.use("/api/pro", requireAuth, proProgramHistoryRoutes);
+server/routes.ts:5855:  app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
+server/routes.ts:5858:  app.use("/api/pro/tablet", requireAuth, proTabletRoutes);
+server/routes.ts:5861:  app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
+server/routes.ts:5863:  app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
+server/routes.ts:5864:  app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
+server/routes.ts:5865:  app.use("/api/studios", requireAuth, requirePremiumAccess, studioRoutes);
+server/routes.ts:5867:  app.use("/api/legal", legalRoutes);
+server/routes.ts:5869:  app.use("/api/founders", foundersRoutes);
+server/routes.ts:5870:  app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
+server/routes.ts:5871:  app.use("/api/users", usersProfileRouter);
+server/routes.ts:5874:  app.use(builderPlansRoutes);

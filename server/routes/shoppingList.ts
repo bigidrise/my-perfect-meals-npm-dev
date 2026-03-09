@@ -3,25 +3,14 @@ import { db } from "../db";
 import { shoppingListItems, insertShoppingListItemSchema } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { requireAuth } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 const router = Router();
 
-// Helper: get authenticated userId (works with demo user and real auth)
-function getUserId(req: any): string {
-  // Check session first (real auth)
-  if (req.session?.userId) return req.session.userId as string;
-  
-  // Check header (for demo/dev)
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
-  
-  // Default to demo user for alpha testing
-  return "00000000-0000-0000-0000-000000000001";
-}
-
 // POST /shopping-list - Add items to shopping list
-router.post("/shopping-list", async (req, res) => {
-  const userId = getUserId(req);
+router.post("/shopping-list", requireAuth, async (req, res) => {
+  const userId = getAuthUserId(req);
   
   const { items, scopeType = "adhoc", scopeKey = "inbox" } = req.body || {};
   
@@ -30,7 +19,6 @@ router.post("/shopping-list", async (req, res) => {
   }
   
   try {
-    // Prepare items for insertion
     const toInsert = items.map((item: any) => ({
       userId,
       name: item.name || "",
@@ -43,7 +31,6 @@ router.post("/shopping-list", async (req, res) => {
       checked: false,
     }));
     
-    // Insert all items
     await db.insert(shoppingListItems).values(toInsert);
     
     return res.json({ 
@@ -58,8 +45,8 @@ router.post("/shopping-list", async (req, res) => {
 });
 
 // GET /shopping-list - Get user's shopping list
-router.get("/shopping-list", async (req, res) => {
-  const userId = getUserId(req);
+router.get("/shopping-list", requireAuth, async (req, res) => {
+  const userId = getAuthUserId(req);
   
   const { scopeType = "adhoc", scopeKey = "inbox" } = req.query;
   
@@ -76,7 +63,6 @@ router.get("/shopping-list", async (req, res) => {
       )
       .orderBy(shoppingListItems.createdAt);
     
-    // Aggregate duplicate items by name+unit+category
     const aggregateMap = new Map<string, any>();
     
     for (const item of items) {
@@ -108,8 +94,8 @@ router.get("/shopping-list", async (req, res) => {
 });
 
 // PATCH /shopping-list/:id - Update item (check/uncheck)
-router.patch("/shopping-list/:id", async (req, res) => {
-  const userId = getUserId(req);
+router.patch("/shopping-list/:id", requireAuth, async (req, res) => {
+  const userId = getAuthUserId(req);
   const { id } = req.params;
   const { checked } = req.body || {};
   
@@ -137,8 +123,8 @@ router.patch("/shopping-list/:id", async (req, res) => {
 });
 
 // DELETE /shopping-list/:id - Delete item
-router.delete("/shopping-list/:id", async (req, res) => {
-  const userId = getUserId(req);
+router.delete("/shopping-list/:id", requireAuth, async (req, res) => {
+  const userId = getAuthUserId(req);
   const { id } = req.params;
   
   try {
@@ -159,8 +145,8 @@ router.delete("/shopping-list/:id", async (req, res) => {
 });
 
 // DELETE /shopping-list - Clear all items in scope
-router.delete("/shopping-list", async (req, res) => {
-  const userId = getUserId(req);
+router.delete("/shopping-list", requireAuth, async (req, res) => {
+  const userId = getAuthUserId(req);
   const { scopeType = "adhoc", scopeKey = "inbox" } = req.query;
   
   try {

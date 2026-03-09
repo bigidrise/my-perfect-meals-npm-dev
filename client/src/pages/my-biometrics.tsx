@@ -215,7 +215,10 @@ export default function MyBiometrics() {
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
-    fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`)
+    fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
+      credentials: "include",
+      headers: { ...getAuthHeaders() },
+    })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then((rows: any[]) => {
         const mapped: OfflineDay[] = rows.map(r => ({
@@ -244,7 +247,10 @@ export default function MyBiometrics() {
       const end = new Date();
       const start = new Date();
       start.setDate(end.getDate() - 90);
-      fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`)
+      fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`, {
+        credentials: "include",
+        headers: { ...getAuthHeaders() },
+      })
         .then(r => r.ok ? r.json() : null)
         .then((rows: any[] | null) => {
           if (rows) {

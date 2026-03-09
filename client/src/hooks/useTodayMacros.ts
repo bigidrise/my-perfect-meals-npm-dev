@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { localDayRangeAsUTCISO } from "@/utils/dates";
+import { getAuthHeaders } from "@/lib/auth";
 
 type MacroTotals = {
   kcal: number;
@@ -41,7 +42,10 @@ export function useTodayMacros(userId: string): MacroTotals {
       queryFn: async () => {
         const { startUTC, endUTC } = localDayRangeAsUTCISO(new Date());
         const url = `/api/users/${userId}/macros?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          credentials: "include",
+          headers: { ...getAuthHeaders() },
+        });
         if (!response.ok) {
           console.warn("Failed to fetch macros:", response.status);
           return EMPTY;
