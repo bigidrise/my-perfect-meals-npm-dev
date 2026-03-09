@@ -103,6 +103,7 @@ export async function checkAndIncrementQuota(
   const dailyLimit = FREE_DAILY_LIMITS[feature];
 
   if (tier !== "free" || !dailyLimit) {
+    console.log(`[AI_QUOTA] user=${userId.slice(0, 8)}… feature=${feature} tier=${tier} bypass=true`);
     return {
       allowed: true,
       remaining: -1,
@@ -130,6 +131,7 @@ export async function checkAndIncrementQuota(
   const newCount = Number((result as any).rows?.[0]?.count ?? 1);
 
   if (newCount > dailyLimit) {
+    console.log(`[AI_QUOTA] user=${userId.slice(0, 8)}… feature=${feature} count=${newCount} limit=${dailyLimit} allowed=false (limit reached)`);
     return {
       allowed: false,
       remaining: 0,
@@ -153,6 +155,7 @@ export async function checkAndIncrementQuota(
       )
       .limit(1);
     if ((check?.count ?? 0) > dailyLimit) {
+      console.log(`[AI_QUOTA] user=${userId.slice(0, 8)}… feature=${feature} count=${newCount} limit=${dailyLimit} allowed=false (race guard)`);
       return {
         allowed: false,
         remaining: 0,
@@ -164,6 +167,7 @@ export async function checkAndIncrementQuota(
     }
   }
 
+  console.log(`[AI_QUOTA] user=${userId.slice(0, 8)}… feature=${feature} count=${newCount} limit=${dailyLimit} allowed=true remaining=${Math.max(0, dailyLimit - newCount)}`);
   return {
     allowed: true,
     remaining: Math.max(0, dailyLimit - newCount),
