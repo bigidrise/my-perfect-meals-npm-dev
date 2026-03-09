@@ -27,6 +27,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   free: {
     tier: "free",
     displayFeatures: [
+      "AI Fridge Rescue (1/day)",
       "Copilot Voice Guidance",
       "Biometrics Tracking",
       "MacroScan",
@@ -39,6 +40,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     entitlements: [
       "shopping_list",
       "biometrics",
+      "fridge_rescue",
     ],
   },
   basic: {

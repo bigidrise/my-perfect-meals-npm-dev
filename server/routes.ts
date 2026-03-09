@@ -7,6 +7,8 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
+import { getAuthUserId } from "./utils/getAuthUserId";
+import { checkDailyQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
@@ -708,14 +710,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Fridge Rescue API Main Route - Generate 3 meals with macros and amounts
-  app.post("/api/meals/fridge-rescue", requireFeature("FRIDGE_RESCUE"), normalizeFridgeRescue, async (req, res) => {
+  app.post("/api/meals/fridge-rescue", requireAuth, normalizeFridgeRescue, async (req, res) => {
     console.log("[FRIDGE] hit", { body: req.body, headers: req.headers["content-type"] });
     const startTime = Date.now();
     
     try {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
-      const { fridgeItems, userId = "demo-user", servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate } = req.body;
+      const userId = getAuthUserId(req);
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate } = req.body;
+
+      const quotaCheck = await checkDailyQuota(userId, AiFeature.FRIDGE_RESCUE);
+      if (!quotaCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          error: "You've used today's Fridge Rescue. Upgrade to generate unlimited meals anytime.",
+          limitCode: quotaCheck.limitCode,
+          resetAt: quotaCheck.resetAt,
+          remaining: quotaCheck.remaining,
+          limit: quotaCheck.limit,
+        });
+      }
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -819,14 +834,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         palatePrefs: palatePrefs as any
       });
 
-      // Record metrics - fridge rescue is AI-required
+      await incrementDailyUsage(userId, AiFeature.FRIDGE_RESCUE);
+
+      const updatedQuota = await checkDailyQuota(userId, AiFeature.FRIDGE_RESCUE);
+
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       const durationMs = Date.now() - startTime;
-      // FridgeRescue returns AI meals if successful
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
       console.log("[FRIDGE] ok returning", meals.length, "meals");
-      res.json({ meals }); // Always return { meals: [...] }
+      res.json({
+        meals,
+        quota: {
+          remaining: updatedQuota.remaining,
+          limit: updatedQuota.limit,
+          used: updatedQuota.used,
+          resetAt: updatedQuota.resetAt,
+        },
+      });
     } catch (error: any) {
       console.error("[FRIDGE] handler error", error);
       // Record error for metrics

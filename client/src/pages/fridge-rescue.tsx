@@ -4,6 +4,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
+import { isFreeTier } from "@/lib/subscriptionCheck";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import {
   ArrowLeft,
@@ -167,6 +169,9 @@ const FridgeRescuePage = () => {
   const [meals, setMeals] = useState<MealData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [servings, setServings] = useState(2);
+  const [quotaInfo, setQuotaInfo] = useState<{ remaining: number; limit: number; used: number; resetAt: string } | null>(null);
+  const [dailyLimitHit, setDailyLimitHit] = useState(false);
+  const userIsFree = isFreeTier(user);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -351,15 +356,16 @@ const FridgeRescuePage = () => {
     try {
       const response = await fetch(apiUrl("/api/meals/fridge-rescue"), {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           fridgeItems: ingredients
             .split(",")
             .map((i) => i.trim())
             .filter((i) => i),
-          userId: userId,
           servings,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
@@ -370,7 +376,13 @@ const FridgeRescuePage = () => {
       const data = await response.json();
       console.log("🧊 Frontend received data:", data);
 
-      // Check for safety blocks/ambiguous - show banner instead of error
+      if (data.limitCode === "FREE_DAILY_LIMIT_REACHED") {
+        stopProgressTicker();
+        setDailyLimitHit(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (data.safetyBlocked || data.safetyAmbiguous) {
         stopProgressTicker();
         setSafetyAlert({
@@ -412,6 +424,10 @@ const FridgeRescuePage = () => {
       stopProgressTicker();
       setMeals(mealsArray);
       setShowResults(true);
+
+      if (data.quota) {
+        setQuotaInfo(data.quota);
+      }
 
       // Dispatch "completed" event after successful meal generation
       const completedEvent = new CustomEvent("walkthrough:event", {
@@ -520,7 +536,8 @@ const FridgeRescuePage = () => {
   ) {
     const resp = await fetch(apiUrl("/api/meals/fridge-rescue"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({
         fridgeItems: ingredients
           .trim()
@@ -528,7 +545,6 @@ const FridgeRescuePage = () => {
           .map((i) => i.trim())
           .filter((i) => i),
         goal: selectedGoal,
-        userId: userId,
         skipPalate: !flavorPersonal,
       }),
     });
@@ -555,13 +571,14 @@ const FridgeRescuePage = () => {
       // Otherwise, do local list replacement
       const response = await fetch(apiUrl("/api/meals/fridge-rescue"), {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           ingredients: ingredients.trim(),
-          goal: undefined, // You can add selectedGoal if needed
-          userId: userId,
+          goal: undefined,
           skipPalate: !flavorPersonal,
         }),
       });
@@ -1236,6 +1253,57 @@ const FridgeRescuePage = () => {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+
+              {userIsFree && quotaInfo && quotaInfo.remaining === 0 && (
+                <div className="mt-6 bg-gradient-to-r from-orange-600/30 to-orange-500/20 border border-orange-500/40 rounded-xl p-5">
+                  <div className="flex items-start gap-4">
+                    <Sparkles className="h-6 w-6 text-orange-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold text-base mb-1">Want unlimited Fridge Rescue?</h3>
+                      <p className="text-white/70 text-sm mb-3">
+                        You've used today's free generation. Upgrade to generate unlimited meals every day, plus unlock Craving Creator, Dessert Builder, and more.
+                      </p>
+                      <button
+                        onClick={() => setLocation("/pricing")}
+                        className="bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm px-5 py-2 rounded-lg transition-colors"
+                      >
+                        View Plans
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {dailyLimitHit && !showResults && (
+            <div className="max-w-2xl mx-auto mt-8">
+              <div className="bg-gradient-to-br from-black/60 via-orange-600/20 to-black/60 border border-orange-500/40 rounded-2xl p-8 text-center">
+                <div className="w-14 h-14 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="h-7 w-7 text-orange-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">Daily Limit Reached</h2>
+                <p className="text-white/70 text-sm mb-1">
+                  Free accounts get 1 Fridge Rescue per day. Your next generation resets at midnight UTC.
+                </p>
+                <p className="text-white/50 text-xs mb-6">
+                  Upgrade for unlimited AI meal generation across all builders.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={() => setLocation("/pricing")}
+                    className="bg-orange-600 hover:bg-orange-500 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors"
+                  >
+                    Upgrade Now
+                  </button>
+                  <button
+                    onClick={() => setLocation("/dashboard")}
+                    className="bg-white/10 hover:bg-white/20 text-white/80 font-medium px-6 py-2.5 rounded-lg transition-colors"
+                  >
+                    Back to Dashboard
+                  </button>
+                </div>
               </div>
             </div>
           )}
