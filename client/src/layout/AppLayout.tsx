@@ -31,6 +31,7 @@ function shouldUseDesktopLayout(): boolean {
   if (host === "app.myperfectmeals.com") return true;
   if (host === "localhost" || host === "127.0.0.1") return true;
   if (host.endsWith(".replit.dev")) return true;
+  if (host.endsWith(".replit.app")) return true;
   return false;
 }
 
