@@ -1050,6 +1050,15 @@ export default function MacroCounter() {
   const saveEstimatedBodyFat = async () => {
     if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return;
     try {
+      const latestRes = await fetch(apiUrl(`/api/users/${user.id}/body-composition/latest`), {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (latestRes.ok) {
+        const latest = await latestRes.json();
+        if (latest?.source === "trainer" || latest?.source === "physician") return;
+      }
+
       const goalBF = bodyCompData?.goalBF ?? null;
       await fetch(apiUrl(`/api/users/${user.id}/body-composition`), {
         method: "POST",
@@ -1060,7 +1069,6 @@ export default function MacroCounter() {
           goalBodyFatPct: goalBF,
           scanMethod: "Other",
           source: "client",
-          notes: "AUTO_ESTIMATED",
           recordedAt: new Date().toISOString(),
         }),
       });
