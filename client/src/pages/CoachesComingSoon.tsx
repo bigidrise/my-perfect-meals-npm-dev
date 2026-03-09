@@ -33,9 +33,8 @@ export default function CoachesComingSoon() {
           </Button>
 
           <Button
-            variant="outline"
-            className="border-white/30 text-white/80 hover:bg-white/10"
             onClick={() => setLocation("/pricing")}
+            className="bg-white/10 text-white border border-white/20"
           >
             View Plans
           </Button>
