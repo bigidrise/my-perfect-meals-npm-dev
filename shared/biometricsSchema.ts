@@ -34,15 +34,15 @@ export const biometricSample = pgTable("biometric_sample", {
 export const allowedTypes = ["steps", "heart_rate", "weight", "waist_circumference"] as const;
 
 export const biometricPayloadSchema = z.object({
-  userId: z.string().min(1),
-  provider: z.string().min(1),
+  userId: z.string().optional(),
+  provider: z.string().default("manual"),
   deviceId: z.string().optional(),
   samples: z.array(z.object({
     type: z.enum(allowedTypes),
-    value: z.number(),             // steps as number, hr bpm, weight kg, waist in/cm
+    value: z.number(),
     unit: z.enum(["count", "bpm", "kg", "lb", "in", "cm"]),
-    startTime: z.string(),         // ISO
-    endTime: z.string(),           // ISO
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
     sourceRecordId: z.string().optional(),
   })),
 });

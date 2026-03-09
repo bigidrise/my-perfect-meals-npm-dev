@@ -31,15 +31,16 @@ router.post('/ingest', requireAuth, async (req, res) => {
         normalizedUnit = 'cm';
       }
 
+      const now = new Date();
       return {
         userId: userId as any,
-        provider: body.provider,
+        provider: body.provider || 'manual',
         deviceId: body.deviceId,
         type: sample.type,
         value: normalizedValue,
         unit: normalizedUnit,
-        startTime: new Date(sample.startTime),
-        endTime: new Date(sample.endTime),
+        startTime: sample.startTime ? new Date(sample.startTime) : now,
+        endTime: sample.endTime ? new Date(sample.endTime) : now,
         sourceRecordId: sample.sourceRecordId,
       };
     });

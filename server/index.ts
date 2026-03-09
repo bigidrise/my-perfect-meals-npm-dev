@@ -302,8 +302,8 @@ app.use("/api/ios", iosVerifyRouter);
 // Food Logs System - Register BEFORE mealsRouter to prevent route conflict with /api/macros/log
 app.use("/api", foodLogsRouter);
 
-// Mount your AI endpoints under /api/*
-app.use("/api", mealsRouter);
+// Mount meals router at /api/meals (NOT /api — dynamic /:mealInstanceId routes would shadow other /api/* paths)
+app.use("/api/meals", mealsRouter);
 app.use("/api", alcoholRouter);
 app.use("/api", glycemicRouter);
 app.use("/api", shoppingListRouter);
