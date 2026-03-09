@@ -7,7 +7,7 @@ export default function CoachesComingSoon() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center text-white px-4">
-      <div className="bg-white/5 backdrop-blur-2xl border border-white/15 rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
+      <div className="bg-black/80 backdrop-blur-2xl border border-white/15 rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
         <div className="w-14 h-14 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-5">
           <Users className="h-7 w-7 text-orange-400" />
         </div>
