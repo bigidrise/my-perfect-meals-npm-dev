@@ -1234,37 +1234,30 @@ const FridgeRescuePage = () => {
                             {isFree && <Lock className="h-3 w-3" />}
                             Cook w/ Chef
                           </Button>
-                          {isFree ? (
-                            <Button
-                              size="sm"
-                              className="flex-1 bg-blue-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
-                              onClick={() => guardAction("Share Recipe is a premium feature. Upgrade to share your meals with friends and family.", () => {})}
-                            >
-                              <Lock className="h-3 w-3" />
-                              Share
-                            </Button>
-                          ) : (
-                            <ShareRecipeButton
-                              recipe={{
-                                name: meal.name,
-                                description: meal.description,
-                                nutrition: {
-                                  calories: meal.calories,
-                                  protein: meal.protein,
-                                  carbs: meal.carbs,
-                                  fat: meal.fat,
-                                },
-                                ingredients: (meal.ingredients ?? []).map(
-                                  (ing: any) => ({
-                                    name: typeof ing === "string" ? ing : ing.name,
-                                    amount: typeof ing === "string" ? "" : ing.quantity,
-                                    unit: typeof ing === "string" ? "" : ing.unit,
-                                  }),
-                                ),
-                              }}
-                              className="flex-1"
-                            />
-                          )}
+                          <ShareRecipeButton
+                            recipe={{
+                              name: meal.name,
+                              description: meal.description,
+                              nutrition: {
+                                calories: meal.calories,
+                                protein: meal.protein,
+                                carbs: meal.carbs,
+                                fat: meal.fat,
+                              },
+                              ingredients: (meal.ingredients ?? []).map(
+                                (ing: any) => ({
+                                  name:
+                                    typeof ing === "string" ? ing : ing.name,
+                                  amount:
+                                    typeof ing === "string" ? "" : ing.quantity,
+                                  unit: typeof ing === "string" ? "" : ing.unit,
+                                }),
+                              ),
+                            }}
+                            className="flex-1"
+                            locked={isFree}
+                            onLockedClick={() => guardAction("Share Recipe is a premium feature. Upgrade to share your meals with friends and family.", () => {})}
+                          />
                         </div>
                       </div>
                     </CardContent>
@@ -1360,6 +1353,11 @@ const FridgeRescuePage = () => {
           title="How to Use Fridge Rescue"
           steps={FRIDGE_RESCUE_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+        />
+        <UpgradeLockModal
+          open={showLockModal}
+          onClose={closeLockModal}
+          message={lockMessage}
         />
       </motion.div>
     </PhaseGate>

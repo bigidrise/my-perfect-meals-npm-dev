@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Share2 } from "lucide-react";
+import { Share2, Lock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 
@@ -16,9 +16,11 @@ interface ShareRecipeButtonProps {
     ingredients?: Array<{ name: string; amount?: string; unit?: string }>;
   };
   className?: string;
+  locked?: boolean;
+  onLockedClick?: () => void;
 }
 
-export default function ShareRecipeButton({ recipe, className }: ShareRecipeButtonProps) {
+export default function ShareRecipeButton({ recipe, className, locked, onLockedClick }: ShareRecipeButtonProps) {
   if (!recipe) return null;
 
   const title = recipe.name || "My Perfect Meal";
@@ -51,6 +53,11 @@ export default function ShareRecipeButton({ recipe, className }: ShareRecipeButt
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (locked) {
+      onLockedClick?.();
+      return;
+    }
     
     try {
       if (Capacitor.isNativePlatform()) {
@@ -99,7 +106,7 @@ export default function ShareRecipeButton({ recipe, className }: ShareRecipeButt
       className={`flex-1 text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 ${className || ""}`}
       onClick={handleShare}
     >
-      <Share2 className="h-4 w-4 mr-1" />
+      {locked ? <Lock className="h-3 w-3 mr-1" /> : <Share2 className="h-4 w-4 mr-1" />}
       Share
     </Button>
   );
