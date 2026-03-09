@@ -21,15 +21,10 @@ const FULL_SCREEN_ROUTES = [
   "/procare-attestation",
   "/consumer-welcome",
   "/checkout/success",
-  "/privacy",
   "/affiliates",
-  "/founders",
 ];
 
-const UNAUTHENTICATED_FULL_SCREEN_ROUTES = [
-  "/pricing",
-  "/paywall",
-];
+const UNAUTHENTICATED_FULL_SCREEN_ROUTES: string[] = [];
 
 function shouldUseDesktopLayout(): boolean {
   const host = window.location.hostname;
