@@ -1054,19 +1054,22 @@ export default function MacroCounter() {
         credentials: "include",
         headers: getAuthHeaders(),
       });
+      let existingGoalBF: number | null = null;
       if (latestRes.ok) {
         const latest = await latestRes.json();
         if (latest?.source === "trainer" || latest?.source === "physician") return;
+        if (latest?.entry?.goalBodyFatPct) {
+          existingGoalBF = parseFloat(latest.entry.goalBodyFatPct);
+        }
       }
 
-      const goalBF = bodyCompData?.goalBF ?? null;
       await fetch(apiUrl(`/api/users/${user.id}/body-composition`), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           currentBodyFatPct: estimatedBodyFat,
-          goalBodyFatPct: goalBF,
+          goalBodyFatPct: existingGoalBF,
           scanMethod: "Other",
           source: "client",
           recordedAt: new Date().toISOString(),
@@ -2998,7 +3001,7 @@ export default function MacroCounter() {
                     </CardContent>
                   </Card>
 
-                  {estimatedBodyFat && !bodyCompData && (
+                  {estimatedBodyFat && (
                     <Card className="bg-zinc-900/80 border border-orange-500/30 text-white">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
