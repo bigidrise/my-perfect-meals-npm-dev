@@ -48,6 +48,10 @@ app.get("/", (_req, res, next) => {
   next();
 });
 
+app.get("/google0c1c00ed46ab3246.html", (_req, res) => {
+  res.type("text/html").send("google-site-verification: google0c1c00ed46ab3246.html\n");
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ 
     ok: true, 
