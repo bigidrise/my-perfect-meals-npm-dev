@@ -162,7 +162,7 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
 
   return (
     <div
-      className={`fixed left-0 right-0 z-[60] bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl ${aboveBottomNav ? "" : "pb-[var(--safe-bottom,0px)]"}`}
+      className={`fixed left-0 right-0 z-[60] bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl ${aboveBottomNav ? "" : "pb-[var(--safe-bottom,0px)]"} sm:p-0`}
       style={aboveBottomNav ? { bottom: "calc(64px + var(--safe-bottom, 0px))" } : { bottom: 0 }}
     >
       <div className="container mx-auto px-4 py-3">
