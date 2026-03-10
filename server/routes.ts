@@ -389,16 +389,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin SQL routes (one-time use)
   registerAdminSql(app);
 
-  // ElevenLabs configuration endpoint
   app.get("/api/elevenlabs-config", async (req, res) => {
     try {
-      const apiKey = process.env.ELEVENLABS_API_KEY;
+      const hasKey = !!process.env.ELEVENLABS_API_KEY;
       const voiceId = process.env.ELEVENLABS_VOICE_ID || "ErXwobaYiN019PkySvjV";
-      console.log("ElevenLabs config requested - hasKey:", !!apiKey, "voiceId:", voiceId);
       res.json({ 
-        hasKey: !!apiKey,
-        apiKey: apiKey || null,
-        voiceId: voiceId
+        hasKey,
+        voiceId
       });
     } catch (error) {
       console.error("Error fetching ElevenLabs config:", error);
@@ -407,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ElevenLabs TTS proxy endpoint - Coach Idrise Voice Clone
-  app.post("/api/tts", async (req, res) => {
+  app.post("/api/tts", requireAuth, async (req, res) => {
     try {
       const apiKey = process.env.ELEVENLABS_API_KEY;
       if (!apiKey) {
@@ -5993,6 +5990,41 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       res.status(500).json({ error: "Failed to delete saved meal" });
     }
   });
+
+  const CRITICAL_ROUTES = [
+    "/api/biometrics",
+    "/api/ai-quota",
+    "/api/meals",
+    "/api/user",
+    "/api/tts",
+    "/api/saved-meals",
+    "/api/care-team",
+    "/api/legal",
+    "/api/founders",
+    "/api/glp1",
+    "/api/diabetes",
+  ];
+
+  const stack = app._router?.stack || [];
+  console.log("📋 [ROUTE AUDIT] Critical route parity check:");
+  for (const route of CRITICAL_ROUTES) {
+    const found = stack.some((layer: any) => {
+      if (layer.route?.path && (layer.route.path === route || layer.route.path.startsWith(route + "/"))) return true;
+      if (layer.name === "router" && layer.regexp) {
+        const src = layer.regexp.source;
+        const routeEscaped = route.replace(/\//g, "\\/");
+        if (src.includes(routeEscaped) || src === `^${routeEscaped}\\/?(?=\\/|$)`) return true;
+        const prefix = route.replace(/^\/api\//, "");
+        if (src.includes(`\\/api\\/${prefix}`)) return true;
+      }
+      return false;
+    });
+    if (found) {
+      console.log(`  ✅ ${route}`);
+    } else {
+      console.log(`  ❌ MISSING ${route}`);
+    }
+  }
 
   return httpServer;
 }

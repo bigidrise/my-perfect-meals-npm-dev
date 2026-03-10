@@ -11,6 +11,12 @@ MyPerfectMeals is a full-stack TypeScript application for comprehensive meal pla
 - **NEVER use hover-dependent UI.** No hover states that reveal text, change meaning, or make content readable. Mobile has no hover. All buttons must be fully visible and readable without any interaction. No `variant="outline"` white/invisible ghost buttons — use solid backgrounds (`bg-orange-600`, `bg-white/10`, etc.) with visible text at all times.
 - Dismissible UI must follow the `mpm.dismiss.<featureName>` localStorage pattern (see Dismissible UI Pattern below).
 
+### Agent Safety Rules
+- See `docs/agent-rules.md` for the full mandatory ruleset covering routing, security, UI, and change discipline.
+- Routes must only be mounted in `server/routes.ts` via `registerRoutes()`. Never in `index.ts` or `prod.ts`.
+- Never expose external API keys to the client. All third-party calls must be server-proxied.
+- A route audit log runs on every server startup — check for "MISSING" entries in logs.
+
 ### Change Control Protocol (MANDATORY)
 
 #### Pre-Change
