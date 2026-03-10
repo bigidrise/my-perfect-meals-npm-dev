@@ -2191,6 +2191,7 @@ export default function MyBiometrics() {
                     <div className="p-3 rounded-xl bg-black/25 border border-white/10">
                       <div className="text-xs text-white/60">Body Fat</div>
                       <div className="text-lg font-bold text-white">{parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%</div>
+                      <div className="text-[10px] text-white/40 mt-1">Estimated using the U.S. Navy Body Fat Formula.</div>
                     </div>
                   )}
                   <div className="p-3 rounded-xl bg-black/25 border border-white/10">
