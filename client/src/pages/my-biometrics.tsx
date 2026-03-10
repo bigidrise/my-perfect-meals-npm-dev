@@ -927,7 +927,7 @@ export default function MyBiometrics() {
   // View toggles for charts
   const [caloriesView, setCaloriesView] = useState<"today" | "7" | "30">("30");
   const [weightView, setWeightView] = useState<"7" | "1" | "3" | "6" | "12">(
-    "12",
+    "7",
   );
 
   // ------- BODY COMPOSITION (database) -------
