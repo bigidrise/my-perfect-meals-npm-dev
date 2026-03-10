@@ -717,7 +717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai-quota/fridge-rescue", requireAuth, async (req, res) => {
     try {
       const userId = getAuthUserId(req);
-      const result = await checkDailyQuota(userId, "fridge-rescue");
+      const result = await checkDailyQuota(userId, AiFeature.FRIDGE_RESCUE);
       res.json({
         used: result.used,
         limit: result.limit,
