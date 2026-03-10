@@ -395,8 +395,7 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
-        {isProCareClient && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.5 }} className="mb-4 space-y-3">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.5 }} className="mb-4 space-y-3">
             <Card
               className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
               onClick={() => setTabletOpen(!tabletOpen)}
@@ -517,8 +516,7 @@ export default function DashboardNew() {
                 )}
               </div>
             )}
-          </motion.div>
-        )}
+        </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }} className="mb-4">
           <ComplianceCard userId={user?.id} />
