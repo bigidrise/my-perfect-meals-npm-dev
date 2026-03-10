@@ -981,7 +981,7 @@ export default function CravingStudio() {
                         onClick={goToChefsKitchenPrepare}
                         className="flex-1 py-2 rounded-xl bg-lime-600 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 active:scale-[0.98]"
                       >
-                        Cook w/ Chef
+                        Enter Studio
                       </button>
                       <ShareRecipeButton
                         recipe={{

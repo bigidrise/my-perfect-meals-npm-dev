@@ -338,7 +338,7 @@ export default function GeneratedMealCard({
               disabled={!hasInstructions}
             >
               <ChefHat className="h-4 w-4" />
-              Cook w/ Chef
+              Enter Studio
             </Button>
           )}
           <ShareRecipeButton

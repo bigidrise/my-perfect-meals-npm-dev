@@ -17,7 +17,7 @@ export function CreateWithChefButton({ onClick, disabled, className }: CreateWit
       disabled={disabled}
     >
       <ChefHat className="h-3 w-3" />
-      Enter Studio
+      Create With Chef
     </Button>
   );
 }

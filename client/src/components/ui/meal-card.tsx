@@ -270,7 +270,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
                   onClick={handlePrepareWithChef}
                 >
                   <ChefHat className="h-3.5 w-3.5" />
-                  Cook w/ Chef
+                  Enter Studio
                 </Button>
               </div>
             )}
