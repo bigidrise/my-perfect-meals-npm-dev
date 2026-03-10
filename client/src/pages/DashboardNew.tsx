@@ -36,6 +36,7 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
+  Lock,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -131,6 +132,7 @@ export default function DashboardNew() {
   }, []);
 
   const handleTabletSend = async () => {
+    if (!isProCareClient) { setLocation("/coaches"); return; }
     if (!tabletInput.trim() || tabletSending) return;
     setTabletSending(true);
     try {
@@ -159,6 +161,7 @@ export default function DashboardNew() {
   };
 
   const handleTabletTranslate = async (entry: any) => {
+    if (!isProCareClient) { setLocation("/coaches"); return; }
     if (tabletTranslatingId) return;
     const cacheKey = `${entry.id}_translate`;
     if (tabletTranslationCache.current.has(cacheKey)) {
@@ -197,6 +200,7 @@ export default function DashboardNew() {
   };
 
   const handleTabletDelete = async (entry: any) => {
+    if (!isProCareClient) { setLocation("/coaches"); return; }
     try {
       const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
         method: "DELETE",
@@ -228,6 +232,14 @@ export default function DashboardNew() {
       return () => clearInterval(interval);
     }
   }, [tabletOpen, isProCareClient, fetchClientTablet]);
+
+  useEffect(() => {
+    if (!isProCareClient) {
+      setTabletOpen(false);
+      setTabletInput("");
+      setTabletError(null);
+    }
+  }, [isProCareClient]);
 
   useEffect(() => {
     if (tabletScrollRef.current) {
@@ -396,30 +408,53 @@ export default function DashboardNew() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.5 }} className="mb-4 space-y-3">
-            <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-              onClick={() => setTabletOpen(!tabletOpen)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/20 relative">
-                    <MessageSquare className="h-5 w-5 text-purple-400" />
-                    {tabletHasUnread && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+            {isProCareClient ? (
+              <Card
+                className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+                onClick={() => setTabletOpen(!tabletOpen)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-500/20 relative">
+                      <MessageSquare className="h-5 w-5 text-purple-400" />
+                      {tabletHasUnread && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-white">Messages From Your Coach</h3>
+                      <p className="text-xs text-white/70">View and reply to your coach</p>
+                    </div>
+                    {tabletOpen ? (
+                      <ChevronUp className="h-4 w-4 text-white/40" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-white/40" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-white">Messages From Your Coach</h3>
-                    <p className="text-xs text-white/70">View and reply to your coach</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card
+                className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden opacity-70"
+                onClick={() => setLocation("/coaches")}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white/10 relative">
+                      <MessageSquare className="h-5 w-5 text-white/40" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-white/70 flex items-center gap-1.5">
+                        Messages with Coach
+                        <Lock className="h-3.5 w-3.5 text-orange-400" />
+                      </h3>
+                      <p className="text-xs text-white/50">Chat directly with your coach for guidance and accountability</p>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-white/20" />
                   </div>
-                  {tabletOpen ? (
-                    <ChevronUp className="h-4 w-4 text-white/40" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-white/40" />
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {tabletOpen && (
               <div className="bg-black/30 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 space-y-3">
