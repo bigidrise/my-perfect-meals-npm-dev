@@ -2927,6 +2927,58 @@ export default function MacroCounter() {
                           }
                         />
                       </div>
+
+                      <Button
+                        disabled={!isCalcInputValid || isSaving}
+                        onClick={async () => {
+                          setIsSaving(true);
+                          try {
+                            const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
+                            const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
+                            const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
+                            const adjustedStarchy = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
+                            const adjustedFibrous = Math.max(0, adjustedCarbs - adjustedStarchy);
+
+                            await setMacroTargets(
+                              {
+                                calories: results.target,
+                                protein_g: adjustedProtein,
+                                carbs_g: adjustedCarbs,
+                                fat_g: adjustedFat,
+                                starchyCarbs_g: adjustedStarchy,
+                                fibrousCarbs_g: adjustedFibrous,
+                                starchStrategy,
+                              },
+                              user?.id,
+                            );
+
+                            window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+
+                            saveBiometricsToProfile().catch(() => {});
+                            saveWaistToBiometrics().catch(() => {});
+                            saveEstimatedBodyFat().catch(() => {});
+
+                            toast({
+                              title: "Macro Targets Updated",
+                              description: "Your daily macro targets have been recalculated and saved.",
+                            });
+                          } catch (error) {
+                            console.error("Failed to update macro targets:", error);
+                            toast({
+                              title: "Update Failed",
+                              description: "Failed to update your macro targets. Please try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }}
+                        className="w-full mt-4 bg-orange-600 text-white font-semibold text-base rounded-xl"
+                        data-testid="macro-update-button"
+                      >
+                        <Target className="h-4 w-4 mr-2" />
+                        {isSaving ? "Updating..." : "Update"}
+                      </Button>
                     </CardContent>
                   </Card>
 
