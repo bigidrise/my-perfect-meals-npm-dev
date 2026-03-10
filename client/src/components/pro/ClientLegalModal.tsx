@@ -67,7 +67,7 @@ export default function ClientLegalModal({ open, onAccepted, onCancel }: ClientL
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 pb-24">
+        <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-xl bg-emerald-500/20">
               <FileText className="w-6 h-6 text-emerald-400" />
