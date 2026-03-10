@@ -1,3 +1,5 @@
+const TESTER_PROGRAM_ACTIVE = true;
+
 const PAID_PLAN_KEYS = [
   "mpm_basic",
   "mpm_premium",
@@ -38,7 +40,7 @@ interface UserForSubscriptionCheck {
 
 export function hasActivePaidSubscription(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
-  if (user.isTester) return true;
+  if (TESTER_PROGRAM_ACTIVE && user.isTester) return true;
   if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) return true;
   if (user.accessTier === "TRIAL_FULL") return true;
   if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) return true;

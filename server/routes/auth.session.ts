@@ -14,7 +14,10 @@ function generateAuthToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
+const TESTER_PROGRAM_ACTIVE = true;
+
 function isTesterEmail(email: string): boolean {
+  if (TESTER_PROGRAM_ACTIVE) return true;
   const testerEmails = process.env.MPM_TESTER_EMAILS || "";
   if (!testerEmails.trim()) return false;
   const allowlist = testerEmails.split(",").map(e => e.trim().toLowerCase());
@@ -235,14 +238,15 @@ router.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const isTester = isTesterEmail(email);
     const authToken = user.authToken || generateAuthToken();
-    const updateFields: any = { isTester };
+    const updateFields: any = {};
     if (!user.authToken) {
       updateFields.authToken = authToken;
       updateFields.authTokenCreatedAt = new Date();
     }
-    await db.update(users).set(updateFields).where(eq(users.id, user.id));
+    if (Object.keys(updateFields).length > 0) {
+      await db.update(users).set(updateFields).where(eq(users.id, user.id));
+    }
 
     // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
     if (req.session) {

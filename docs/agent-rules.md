@@ -30,11 +30,14 @@ These rules are mandatory for all agents working on this codebase.
 - Do exactly what is asked. Do not rewrite, restructure, or "improve" components that were not part of the request.
 - All new features must use `PhaseGate` for phased rollout.
 
-## Feature Gating
+## Feature Gating & Tester Program
 
+- `TESTER_PROGRAM_ACTIVE` flag controls tester bypass. Set in 3 files: `client/src/lib/subscriptionCheck.ts`, `server/lib/accessTier.ts`, `server/routes/auth.session.ts`. All 3 must be flipped together.
+- While `TESTER_PROGRAM_ACTIVE = true`, users with `is_tester = true` get full paid access, and all new signups auto-get `is_tester = true`.
+- `freetest@myperfectmeals.com` is the only account with `is_tester = false` — used to test the free-tier experience.
 - Free tier features: Only Fridge Rescue (1/day) and macro tools are functional for free users.
 - All other features are visible but locked with `useFreeLock` hook and `UpgradeLockModal`.
-- `PRE_LAUNCH_FULL_ACCESS` flag must not be flipped without explicit approval.
+- Do not flip `TESTER_PROGRAM_ACTIVE` to `false` without explicit user approval — this is the launch switch.
 
 ## Database
 
