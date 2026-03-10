@@ -41,6 +41,7 @@ import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
+import { CoachMessagesCard } from "@/components/dashboard/CoachMessagesCard";
 
 interface FeatureCard {
   title: string;
@@ -229,6 +230,12 @@ export default function DashboardNew() {
             </div>
           </div>
         </motion.div>
+
+        {user?.isProCare && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.5 }} className="mb-4 space-y-3">
+            <CoachMessagesCard />
+          </motion.div>
+        )}
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }} className="mb-4">
           <ComplianceCard userId={user?.id} />
