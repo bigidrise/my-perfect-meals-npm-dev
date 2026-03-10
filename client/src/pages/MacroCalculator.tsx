@@ -2973,7 +2973,7 @@ export default function MacroCounter() {
                             setIsSaving(false);
                           }
                         }}
-                        className="w-full mt-4 bg-orange-600 text-white font-semibold text-base rounded-xl"
+                        className="w-full mt-4 bg-lime-600 text-white font-semibold text-base rounded-xl"
                         data-testid="macro-update-button"
                       >
                         <Target className="h-4 w-4 mr-2" />
