@@ -58,6 +58,7 @@ class TTSService {
       const res = await fetch(apiUrl('/api/tts'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ text }),
         signal: controller.signal,
       });
