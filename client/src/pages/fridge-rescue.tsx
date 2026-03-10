@@ -848,7 +848,7 @@ const FridgeRescuePage = () => {
                         onClick={() => setServings(n)}
                         className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
                           servings === n
-                            ? "bg-orange-500 text-white border border-orange-400 shadow-lg shadow-orange-500/30"
+                            ? "bg-black/70 text-white border border-orange-800 shadow-lg shadow-orange-500/30"
                             : "bg-black/20 text-white/70 border border-white/10 hover:border-white/30"
                         } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
@@ -1317,7 +1317,7 @@ const FridgeRescuePage = () => {
                       </p>
                       <button
                         onClick={() => setLocation("/pricing")}
-                        className="bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm px-5 py-2 rounded-lg transition-colors"
+                        className="bg-black/70 hover:bg-orange-800 text-white font-semibold text-sm px-5 py-2 rounded-lg transition-colors"
                       >
                         View Plans
                       </button>
