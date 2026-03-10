@@ -5860,7 +5860,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/diabetes", diabetesRouter);
 
   // Mount body composition routes (body fat tracking)
-  app.use("/api", bodyCompositionRoutes);
+  app.use("/api", requireAuth, bodyCompositionRoutes);
 
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;

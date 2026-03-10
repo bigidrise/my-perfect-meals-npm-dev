@@ -286,6 +286,40 @@ export default function TrainerClientDashboard() {
           </p>
         </div>
 
+        {bodyComp && (
+          <Card className="bg-white/5 border border-white/20">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                Body Composition
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {parseFloat(bodyComp.currentBodyFatPct) > 0 && (
+                <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                  <div className="text-xs text-white/60">Body Fat</div>
+                  <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
+                </div>
+              )}
+              <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                <div className="text-xs text-white/60">Target Body Fat</div>
+                <div className="text-lg font-bold text-lime-400">{bodyComp.goalBodyFatPct ? `${parseFloat(bodyComp.goalBodyFatPct).toFixed(1)}%` : "—"}</div>
+              </div>
+              {parseFloat(bodyComp.currentBodyFatPct) > 0 && (
+                <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                  <div className="text-xs text-white/60">Method</div>
+                  <div className="text-sm font-medium text-white">{bodyComp.scanMethod}</div>
+                </div>
+              )}
+              {bodyCompSource && (
+                <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                  <div className="text-xs text-white/60">Source</div>
+                  <div className="text-sm font-medium text-white capitalize">{bodyCompSource}</div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">

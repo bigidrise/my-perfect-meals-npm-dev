@@ -942,6 +942,9 @@ export default function MyBiometrics() {
   const [bodyCompLatest, setBodyCompLatest] = useState<BodyCompEntry | null>(null);
   const [bodyCompHistory, setBodyCompHistory] = useState<BodyCompEntry[]>([]);
   const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
+  const [editingGoalBF, setEditingGoalBF] = useState(false);
+  const [goalBFInput, setGoalBFInput] = useState("");
+  const [goalBFSaving, setGoalBFSaving] = useState(false);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -965,6 +968,31 @@ export default function MyBiometrics() {
       })
       .catch(() => {});
   }, []);
+
+  const handleSaveGoalBF = async () => {
+    const currentUser = getCurrentUser();
+    if (!currentUser?.id) return;
+    const val = parseFloat(goalBFInput);
+    if (isNaN(val) || val < 3 || val > 60) return;
+    setGoalBFSaving(true);
+    try {
+      const res = await fetch(apiUrl(`/api/users/${currentUser.id}/body-composition/goal`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ goalBodyFatPct: val }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      const data = await res.json();
+      if (data.entry) {
+        setBodyCompLatest(data.entry);
+      }
+      setEditingGoalBF(false);
+    } catch {
+    } finally {
+      setGoalBFSaving(false);
+    }
+  };
 
   // ------- BODY / WEIGHT (local) -------
   // SAFE: Start with defaults, load from storage in useEffect
@@ -2159,33 +2187,119 @@ export default function MyBiometrics() {
             {bodyCompLatest ? (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {parseFloat(bodyCompLatest.currentBodyFatPct) > 0 && (
+                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                      <div className="text-xs text-white/60">Body Fat</div>
+                      <div className="text-lg font-bold text-white">{parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%</div>
+                    </div>
+                  )}
                   <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Body Fat</div>
-                    <div className="text-lg font-bold text-white">{parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%</div>
+                    <div className="text-xs text-white/60">Target Body Fat</div>
+                    {editingGoalBF ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          value={goalBFInput}
+                          onChange={(e) => setGoalBFInput(e.target.value)}
+                          className="w-16 bg-black/40 border border-white/20 rounded-md px-2 py-1 text-sm text-white focus:outline-none focus:border-orange-400"
+                          placeholder="%"
+                          min={3}
+                          max={60}
+                        />
+                        <button
+                          onClick={handleSaveGoalBF}
+                          disabled={goalBFSaving || !goalBFInput.trim() || goalBFInput === (bodyCompLatest?.goalBodyFatPct ? parseFloat(bodyCompLatest.goalBodyFatPct).toString() : "")}
+                          className="px-2 py-1 text-xs font-semibold rounded-md bg-orange-600 text-white disabled:opacity-40"
+                        >
+                          {goalBFSaving ? "..." : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setEditingGoalBF(false)}
+                          className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="text-lg font-bold text-lime-400">
+                          {bodyCompLatest.goalBodyFatPct ? `${parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%` : "—"}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setGoalBFInput(bodyCompLatest.goalBodyFatPct ? parseFloat(bodyCompLatest.goalBodyFatPct).toString() : "");
+                            setEditingGoalBF(true);
+                          }}
+                          className="px-2 py-0.5 text-xs rounded-md bg-orange-600/20 text-orange-400 font-medium"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Goal</div>
-                    <div className="text-lg font-bold text-lime-400">{bodyCompLatest.goalBodyFatPct ? `${parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%` : "—"}</div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Method</div>
-                    <div className="text-sm font-medium text-white">{bodyCompLatest.scanMethod}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-white/50">
-                  <span>Recorded: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
-                  {bodyCompSource && (
-                    <span className={`px-2 py-0.5 rounded-full ${bodyCompSource !== "client" ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-white/50"}`}>
-                      {bodyCompSource}
-                    </span>
+                  {parseFloat(bodyCompLatest.currentBodyFatPct) > 0 && (
+                    <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                      <div className="text-xs text-white/60">Method</div>
+                      <div className="text-sm font-medium text-white">{bodyCompLatest.scanMethod}</div>
+                    </div>
                   )}
                 </div>
+                {parseFloat(bodyCompLatest.currentBodyFatPct) > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-white/50">
+                    <span>Recorded: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
+                    {bodyCompSource && (
+                      <span className={`px-2 py-0.5 rounded-full ${bodyCompSource !== "client" ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-white/50"}`}>
+                        {bodyCompSource}
+                      </span>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
-              <div className="text-center py-6">
-                <Ruler className="h-8 w-8 text-white/30 mx-auto mb-2" />
-                <p className="text-white/60 text-sm mb-3">No body composition data yet</p>
-                <p className="text-white/40 text-xs">Use the Macro Calculator to estimate or enter your body fat</p>
+              <div className="py-4 space-y-3">
+                <div className="text-center">
+                  <Ruler className="h-8 w-8 text-white/30 mx-auto mb-2" />
+                  <p className="text-white/60 text-sm mb-1">No body composition data yet</p>
+                  <p className="text-white/40 text-xs">Use the Macro Calculator to estimate or enter your body fat</p>
+                </div>
+                <div className="p-3 rounded-xl bg-black/25 border border-white/10">
+                  <div className="text-xs text-white/60 mb-1">Set Your Target Body Fat %</div>
+                  {editingGoalBF ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={goalBFInput}
+                        onChange={(e) => setGoalBFInput(e.target.value)}
+                        className="w-16 bg-black/40 border border-white/20 rounded-md px-2 py-1 text-sm text-white focus:outline-none focus:border-orange-400"
+                        placeholder="%"
+                        min={3}
+                        max={60}
+                      />
+                      <button
+                        onClick={handleSaveGoalBF}
+                        disabled={goalBFSaving || !goalBFInput.trim()}
+                        className="px-2 py-1 text-xs font-semibold rounded-md bg-orange-600 text-white disabled:opacity-40"
+                      >
+                        {goalBFSaving ? "..." : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditingGoalBF(false)}
+                        className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setGoalBFInput(""); setEditingGoalBF(true); }}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-md bg-orange-600 text-white"
+                    >
+                      Set Goal
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

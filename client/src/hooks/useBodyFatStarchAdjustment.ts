@@ -80,6 +80,17 @@ export function useBodyFatStarchAdjustment(
     }
 
     const currentBf = parseFloat(latestEntry.currentBodyFatPct);
+    if (!currentBf || currentBf <= 0) {
+      return {
+        slotDelta: 0,
+        reason: "No valid body fat measurement",
+        currentBf: null,
+        goalBf: null,
+        source: latestSource,
+        hasData: false,
+        isLoading,
+      };
+    }
     const goalBf = latestEntry.goalBodyFatPct
       ? parseFloat(latestEntry.goalBodyFatPct)
       : null;

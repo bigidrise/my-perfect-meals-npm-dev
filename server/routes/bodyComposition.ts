@@ -192,6 +192,46 @@ router.delete("/users/:userId/body-composition/:entryId", async (req, res) => {
   }
 });
 
+// PATCH /api/users/:userId/body-composition/goal
+// Update only the goalBodyFatPct on the latest client entry (or create a minimal entry)
+router.patch("/users/:userId/body-composition/goal", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const schema = z.object({ goalBodyFatPct: z.number().min(3).max(60) });
+    const { goalBodyFatPct } = schema.parse(req.body);
+
+    const [latestClient] = await db.select()
+      .from(bodyFatEntries)
+      .where(and(
+        eq(bodyFatEntries.userId, userId),
+        eq(bodyFatEntries.source, "client")
+      ))
+      .orderBy(desc(bodyFatEntries.recordedAt))
+      .limit(1);
+
+    if (latestClient) {
+      const [updated] = await db.update(bodyFatEntries)
+        .set({ goalBodyFatPct: goalBodyFatPct.toString(), updatedAt: new Date() })
+        .where(eq(bodyFatEntries.id, latestClient.id))
+        .returning();
+      return res.json({ entry: updated });
+    }
+
+    const [created] = await db.insert(bodyFatEntries).values({
+      userId,
+      currentBodyFatPct: "0",
+      goalBodyFatPct: goalBodyFatPct.toString(),
+      scanMethod: "Other",
+      source: "client",
+      recordedAt: new Date(),
+    }).returning();
+    res.json({ entry: created });
+  } catch (error) {
+    console.error("Error updating body fat goal:", error);
+    res.status(400).json({ error: "Failed to update goal" });
+  }
+});
+
 // ProCare routes - for trainers/physicians to manage client body composition
 
 // GET /api/pro/clients/:clientId/body-composition
