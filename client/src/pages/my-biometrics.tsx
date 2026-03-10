@@ -1170,6 +1170,14 @@ export default function MyBiometrics() {
     const m = body.heightIn * 0.0254;
     return (kg / (m * m)).toFixed(1);
   }, [latestWeight, body.heightIn]);
+  const bmiCategory = useMemo(() => {
+    if (!bmi) return undefined;
+    const v = parseFloat(bmi);
+    if (v < 18.5) return { label: "Underweight", color: "text-blue-400" };
+    if (v < 25) return { label: "Normal", color: "text-emerald-400" };
+    if (v < 30) return { label: "Overweight", color: "text-yellow-400" };
+    return { label: "Obese", color: "text-red-400" };
+  }, [bmi]);
   const whr = useMemo(() => {
     if (!latestWaist || !body.heightIn) return undefined;
     return (latestWaist / body.heightIn).toFixed(2);
@@ -2132,8 +2140,8 @@ export default function MyBiometrics() {
               {latestWaist && (
                 <Summary label="Waist" value={`${latestWaist}"`} />
               )}
-              {bmi && (
-                <Summary label="BMI*" value={bmi} sub="*Height from settings" />
+              {bmi && bmiCategory && (
+                <Summary label="BMI*" value={`${bmi} — ${bmiCategory.label}`} sub="*Height from settings" categoryColor={bmiCategory.color} />
               )}
               {whr && <Summary label="Waist/Height" value={whr} />}
             </div>
@@ -2440,15 +2448,17 @@ function Summary({
   label,
   value,
   sub,
+  categoryColor,
 }: {
   label: string;
   value: string | number;
   sub?: string;
+  categoryColor?: string;
 }) {
   return (
     <div className="rounded-xl p-3 bg-black/20 border border-white/10">
       <div className="text-xs text-white/70">{label}</div>
-      <div className="text-lg font-semibold text-white">{value}</div>
+      <div className={`text-lg font-semibold ${categoryColor || "text-white"}`}>{value}</div>
       {sub && <div className="text-xs text-white/60">{sub}</div>}
     </div>
   );
