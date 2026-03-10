@@ -688,8 +688,8 @@ export default function CravingCreator() {
             )}
           </div>
 
-          {/* Create with Chef Entry Point */}
-          <div className="relative mb-6">
+          {/* Create with Chef Entry Point — Studio hidden */}
+          <div className="relative mb-6 hidden">
             <div
               className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-50"
               style={{

@@ -443,8 +443,8 @@ export default function DessertCreator() {
           className="max-w-2xl mx-auto px-4 pb-32"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
-          {/* Create with Chef Entry Point */}
-          <div className="relative mb-4">
+          {/* Create with Chef Entry Point — Studio hidden */}
+          <div className="relative mb-4 hidden">
             <div
               className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-50"
               style={{

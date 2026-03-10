@@ -674,8 +674,8 @@ const FridgeRescuePage = () => {
           className="max-w-4xl mx-auto px-6"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
-          {/* Create with Chef Entry Point - Fridge Rescue Studio works, so enabled */}
-          <div className="relative mb-4 max-w-2xl mx-auto">
+          {/* Create with Chef Entry Point — Studio hidden */}
+          <div className="relative mb-4 max-w-2xl mx-auto hidden">
             <div
               className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
               style={{
