@@ -5849,7 +5849,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // --- Logs & biometrics routes (no styling changes, just mounts) ---
   app.use("/api", alcoholLogRoutes);              // alcohol routes expect "/api/..." internally
   app.use("/api/glucose-logs", glucoseLogRoutes); // <-- FIX: mount glucose router at explicit path
-  // biometricsRoutes: mounted ONLY at /api/biometrics (line ~1371). Duplicate /api mount removed to prevent route shadowing.
+  app.use("/api/biometrics", biometricsRoutes);
   app.use("/api/locked-days", lockedDaysRouter);
   // Deleted: glp1ShotsRoutes route
 
