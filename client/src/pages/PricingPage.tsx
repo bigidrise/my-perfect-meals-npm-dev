@@ -348,8 +348,14 @@ export default function PricingPage() {
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
                 <h3 className="text-white font-bold text-base mb-1">ProCare Coaching</h3>
                 <p className="text-white/60 text-xs mb-3">
-                  Learn how coach-assisted nutrition works
+                  Some people don't struggle with nutrition knowledge. They struggle with decisions in the moment. ProCare connects you with a real coach inside the My Perfect Meals system so you're not left guessing when real life happens.
                 </p>
+                <ul className="text-white/50 text-xs space-y-1 mb-3">
+                  <li>• Direct messaging with your coach</li>
+                  <li>• Guidance before food decisions, not after mistakes</li>
+                  <li>• Adjust meals and macros when life changes</li>
+                  <li>• Support when stress, travel, or cravings hit</li>
+                </ul>
                 <Button
                   onClick={() => setLocation("/procare-info")}
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-sm"
@@ -360,8 +366,14 @@ export default function PricingPage() {
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
                 <h3 className="text-white font-bold text-base mb-1">Family Plan</h3>
                 <p className="text-white/60 text-xs mb-3">
-                  Healthy eating support for the whole household
+                  Trying to eat healthy while everyone in the house eats differently creates chaos. The My Perfect Meals Family Plan gives every person their own personalized nutrition experience while keeping the household organized in one system.
                 </p>
+                <ul className="text-white/50 text-xs space-y-1 mb-3">
+                  <li>• Individual profiles for every family member</li>
+                  <li>• Personalized nutrition guidance for each person</li>
+                  <li>• Kids, parents, and partners on the same system</li>
+                  <li>• One organized plan for the whole household</li>
+                </ul>
                 <Button
                   onClick={() => setLocation("/family-info")}
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-sm"
@@ -783,8 +795,14 @@ export default function PricingPage() {
               <CardContent className="pt-4 pb-5 space-y-2">
                 <h3 className="text-lg font-bold">ProCare Coaching</h3>
                 <p className="text-white/70 text-sm">
-                  Learn how coach-assisted nutrition works
+                  Some people don't struggle with nutrition knowledge. They struggle with decisions in the moment. ProCare connects you with a real coach inside the My Perfect Meals system so you're not left guessing when real life happens.
                 </p>
+                <ul className="text-white/50 text-sm space-y-1 mt-2">
+                  <li>• Direct messaging with your coach</li>
+                  <li>• Guidance before food decisions, not after mistakes</li>
+                  <li>• Adjust meals and macros when life changes</li>
+                  <li>• Support when stress, travel, or cravings hit</li>
+                </ul>
                 <Button
                   onClick={() => setLocation("/procare-info")}
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
@@ -802,8 +820,14 @@ export default function PricingPage() {
               <CardContent className="pt-4 pb-5 space-y-2">
                 <h3 className="text-lg font-bold">Family Plan</h3>
                 <p className="text-white/70 text-sm">
-                  Healthy eating support for the whole household
+                  Trying to eat healthy while everyone in the house eats differently creates chaos. The My Perfect Meals Family Plan gives every person their own personalized nutrition experience while keeping the household organized in one system.
                 </p>
+                <ul className="text-white/50 text-sm space-y-1 mt-2">
+                  <li>• Individual profiles for every family member</li>
+                  <li>• Personalized nutrition guidance for each person</li>
+                  <li>• Kids, parents, and partners on the same system</li>
+                  <li>• One organized plan for the whole household</li>
+                </ul>
                 <Button
                   onClick={() => setLocation("/family-info")}
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
