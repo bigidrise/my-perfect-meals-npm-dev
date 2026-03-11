@@ -588,7 +588,6 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
   }
   
   const ms = Date.now() - t0;
-  console.log(`📊 WMC2 telemetry: days=${req.days} items=${items.length} obHash=${obHash} dupesPrevented=${duplicatesPrevented} violationsFixed=${violationsFixed} ms=${ms}`);
 
   const response = { days: req.days, items, meta: { onboardingHash: obHash } };
   cache.set(sig, response);
