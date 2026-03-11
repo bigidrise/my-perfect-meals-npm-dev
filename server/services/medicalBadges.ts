@@ -10,9 +10,21 @@ export function computeMedicalBadges(constraints: ResolvedConstraints, ingredien
   const names = ingredients.map(s => s.toLowerCase());
   const has = (kw: string) => names.some(n => n.includes(kw));
 
+  const NUT_BUTTER_RE = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)[\s-]*butter\b/;
+  const hasDairyButter = names.some(n => {
+    if (NUT_BUTTER_RE.test(n)) return false;
+    return n.includes('butter');
+  });
+
+  const NON_DAIRY_MILK_RE = /\b(almond|oat|soy|coconut|cashew|pea)[\s-]*milk\b/;
+  const hasDairyMilk = names.some(n => {
+    if (NON_DAIRY_MILK_RE.test(n)) return false;
+    return n.includes('milk');
+  });
+
   // Allergens
   if (!has('gluten') && !has('wheat')) set.add('gluten_free');
-  if (!has('milk') && !has('cheese') && !has('butter') && !has('cream')) set.add('dairy_free');
+  if (!hasDairyMilk && !has('cheese') && !hasDairyButter && !has('cream')) set.add('dairy_free');
   if (!has('shellfish') && !has('shrimp') && !has('crab') && !has('lobster')) set.add('shellfish_free');
   if (!has('peanut')) set.add('peanut_free');
   if (!has('almond') && !has('walnut') && !has('pecan') && !has('cashew') && !has('hazelnut')) set.add('nut_free');

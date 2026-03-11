@@ -155,8 +155,8 @@ const FOOD_ALLERGIES = {
     color: 'bg-red-100 border-red-500',
     textColor: 'text-red-800',
     rules: (recipe: Recipe) => {
-      const nonDairyMilkRe = /\b(almond|oat|soy|coconut|cashew|pea)\s*milk\b/;
-      const nonDairyButterRe = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)\s*butter\b/;
+      const nonDairyMilkRe = /\b(almond|oat|soy|coconut|cashew|pea)[\s-]*milk\b/;
+      const nonDairyButterRe = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)[\s-]*butter\b/;
       const halfAndHalfRe = /\bhalf[\s&-]+and[\s&-]+half\b|half[\s-]*&[\s-]*half/;
       const dairyFree = !recipe.ingredients?.some(ing => {
         const name = ing.name.toLowerCase();

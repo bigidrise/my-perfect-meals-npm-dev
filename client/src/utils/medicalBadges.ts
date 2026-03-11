@@ -59,8 +59,8 @@ export function generateMedicalBadges(meal: any, userProfile: UserProfile): Medi
   const mealName = (meal.name || '').toLowerCase();
   const mealDescription = (meal.description || '').toLowerCase();
   
-  const NON_DAIRY_MILK_RE = /\b(almond|oat|soy|coconut|cashew|pea)\s*milk\b/;
-  const NON_DAIRY_BUTTER_RE = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)\s*butter\b/;
+  const NON_DAIRY_MILK_RE = /\b(almond|oat|soy|coconut|cashew|pea)[\s-]*milk\b/;
+  const NON_DAIRY_BUTTER_RE = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)[\s-]*butter\b/;
   const HALF_AND_HALF_RE = /\bhalf[\s&-]+and[\s&-]+half\b|half[\s-]*&[\s-]*half/;
 
   function isDairyIngredient(ingredient: string): boolean {
@@ -161,9 +161,11 @@ export function generateMedicalBadges(meal: any, userProfile: UserProfile): Medi
     }
     
     if (restrictionLower.includes('vegan')) {
-      const hasAnimalProducts = mealIngredients.some((ingredient: string) =>
-        ['chicken', 'beef', 'pork', 'fish', 'turkey', 'lamb', 'bacon', 'ham', 'milk', 'cheese', 'butter', 'cream', 'yogurt', 'egg'].some(animal => ingredient.includes(animal))
-      );
+      const hasAnimalProducts = mealIngredients.some((ingredient: string) => {
+        if (NON_DAIRY_MILK_RE.test(ingredient)) return false;
+        if (NON_DAIRY_BUTTER_RE.test(ingredient)) return false;
+        return ['chicken', 'beef', 'pork', 'fish', 'turkey', 'lamb', 'bacon', 'ham', 'milk', 'cheese', 'butter', 'cream', 'yogurt', 'egg'].some(animal => ingredient.includes(animal));
+      });
       
       if (hasAnimalProducts) {
         badges.push({

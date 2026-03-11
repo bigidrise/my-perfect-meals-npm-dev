@@ -41,6 +41,22 @@ export function maskPlantMilks(text: string): string {
   return text.replace(PLANT_MILK_PATTERN, "__PLANT_MILK__");
 }
 
+export const NUT_BUTTER_PREFIXES = [
+  "peanut", "almond", "cashew", "sunflower", "apple", "pumpkin",
+];
+
+const NUT_BUTTER_PATTERN = new RegExp(
+  `\\b(${NUT_BUTTER_PREFIXES.join("|")})[\\s-]*butter\\b`, "gi"
+);
+
+/**
+ * Remove nut-butter phrases from text so bare "butter" matching doesn't false-positive.
+ * Returns text with nut butters replaced by a safe placeholder.
+ */
+export function maskNutButters(text: string): string {
+  return text.replace(NUT_BUTTER_PATTERN, "__NUT_BUTTER__");
+}
+
 
 /**
  * COMPREHENSIVE ALLERGEN EXPANSION MAP
@@ -408,8 +424,9 @@ export function scanForViolations(
   }
   
   const fullText = textParts.join(" ").toLowerCase();
-  const maskedText = maskPlantMilks(fullText);
-  const maskedTextNormalized = maskPlantMilks(fullText.replace(/[-_]/g, ' '));
+  const maskedTextNormalized = fullText.replace(/[-_]/g, ' ');
+  const milkMasked = maskPlantMilks(maskedTextNormalized);
+  const butterMasked = maskNutButters(maskedTextNormalized);
   
   // Check each forbidden ingredient
   for (const forbidden of forbiddenIngredients) {
@@ -420,8 +437,11 @@ export function scanForViolations(
     const pattern = new RegExp(`\\b${escapeRegex(forbidden)}\\b`, 'i');
     
     // For bare "milk", scan masked text so plant milks don't false-positive
-    // Use both original-cased and hyphen-normalized masking for compound forms like "almond-milk"
-    const textToScan = (forbidden === "milk") ? maskedTextNormalized : fullText;
+    // For bare "butter", scan masked text so nut butters don't false-positive
+    let textToScan = fullText;
+    if (forbidden === "milk") textToScan = milkMasked;
+    else if (forbidden === "butter") textToScan = butterMasked;
+    
     if (pattern.test(textToScan)) {
       violations.push(forbidden);
     }
@@ -496,9 +516,11 @@ export function preCheckRequest(
     .replace(/\s+/g, ' ')   // Normalize whitespace
     .trim();
   
-  // Mask plant milks so bare "milk" doesn't false-positive on "almond milk" etc.
-  const maskedRequest = maskPlantMilks(normalizedRequest);
-  const maskedOriginal = maskPlantMilks(requestText.toLowerCase());
+  // Mask plant milks and nut butters so bare "milk"/"butter" don't false-positive
+  const milkMaskedRequest = maskPlantMilks(normalizedRequest);
+  const milkMaskedOriginal = maskPlantMilks(requestText.toLowerCase());
+  const butterMaskedRequest = maskNutButters(normalizedRequest);
+  const butterMaskedOriginal = maskNutButters(requestText.toLowerCase());
   
   const violations: string[] = [];
   
@@ -509,9 +531,13 @@ export function preCheckRequest(
     const normalizedForbidden = forbidden.toLowerCase().replace(/[-_]/g, ' ').trim();
     
     // For bare "milk", use masked text to avoid plant-milk false positives
+    // For bare "butter", use masked text to avoid nut-butter false positives
     const isBareMilk = (normalizedForbidden === "milk");
-    const textToCheck = isBareMilk ? maskedRequest : normalizedRequest;
-    const origToCheck = isBareMilk ? maskedOriginal : requestText.toLowerCase();
+    const isBareButter = (normalizedForbidden === "butter");
+    let textToCheck = normalizedRequest;
+    let origToCheck = requestText.toLowerCase();
+    if (isBareMilk) { textToCheck = milkMaskedRequest; origToCheck = milkMaskedOriginal; }
+    else if (isBareButter) { textToCheck = butterMaskedRequest; origToCheck = butterMaskedOriginal; }
     
     // Check with word boundaries (handles both original and normalized)
     const pattern = new RegExp(`\\b${escapeRegex(normalizedForbidden)}\\b`, 'i');

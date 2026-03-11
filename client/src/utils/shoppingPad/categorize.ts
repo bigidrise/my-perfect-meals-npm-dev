@@ -1,7 +1,7 @@
 import type { Category } from './types';
 
-const NON_DAIRY_MILK_RE = /\b(almond|oat|soy|coconut|cashew|pea)\s*milk\b/;
-const NON_DAIRY_BUTTER_RE = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)\s*butter\b/;
+const NON_DAIRY_MILK_RE = /\b(almond|oat|soy|coconut|cashew|pea)[\s-]*milk\b/;
+const NON_DAIRY_BUTTER_RE = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)[\s-]*butter\b/;
 
 const DICT: Array<{k:RegExp,c:Category}> = [
   {k:/(tomato|lettuce|spinach|onion|garlic|pepper|broccoli|carrot|avocado|cilantro|parsley|banana|apple)/,c:'Produce'},
