@@ -7,10 +7,15 @@ const client = new Client({
 });
 
 async function run() {
-  await client.connect();
+  const email = process.argv[2];
+  const hash = process.argv[3];
 
-  const email = 'bigidrise@gmail.com';
-  const hash = '$2b$10$D2o66v0UZ.CxGY.vrCu7ierVlKYvKvWgDUnJDm0pevBtsalIbW8l6';
+  if (!email || !hash) {
+    console.error('Usage: node reset-password.js <email> <bcrypt-hash>');
+    process.exit(1);
+  }
+
+  await client.connect();
 
   const db = await client.query('select current_database() as db;');
   console.log('Database:', db.rows[0].db);
