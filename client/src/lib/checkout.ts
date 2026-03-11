@@ -73,6 +73,7 @@ export async function startCheckout(
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         priceLookupKey,
         context: opts?.context || "unknown",
@@ -121,6 +122,7 @@ export async function openCustomerPortal(
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         customerId,
         returnUrl: returnUrl || window.location.href,
