@@ -20,7 +20,6 @@ if (!process.env.OPENAI_API_KEY && process.env.VITE_OPENAI_API_KEY) {
 export function logBootStatus(environment: 'development' | 'production') {
   console.log("========================================");
   console.log(`[BOOT] My Perfect Meals - ${environment.charAt(0).toUpperCase() + environment.slice(1)} Server`);
-  console.log("[BOOT] OpenAI enabled:", !!process.env.OPENAI_API_KEY);
   console.log("[BOOT] OpenAI key length:", process.env.OPENAI_API_KEY?.length || 0);
   console.log("[BOOT] Database URL present:", !!process.env.DATABASE_URL);
   console.log("[BOOT] S3 bucket:", process.env.S3_BUCKET_NAME || "NOT SET");
