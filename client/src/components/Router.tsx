@@ -50,6 +50,7 @@ import MealBuilderSelection from "@/pages/MealBuilderSelection";
 import CheckoutSuccess from "@/pages/CheckoutSuccess";
 import FamilyInfoPage from "@/pages/FamilyInfoPage";
 import ProCareInfoPage from "@/pages/ProCareInfoPage";
+import PersonalGuidanceInfoPage from "@/pages/PersonalGuidanceInfoPage";
 import AdminModerationPage from "@/pages/admin-moderation";
 import ConsumerWelcome from "@/pages/ConsumerWelcome";
 import ProCareWelcome from "@/pages/procare/ProCareWelcome";
@@ -226,6 +227,7 @@ export default function Router() {
     "/procare-attestation",
     "/procare-info",
     "/family-info",
+    "/personal-guidance-info",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -259,7 +261,7 @@ export default function Router() {
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
     "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation",
-    "/procare-info", "/family-info",
+    "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
     "/profile", "/settings",
     "/home",
@@ -330,6 +332,7 @@ export default function Router() {
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/procare-info" component={ProCareInfoPage} />
+        <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
         <Route path="/consumer-welcome" component={ConsumerWelcome} />
         <Route path="/procare-welcome" component={ProCareWelcome} />

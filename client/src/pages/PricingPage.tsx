@@ -344,6 +344,9 @@ export default function PricingPage() {
             <h2 className="text-lg font-bold text-center mb-4">
               More Ways to Use My Perfect Meals
             </h2>
+            <p className="text-white/60 text-xs text-center mb-4">
+              Need more structure than a subscription plan? My Perfect Meals also offers coaching and guided systems for individuals and families.
+            </p>
             <div className="space-y-3">
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
                 <h3 className="text-white font-bold text-base mb-1">ProCare Coaching</h3>
@@ -379,6 +382,24 @@ export default function PricingPage() {
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-sm"
                 >
                   Learn More
+                </Button>
+              </div>
+              <div className="bg-black/40 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 ring-1 ring-amber-500/20">
+                <h3 className="text-amber-300 font-bold text-base mb-1">MPM Personal Guidance</h3>
+                <p className="text-white/60 text-xs mb-3">
+                  Some people don't just want guidance. They want someone experienced helping them structure the entire system. MPM Personal Guidance connects you directly with the founder of My Perfect Meals for structured, in-app coaching and ongoing adjustments.
+                </p>
+                <ul className="text-white/50 text-xs space-y-1 mb-3">
+                  <li>• Direct async messaging with the founder</li>
+                  <li>• Personalized meal board setup and calibration</li>
+                  <li>• Long-term nutrition structure and accountability</li>
+                  <li>• Coaching built directly into the My Perfect Meals system</li>
+                </ul>
+                <Button
+                  onClick={() => setLocation("/personal-guidance-info")}
+                  className="w-full bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-sm"
+                >
+                  See How Personal Guidance Works
                 </Button>
               </div>
             </div>
@@ -785,7 +806,10 @@ export default function PricingPage() {
           <h2 className="text-xl font-bold mb-6 text-center">
             More Ways to Use My Perfect Meals
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <p className="text-white/60 text-sm text-center mb-6 max-w-2xl mx-auto">
+            Need more structure than a subscription plan? My Perfect Meals also offers coaching and guided systems for individuals and families.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
               <img
                 src="/images/procare-chef.png"
@@ -833,6 +857,31 @@ export default function PricingPage() {
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
                 >
                   Learn More
+                </Button>
+              </CardContent>
+            </Card>
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-amber-500/30 text-white shadow-xl overflow-hidden ring-1 ring-amber-500/20">
+              <img
+                src="/images/personal-guidance-chef.png"
+                alt="MPM Personal Guidance"
+                className="w-full h-40 object-cover"
+              />
+              <CardContent className="pt-4 pb-5 space-y-2">
+                <h3 className="text-lg font-bold text-amber-300">MPM Personal Guidance</h3>
+                <p className="text-white/70 text-sm">
+                  Some people don't just want guidance. They want someone experienced helping them structure the entire system. MPM Personal Guidance connects you directly with the founder of My Perfect Meals for structured, in-app coaching and ongoing adjustments.
+                </p>
+                <ul className="text-white/50 text-sm space-y-1 mt-2">
+                  <li>• Direct async messaging with the founder</li>
+                  <li>• Personalized meal board setup and calibration</li>
+                  <li>• Long-term nutrition structure and accountability</li>
+                  <li>• Coaching built directly into the My Perfect Meals system</li>
+                </ul>
+                <Button
+                  onClick={() => setLocation("/personal-guidance-info")}
+                  className="w-full bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30"
+                >
+                  See How Personal Guidance Works
                 </Button>
               </CardContent>
             </Card>

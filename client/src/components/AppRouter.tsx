@@ -57,7 +57,8 @@ export default function AppRouter({ children }: AppRouterProps) {
       "/privacy",
       "/admin-moderation",
       "/procare-info",
-      "/family-info"
+      "/family-info",
+      "/personal-guidance-info"
     ];
     
     return !hideOnRoutes.some(route => location.startsWith(route));
@@ -98,7 +99,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info"];
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info"];
     const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
     if (loading && isAuthenticated && !isPublicRoute) {
