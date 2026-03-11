@@ -180,18 +180,12 @@ export default function PricingPage() {
                 )}
               </div>
               <ul className="text-white/70 text-xs space-y-1.5 mb-4">
-                <li className="flex items-center gap-1.5">
-                  <Check className="w-3 h-3 text-lime-400" />
-                  Basic meal builder access
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Check className="w-3 h-3 text-lime-400" />
-                  Limited daily meal generation
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Check className="w-3 h-3 text-lime-400" />
-                  Basic macro tracking
-                </li>
+                {getDisplayFeaturesForTier("free").map((label, fi) => (
+                  <li key={fi} className="flex items-center gap-1.5">
+                    <Check className="w-3 h-3 text-lime-400" />
+                    {label}
+                  </li>
+                ))}
               </ul>
               <Button
                 onClick={() => setLocation("/dashboard")}
@@ -344,6 +338,38 @@ export default function PricingPage() {
                 </>
               )}
             </Button>
+          </div>
+
+          <div className="mt-8 mb-6">
+            <h2 className="text-lg font-bold text-center mb-4">
+              More Ways to Use My Perfect Meals
+            </h2>
+            <div className="space-y-3">
+              <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
+                <h3 className="text-white font-bold text-base mb-1">ProCare Coaching</h3>
+                <p className="text-white/60 text-xs mb-3">
+                  Learn how coach-assisted nutrition works
+                </p>
+                <Button
+                  onClick={() => setLocation("/procare-info")}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-sm"
+                >
+                  Learn More
+                </Button>
+              </div>
+              <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
+                <h3 className="text-white font-bold text-base mb-1">Family Plan</h3>
+                <p className="text-white/60 text-xs mb-3">
+                  Healthy eating support for the whole household
+                </p>
+                <Button
+                  onClick={() => setLocation("/family-info")}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-sm"
+                >
+                  Learn More
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="pt-6 space-y-3 text-center">
@@ -739,6 +765,53 @@ export default function PricingPage() {
                 </div>
               </Card>
             ))}
+          </div>
+        </div>
+
+        {/* More Ways to Use */}
+        <div className="mb-12">
+          <h2 className="text-xl font-bold mb-6 text-center">
+            More Ways to Use My Perfect Meals
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
+              <img
+                src="/images/procare-chef.png"
+                alt="ProCare Coaching"
+                className="w-full h-40 object-cover"
+              />
+              <CardContent className="pt-4 pb-5 space-y-2">
+                <h3 className="text-lg font-bold">ProCare Coaching</h3>
+                <p className="text-white/70 text-sm">
+                  Learn how coach-assisted nutrition works
+                </p>
+                <Button
+                  onClick={() => setLocation("/procare-info")}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                >
+                  Learn More
+                </Button>
+              </CardContent>
+            </Card>
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
+              <img
+                src="/images/family-chef.png"
+                alt="Family Plan"
+                className="w-full h-40 object-cover"
+              />
+              <CardContent className="pt-4 pb-5 space-y-2">
+                <h3 className="text-lg font-bold">Family Plan</h3>
+                <p className="text-white/70 text-sm">
+                  Healthy eating support for the whole household
+                </p>
+                <Button
+                  onClick={() => setLocation("/family-info")}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                >
+                  Learn More
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
 

@@ -28,14 +28,11 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "free",
     displayFeatures: [
       "AI Fridge Rescue (1/day)",
-      "Copilot Voice Guidance",
-      "Biometrics Tracking",
+      "Macro Calculator",
       "MacroScan",
-      "Spirits & Alcohol Hub",
-      "Daily Health Journal",
-      "Supplement Hub",
-      "View Saved Meals",
-      "Profile & Settings",
+      "Biometrics Tracking",
+      "Copilot Voice Guidance",
+      "Daily Journal",
     ],
     entitlements: [
       "shopping_list",

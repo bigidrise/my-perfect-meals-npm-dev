@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Check } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
-const FAMILY_BULLETS = [
-  "Individual profiles for each family member",
-  "Personalized nutrition guidance",
-  "Family friendly organization",
-  "One system for the whole household",
+const PROCARE_BULLETS = [
+  "Direct messaging with your coach",
+  "Structured decision guidance",
+  "Help adjusting meals and macros",
+  "Support when real life gets complicated",
 ];
 
-export default function FamilyInfoPage() {
+export default function ProCareInfoPage() {
   const [, setLocation] = useLocation();
 
   return (
@@ -34,7 +34,7 @@ export default function FamilyInfoPage() {
               <ArrowLeft className="h-4 w-4" />
               <span className="text-xs font-medium">Back</span>
             </Button>
-            <h1 className="text-lg font-bold text-white">Family Plan</h1>
+            <h1 className="text-lg font-bold text-white">ProCare Coaching</h1>
           </div>
         </div>
       </MobileHeaderGuard>
@@ -44,22 +44,22 @@ export default function FamilyInfoPage() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <img
-          src="/images/family-chef.png"
-          alt="Family Plan with Chef"
+          src="/images/procare-chef.png"
+          alt="ProCare Coaching with Chef"
           className="w-full rounded-2xl mb-6 shadow-xl"
         />
 
-        <h2 className="text-2xl font-bold mb-2">Family Plan</h2>
+        <h2 className="text-2xl font-bold mb-2">ProCare Coaching</h2>
 
         <p className="text-white/70 text-sm leading-relaxed mb-6">
-          Healthy eating is easier when the whole household is on the same
-          system. The My Perfect Meals Family Plan gives each member their own
-          personalized experience.
+          Sometimes the hardest part of nutrition is knowing what decision to
+          make in the moment. ProCare connects you with a professional coach
+          inside the My Perfect Meals system.
         </p>
 
         <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-5 mb-8">
           <ul className="space-y-3">
-            {FAMILY_BULLETS.map((bullet, idx) => (
+            {PROCARE_BULLETS.map((bullet, idx) => (
               <li key={idx} className="flex items-start gap-2.5">
                 <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
                 <span className="text-sm text-white">{bullet}</span>
