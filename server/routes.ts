@@ -5531,16 +5531,21 @@ function getMealIngredientsDatabase() {
 
   // Helper function to categorize ingredients
   function categorizeIngredient(ingredient: string): string {
+    const nonDairyMilkRe = /\b(almond|oat|soy|coconut|cashew|pea)\s*milk\b/;
+    const nonDairyButterRe = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)\s*butter\b/;
+    const halfAndHalfRe = /\bhalf[\s&-]+and[\s&-]+half\b|half[\s-]*&[\s-]*half/;
     const produce = ['berries', 'avocado', 'vegetables', 'bell peppers', 'broccoli', 'sweet potato'];
     const protein = ['chicken', 'salmon', 'yogurt', 'eggs'];
-    const dairy = ['yogurt', 'milk', 'cheese'];
+    const dairy = ['yogurt', 'milk', 'cheese', 'butter', 'cream', 'ghee'];
     const pantry = ['quinoa', 'granola', 'olive oil', 'honey'];
 
     const lowerIngredient = ingredient.toLowerCase();
 
+    const isNonDairy = nonDairyMilkRe.test(lowerIngredient) || nonDairyButterRe.test(lowerIngredient);
+
     if (produce.some(item => lowerIngredient.includes(item))) return 'Produce';
     if (protein.some(item => lowerIngredient.includes(item))) return 'Protein';
-    if (dairy.some(item => lowerIngredient.includes(item))) return 'Dairy';
+    if (!isNonDairy && (dairy.some(item => lowerIngredient.includes(item)) || halfAndHalfRe.test(lowerIngredient))) return 'Dairy';
     if (pantry.some(item => lowerIngredient.includes(item))) return 'Pantry';
 
     return 'Other';

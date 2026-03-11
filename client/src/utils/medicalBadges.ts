@@ -59,12 +59,23 @@ export function generateMedicalBadges(meal: any, userProfile: UserProfile): Medi
   const mealName = (meal.name || '').toLowerCase();
   const mealDescription = (meal.description || '').toLowerCase();
   
+  const NON_DAIRY_MILK_RE = /\b(almond|oat|soy|coconut|cashew|pea)\s*milk\b/;
+  const NON_DAIRY_BUTTER_RE = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)\s*butter\b/;
+  const HALF_AND_HALF_RE = /\bhalf[\s&-]+and[\s&-]+half\b|half[\s-]*&[\s-]*half/;
+
+  function isDairyIngredient(ingredient: string): boolean {
+    if (NON_DAIRY_MILK_RE.test(ingredient)) return false;
+    if (NON_DAIRY_BUTTER_RE.test(ingredient)) return false;
+    if (HALF_AND_HALF_RE.test(ingredient)) return true;
+    return ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'ghee'].some(dairy => ingredient.includes(dairy));
+  }
+
   // Allergy Checks
   allergies.forEach((allergy: string) => {
     const allergyLower = allergy.toLowerCase();
     const hasAllergen = mealIngredients.some((ingredient: string) => 
       ingredient.includes(allergyLower) ||
-      (allergyLower.includes('dairy') && ['milk', 'cheese', 'butter', 'cream', 'yogurt'].some(dairy => ingredient.includes(dairy))) ||
+      (allergyLower.includes('dairy') && isDairyIngredient(ingredient)) ||
       (allergyLower.includes('nuts') && ['peanut', 'almond', 'walnut', 'cashew', 'pecan'].some(nut => ingredient.includes(nut))) ||
       (allergyLower.includes('gluten') && ['wheat', 'flour', 'bread', 'pasta'].some(gluten => ingredient.includes(gluten)))
     ) || mealName.includes(allergyLower) || mealDescription.includes(allergyLower);

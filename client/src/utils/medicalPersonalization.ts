@@ -155,11 +155,16 @@ const FOOD_ALLERGIES = {
     color: 'bg-red-100 border-red-500',
     textColor: 'text-red-800',
     rules: (recipe: Recipe) => {
-      const dairyFree = !recipe.ingredients?.some(ing => 
-        ['milk', 'cheese', 'butter', 'yogurt', 'cream'].some(dairy => 
-          ing.name.toLowerCase().includes(dairy)
-        )
-      ) || true;
+      const nonDairyMilkRe = /\b(almond|oat|soy|coconut|cashew|pea)\s*milk\b/;
+      const nonDairyButterRe = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)\s*butter\b/;
+      const halfAndHalfRe = /\bhalf[\s&-]+and[\s&-]+half\b|half[\s-]*&[\s-]*half/;
+      const dairyFree = !recipe.ingredients?.some(ing => {
+        const name = ing.name.toLowerCase();
+        if (nonDairyMilkRe.test(name)) return false;
+        if (nonDairyButterRe.test(name)) return false;
+        if (halfAndHalfRe.test(name)) return true;
+        return ['milk', 'cheese', 'butter', 'yogurt', 'cream', 'ghee'].some(dairy => name.includes(dairy));
+      });
       return { compatible: dairyFree, reasons: dairyFree ? ['No dairy products'] : [] }
     }
   },
