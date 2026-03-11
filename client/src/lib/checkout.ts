@@ -1,6 +1,7 @@
 import type { LookupKey } from "@/data/planSkus";
 import { isIosNativeShell } from "@/lib/platform";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import {
   purchaseProduct as iosPurchase,
   isStoreKitAvailable,
@@ -72,6 +73,7 @@ export async function startCheckout(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       },
       credentials: "include",
       body: JSON.stringify({
@@ -121,6 +123,7 @@ export async function openCustomerPortal(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       },
       credentials: "include",
       body: JSON.stringify({

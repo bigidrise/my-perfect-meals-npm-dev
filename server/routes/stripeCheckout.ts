@@ -2,6 +2,7 @@ import { Router } from "express";
 import Stripe from "stripe";
 import { STRIPE_PRICE_IDS } from "../config/stripePrices";
 import type { LookupKey } from "../../client/src/data/planSkus";
+import { requireAuth } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -18,10 +19,9 @@ const stripe = stripeKey
   : null;
 
 function getUserId(req: any): string | null {
-  if (req.session?.userId) return req.session.userId as string;
+  if (req.authUser?.id) return req.authUser.id as string;
 
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
+  if (req.session?.userId) return req.session.userId as string;
 
   return null;
 }
@@ -32,7 +32,7 @@ interface CheckoutRequestBody {
   context?: string;
 }
 
-router.post("/checkout", async (req, res) => {
+router.post("/checkout", requireAuth, async (req, res) => {
   if (!stripe) {
     return res.status(503).json({
       error: "Payment system not configured — STRIPE_SECRET_KEY is missing",

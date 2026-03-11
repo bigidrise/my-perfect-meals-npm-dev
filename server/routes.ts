@@ -82,7 +82,8 @@ import glp1ShotsRoutes from "./routes/glp1Shots"; // Added import for glp1ShotsR
 import glp1Routes from "./routes/glp1"; // GLP-1 profile routes
 import bodyCompositionRoutes from "./routes/bodyComposition"; // Body fat tracking
 import { diabetesRouter } from "./routes/diabetes"; // Diabetes profile and glucose logging
-import stripeCheckoutRouter from "./routes/stripeCheckout"; // Added import for stripeCheckoutRouter
+import stripeCheckoutRouter from "./routes/stripeCheckout";
+import stripeRouter from "./routes/stripe";
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
 import iosVerifyRouter from "./routes/iosVerify";
 import lockedDaysRouter from "./routes/lockedDays";
@@ -375,6 +376,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount auth session and alcohol log
   app.use("/api/ios", iosVerifyRouter);
+  app.use("/api/stripe", stripeCheckoutRouter);
+  app.use("/api/stripe", stripeRouter);
 
   app.use(authSessionRouter);
   app.use(alcoholLogRouter);
