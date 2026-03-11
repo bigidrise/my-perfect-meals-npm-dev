@@ -92,7 +92,7 @@ r.get("/history", async (req,res)=>{
 
 r.post("/reset", async (req,res)=>{
   const userId = String(req.body?.userId || "1");
-  await db.execute(/* sql */`delete from mbl_day_log where user_id='${userId}'`);
+  await db.delete(mblDayLog).where(eq(mblDayLog.userId, userId));
   await db.update(mblAvatarState).set({
     weightLbs: "185", bodyFatPct: "28", muscleMassLbs: "70", energy: "60", mood: "60", lifestyleScore: "60",
     visualStage: "average", lastSimDate: ""
