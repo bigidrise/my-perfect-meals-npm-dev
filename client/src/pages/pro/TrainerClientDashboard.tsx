@@ -23,6 +23,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
+import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
@@ -319,6 +320,8 @@ export default function TrainerClientDashboard() {
             </CardContent>
           </Card>
         )}
+
+        <WeeklyWeightTrendCard clientId={resolvedClientUserId} />
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>

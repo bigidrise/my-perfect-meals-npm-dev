@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const CLIENT_DASHBOARD_TOUR_STEPS: TourStep[] = [
@@ -286,6 +287,8 @@ export default function ProClientDashboard() {
             👤 {client?.name || "Client"}
           </p>
         </div>
+
+        <WeeklyWeightTrendCard clientId={client?.clientUserId || client?.userId || clientId} />
 
         {/* MACRO TARGETS - SHOWN TO BOTH */}
         <Card className="bg-white/5 border border-white/20">
