@@ -1,8 +1,8 @@
 // ============================================
 // SERVICE WORKER VERSION
-// Update this constant when deploying new builds to force mobile refresh
+// Bump this version string on every deploy to force cache refresh
 // ============================================
-const CACHE_VERSION = 'v1-' + Date.now();
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = 'mpm-cache-' + CACHE_VERSION;
 
 // Files to cache
