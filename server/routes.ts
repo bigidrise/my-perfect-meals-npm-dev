@@ -1,6 +1,7 @@
 import { validateProfilePayload } from "./guards/profileFieldGuard";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { sendEmail } from "./emailService";
 import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
@@ -5119,6 +5120,48 @@ function getMealIngredientsDatabase() {
     } catch (error) {
       console.error("Get diary error:", error);
       res.status(500).json({ error: "Failed to get diary entries" });
+    }
+  });
+
+  app.post("/api/apply-guidance", async (req, res) => {
+    try {
+      const { name, goal, struggle, commitment } = req.body;
+
+      const trimmedName = typeof name === "string" ? name.trim() : "";
+      const trimmedGoal = typeof goal === "string" ? goal.trim() : "";
+      const trimmedStruggle = typeof struggle === "string" ? struggle.trim() : "";
+
+      if (!trimmedName || !trimmedGoal || !trimmedStruggle || typeof commitment !== "boolean") {
+        return res.status(400).json({ error: "Missing required fields: name, goal, struggle, commitment" });
+      }
+
+      const emailHtml = `
+        <h2>New Personal Guidance Application</h2>
+        <p><strong>Name:</strong> ${trimmedName}</p>
+        <p><strong>Primary Goal:</strong> ${trimmedGoal}</p>
+        <p><strong>Biggest Struggle:</strong> ${trimmedStruggle}</p>
+        <p><strong>6-Month Commitment Acknowledged:</strong> ${commitment ? "Yes" : "No"}</p>
+        <hr />
+        <p><em>Submitted at ${new Date().toISOString()}</em></p>
+      `;
+
+      const emailSent = await sendEmail({
+        to: "support@myperfectmeals.com",
+        subject: `Personal Guidance Application from ${trimmedName}`,
+        html: emailHtml,
+        text: `New Personal Guidance Application\n\nName: ${trimmedName}\nGoal: ${trimmedGoal}\nStruggle: ${trimmedStruggle}\nCommitment: ${commitment ? "Yes" : "No"}\n\nSubmitted at ${new Date().toISOString()}`,
+      });
+
+      if (!emailSent) {
+        console.error(`❌ Failed to send Personal Guidance notification email for ${trimmedName}`);
+        return res.status(500).json({ error: "Failed to send application notification" });
+      }
+
+      console.log(`✅ Personal Guidance application received from ${trimmedName}`);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("❌ Personal Guidance application error:", error);
+      res.status(500).json({ error: "Failed to process application" });
     }
   });
 
