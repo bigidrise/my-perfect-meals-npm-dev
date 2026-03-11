@@ -402,7 +402,7 @@ app.use("/api/shopping-list-v2", shoppingRouter); // Protected endpoints (inheri
 
 // DIRECT Holiday Feast route fix - BEFORE Vite middleware
 app.post("/api/meals/holiday-feast", requireAuth, requireActiveAccess, async (req, res) => {
-  console.log("🎯 WORKING Holiday Feast route HIT! Body:", req.body);
+  console.log("🎯 WORKING Holiday Feast route HIT!");
   try {
     const { generateHolidayFeast } = await import("./services/holidayFeastService");
 
@@ -451,7 +451,7 @@ app.post("/api/v1/kids-lunchbox/generate", async (req, res) => {
 
 // DIRECT Kids meals route fix - BEFORE Vite middleware - uses kidsLunchboxV1 for kid-friendly meals
 app.post("/api/meals/kids", async (req, res) => {
-  console.log("🧒 Kids meals route HIT! Body:", req.body);
+  console.log("🧒 Kids meals route HIT!");
   try {
     const { preferences, userId, servings = 1, allergies = [] } = req.body;
     const startTime = Date.now();
@@ -547,14 +547,14 @@ setTimeout(() => {
 // Twilio webhooks for STOP/HELP/delivery status
 app.post("/twilio/status", express.urlencoded({ extended: false }), async (req, res) => {
   // Message status updates: req.body.MessageSid, MessageStatus
-  console.log("Twilio status webhook:", req.body.MessageSid, req.body.MessageStatus);
+  console.log("Twilio status webhook received");
   res.sendStatus(200);
 });
 
 app.post("/twilio/inbound", express.urlencoded({ extended: false }), async (req, res) => {
   const from = req.body.From; 
   const body = String(req.body.Body || "").trim().toUpperCase();
-  console.log(`Inbound SMS from ${from}: ${body}`);
+  console.log(`Inbound SMS received`);
 
   // Handle STOP/START/HELP
   if (body === "STOP" || body === "UNSTOP" || body === "START") {
@@ -566,7 +566,7 @@ app.post("/twilio/inbound", express.urlencoded({ extended: false }), async (req,
     await db.update(userSmsSettings)
       .set({ consent })
       .where(eq(userSmsSettings.phoneE164, from));
-    console.log(`SMS consent updated for ${from}: ${consent}`);
+    console.log(`SMS consent updated: ${consent}`);
   }
   res.sendStatus(200);
 });

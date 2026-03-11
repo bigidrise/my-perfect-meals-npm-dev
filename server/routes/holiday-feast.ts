@@ -103,7 +103,7 @@ router.get("/api/holiday-feast/schema", (_req, res) => {
 router.post(
   "/",
   async (req: Request, res: Response) => {
-    console.log("🎯 Holiday Feast route HIT! Body:", req.body);
+    console.log("🎯 Holiday Feast route HIT!");
     const parsed = FeastRequest.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({

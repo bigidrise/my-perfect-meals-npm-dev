@@ -92,7 +92,7 @@ Happy cooking! 🧑‍🍳`;
 
       // For now, just log the reminder - email/SMS integration can be added later
       let notificationSent = true;
-      console.log(`📧 Would send reminder to user ${user.email || user.id}:`, message);
+      console.log(`📧 Would send reminder to user ${user.id}`);
 
       if (notificationSent) {
         // Update last sent timestamp

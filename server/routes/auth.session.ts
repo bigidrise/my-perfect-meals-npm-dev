@@ -103,7 +103,7 @@ router.post("/api/auth/signup", async (req, res) => {
     (req.session as any).userId = newUser.id;
   }
 
-  console.log("✅ Created new user:", newUser.email, "ID:", newUser.id);
+  console.log("✅ Created new user ID:", newUser.id);
 
     const inviteResult = await autoAcceptPendingInvites(newUser.id, newUser.email);
 
@@ -188,7 +188,7 @@ router.post("/api/auth/upgrade-to-procare", requireAuth, async (req: any, res) =
       .where(eq(users.id, userId))
       .returning();
 
-    console.log("✅ Upgraded user to ProCare:", updatedUser.email, "ID:", updatedUser.id);
+    console.log("✅ Upgraded user to ProCare, ID:", updatedUser.id);
 
     res.json({
       success: true,
@@ -212,7 +212,7 @@ router.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("🔐 Login attempt for email:", email);
+    console.log("🔐 Login attempt received");
 
     if (!email || !password) {
       console.log("❌ Missing email or password");
@@ -224,15 +224,14 @@ router.post("/api/auth/login", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
     
     if (!user) {
-      console.log("❌ User not found for email:", normalizedEmail);
+      console.log("❌ User not found");
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log("🔐 Password comparison result:", isValidPassword);
     if (!isValidPassword) {
-      console.log("❌ Password mismatch for user:", user.email);
+      console.log("❌ Password mismatch for user ID:", user.id);
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
@@ -251,7 +250,7 @@ router.post("/api/auth/login", async (req, res) => {
       (req.session as any).userId = user.id;
     }
 
-    console.log("✅ User logged in:", user.email, "ID:", user.id);
+    console.log("✅ User logged in, ID:", user.id);
 
     const inviteResult = await autoAcceptPendingInvites(user.id, user.email);
 
@@ -317,11 +316,11 @@ router.delete("/api/auth/delete-account", requireAuth, async (req, res) => {
   const userEmail = authReq.authUser.email;
 
   try {
-    console.log(`🗑️ Account deletion requested for user: ${userEmail} (${userId})`);
+    console.log(`🗑️ Account deletion requested for user ID: ${userId}`);
 
     await db.delete(users).where(eq(users.id, userId));
 
-    console.log(`✅ Account deleted successfully: ${userEmail} (${userId})`);
+    console.log(`✅ Account deleted successfully, user ID: ${userId}`);
 
     res.status(204).send();
   } catch (error: any) {
@@ -338,14 +337,14 @@ router.delete("/api/auth/delete-account", requireAuth, async (req, res) => {
 router.post("/api/auth/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
-    console.log(`📧 [FORGOT-PASSWORD] Request received for email: ${email}`);
+    console.log(`📧 [FORGOT-PASSWORD] Request received`);
 
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    console.log(`📧 [FORGOT-PASSWORD] Normalized email: ${normalizedEmail}`);
+    console.log(`📧 [FORGOT-PASSWORD] Email normalized`);
 
     const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
     console.log(`📧 [FORGOT-PASSWORD] User found: ${user ? 'YES' : 'NO'}`);
@@ -374,7 +373,7 @@ router.post("/api/auth/forgot-password", async (req, res) => {
         appUrl = `${req.protocol}://${req.headers.host || "localhost:5000"}`;
       }
       const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
-      console.log(`📧 [FORGOT-PASSWORD] Reset link generated: ${resetLink}`);
+      console.log(`📧 [FORGOT-PASSWORD] Reset link generated`);
 
       try {
         const { sendPasswordResetEmail } = await import("../services/emailService");
@@ -384,12 +383,12 @@ router.post("/api/auth/forgot-password", async (req, res) => {
           resetLink,
           userName: user.username || user.email.split("@")[0],
         });
-        console.log(`✅ [FORGOT-PASSWORD] Email sent successfully to: ${normalizedEmail}`);
+        console.log(`✅ [FORGOT-PASSWORD] Email sent successfully`);
       } catch (emailError: any) {
         console.error(`❌ [FORGOT-PASSWORD] Email sending failed:`, emailError.message);
       }
     } else {
-      console.log(`⚠️ [FORGOT-PASSWORD] Email not found in database: ${normalizedEmail}`);
+      console.log(`⚠️ [FORGOT-PASSWORD] Email not found in database`);
     }
 
     res.json({ message: "If that email exists, a reset link has been sent." });
@@ -445,7 +444,7 @@ router.post("/api/auth/reset-password", async (req, res) => {
       resetTokenExpires: null,
     }).where(eq(users.id, matchedUser.id));
 
-    console.log(`✅ Password reset successful for: ${matchedUser.email}`);
+    console.log(`✅ Password reset successful for user ID: ${matchedUser.id}`);
 
     res.json({
       message: "Password reset successful",

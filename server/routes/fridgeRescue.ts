@@ -16,7 +16,7 @@ const GenerateRequestSchema = z.object({
 });
 
 router.post('/fridge-rescue/generate', requireAuth, requireActiveAccess, async (req, res) => {
-  console.log('🔧 New deterministic fridge rescue request:', req.body);
+  console.log('🔧 New deterministic fridge rescue request');
   
   try {
     const parsed = GenerateRequestSchema.safeParse(req.body);

@@ -294,7 +294,7 @@ INCORRECT (NEVER DO THIS):
         const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
           userConditions = dbUser.healthConditions;
-          console.log("[BEVERAGE] User health conditions loaded:", userConditions.length, "conditions");
+          console.log("[BEVERAGE] User medical profile loaded");
         }
       } catch (err) {
         console.log("[BEVERAGE] Could not fetch user health conditions:", err);

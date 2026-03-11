@@ -231,7 +231,7 @@ router.post('/delete', async (req, res) => {
 // Replace meal endpoint - generates a new meal to replace an existing one
 router.post("/meal-engine/replace", async (req, res) => {
   try {
-    console.log("🔄 Meal replacement request:", req.body);
+    console.log("🔄 Meal replacement request received");
     
     // Generate replacement meal with forced variety to ensure different results
     const replacementRequest = {

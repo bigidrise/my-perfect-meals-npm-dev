@@ -14,7 +14,7 @@ const FROM = process.env.TWILIO_FROM_NUMBER!;
 export const smsWorker = connection ? new Worker("smsQueue", async (job) => {
   const { userId, toE164, body, reminderId } = job.data as any;
   try {
-    console.log(`Sending SMS to ${toE164}: ${body.slice(0, 50)}...`);
+    console.log(`Sending SMS notification`);
     const msg = await twClient.messages.create({ from: FROM, to: toE164, body });
     
     await db.insert(smsLog).values({
@@ -30,7 +30,7 @@ export const smsWorker = connection ? new Worker("smsQueue", async (job) => {
     
     console.log(`SMS sent successfully: ${msg.sid}`);
   } catch (e: any) {
-    console.error(`SMS failed for ${toE164}:`, e?.message);
+    console.error(`SMS failed:`, e?.message);
     await db.insert(smsLog).values({
       userId, toE164, body, 
       status: "failed", 

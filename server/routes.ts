@@ -732,7 +732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Fridge Rescue API Main Route - Generate 3 meals with macros and amounts
   app.post("/api/meals/fridge-rescue", requireAuth, normalizeFridgeRescue, async (req, res) => {
-    console.log("[FRIDGE] hit", { body: req.body, headers: req.headers["content-type"] });
+    console.log("[FRIDGE] hit", { contentType: req.headers["content-type"] });
     const startTime = Date.now();
     
     try {
@@ -826,7 +826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
           if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
             userHealthConditions = dbUser.healthConditions;
-            console.log("[FRIDGE] User health conditions loaded:", userHealthConditions.length, "conditions");
+            console.log("[FRIDGE] User medical profile loaded");
           }
           // Load palate preferences for flavor customization (only if not skipPalate)
           if (!skipPalate && dbUser && (dbUser.palateSpiceTolerance || dbUser.palateSeasoningIntensity || dbUser.palateFlavorStyle)) {
@@ -1539,7 +1539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // DIRECT Holiday Feast route for debugging
   app.post("/api/meals/holiday-feast", async (req, res) => {
-    console.log("🎯 DIRECT Holiday Feast route HIT! Body:", req.body);
+    console.log("🎯 DIRECT Holiday Feast route HIT!");
     try {
       const { userId, familyRecipe, cuisineType } = req.body;
       
@@ -4499,7 +4499,7 @@ function getMealIngredientsDatabase() {
       // Import SMS service
       const { sendSMS } = await import("./smsService");
 
-      console.log(`🧪 Testing SMS to ${phoneNumber}: ${message}`);
+      console.log(`🧪 Testing SMS notification`);
       const success = await sendSMS(phoneNumber, message);
 
       if (success) {
@@ -4686,7 +4686,7 @@ function getMealIngredientsDatabase() {
       console.log("🎯 MEAL PLAN ARCHIVE ROUTE HIT DIRECTLY!");
       const userId = "test-user-123"; // Demo user ID - in real app would come from auth
 
-      console.log("Received meal plan data:", JSON.stringify(req.body, null, 2));
+      console.log("Received meal plan archive request");
 
       // Create archive entry with correct aiMealPlanArchive schema structure
       const mealPlanData = {

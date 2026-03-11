@@ -38,7 +38,7 @@ router.post("/guide", async (req, res) => {
         const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
         if (foundUser) {
           user = foundUser;
-          console.log(`👤 [Guide] User profile loaded — allergies: ${foundUser.allergies?.join(', ') || 'none'}, conditions: ${foundUser.healthConditions?.join(', ') || 'none'}`);
+          console.log(`👤 [Guide] User profile loaded for meal generation`);
         }
       } catch (userError) {
         console.warn(`⚠️ Could not fetch user ${userId}:`, userError);
@@ -129,7 +129,7 @@ router.post("/analyze-menu", async (req, res) => {
         const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
         if (foundUser) {
           user = foundUser;
-          console.log(`👤 User found with health conditions: ${foundUser.healthConditions?.join(', ') || 'none'}`);
+          console.log(`👤 User medical profile loaded`);
         }
       } catch (userError) {
         console.warn(`⚠️ Could not fetch user ${userId}:`, userError);

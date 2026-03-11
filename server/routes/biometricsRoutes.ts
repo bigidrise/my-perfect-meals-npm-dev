@@ -195,7 +195,7 @@ router.post('/log', requireAuth, async (req, res) => {
     const userId = getAuthUserId(req);
     const { date_iso, meal_type, calories_kcal, protein_g, carbs_g, fat_g, source, title, meal_id } = req.body;
 
-    console.log("POST /api/biometrics/log", { userId, body: req.body });
+    console.log("POST /api/biometrics/log", { userId });
 
     // Validate required fields
     if (!calories_kcal && !protein_g && !carbs_g && !fat_g) {

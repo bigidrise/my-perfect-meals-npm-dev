@@ -52,9 +52,9 @@ router.post("/api/auth/forgot-password", async (req, res) => {
           resetLink,
           userName: user.firstName || user.username || email.split("@")[0],
         });
-        console.log(`✅ Password reset email sent to ${email} (link: ${resetLink})`);
+        console.log(`✅ Password reset email sent`);
       } catch (emailError) {
-        console.error(`❌ Failed to send password reset email to ${email}:`, emailError);
+        console.error(`❌ Failed to send password reset email:`, emailError);
       }
     }
 

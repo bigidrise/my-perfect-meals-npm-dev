@@ -796,7 +796,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         if (medicalHubContext) {
           console.log(`🩺 [DIABETES INTEGRATION] Active - BGL context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
           if (medicalHubContext.guardrails?.carbCeiling) {
-            console.log(`🩺 Diabetic guardrails: max ${medicalHubContext.guardrails.carbCeiling}g carbs, min ${medicalHubContext.guardrails.fiberMin}g fiber`);
+            console.log(`🩺 Diabetic guardrails applied`);
           }
         }
       } else if (detectedHubType === 'glp1') {
@@ -804,7 +804,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         if (medicalHubContext) {
           console.log(`💉 [GLP-1 INTEGRATION] Active - symptom context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
           if (medicalHubContext.guardrails) {
-            console.log(`💉 GLP-1 guardrails: max ${medicalHubContext.guardrails.portionCap} cal, min ${medicalHubContext.guardrails.proteinFloor}g protein, max ${medicalHubContext.guardrails.fatCeiling}g fat`);
+            console.log(`💉 GLP-1 guardrails applied`);
           }
         }
       } else if (detectedHubType === 'anti_inflammatory') {
@@ -812,7 +812,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         if (medicalHubContext) {
           console.log(`🌿 [ANTI-INFLAMMATORY INTEGRATION] Active - diet context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
           if (medicalHubContext.guardrails) {
-            console.log(`🌿 Anti-inflammatory guardrails: min ${medicalHubContext.guardrails.fiberMin}g fiber, ${medicalHubContext.guardrails.blockedIngredients?.length || 0} blocked ingredients`);
+            console.log(`🌿 Anti-inflammatory guardrails applied`);
           }
         }
       }

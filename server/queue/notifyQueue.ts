@@ -105,7 +105,7 @@ async function sendSMSNotification(userId: string, slot: string) {
     throw new Error("User not found or SMS not enabled");
   }
 
-  console.log(`📱 Sending SMS to ${user.phone}: Time for ${slot}!`);
+  console.log(`📱 Sending SMS notification for ${slot}`);
   
   // Send actual SMS notification
   const success = await sendSMS(user.phone, `🍽️ Time for ${slot}! Check your meal plan: ${process.env.FRONTEND_URL || 'https://myapp.replit.app'}/weekly`);

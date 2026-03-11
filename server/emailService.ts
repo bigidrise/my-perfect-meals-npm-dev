@@ -37,7 +37,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     
     await mailService.send(message);
 
-    console.log(`✅ Email sent successfully to ${params.to}`);
+    console.log(`✅ Email sent successfully`);
     return true;
   } catch (error) {
     console.error('❌ SendGrid email error:', error);

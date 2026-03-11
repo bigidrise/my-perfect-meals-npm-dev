@@ -44,7 +44,7 @@ router.post("/invite", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid email format. Please enter a valid email address." });
     }
 
-    console.log(`📧 Care Team invite request - email: "${email}", role: ${role}`);
+    console.log(`📧 Care Team invite request - role: ${role}`);
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
     const expiresAt = new Date();

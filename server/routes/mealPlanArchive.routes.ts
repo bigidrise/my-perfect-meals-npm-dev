@@ -53,7 +53,7 @@ router.post("/meal-plan-archive", async (req, res) => {
     console.log("🎯 MEAL PLAN ARCHIVE ROUTE HIT!");
     const userId = "test-user-123"; // Demo user ID - in real app would come from auth
     
-    console.log("Received meal plan data:", JSON.stringify(req.body, null, 2));
+    console.log("Received meal plan archive request");
     
     // Create archive entry with correct aiMealPlanArchive schema structure
     const mealPlanData = {

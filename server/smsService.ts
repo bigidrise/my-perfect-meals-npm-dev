@@ -28,7 +28,7 @@ export async function sendSMS(to: string, message: string): Promise<boolean> {
       to: to
     });
 
-    console.log(`✅ SMS sent successfully to ${to}, SID: ${result.sid}`);
+    console.log(`✅ SMS sent successfully, SID: ${result.sid}`);
     return true;
   } catch (error) {
     console.error('❌ Twilio SMS error:', error);

@@ -58,7 +58,7 @@ export async function autoAcceptPendingInvites(
 
     const existingMembership = await lookupExistingMembership(userId);
     if (existingMembership) {
-      console.log(`⚠️ [InviteAutoAccept] User ${email} already has a studio membership`);
+      console.log(`⚠️ [InviteAutoAccept] User already has a studio membership`);
       return { accepted: false, membership: existingMembership };
     }
 
@@ -135,7 +135,7 @@ export async function autoAcceptPendingInvites(
         { autoAccepted: true, source: "care_team_invite" }
       );
 
-      console.log(`✅ [InviteAutoAccept] Auto-accepted care team invite for ${email} → studio "${studioInfo.studioName}"`);
+      console.log(`✅ [InviteAutoAccept] Auto-accepted care team invite for user ${userId}`);
 
       return {
         accepted: true,
@@ -190,7 +190,7 @@ export async function autoAcceptPendingInvites(
         .from(studios)
         .where(eq(studios.id, invite.studioId));
 
-      console.log(`✅ [InviteAutoAccept] Auto-accepted studio invite for ${email} → studio "${studio?.name}"`);
+      console.log(`✅ [InviteAutoAccept] Auto-accepted studio invite for user ${userId}`);
 
       return {
         accepted: true,

@@ -68,7 +68,7 @@ router.post("/water-logs", async (req, res) => {
     const [row] = await db.insert(waterLogs).values(rowToInsert).returning();
 
     // Debug print so you can see exactly what's saved
-    console.log("[water-log][create]", { body: req.body, saved: row });
+    console.log("[water-log][create]", { id: row.id });
 
     res.json(row);
   } catch (e: any) {
