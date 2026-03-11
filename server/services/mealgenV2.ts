@@ -74,7 +74,6 @@ export async function generateMealV2(opts: {
     const why = violatesOnboarding(meal, opts.onboarding);
     if (!why) break;
     
-    console.log(`⚠️ Meal violates onboarding (${why}), regenerating...`);
     const regen = await callCravingCreator({
       targetMealType: opts.courseStyle.toLowerCase(),
       cravingInput: `${opts.courseStyle} variation ${tries + 2} avoiding ${why}`,
