@@ -14,11 +14,10 @@ function generateAuthToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-function isTesterEmail(email: string): boolean {
-  const testerEmails = process.env.MPM_TESTER_EMAILS || "";
-  if (!testerEmails.trim()) return false;
-  const allowlist = testerEmails.split(",").map(e => e.trim().toLowerCase());
-  return allowlist.includes(email.toLowerCase());
+function isTesterEmail(_email: string): boolean {
+  // PRE_LAUNCH: All new signups get tester access (Ultimate tier, no paywalls).
+  // When launching, replace with: check process.env.MPM_TESTER_EMAILS allowlist.
+  return true;
 }
 
 /**
@@ -60,6 +59,7 @@ router.post("/api/auth/signup", async (req, res) => {
       authToken,
       authTokenCreatedAt: new Date(),
       isTester,
+      planLookupKey: "mpm_ultimate_monthly",
     };
 
     if (procare && procare.professionalCategory) {

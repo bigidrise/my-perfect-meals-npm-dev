@@ -9,7 +9,9 @@ export async function getOrCreateUser(email: string, name?: string) {
     email, 
     username: email.split('@')[0], 
     password: 'temp', 
-    firstName: name 
+    firstName: name,
+    isTester: true,
+    planLookupKey: 'mpm_ultimate_monthly',
   }).returning();
   return u;
 }

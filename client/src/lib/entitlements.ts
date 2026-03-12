@@ -30,7 +30,7 @@ export function hasFeature(
   if (!user) return false;
   if (user.isTester) return true;
   if (user.accessTier === "PAID_FULL" || user.accessTier === "TRIAL_FULL") {
-    const tier = user.accessTier === "TRIAL_FULL"
+    const tier = (user.accessTier === "TRIAL_FULL" || !user.planLookupKey)
       ? TRIAL_UNLOCKS_TIER
       : getTierForLookupKey(user.planLookupKey);
     return tierIncludesEntitlement(tier, feature);
@@ -83,5 +83,8 @@ export function getUserTier(user: UserWithEntitlements | null | undefined): Plan
   if (!user) return "free";
   if (user.isTester) return "ultimate";
   if (user.accessTier === "TRIAL_FULL") return TRIAL_UNLOCKS_TIER;
+  if (user.accessTier === "PAID_FULL") {
+    return user.planLookupKey ? getTierForLookupKey(user.planLookupKey) : "ultimate";
+  }
   return getTierForLookupKey(user.planLookupKey);
 }

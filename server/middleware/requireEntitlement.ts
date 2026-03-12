@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { resolveAccessTier } from "../lib/accessTier";
 
 export function requireEntitlement(feature: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -18,6 +19,12 @@ export function requireEntitlement(feature: string) {
 
       if (!user) {
         return res.status(401).json({ error: "User not found" });
+      }
+
+      // Respect the global access tier — testers and paid/pre-launch users bypass entitlement checks
+      const accessTier = resolveAccessTier(user);
+      if (accessTier !== "FREE") {
+        return next();
       }
 
       const userEntitlements = user.entitlements || [];

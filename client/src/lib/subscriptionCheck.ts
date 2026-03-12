@@ -39,8 +39,8 @@ interface UserForSubscriptionCheck {
 export function hasActivePaidSubscription(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
   if (user.isTester) return true;
+  if (user.accessTier === "PAID_FULL" || user.accessTier === "TRIAL_FULL") return true;
   if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) return true;
-  if (user.accessTier === "TRIAL_FULL") return true;
   if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) return true;
   return false;
 }
