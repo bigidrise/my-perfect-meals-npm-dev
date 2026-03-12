@@ -456,6 +456,10 @@ export default function Router() {
           path="/pro/general-nutrition-builder"
           component={GeneralNutritionBuilder}
         />
+        <Route
+          path="/pro/performance-competition-builder"
+          component={PerformanceCompetitionBuilderProCare}
+        />
         <Route path="/pro/clients/:id/general-nutrition-builder" component={GeneralNutritionBuilder} />
         <Route path="/pro/clients/:id/performance-competition-builder" component={PerformanceCompetitionBuilderProCare} />
         <Route path="/pro/clients/:id/diabetic-builder" component={SafeDiabeticMenuBuilder} />
