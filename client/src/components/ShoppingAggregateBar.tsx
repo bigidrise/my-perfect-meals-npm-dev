@@ -46,9 +46,11 @@ export default function ShoppingAggregateBar({
   const inDesktopLayout = useInDesktopLayout();
 
   const isProStudio =
-    location.startsWith("/pro/clients/") ||
-    window.location.pathname.startsWith("/pro/clients/") ||
-    !!localStorage.getItem("pro-client-id");
+    location.startsWith("/pro/") ||
+    location.startsWith("/care-team") ||
+    window.location.pathname.startsWith("/pro/") ||
+    window.location.pathname.startsWith("/care-team") ||
+    localStorage.getItem("mpm_active_space") === "workspace";
 
   if (isProStudio) return null;
 
