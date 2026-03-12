@@ -372,8 +372,9 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                   className="bg-white/5 border border-white/20"
                   data-testid="pro-client-row"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
+                  <CardContent className="p-4 space-y-3">
+                    {/* Row 1: avatar + name/email + action buttons */}
+                    <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
                         <User2 className="h-5 w-5 text-white" />
                       </div>
@@ -382,36 +383,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                         {c.email && (
                           <div className="text-white/60 text-sm truncate">{c.email}</div>
                         )}
-                        <div className="flex gap-2 mt-1 flex-wrap">
-                          {c.dbBacked && (
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30">
-                              <LinkIcon className="h-3 w-3" />
-                              Linked
-                            </div>
-                          )}
-                          {c.role && (
-                            <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
-                              {c.role === "doctor"
-                                ? "Doctor"
-                                : c.role === "np"
-                                  ? "Nurse Practitioner"
-                                  : c.role === "rn"
-                                    ? "RN"
-                                    : c.role === "pa"
-                                      ? "PA"
-                                      : c.role === "nutritionist"
-                                        ? "Nutritionist"
-                                        : c.role === "dietitian"
-                                          ? "Dietitian"
-                                          : "Trainer"}
-                            </div>
-                          )}
-                          {getBuilderBadge(c) && (
-                            <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
-                              {getBuilderBadge(c)}
-                            </div>
-                          )}
-                        </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {c.archived ? (
@@ -449,16 +420,50 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                             </Button>
                             <Button
                               onClick={() => openFolder(c)}
+                              size="sm"
                               className="bg-purple-600 text-white active:scale-[0.98]"
                               data-testid="button-open-client"
                             >
                               <FolderOpen className="h-4 w-4 mr-1" />
-                              Open Folder
+                              Open
                             </Button>
                           </>
                         )}
                       </div>
                     </div>
+                    {/* Row 2: badges only — wraps freely, never affects buttons */}
+                    {(c.dbBacked || c.role || getBuilderBadge(c)) && (
+                      <div className="flex gap-2 flex-wrap pl-13">
+                        {c.dbBacked && (
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30">
+                            <LinkIcon className="h-3 w-3" />
+                            Linked
+                          </div>
+                        )}
+                        {c.role && (
+                          <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                            {c.role === "doctor"
+                              ? "Doctor"
+                              : c.role === "np"
+                                ? "NP"
+                                : c.role === "rn"
+                                  ? "RN"
+                                  : c.role === "pa"
+                                    ? "PA"
+                                    : c.role === "nutritionist"
+                                      ? "Nutritionist"
+                                      : c.role === "dietitian"
+                                        ? "Dietitian"
+                                        : "Trainer"}
+                          </div>
+                        )}
+                        {getBuilderBadge(c) && (
+                          <div className="inline-block max-w-[160px] truncate px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
+                            {getBuilderBadge(c)}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
