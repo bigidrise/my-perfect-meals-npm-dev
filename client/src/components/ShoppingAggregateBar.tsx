@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
-import { useInDesktopLayout } from "@/contexts/DesktopLayoutContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 
@@ -43,7 +43,7 @@ export default function ShoppingAggregateBar({
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const [sharing, setSharing] = useState(false);
-  const inDesktopLayout = useInDesktopLayout();
+  const isDesktop = useIsDesktop();
 
   const path = location || window.location.pathname;
   const isProStudio =
@@ -51,7 +51,8 @@ export default function ShoppingAggregateBar({
     path.startsWith("/care-team");
 
   if (isProStudio) return null;
-  if (inDesktopLayout) return null;
+  console.log("[ShoppingAggregateBar] rendering — isDesktop:", isDesktop, "path:", path);
+  if (isDesktop) return null;
 
   async function onShareList() {
     if (ingredients.length === 0) return;
