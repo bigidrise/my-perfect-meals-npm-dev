@@ -372,15 +372,15 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                   className="bg-white/5 border border-white/20"
                   data-testid="pro-client-row"
                 >
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
                         <User2 className="h-5 w-5 text-white" />
                       </div>
-                      <div>
-                        <div className="font-semibold text-white">{c.name}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-white truncate">{c.name}</div>
                         {c.email && (
-                          <div className="text-white text-sm">{c.email}</div>
+                          <div className="text-white/60 text-sm truncate">{c.email}</div>
                         )}
                         <div className="flex gap-2 mt-1 flex-wrap">
                           {c.dbBacked && (
@@ -413,51 +413,51 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                           )}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      {c.archived ? (
-                        <>
-                          <Button
-                            onClick={() => restoreClient(c.id)}
-                            variant="outline"
-                            size="sm"
-                            className="bg-green-600/20 border-green-500/30 text-green-300"
-                            data-testid={`button-restore-client-${c.id}`}
-                          >
-                            <RotateCcw className="h-4 w-4 mr-1" />
-                            Restore
-                          </Button>
-                          <TrashButton
-                            onClick={() => deleteClient(c.id, c.name)}
-                            size="sm"
-                            confirm
-                            confirmMessage={`Delete ${c.name} permanently? This will remove all data and cannot be undone.`}
-                            ariaLabel={`Permanently delete ${c.name}`}
-                            data-testid={`button-delete-client-${c.id}`}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={() => archiveClient(c.id)}
-                            variant="outline"
-                            size="sm"
-                            className="bg-orange-600/20 border-orange-500/30 text-orange-300"
-                            data-testid={`button-archive-client-${c.id}`}
-                          >
-                            <Archive className="h-4 w-4 mr-1" />
-                            Archive
-                          </Button>
-                          <Button
-                            onClick={() => openFolder(c)}
-                            className="bg-purple-600 text-white active:scale-[0.98]"
-                            data-testid="button-open-client"
-                          >
-                            <FolderOpen className="h-4 w-4 mr-1" />
-                            Open Folder
-                          </Button>
-                        </>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {c.archived ? (
+                          <>
+                            <Button
+                              onClick={() => restoreClient(c.id)}
+                              variant="outline"
+                              size="sm"
+                              className="bg-green-600/20 border-green-500/30 text-green-300"
+                              data-testid={`button-restore-client-${c.id}`}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
+                            <TrashButton
+                              onClick={() => deleteClient(c.id, c.name)}
+                              size="sm"
+                              confirm
+                              confirmMessage={`Delete ${c.name} permanently? This will remove all data and cannot be undone.`}
+                              ariaLabel={`Permanently delete ${c.name}`}
+                              data-testid={`button-delete-client-${c.id}`}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              onClick={() => archiveClient(c.id)}
+                              variant="outline"
+                              size="sm"
+                              className="bg-orange-600/20 border-orange-500/30 text-orange-300"
+                              data-testid={`button-archive-client-${c.id}`}
+                            >
+                              <Archive className="h-4 w-4 mr-1" />
+                              Archive
+                            </Button>
+                            <Button
+                              onClick={() => openFolder(c)}
+                              className="bg-purple-600 text-white active:scale-[0.98]"
+                              data-testid="button-open-client"
+                            >
+                              <FolderOpen className="h-4 w-4 mr-1" />
+                              Open Folder
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
