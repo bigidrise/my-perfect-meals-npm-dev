@@ -458,7 +458,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                           </div>
                         )}
                         {getBuilderBadge(c) && (
-                          <div className="inline-block max-w-[160px] truncate px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
+                          <div className="inline-block max-w-[100px] truncate px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
                             {getBuilderBadge(c)}
                           </div>
                         )}
