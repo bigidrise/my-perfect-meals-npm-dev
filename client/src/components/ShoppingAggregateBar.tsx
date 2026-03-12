@@ -51,6 +51,7 @@ export default function ShoppingAggregateBar({
     path.startsWith("/care-team");
 
   if (isProStudio) return null;
+  if (inDesktopLayout) return null;
 
   async function onShareList() {
     if (ingredients.length === 0) return;
@@ -186,8 +187,6 @@ export default function ShoppingAggregateBar({
   }
 
   if (!ingredients || ingredients.length === 0) return null;
-
-  if (inDesktopLayout) return null;
 
   const mobileStyle: CSSProperties = {
     left: 0,
