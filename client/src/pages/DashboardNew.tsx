@@ -87,7 +87,9 @@ export default function DashboardNew() {
   const [tabletError, setTabletError] = useState<string | null>(null);
   const [tabletInput, setTabletInput] = useState("");
   const [tabletSending, setTabletSending] = useState(false);
-  const [tabletTranslatingId, setTabletTranslatingId] = useState<string | null>(null);
+  const [tabletTranslatingId, setTabletTranslatingId] = useState<string | null>(
+    null,
+  );
   const [tabletHasUnread, setTabletHasUnread] = useState(false);
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
@@ -117,7 +119,9 @@ export default function DashboardNew() {
       const lastSeen = localStorage.getItem(lastSeenKey);
       const coachMsgs = msgs.filter((m: any) => m.sender === "pro");
       if (coachMsgs.length > 0) {
-        const latestTime = new Date(coachMsgs[coachMsgs.length - 1].createdAt).getTime();
+        const latestTime = new Date(
+          coachMsgs[coachMsgs.length - 1].createdAt,
+        ).getTime();
         const seenTime = lastSeen ? parseInt(lastSeen, 10) : 0;
         setTabletHasUnread(latestTime > seenTime);
       } else {
@@ -132,7 +136,10 @@ export default function DashboardNew() {
   }, []);
 
   const handleTabletSend = async () => {
-    if (!isProCareClient) { setLocation("/coaches"); return; }
+    if (!isProCareClient) {
+      setLocation("/coaches");
+      return;
+    }
     if (!tabletInput.trim() || tabletSending) return;
     setTabletSending(true);
     try {
@@ -161,16 +168,24 @@ export default function DashboardNew() {
   };
 
   const handleTabletTranslate = async (entry: any) => {
-    if (!isProCareClient) { setLocation("/coaches"); return; }
+    if (!isProCareClient) {
+      setLocation("/coaches");
+      return;
+    }
     if (tabletTranslatingId) return;
     const cacheKey = `${entry.id}_translate`;
     if (tabletTranslationCache.current.has(cacheKey)) {
       setTabletMessages((prev) =>
         prev.map((n: any) =>
           n.id === entry.id
-            ? { ...n, translatedBody: n.translatedBody ? undefined : tabletTranslationCache.current.get(cacheKey) }
-            : n
-        )
+            ? {
+                ...n,
+                translatedBody: n.translatedBody
+                  ? undefined
+                  : tabletTranslationCache.current.get(cacheKey),
+              }
+            : n,
+        ),
       );
       return;
     }
@@ -187,10 +202,13 @@ export default function DashboardNew() {
       });
       if (!res.ok) throw new Error("Translation failed");
       const data = await res.json();
-      const translated = data.translated?.description || data.description || entry.body;
+      const translated =
+        data.translated?.description || data.description || entry.body;
       tabletTranslationCache.current.set(cacheKey, translated);
       setTabletMessages((prev) =>
-        prev.map((n: any) => (n.id === entry.id ? { ...n, translatedBody: translated } : n))
+        prev.map((n: any) =>
+          n.id === entry.id ? { ...n, translatedBody: translated } : n,
+        ),
       );
     } catch {
       setTabletError("Translation failed");
@@ -200,7 +218,10 @@ export default function DashboardNew() {
   };
 
   const handleTabletDelete = async (entry: any) => {
-    if (!isProCareClient) { setLocation("/coaches"); return; }
+    if (!isProCareClient) {
+      setLocation("/coaches");
+      return;
+    }
     try {
       const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
         method: "DELETE",
@@ -372,7 +393,11 @@ export default function DashboardNew() {
 
       <div
         className="max-w-6xl mx-auto px-4 pb-8 flex flex-col gap-4"
-        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{
+          paddingTop: isDesktop
+            ? "2rem"
+            : "calc(env(safe-area-inset-top, 0px) + 6rem)",
+        }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -381,194 +406,255 @@ export default function DashboardNew() {
           className="mb-4"
         >
           <div className="relative h-48 rounded-xl overflow-hidden">
-            <img src="/images/home-hero.png" alt="My Perfect Meals Dashboard" className="w-full h-full object-cover" />
+            <img
+              src="/images/home-hero.png"
+              alt="My Perfect Meals Dashboard"
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <h2 className="text-2xl font-bold text-white mb-2">Welcome back, {firstName}!</h2>
-              <p className="text-white/90 text-sm mb-4">Ready to hit your macro goals today?</p>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Welcome back, {firstName}!
+              </h2>
+              <p className="text-white/90 text-sm mb-4">
+                Ready to hit your macro goals today?
+              </p>
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <Flame className="h-4 w-4 text-blue-500 mb-1" />
                   <div className="text-xs text-white/60">Protein</div>
-                  <div className="text-sm font-bold text-white">{Math.round(todayMacros.protein)}g</div>
+                  <div className="text-sm font-bold text-white">
+                    {Math.round(todayMacros.protein)}g
+                  </div>
                 </div>
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <TrendingUp className="h-4 w-4 text-orange-500 mb-1" />
                   <div className="text-xs text-white/60">Carbs</div>
-                  <div className="text-sm font-bold text-white">{Math.round(todayMacros.carbs)}g</div>
+                  <div className="text-sm font-bold text-white">
+                    {Math.round(todayMacros.carbs)}g
+                  </div>
                 </div>
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <Activity className="h-4 w-4 text-purple-500 mb-1" />
                   <div className="text-xs text-white/60">Fat</div>
-                  <div className="text-sm font-bold text-white">{Math.round(todayMacros.fat)}g</div>
+                  <div className="text-sm font-bold text-white">
+                    {Math.round(todayMacros.fat)}g
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.5 }} className="mb-4 space-y-3">
-            {isProCareClient ? (
-              <Card
-                className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-                onClick={() => setTabletOpen(!tabletOpen)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-purple-500/20 relative">
-                      <MessageSquare className="h-5 w-5 text-purple-400" />
-                      {tabletHasUnread && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-white">Messages From Your Coach</h3>
-                      <p className="text-xs text-white/70">View and reply to your coach</p>
-                    </div>
-                    {tabletOpen ? (
-                      <ChevronUp className="h-4 w-4 text-white/40" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-white/40" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12, duration: 0.5 }}
+          className="mb-4 space-y-3"
+        >
+          {isProCareClient ? (
+            <Card
+              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+              onClick={() => setTabletOpen(!tabletOpen)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-500/20 relative">
+                    <MessageSquare className="h-5 w-5 text-purple-400" />
+                    {tabletHasUnread && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card
-                className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden opacity-70"
-                onClick={() => setLocation("/coaches")}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-white/10 relative">
-                      <MessageSquare className="h-5 w-5 text-white/40" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-white/70 flex items-center gap-1.5">
-                        Messages with Coach
-                        <Lock className="h-3.5 w-3.5 text-orange-400" />
-                      </h3>
-                      <p className="text-xs text-white/50">Chat directly with your coach for guidance and accountability</p>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-white/20" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-white">
+                      Messages From Your Coach
+                    </h3>
+                    <p className="text-xs text-white/70">
+                      View and reply to your coach
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  {tabletOpen ? (
+                    <ChevronUp className="h-4 w-4 text-white/40" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-white/40" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card
+              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden opacity-70"
+              onClick={() => setLocation("/coaches")}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-white/10 relative">
+                    <MessageSquare className="h-5 w-5 text-white/40" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-1.5">
+                      Messages with Coach
+                      <Lock className="h-3.5 w-3.5 text-orange-400" />
+                    </h3>
+                    <p className="text-xs text-white/50">
+                      Chat directly with your coach for guidance and
+                      accountability
+                    </p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-white/20" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            {tabletOpen && (
-              <div className="bg-black/30 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 space-y-3">
-                {tabletLoading && (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-4 h-4 animate-spin text-white/40" />
-                  </div>
-                )}
-                {tabletError && (
-                  <p className="text-sm text-red-400">{tabletError}</p>
-                )}
-                {!tabletLoading && !tabletError && (
-                  <>
-                    <div ref={tabletScrollRef} className="max-h-64 overflow-y-auto space-y-2">
-                      {tabletMessages.length === 0 && (
-                        <p className="text-xs text-white/30 py-2">No messages yet</p>
-                      )}
-                      {tabletMessages.map((entry: any) => (
-                        <div
-                          key={entry.id}
-                          className={`rounded-md p-2.5 border ${
-                            entry.sender === "client"
-                              ? "bg-blue-500/10 border-blue-500/20 ml-6"
-                              : "bg-white/5 border-white/5 mr-6"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] text-white/40">
-                              {entry.sender === "client" ? "You" : "Coach"} &middot;{" "}
-                              {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
-                              {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleTabletTranslate(entry); }}
-                                disabled={tabletTranslatingId === entry.id}
-                                className="text-blue-400 p-0.5"
-                                title="Translate"
-                              >
-                                {tabletTranslatingId === entry.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Globe className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleTabletDelete(entry); }}
-                                className="text-red-500 p-0.5"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                          <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
-                            {entry.translatedBody || entry.body}
-                          </p>
-                          {entry.translatedBody && (
-                            <p className="text-[10px] text-white/30 mt-1 italic">
-                              Original: {entry.body}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <textarea
-                        value={tabletInput}
-                        onChange={(e) => setTabletInput(e.target.value)}
-                        placeholder="Reply to your coach..."
-                        className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-purple-500/50"
-                        rows={2}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleTabletSend();
-                          }
-                        }}
-                      />
-                      <Button
-                        size="sm"
-                        disabled={!tabletInput.trim() || tabletSending}
-                        onClick={handleTabletSend}
-                        className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
+          {tabletOpen && (
+            <div className="bg-black/30 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 space-y-3">
+              {tabletLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+                </div>
+              )}
+              {tabletError && (
+                <p className="text-sm text-red-400">{tabletError}</p>
+              )}
+              {!tabletLoading && !tabletError && (
+                <>
+                  <div
+                    ref={tabletScrollRef}
+                    className="max-h-64 overflow-y-auto space-y-2"
+                  >
+                    {tabletMessages.length === 0 && (
+                      <p className="text-xs text-white/30 py-2">
+                        No messages yet
+                      </p>
+                    )}
+                    {tabletMessages.map((entry: any) => (
+                      <div
+                        key={entry.id}
+                        className={`rounded-md p-2.5 border ${
+                          entry.sender === "client"
+                            ? "bg-blue-500/10 border-blue-500/20 ml-6"
+                            : "bg-white/5 border-white/5 mr-6"
+                        }`}
                       >
-                        {tabletSending ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Send className="w-3.5 h-3.5" />
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-white/40">
+                            {entry.sender === "client" ? "You" : "Coach"}{" "}
+                            &middot;{" "}
+                            {new Date(entry.createdAt).toLocaleDateString(
+                              undefined,
+                              { month: "short", day: "numeric" },
+                            )}{" "}
+                            {new Date(entry.createdAt).toLocaleTimeString(
+                              undefined,
+                              { hour: "numeric", minute: "2-digit" },
+                            )}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTabletTranslate(entry);
+                              }}
+                              disabled={tabletTranslatingId === entry.id}
+                              className="text-blue-400 p-0.5"
+                              title="Translate"
+                            >
+                              {tabletTranslatingId === entry.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Globe className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTabletDelete(entry);
+                              }}
+                              className="text-red-500 p-0.5"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+                          {entry.translatedBody || entry.body}
+                        </p>
+                        {entry.translatedBody && (
+                          <p className="text-[10px] text-white/30 mt-1 italic">
+                            Original: {entry.body}
+                          </p>
                         )}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <textarea
+                      value={tabletInput}
+                      onChange={(e) => setTabletInput(e.target.value)}
+                      placeholder="Reply to your coach..."
+                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-purple-500/50"
+                      rows={2}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleTabletSend();
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      disabled={!tabletInput.trim() || tabletSending}
+                      onClick={handleTabletSend}
+                      className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
+                    >
+                      {tabletSending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }} className="mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.5 }}
+          className="mb-4"
+        >
           <ComplianceCard userId={user?.id} />
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }} className="mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.5 }}
+          className="mb-4"
+        >
           <MedicalSourcesInfo
             trigger={
-              <Card className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-blue-400/50 rounded-xl group" data-testid="card-medical-safety">
+              <Card
+                className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-blue-400/50 rounded-xl group"
+                data-testid="card-medical-safety"
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30">
                       <Activity className="h-6 w-6 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-white text-lg">Sources & Medical Information</CardTitle>
-                      <CardDescription className="text-white/70 text-sm mt-1">NIH · USDA · WHO · ADA</CardDescription>
+                      <CardTitle className="text-white text-lg">
+                        Sources & Medical Information
+                      </CardTitle>
+                      <CardDescription className="text-white/70 text-sm mt-1">
+                        NIH · USDA · WHO · ADA
+                      </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -577,32 +663,59 @@ export default function DashboardNew() {
           />
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }} className="mb-4">
-          <Card className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group" onClick={() => setLocation("/shopping-list-v2")} data-testid="card-shopping-list">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="mb-4"
+        >
+          <Card
+            className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
+            onClick={() => setLocation("/shopping-list-v2")}
+            data-testid="card-shopping-list"
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
                   <ShoppingCart className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-white text-lg">Master Shopping List</CardTitle>
-                  <CardDescription className="text-white/70 text-sm mt-1">Smart grocery list manager</CardDescription>
+                  <CardTitle className="text-white text-lg">
+                    {" "}
+                    Smart Grocery List
+                  </CardTitle>
+                  <CardDescription className="text-white/70 text-sm mt-1">
+                    Smart grocery list manager
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }} className="mb-4">
-          <Card className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group" onClick={handlePhotoLog} data-testid="card-photo-log">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.5 }}
+          className="mb-4"
+        >
+          <Card
+            className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
+            onClick={handlePhotoLog}
+            data-testid="card-photo-log"
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
                   <Camera className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-white text-lg">MacroScan</CardTitle>
-                  <CardDescription className="text-white/70 text-sm mt-1">Scan nutrition. Log macros instantly</CardDescription>
+                  <CardTitle className="text-white text-lg">
+                    MacroScan
+                  </CardTitle>
+                  <CardDescription className="text-white/70 text-sm mt-1">
+                    Scan nutrition. Log macros instantly
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -615,16 +728,30 @@ export default function DashboardNew() {
             const isMacroCalculator = feature.testId === "macro-calculator";
             const shouldFlash = isGuidedMode && isMacroCalculator;
             return (
-              <motion.div key={feature.testId} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }} className="md:col-span-1">
-                <Card onClick={() => handleCardClick(feature.route)} className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group ${shouldFlash ? "flash-border" : ""}`} data-testid={feature.testId}>
+              <motion.div
+                key={feature.testId}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
+                className="md:col-span-1"
+              >
+                <Card
+                  onClick={() => handleCardClick(feature.route)}
+                  className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group ${shouldFlash ? "flash-border" : ""}`}
+                  data-testid={feature.testId}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
                       <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
                         <Icon className="h-6 w-6 text-orange-500" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-                        <p className="text-sm text-white/70">{feature.description}</p>
+                        <h3 className="text-lg font-semibold text-white">
+                          {feature.title}
+                        </h3>
+                        <p className="text-sm text-white/70">
+                          {feature.description}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -634,12 +761,24 @@ export default function DashboardNew() {
           })}
         </div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6, duration: 0.5 }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+        >
           <Card className="bg-black/30 backdrop-blur-lg border border-white/10 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] transition-all">
             <CardContent className="p-6 text-center">
-              <h3 className="text-white font-semibold mb-2">Ready to Plan Your Meals?</h3>
-              <p className="text-white/70 text-sm mb-4">Start building your perfect week with AI-powered meal planning</p>
-              <button onClick={() => setLocation("/planner")} className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl" data-testid="button-go-to-planner">
+              <h3 className="text-white font-semibold mb-2">
+                Ready to Plan Your Meals?
+              </h3>
+              <p className="text-white/70 text-sm mb-4">
+                Start building your perfect week with AI-powered meal planning
+              </p>
+              <button
+                onClick={() => setLocation("/planner")}
+                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+                data-testid="button-go-to-planner"
+              >
                 Go to Planner
               </button>
             </CardContent>
@@ -647,12 +786,18 @@ export default function DashboardNew() {
         </motion.div>
       </div>
 
-      <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
+      <Dialog
+        open={showSubscriptionModal}
+        onOpenChange={setShowSubscriptionModal}
+      >
         <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">Unlock Full Access</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-center">
+              Unlock Full Access
+            </DialogTitle>
             <DialogDescription className="text-white/80 text-center mt-2">
-              AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.
+              AI-powered meal planning, personalized macros, restaurant
+              guidance, and advanced coaching tools.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-2 text-sm text-white/80">
@@ -662,10 +807,24 @@ export default function DashboardNew() {
             <div>• Premium coaching access</div>
           </div>
           <div className="mt-6 space-y-3">
-            <Button className="w-full bg-orange-600 hover:bg-orange-700" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); setLocation("/pricing"); }}>
+            <Button
+              className="w-full bg-orange-600 hover:bg-orange-700"
+              onClick={() => {
+                localStorage.setItem("mpm_subscription_modal_shown", "true");
+                setShowSubscriptionModal(false);
+                setLocation("/pricing");
+              }}
+            >
               Explore Premium Plans
             </Button>
-            <Button variant="ghost" className="w-full text-orange-400 hover:bg-orange-500/10" onClick={() => { localStorage.setItem("mpm_subscription_modal_shown", "true"); setShowSubscriptionModal(false); }}>
+            <Button
+              variant="ghost"
+              className="w-full text-orange-400 hover:bg-orange-500/10"
+              onClick={() => {
+                localStorage.setItem("mpm_subscription_modal_shown", "true");
+                setShowSubscriptionModal(false);
+              }}
+            >
               Continue with Free Features
             </Button>
           </div>
