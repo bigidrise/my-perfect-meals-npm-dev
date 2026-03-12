@@ -187,40 +187,7 @@ export default function ShoppingAggregateBar({
 
   if (!ingredients || ingredients.length === 0) return null;
 
-  if (inDesktopLayout) {
-    return (
-      <div className="w-full mt-6 bg-black/80 backdrop-blur-xl border-t border-white/20 rounded-lg">
-        <div className="px-6 py-4 flex items-center gap-4">
-          <div className="flex-1">
-            <div className="font-semibold text-white">Grocery List Ready</div>
-            <div className="text-sm text-white/70">{ingredients.length} ingredients</div>
-          </div>
-          <div className="flex gap-2">
-            {!hideShareButton && (
-              <Button
-                onClick={onShareList}
-                disabled={sharing}
-                className="bg-blue-600 hover:bg-blue-700 text-white border border-white/30"
-                data-testid="button-share-shopping-list"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            )}
-            <Button
-              onClick={onAddToList}
-              className="bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
-              data-testid="button-go-to-shopping-list"
-              data-wt="wmb-send-day-to-shopping"
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add & View List
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (inDesktopLayout) return null;
 
   const mobileStyle: CSSProperties = {
     left: 0,
