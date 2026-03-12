@@ -125,7 +125,7 @@ export default function DesktopLayout({ children }: Props) {
   return (
     <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">
 
-      <aside className={`w-60 shrink-0 border-r border-white/10 flex flex-col overflow-y-auto transition-colors duration-300 ${
+      <aside className={`w-60 shrink-0 border-r border-white/10 flex flex-col overflow-y-auto transition-colors duration-300 pb-20 ${
         isStudioActive ? "bg-[rgba(30,90,180,0.06)]" : "bg-black"
       }`}>
 
