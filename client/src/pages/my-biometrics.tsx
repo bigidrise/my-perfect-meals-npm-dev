@@ -951,7 +951,10 @@ export default function MyBiometrics() {
     if (!currentUser?.id) return;
     const uid = currentUser.id;
 
-    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
+    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`), {
+      credentials: "include",
+      headers: { ...getAuthHeaders() },
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.entry) {
@@ -961,7 +964,10 @@ export default function MyBiometrics() {
       })
       .catch(() => {});
 
-    fetch(apiUrl(`/api/users/${uid}/body-composition/history`))
+    fetch(apiUrl(`/api/users/${uid}/body-composition/history`), {
+      credentials: "include",
+      headers: { ...getAuthHeaders() },
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.items) setBodyCompHistory(data.items);

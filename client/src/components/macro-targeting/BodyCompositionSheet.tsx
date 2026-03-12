@@ -17,7 +17,7 @@ import {
 import { Scale, Calendar as CalIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser } from "@/lib/auth";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/queryClient";
 
 type Method = "DEXA" | "BodPod" | "Calipers" | "Smart Scale" | "Other";
 
@@ -52,12 +52,9 @@ export default function BodyCompositionSheet({
   const loadLatestGoal = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`));
-      if (res.ok) {
-        const data = await res.json();
-        if (data.entry?.goalBodyFatPct) {
-          setGoalBodyFatPct(data.entry.goalBodyFatPct);
-        }
+      const data = await apiRequest(`/api/users/${userId}/body-composition/latest`);
+      if (data.entry?.goalBodyFatPct) {
+        setGoalBodyFatPct(data.entry.goalBodyFatPct);
       }
     } catch (err) {
       console.error("Error loading latest goal:", err);
@@ -97,15 +94,11 @@ export default function BodyCompositionSheet({
         recordedAt: date ? new Date(date).toISOString() : new Date().toISOString(),
       };
 
-      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition`), {
+      await apiRequest(`/api/users/${userId}/body-composition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to save");
-      }
 
       toast({
         title: "Saved",

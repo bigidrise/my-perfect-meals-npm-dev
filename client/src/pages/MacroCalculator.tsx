@@ -382,7 +382,10 @@ function BodyCompositionGuidedStep({
     if (!userId) return;
     const poll = async () => {
       try {
-        const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`));
+        const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`), {
+          credentials: "include",
+          headers: { ...getAuthHeaders() },
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.entry) {

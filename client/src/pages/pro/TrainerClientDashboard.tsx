@@ -102,7 +102,10 @@ export default function TrainerClientDashboard() {
     const c = proStore.getClient(clientId);
     const uid = c?.clientUserId || c?.userId;
     if (!uid) return;
-    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`))
+    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`), {
+      credentials: "include",
+      headers: { ...getAuthHeaders() },
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.entry) {

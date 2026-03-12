@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Scale, Ruler, Calendar as CalIcon, Info, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 
 type Method = "DEXA" | "BodPod" | "Calipers" | "Smart Scale" | "Other";
@@ -61,7 +61,10 @@ export default function BodyCompositionPro() {
   const loadLatest = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`));
+      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`), {
+        credentials: "include",
+        headers: { ...getAuthHeaders() },
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.entry) {
@@ -83,7 +86,10 @@ export default function BodyCompositionPro() {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/history`));
+      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/history`), {
+        credentials: "include",
+        headers: { ...getAuthHeaders() },
+      });
       if (res.ok) {
         const data = await res.json();
         setHistory(data.items || []);
@@ -169,7 +175,8 @@ export default function BodyCompositionPro() {
 
       const res = await fetch(apiUrl(`/api/users/${userId}/body-composition`), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });
 
