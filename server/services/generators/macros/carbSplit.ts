@@ -5,21 +5,7 @@
  */
 
 import { STARCHY_KEYWORDS } from '../../../../shared/starchKeywords';
-
-const FIBROUS_KEYWORDS = [
-  'spinach', 'kale', 'lettuce', 'arugula', 'cabbage', 'broccoli',
-  'cauliflower', 'brussels sprout', 'asparagus', 'celery', 'cucumber',
-  'zucchini', 'squash', 'eggplant', 'bell pepper', 'pepper', 'tomato',
-  'onion', 'garlic', 'mushroom', 'carrot', 'radish', 'turnip',
-  'green bean', 'snap pea', 'snow pea', 'artichoke', 'fennel',
-  'leek', 'scallion', 'chard', 'collard', 'bok choy', 'watercress',
-  'endive', 'radicchio', 'escarole', 'beet greens', 'mustard greens',
-  'apple', 'orange', 'berry', 'berries', 'strawberry', 'blueberry',
-  'raspberry', 'blackberry', 'grape', 'grapefruit', 'lemon', 'lime',
-  'peach', 'pear', 'plum', 'cherry', 'melon', 'watermelon', 'cantaloupe',
-  'kiwi', 'mango', 'papaya', 'pineapple', 'avocado',
-  'salad', 'greens', 'vegetable', 'veggie',
-];
+import { FIBROUS_KEYWORDS } from '../../../../shared/fibrousKeywords';
 
 export interface CarbSplitResult {
   starchyGrams: number;
@@ -69,7 +55,7 @@ export function deriveCarbSplit(
   const totalClassified = starchyCount + fibrousCount;
   
   if (totalClassified === 0) {
-    return { starchyGrams: Math.round(totalCarbs * 0.6), fibrousGrams: Math.round(totalCarbs * 0.4) };
+    return { starchyGrams: 0, fibrousGrams: totalCarbs };
   }
 
   const starchyRatio = starchyCount / (totalClassified || 1);

@@ -12,18 +12,7 @@
  */
 
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
-
-const FIBROUS_KEYWORDS = [
-  'spinach', 'lettuce', 'kale', 'arugula', 'chard', 'collard', 'romaine',
-  'mixed greens', 'spring mix', 'salad', 'cabbage', 'bok choy', 'watercress',
-  'broccoli', 'cauliflower', 'brussels sprout', 'kohlrabi',
-  'pepper', 'bell pepper', 'jalapeno', 'onion', 'garlic', 'shallot', 'leek',
-  'scallion', 'green onion', 'chive',
-  'tomato', 'cucumber', 'zucchini', 'squash', 'eggplant', 'mushroom',
-  'asparagus', 'artichoke', 'celery', 'carrot', 'radish', 'turnip', 'beet',
-  'green bean', 'snap pea', 'snow pea', 'okra',
-  'basil', 'cilantro', 'parsley', 'dill', 'mint', 'oregano', 'thyme', 'rosemary',
-];
+import { FIBROUS_KEYWORDS } from '../../shared/fibrousKeywords';
 
 interface Ingredient {
   name?: string;
@@ -77,8 +66,8 @@ export function deriveCarbs(
   
   if (totalScore === 0) {
     return {
-      starchyCarbs: Math.round(totalCarbs * 0.6),
-      fibrousCarbs: Math.round(totalCarbs * 0.4),
+      starchyCarbs: 0,
+      fibrousCarbs: totalCarbs,
       totalCarbs,
       derived: true,
     };
