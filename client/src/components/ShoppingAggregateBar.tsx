@@ -45,12 +45,10 @@ export default function ShoppingAggregateBar({
   const [sharing, setSharing] = useState(false);
   const inDesktopLayout = useInDesktopLayout();
 
+  const path = location || window.location.pathname;
   const isProStudio =
-    location.startsWith("/pro/") ||
-    location.startsWith("/care-team") ||
-    window.location.pathname.startsWith("/pro/") ||
-    window.location.pathname.startsWith("/care-team") ||
-    localStorage.getItem("mpm_active_space") === "workspace";
+    path.startsWith("/pro/") ||
+    path.startsWith("/care-team");
 
   if (isProStudio) return null;
 
