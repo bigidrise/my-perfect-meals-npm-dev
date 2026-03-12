@@ -458,7 +458,7 @@ export default function Router() {
         />
         <Route
           path="/pro/performance-competition-builder"
-          component={PerformanceCompetitionBuilderProCare}
+          component={PerformanceCompetitionBuilderStandalone}
         />
         <Route path="/pro/clients/:id/general-nutrition-builder" component={GeneralNutritionBuilder} />
         <Route path="/pro/clients/:id/performance-competition-builder" component={PerformanceCompetitionBuilderProCare} />
