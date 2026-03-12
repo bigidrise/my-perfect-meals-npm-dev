@@ -187,11 +187,42 @@ export default function ShoppingAggregateBar({
 
   if (!ingredients || ingredients.length === 0) return null;
 
-  const desktopStyle: CSSProperties = {
-    left: "240px",
-    right: 0,
-    bottom: 0,
-  };
+  if (inDesktopLayout) {
+    return (
+      <div className="sticky bottom-0 z-30 bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl">
+        <div className="container mx-auto px-4 py-3">
+          <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+            <div className="absolute left-0 right-0 text-white text-center pointer-events-none hidden sm:block">
+              <div className="font-semibold text-sm sm:text-base">Grocery List Ready</div>
+              <div className="text-xs sm:text-sm text-white/80">{ingredients.length} ingredients</div>
+            </div>
+            <div className="flex gap-2 sm:ml-auto">
+              {!hideShareButton && (
+                <Button
+                  onClick={onShareList}
+                  disabled={sharing}
+                  className="flex-1 sm:flex-none min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white border border-white/30"
+                  data-testid="button-share-shopping-list"
+                >
+                  <Share2 className="h-5 w-5 sm:mr-2" />
+                  <span className="hidden sm:inline">Share</span>
+                </Button>
+              )}
+              <Button
+                onClick={onAddToList}
+                className="flex-1 sm:flex-none min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
+                data-testid="button-go-to-shopping-list"
+                data-wt="wmb-send-day-to-shopping"
+              >
+                <ShoppingCart className="h-5 w-5 sm:mr-2" />
+                <span>Add & View List</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const mobileStyle: CSSProperties = {
     left: 0,
@@ -202,7 +233,7 @@ export default function ShoppingAggregateBar({
   return (
     <div
       className="fixed z-30 bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl"
-      style={inDesktopLayout ? desktopStyle : mobileStyle}
+      style={mobileStyle}
     >
       <div className="container mx-auto px-4 py-3">
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
