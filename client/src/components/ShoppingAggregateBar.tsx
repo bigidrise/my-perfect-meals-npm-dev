@@ -25,15 +25,23 @@ type Props = {
 };
 
 function formatQty(qty?: number | string): string {
-  if (!qty) return '';
-  const num = typeof qty === 'number' ? qty : parseFloat(String(qty));
+  if (!qty) return "";
+  const num = typeof qty === "number" ? qty : parseFloat(String(qty));
   if (isNaN(num)) return String(qty);
 
   const rounded = Math.round(num * 100) / 100;
-  return rounded.toString().replace(/\.?0+$/, '');
+  return rounded.toString().replace(/\.?0+$/, "");
 }
 
-export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, bottomPadding = "pb-20", hideShareButton = true, onAddComplete, aboveBottomNav = false }: Props) {
+export default function ShoppingAggregateBar({
+  ingredients,
+  source,
+  sourceSlug,
+  bottomPadding = "pb-20",
+  hideShareButton = true,
+  onAddComplete,
+  aboveBottomNav = false,
+}: Props) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [sharing, setSharing] = useState(false);
@@ -47,10 +55,15 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
       "🛒 Shopping List",
       source ? `From: ${source}` : "",
       "",
-      ...ingredients.map(i => `• ${i.name}${i.qty ? ` — ${formatQty(i.qty)}${i.unit ? ' ' + i.unit : ''}` : ''}`),
+      ...ingredients.map(
+        (i) =>
+          `• ${i.name}${i.qty ? ` — ${formatQty(i.qty)}${i.unit ? " " + i.unit : ""}` : ""}`,
+      ),
       "",
-      "Created with My Perfect Meals"
-    ].filter(Boolean).join("\n");
+      "Created with My Perfect Meals",
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     try {
       if (Capacitor.isNativePlatform()) {
@@ -81,7 +94,7 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
         }
         toast({
           title: "Copied to Clipboard",
-          description: `${ingredients.length} ingredients copied.`
+          description: `${ingredients.length} ingredients copied.`,
         });
       }
     } catch (err: any) {
@@ -104,7 +117,7 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
           }
           toast({
             title: "Copied to Clipboard",
-            description: `${ingredients.length} ingredients copied.`
+            description: `${ingredients.length} ingredients copied.`,
           });
         } catch (clipboardErr) {
           // Last resort: textarea fallback
@@ -119,14 +132,14 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
             document.body.removeChild(el);
             toast({
               title: "Copied to Clipboard",
-              description: `${ingredients.length} ingredients copied.`
+              description: `${ingredients.length} ingredients copied.`,
             });
           } catch (finalErr) {
             console.error("All copy methods failed:", finalErr);
             toast({
               title: "Copy Failed",
               description: "Unable to copy to clipboard. Please copy manually.",
-              variant: "destructive"
+              variant: "destructive",
             });
           }
         }
@@ -139,24 +152,31 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
   function onAddToList() {
     if (ingredients.length === 0) return;
 
-    const items = ingredients.map(i => ({
+    const items = ingredients.map((i) => ({
       name: i.name,
-      quantity: typeof i.qty === 'number' ? i.qty : (i.qty ? parseFloat(String(i.qty)) : 1),
-      unit: i.unit || '',
-      notes: source
+      quantity:
+        typeof i.qty === "number"
+          ? i.qty
+          : i.qty
+            ? parseFloat(String(i.qty))
+            : 1,
+      unit: i.unit || "",
+      notes: source,
     }));
 
     useShoppingListStore.getState().addItems(items);
     toast({
       title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your master list`
+      description: `${ingredients.length} items added to your master list`,
     });
-    
+
     if (onAddComplete) {
       onAddComplete();
     }
 
-    const url = sourceSlug ? `/shopping-list-v2?from=${sourceSlug}` : "/shopping-list-v2";
+    const url = sourceSlug
+      ? `/shopping-list-v2?from=${sourceSlug}`
+      : "/shopping-list-v2";
     setLocation(url);
   }
 
@@ -165,17 +185,29 @@ export default function ShoppingAggregateBar({ ingredients, source, sourceSlug, 
   return (
     <div
       className={`fixed left-0 right-0 z-[60] bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl ${aboveBottomNav && !isDesktop ? "" : "pb-[var(--safe-bottom,0px)]"} sm:left-60 sm:p-0`}
-      style={{ bottom: isDesktop ? 0 : (aboveBottomNav ? "calc(64px + var(--safe-bottom, 0px))" : 0) }}
+      style={{
+        bottom: isDesktop
+          ? 0
+          : aboveBottomNav
+            ? "calc(64px + var(--safe-bottom, 0px))"
+            : 0,
+      }}
     >
       <div className="container mx-auto px-4 py-3">
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           <div className="absolute left-0 right-0 text-white text-center pointer-events-none hidden sm:block">
-            <div className="font-semibold text-sm sm:text-base">Shopping List Ready</div>
-            <div className="text-xs sm:text-sm text-white/80">{ingredients.length} ingredients</div>
+            <div className="font-semibold text-sm sm:text-base">
+              Grocery List Ready
+            </div>
+            <div className="text-xs sm:text-sm text-white/80">
+              {ingredients.length} ingredients
+            </div>
           </div>
           <div className="text-white text-center sm:hidden">
-            <div className="font-semibold text-sm">Shopping List Ready</div>
-            <div className="text-xs text-white/80">{ingredients.length} ingredients</div>
+            <div className="font-semibold text-sm">Grocery List Ready</div>
+            <div className="text-xs text-white/80">
+              {ingredients.length} ingredients
+            </div>
           </div>
           <div className="flex gap-2 sm:ml-auto">
             {!hideShareButton && (
