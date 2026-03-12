@@ -87,7 +87,7 @@ export default function Planner() {
       description:
         "Coach guided elite athlete meal planning for competition prep, peak performance and recovery",
       icon: Dumbbell,
-      route: "/pro/performance-competition-builder",
+      route: "/performance-competition-builder",
       testId: "card-performance-competition",
       builderId: "performance_competition",
     },
