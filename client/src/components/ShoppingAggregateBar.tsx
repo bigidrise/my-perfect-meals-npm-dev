@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import { ShoppingCart, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
-import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useInDesktopLayout } from "@/contexts/DesktopLayoutContext";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 
@@ -18,7 +18,6 @@ type Props = {
   ingredients: Ingredient[];
   source?: string;
   sourceSlug?: string;
-  bottomPadding?: string;
   hideShareButton?: boolean;
   onAddComplete?: () => void;
   aboveBottomNav?: boolean;
@@ -37,7 +36,6 @@ export default function ShoppingAggregateBar({
   ingredients,
   source,
   sourceSlug,
-  bottomPadding = "pb-20",
   hideShareButton = true,
   onAddComplete,
   aboveBottomNav = false,
@@ -45,7 +43,7 @@ export default function ShoppingAggregateBar({
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [sharing, setSharing] = useState(false);
-  const isDesktop = useIsDesktop(640);
+  const inDesktopLayout = useInDesktopLayout();
 
   async function onShareList() {
     if (ingredients.length === 0) return;
@@ -182,16 +180,22 @@ export default function ShoppingAggregateBar({
 
   if (!ingredients || ingredients.length === 0) return null;
 
+  const desktopStyle: CSSProperties = {
+    left: "240px",
+    right: 0,
+    bottom: 0,
+  };
+
+  const mobileStyle: CSSProperties = {
+    left: 0,
+    right: 0,
+    bottom: aboveBottomNav ? "calc(64px + var(--safe-bottom, 0px))" : 0,
+  };
+
   return (
     <div
-      className={`fixed left-0 right-0 z-[60] bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl ${aboveBottomNav && !isDesktop ? "" : "pb-[var(--safe-bottom,0px)]"} sm:left-60 sm:p-0`}
-      style={{
-        bottom: isDesktop
-          ? 0
-          : aboveBottomNav
-            ? "calc(64px + var(--safe-bottom, 0px))"
-            : 0,
-      }}
+      className="fixed z-30 bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl"
+      style={inDesktopLayout ? desktopStyle : mobileStyle}
     >
       <div className="container mx-auto px-4 py-3">
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
