@@ -40,10 +40,12 @@ export default function ShoppingAggregateBar({
   onAddComplete,
   aboveBottomNav = false,
 }: Props) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const [sharing, setSharing] = useState(false);
   const inDesktopLayout = useInDesktopLayout();
+
+  if (location.startsWith("/pro/clients/")) return null;
 
   async function onShareList() {
     if (ingredients.length === 0) return;
