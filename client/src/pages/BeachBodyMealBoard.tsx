@@ -58,6 +58,7 @@ import {
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -213,7 +214,7 @@ export default function BeachBodyMealBoard() {
     loading: hookLoading,
     error,
     save: saveToHook,
-  } = useWeeklyBoard(clientId, weekStartISO, proClientId);
+  } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.BEACH_BODY);
 
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -1370,6 +1371,7 @@ export default function BeachBodyMealBoard() {
                                 date={activeDayISO}
                                 slot={key}
                                 meal={meal}
+                                showStarchBadge={true}
                                 data-wt="wmb-meal-card"
                                 onUpdated={(m) => {
                                   if (m === null) {
@@ -1499,6 +1501,7 @@ export default function BeachBodyMealBoard() {
                                 date={activeDayISO}
                                 slot="snacks"
                                 meal={meal}
+                                showStarchBadge={true}
                                 onUpdated={(m) => {
                                   if (m === null) {
                                     const updatedDayLists = {
@@ -1627,6 +1630,7 @@ export default function BeachBodyMealBoard() {
                         date={"board"}
                         slot={key}
                         meal={meal}
+                        showStarchBadge={true}
                         onUpdated={(m) => {
                           if (m === null) {
                             if (!board) return;
@@ -1730,6 +1734,7 @@ export default function BeachBodyMealBoard() {
                         date={activeDayISO}
                         slot="snacks"
                         meal={meal}
+                        showStarchBadge={true}
                         data-wt="wmb-meal-card"
                         onUpdated={(m) => {
                           if (m === null) {
@@ -1779,6 +1784,7 @@ export default function BeachBodyMealBoard() {
                       date={"board"}
                       slot="snacks"
                       meal={meal}
+                      showStarchBadge={true}
                       data-wt="wmb-meal-card"
                       onUpdated={(m) => {
                         if (m === null) {

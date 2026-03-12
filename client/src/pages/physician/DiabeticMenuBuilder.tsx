@@ -80,6 +80,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -198,7 +199,7 @@ export default function DiabeticMenuBuilder() {
     error,
     save: saveToHook,
     source,
-  } = useWeeklyBoard("1", weekStartISO, proClientId);
+  } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.DIABETIC);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -1594,6 +1595,7 @@ export default function DiabeticMenuBuilder() {
                           date={activeDayISO}
                           slot={key}
                           meal={meal}
+                          showStarchBadge={true}
                           data-wt="wmb-meal-card"
                           onUpdated={(m) => {
                             if (m === null) {
@@ -1715,6 +1717,7 @@ export default function DiabeticMenuBuilder() {
                       date={"board"}
                       slot={key}
                       meal={meal}
+                      showStarchBadge={true}
                       onUpdated={(m) => {
                         if (m === null) {
                           // Remove meal using new API

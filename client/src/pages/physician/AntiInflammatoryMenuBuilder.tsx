@@ -77,6 +77,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -149,13 +150,23 @@ export default function AntiInflammatoryMenuBuilder() {
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
     React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
+
+  // Clinical mode is PRIMARY STATE — drives namespace and AI prompts.
+  // Persisted to localStorage so it survives page reload.
+  const [clinicalModeState, setClinicalModeState] = React.useState<ClinicalMode>(
+    () => (localStorage.getItem('mpm.antiInflammatoryMode') as ClinicalMode) ?? 'anti-inflammatory'
+  );
+  const namespace = clinicalModeState === 'liver-support'
+    ? BUILDER_NS.ANTI_INFLAMMATORY_LIVER
+    : BUILDER_NS.ANTI_INFLAMMATORY;
+
   const {
     board: hookBoard,
     loading: hookLoading,
     error,
     save: saveToHook,
     source,
-  } = useWeeklyBoard("2", weekStartISO, proClientId);
+  } = useWeeklyBoard("2", weekStartISO, proClientId, namespace);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -163,7 +174,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
-  const clinicalMode = resolveClinicalMode(board);
+  const clinicalMode = clinicalModeState;
 
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
@@ -220,22 +231,11 @@ export default function AntiInflammatoryMenuBuilder() {
   );
 
   const handleClinicalModeChange = useCallback(
-    async (nextMode: ClinicalMode) => {
-      if (!board) return;
-      const prevMode = clinicalMode;
-      const updatedBoard: WeekBoard = {
-        ...board,
-        meta: { ...board.meta, clinicalMode: nextMode, lastUpdatedAt: new Date().toISOString() },
-      };
-      setBoard(updatedBoard);
-      try {
-        await saveBoard(updatedBoard);
-      } catch {
-        setBoard({ ...board, meta: { ...board.meta, clinicalMode: prevMode } });
-        toast({ title: "Failed to save mode", description: "Could not update clinical mode. Please try again." });
-      }
+    (nextMode: ClinicalMode) => {
+      setClinicalModeState(nextMode);
+      localStorage.setItem('mpm.antiInflammatoryMode', nextMode);
     },
-    [board, clinicalMode, saveBoard, toast],
+    [],
   );
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -1569,6 +1569,7 @@ export default function AntiInflammatoryMenuBuilder() {
                             date={activeDayISO}
                             slot={key}
                             meal={meal}
+                            showStarchBadge={true}
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1692,6 +1693,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         date={"board"}
                         slot={key}
                         meal={meal}
+                        showStarchBadge={true}
                         onUpdated={(m) => {
                           if (m === null) {
                             // Remove meal using new API

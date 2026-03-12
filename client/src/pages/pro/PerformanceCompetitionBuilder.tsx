@@ -59,6 +59,7 @@ import {
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -223,7 +224,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     error,
     save: saveToHook,
     source,
-  } = useWeeklyBoard(clientId, weekStartISO, proClientId);
+  } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -1258,6 +1259,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                               date={activeDayISO}
                               slot={key}
                               meal={meal}
+                              showStarchBadge={true}
                               data-wt="wmb-meal-card"
                               onUpdated={(m) => {
                                 if (m === null) {
@@ -1413,6 +1415,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                 date={activeDayISO}
                                 slot="snacks"
                                 meal={meal}
+                                showStarchBadge={true}
                                 onUpdated={(m) => {
                                   if (m === null) {
                                     const updatedDayLists = {
@@ -1517,6 +1520,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             date={activeDayISO}
                             slot="snacks"
                             meal={meal}
+                            showStarchBadge={true}
                             onUpdated={(m) => {
                               if (m === null) {
                                 const updatedDayLists = {
@@ -1698,6 +1702,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         date={"board"}
                         slot={key}
                         meal={meal}
+                        showStarchBadge={true}
                         onUpdated={(m) => {
                           if (m === null) {
                             // Remove meal using new API

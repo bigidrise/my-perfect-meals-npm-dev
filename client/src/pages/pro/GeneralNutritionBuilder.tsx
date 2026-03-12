@@ -59,6 +59,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
@@ -133,7 +134,7 @@ export default function WeeklyMealBoard() {
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
-  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard(clientId, weekStartISO, proClientId);
+  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -1194,6 +1195,7 @@ export default function WeeklyMealBoard() {
                       date={activeDayISO}
                       slot={key}
                       meal={meal}
+                      showStarchBadge={true}
                       data-wt="wmb-meal-card"
                       onUpdated={(m) => {
                         if (m === null) {
@@ -1283,6 +1285,7 @@ export default function WeeklyMealBoard() {
                   date={"board"}
                   slot={key}
                   meal={meal}
+                  showStarchBadge={true}
                   onUpdated={(m) => {
                     if (m === null) {
                       // Remove meal using new API

@@ -17,8 +17,15 @@ function getAppleReviewHeaders(userId: string): Record<string, string> {
   return {};
 }
 
-function cacheKey(userId: string, weekStartISO: string): string {
-  return `${CACHE_NS}:${userId}:${weekStartISO}`;
+function cacheKey(userId: string, weekStartISO: string, namespace?: string): string {
+  return namespace
+    ? `${CACHE_NS}:${namespace}:${userId}:${weekStartISO}`
+    : `${CACHE_NS}:${userId}:${weekStartISO}`;
+}
+
+function buildWeekUrl(weekStartISO: string, namespace?: string): string {
+  const base = `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`;
+  return namespace ? `${base}&ns=${encodeURIComponent(namespace)}` : base;
 }
 
 async function fetchWithTimeout(
@@ -61,13 +68,15 @@ function loadWeeklyBoard({
   weekStartISO,
   onData,
   proClientId,
+  namespace,
 }: {
   userId: string;
   weekStartISO: string;
   onData: (data: WeekBoardResponse) => void;
   proClientId?: string;
+  namespace?: string;
 }): Promise<void> {
-  const key = cacheKey(proClientId || userId, weekStartISO);
+  const key = cacheKey(proClientId || userId, weekStartISO, namespace);
   const empty = createEmptyWeekStructure(weekStartISO);
 
   if (!proClientId) {
@@ -88,7 +97,7 @@ function loadWeeklyBoard({
 
     return (async () => {
       try {
-        const url = apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
+        const url = apiUrl(buildWeekUrl(weekStartISO, namespace));
         const res = await fetchWithRetry(url, { 
           credentials: "include",
           headers: { ...getAuthHeaders(), ...getAppleReviewHeaders(userId) },
@@ -142,16 +151,18 @@ async function saveWeeklyBoard({
   board,
   opId,
   proClientId,
+  namespace,
 }: {
   userId: string;
   weekStartISO: string;
   board: WeekBoard;
   opId?: string;
   proClientId?: string;
+  namespace?: string;
 }): Promise<WeekBoardResponse> {
   const url = proClientId
     ? apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}`)
-    : apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`);
+    : apiUrl(buildWeekUrl(weekStartISO, namespace));
   const payload = { week: board, opId };
 
   const res = await fetchWithRetry(url, {
@@ -173,14 +184,14 @@ async function saveWeeklyBoard({
   const validated = WeekBoardResponseSchema.parse(json);
 
   if (!proClientId) {
-    const key = cacheKey(userId, weekStartISO);
+    const key = cacheKey(userId, weekStartISO, namespace);
     localStorage.setItem(key, JSON.stringify(validated));
   }
 
   return validated;
 }
 
-export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proClientId?: string) {
+export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proClientId?: string, namespace?: string) {
   const monday = weekStartISO ?? (() => {
     const now = new Date();
     const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -194,6 +205,8 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
 
   useEffect(() => {
     let mounted = true;
+    setData(null);
+    setLoading(true);
 
     const handleData = (boardData: WeekBoardResponse) => {
       if (mounted) {
@@ -202,7 +215,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       }
     };
 
-    loadWeeklyBoard({ userId, weekStartISO: monday, onData: handleData, proClientId })
+    loadWeeklyBoard({ userId, weekStartISO: monday, onData: handleData, proClientId, namespace })
       .catch((e) => {
         if (mounted) {
           setError(e as Error);
@@ -217,7 +230,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     return () => {
       mounted = false;
     };
-  }, [userId, monday, proClientId]);
+  }, [userId, monday, proClientId, namespace]);
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -230,6 +243,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
           weekStartISO: monday,
           onData: (result) => { setData(result); setError(null); },
           proClientId,
+          namespace,
         }).catch(() => {});
       }, 45_000);
     };
@@ -252,6 +266,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         weekStartISO: monday,
         onData: (result) => { setData(result); setError(null); },
         proClientId,
+        namespace,
       }).catch(() => {});
     };
 
@@ -267,7 +282,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("mpm:visibility-resumed", handleMpmResume);
     };
-  }, [userId, monday, proClientId]);
+  }, [userId, monday, proClientId, namespace]);
 
   const save = useCallback(
     async (board: WeekBoard, opId?: string): Promise<void> => {
@@ -278,6 +293,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
           board,
           opId,
           proClientId,
+          namespace,
         });
         setData(result);
         setError(null);
@@ -286,7 +302,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         throw e;
       }
     },
-    [userId, monday, proClientId]
+    [userId, monday, proClientId, namespace]
   );
 
   const refresh = useCallback(async (): Promise<void> => {
@@ -300,6 +316,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
           setError(null);
         },
         proClientId,
+        namespace,
       });
     } catch (e) {
       setError(e as Error);
@@ -307,7 +324,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     } finally {
       setLoading(false);
     }
-  }, [userId, monday, proClientId]);
+  }, [userId, monday, proClientId, namespace]);
 
   return {
     board: data?.week ?? null,

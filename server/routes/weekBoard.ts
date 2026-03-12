@@ -499,18 +499,21 @@ export default function weekBoardRoutes(app: Express) {
   // BULLETPROOF WEEKLY BOARD API (guarantees response, create-if-missing)
   
   // GET weekly board with guaranteed response (query param version)
+  // Supports ?ns= for builder namespace isolation (medical/pro builders)
   app.get("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+    const ns = req.query.ns as string | undefined;
+    const storeKey = ns ? `${ns}:${weekStartISO}` : weekStartISO;
     
     try {
       const userId = await resolveUserId(req);
-      let board = await getWeekBoard(userId, weekStartISO);
+      let board = await getWeekBoard(userId, storeKey);
       let source = "db";
       
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(userId, weekStartISO, board);
+        await upsertWeekBoard(userId, storeKey, board);
         source = "seed";
       }
       
@@ -529,9 +532,12 @@ export default function weekBoardRoutes(app: Express) {
 
   // PUT weekly board with idempotent saves (query param version)
   // Canva-style image lifecycle: Process all images before save
+  // Supports ?ns= for builder namespace isolation (medical/pro builders)
   app.put("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+    const ns = req.query.ns as string | undefined;
+    const storeKey = ns ? `${ns}:${weekStartISO}` : weekStartISO;
     
     try {
       const userId = await resolveUserId(req);
@@ -541,14 +547,14 @@ export default function weekBoardRoutes(app: Express) {
       // Canva-style image gate: Process all meal images before save
       const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
       if (imagesProcessed > 0) {
-        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}`);
+        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}${ns ? ` [ns=${ns}]` : ''}`);
       }
       
       const now = new Date().toISOString();
-      const existingBoard = await getWeekBoard(userId, weekStartISO);
+      const existingBoard = await getWeekBoard(userId, storeKey);
       const saved: WeekBoard = {
         ...processedBoard,
-        id: `week-${weekStartISO}`,
+        id: ns ? `${ns}:week-${weekStartISO}` : `week-${weekStartISO}`,
         meta: {
           ...existingBoard?.meta,
           ...processedBoard.meta,
@@ -557,7 +563,7 @@ export default function weekBoardRoutes(app: Express) {
         },
       };
       
-      await upsertWeekBoard(userId, weekStartISO, saved);
+      await upsertWeekBoard(userId, storeKey, saved);
 
       logActivityFireAndForget(
         userId,
