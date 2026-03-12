@@ -189,35 +189,33 @@ export default function ShoppingAggregateBar({
 
   if (inDesktopLayout) {
     return (
-      <div className="sticky bottom-0 z-30 bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl">
-        <div className="container mx-auto px-4 py-3">
-          <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-            <div className="absolute left-0 right-0 text-white text-center pointer-events-none hidden sm:block">
-              <div className="font-semibold text-sm sm:text-base">Grocery List Ready</div>
-              <div className="text-xs sm:text-sm text-white/80">{ingredients.length} ingredients</div>
-            </div>
-            <div className="flex gap-2 sm:ml-auto">
-              {!hideShareButton && (
-                <Button
-                  onClick={onShareList}
-                  disabled={sharing}
-                  className="flex-1 sm:flex-none min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white border border-white/30"
-                  data-testid="button-share-shopping-list"
-                >
-                  <Share2 className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Share</span>
-                </Button>
-              )}
+      <div className="w-full mt-6 bg-black/80 backdrop-blur-xl border-t border-white/20 rounded-lg">
+        <div className="px-6 py-4 flex items-center gap-4">
+          <div className="flex-1">
+            <div className="font-semibold text-white">Grocery List Ready</div>
+            <div className="text-sm text-white/70">{ingredients.length} ingredients</div>
+          </div>
+          <div className="flex gap-2">
+            {!hideShareButton && (
               <Button
-                onClick={onAddToList}
-                className="flex-1 sm:flex-none min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
-                data-testid="button-go-to-shopping-list"
-                data-wt="wmb-send-day-to-shopping"
+                onClick={onShareList}
+                disabled={sharing}
+                className="bg-blue-600 hover:bg-blue-700 text-white border border-white/30"
+                data-testid="button-share-shopping-list"
               >
-                <ShoppingCart className="h-5 w-5 sm:mr-2" />
-                <span>Add & View List</span>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
               </Button>
-            </div>
+            )}
+            <Button
+              onClick={onAddToList}
+              className="bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
+              data-testid="button-go-to-shopping-list"
+              data-wt="wmb-send-day-to-shopping"
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Add & View List
+            </Button>
           </div>
         </div>
       </div>
