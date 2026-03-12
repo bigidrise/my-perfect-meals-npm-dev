@@ -501,9 +501,21 @@ export default function RestaurantGuidePage() {
   const handleUseLocation = async () => {
     setIsGettingLocation(true);
 
-    try {
-      const coords = await getLocation();
+    let coords: { latitude: number; longitude: number } | null = null;
 
+    try {
+      coords = await getLocation();
+    } catch {
+      toast({
+        title: "Location Access Denied",
+        description: "Please enable location access in your browser settings, or enter your ZIP manually.",
+        variant: "destructive",
+      });
+      setIsGettingLocation(false);
+      return;
+    }
+
+    try {
       const response = await apiRequest("/api/restaurants/reverse-geocode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -520,10 +532,10 @@ export default function RestaurantGuidePage() {
           description: `ZIP Code: ${response.zipCode}`,
         });
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: "Location Access Denied",
-        description: "Please enable location access or enter ZIP manually.",
+        title: "Could Not Detect ZIP Code",
+        description: "Location was found but we couldn't determine your ZIP. Please enter it manually.",
         variant: "destructive",
       });
     } finally {
