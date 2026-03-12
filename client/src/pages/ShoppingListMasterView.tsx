@@ -31,6 +31,7 @@ import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
+import { formatQuantity } from "@/lib/formatQuantity";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
@@ -190,7 +191,7 @@ export default function ShoppingListMasterView() {
       .filter((i) => !i.isChecked)
       .map(
         (i) =>
-          `• ${i.name}${i.quantity ? ` — ${i.quantity}${i.unit ? " " + i.unit : ""}` : ""}`,
+          `• ${i.name}${i.quantity ? ` — ${formatQuantity(i.quantity, i.unit)}` : ""}`,
       );
 
     const otherItems = readOtherItems()
@@ -430,7 +431,7 @@ export default function ShoppingListMasterView() {
 
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            Master Shopping List
+            Smart Grocery List
           </h1>
         </div>
       </div>
@@ -703,7 +704,7 @@ export default function ShoppingListMasterView() {
                             {item.name}
                           </div>
                           <div className="text-white/70 text-sm shrink-0">
-                            {item.quantity} {item.unit}
+                            {formatQuantity(item.quantity, item.unit)}
                           </div>
                           <Button
                             size="sm"
@@ -777,7 +778,7 @@ export default function ShoppingListMasterView() {
                                 {item.name}
                               </div>
                               <div className="text-white/70 text-sm shrink-0">
-                                {item.quantity} {item.unit}
+                                {formatQuantity(item.quantity, item.unit)}
                               </div>
                               <TrashButton
                                 size="sm"

@@ -47,7 +47,7 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
     setOpen(false);
     toast({ 
       title: "Added to Shopping List", 
-      description: `${ingredients.length} items from ${mealName || 'this meal'} added to your master list` 
+      description: `${ingredients.length} items from ${mealName || 'this meal'} added to your Smart Grocery List` 
     });
     setLocation("/shopping-list-v2");
   }
@@ -90,7 +90,7 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
               </div>
             </div>
             <p className="text-xs text-white/60">
-              {ingredients.length} ingredient{ingredients.length !== 1 ? 's' : ''} • Click "Add to Master List" to save for shopping
+              {ingredients.length} ingredient{ingredients.length !== 1 ? 's' : ''} • Click "Add to Smart Grocery List" to save for shopping
             </p>
           </div>
 
@@ -107,7 +107,7 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Master List
+              Add to Smart Grocery List
             </Button>
           </DialogFooter>
         </DialogContent>

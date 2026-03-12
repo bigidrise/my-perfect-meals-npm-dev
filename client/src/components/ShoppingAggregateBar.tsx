@@ -172,7 +172,7 @@ export default function ShoppingAggregateBar({
     useShoppingListStore.getState().addItems(items);
     toast({
       title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your master list`,
+      description: `${ingredients.length} items added to your Smart Grocery List`,
     });
 
     if (onAddComplete) {

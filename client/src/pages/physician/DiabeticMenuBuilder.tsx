@@ -844,7 +844,7 @@ export default function DiabeticMenuBuilder() {
 
     toast({
       title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your master list`,
+      description: `${ingredients.length} items added to your Smart Grocery List`,
     });
   }, [board, planningMode, activeDayISO, weekStartISO, toast]);
 
@@ -903,7 +903,7 @@ export default function DiabeticMenuBuilder() {
 
     toast({
       title: "Added to Shopping List",
-      description: `${ingredients.length} items from entire week added to your master list`,
+      description: `${ingredients.length} items from entire week added to your Smart Grocery List`,
     });
   }, [board, weekStartISO, weekDatesList, toast]);
 
