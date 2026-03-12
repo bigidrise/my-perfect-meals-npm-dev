@@ -2154,7 +2154,7 @@ export default function WeeklyMealBoard() {
                 <div
                   className={
                     isDay
-                      ? "col-span-full Of a man and a woman as far as June June 2024 them"
+                      ? "col-span-full"
                       : "col-span-full pb-32"
                   }
                 >
