@@ -77,6 +77,7 @@ import { WhyChip } from "@/components/WhyChip";
 import { WhyDrawer } from "@/components/WhyDrawer";
 import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -180,6 +181,7 @@ export default function DiabeticMenuBuilder() {
   const proClientId = proParams?.id;
 
   const { toast } = useToast();
+  const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -2104,8 +2106,8 @@ export default function DiabeticMenuBuilder() {
 
             return (
               <div
-                className="fixed left-0 right-0 z-30 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl"
-                style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}
+                className={`fixed ${isDesktop ? "left-[240px]" : "left-0"} right-0 z-30 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl`}
+                style={{ bottom: isDesktop ? 0 : "calc(64px + var(--safe-bottom, 0px))" }}
               >
                 <div className="container mx-auto px-4 py-3">
                   <div className="flex flex-col gap-2">
