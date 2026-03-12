@@ -47,6 +47,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useToast } from "@/hooks/use-toast";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { 
   getWeekStartISOInTZ, 
   getTodayISOSafe, 
@@ -170,6 +171,7 @@ interface AthleteBoardProps {
 export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const quickTour = useQuickTour("performance-competition-builder");

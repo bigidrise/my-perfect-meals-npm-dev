@@ -56,6 +56,7 @@ import { WhyChip } from "@/components/WhyChip";
 import { WhyDrawer } from "@/components/WhyDrawer";
 import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -103,6 +104,7 @@ function makeNewSnack(nextIndex: number): Meal {
 export default function WeeklyMealBoard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
