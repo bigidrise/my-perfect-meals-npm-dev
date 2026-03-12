@@ -51,8 +51,6 @@ export default function ShoppingAggregateBar({
     path.startsWith("/care-team");
 
   if (isProStudio) return null;
-  console.log("[ShoppingAggregateBar] rendering — isDesktop:", isDesktop, "path:", path);
-  if (isDesktop) return null;
 
   async function onShareList() {
     if (ingredients.length === 0) return;
@@ -189,16 +187,14 @@ export default function ShoppingAggregateBar({
 
   if (!ingredients || ingredients.length === 0) return null;
 
-  const mobileStyle: CSSProperties = {
-    left: 0,
-    right: 0,
-    bottom: aboveBottomNav ? "calc(64px + var(--safe-bottom, 0px))" : 0,
-  };
+  const barStyle: CSSProperties = isDesktop
+    ? { left: 240, right: 0, bottom: 0 }
+    : { left: 0, right: 0, bottom: aboveBottomNav ? "calc(64px + var(--safe-bottom, 0px))" : 0 };
 
   return (
     <div
       className="fixed z-30 bg-black/80 backdrop-blur-xl border-t border-white/20 shadow-2xl"
-      style={mobileStyle}
+      style={barStyle}
     >
       <div className="container mx-auto px-4 py-3">
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
