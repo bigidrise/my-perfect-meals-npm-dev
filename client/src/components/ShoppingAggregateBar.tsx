@@ -45,7 +45,12 @@ export default function ShoppingAggregateBar({
   const [sharing, setSharing] = useState(false);
   const inDesktopLayout = useInDesktopLayout();
 
-  if (location.startsWith("/pro/clients/")) return null;
+  const isProStudio =
+    location.startsWith("/pro/clients/") ||
+    window.location.pathname.startsWith("/pro/clients/") ||
+    !!localStorage.getItem("pro-client-id");
+
+  if (isProStudio) return null;
 
   async function onShareList() {
     if (ingredients.length === 0) return;
