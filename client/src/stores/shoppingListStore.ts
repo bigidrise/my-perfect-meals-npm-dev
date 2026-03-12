@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { classifyIngredient, normalizeIngredientName } from '@/utils/ingredientClassifier';
+import { normalizeIngredient } from '@shared/ingredientNormalizer';
 import type { IngredientCategory } from '@/data/ingredientCategories';
 
 export interface UniversalIngredient {
@@ -41,24 +42,68 @@ interface ShoppingListStore {
 
 const generateId = () => `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+/**
+ * Unit normalization: convert to larger units when thresholds are met.
+ * Runs before aggregation AND after merging to keep quantities clean.
+ * Only converts oz, tsp, tbsp — never grams or milliliters.
+ */
+function normalizeUnit(quantity: number, unit: string): { quantity: number; unit: string } {
+  const u = unit.toLowerCase().trim();
+
+  if ((u === 'tsp' || u === 'teaspoon' || u === 'teaspoons') && quantity >= 3) {
+    return normalizeUnit(quantity / 3, 'tbsp');
+  }
+
+  if ((u === 'tbsp' || u === 'tablespoon' || u === 'tablespoons') && quantity >= 16) {
+    return normalizeUnit(quantity / 16, 'cup');
+  }
+
+  if (u === 'oz' && quantity >= 16) {
+    return { quantity: quantity / 16, unit: 'lb' };
+  }
+
+  return { quantity, unit };
+}
+
+/**
+ * Full aggregation-order normalization for a single incoming item.
+ * Step 1: normalize ingredient name (canonical food name)
+ * Step 2: normalize unit (convert up at thresholds)
+ * Returns values ready for canMerge check.
+ */
+function normalizeForAggregation(name: string, quantity: number, unit: string) {
+  const canonicalName = normalizeIngredient(name);
+  const { quantity: normQty, unit: normUnit } = normalizeUnit(quantity, unit);
+  const classified = classifyIngredient(canonicalName);
+  return {
+    canonicalName,
+    normalizedName: classified.normalizedName,
+    normQty,
+    normUnit,
+    category: classified.category,
+    isPantryStaple: classified.isPantryStaple,
+  };
+}
+
 const canMerge = (a: ShoppingListItem, b: { normalizedName: string; unit: string }): boolean => {
-  return a.normalizedName === b.normalizedName && a.unit === b.unit;
+  return a.normalizedName === b.normalizedName && a.unit.toLowerCase() === b.unit.toLowerCase();
 };
 
 function createShoppingItem(input: UniversalIngredient): ShoppingListItem {
-  const classified = classifyIngredient(input.name);
-  
+  const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
+    normalizeForAggregation(input.name, input.quantity || 1, input.unit || '');
+
   return {
     id: generateId(),
-    name: input.name,
-    normalizedName: classified.normalizedName,
-    quantity: input.quantity || 1,
-    unit: input.unit || '',
-    category: input.category || classified.category,
-    isPantryStaple: classified.isPantryStaple,
+    name: canonicalName,
+    normalizedName,
+    quantity: normQty,
+    unit: normUnit,
+    category: input.category || category,
+    isPantryStaple,
     isChecked: false,
     notes: input.notes,
-    sourceMeals: input.sourceMeals
+    sourceMeals: input.sourceMeals,
   };
 }
 
@@ -69,23 +114,27 @@ export const useShoppingListStore = create<ShoppingListStore>()(
 
       addItem: (item) => {
         set((state) => {
-          const classified = classifyIngredient(item.name);
-          const normalizedName = classified.normalizedName;
-          
-          const existingIndex = state.items.findIndex((existing) => 
-            canMerge(existing, { normalizedName, unit: item.unit })
+          // Aggregation order: 1. normalize name  2. normalize unit  3. aggregate  4. format (display layer)
+          const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
+            normalizeForAggregation(item.name, item.quantity, item.unit);
+
+          const existingIndex = state.items.findIndex((existing) =>
+            canMerge(existing, { normalizedName, unit: normUnit })
           );
 
           if (existingIndex !== -1) {
             const updated = [...state.items];
+            const merged = updated[existingIndex].quantity + normQty;
+            const { quantity: finalQty, unit: finalUnit } = normalizeUnit(merged, normUnit);
             updated[existingIndex] = {
               ...updated[existingIndex],
-              quantity: updated[existingIndex].quantity + item.quantity,
+              quantity: finalQty,
+              unit: finalUnit,
               sourceMeals: item.sourceMeals
                 ? [...(updated[existingIndex].sourceMeals || []), ...item.sourceMeals]
                 : updated[existingIndex].sourceMeals,
-              notes: item.notes 
-                ? `${updated[existingIndex].notes || ''}${updated[existingIndex].notes ? ', ' : ''}${item.notes}` 
+              notes: item.notes
+                ? `${updated[existingIndex].notes || ''}${updated[existingIndex].notes ? ', ' : ''}${item.notes}`
                 : updated[existingIndex].notes,
             };
             return { items: updated };
@@ -97,9 +146,12 @@ export const useShoppingListStore = create<ShoppingListStore>()(
               {
                 ...item,
                 id: generateId(),
+                name: canonicalName,
                 normalizedName,
-                category: item.category || classified.category,
-                isPantryStaple: classified.isPantryStaple,
+                quantity: normQty,
+                unit: normUnit,
+                category: item.category || category,
+                isPantryStaple,
                 isChecked: false,
               },
             ],
@@ -112,26 +164,41 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           const updatedItems = [...state.items];
 
           newItems.forEach((newItem) => {
-            const classified = classifyIngredient(newItem.name);
-            const normalizedName = classified.normalizedName;
-            
-            const existingIndex = updatedItems.findIndex((existing) => 
-              canMerge(existing, { normalizedName, unit: newItem.unit })
+            // Aggregation order: 1. normalize name  2. normalize unit  3. aggregate  4. format (display layer)
+            const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
+              normalizeForAggregation(newItem.name, newItem.quantity || 1, newItem.unit || '');
+
+            const existingIndex = updatedItems.findIndex((existing) =>
+              canMerge(existing, { normalizedName, unit: normUnit })
             );
 
             if (existingIndex !== -1) {
+              const merged = updatedItems[existingIndex].quantity + normQty;
+              const { quantity: finalQty, unit: finalUnit } = normalizeUnit(merged, normUnit);
               updatedItems[existingIndex] = {
                 ...updatedItems[existingIndex],
-                quantity: updatedItems[existingIndex].quantity + newItem.quantity,
-                notes: newItem.notes 
-                  ? `${updatedItems[existingIndex].notes || ''}${updatedItems[existingIndex].notes ? ', ' : ''}${newItem.notes}` 
+                quantity: finalQty,
+                unit: finalUnit,
+                notes: newItem.notes
+                  ? `${updatedItems[existingIndex].notes || ''}${updatedItems[existingIndex].notes ? ', ' : ''}${newItem.notes}`
                   : updatedItems[existingIndex].notes,
                 sourceMeals: newItem.sourceMeals
                   ? [...(updatedItems[existingIndex].sourceMeals || []), ...newItem.sourceMeals]
                   : updatedItems[existingIndex].sourceMeals,
               };
             } else {
-              updatedItems.push(createShoppingItem(newItem));
+              updatedItems.push({
+                id: generateId(),
+                name: canonicalName,
+                normalizedName,
+                quantity: normQty,
+                unit: normUnit,
+                category: newItem.category || category,
+                isPantryStaple,
+                isChecked: false,
+                notes: newItem.notes,
+                sourceMeals: newItem.sourceMeals,
+              });
             }
           });
 
@@ -186,7 +253,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           Bakery: [],
           Other: []
         };
-        
+
         items.forEach(item => {
           const category = item.category || 'Other';
           if (grouped[category]) {
@@ -195,7 +262,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             grouped.Other.push(item);
           }
         });
-        
+
         return grouped;
       },
 
