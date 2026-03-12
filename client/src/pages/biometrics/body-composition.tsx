@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Scale, Ruler, Calendar as CalIcon, Info, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUser, getAuthHeaders } from "@/lib/auth";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { getCurrentUser } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 
 type Method = "DEXA" | "BodPod" | "Calipers" | "Smart Scale" | "Other";
 type Units = "imperial" | "metric";
@@ -61,21 +61,15 @@ export default function BodyCompositionPro() {
   const loadLatest = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`), {
-        credentials: "include",
-        headers: { ...getAuthHeaders() },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.entry) {
-          setLatestEntry(data.entry);
-          setLatestSource(data.source);
-          setBodyFatPct(data.entry.currentBodyFatPct);
-          if (data.entry.goalBodyFatPct) {
-            setGoalBodyFatPct(data.entry.goalBodyFatPct);
-          }
-          setMethod(data.entry.scanMethod);
+      const data = await apiRequest(`/api/users/${userId}/body-composition/latest`);
+      if (data.entry) {
+        setLatestEntry(data.entry);
+        setLatestSource(data.source);
+        setBodyFatPct(data.entry.currentBodyFatPct);
+        if (data.entry.goalBodyFatPct) {
+          setGoalBodyFatPct(data.entry.goalBodyFatPct);
         }
+        setMethod(data.entry.scanMethod);
       }
     } catch (err) {
       console.error("Error loading latest body composition:", err);
@@ -86,14 +80,8 @@ export default function BodyCompositionPro() {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/history`), {
-        credentials: "include",
-        headers: { ...getAuthHeaders() },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data.items || []);
-      }
+      const data = await apiRequest(`/api/users/${userId}/body-composition/history`);
+      setHistory(data.items || []);
     } catch (err) {
       console.error("Error loading body composition history:", err);
     } finally {
@@ -173,16 +161,10 @@ export default function BodyCompositionPro() {
         recordedAt: date ? new Date(date).toISOString() : new Date().toISOString(),
       };
 
-      const res = await fetch(apiUrl(`/api/users/${userId}/body-composition`), {
+      await apiRequest(`/api/users/${userId}/body-composition`, {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to save");
-      }
 
       toast({
         title: "Data Saved",

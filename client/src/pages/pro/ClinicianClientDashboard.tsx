@@ -9,6 +9,7 @@ import { proStore, Targets, ClinicalContext, ClinicalAdvisory, StarchStrategy } 
 import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft,
   Stethoscope,
@@ -101,11 +102,7 @@ export default function ClinicianClientDashboard() {
     const c = proStore.getClient(clientId);
     const uid = c?.userId;
     if (!uid) return;
-    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`), {
-      credentials: "include",
-      headers: { ...getAuthHeaders() },
-    })
-      .then((r) => (r.ok ? r.json() : null))
+    apiRequest(`/api/users/${uid}/body-composition/latest`)
       .then((data) => {
         if (data?.entry) {
           setBodyComp(data.entry);

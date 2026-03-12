@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -951,11 +952,7 @@ export default function MyBiometrics() {
     if (!currentUser?.id) return;
     const uid = currentUser.id;
 
-    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`), {
-      credentials: "include",
-      headers: { ...getAuthHeaders() },
-    })
-      .then((r) => (r.ok ? r.json() : null))
+    apiRequest(`/api/users/${uid}/body-composition/latest`)
       .then((data) => {
         if (data?.entry) {
           setBodyCompLatest(data.entry);
@@ -964,11 +961,7 @@ export default function MyBiometrics() {
       })
       .catch(() => {});
 
-    fetch(apiUrl(`/api/users/${uid}/body-composition/history`), {
-      credentials: "include",
-      headers: { ...getAuthHeaders() },
-    })
-      .then((r) => (r.ok ? r.json() : null))
+    apiRequest(`/api/users/${uid}/body-composition/history`)
       .then((data) => {
         if (data?.items) setBodyCompHistory(data.items);
       })

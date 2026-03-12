@@ -90,6 +90,7 @@ import {
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { TrialBanner } from "@/components/TrialBanner";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -382,18 +383,12 @@ function BodyCompositionGuidedStep({
     if (!userId) return;
     const poll = async () => {
       try {
-        const res = await fetch(apiUrl(`/api/users/${userId}/body-composition/latest`), {
-          credentials: "include",
-          headers: { ...getAuthHeaders() },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.entry) {
-            setBodyCompData({
-              currentBF: parseFloat(data.entry.currentBodyFatPct),
-              goalBF: data.entry.goalBodyFatPct ? parseFloat(data.entry.goalBodyFatPct) : null,
-            });
-          }
+        const data = await apiRequest(`/api/users/${userId}/body-composition/latest`);
+        if (data.entry) {
+          setBodyCompData({
+            currentBF: parseFloat(data.entry.currentBodyFatPct),
+            goalBF: data.entry.goalBodyFatPct ? parseFloat(data.entry.goalBodyFatPct) : null,
+          });
         }
       } catch {}
     };

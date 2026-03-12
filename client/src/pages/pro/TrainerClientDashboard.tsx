@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,11 +103,7 @@ export default function TrainerClientDashboard() {
     const c = proStore.getClient(clientId);
     const uid = c?.clientUserId || c?.userId;
     if (!uid) return;
-    fetch(apiUrl(`/api/users/${uid}/body-composition/latest`), {
-      credentials: "include",
-      headers: { ...getAuthHeaders() },
-    })
-      .then((r) => (r.ok ? r.json() : null))
+    apiRequest(`/api/users/${uid}/body-composition/latest`)
       .then((data) => {
         if (data?.entry) {
           setBodyComp(data.entry);
