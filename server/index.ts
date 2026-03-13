@@ -132,15 +132,18 @@ app.use((req, res, next) => {
     "ionic://localhost",       // Ionic WebView
   ]);
 
+  // Normalize origin: strip any trailing slash Android WebView sometimes appends.
+  const normalizedOrigin = origin?.replace(/\/$/, "");
+
   // Allow same-origin requests (no Origin header), explicitly listed origins,
   // and any Vercel preview deployments.
   const allowed =
-    !origin ||
-    allowedOrigins.has(origin) ||
-    origin.endsWith('.vercel.app');
+    !normalizedOrigin ||
+    allowedOrigins.has(normalizedOrigin) ||
+    normalizedOrigin.endsWith('.vercel.app');
 
   if (allowed) {
-    res.setHeader('Access-Control-Allow-Origin', origin ?? '*');
+    res.setHeader('Access-Control-Allow-Origin', normalizedOrigin ?? '*');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
