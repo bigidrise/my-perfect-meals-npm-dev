@@ -170,7 +170,14 @@ export default function MorePage() {
           {(userRole === "trainer" || userRole === "physician") && (
             <Card
               className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-              onClick={() => setShowWorkspaceChooser(true)}
+              onClick={() => {
+                if (!isDesktop) {
+                  const workspaceRoute = userRole === "physician" ? "/care-team/physician" : "/care-team/trainer";
+                  setLocation(workspaceRoute);
+                } else {
+                  setShowWorkspaceChooser(true);
+                }
+              }}
               data-testid="card-switch-workspace"
             >
               <CardContent className="p-4">
