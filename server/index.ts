@@ -108,7 +108,12 @@ app.use((req, res, next) => {
     'https://www.myperfectmeals.com',
     'https://app.myperfectmeals.com',
     'http://localhost:5173',
-    'http://localhost:5000'
+    'http://localhost:5000',
+    // Capacitor native app origins
+    'https://localhost',   // Android Capacitor
+    'http://localhost',    // Android Capacitor (fallback)
+    'capacitor://localhost', // iOS Capacitor
+    'ionic://localhost',   // Ionic WebView
   ];
 
   const origin = req.headers.origin;
@@ -181,8 +186,9 @@ app.use((req, res, next) => {
     "https://www.myperfectmeals.com",
     "https://app.myperfectmeals.com",
     // Capacitor iOS/Android native app origins
-    "capacitor://localhost",
-    "ionic://localhost",
+    "https://localhost",     // Android Capacitor
+    "capacitor://localhost", // iOS Capacitor
+    "ionic://localhost",     // Ionic WebView
     "http://localhost",
     // Allow Vercel preview deployments (format: *.vercel.app)
   ].filter(Boolean);
