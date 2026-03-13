@@ -24,6 +24,8 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "push": "git add -A && (git commit -m \"snapshot $(date -u +'%Y-%m-%dT%H:%M:%SZ')\" || echo 'nothing to commit') && git push -u origin main",
+    "drift-check": "bash scripts/prepush-check.sh",
+    "release-check": "bash scripts/release-check.sh",
     "postinstall": "npx patch-package"
   },
   "dependencies": {

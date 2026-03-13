@@ -46,7 +46,17 @@ module.exports = {
         node: false,
       },
       rules: {
-        "no-restricted-imports": "off" // Frontend can import what it needs
+        "no-restricted-imports": "off", // Frontend can import what it needs
+        "no-restricted-globals": ["warn", {
+          "name": "fetch",
+          "message": "Use apiRequest() from @/lib/queryClient instead of raw fetch(). Raw fetch bypasses auth headers and session tokens."
+        }]
+      }
+    },
+    {
+      files: ["client/src/lib/queryClient.ts"],
+      rules: {
+        "no-restricted-globals": "off"
       }
     }
   ]

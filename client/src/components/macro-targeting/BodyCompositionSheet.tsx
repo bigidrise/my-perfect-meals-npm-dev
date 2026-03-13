@@ -18,8 +18,8 @@ import { Scale, Calendar as CalIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
+import type { BodyCompositionCreatePayload, ScanMethod } from "@shared/bodyCompositionSchema";
 
-type Method = "DEXA" | "BodPod" | "Calipers" | "Smart Scale" | "Other";
 
 interface BodyCompositionSheetProps {
   open: boolean;
@@ -33,7 +33,7 @@ export default function BodyCompositionSheet({
   onSaved,
 }: BodyCompositionSheetProps) {
   const { toast } = useToast();
-  const [method, setMethod] = useState<Method>("DEXA");
+  const [method, setMethod] = useState<ScanMethod>("DEXA");
   const [date, setDate] = useState<string>("");
   const [bodyFatPct, setBodyFatPct] = useState<string>("");
   const [goalBodyFatPct, setGoalBodyFatPct] = useState<string>("");
@@ -86,7 +86,7 @@ export default function BodyCompositionSheet({
     setIsSaving(true);
     try {
       const goal = toNumber(goalBodyFatPct);
-      const payload: Record<string, unknown> = {
+      const payload: BodyCompositionCreatePayload = {
         currentBodyFatPct: bf,
         goalBodyFatPct: isFinite(goal) && goal >= 1 && goal <= 70 ? goal : undefined,
         scanMethod: method,

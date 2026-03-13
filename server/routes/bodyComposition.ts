@@ -1,28 +1,10 @@
 import { Router } from "express";
-import { z } from "zod";
 import { db } from "../db";
 import { bodyFatEntries } from "../db/schema/bodyComposition";
 import { eq, and, desc } from "drizzle-orm";
+import { createBodyFatSchema, updateBodyFatSchema } from "../../shared/bodyCompositionSchema";
 
 const router = Router();
-
-const createBodyFatSchema = z.object({
-  currentBodyFatPct: z.number().min(1).max(70),
-  goalBodyFatPct: z.number().min(1).max(70).optional().nullable(),
-  scanMethod: z.enum(["DEXA", "BodPod", "Calipers", "Smart Scale", "Other"]),
-  source: z.enum(["client", "trainer", "physician"]).optional(),
-  createdById: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  recordedAt: z.string().datetime(),
-});
-
-const updateBodyFatSchema = z.object({
-  currentBodyFatPct: z.number().min(1).max(70).optional(),
-  goalBodyFatPct: z.number().min(1).max(70).optional().nullable(),
-  scanMethod: z.enum(["DEXA", "BodPod", "Calipers", "Smart Scale", "Other"]).optional(),
-  notes: z.string().optional().nullable(),
-  recordedAt: z.string().datetime().optional(),
-});
 
 // GET /api/users/:userId/body-composition/latest
 // Returns the latest effective body fat entry with precedence: trainer/physician > client
