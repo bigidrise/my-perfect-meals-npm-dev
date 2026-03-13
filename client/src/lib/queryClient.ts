@@ -70,8 +70,15 @@ export const getQueryFn: <T>(options: {
     const relativeUrl = queryKey.join("/") as string;
     const fullUrl = apiUrl(relativeUrl);
     
+    const headers: Record<string, string> = {};
+    const token = localStorage.getItem("mpm_auth_token");
+    if (token) {
+      headers["x-auth-token"] = token;
+    }
+
     const res = await fetch(fullUrl, {
       credentials: "include",
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

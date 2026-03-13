@@ -54,7 +54,7 @@ export default function BodyCompositionSheet({
     try {
       const data = await apiRequest(`/api/users/${userId}/body-composition/latest`);
       if (data.entry?.goalBodyFatPct) {
-        setGoalBodyFatPct(data.entry.goalBodyFatPct);
+        setGoalBodyFatPct(String(data.entry.goalBodyFatPct));
       }
     } catch (err) {
       console.error("Error loading latest goal:", err);
@@ -109,7 +109,8 @@ export default function BodyCompositionSheet({
       onSaved?.();
       onOpenChange(false);
     } catch (err) {
-      console.error("Error saving body composition:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Error saving body composition:", message);
       toast({
         title: "Save failed",
         description: "Could not save your body composition data. Please try again.",

@@ -121,7 +121,11 @@ router.post("/users/:userId/body-composition", async (req, res) => {
     res.json(entry);
   } catch (error) {
     console.error("Error creating body composition entry:", error);
-    res.status(400).json({ error: "Failed to create entry" });
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: "Validation failed", details: error.errors });
+    } else {
+      res.status(400).json({ error: "Failed to create entry" });
+    }
   }
 });
 
