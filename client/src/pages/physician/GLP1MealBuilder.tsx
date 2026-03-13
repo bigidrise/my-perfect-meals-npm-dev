@@ -638,7 +638,7 @@ export default function GLP1MealBuilder() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.GLP1);
         // Navigate to the new week
         setWeekStartISO(targetWeekStartISO);
         toast({

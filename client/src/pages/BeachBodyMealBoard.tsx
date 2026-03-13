@@ -755,7 +755,7 @@ export default function BeachBodyMealBoard() {
       };
 
       try {
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.BEACH_BODY);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",

@@ -594,7 +594,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       };
 
       try {
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",

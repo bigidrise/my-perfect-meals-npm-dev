@@ -515,7 +515,7 @@ export default function WeeklyMealBoard() {
 
     try {
       // Save to the target week (this will use a separate hook instance when we navigate)
-      await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
+      await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.GENERAL_NUTRITION);
       // Navigate to the new week
       setWeekStartISO(targetWeekStartISO);
       toast({ title: "Week duplicated", description: `Copied to week of ${targetWeekStartISO}` });

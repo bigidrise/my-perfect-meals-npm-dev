@@ -760,7 +760,7 @@ export default function DiabeticMenuBuilder() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.DIABETIC);
         // Navigate to the new week
         setWeekStartISO(targetWeekStartISO);
         toast({

@@ -715,7 +715,7 @@ export default function AntiInflammatoryMenuBuilder() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
+        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, namespace);
         // Navigate to the new week
         setWeekStartISO(targetWeekStartISO);
         toast({
