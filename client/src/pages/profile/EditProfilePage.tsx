@@ -873,6 +873,10 @@ export default function EditProfilePage() {
         )}
 
         {step === 5 && (
+          // DIAGNOSTIC LOG — remove after confirming form state
+          (() => { console.log("[Step5 form state]", JSON.stringify(form, null, 2)); return null; })()
+        )}
+        {step === 5 && (
           <StepShell
             title="Review & save"
             subtitle="Double-check your info. Save when ready."
