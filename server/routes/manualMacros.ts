@@ -187,13 +187,32 @@ router.get("/users/:userId/macro-logs/summary", requireAuth, async (req, res) =>
 // GET /api/users/:userId/macros?start&end - Returns totals with separated food and alcohol
 router.get("/users/:userId/macros", requireAuth, async (req, res) => {
   try {
-    const userId = getAuthUserId(req);
+    const requesterId = getAuthUserId(req);
+    const targetUserId = req.params.userId;
     const start = req.query.start ? new Date(String(req.query.start)) : null;
     const end = req.query.end ? new Date(String(req.query.end)) : null;
     if (!start || !end)
       return res.status(400).json({ error: "start & end required (ISO)." });
 
-    // Query all logs in the time range
+    // Allow access if requester is the user themselves, or a linked pro
+    if (requesterId !== targetUserId) {
+      const link = await db
+        .select({ id: clientLinks.id })
+        .from(clientLinks)
+        .where(
+          and(
+            eq(clientLinks.clientUserId, targetUserId),
+            eq(clientLinks.proUserId, requesterId),
+            eq(clientLinks.active, true),
+          ),
+        )
+        .limit(1);
+      if (!link.length) {
+        return res.status(403).json({ error: "Access denied." });
+      }
+    }
+
+    // Query all logs in the time range for the target user
     const rows = await db
       .select({
         kcal: sql<number>`COALESCE(SUM(${macroLogs.kcal}), 0)`,
@@ -218,7 +237,7 @@ router.get("/users/:userId/macros", requireAuth, async (req, res) => {
       .from(macroLogs)
       .where(
         and(
-          eq(macroLogs.userId, userId),
+          eq(macroLogs.userId, targetUserId),
           gte(macroLogs.at, start),
           lte(macroLogs.at, end),
         ),
