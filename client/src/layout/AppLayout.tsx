@@ -4,7 +4,7 @@ import DesktopLayout from "./DesktopLayout";
 import MobileLayout from "./MobileLayout";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
-import { Monitor } from "lucide-react";
+import { Monitor, ArrowLeft } from "lucide-react";
 
 const FULL_SCREEN_ROUTES = [
   "/welcome",
@@ -65,6 +65,13 @@ function DesktopRequiredScreen() {
       <p className="mt-6 text-white/30 text-sm">
         Your clients can still use the mobile app normally.
       </p>
+      <button
+        onClick={() => window.history.back()}
+        className="mt-8 flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 text-white/80 text-sm font-medium active:bg-white/20"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Go back
+      </button>
     </div>
   );
 }
