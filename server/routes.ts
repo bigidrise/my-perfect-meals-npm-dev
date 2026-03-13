@@ -91,6 +91,24 @@ import lockedDaysRouter from "./routes/lockedDays";
 import usersProfileRouter from "./routes/usersProfile";
 import { loadStudioMembership } from "./middleware/studioAccess";
 
+function normalizeFitnessGoal(value?: string | null): string | null {
+  switch (value) {
+    case "weight_loss": case "muscle_gain": case "maintenance": case "endurance": return value;
+    case "loss": return "weight_loss";
+    case "maint": return "maintenance";
+    default: return value || null;
+  }
+}
+
+function normalizeActivityLevel(value?: string | null): string | null {
+  switch (value) {
+    case "sedentary": case "lightly_active": case "moderately_active": case "very_active": case "extremely_active": return value;
+    case "moderate": return "moderately_active";
+    case "light": return "lightly_active";
+    default: return value || null;
+  }
+}
+
 // Helper function to determine features by subscription plan
 function getFeaturesByPlan(plan: string) {
   const features = {
@@ -1936,8 +1954,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         age: user.age || null,
         height: user.height || null,
         weight: user.weight || null,
-        activityLevel: user.activityLevel || null,
-        fitnessGoal: user.fitnessGoal || null,
+        activityLevel: normalizeActivityLevel(user.activityLevel),
+        fitnessGoal: normalizeFitnessGoal(user.fitnessGoal),
         allergies: user.allergies || [],
         dietaryRestrictions: user.dietaryRestrictions || [],
         healthConditions: user.healthConditions || [],

@@ -21,6 +21,39 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
+function normalizeGoal(value?: string): FitnessGoal {
+  switch (value) {
+    case "weight_loss":
+    case "muscle_gain":
+    case "maintenance":
+    case "endurance":
+      return value;
+    case "loss":
+      return "weight_loss";
+    case "maint":
+      return "maintenance";
+    default:
+      return "maintenance";
+  }
+}
+
+function normalizeActivity(value?: string): ActivityLevel {
+  switch (value) {
+    case "sedentary":
+    case "lightly_active":
+    case "moderately_active":
+    case "very_active":
+    case "extremely_active":
+      return value;
+    case "moderate":
+      return "moderately_active";
+    case "light":
+      return "lightly_active";
+    default:
+      return "moderately_active";
+  }
+}
+
 type ActivityLevel =
   | "sedentary"
   | "lightly_active"
@@ -134,8 +167,8 @@ export default function EditProfilePage() {
       lastName: u?.lastName || u?.name?.split(" ").slice(1).join(" ") || "",
       nickname: u?.nickname || "",
       email: u?.email || "",
-      activityLevel: (u?.activityLevel || "moderately_active") as ActivityLevel,
-      fitnessGoal: (u?.fitnessGoal || "maintenance") as FitnessGoal,
+      activityLevel: normalizeActivity(u?.activityLevel),
+      fitnessGoal: normalizeGoal(u?.fitnessGoal),
       dietaryRestrictions: Array.isArray(u?.dietaryRestrictions)
         ? u.dietaryRestrictions
         : [],
@@ -471,7 +504,7 @@ export default function EditProfilePage() {
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <label className="text-white/70 text-xs">Fitness Goal</label>
                 <select
-                  value={form.fitnessGoal || "maintenance"}
+                  value={form.fitnessGoal}
                   onChange={(e) =>
                     setForm((p) => ({
                       ...p,
@@ -491,7 +524,7 @@ export default function EditProfilePage() {
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <label className="text-white/70 text-xs">Activity Level</label>
                 <select
-                  value={form.activityLevel || "moderately_active"}
+                  value={form.activityLevel}
                   onChange={(e) =>
                     setForm((p) => ({
                       ...p,
@@ -872,10 +905,6 @@ export default function EditProfilePage() {
           </StepShell>
         )}
 
-        {step === 5 && (
-          // DIAGNOSTIC LOG — remove after confirming form state
-          (() => { console.log("[Step5 form state]", JSON.stringify(form, null, 2)); return null; })()
-        )}
         {step === 5 && (
           <StepShell
             title="Review & save"
