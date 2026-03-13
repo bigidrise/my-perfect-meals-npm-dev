@@ -144,7 +144,10 @@ router.post("/users/:userId/macros/quick", requireAuth, async (req, res) => {
 // GET /api/users/:userId/macro-logs/summary?start&end
 router.get("/users/:userId/macro-logs/summary", requireAuth, async (req, res) => {
   try {
-    const userId = getAuthUserId(req);
+    const targetUserId = req.params.userId;
+    const hasAccess = await assertSelfOrProAccess(req as AuthenticatedRequest, targetUserId);
+    if (!hasAccess) return res.status(403).json({ error: "Access denied." });
+
     const start = req.query.start ? new Date(String(req.query.start)) : null;
     const end = req.query.end ? new Date(String(req.query.end)) : null;
     if (!start || !end)
@@ -162,7 +165,7 @@ router.get("/users/:userId/macro-logs/summary", requireAuth, async (req, res) =>
       .from(macroLogs)
       .where(
         and(
-          eq(macroLogs.userId, userId),
+          eq(macroLogs.userId, targetUserId),
           gte(macroLogs.at, start),
           lte(macroLogs.at, end),
         ),
@@ -291,7 +294,10 @@ router.get("/users/:userId/macros", requireAuth, async (req, res) => {
 // GET /api/users/:userId/macro-logs/daily?start&end
 router.get("/users/:userId/macro-logs/daily", requireAuth, async (req, res) => {
   try {
-    const userId = getAuthUserId(req);
+    const targetUserId = req.params.userId;
+    const hasAccess = await assertSelfOrProAccess(req as AuthenticatedRequest, targetUserId);
+    if (!hasAccess) return res.status(403).json({ error: "Access denied." });
+
     const start = req.query.start ? new Date(String(req.query.start)) : null;
     const end = req.query.end ? new Date(String(req.query.end)) : null;
     if (!start || !end)
@@ -308,7 +314,7 @@ router.get("/users/:userId/macro-logs/daily", requireAuth, async (req, res) => {
         COALESCE(SUM(${macroLogs.fiber}), 0)::int   AS fiber,
         COALESCE(SUM(${macroLogs.alcohol}), 0)::int AS alcohol
       FROM ${macroLogs}
-      WHERE ${macroLogs.userId} = ${userId}
+      WHERE ${macroLogs.userId} = ${targetUserId}
         AND ${macroLogs.at} >= ${start}
         AND ${macroLogs.at} <= ${end}
       GROUP BY 1
@@ -495,7 +501,7 @@ router.post("/users/:userId/macros/daily-summary", requireAuth, async (req, res)
             and(
               eq(clientLinks.clientUserId, targetUserId),
               eq(clientLinks.proUserId, authUserId),
-              eq(clientLinks.status, "active"),
+              eq(clientLinks.active, true),
             ),
           )
           .limit(1);
@@ -594,7 +600,7 @@ router.get("/users/:userId/macro-logs/daily-with-source", requireAuth, async (re
             and(
               eq(clientLinks.clientUserId, userId),
               eq(clientLinks.proUserId, authUserId),
-              eq(clientLinks.status, "active"),
+              eq(clientLinks.active, true),
             ),
           )
           .limit(1);
@@ -681,7 +687,7 @@ router.get("/users/:userId/compliance", requireAuth, async (req, res) => {
             and(
               eq(clientLinks.clientUserId, userId),
               eq(clientLinks.proUserId, authUserId),
-              eq(clientLinks.status, "active"),
+              eq(clientLinks.active, true),
             ),
           )
           .limit(1);
