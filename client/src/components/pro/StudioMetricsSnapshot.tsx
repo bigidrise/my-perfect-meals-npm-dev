@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { proStore, type Targets } from "@/lib/proData";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { Loader2, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { Loader2, TrendingDown, TrendingUp, Minus, RefreshCw } from "lucide-react";
 
 interface StudioMetricsSnapshotProps {
   clientId: string;
@@ -46,60 +46,61 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
   const [todayMacros, setTodayMacros] = useState<MacroTotals | null>(null);
   const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   const targets = proStore.getTargets(clientId);
   const totalCarbs = (targets.starchyCarbs || 0) + (targets.fibrousCarbs || 0);
   const totalCal = (targets.protein * 4) + (totalCarbs * 4) + (targets.fat * 9);
 
-  useEffect(() => {
+  const fetchData = useCallback(async (isManual = false) => {
     if (!clientId) return;
-    let cancelled = false;
+    if (isManual) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    try {
+      const { start, end } = todayRange();
+      const headers: Record<string, string> = { ...getAuthHeaders() };
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { start, end } = todayRange();
-        const headers: Record<string, string> = { ...getAuthHeaders() };
+      const [macroRes, bodyCompRes] = await Promise.all([
+        fetch(apiUrl(`/api/users/${clientId}/macros?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`), {
+          headers,
+          credentials: "include",
+        }),
+        fetch(apiUrl(`/api/users/${clientId}/body-composition/latest`), {
+          headers,
+          credentials: "include",
+        }),
+      ]);
 
-        const [macroRes, bodyCompRes] = await Promise.all([
-          fetch(apiUrl(`/api/users/${clientId}/macros?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`), {
-            headers,
-            credentials: "include",
-          }),
-          fetch(apiUrl(`/api/users/${clientId}/body-composition/latest`), {
-            headers,
-            credentials: "include",
-          }),
-        ]);
-
-        if (cancelled) return;
-
-        if (macroRes.ok) {
-          const data = await macroRes.json();
-          setTodayMacros({
-            kcal: Math.round(Number(data.kcal || 0)),
-            protein: Math.round(Number(data.protein || 0)),
-            carbs: Math.round(Number(data.carbs || 0)),
-            fat: Math.round(Number(data.fat || 0)),
-          });
-        }
-
-        if (bodyCompRes.ok) {
-          const data = await bodyCompRes.json();
-          if (data?.entry) setBodyComp(data.entry);
-        }
-      } catch {
-        if (!cancelled) setError("Failed to load metrics");
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (macroRes.ok) {
+        const data = await macroRes.json();
+        setTodayMacros({
+          kcal: Math.round(Number(data.kcal || 0)),
+          protein: Math.round(Number(data.protein || 0)),
+          carbs: Math.round(Number(data.carbs || 0)),
+          fat: Math.round(Number(data.fat || 0)),
+        });
       }
-    };
 
-    fetchData();
-    return () => { cancelled = true; };
+      if (bodyCompRes.ok) {
+        const data = await bodyCompRes.json();
+        if (data?.entry) setBodyComp(data.entry);
+      }
+
+      setLastRefreshed(new Date());
+    } catch {
+      setError("Failed to load metrics");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [clientId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -150,7 +151,19 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
       </div>
 
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-        <h4 className="text-xs font-medium text-white/60 mb-2">Today's Logged vs Target</h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-xs font-medium text-white/60">Today's Logged vs Target</h4>
+          <button
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1 text-[10px] text-white/40 hover:text-white/70 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+            {lastRefreshed
+              ? `Updated ${lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : "Refresh"}
+          </button>
+        </div>
         <table className="w-full text-xs">
           <thead>
             <tr className="text-white/40">
