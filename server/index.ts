@@ -100,38 +100,64 @@ import studioGeneratorRouter from "./routes/studioGenerator";
 
 const app = express();
 
-// CORS middleware for production (all frontend origins)
+// ─── CORS — single authoritative block, registered first ─────────────────────
+// Must run before every other middleware so OPTIONS preflights are answered
+// before hitting auth, rate limiting, etc.
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'https://my-perfect-meals-frontend-clean.vercel.app',
-    'https://myperfectmeals.com',
-    'https://www.myperfectmeals.com',
-    'https://app.myperfectmeals.com',
-    'http://localhost:5173',
-    'http://localhost:5000',
-    // Capacitor native app origins
-    'https://localhost',   // Android Capacitor
-    'http://localhost',    // Android Capacitor (fallback)
-    'capacitor://localhost', // iOS Capacitor
-    'ionic://localhost',   // Ionic WebView
-  ];
-
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+
+  // Build the allowed-origin list from env overrides + hard-coded entries.
+  const envOrigins = process.env.CORS_ORIGIN?.split(',').map(o => o.trim()) ?? [];
+  const replitOrigin = process.env.REPLIT_DEV_DOMAIN
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+    : null;
+
+  const allowedOrigins = new Set([
+    ...envOrigins,
+    ...(process.env.APP_ORIGIN ? [process.env.APP_ORIGIN] : []),
+    ...(replitOrigin ? [replitOrigin] : []),
+    // Dev servers
+    "http://localhost:5173",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    // Production web domains
+    "https://myperfectmeals.com",
+    "https://www.myperfectmeals.com",
+    "https://app.myperfectmeals.com",
+    "https://my-perfect-meals-frontend-clean.vercel.app",
+    // Capacitor / Ionic native origins
+    "https://localhost",       // Android Capacitor
+    "http://localhost",        // Android Capacitor (fallback)
+    "capacitor://localhost",   // iOS Capacitor
+    "ionic://localhost",       // Ionic WebView
+  ]);
+
+  // Allow same-origin requests (no Origin header), explicitly listed origins,
+  // and any Vercel preview deployments.
+  const allowed =
+    !origin ||
+    allowedOrigins.has(origin) ||
+    origin.endsWith('.vercel.app');
+
+  if (allowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin ?? '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Device-Id, x-auth-token');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token'
+  );
 
-  // Handle preflight
+  // Answer OPTIONS preflights immediately — nothing else should run for these.
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   }
 
   next();
 });
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Trust proxy MUST be set before any middleware that uses req.ip
 // Railway uses 1 proxy hop - trust exactly 1 in production, none in dev
@@ -167,54 +193,6 @@ app.get("/api/health", (_req, res) => {
 // ---------- Production Middleware ----------
 app.use(requestId);
 app.use(logger);
-
-// CORS headers for API access with credentials support
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  // Build allowed origins from multiple sources
-  const corsOrigins = process.env.CORS_ORIGIN?.split(',').map(o => o.trim()) || [];
-  const allowedOrigins = [
-    ...corsOrigins,
-    process.env.APP_ORIGIN,
-    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
-    "http://localhost:5173",
-    "http://localhost:5000",
-    "http://127.0.0.1:5000",
-    // Production domains
-    "https://myperfectmeals.com",
-    "https://www.myperfectmeals.com",
-    "https://app.myperfectmeals.com",
-    // Capacitor iOS/Android native app origins
-    "https://localhost",     // Android Capacitor
-    "capacitor://localhost", // iOS Capacitor
-    "ionic://localhost",     // Ionic WebView
-    "http://localhost",
-    // Allow Vercel preview deployments (format: *.vercel.app)
-  ].filter(Boolean);
-
-  // Also allow Vercel preview domains (ending with .vercel.app)
-  const isVercelPreview = origin && origin.endsWith('.vercel.app');
-
-  // Allow requests with no origin (same-origin), from allowed origins, or Vercel preview deployments
-  if (!origin || allowedOrigins.includes(origin) || isVercelPreview) {
-    res.header('Access-Control-Allow-Origin', origin || allowedOrigins[0] || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  } else {
-    // Log blocked origins in development for debugging
-    if (process.env.NODE_ENV !== "production") {
-      log("cors", `Blocked origin: ${origin}`);
-    }
-  }
-
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 // Stripe webhook MUST come BEFORE express.json() to preserve raw body for signature verification
 // IMPORTANT: Use specific path /api/stripe/webhook to avoid intercepting other /api/stripe/* routes
