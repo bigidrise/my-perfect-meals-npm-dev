@@ -185,18 +185,12 @@ export default function EditProfilePage() {
 
   useEffect(() => {
     document.title = "Edit Profile | My Perfect Meals";
-  }, []);
-
-  // Only reset form from server data on first load, not on background refreshes
-  const [formInitialized, setFormInitialized] = useState(false);
-  useEffect(() => {
-    if (!formInitialized && initial.firstName) {
-      setForm(initial);
-      setDietaryText(initial.dietaryRestrictions.join(", "));
-      setAllergiesText(initial.allergies.join(", "));
-      setFormInitialized(true);
-    }
-  }, [initial, formInitialized]);
+    setForm(initial);
+    setDietaryText(initial.dietaryRestrictions.join(", "));
+    setAllergiesText(initial.allergies.join(", "));
+    // NOTE: intentionally NOT resetting allergiesUnlocked / allergyEditToken here
+    // so that a background user-data refresh doesn't wipe the PIN unlock mid-flow
+  }, [initial]);
   
   const verifyPinForAllergies = async () => {
     if (pinInput.length !== 4) {
@@ -260,60 +254,6 @@ export default function EditProfilePage() {
   const canContinueStep2 =
     Boolean(form.fitnessGoal) && Boolean(form.activityLevel);
   const canContinueStep3 = true;
-
-  const pushProfilePayload = async (payload: EditProfilePayload & { allergyEditToken?: string }) => {
-    const authToken = getAuthToken();
-    const res = await fetch(apiUrl("/api/users/profile"), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authToken ? { "x-auth-token": authToken } : {}),
-      },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(txt || "Failed to save");
-    }
-  };
-
-  const handleStep3Continue = async () => {
-    const dietaryArray = dietaryText.split(",").map((s: string) => s.trim()).filter(Boolean);
-    const allergiesArray = allergiesText.split(",").map((s: string) => s.trim()).filter(Boolean);
-    const originalAllergies = (initial.allergies || []).sort().join(",");
-    const newAllergies = [...allergiesArray].sort().join(",");
-    const allergiesChanged = originalAllergies !== newAllergies;
-
-    if (allergiesChanged && !allergiesUnlocked) {
-      toast({
-        title: "Allergies Protected",
-        description: "Unlock allergies with your Safety PIN before changing them, or revert your changes.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const payload: EditProfilePayload & { allergyEditToken?: string } = {
-        ...form,
-        dietaryRestrictions: dietaryArray,
-        ...(allergiesChanged ? { allergies: allergiesArray } : {}),
-        ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
-      };
-      await pushProfilePayload(payload);
-      setAllergiesUnlocked(false);
-      setAllergyEditToken(null);
-      await refreshUser?.();
-      setStep(4);
-    } catch (e: any) {
-      toast({
-        title: "Save failed",
-        description: e?.message || "Could not save preferences. Try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -776,7 +716,8 @@ export default function EditProfilePage() {
                 </Button>
                 <Button
                   className="w-1/2 bg-lime-600 text-white"
-                  onClick={handleStep3Continue}
+                  disabled={!canContinueStep3}
+                  onClick={() => setStep(4)}
                 >
                   Continue
                 </Button>
