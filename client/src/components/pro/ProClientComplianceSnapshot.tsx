@@ -47,28 +47,27 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
       return res.json();
     },
     enabled: !!clientId,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-6">
-        <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+      <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+        <h4 className="text-xs font-medium text-white/60 mb-2">Compliance</h4>
+        <div className="flex items-center justify-center py-3">
+          <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+        </div>
       </div>
     );
   }
 
-  if (isError || !data) {
-    return null;
-  }
-
-  if (data.reason === "no_targets") {
+  if (isError || !data || data.reason === "no_targets") {
     return (
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
         <h4 className="text-xs font-medium text-white/60 mb-1">Compliance</h4>
         <p className="text-[10px] text-white/30 italic">
-          No active macro targets set yet
+          {!data || isError ? "Not available — client account not linked" : "No active macro targets set yet"}
         </p>
       </div>
     );
