@@ -47,7 +47,7 @@ module.exports = {
       },
       rules: {
         "no-restricted-imports": "off", // Frontend can import what it needs
-        "no-restricted-globals": ["warn", {
+        "no-restricted-globals": ["error", {
           "name": "fetch",
           "message": "Use apiRequest() from @/lib/queryClient instead of raw fetch(). Raw fetch bypasses auth headers and session tokens."
         }]

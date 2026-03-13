@@ -50,7 +50,7 @@ RAW_COUNT=$(echo "$RAW_FETCH" | grep -c 'fetch(' 2>/dev/null || echo 0)
 if [ "$RAW_COUNT" -eq 0 ]; then
   pass "No raw fetch() calls found"
 else
-  warn "$RAW_COUNT raw fetch() call(s) found — should use apiRequest() instead:"
+  fail "$RAW_COUNT raw fetch() call(s) found — use apiRequest() instead:"
   echo "$RAW_FETCH" | head -20 | sed 's/^/    /'
   if [ "$RAW_COUNT" -gt 20 ]; then
     echo "    ... and $((RAW_COUNT - 20)) more"
