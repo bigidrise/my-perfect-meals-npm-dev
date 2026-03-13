@@ -121,43 +121,46 @@ async function initializeApp() {
     const { errorHandler } = await import("./middleware/errorHandler");
     const { resolveCuisineMiddleware } = await import("./middleware/resolveCuisineMiddleware");
     
-    // Apply middleware
-    app.use(requestId);
-    app.use(logger);
-    
-    // CORS headers
+    // CORS — registered first so OPTIONS preflights are answered before
+    // requestId, logger, auth, or rate-limiting can interfere.
     app.use((req, res, next) => {
       const origin = req.headers.origin;
-      const isReplitOrigin = origin && (
-        origin.endsWith('.replit.app') || 
-        origin.endsWith('.replit.dev') ||
-        origin.endsWith('.repl.co')
-      );
-      const isCapacitorOrigin = origin && (
-        origin === 'capacitor://localhost' ||
-        origin === 'ionic://localhost' ||
-        origin === 'http://localhost'
-      );
-      const isProductionOrigin = origin && (
-        origin === 'https://myperfectmeals.com' ||
-        origin === 'https://www.myperfectmeals.com' ||
-        origin === 'https://app.myperfectmeals.com' ||
-        origin.endsWith('.vercel.app')
-      );
 
-      if (!origin || isReplitOrigin || isCapacitorOrigin || isProductionOrigin) {
-        res.header('Access-Control-Allow-Origin', origin || '*');
+      // Normalize: Android WebView sometimes appends a trailing slash
+      const normalizedOrigin = origin?.replace(/\/$/, "");
+
+      const allowed =
+        !normalizedOrigin ||
+        normalizedOrigin.endsWith('.replit.app') ||
+        normalizedOrigin.endsWith('.replit.dev') ||
+        normalizedOrigin.endsWith('.repl.co') ||
+        normalizedOrigin.endsWith('.vercel.app') ||
+        normalizedOrigin === 'https://myperfectmeals.com' ||
+        normalizedOrigin === 'https://www.myperfectmeals.com' ||
+        normalizedOrigin === 'https://app.myperfectmeals.com' ||
+        // Capacitor / Ionic native origins
+        normalizedOrigin === 'https://localhost' ||   // Android Capacitor
+        normalizedOrigin === 'http://localhost' ||    // Android fallback
+        normalizedOrigin === 'capacitor://localhost' || // iOS Capacitor
+        normalizedOrigin === 'ionic://localhost';     // Ionic WebView
+
+      if (allowed) {
+        res.header('Access-Control-Allow-Origin', normalizedOrigin ?? '*');
         res.header('Access-Control-Allow-Credentials', 'true');
       }
-      
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token');
-      
+
       if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
+        return res.sendStatus(204);
       }
       next();
     });
+
+    // Request ID + logging run after CORS so preflights don't create noise
+    app.use(requestId);
+    app.use(logger);
 
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
