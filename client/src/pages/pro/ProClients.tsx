@@ -78,6 +78,11 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       const localClients = proStore.listClients();
 
       for (const dbClient of dbClients) {
+        // Skip any client the pro explicitly deleted — tombstone prevents resurrection
+        if (proStore.isClientTombstoned(dbClient.clientUserId, dbClient.email)) {
+          continue;
+        }
+
         const builderMap: Record<string, BuilderType> = {
           weekly: "weekly",
           diabetic: "diabetic",
@@ -88,10 +93,11 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           performance_competition: "performance_competition",
         };
 
+        const dbEmail = dbClient.email?.toLowerCase();
         const existing = localClients.find(
           (lc) =>
-            lc.clientUserId === dbClient.clientUserId ||
-            lc.email === dbClient.email,
+            (lc.clientUserId && lc.clientUserId === dbClient.clientUserId) ||
+            (lc.email && dbEmail && lc.email.toLowerCase() === dbEmail),
         );
 
         const resolvedBuilder: BuilderType | undefined =

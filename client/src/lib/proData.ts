@@ -128,14 +128,27 @@ type ProStoreState = {
   plans: Record<string, PlanItem[]>;
   context: Record<string, ClinicalContext>;
   followups: FollowUp[];
+  // Tombstone: clientUserId and email values of clients the pro explicitly
+  // deleted. The sync uses this to skip DB-backed clients that should stay gone.
+  deletedClientKeys: string[];
 };
 
 const LS_KEY = 'mpm_prostore_v2';
 
+const EMPTY_STATE = (): ProStoreState => ({
+  clients: [],
+  targets: {},
+  prefs: {},
+  plans: {},
+  context: {},
+  followups: [],
+  deletedClientKeys: [],
+});
+
 function loadState(): ProStoreState {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return { clients: [], targets: {}, prefs: {}, plans: {}, context: {}, followups: [] };
+    if (!raw) return EMPTY_STATE();
     const parsed = JSON.parse(raw);
 
     return {
@@ -145,9 +158,10 @@ function loadState(): ProStoreState {
       plans: parsed.plans ?? {},
       context: parsed.context ?? {},
       followups: parsed.followups ?? [],
+      deletedClientKeys: parsed.deletedClientKeys ?? [],
     } as ProStoreState;
   } catch {
-    return { clients: [], targets: {}, prefs: {}, plans: {}, context: {}, followups: [] };
+    return EMPTY_STATE();
   }
 }
 
@@ -295,6 +309,19 @@ export const proStore = {
   },
   
   deleteClient(id: string) {
+    // Record tombstone keys BEFORE removing the client so we can look them up
+    const dying = state.clients.find(c => c.id === id);
+    if (dying) {
+      const keys: string[] = [];
+      if (dying.clientUserId) keys.push(dying.clientUserId);
+      if (dying.email) keys.push(dying.email.toLowerCase());
+      if (keys.length) {
+        state.deletedClientKeys = [
+          ...new Set([...state.deletedClientKeys, ...keys]),
+        ];
+      }
+    }
+
     state.clients = state.clients.filter(c => c.id !== id);
     delete state.targets[id];
     delete state.prefs[id];
@@ -302,6 +329,15 @@ export const proStore = {
     delete state.context[id];
     state.followups = state.followups.filter(f => f.clientId !== id);
     saveState(state);
+  },
+
+  // Returns true if a DB client should be skipped because it was explicitly deleted
+  isClientTombstoned(clientUserId?: string, email?: string): boolean {
+    const keys = state.deletedClientKeys;
+    if (!keys.length) return false;
+    if (clientUserId && keys.includes(clientUserId)) return true;
+    if (email && keys.includes(email.toLowerCase())) return true;
+    return false;
   },
 
   getTargets(clientId: string): Targets {
