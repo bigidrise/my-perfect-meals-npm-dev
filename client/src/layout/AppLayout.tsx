@@ -50,6 +50,7 @@ function isProfessional(user: any): boolean {
 }
 
 function DesktopRequiredScreen() {
+  const [, navigate] = useLocation();
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center px-6 text-center">
       <div className="mb-6 w-16 h-16 rounded-2xl bg-blue-500/15 flex items-center justify-center">
@@ -66,7 +67,7 @@ function DesktopRequiredScreen() {
         Your clients can still use the mobile app normally.
       </p>
       <button
-        onClick={() => window.history.back()}
+        onClick={() => navigate("/dashboard")}
         className="mt-8 flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 text-white/80 text-sm font-medium active:bg-white/20"
       >
         <ArrowLeft className="w-4 h-4" />
