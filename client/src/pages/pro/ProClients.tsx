@@ -24,7 +24,6 @@ import {
 } from "@/lib/proData";
 import {
   Plus,
-  User2,
   ArrowLeft,
   Archive,
   RotateCcw,
@@ -123,6 +122,33 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         };
 
         proStore.upsertClient(profile);
+      }
+
+      // Deduplicate: remove ghost entries created by previous sync runs
+      // where the same client ended up with two local records (different ids,
+      // same clientUserId). Prefer the archived entry so archive state survives.
+      const allClients = proStore.listClients();
+      const deduped: ClientProfile[] = [];
+      const seenByClientUserId = new Map<string, number>();
+
+      for (const c of allClients) {
+        if (!c.clientUserId) {
+          deduped.push(c);
+          continue;
+        }
+        const existingIdx = seenByClientUserId.get(c.clientUserId);
+        if (existingIdx === undefined) {
+          seenByClientUserId.set(c.clientUserId, deduped.length);
+          deduped.push(c);
+        } else if (c.archived && !deduped[existingIdx].archived) {
+          // Replace the non-archived ghost with the archived original
+          deduped[existingIdx] = { ...deduped[existingIdx], ...c, archived: true };
+        }
+        // otherwise discard the duplicate
+      }
+
+      if (deduped.length < allClients.length) {
+        proStore.saveClients(deduped);
       }
 
       setClients([...proStore.listClients()]);
@@ -372,68 +398,63 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                   className="bg-white/5 border border-white/20"
                   data-testid="pro-client-row"
                 >
-                  <CardContent className="p-4 space-y-3">
-                    {/* Row 1: avatar + name/email + action buttons */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
-                        <User2 className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-white truncate">{c.name}</div>
-                        {c.email && (
-                          <div className="text-white/60 text-sm truncate">{c.email}</div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {c.archived ? (
-                          <>
-                            <Button
-                              onClick={() => restoreClient(c.id)}
-                              variant="outline"
-                              size="sm"
-                              className="bg-green-600/20 border-green-500/30 text-green-300"
-                              data-testid={`button-restore-client-${c.id}`}
-                            >
-                              <RotateCcw className="h-4 w-4 mr-1" />
-                              Restore
-                            </Button>
-                            <TrashButton
-                              onClick={() => deleteClient(c.id, c.name)}
-                              size="sm"
-                              confirm
-                              confirmMessage={`Delete ${c.name} permanently? This will remove all data and cannot be undone.`}
-                              ariaLabel={`Permanently delete ${c.name}`}
-                              data-testid={`button-delete-client-${c.id}`}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              onClick={() => archiveClient(c.id)}
-                              variant="outline"
-                              size="sm"
-                              className="bg-orange-600/20 border-orange-500/30 text-orange-300"
-                              data-testid={`button-archive-client-${c.id}`}
-                            >
-                              <Archive className="h-4 w-4 mr-1" />
-                              Archive
-                            </Button>
-                            <Button
-                              onClick={() => openFolder(c)}
-                              size="sm"
-                              className="bg-purple-600 text-white active:scale-[0.98]"
-                              data-testid="button-open-client"
-                            >
-                              <FolderOpen className="h-4 w-4 mr-1" />
-                              Open
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                  <CardContent className="p-4 flex flex-col gap-3">
+                    {/* Row 1: name */}
+                    <div className="text-white font-bold text-base leading-tight">
+                      {c.name}
                     </div>
-                    {/* Row 2: badges only — wraps freely, never affects buttons */}
+
+                    {/* Row 2: action buttons */}
+                    <div className="flex items-center gap-2">
+                      {c.archived ? (
+                        <>
+                          <Button
+                            onClick={() => restoreClient(c.id)}
+                            variant="outline"
+                            size="sm"
+                            className="bg-green-600/20 border-green-500/30 text-green-300"
+                            data-testid={`button-restore-client-${c.id}`}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            Restore
+                          </Button>
+                          <TrashButton
+                            onClick={() => deleteClient(c.id, c.name)}
+                            size="sm"
+                            confirm
+                            confirmMessage={`Delete ${c.name} permanently? This will remove all data and cannot be undone.`}
+                            ariaLabel={`Permanently delete ${c.name}`}
+                            data-testid={`button-delete-client-${c.id}`}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={() => archiveClient(c.id)}
+                            variant="outline"
+                            size="sm"
+                            className="bg-orange-600/20 border-orange-500/30 text-orange-300"
+                            data-testid={`button-archive-client-${c.id}`}
+                          >
+                            <Archive className="h-4 w-4 mr-1" />
+                            Archive
+                          </Button>
+                          <Button
+                            onClick={() => openFolder(c)}
+                            size="sm"
+                            className="bg-purple-600 text-white active:scale-[0.98]"
+                            data-testid="button-open-client"
+                          >
+                            <FolderOpen className="h-4 w-4 mr-1" />
+                            Open
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Row 3: linked / role / builder badges */}
                     {(c.dbBacked || c.role || getBuilderBadge(c)) && (
-                      <div className="flex gap-2 flex-wrap pl-13">
+                      <div className="flex gap-2 flex-wrap">
                         {c.dbBacked && (
                           <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30">
                             <LinkIcon className="h-3 w-3" />
@@ -458,7 +479,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                           </div>
                         )}
                         {getBuilderBadge(c) && (
-                          <div className="inline-block max-w-[100px] truncate px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
+                          <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
                             {getBuilderBadge(c)}
                           </div>
                         )}

@@ -249,9 +249,32 @@ export const proStore = {
     saveState(state);
   },
   upsertClient(c: ClientProfile) {
-    const i = state.clients.findIndex((x) => x.id === c.id);
-    if (i >= 0) state.clients[i] = { ...state.clients[i], ...c };
-    else state.clients.unshift(c);
+    let i = state.clients.findIndex((x) => x.id === c.id);
+
+    // Fallback: match by clientUserId or email to prevent duplicate entries
+    // when a DB sync assigns a different id than the locally-stored one
+    if (i < 0 && c.clientUserId) {
+      i = state.clients.findIndex((x) => x.clientUserId === c.clientUserId);
+    }
+    if (i < 0 && c.email) {
+      i = state.clients.findIndex(
+        (x) => x.email && x.email.toLowerCase() === c.email!.toLowerCase()
+      );
+    }
+
+    if (i >= 0) {
+      // Merge new data but always preserve the local archived flag.
+      // The server never stores archived state — only archiveClient /
+      // restoreClient should change it.
+      state.clients[i] = {
+        ...state.clients[i],
+        ...c,
+        id: state.clients[i].id,           // keep original local id
+        archived: state.clients[i].archived, // never overwrite with server value
+      };
+    } else {
+      state.clients.unshift(c);
+    }
     saveState(state);
   },
   
