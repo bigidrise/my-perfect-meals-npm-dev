@@ -578,6 +578,7 @@ export default function GLP1MealBuilder() {
           targetDates,
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
+          namespace: BUILDER_NS.GLP1,
         });
 
         if (result.currentWeekBoard) {

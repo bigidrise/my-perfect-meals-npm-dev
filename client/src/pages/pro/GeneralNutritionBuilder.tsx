@@ -469,6 +469,7 @@ export default function WeeklyMealBoard() {
         targetDates,
         currentBoard: board,
         currentWeekStartISO: weekStartISO,
+        namespace: BUILDER_NS.GENERAL_NUTRITION,
       });
 
       if (result.currentWeekBoard) {

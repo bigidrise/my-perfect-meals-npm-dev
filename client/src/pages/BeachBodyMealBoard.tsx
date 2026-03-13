@@ -697,6 +697,7 @@ export default function BeachBodyMealBoard() {
           targetDates,
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
+          namespace: BUILDER_NS.BEACH_BODY,
         });
 
         if (result.currentWeekBoard) {

@@ -98,12 +98,16 @@ export function getWeekBoardByDate(weekStartISO: string, proClientId?: string): 
 export function putWeekBoard(
   weekStartISO: string,
   week: WeekBoard,
-  proClientId?: string
+  proClientId?: string,
+  namespace?: string
 ): Promise<WeekBoardResponse> {
   if (proClientId) {
     return apiPut<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}`, { week });
   }
-  return apiPut<WeekBoardResponse>(`/api/week-board/${weekStartISO}`, { week });
+  const url = namespace
+    ? `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}&ns=${encodeURIComponent(namespace)}`
+    : `/api/week-board/${weekStartISO}`;
+  return apiPut<WeekBoardResponse>(url, { week });
 }
 
 /** Build shopping list for a given week (view-only list). */

@@ -17,11 +17,13 @@ export async function duplicateAcrossWeeks({
   targetDates,
   currentBoard,
   currentWeekStartISO,
+  namespace,
 }: {
   sourceLists: WeekLists;
   targetDates: string[];
   currentBoard: WeekBoard;
   currentWeekStartISO: string;
+  namespace?: string;
 }): Promise<CrossWeekDuplicateResult> {
   const datesByWeek = new Map<string, string[]>();
   for (const dateISO of targetDates) {
@@ -53,8 +55,9 @@ export async function duplicateAcrossWeeks({
 
   for (const [weekStart, dates] of otherWeeks) {
     try {
+      const nsParam = namespace ? `&ns=${encodeURIComponent(namespace)}` : "";
       const response = await apiJSON<{ week: WeekBoard }>(
-        `/api/weekly-board?week=${encodeURIComponent(weekStart)}`,
+        `/api/weekly-board?week=${encodeURIComponent(weekStart)}${nsParam}`,
         { method: "GET" }
       );
       let remoteBoard: WeekBoard = response.week;
@@ -65,7 +68,7 @@ export async function duplicateAcrossWeeks({
       }
 
       await apiJSON(
-        `/api/weekly-board?week=${encodeURIComponent(weekStart)}`,
+        `/api/weekly-board?week=${encodeURIComponent(weekStart)}${nsParam}`,
         { method: "PUT", json: { week: remoteBoard } }
       );
 

@@ -672,6 +672,7 @@ export default function DiabeticMenuBuilder() {
           targetDates,
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
+          namespace: BUILDER_NS.DIABETIC,
         });
 
         if (result.currentWeekBoard) {

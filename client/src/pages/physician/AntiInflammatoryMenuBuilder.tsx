@@ -655,6 +655,7 @@ export default function AntiInflammatoryMenuBuilder() {
           targetDates,
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
+          namespace,
         });
 
         if (result.currentWeekBoard) {

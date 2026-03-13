@@ -547,6 +547,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           targetDates,
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
+          namespace: BUILDER_NS.PERFORMANCE_COMPETITION,
         });
 
         if (result.currentWeekBoard) {
