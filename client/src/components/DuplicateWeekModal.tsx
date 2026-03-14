@@ -136,15 +136,33 @@ export function DuplicateWeekModal({
       {showRefreshBanner &&
         createPortal(
           <div className="fixed top-0 left-0 right-0 z-[9999] px-4 pt-4">
-            <div className="bg-black/80 border border-white/20 backdrop-blur-sm rounded-2xl shadow-xl px-4 py-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-white text-sm">
-                <RefreshCw className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>
-                  <span className="font-semibold">Week duplicated</span>
-                  {targetWeekLabel && (
-                    <span className="text-white/60"> · Copied to {targetWeekLabel}</span>
-                  )}
-                </span>
+            <div className="bg-black/80 border border-white/20 backdrop-blur-sm rounded-2xl shadow-xl px-4 py-4 flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 text-white text-sm">
+                  <RefreshCw className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-semibold">Week duplicated successfully</span>
+                    {targetWeekLabel && (
+                      <span className="block text-white/60 text-xs mt-0.5">Copied to {targetWeekLabel}</span>
+                    )}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowRefreshBanner(false)}
+                  className="text-white/60 hover:text-white p-1 shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => window.location.reload()}
+                  className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold min-h-[44px] flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Tap to Refresh & See Changes
+                </Button>
+              </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button
