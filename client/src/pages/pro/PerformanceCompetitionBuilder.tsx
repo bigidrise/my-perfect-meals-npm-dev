@@ -600,7 +600,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           title: "Week duplicated",
           description: `Copied to week of ${targetWeekStartISO}`,
         });
-        window.location.reload();
       } catch (error) {
         console.error("Failed to duplicate week:", error);
         toast({

@@ -519,7 +519,6 @@ export default function WeeklyMealBoard() {
       // Navigate to the new week
       setWeekStartISO(targetWeekStartISO);
       toast({ title: "Week duplicated", description: `Copied to week of ${targetWeekStartISO}` });
-      window.location.reload();
     } catch (error) {
       console.error('Failed to duplicate week:', error);
       toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
