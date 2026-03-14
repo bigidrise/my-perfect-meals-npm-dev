@@ -250,10 +250,17 @@ export default function MealFinder() {
         newResults.map((r: MealResult) => r.restaurantName),
       ).size;
 
-      toast({
-        title: "Meals Found!",
-        description: `Found ${uniqueRestaurants} restaurants with ${newResults.length} meals`,
-      });
+      if (newResults.length === 0) {
+        toast({
+          title: "No Results Found",
+          description: data.message || "No restaurants found near this location. Try a different craving or ZIP code.",
+        });
+      } else {
+        toast({
+          title: "Meals Found!",
+          description: `Found ${uniqueRestaurants} restaurants with ${newResults.length} meals`,
+        });
+      }
 
       // Emit search-complete event after successful search
       setTimeout(() => {

@@ -48,18 +48,15 @@ router.post('/meal-finder', async (req, res) => {
       user
     });
     
-    if (results.length === 0) {
-      return res.status(404).json({
-        error: 'No restaurants found',
-        message: `Could not find restaurants serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`
-      });
-    }
-    
-    return res.json({
+    return res.status(200).json({
       success: true,
       query: mealQuery,
       zipCode,
-      results
+      results,
+      count: results.length,
+      ...(results.length === 0 && {
+        message: `No restaurants found serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`
+      })
     });
     
   } catch (error) {
