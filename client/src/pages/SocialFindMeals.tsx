@@ -887,7 +887,7 @@ export default function MealFinder() {
             </div>
           )}
 
-          {!findMealsMutation.isPending && results.length === 0 && (
+          {guidedStep === "entry" && !findMealsMutation.isPending && results.length === 0 && (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🍴</div>
               <p className="text-white text-lg mb-2">
