@@ -42,41 +42,72 @@ export async function zipToCoordinates(zipCode: string): Promise<Coordinates | n
     }
   }
 
-  // Fetch from Google Geocoding API
+  // Try Google Geocoding API first
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-  if (!apiKey) {
-    console.error('❌ GOOGLE_PLACES_API_KEY not configured');
-    return null;
+
+  if (apiKey) {
+    try {
+      console.log(`🔍 Geocoding ZIP code: ${zipCode}`);
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipCode}&key=${apiKey}`;
+      const response = await axios.get(url, { timeout: 5000 });
+
+      if (response.data.status === 'OK' && response.data.results?.length > 0) {
+        const location = response.data.results[0].geometry.location;
+        const coords: Coordinates = { lat: location.lat, lng: location.lng };
+        cache.set(zipCode, { coords, timestamp: Date.now() });
+        console.log(`✅ Geocoded ZIP ${zipCode} to (${coords.lat}, ${coords.lng})`);
+        return coords;
+      } else if (response.data.status === 'REQUEST_DENIED') {
+        console.warn(`⚠️ Google Geocoding API not enabled for ZIP ${zipCode} — falling back to Nominatim`);
+      } else {
+        console.warn(`⚠️ Google geocoding status ${response.data.status} for ZIP ${zipCode} — falling back to Nominatim`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Google geocoding error for ZIP ${zipCode} — falling back to Nominatim:`, (error as Error).message);
+    }
+  } else {
+    console.log(`📍 No Google key — geocoding ZIP ${zipCode} via Nominatim`);
   }
 
+  // Nominatim fallback: forward geocoding ZIP → coords
+  return zipToCoordinatesNominatim(zipCode);
+}
+
+/**
+ * Forward geocode a US ZIP code to coordinates using OpenStreetMap Nominatim.
+ */
+async function zipToCoordinatesNominatim(zipCode: string): Promise<Coordinates | null> {
   try {
-    console.log(`🔍 Geocoding ZIP code: ${zipCode}`);
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipCode}&key=${apiKey}`;
-    
-    const response = await axios.get(url);
-    
-    if (response.data.status !== 'OK' || !response.data.results || response.data.results.length === 0) {
-      console.error(`❌ Geocoding failed for ZIP ${zipCode}:`, response.data.status);
+    console.log(`🗺️ Nominatim forward geocoding ZIP: ${zipCode}`);
+    const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${zipCode}&countrycodes=us&limit=1`;
+    const response = await axios.get(url, {
+      timeout: 8000,
+      headers: { 'User-Agent': 'MyPerfectMeals/1.0 (meal-planning-app)' }
+    });
+
+    if (!response.data || response.data.length === 0) {
+      console.error(`❌ Nominatim: no results for ZIP ${zipCode}`);
       return null;
     }
 
-    const location = response.data.results[0].geometry.location;
+    const result = response.data[0];
     const coords: Coordinates = {
-      lat: location.lat,
-      lng: location.lng
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon)
     };
 
-    // Cache the result
-    cache.set(zipCode, {
-      coords,
-      timestamp: Date.now()
-    });
+    if (isNaN(coords.lat) || isNaN(coords.lng)) {
+      console.error(`❌ Nominatim: invalid coordinates for ZIP ${zipCode}`);
+      return null;
+    }
 
-    console.log(`✅ Geocoded ZIP ${zipCode} to (${coords.lat}, ${coords.lng})`);
+    // Cache so we don't hit Nominatim on every request
+    cache.set(zipCode, { coords, timestamp: Date.now() });
+    console.log(`✅ Nominatim geocoded ZIP ${zipCode} to (${coords.lat}, ${coords.lng})`);
     return coords;
 
   } catch (error) {
-    console.error('❌ Geocoding API error:', error);
+    console.error(`❌ Nominatim forward geocoding error for ZIP ${zipCode}:`, error);
     return null;
   }
 }

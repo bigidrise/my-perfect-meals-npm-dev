@@ -237,25 +237,29 @@ export default function MealFinder() {
     onSuccess: (data) => {
       const newResults = data.results || [];
       setResults(newResults);
-      setGuidedStep("results");
-
-      saveMealFinderCache({
-        results: newResults,
-        mealQuery,
-        zipCode,
-        generatedAtISO: new Date().toISOString(),
-      });
-
-      const uniqueRestaurants = new Set(
-        newResults.map((r: MealResult) => r.restaurantName),
-      ).size;
 
       if (newResults.length === 0) {
+        // Return to search step so user can try again — don't strand them on a blank screen
+        setGuidedStep("step2");
         toast({
-          title: "No Results Found",
-          description: data.message || "No restaurants found near this location. Try a different craving or ZIP code.",
+          title: "No Meals Found",
+          description: data.message || "Nothing matched that search near your ZIP. Try a different craving or expand your search.",
+          variant: "destructive",
         });
       } else {
+        setGuidedStep("results");
+
+        saveMealFinderCache({
+          results: newResults,
+          mealQuery,
+          zipCode,
+          generatedAtISO: new Date().toISOString(),
+        });
+
+        const uniqueRestaurants = new Set(
+          newResults.map((r: MealResult) => r.restaurantName),
+        ).size;
+
         toast({
           title: "Meals Found!",
           description: `Found ${uniqueRestaurants} restaurants with ${newResults.length} meals`,
