@@ -57,8 +57,49 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   });
   
   if (!resolverResult.success || resolverResult.restaurants.length === 0) {
-    console.warn(`⚠️ ${resolverResult.error || 'No restaurants found'}`);
-    return [];
+    console.warn(`⚠️ ${resolverResult.error || 'No restaurants found via Places API'} — falling back to AI-generated suggestions`);
+
+    // Fallback: infer likely restaurants from the craving and generate AI meals
+    const fallbackRestaurants = inferRestaurantsFromCraving(mealQuery, zipCode);
+
+    const fallbackPromises = fallbackRestaurants.map(async (restaurant) => {
+      try {
+        const aiMeals = await generateRestaurantMealsAI({
+          restaurantName: restaurant.name,
+          cuisine: restaurant.cuisine,
+          user,
+          cravingContext: mealQuery
+        });
+        if (aiMeals && aiMeals.length > 0) {
+          return aiMeals.slice(0, 2).map(meal => ({
+            restaurantName: restaurant.name,
+            cuisine: restaurant.cuisine,
+            address: `Near ${zipCode}`,
+            meal: {
+              name: meal.name,
+              description: meal.description,
+              calories: meal.calories,
+              protein: meal.protein,
+              carbs: meal.carbs,
+              fat: meal.fat,
+              reason: meal.reason,
+              modifications: meal.modifications,
+              ingredients: meal.ingredients,
+              imageUrl: meal.imageUrl
+            },
+            medicalBadges: meal.medicalBadges
+          }));
+        }
+        return [];
+      } catch (err) {
+        console.error(`❌ Fallback meal generation failed for ${restaurant.name}:`, err);
+        return [];
+      }
+    });
+
+    const fallbackResults = (await Promise.all(fallbackPromises)).flat();
+    console.log(`✅ Fallback generated ${fallbackResults.length} AI suggestions`);
+    return fallbackResults;
   }
   
   const restaurants = resolverResult.restaurants;
@@ -114,4 +155,114 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   
   console.log(`✅ Successfully generated ${results.length} meal recommendations`);
   return results;
+}
+
+/**
+ * Infer likely restaurant chains from a craving when Google Places returns nothing.
+ * Returns 2-3 common restaurant names + their cuisine type.
+ */
+function inferRestaurantsFromCraving(
+  craving: string,
+  zipCode: string
+): Array<{ name: string; cuisine: string }> {
+  const q = craving.toLowerCase();
+
+  if (q.includes('burger') || q.includes('beef') || q.includes('smash')) {
+    return [
+      { name: "Five Guys", cuisine: "American" },
+      { name: "Shake Shack", cuisine: "American" },
+      { name: "In-N-Out Burger", cuisine: "American" }
+    ];
+  }
+  if (q.includes('sushi') || q.includes('japanese') || q.includes('ramen') || q.includes('poke')) {
+    return [
+      { name: "Nobu", cuisine: "Japanese" },
+      { name: "Sushi Bar", cuisine: "Japanese" },
+      { name: "Ramen Noodle House", cuisine: "Japanese" }
+    ];
+  }
+  if (q.includes('taco') || q.includes('mexican') || q.includes('burrito') || q.includes('enchilada')) {
+    return [
+      { name: "Chipotle Mexican Grill", cuisine: "Mexican" },
+      { name: "Taco Bell", cuisine: "Mexican" },
+      { name: "Qdoba Mexican Eats", cuisine: "Mexican" }
+    ];
+  }
+  if (q.includes('pizza') || q.includes('italian') || q.includes('pasta')) {
+    return [
+      { name: "Olive Garden", cuisine: "Italian" },
+      { name: "Pizza Hut", cuisine: "Italian" },
+      { name: "Domino's", cuisine: "Italian" }
+    ];
+  }
+  if (q.includes('steak') || q.includes('grilled') || q.includes('bbq') || q.includes('barbecue') || q.includes('ribs')) {
+    return [
+      { name: "Texas Roadhouse", cuisine: "American" },
+      { name: "Outback Steakhouse", cuisine: "American" },
+      { name: "LongHorn Steakhouse", cuisine: "American" }
+    ];
+  }
+  if (q.includes('chinese') || q.includes('dim sum') || q.includes('lo mein') || q.includes('fried rice')) {
+    return [
+      { name: "PF Chang's", cuisine: "Chinese" },
+      { name: "Panda Express", cuisine: "Chinese" },
+      { name: "Mandarin House", cuisine: "Chinese" }
+    ];
+  }
+  if (q.includes('indian') || q.includes('curry') || q.includes('tandoori') || q.includes('naan')) {
+    return [
+      { name: "Bombay Palace", cuisine: "Indian" },
+      { name: "India Palace", cuisine: "Indian" },
+      { name: "Spice Garden", cuisine: "Indian" }
+    ];
+  }
+  if (q.includes('mediterranean') || q.includes('greek') || q.includes('gyro') || q.includes('hummus') || q.includes('falafel')) {
+    return [
+      { name: "The Great Greek Mediterranean Grill", cuisine: "Mediterranean" },
+      { name: "Cosi", cuisine: "Mediterranean" },
+      { name: "Zoes Kitchen", cuisine: "Mediterranean" }
+    ];
+  }
+  if (q.includes('thai') || q.includes('pad thai') || q.includes('tom yum')) {
+    return [
+      { name: "Thai Orchid", cuisine: "Thai" },
+      { name: "Lotus of Siam", cuisine: "Thai" },
+      { name: "Bangkok Garden", cuisine: "Thai" }
+    ];
+  }
+  if (q.includes('chicken') || q.includes('wings') || q.includes('nuggets') || q.includes('fried')) {
+    return [
+      { name: "Chick-fil-A", cuisine: "American" },
+      { name: "Raising Cane's", cuisine: "American" },
+      { name: "Wingstop", cuisine: "American" }
+    ];
+  }
+  if (q.includes('salad') || q.includes('healthy') || q.includes('bowl') || q.includes('wrap') || q.includes('vegan') || q.includes('vegetarian')) {
+    return [
+      { name: "Sweetgreen", cuisine: "American" },
+      { name: "Panera Bread", cuisine: "American" },
+      { name: "Freshii", cuisine: "American" }
+    ];
+  }
+  if (q.includes('seafood') || q.includes('fish') || q.includes('shrimp') || q.includes('lobster') || q.includes('salmon')) {
+    return [
+      { name: "Red Lobster", cuisine: "Seafood" },
+      { name: "Bonefish Grill", cuisine: "Seafood" },
+      { name: "The Boiling Crab", cuisine: "Seafood" }
+    ];
+  }
+  if (q.includes('breakfast') || q.includes('brunch') || q.includes('eggs') || q.includes('pancake') || q.includes('waffle')) {
+    return [
+      { name: "IHOP", cuisine: "American" },
+      { name: "First Watch", cuisine: "American" },
+      { name: "Cracker Barrel", cuisine: "American" }
+    ];
+  }
+
+  // Generic fallback — common full-service restaurants
+  return [
+    { name: "Applebee's", cuisine: "American" },
+    { name: "Chili's Grill & Bar", cuisine: "American" },
+    { name: "TGI Fridays", cuisine: "American" }
+  ];
 }
