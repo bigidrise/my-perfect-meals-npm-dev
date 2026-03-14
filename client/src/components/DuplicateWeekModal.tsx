@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { formatWeekRange, getWeekStartISO } from "@/utils/week";
 import { isoToUtcNoonDate } from "@/utils/midnight";
 import { RefreshCw, Loader2, X } from "lucide-react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface DuplicateWeekModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function DuplicateWeekModal({
   onConfirm,
   sourceWeekStartISO,
 }: DuplicateWeekModalProps) {
+  const isDesktop = useIsDesktop();
   const [targetDate, setTargetDate] = useState(getWeekStartISO());
   const [loading, setLoading] = useState(false);
   const [showRefreshBanner, setShowRefreshBanner] = useState(false);
@@ -135,7 +137,7 @@ export function DuplicateWeekModal({
 
       {showRefreshBanner &&
         createPortal(
-          <div className="fixed top-0 left-0 right-0 z-[9999] px-4 pt-4">
+          <div className={`fixed top-0 ${isDesktop ? "left-[240px]" : "left-0"} right-0 z-[9999] px-4 pt-4`}>
             <div className="bg-black/80 border border-white/20 backdrop-blur-sm rounded-2xl shadow-xl px-4 py-3 flex items-center justify-between gap-4">
               <div className="flex-1 text-white text-sm">
                 <span className="font-semibold">Week duplicated</span>
