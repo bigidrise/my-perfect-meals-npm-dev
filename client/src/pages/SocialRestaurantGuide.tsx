@@ -98,7 +98,7 @@ const RESTAURANT_TOUR_STEPS: TourStep[] = [
 ];
 
 // ---- Persist the generated restaurant meal so it never "disappears" ----
-const CACHE_KEY = "restaurantGuide.cache.v1";
+const CACHE_KEY = "restaurantGuide.cache.v2";
 
 type CachedRestaurantState = {
   restaurantData: any;
@@ -122,7 +122,8 @@ function loadRestaurantCache(): CachedRestaurantState | null {
     // Minimal sanity checks
     if (
       !parsed?.restaurantData?.meals ||
-      !Array.isArray(parsed.restaurantData.meals)
+      !Array.isArray(parsed.restaurantData.meals) ||
+      parsed.restaurantData.meals.length === 0
     )
       return null;
     return parsed as CachedRestaurantState;

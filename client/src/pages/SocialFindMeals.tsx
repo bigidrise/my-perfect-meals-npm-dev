@@ -69,7 +69,7 @@ const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const CACHE_KEY = "mealFinder.cache.v1";
+const CACHE_KEY = "mealFinder.cache.v2";
 
 type CachedMealFinderState = {
   results: MealResult[];
@@ -89,7 +89,7 @@ function loadMealFinderCache(): CachedMealFinderState | null {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.results || !Array.isArray(parsed.results)) return null;
+    if (!parsed?.results || !Array.isArray(parsed.results) || parsed.results.length === 0) return null;
     return parsed as CachedMealFinderState;
   } catch {
     return null;
