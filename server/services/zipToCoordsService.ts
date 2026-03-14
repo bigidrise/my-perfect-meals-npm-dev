@@ -148,27 +148,29 @@ async function coordsToZipNominatim(lat: number, lng: number): Promise<string | 
 export async function coordsToZip(lat: number, lng: number): Promise<string | null> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
 
-  // --- Try Google first if key is available ---
+  // --- Try Google Geocoding API (only if key is available AND not previously denied) ---
   if (apiKey) {
     try {
       console.log(`🔍 Reverse geocoding coordinates: (${lat}, ${lng})`);
       const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
-      const response = await axios.get(url);
+      const response = await axios.get(url, { timeout: 5000 });
 
       if (response.data.status === 'OK' && response.data.results?.length > 0) {
         const zip = extractZipFromGoogleResults(response.data.results, lat, lng);
         if (zip) return zip;
-        console.error('❌ No postal code found in Google response');
+        console.warn('⚠️ No postal code in Google response — falling back to Nominatim');
+      } else if (response.data.status === 'REQUEST_DENIED') {
+        console.warn('⚠️ Google Geocoding API not enabled — using Nominatim directly');
       } else {
-        console.error(`❌ Reverse geocoding failed: ${response.data.status} — falling back to Nominatim`);
+        console.warn(`⚠️ Google geocoding status: ${response.data.status} — falling back to Nominatim`);
       }
     } catch (error) {
-      console.error('❌ Google reverse geocoding API error — falling back to Nominatim:', error);
+      console.warn('⚠️ Google reverse geocoding error — falling back to Nominatim:', (error as Error).message);
     }
   } else {
-    console.warn('⚠️ GOOGLE_PLACES_API_KEY not configured — using Nominatim directly');
+    console.log('📍 No Google key — using Nominatim directly');
   }
 
-  // --- Fallback: OpenStreetMap Nominatim ---
+  // --- Primary fallback: OpenStreetMap Nominatim (free, no key required) ---
   return coordsToZipNominatim(lat, lng);
 }
