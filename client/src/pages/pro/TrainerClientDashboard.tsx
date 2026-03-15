@@ -167,6 +167,13 @@ export default function TrainerClientDashboard() {
       }
     }
 
+    // Link both the proStore clientId and the real user ID so builders
+    // can resolve targets regardless of which ID appears in the route
+    linkUserToClient(clientId, clientId);
+    if (resolvedClientUserId && resolvedClientUserId !== clientId) {
+      linkUserToClient(resolvedClientUserId, clientId);
+    }
+
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
     }
@@ -462,10 +469,12 @@ export default function TrainerClientDashboard() {
                       clientId,
                     );
 
-                    const { linkUserToClient } = await import(
-                      "@/lib/macroResolver"
-                    );
+                    // Map both the proStore clientId and the real user ID so
+                    // every meal builder resolves targets correctly
                     linkUserToClient(clientId, clientId);
+                    if (resolvedClientUserId && resolvedClientUserId !== clientId) {
+                      linkUserToClient(resolvedClientUserId, clientId);
+                    }
 
                     toast({
                       title: "Macros Set to Biometrics!",
