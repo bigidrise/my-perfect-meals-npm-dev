@@ -252,8 +252,11 @@ function scaleMacrosToKcal(item: BankItem, targetKcal: number): Pick<BankItem,'k
 }
 
 export const proStore = {
-  listClients(): ClientProfile[] {
-    return state.clients;
+  listClients(workspace?: WorkspaceType): ClientProfile[] {
+    if (!workspace) return state.clients;
+    return state.clients.filter(
+      (c) => (c.workspace || "trainer") === workspace
+    );
   },
   getClient(id: string): ClientProfile | undefined {
     return state.clients.find((c) => c.id === id || c.clientUserId === id || c.userId === id);

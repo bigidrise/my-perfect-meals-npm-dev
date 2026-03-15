@@ -65,6 +65,7 @@ export const studioMemberships = pgTable("studio_memberships", {
   status: text("status").notNull().default("invited"),
   assignedBuilder: text("assigned_builder"),
   activeBoardId: uuid("active_board_id"),
+  workspace: text("workspace").notNull().default("trainer"),
   joinedAt: timestamp("joined_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

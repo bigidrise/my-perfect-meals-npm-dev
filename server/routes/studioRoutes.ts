@@ -140,6 +140,7 @@ router.get("/:studioId/clients", async (req, res) => {
     const userId = await getUserId(req);
     if (!userId) return res.status(401).json({ error: "Authentication required" });
     const { studioId } = req.params;
+    const workspace = (req.query.workspace as string) || "trainer";
 
     const [studio] = await db
       .select()
@@ -157,6 +158,7 @@ router.get("/:studioId/clients", async (req, res) => {
         status: studioMemberships.status,
         assignedBuilder: studioMemberships.assignedBuilder,
         activeBoardId: studioMemberships.activeBoardId,
+        workspace: studioMemberships.workspace,
         joinedAt: studioMemberships.joinedAt,
         userName: users.username,
         firstName: users.firstName,
@@ -165,7 +167,10 @@ router.get("/:studioId/clients", async (req, res) => {
       })
       .from(studioMemberships)
       .leftJoin(users, eq(users.id, studioMemberships.clientUserId))
-      .where(eq(studioMemberships.studioId, studioId));
+      .where(and(
+        eq(studioMemberships.studioId, studioId),
+        eq(studioMemberships.workspace, workspace)
+      ));
 
     const clients = rows.map(r => ({
       id: r.membershipId,
@@ -173,6 +178,7 @@ router.get("/:studioId/clients", async (req, res) => {
       status: r.status,
       assignedBuilder: r.assignedBuilder,
       activeBoardId: r.activeBoardId,
+      workspace: r.workspace,
       joinedAt: r.joinedAt,
       name: r.firstName && r.lastName
         ? `${r.firstName} ${r.lastName}`

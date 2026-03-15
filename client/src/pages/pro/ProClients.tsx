@@ -44,7 +44,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
 
   const [, setLocation] = useLocation();
   const [clients, setClients] = useState<ClientProfile[]>(() =>
-    proStore.listClients(),
+    proStore.listClients(resolvedWorkspace),
   );
   const [showArchived, setShowArchived] = useState(false);
   const [name, setName] = useState("");
@@ -68,14 +68,15 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       const { studio } = await studioRes.json();
       if (!studio) return;
 
-      const clientsRes = await fetch(`/api/studios/${studio.id}/clients`, {
-        headers,
-      });
+      const clientsRes = await fetch(
+        `/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`,
+        { headers },
+      );
       if (!clientsRes.ok) return;
       const { clients: dbClients } = await clientsRes.json();
       if (!dbClients || dbClients.length === 0) return;
 
-      const localClients = proStore.listClients();
+      const localClients = proStore.listClients(resolvedWorkspace);
 
       for (const dbClient of dbClients) {
         // Skip any client the pro explicitly deleted — tombstone prevents resurrection
@@ -130,14 +131,13 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         proStore.upsertClient(profile);
       }
 
-      // Deduplicate: remove ghost entries created by previous sync runs
-      // where the same client ended up with two local records (different ids,
-      // same clientUserId). Prefer the archived entry so archive state survives.
-      const allClients = proStore.listClients();
+      // Deduplicate within this workspace: remove ghost entries created by
+      // previous sync runs where the same client ended up with two local records.
+      const wsClients = proStore.listClients(resolvedWorkspace);
       const deduped: ClientProfile[] = [];
       const seenByClientUserId = new Map<string, number>();
 
-      for (const c of allClients) {
+      for (const c of wsClients) {
         if (!c.clientUserId) {
           deduped.push(c);
           continue;
@@ -147,17 +147,19 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           seenByClientUserId.set(c.clientUserId, deduped.length);
           deduped.push(c);
         } else if (c.archived && !deduped[existingIdx].archived) {
-          // Replace the non-archived ghost with the archived original
           deduped[existingIdx] = { ...deduped[existingIdx], ...c, archived: true };
         }
-        // otherwise discard the duplicate
       }
 
-      if (deduped.length < allClients.length) {
-        proStore.saveClients(deduped);
+      if (deduped.length < wsClients.length) {
+        // Replace only this workspace's clients; leave other workspaces untouched
+        const otherClients = proStore.listClients().filter(
+          (c) => (c.workspace || "trainer") !== resolvedWorkspace
+        );
+        proStore.saveClients([...otherClients, ...deduped]);
       }
 
-      setClients([...proStore.listClients()]);
+      setClients([...proStore.listClients(resolvedWorkspace)]);
       setDbSynced(true);
     } catch (err) {
       console.warn("Could not sync DB clients:", err);
@@ -173,26 +175,25 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       role: defaultRole,
       workspace: resolvedWorkspace,
     };
-    const next = [c, ...clients];
-    setClients(next);
-    proStore.saveClients(next);
+    proStore.upsertClient(c);
+    setClients([...proStore.listClients(resolvedWorkspace)]);
     setName("");
     setEmail("");
   };
 
   const archiveClient = (id: string) => {
     proStore.archiveClient(id);
-    setClients([...proStore.listClients()]);
+    setClients([...proStore.listClients(resolvedWorkspace)]);
   };
 
   const restoreClient = (id: string) => {
     proStore.restoreClient(id);
-    setClients([...proStore.listClients()]);
+    setClients([...proStore.listClients(resolvedWorkspace)]);
   };
 
   const deleteClient = (id: string, _name: string) => {
     proStore.deleteClient(id);
-    setClients([...proStore.listClients()]);
+    setClients([...proStore.listClients(resolvedWorkspace)]);
   };
 
   const go = (id: string) => {
@@ -208,7 +209,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           const { studio } = await studioRes.json();
           if (studio) {
             const clientsRes = await fetch(
-              `/api/studios/${studio.id}/clients`,
+              `/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`,
               { headers },
             );
             if (clientsRes.ok) {
@@ -223,7 +224,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                   dbBacked: true,
                 };
                 proStore.upsertClient(c);
-                setClients([...proStore.listClients()]);
+                setClients([...proStore.listClients(resolvedWorkspace)]);
               }
             }
           }
