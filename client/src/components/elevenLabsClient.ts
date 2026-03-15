@@ -1,5 +1,6 @@
 import { speechBubbleManager } from '../utils/speechBubbleManager';
 import { apiUrl } from '@/lib/resolveApiBase';
+import { getAuthHeaders } from '@/lib/auth';
 
 /**
  * BRANDED VOICE ONLY - NO FALLBACKS
@@ -31,7 +32,7 @@ export async function speakWithElevenLabs(text: string, mood: string = 'professi
   try {
     const response = await fetch(apiUrl('/api/tts'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       credentials: 'include',
       body: JSON.stringify({ text }),
     });

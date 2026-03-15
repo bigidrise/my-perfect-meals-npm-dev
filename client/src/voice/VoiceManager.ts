@@ -6,6 +6,7 @@
  */
 
 import { apiUrl } from '@/lib/resolveApiBase';
+import { getAuthHeaders } from '@/lib/auth';
 
 export type VoiceStatus = 'not_ready' | 'ready' | 'loading' | 'speaking' | 'error';
 
@@ -64,7 +65,7 @@ class VoiceManagerSingleton {
       try {
         const res = await fetch(apiUrl('/api/tts'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
           credentials: 'include',
           body: JSON.stringify({ text: ' ' }),
         });
@@ -126,7 +127,7 @@ class VoiceManagerSingleton {
 
       const res = await fetch(apiUrl('/api/tts'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify({ text }),
         signal: controller.signal,

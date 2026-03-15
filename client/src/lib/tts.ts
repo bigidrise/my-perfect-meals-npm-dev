@@ -8,6 +8,7 @@
  */
 
 import { apiUrl } from './resolveApiBase';
+import { getAuthHeaders } from './auth';
 
 type TTSProvider = 'elevenlabs' | 'silent';
 
@@ -57,7 +58,7 @@ class TTSService {
 
       const res = await fetch(apiUrl('/api/tts'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify({ text }),
         signal: controller.signal,
