@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { proStore, Targets, ClinicalContext, BuilderType, StarchStrategy } from "@/lib/proData";
-import { BUILDER_MAP, ALL_BUILDER_KEYS, type BuilderKey } from "@/lib/builderMap";
+import {
+  PROFESSIONAL_BUILDER_MAP,
+  getBuilderKeys,
+  type ProfessionalBuilderKey,
+} from "@/lib/professionalBuilderMap";
+import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Settings,
@@ -178,11 +183,10 @@ export default function TrainerClientDashboard() {
     });
   };
 
-  const handleBuilderAssignment = async (builderKey: BuilderKey) => {
-    const clientUid = resolvedClientUserId;
-    const studioId = client?.studioId;
-    
-    if (!clientUid) {
+  const TRAINER_BUILDER_KEYS = getBuilderKeys("trainer");
+
+  const handleBuilderAssignment = async (builderKey: ProfessionalBuilderKey) => {
+    if (!resolvedClientUserId) {
       toast({
         title: "Cannot Assign",
         description: "This client hasn't connected their account yet. They need to enter the access code first.",
@@ -190,57 +194,23 @@ export default function TrainerClientDashboard() {
       });
       return;
     }
-    
-    try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        ...getAuthHeaders(),
-      };
-
-      if (studioId) {
-        const studioRes = await fetch(apiUrl(`/api/studios/${studioId}/clients/${clientUid}/assign`), {
-          method: "PATCH",
-          headers,
-          credentials: "include",
-          body: JSON.stringify({ assignedBuilder: builderKey }),
-        });
-        if (!studioRes.ok) {
-          const data = await studioRes.json();
-          throw new Error(data.error || "Failed to assign builder");
-        }
-      }
-
-      const proRes = await fetch(apiUrl("/api/pro/assign-builder"), {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({
-          clientId: clientUid,
-          builder: builderKey,
-        }),
-      });
-      
-      if (!proRes.ok) {
-        const data = await proRes.json();
-        throw new Error(data.error || "Failed to assign builder");
-      }
-      
+    const result = await assignBuilderToClient({
+      builderKey,
+      clientId,
+      clientUserId: resolvedClientUserId,
+      studioId: client?.studioId,
+      clientName: client?.name,
+    });
+    if (result.success) {
       setAssignedBuilder(builderKey as BuilderType);
-      if (client) {
-        proStore.upsertClient({
-          ...client,
-          assignedBuilder: builderKey as BuilderType,
-        });
-      }
-      
       toast({
         title: "Builder Assigned",
-        description: `${BUILDER_MAP[builderKey].label} builder assigned to ${client?.name}.`,
+        description: `${PROFESSIONAL_BUILDER_MAP[builderKey].label} builder assigned to ${client?.name}.`,
       });
-    } catch (error: any) {
+    } else {
       toast({
         title: "Assignment Failed",
-        description: error.message || "Could not assign builder to client.",
+        description: result.error || "Could not assign builder to client.",
         variant: "destructive",
       });
     }
@@ -528,23 +498,24 @@ export default function TrainerClientDashboard() {
               Choose which meal builder this client will see in their app.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ALL_BUILDER_KEYS.map((key) => {
-                const entry = BUILDER_MAP[key];
+              {TRAINER_BUILDER_KEYS.map((key) => {
+                const entry = PROFESSIONAL_BUILDER_MAP[key];
                 const isActive = assignedBuilder === key;
                 return (
                   <Button
                     key={key}
                     onClick={() => handleBuilderAssignment(key)}
-                    className={`h-auto py-4 flex flex-col items-center gap-2 transition-all duration-200 ${
+                    className={`h-auto py-4 flex flex-col items-start gap-1 text-left transition-all duration-200 active:scale-[0.98] ${
                       isActive
                         ? "bg-lime-600 border-2 border-lime-400"
                         : "bg-black/40 border border-white/20 hover:bg-black/60"
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      {isActive && <Check className="h-5 w-5" />}
-                      <span className="font-bold">{entry.label}</span>
+                    <div className="flex items-center gap-2 w-full">
+                      {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
+                      <span className="font-bold text-sm">{entry.label}</span>
                     </div>
+                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
                   </Button>
                 );
               })}
@@ -560,14 +531,15 @@ export default function TrainerClientDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              {assignedBuilder
-                ? `Open the ${BUILDER_MAP[assignedBuilder as BuilderKey]?.label || assignedBuilder} builder for ${client?.name || "this client"}.`
+              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]
+                ? `Open the ${PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label} builder for ${client?.name || "this client"}.`
                 : `Assign a builder above first, then open it here.`}
             </p>
             <Button
               onClick={() => {
-                const key = assignedBuilder as BuilderKey;
-                if (!key || !BUILDER_MAP[key]) {
+                const key = assignedBuilder as ProfessionalBuilderKey;
+                const entry = key ? PROFESSIONAL_BUILDER_MAP[key] : null;
+                if (!entry) {
                   toast({
                     title: "No Builder Assigned",
                     description: "Please assign a meal builder to this client first.",
@@ -576,13 +548,13 @@ export default function TrainerClientDashboard() {
                   return;
                 }
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
-                setLocation(`/pro/clients/${resolvedClientUserId}/${BUILDER_MAP[key].proRoute}`);
+                setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-lime-600 border border-lime-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <Dumbbell className="h-4 w-4 mr-2" />
-              {assignedBuilder && BUILDER_MAP[assignedBuilder as BuilderKey]
-                ? `Open ${BUILDER_MAP[assignedBuilder as BuilderKey].label} Builder`
+              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]
+                ? `Open ${PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label} Builder`
                 : "Assign Builder First"}
             </Button>
           </CardContent>

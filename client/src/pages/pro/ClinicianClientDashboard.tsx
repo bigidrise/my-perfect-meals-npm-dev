@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { proStore, Targets, ClinicalContext, ClinicalAdvisory, StarchStrategy, BuilderType } from "@/lib/proData";
+import { proStore, Targets, ClinicalContext, ClinicalAdvisory, StarchStrategy } from "@/lib/proData";
 import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -24,10 +24,11 @@ import {
   Dumbbell,
 } from "lucide-react";
 import {
-  PHYSICIAN_BUILDER_MAP,
-  ALL_PHYSICIAN_BUILDER_KEYS,
-  type PhysicianBuilderKey,
-} from "@/lib/physicianBuilderMap";
+  PROFESSIONAL_BUILDER_MAP,
+  getBuilderKeys,
+  type ProfessionalBuilderKey,
+} from "@/lib/professionalBuilderMap";
+import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -86,8 +87,9 @@ export default function ClinicianClientDashboard() {
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
-  const [assignedBuilder, setAssignedBuilder] = useState<PhysicianBuilderKey | undefined>(
-    () => client?.assignedBuilder as PhysicianBuilderKey | undefined
+  const PHYSICIAN_BUILDER_KEYS = getBuilderKeys("physician");
+  const [assignedBuilder, setAssignedBuilder] = useState<ProfessionalBuilderKey | undefined>(
+    () => client?.assignedBuilder as ProfessionalBuilderKey | undefined
   );
 
   interface LabsSummary {
@@ -117,7 +119,7 @@ export default function ClinicianClientDashboard() {
     const c = proStore.getClient(clientId);
     if (c) {
       setClient(c);
-      setAssignedBuilder(c.assignedBuilder as PhysicianBuilderKey | undefined);
+      setAssignedBuilder(c.assignedBuilder as ProfessionalBuilderKey | undefined);
     }
   }, [clientId]);
 
@@ -209,7 +211,7 @@ export default function ClinicianClientDashboard() {
 
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
-  const handlePhysicianBuilderAssignment = async (builderKey: PhysicianBuilderKey) => {
+  const handlePhysicianBuilderAssignment = async (builderKey: ProfessionalBuilderKey) => {
     if (!resolvedClientUserId) {
       toast({
         title: "Cannot Assign",
@@ -218,36 +220,21 @@ export default function ClinicianClientDashboard() {
       });
       return;
     }
-    try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        ...getAuthHeaders(),
-      };
-      const studioId = client?.studioId;
-      if (studioId) {
-        await fetch(apiUrl(`/api/studios/${studioId}/clients/${resolvedClientUserId}/assign`), {
-          method: "PATCH",
-          headers,
-          credentials: "include",
-          body: JSON.stringify({ assignedBuilder: builderKey }),
-        });
-      }
-      await fetch(apiUrl("/api/pro/assign-builder"), {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({ clientId: resolvedClientUserId, builder: builderKey }),
-      });
+    const result = await assignBuilderToClient({
+      builderKey,
+      clientId,
+      clientUserId: resolvedClientUserId,
+      studioId: client?.studioId,
+      clientName: client?.name,
+    });
+    if (result.success) {
       setAssignedBuilder(builderKey);
-      if (client) {
-        proStore.upsertClient({ ...client, assignedBuilder: builderKey as BuilderType });
-      }
       toast({
         title: "Builder Assigned",
-        description: `${PHYSICIAN_BUILDER_MAP[builderKey].label} assigned to ${client?.name || "patient"}.`,
+        description: `${PROFESSIONAL_BUILDER_MAP[builderKey].label} assigned to ${client?.name || "patient"}.`,
       });
-    } catch {
-      toast({ title: "Assignment Failed", description: "Could not assign builder.", variant: "destructive" });
+    } else {
+      toast({ title: "Assignment Failed", description: result.error || "Could not assign builder.", variant: "destructive" });
     }
   };
 
@@ -290,9 +277,9 @@ export default function ClinicianClientDashboard() {
           <p className="text-white/90 text-lg font-semibold">
             {client?.name || "Patient"}
           </p>
-          {assignedBuilder && PHYSICIAN_BUILDER_MAP[assignedBuilder] && (
+          {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder] && (
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-              Active Protocol: {PHYSICIAN_BUILDER_MAP[assignedBuilder].label}
+              Active Protocol: {PROFESSIONAL_BUILDER_MAP[assignedBuilder].label}
             </div>
           )}
           <p className="text-sm text-white/60 mt-2">
@@ -376,31 +363,32 @@ export default function ClinicianClientDashboard() {
               <label className="text-sm font-medium text-white/90 mb-2 block">
                 Medical Dietary Directives
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input type="checkbox" checked={!!t.flags?.diabetesFriendly} onChange={(e) => setT({ ...t, flags: { ...t.flags, diabetesFriendly: e.target.checked } })} />
-                  Diabetes-Friendly
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input type="checkbox" checked={!!t.flags?.lowSodium} onChange={(e) => setT({ ...t, flags: { ...t.flags, lowSodium: e.target.checked } })} />
-                  Low-Sodium
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input type="checkbox" checked={!!t.flags?.glp1} onChange={(e) => setT({ ...t, flags: { ...t.flags, glp1: e.target.checked } })} />
-                  GLP-1 Support
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input type="checkbox" checked={!!t.flags?.cardiac} onChange={(e) => setT({ ...t, flags: { ...t.flags, cardiac: e.target.checked } })} />
-                  Cardiac-Friendly
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input type="checkbox" checked={!!t.flags?.renal} onChange={(e) => setT({ ...t, flags: { ...t.flags, renal: e.target.checked } })} />
-                  Renal-Friendly
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input type="checkbox" checked={!!t.flags?.postBariatric} onChange={(e) => setT({ ...t, flags: { ...t.flags, postBariatric: e.target.checked } })} />
-                  Post-Bariatric
-                </label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: "diabetesFriendly", label: "Diabetes-Friendly" },
+                  { key: "lowSodium", label: "Low-Sodium" },
+                  { key: "glp1", label: "GLP-1 Support" },
+                  { key: "cardiac", label: "Cardiac-Friendly" },
+                  { key: "renal", label: "Renal-Friendly" },
+                  { key: "postBariatric", label: "Post-Bariatric" },
+                ] as const).map(({ key, label }) => {
+                  const isOn = !!(t.flags as Record<string, boolean> | undefined)?.[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setT({ ...t, flags: { ...t.flags, [key]: !isOn } })}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                        isOn
+                          ? "bg-teal-600 border-teal-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70 hover:bg-black/50 hover:text-white"
+                      }`}
+                    >
+                      {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -636,8 +624,8 @@ export default function ClinicianClientDashboard() {
               Choose which meal builder this patient will use. The assignment is saved to their record.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ALL_PHYSICIAN_BUILDER_KEYS.map((key) => {
-                const entry = PHYSICIAN_BUILDER_MAP[key];
+              {PHYSICIAN_BUILDER_KEYS.map((key) => {
+                const entry = PROFESSIONAL_BUILDER_MAP[key];
                 const isActive = assignedBuilder === key;
                 return (
                   <Button
@@ -669,24 +657,25 @@ export default function ClinicianClientDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              {assignedBuilder && PHYSICIAN_BUILDER_MAP[assignedBuilder]
-                ? `Open the ${PHYSICIAN_BUILDER_MAP[assignedBuilder].label} for ${client?.name || "this patient"}.`
+              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder]
+                ? `Open the ${PROFESSIONAL_BUILDER_MAP[assignedBuilder].label} for ${client?.name || "this patient"}.`
                 : "Assign a builder above, then open it here."}
             </p>
             <Button
               onClick={() => {
-                if (!assignedBuilder || !PHYSICIAN_BUILDER_MAP[assignedBuilder]) {
+                const entry = assignedBuilder ? PROFESSIONAL_BUILDER_MAP[assignedBuilder] : null;
+                if (!entry) {
                   toast({ title: "No Builder Assigned", description: "Please assign a builder above first.", variant: "destructive" });
                   return;
                 }
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
-                setLocation(`/pro/clients/${resolvedClientUserId}/${PHYSICIAN_BUILDER_MAP[assignedBuilder].proRoute}`);
+                setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <LayoutGrid className="h-4 w-4 mr-2" />
-              {assignedBuilder && PHYSICIAN_BUILDER_MAP[assignedBuilder]
-                ? `Open ${PHYSICIAN_BUILDER_MAP[assignedBuilder].label}`
+              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder]
+                ? `Open ${PROFESSIONAL_BUILDER_MAP[assignedBuilder].label}`
                 : "Assign Builder First"}
             </Button>
           </CardContent>
