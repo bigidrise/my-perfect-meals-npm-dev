@@ -109,6 +109,7 @@ export default function PhysicianCareTeamPage() {
   const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS.doctor);
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   /* ------------------------------ LOAD --------------------------------- */
 
@@ -142,7 +143,12 @@ export default function PhysicianCareTeamPage() {
   /* ----------------------------- ACTIONS ------------------------------- */
 
   async function inviteByEmail() {
-    if (!invEmail.trim()) return;
+    setError(null);
+    setSuccessMsg(null);
+    if (!invEmail.trim()) {
+      setError("Enter an email to invite.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await apiRequest("/api/care-team/invite", {
@@ -150,7 +156,10 @@ export default function PhysicianCareTeamPage() {
         body: JSON.stringify({ email: invEmail, role, permissions: perms }),
       });
       setMembers((prev) => [res.member, ...prev]);
+      const sentTo = invEmail;
       setInvEmail("");
+      setSuccessMsg(`✅ Invitation sent to ${sentTo}! They'll receive an email from support@myperfectmeals.com`);
+      setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: any) {
       setError(e?.message ?? "Invite failed");
     } finally {
@@ -298,6 +307,12 @@ export default function PhysicianCareTeamPage() {
           </GlassCard>
           )}
         </div>
+
+        {successMsg && (
+          <div className="rounded-xl border border-green-500/50 bg-green-900/30 text-green-100 p-3">
+            {successMsg}
+          </div>
+        )}
 
         {error && (
           <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
