@@ -93,7 +93,7 @@ export default function MorePage() {
     setError(null);
     setConnectedResult(null);
     if (!accessCode.trim()) {
-      setError("Enter an access code.");
+      setError("Enter your provider code.");
       return;
     }
     try {
@@ -110,7 +110,7 @@ export default function MorePage() {
           setPendingLegalFlow(data.flow === "patient_physician" ? "patient_physician" : "client");
           setShowClientLegalModal(true);
         } else {
-          setError(data?.error || "Invalid or expired access code.");
+          setError(data?.error || "Invalid or expired provider code.");
         }
         return;
       }
@@ -284,25 +284,25 @@ export default function MorePage() {
               );
             })}
 
-            {/* 2. Connect with Access Code — exact working card from TrainerCareTeam */}
+            {/* 2. Connect With Your Provider */}
             <GlassCard className="border-2 border-orange-500/40">
               <GlassCardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <KeyRound className="h-5 w-5 text-orange-500" />
                   <h2 className="text-xl font-bold text-white">
-                    Connect with Access Code
+                    Connect With Your Provider
                   </h2>
                 </div>
                 <p className="text-sm text-white/70">
-                  If your professional gave you a code, enter it here to link
-                  instantly.
+                  Use your provider's access code to link your account with your
+                  coach, trainer, or physician through the ProCare system.
                 </p>
                 <div>
-                  <Label className="text-white/80">Access Code</Label>
+                  <Label className="text-white/80">Provider Access Code</Label>
                   <Input
                     value={accessCode}
                     onChange={(e) => setAccessCode(e.target.value)}
-                    placeholder="e.g. MP-9ZX4-QL"
+                    placeholder="Provider code (given by your coach or physician)"
                     className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
                     data-testid="input-careteam-code"
                   />
@@ -319,8 +319,11 @@ export default function MorePage() {
                   data-testid="button-submit-code"
                 >
                   <ClipboardEdit className="h-4 w-4 mr-2" />
-                  Link with Code
+                  Connect to Provider
                 </Button>
+                <p className="text-xs text-white/40 text-center">
+                  Access codes connect users with professionals. Subscriptions are purchased through the App Store.
+                </p>
               </GlassCardContent>
             </GlassCard>
 

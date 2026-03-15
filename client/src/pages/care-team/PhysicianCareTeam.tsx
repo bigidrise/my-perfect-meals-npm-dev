@@ -286,13 +286,13 @@ export default function PhysicianCareTeamPage() {
               <div className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-orange-500" />
                 <h2 className="text-xl font-bold text-white">
-                  Connect with Access Code
+                  Connect With Your Provider
                 </h2>
               </div>
               <Input
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="MP-XXXX-XXX"
+                placeholder="Provider code (given by your coach or physician)"
                 className="bg-black/40 text-white border-white/20"
               />
               <Button
@@ -301,7 +301,7 @@ export default function PhysicianCareTeamPage() {
                 className="w-full bg-lime-600 hover:bg-lime-600 text-white"
               >
                 <ClipboardEdit className="h-4 w-4 mr-2" />
-                Link with Code
+                Connect to Provider
               </Button>
             </GlassCardContent>
           </GlassCard>
