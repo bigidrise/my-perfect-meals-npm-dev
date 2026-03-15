@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { proStore, Targets, ClinicalContext, ClinicalAdvisory, StarchStrategy } from "@/lib/proData";
+import { ensureClientMapping } from "@/lib/macroResolver";
 import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -133,6 +134,9 @@ export default function ClinicianClientDashboard() {
     if (c) {
       setClient(c);
       setAssignedBuilder(c.assignedBuilder as ProfessionalBuilderKey | undefined);
+      const uid = c.clientUserId || c.userId;
+      if (uid) ensureClientMapping(uid, clientId);
+      ensureClientMapping(clientId, clientId);
     }
   }, [clientId]);
 
@@ -161,6 +165,8 @@ export default function ClinicianClientDashboard() {
 
   const saveTargets = async () => {
     proStore.setTargets(clientId, t);
+    const _uid = client?.clientUserId || client?.userId || clientId;
+    ensureClientMapping(_uid, clientId);
 
     const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
     const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
