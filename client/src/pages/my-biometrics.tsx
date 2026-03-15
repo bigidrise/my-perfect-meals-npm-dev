@@ -80,6 +80,8 @@ import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { getCurrentUser } from "@/lib/auth";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
+import { hasFeature } from "@/lib/entitlements";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -2304,6 +2306,11 @@ export default function MyBiometrics() {
             )}
           </CardContent>
         </Card>
+
+        {/* CLINICAL LABS - physician / lab_metrics entitlement only */}
+        {user && hasFeature(user as any, "lab_metrics") && user.id && (
+          <ClinicalLabsCard userId={user.id} />
+        )}
 
         {/* WATER LOG */}
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">

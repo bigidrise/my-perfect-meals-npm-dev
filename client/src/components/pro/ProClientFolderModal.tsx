@@ -5,6 +5,7 @@ import { ClientProfile } from "@/lib/proData";
 import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
+import ProClientLabsSnapshot from "@/components/pro/ProClientLabsSnapshot";
 import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -514,6 +515,8 @@ export default function ProClientFolderModal({
             {clientId && <ProClientProgramHistory clientId={clientId} />}
 
             {clientId && <ProClientWeightSnapshot clientId={clientId} />}
+
+            {clientId && isPhysician && <ProClientLabsSnapshot clientId={clientId} />}
 
             <Button
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"

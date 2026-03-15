@@ -1,0 +1,95 @@
+import express from "express";
+import { db } from "../db";
+import { clinicalLabs } from "../db/schema/clinicalLabs";
+import { eq, desc } from "drizzle-orm";
+import { requireAuth } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
+import { z } from "zod";
+
+const router = express.Router();
+
+const labsPayloadSchema = z.object({
+  userId: z.string().optional(),
+  a1c: z.number().optional().nullable(),
+  ldl: z.number().optional().nullable(),
+  hdl: z.number().optional().nullable(),
+  blood_pressure_systolic: z.number().optional().nullable(),
+  blood_pressure_diastolic: z.number().optional().nullable(),
+  ejection_fraction: z.number().optional().nullable(),
+  creatinine: z.number().optional().nullable(),
+  bun: z.number().optional().nullable(),
+  inr: z.number().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  recorded_at: z.string().optional(),
+});
+
+router.post("/", requireAuth, async (req, res) => {
+  try {
+    const requesterId = getAuthUserId(req);
+    const body = labsPayloadSchema.parse(req.body);
+
+    const targetUserId = body.userId || requesterId;
+
+    await db.insert(clinicalLabs).values({
+      userId: targetUserId as any,
+      recordedById: requesterId as any,
+      a1c: body.a1c != null ? String(body.a1c) : null,
+      ldl: body.ldl != null ? String(body.ldl) : null,
+      hdl: body.hdl != null ? String(body.hdl) : null,
+      bloodPressureSystolic: body.blood_pressure_systolic != null ? String(body.blood_pressure_systolic) : null,
+      bloodPressureDiastolic: body.blood_pressure_diastolic != null ? String(body.blood_pressure_diastolic) : null,
+      ejectionFraction: body.ejection_fraction != null ? String(body.ejection_fraction) : null,
+      creatinine: body.creatinine != null ? String(body.creatinine) : null,
+      bun: body.bun != null ? String(body.bun) : null,
+      inr: body.inr != null ? String(body.inr) : null,
+      notes: body.notes || null,
+      recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
+    });
+
+    res.status(201).json({ success: true });
+  } catch (error: any) {
+    console.error("[clinicalLabs POST]", error);
+    res.status(400).json({ error: "Failed to save labs", detail: error?.message });
+  }
+});
+
+router.get("/:userId", requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const rows = await db
+      .select()
+      .from(clinicalLabs)
+      .where(eq(clinicalLabs.userId, userId))
+      .orderBy(desc(clinicalLabs.recordedAt))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return res.json({ labs: null });
+    }
+
+    const r = rows[0];
+    res.json({
+      labs: {
+        id: r.id,
+        userId: r.userId,
+        a1c: r.a1c ? parseFloat(r.a1c) : null,
+        ldl: r.ldl ? parseFloat(r.ldl) : null,
+        hdl: r.hdl ? parseFloat(r.hdl) : null,
+        blood_pressure_systolic: r.bloodPressureSystolic ? parseFloat(r.bloodPressureSystolic) : null,
+        blood_pressure_diastolic: r.bloodPressureDiastolic ? parseFloat(r.bloodPressureDiastolic) : null,
+        ejection_fraction: r.ejectionFraction ? parseFloat(r.ejectionFraction) : null,
+        creatinine: r.creatinine ? parseFloat(r.creatinine) : null,
+        bun: r.bun ? parseFloat(r.bun) : null,
+        inr: r.inr ? parseFloat(r.inr) : null,
+        notes: r.notes,
+        recorded_at: r.recordedAt,
+      },
+    });
+  } catch (error: any) {
+    console.error("[clinicalLabs GET]", error);
+    res.status(500).json({ error: "Failed to fetch labs" });
+  }
+});
+
+export default router;

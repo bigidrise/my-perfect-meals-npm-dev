@@ -12,4 +12,5 @@ export * from "./schema/founders";
 export * from "./schema/generatedMeals";
 export * from "./schema/mealLibrary";
 export * from "./schema/bodyComposition";
+export * from "./schema/clinicalLabs";
 export { glp1AuditLog } from "./schema/patientAssignment";

@@ -80,6 +80,7 @@ import lunchRouter from "./routes/lunch";
 import dinnerRouter from "./routes/dinner";
 import snacksRouter from "./routes/snacks";
 import biometricsRouter from "./routes/biometricsRoutes";
+import clinicalLabsRouter from "./routes/clinicalLabs";
 import gamesRouter from "./routes/games";
 import manualMacrosRouter from "./routes/manualMacros";
 import { testimonialsRouter } from "./routes/testimonials";
@@ -363,6 +364,7 @@ app.use("/api/snacks", snacksRouter);
 
 // Biometrics System - Privacy-first fitness device integration
 app.use("/api/biometrics", biometricsRouter);
+app.use("/api/biometrics/labs", clinicalLabsRouter);
 
 // Manual Macros System - Quick add custom macro entries
 app.use("/api", manualMacrosRouter);
