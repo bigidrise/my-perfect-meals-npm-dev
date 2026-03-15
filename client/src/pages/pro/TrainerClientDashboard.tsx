@@ -14,7 +14,7 @@ import {
   type ProfessionalBuilderKey,
 } from "@/lib/professionalBuilderMap";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
-import { linkUserToClient } from "@/lib/macroResolver";
+import { linkUserToClient, ensureClientMapping } from "@/lib/macroResolver";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Settings,
@@ -552,6 +552,8 @@ export default function TrainerClientDashboard() {
                   });
                   return;
                 }
+                // Item 3: Guarantee mapping exists before builder loads
+                ensureClientMapping(resolvedClientUserId, clientId);
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}

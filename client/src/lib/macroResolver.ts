@@ -11,22 +11,17 @@ export type ResolvedTargets = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
-  // Carb breakdown (optional - only available when pro targets or explicit breakdown is set)
   starchyCarbs_g?: number;
   fibrousCarbs_g?: number;
-  // Starch Meal Strategy: "one" = 1 starch meal/day (default), "flex" = 2 meals
   starchStrategy?: StarchStrategy;
   source: MacroSource;
   flags?: {
-    // Medical flags (for doctors/dietitians)
     lowSodium?: boolean;
     diabetesFriendly?: boolean;
     glp1?: boolean;
     cardiac?: boolean;
     renal?: boolean;
     postBariatric?: boolean;
-    
-    // Performance flags (for trainers)
     highProtein?: boolean;
     carbCycling?: boolean;
     antiInflammatory?: boolean;
@@ -37,82 +32,99 @@ export type ResolvedTargets = {
     fibrousFloorG?: number | null;
     addedSugarCapG?: number | null;
   };
-  setBy?: string; // Professional name if source=pro
+  setBy?: string;
 };
 
-const LS_USER_CLIENT_MAP = 'mpm_user_client_map'; // Maps userId to clientId
+const LS_USER_CLIENT_MAP = 'mpm_user_client_map';
 
-// Helper to get current user's client ID (if they're a ProCare client)
-function getCurrentUserClientId(userId: string = 'anon'): string | null {
+// Item 4: Session-level cache — cleared when targets are updated
+const resolvedTargetsCache: Record<string, ResolvedTargets> = {};
+
+export function clearResolvedTargetsCache() {
+  Object.keys(resolvedTargetsCache).forEach(k => delete resolvedTargetsCache[k]);
+}
+
+// Listen for target updates and clear cache automatically
+if (typeof window !== 'undefined') {
+  window.addEventListener('mpm:targetsUpdated', () => clearResolvedTargetsCache());
+}
+
+// Item 2: Null-safe localStorage map read
+function getUserClientMap(): Record<string, string> {
   try {
-    const mapRaw = localStorage.getItem(LS_USER_CLIENT_MAP);
-    if (!mapRaw) return null;
-    const map = JSON.parse(mapRaw);
-    return map[userId] || null;
+    return JSON.parse(localStorage.getItem(LS_USER_CLIENT_MAP) || '{}');
   } catch {
-    return null;
+    return {};
   }
+}
+
+function getCurrentUserClientId(userId: string = 'anon'): string | null {
+  return getUserClientMap()[userId] || null;
 }
 
 // Link a user to their ProCare client profile
 export function linkUserToClient(userId: string, clientId: string) {
   try {
-    const mapRaw = localStorage.getItem(LS_USER_CLIENT_MAP) || '{}';
-    const map = JSON.parse(mapRaw);
+    const map = getUserClientMap();
     map[userId] = clientId;
     localStorage.setItem(LS_USER_CLIENT_MAP, JSON.stringify(map));
+    // Clear cache so next read reflects the new mapping
+    clearResolvedTargetsCache();
   } catch (e) {
     console.error('Failed to link user to client:', e);
   }
 }
 
-// Get self-set targets from dailyLimits system
 function getSelfTargets(userId?: string): MacroTargets | null {
   return getMacroTargets(userId);
 }
 
-// Main resolver: returns pro targets if set, otherwise self targets
+// Item 3: Guarantee mapping exists for a known clientId/realUserId pair
+export function ensureClientMapping(realUserId: string, clientId: string) {
+  if (realUserId && clientId) {
+    linkUserToClient(realUserId, clientId);
+    linkUserToClient(clientId, clientId);
+  }
+}
+
+// Priority: 1 = Pro (trainer/physician) targets, 2 = self targets, 3 = none
 export function getResolvedTargets(userId?: string): ResolvedTargets {
-  // Try to get professional targets first
+  const cacheKey = userId || 'anon';
+
+  // Item 4: Return cached result if available
+  if (resolvedTargetsCache[cacheKey]) {
+    return resolvedTargetsCache[cacheKey];
+  }
+
+  let result: ResolvedTargets;
+
+  // Priority 1: Professional targets
   const clientId = getCurrentUserClientId(userId);
-  
+
   if (clientId) {
-    const proTargets = proStore.getTargets(clientId);
-    // Calculate totals from the stored structure
-    const totalCarbs = (proTargets?.starchyCarbs || 0) + (proTargets?.fibrousCarbs || 0);
-    const totalKcal = ((proTargets?.protein || 0) * 4) + (totalCarbs * 4) + ((proTargets?.fat || 0) * 9);
-    
-    // Check if these are actual pro-set targets (not just defaults)
-    // Must check ALL macro fields since trainers often only adjust carbs/fat
-    const hasProTargets = proTargets && (
-      totalKcal !== 2000 || 
-      proTargets.protein !== 160 || 
-      totalCarbs !== 180 ||
-      proTargets.fat !== 70 ||
-      Object.keys(proTargets.flags || {}).length > 0
-    );
-    
-    if (hasProTargets) {
-      // Get professional title from client's role
+    // Item 1 fix: Use provenance check instead of magic-number comparison
+    const hasPro = proStore.hasTargets(clientId);
+
+    if (hasPro) {
+      const proTargets = proStore.getTargets(clientId);
+      const totalCarbs = (proTargets.starchyCarbs || 0) + (proTargets.fibrousCarbs || 0);
+      const totalKcal = ((proTargets.protein || 0) * 4) + (totalCarbs * 4) + ((proTargets.fat || 0) * 9);
+
       const client = proStore.getClient(clientId);
       const role = client?.role;
-      
-      // Map role to professional title
       let proTitle = 'Your professional';
       if (role === 'doctor') proTitle = 'Your physician';
       else if (role === 'rn' || role === 'np' || role === 'pa') proTitle = 'Your clinician';
       else if (role === 'nutritionist' || role === 'dietitian') proTitle = 'Your dietitian';
       else if (role === 'trainer') proTitle = 'Your trainer';
-      
-      return {
+
+      result = {
         calories: totalKcal,
         protein_g: proTargets.protein,
         carbs_g: totalCarbs,
         fat_g: proTargets.fat,
-        // Include starchy/fibrous breakdown from pro targets
         starchyCarbs_g: proTargets.starchyCarbs || 0,
         fibrousCarbs_g: proTargets.fibrousCarbs || 0,
-        // Pro-set starch strategy (defaults to "one" if not specified by trainer)
         starchStrategy: proTargets.starchStrategy || 'one',
         source: 'pro',
         flags: proTargets.flags,
@@ -120,49 +132,58 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
         carbDirective: proTargets.carbDirective,
         setBy: proTitle,
       };
+
+      // Item 7: Debug log
+      console.log('[MPM] Target Source:', result.source, `(${proTitle})`, result.calories, 'kcal');
+      resolvedTargetsCache[cacheKey] = result;
+      return result;
     }
   }
-  
-  // Fall back to self-set targets
+
+  // Priority 2: Self-set targets
   const selfTargets = getSelfTargets(userId);
   if (selfTargets) {
-    return {
+    result = {
       calories: selfTargets.calories,
       protein_g: selfTargets.protein_g,
       carbs_g: selfTargets.carbs_g,
       fat_g: selfTargets.fat_g,
-      // Include starchy/fibrous breakdown if saved from Macro Calculator
       starchyCarbs_g: selfTargets.starchyCarbs_g,
       fibrousCarbs_g: selfTargets.fibrousCarbs_g,
-      // Starch strategy from Macro Calculator (defaults to "one")
       starchStrategy: selfTargets.starchStrategy || 'one',
       source: 'self',
     };
+
+    // Item 7: Debug log
+    console.log('[MPM] Target Source: self', result.calories, 'kcal');
+    resolvedTargetsCache[cacheKey] = result;
+    return result;
   }
-  
-  // No targets set at all
-  return {
+
+  // Priority 3: No targets set
+  result = {
     calories: 0,
     protein_g: 0,
     carbs_g: 0,
     fat_g: 0,
-    starchStrategy: 'one', // Default to one starch meal
+    starchStrategy: 'one',
     source: 'none',
   };
+
+  // Item 7: Debug log
+  console.log('[MPM] Target Source: none — no targets set for', userId);
+  resolvedTargetsCache[cacheKey] = result;
+  return result;
 }
 
 // Save self-set targets (from macro calculator)
 export function saveSelfTargets(macros: MacroTargets, userId?: string) {
   setMacroTargets(macros, userId);
-  
-  // Dispatch event to notify Biometrics page of target updates
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('mpm:targetsUpdated'));
   }
 }
 
-// Check if professional has overridden targets
 export function hasProOverride(userId?: string): boolean {
-  const resolved = getResolvedTargets(userId);
-  return resolved.source === 'pro';
+  return getResolvedTargets(userId).source === 'pro';
 }

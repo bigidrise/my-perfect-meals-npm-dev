@@ -1986,7 +1986,15 @@ export default function WeeklyMealBoard() {
               const hasTargets =
                 (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
 
-              if (!hasTargets) return null;
+              // Item 5: Show "Targets not set" instead of silently hiding the card
+              if (!hasTargets) return (
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 mb-4 text-center">
+                  <p className="text-xs text-white/40 uppercase tracking-wide">Daily Targets</p>
+                  <p className="text-sm text-white/50 mt-1">
+                    {proClientId ? "Waiting for coach targets — use Macro Calculator to set your own." : "Targets not set — use the Macro Calculator to get started."}
+                  </p>
+                </div>
+              );
 
               const hasStarchyFibrous =
                 (resolved.starchyCarbs_g ?? 0) > 0 ||

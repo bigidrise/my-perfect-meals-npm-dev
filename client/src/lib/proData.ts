@@ -376,6 +376,11 @@ export const proStore = {
       }
     );
   },
+  // Item 1: Provenance check — true only if targets were explicitly saved for this client
+  hasTargets(clientId: string): boolean {
+    return Object.prototype.hasOwnProperty.call(state.targets, clientId);
+  },
+
   setTargets(clientId: string, t: Targets) {
     state.targets[clientId] = {
       ...t,
