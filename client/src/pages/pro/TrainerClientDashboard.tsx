@@ -469,12 +469,7 @@ export default function TrainerClientDashboard() {
                       clientId,
                     );
 
-                    // Map both the proStore clientId and the real user ID so
-                    // every meal builder resolves targets correctly
                     linkUserToClient(clientId, clientId);
-                    if (resolvedClientUserId && resolvedClientUserId !== clientId) {
-                      linkUserToClient(resolvedClientUserId, clientId);
-                    }
 
                     toast({
                       title: "Macros Set to Biometrics!",
