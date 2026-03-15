@@ -68,7 +68,7 @@ import {
   isoToUtcNoonDate,
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+
 import {
   Plus,
   Calendar1,
@@ -123,6 +123,8 @@ import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
+import { BuilderHeader } from "@/components/pro/BuilderHeader";
+import { TrialBanner } from "@/components/TrialBanner";
 
 // Helper function to create new snacks
 function makeNewSnack(nextIndex: number): Meal {
@@ -1561,45 +1563,13 @@ export default function WeeklyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28 overflow-x-hidden"
     >
-      {/* Universal Safe-Area Header */}
-      <MobileHeaderGuard>
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 pb-3 flex items-center gap-2 flex-nowrap">
-          {/* Back to Planner */}
-          <Button
-            onClick={() => setLocation("/planner")}
-            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
-          </Button>
-
-          {/* Title */}
-          <h1
-            className="text-base font-bold text-white flex-shrink truncate min-w-0"
-            data-testid="weekly-builder-header"
-          >
-            Weekly Meal Builder
-          </h1>
-
-          <div className="flex-grow" />
-
-          {/* Quick Tour Help Button */}
-          <QuickTourButton
-            onClick={quickTour.openTour}
-            className="flex-shrink-0"
-          />
-        </div>
-      </div>
-      </MobileHeaderGuard>
+      <BuilderHeader title="Weekly Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <TrialBanner />
 
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
         <NutritionBudgetBanner className="mb-2" />

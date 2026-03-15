@@ -79,7 +79,7 @@ import {
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import {
@@ -101,6 +101,8 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
+import { BuilderHeader } from "@/components/pro/BuilderHeader";
+import { TrialBanner } from "@/components/TrialBanner";
 
 const BEACHBODY_TOUR_STEPS: TourStep[] = [
   {
@@ -1185,32 +1187,13 @@ export default function BeachBodyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36 overflow-x-hidden"
     >
-      {/* Universal Safe-Area Header Bar */}
-      <MobileHeaderGuard>
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 pb-3 flex items-center gap-2">
-          <Button
-            onClick={() => setLocation("/planner")}
-            className="bg-black/10 hover:bg-black/10 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1 px-3 h-10 flex-shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
-          </Button>
-          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
-            Beach Body Meal Builder
-          </h1>
-          <QuickTourButton onClick={quickTour.openTour} />
-        </div>
-      </div>
-      </MobileHeaderGuard>
+      <BuilderHeader title="Beach Body Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <TrialBanner />
 
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         <NutritionBudgetBanner className="mb-2" />
         <div className="mb-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
