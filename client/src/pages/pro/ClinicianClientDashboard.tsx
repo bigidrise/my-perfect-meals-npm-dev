@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { proStore, Targets, ClinicalContext, ClinicalAdvisory, StarchStrategy } from "@/lib/proData";
+import { proStore, Targets, ClinicalContext, ClinicalAdvisory, StarchStrategy, BuilderType } from "@/lib/proData";
 import ClinicalAdvisoryDrawer from "@/components/pro/ClinicalAdvisoryDrawer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -20,7 +20,14 @@ import {
   Check,
   Calendar,
   LayoutGrid,
+  Trophy,
+  Dumbbell,
 } from "lucide-react";
+import {
+  PHYSICIAN_BUILDER_MAP,
+  ALL_PHYSICIAN_BUILDER_KEYS,
+  type PhysicianBuilderKey,
+} from "@/lib/physicianBuilderMap";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -79,6 +86,19 @@ export default function ClinicianClientDashboard() {
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
+  const [assignedBuilder, setAssignedBuilder] = useState<PhysicianBuilderKey | undefined>(
+    () => client?.assignedBuilder as PhysicianBuilderKey | undefined
+  );
+
+  interface LabsSummary {
+    a1c: number | null;
+    ldl: number | null;
+    hdl: number | null;
+    blood_pressure_systolic: number | null;
+    blood_pressure_diastolic: number | null;
+    ejection_fraction: number | null;
+  }
+  const [labs, setLabs] = useState<LabsSummary | null>(null);
 
   interface BodyCompEntry {
     id: number;
@@ -95,12 +115,15 @@ export default function ClinicianClientDashboard() {
     setT(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     const c = proStore.getClient(clientId);
-    if (c) setClient(c);
+    if (c) {
+      setClient(c);
+      setAssignedBuilder(c.assignedBuilder as PhysicianBuilderKey | undefined);
+    }
   }, [clientId]);
 
   useEffect(() => {
     const c = proStore.getClient(clientId);
-    const uid = c?.userId;
+    const uid = c?.clientUserId || c?.userId;
     if (!uid) return;
     apiRequest(`/api/users/${uid}/body-composition/latest`)
       .then((data) => {
@@ -108,6 +131,15 @@ export default function ClinicianClientDashboard() {
           setBodyComp(data.entry);
           setBodyCompSource(data.source);
         }
+      })
+      .catch(() => {});
+    fetch(apiUrl(`/api/clinical-labs/${uid}/latest`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.labs) setLabs(data.labs);
       })
       .catch(() => {});
   }, [clientId]);
@@ -175,6 +207,50 @@ export default function ClinicianClientDashboard() {
     setCtx({ ...ctx, followupWeeks: undefined });
   };
 
+  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
+
+  const handlePhysicianBuilderAssignment = async (builderKey: PhysicianBuilderKey) => {
+    if (!resolvedClientUserId) {
+      toast({
+        title: "Cannot Assign",
+        description: "This patient hasn't connected their account yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      };
+      const studioId = client?.studioId;
+      if (studioId) {
+        await fetch(apiUrl(`/api/studios/${studioId}/clients/${resolvedClientUserId}/assign`), {
+          method: "PATCH",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({ assignedBuilder: builderKey }),
+        });
+      }
+      await fetch(apiUrl("/api/pro/assign-builder"), {
+        method: "POST",
+        headers,
+        credentials: "include",
+        body: JSON.stringify({ clientId: resolvedClientUserId, builder: builderKey }),
+      });
+      setAssignedBuilder(builderKey);
+      if (client) {
+        proStore.upsertClient({ ...client, assignedBuilder: builderKey as BuilderType });
+      }
+      toast({
+        title: "Builder Assigned",
+        description: `${PHYSICIAN_BUILDER_MAP[builderKey].label} assigned to ${client?.name || "patient"}.`,
+      });
+    } catch {
+      toast({ title: "Assignment Failed", description: "Could not assign builder.", variant: "destructive" });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -189,7 +265,7 @@ export default function ClinicianClientDashboard() {
       >
         <div className="px-4 py-3 flex items-center gap-2 flex-nowrap">
           <button
-            onClick={() => setLocation("/pro/clients")}
+            onClick={() => setLocation("/pro/physician-clients")}
             className="flex items-center gap-1 text-white transition-all duration-200 p-2 rounded-lg flex-shrink-0 active:scale-[0.98]"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -211,13 +287,42 @@ export default function ClinicianClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          <p className="text-md text-white/70 mt-1">
-            Set macro targets, clinical context, and physician notes for your patient.
-          </p>
-          <p className="text-white/90 mt-3 text-lg">
+          <p className="text-white/90 text-lg font-semibold">
             {client?.name || "Patient"}
           </p>
+          {assignedBuilder && PHYSICIAN_BUILDER_MAP[assignedBuilder] && (
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+              Active Protocol: {PHYSICIAN_BUILDER_MAP[assignedBuilder].label}
+            </div>
+          )}
+          <p className="text-sm text-white/60 mt-2">
+            Set macro targets, clinical context, and physician notes for your patient.
+          </p>
         </div>
+
+        {(labs?.ldl != null || labs?.a1c != null || labs?.blood_pressure_systolic != null || labs?.ejection_fraction != null) && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+              <div className="text-xs text-red-300">LDL</div>
+              <div className="text-lg font-semibold text-red-200">{labs?.ldl ?? "--"} <span className="text-xs font-normal text-red-300/70">mg/dL</span></div>
+            </div>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+              <div className="text-xs text-yellow-300">A1C</div>
+              <div className="text-lg font-semibold text-yellow-200">{labs?.a1c ?? "--"} <span className="text-xs font-normal text-yellow-300/70">%</span></div>
+            </div>
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <div className="text-xs text-blue-300">Blood Pressure</div>
+              <div className="text-lg font-semibold text-blue-200">
+                {labs?.blood_pressure_systolic ?? "--"} / {labs?.blood_pressure_diastolic ?? "--"}
+                <span className="text-xs font-normal text-blue-300/70 ml-1">mmHg</span>
+              </div>
+            </div>
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+              <div className="text-xs text-purple-300">Ejection Fraction</div>
+              <div className="text-lg font-semibold text-purple-200">{labs?.ejection_fraction ?? "--"} <span className="text-xs font-normal text-purple-300/70">%</span></div>
+            </div>
+          </div>
+        )}
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
@@ -520,54 +625,69 @@ export default function ClinicianClientDashboard() {
 
         <WeeklyWeightTrendCard clientId={client?.clientUserId || client?.userId || clientId} />
 
-        <Card className="bg-white/5 border border-amber-500/30">
+        <Card className="bg-white/5 border border-teal-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <LayoutGrid className="h-5 w-5 text-amber-400" /> Patient Meal Board
+              <Trophy className="h-5 w-5 text-teal-400" /> Assign Clinical Builder
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              View and edit {client?.name || "your patient"}'s weekly meal plan directly.
+              Choose which meal builder this patient will use. The assignment is saved to their record.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {ALL_PHYSICIAN_BUILDER_KEYS.map((key) => {
+                const entry = PHYSICIAN_BUILDER_MAP[key];
+                const isActive = assignedBuilder === key;
+                return (
+                  <Button
+                    key={key}
+                    onClick={() => handlePhysicianBuilderAssignment(key)}
+                    className={`h-auto py-4 flex flex-col items-start gap-1 text-left transition-all duration-200 active:scale-[0.98] ${
+                      isActive
+                        ? "bg-teal-600 border-2 border-teal-400"
+                        : "bg-black/40 border border-white/20 hover:bg-black/60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
+                      <span className="font-bold text-sm">{entry.label}</span>
+                    </div>
+                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/5 border border-amber-500/30">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Dumbbell className="h-5 w-5 text-amber-400" /> Open Patient Builder
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-white/70 text-sm">
+              {assignedBuilder && PHYSICIAN_BUILDER_MAP[assignedBuilder]
+                ? `Open the ${PHYSICIAN_BUILDER_MAP[assignedBuilder].label} for ${client?.name || "this patient"}.`
+                : "Assign a builder above, then open it here."}
             </p>
             <Button
               onClick={() => {
-                const boardUserId = client?.clientUserId || client?.userId || clientId;
-                setLocation(`/pro/clients/${boardUserId}/general-nutrition-builder`);
+                if (!assignedBuilder || !PHYSICIAN_BUILDER_MAP[assignedBuilder]) {
+                  toast({ title: "No Builder Assigned", description: "Please assign a builder above first.", variant: "destructive" });
+                  return;
+                }
+                localStorage.setItem("pro-client-id", resolvedClientUserId);
+                setLocation(`/pro/clients/${resolvedClientUserId}/${PHYSICIAN_BUILDER_MAP[assignedBuilder].proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <LayoutGrid className="h-4 w-4 mr-2" />
-              View Meal Board
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/5 border border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">Medical Hubs</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-white/70 text-sm mb-4">
-              Access specialized medical meal guidance for your patient.
-            </p>
-            <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/diabetic-builder`)}
-              className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
-            >
-              Diabetic Meal Builder
-            </Button>
-            <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/glp1-builder`)}
-              className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
-            >
-              GLP-1 Meal Builder
-            </Button>
-            <Button
-              onClick={() => setLocation(`/pro/clients/${clientId}/anti-inflammatory-builder`)}
-              className="w-full sm:w-[400px] bg-black border border-white/20 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
-            >
-              Anti-Inflammatory Meal Builder
+              {assignedBuilder && PHYSICIAN_BUILDER_MAP[assignedBuilder]
+                ? `Open ${PHYSICIAN_BUILDER_MAP[assignedBuilder].label}`
+                : "Assign Builder First"}
             </Button>
           </CardContent>
         </Card>
