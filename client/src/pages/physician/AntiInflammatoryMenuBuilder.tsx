@@ -1398,52 +1398,77 @@ export default function AntiInflammatoryMenuBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
-        <div className="flex items-center justify-between bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-white/50 font-medium">Clinical Protocol:</span>
-            {forcedMode ? (
-              <span className={`px-3 py-1 text-xs font-medium rounded-lg ${
-                forcedMode === 'kidney-disease' ? 'bg-sky-600 text-white'
-                : forcedMode === 'heart-failure' ? 'bg-red-600 text-white'
-                : forcedMode === 'liver-disease' ? 'bg-amber-600 text-white'
-                : 'bg-zinc-700 text-white'
-              }`}>
-                {forcedMode === 'kidney-disease' ? 'Kidney Disease'
-                  : forcedMode === 'heart-failure' ? 'Heart Failure'
-                  : 'Liver Disease'}
-              </span>
-            ) : (
-              <div className="flex rounded-lg overflow-hidden border border-zinc-700/50">
-                <button
-                  type="button"
-                  disabled={!board}
-                  onClick={() => handleClinicalModeChange("anti-inflammatory")}
-                  className={`px-3 py-1 text-xs font-medium transition-colors ${
-                    clinicalMode === "anti-inflammatory"
-                      ? "bg-orange-600 text-white"
-                      : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
-                  }`}
-                >
-                  Anti-Inflammatory
-                </button>
-                <button
-                  type="button"
-                  disabled={!board}
-                  onClick={() => handleClinicalModeChange("liver-support")}
-                  className={`px-3 py-1 text-xs font-medium transition-colors ${
-                    clinicalMode === "liver-support"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
-                  }`}
-                >
-                  Liver Support
-                </button>
-              </div>
+        <div className="flex flex-col gap-1.5 bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-3 py-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/50 font-medium">Clinical Protocol:</span>
+              {forcedMode ? (
+                <span className={`px-3 py-1 text-xs font-medium rounded-lg ${
+                  forcedMode === 'kidney-disease' ? 'bg-sky-600 text-white'
+                  : forcedMode === 'heart-failure' ? 'bg-red-600 text-white'
+                  : forcedMode === 'liver-disease' ? 'bg-amber-600 text-white'
+                  : 'bg-zinc-700 text-white'
+                }`}>
+                  {forcedMode === 'kidney-disease' ? 'Kidney Disease'
+                    : forcedMode === 'heart-failure' ? 'Heart Failure'
+                    : 'Liver Disease'}
+                </span>
+              ) : (
+                <div className="flex rounded-lg overflow-hidden border border-zinc-700/50">
+                  <button
+                    type="button"
+                    disabled={!board}
+                    onClick={() => handleClinicalModeChange("anti-inflammatory")}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      clinicalMode === "anti-inflammatory"
+                        ? "bg-orange-600 text-white"
+                        : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
+                    }`}
+                  >
+                    Anti-Inflammatory
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!board}
+                    onClick={() => handleClinicalModeChange("liver-support")}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      clinicalMode === "liver-support"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
+                    }`}
+                  >
+                    Liver Support
+                  </button>
+                </div>
+              )}
+            </div>
+            {!forcedMode && clinicalMode === "liver-support" && (
+              <span className="text-[10px] text-emerald-400 font-medium">Liver Support Active</span>
             )}
           </div>
-          {!forcedMode && clinicalMode === "liver-support" && (
-            <span className="text-[10px] text-emerald-400 font-medium">Liver Support Active</span>
-          )}
+
+          {/* Physician-set condition badges — driven by clinical dashboard toggles */}
+          {(() => {
+            const flags = getResolvedTargets(effectiveUserId)?.flags ?? {};
+            const active: { label: string; cls: string }[] = [];
+            if (flags.renal)              active.push({ label: "Renal-Friendly",    cls: "bg-sky-700 text-sky-100" });
+            if (flags.cardiac)            active.push({ label: "Cardiac Protocol",  cls: "bg-red-700 text-red-100" });
+            if (flags.diabetesFriendly)   active.push({ label: "Diabetes-Friendly", cls: "bg-purple-700 text-purple-100" });
+            if (flags.glp1)               active.push({ label: "GLP-1 Support",     cls: "bg-blue-700 text-blue-100" });
+            if (flags.lowSodium)          active.push({ label: "Low-Sodium",        cls: "bg-yellow-700 text-yellow-100" });
+            if (flags.postBariatric)      active.push({ label: "Post-Bariatric",    cls: "bg-orange-700 text-orange-100" });
+            if (!active.length) return null;
+            return (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-white/40 font-medium">Active Directives:</span>
+                {active.map(({ label, cls }) => (
+                  <span key={label} className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${cls}`}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
         </div>
         <NutritionBudgetBanner className="mb-2" />
         <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
