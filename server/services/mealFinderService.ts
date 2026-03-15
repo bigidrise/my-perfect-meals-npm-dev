@@ -64,6 +64,24 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
 
     const fallbackPromises = fallbackRestaurants.map(async (restaurant) => {
       try {
+        // Try to resolve the real address for each inferred restaurant
+        let resolvedAddress = `Near ${zipCode}`;
+        try {
+          const addrResult = await resolveRestaurantsByZip({
+            query: restaurant.name,
+            zipCode,
+            radiusMiles: 15,
+            limit: 1,
+            searchMode: 'restaurant'
+          });
+          if (addrResult.success && addrResult.restaurants.length > 0) {
+            resolvedAddress = addrResult.restaurants[0].address;
+            console.log(`📍 Resolved address for ${restaurant.name}: ${resolvedAddress}`);
+          }
+        } catch (addrErr) {
+          console.warn(`⚠️ Could not resolve address for ${restaurant.name}:`, addrErr);
+        }
+
         const aiMeals = await generateRestaurantMealsAI({
           restaurantName: restaurant.name,
           cuisine: restaurant.cuisine,
@@ -74,7 +92,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
           return aiMeals.slice(0, 2).map(meal => ({
             restaurantName: restaurant.name,
             cuisine: restaurant.cuisine,
-            address: `Near ${zipCode}`,
+            address: resolvedAddress,
             meal: {
               name: meal.name,
               description: meal.description,
