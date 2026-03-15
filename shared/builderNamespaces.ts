@@ -16,6 +16,9 @@ export const BUILDER_NS = {
   GENERAL_NUTRITION: 'generalNutrition',
   PERFORMANCE_COMPETITION: 'performanceCompetition',
   BEACH_BODY: 'beachBody',
+  KIDNEY_DISEASE: 'kidneyDisease',
+  HEART_FAILURE: 'heartFailure',
+  LIVER_DISEASE: 'liverDisease',
 } as const;
 
 export type BuilderNamespace = typeof BUILDER_NS[keyof typeof BUILDER_NS];

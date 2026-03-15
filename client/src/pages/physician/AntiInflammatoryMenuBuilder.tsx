@@ -135,10 +135,23 @@ export default function AntiInflammatoryMenuBuilder() {
   const quickTour = useQuickTour("anti-inflammatory-menu-builder");
   const [, setLocation] = useLocation();
   
-  // ProCare route detection for Client Dashboard button
-  const [, proParams] = useRoute("/pro/clients/:id/anti-inflammatory-builder");
+  // ProCare route detection — matches all clinical builder routes
+  const [, proParamsAntiInflam] = useRoute("/pro/clients/:id/anti-inflammatory-builder");
+  const [matchesKidney, proParamsKidney] = useRoute("/pro/clients/:id/kidney-disease-builder");
+  const [matchesHeart, proParamsHeart] = useRoute("/pro/clients/:id/heart-failure-builder");
+  const [matchesLiverDisease, proParamsLiverDisease] = useRoute("/pro/clients/:id/liver-disease-builder");
+  const proParams = proParamsAntiInflam || proParamsKidney || proParamsHeart || proParamsLiverDisease;
   const proClientId = proParams?.id;
-  
+
+  // Determine if this builder is opened in a protocol-locked route
+  const forcedMode: ClinicalMode | null = matchesKidney
+    ? 'kidney-disease'
+    : matchesHeart
+    ? 'heart-failure'
+    : matchesLiverDisease
+    ? 'liver-disease'
+    : null;
+
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
@@ -152,13 +165,23 @@ export default function AntiInflammatoryMenuBuilder() {
     React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
 
   // Clinical mode is PRIMARY STATE — drives namespace and AI prompts.
-  // Persisted to localStorage so it survives page reload.
+  // Forced by route when opening a protocol-specific builder; otherwise
+  // persisted to localStorage so it survives page reload.
   const [clinicalModeState, setClinicalModeState] = React.useState<ClinicalMode>(
-    () => (localStorage.getItem('mpm.antiInflammatoryMode') as ClinicalMode) ?? 'anti-inflammatory'
+    () => forcedMode ?? ((localStorage.getItem('mpm.antiInflammatoryMode') as ClinicalMode) ?? 'anti-inflammatory')
   );
-  const namespace = clinicalModeState === 'liver-support'
-    ? BUILDER_NS.ANTI_INFLAMMATORY_LIVER
-    : BUILDER_NS.ANTI_INFLAMMATORY;
+
+  function getNamespaceForMode(mode: ClinicalMode) {
+    switch (mode) {
+      case 'liver-support': return BUILDER_NS.ANTI_INFLAMMATORY_LIVER;
+      case 'kidney-disease': return BUILDER_NS.KIDNEY_DISEASE;
+      case 'heart-failure': return BUILDER_NS.HEART_FAILURE;
+      case 'liver-disease': return BUILDER_NS.LIVER_DISEASE;
+      default: return BUILDER_NS.ANTI_INFLAMMATORY;
+    }
+  }
+
+  const namespace = getNamespaceForMode(clinicalModeState);
 
   const {
     board: hookBoard,
@@ -1377,35 +1400,48 @@ export default function AntiInflammatoryMenuBuilder() {
       >
         <div className="flex items-center justify-between bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-3 py-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-white/50 font-medium">Clinical Mode:</span>
-            <div className="flex rounded-lg overflow-hidden border border-zinc-700/50">
-              <button
-                type="button"
-                disabled={!board}
-                onClick={() => handleClinicalModeChange("anti-inflammatory")}
-                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                  clinicalMode === "anti-inflammatory"
-                    ? "bg-orange-600 text-white"
-                    : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
-                }`}
-              >
-                Anti-Inflammatory
-              </button>
-              <button
-                type="button"
-                disabled={!board}
-                onClick={() => handleClinicalModeChange("liver-support")}
-                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                  clinicalMode === "liver-support"
-                    ? "bg-emerald-600 text-white"
-                    : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
-                }`}
-              >
-                Liver Support
-              </button>
-            </div>
+            <span className="text-xs text-white/50 font-medium">Clinical Protocol:</span>
+            {forcedMode ? (
+              <span className={`px-3 py-1 text-xs font-medium rounded-lg ${
+                forcedMode === 'kidney-disease' ? 'bg-sky-600 text-white'
+                : forcedMode === 'heart-failure' ? 'bg-red-600 text-white'
+                : forcedMode === 'liver-disease' ? 'bg-amber-600 text-white'
+                : 'bg-zinc-700 text-white'
+              }`}>
+                {forcedMode === 'kidney-disease' ? 'Kidney Disease'
+                  : forcedMode === 'heart-failure' ? 'Heart Failure'
+                  : 'Liver Disease'}
+              </span>
+            ) : (
+              <div className="flex rounded-lg overflow-hidden border border-zinc-700/50">
+                <button
+                  type="button"
+                  disabled={!board}
+                  onClick={() => handleClinicalModeChange("anti-inflammatory")}
+                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                    clinicalMode === "anti-inflammatory"
+                      ? "bg-orange-600 text-white"
+                      : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
+                  }`}
+                >
+                  Anti-Inflammatory
+                </button>
+                <button
+                  type="button"
+                  disabled={!board}
+                  onClick={() => handleClinicalModeChange("liver-support")}
+                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                    clinicalMode === "liver-support"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
+                  }`}
+                >
+                  Liver Support
+                </button>
+              </div>
+            )}
           </div>
-          {clinicalMode === "liver-support" && (
+          {!forcedMode && clinicalMode === "liver-support" && (
             <span className="text-[10px] text-emerald-400 font-medium">Liver Support Active</span>
           )}
         </div>

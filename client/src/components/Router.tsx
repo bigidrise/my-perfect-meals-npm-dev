@@ -465,6 +465,9 @@ export default function Router() {
         <Route path="/pro/clients/:id/diabetic-builder" component={SafeDiabeticMenuBuilder} />
         <Route path="/pro/clients/:id/glp1-builder" component={SafeGLP1MealBuilder} />
         <Route path="/pro/clients/:id/anti-inflammatory-builder" component={SafeAntiInflammatoryMenuBuilder} />
+        <Route path="/pro/clients/:id/kidney-disease-builder" component={SafeAntiInflammatoryMenuBuilder} />
+        <Route path="/pro/clients/:id/heart-failure-builder" component={SafeAntiInflammatoryMenuBuilder} />
+        <Route path="/pro/clients/:id/liver-disease-builder" component={SafeAntiInflammatoryMenuBuilder} />
         <Route path="/pro/clients/:id/weekly-builder" component={SafeWeeklyMealBoard} />
         <Route path="/pro/clients/:id/beach-body-builder" component={BeachBodyMealBoard} />
         {/* Physician Hub Routes (Diabetic, GLP-1, Medical Diets, Clinical Lifestyle) */}
