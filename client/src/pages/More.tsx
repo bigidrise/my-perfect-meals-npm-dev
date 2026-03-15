@@ -382,6 +382,7 @@ export default function MorePage() {
       </div>
       <ClientLegalModal
         open={showClientLegalModal}
+        flow={pendingLegalFlow}
         onAccepted={handleClientLegalAccepted}
         onCancel={() => setShowClientLegalModal(false)}
       />

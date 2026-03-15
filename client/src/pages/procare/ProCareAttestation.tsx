@@ -33,6 +33,12 @@ export default function ProCareAttestation() {
 
   const isLoggedIn = !!user;
 
+  const professionalRole =
+    (localStorage.getItem("procare_role") as "trainer" | "physician" | null) ||
+    user?.professionalRole ||
+    "trainer";
+  const proFlow = professionalRole === "physician" ? "physician" : "professional";
+
   useEffect(() => {
     const stored = localStorage.getItem("procare_category") as ProfessionalCategory | null;
     if (!stored) {
@@ -63,7 +69,7 @@ export default function ProCareAttestation() {
   };
 
   const checkProfessionalDocs = async (): Promise<boolean> => {
-    const res = await fetch(apiUrl("/api/legal/status?flow=professional"), {
+    const res = await fetch(apiUrl(`/api/legal/status?flow=${proFlow}`), {
       headers: { ...getAuthHeaders() },
       credentials: "include",
     });
@@ -241,6 +247,7 @@ export default function ProCareAttestation() {
 
       <ProfessionalLegalModal
         open={showProfessionalModal}
+        flow={proFlow}
         onAccepted={handleProfessionalDocsAccepted}
       />
     </div>

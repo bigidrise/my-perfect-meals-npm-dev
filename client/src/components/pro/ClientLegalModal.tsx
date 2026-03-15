@@ -91,7 +91,7 @@ export default function ClientLegalModal({ open, onAccepted, onCancel, flow = "c
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
-                {isPhysicianFlow ? "Patient Agreements" : "Client Agreements"}
+                {isPhysicianFlow ? "Physician Care Agreement" : "Client Agreements"}
               </h2>
               <p className="text-sm text-white/60">
                 {isPhysicianFlow
