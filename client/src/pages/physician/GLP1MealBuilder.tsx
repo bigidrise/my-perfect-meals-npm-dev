@@ -1054,7 +1054,7 @@ export default function GLP1MealBuilder() {
             snacks: [...(dayLists.snacks ?? []), newSnack],
           };
           const updatedBoard = setDayLists(board, activeDayISO, updatedDay);
-          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId);
+          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId, BUILDER_NS.GLP1);
           setBoard(week);
         } else {
           // ✅ WEEK (legacy) MODE: write into legacy week lists
@@ -1064,7 +1064,7 @@ export default function GLP1MealBuilder() {
             lists: { ...board.lists, snacks: [...snacks, newSnack] },
           };
           setBoard(updated);
-          await putWeekBoard(weekStartISO, updated, proClientId);
+          await putWeekBoard(weekStartISO, updated, proClientId, BUILDER_NS.GLP1);
         }
 
         // Notify other widgets to refresh (macros/Header/etc.)

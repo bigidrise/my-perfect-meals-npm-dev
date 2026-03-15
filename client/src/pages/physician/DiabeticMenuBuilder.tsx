@@ -1178,7 +1178,7 @@ export default function DiabeticMenuBuilder() {
             snacks: [...(dayLists.snacks ?? []), newSnack],
           };
           const updatedBoard = setDayLists(board, activeDayISO, updatedDay);
-          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId);
+          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId, BUILDER_NS.DIABETIC);
           setBoard(week);
         } else {
           // ✅ WEEK (legacy) MODE: write into legacy week lists
@@ -1188,7 +1188,7 @@ export default function DiabeticMenuBuilder() {
             lists: { ...board.lists, snacks: [...snacks, newSnack] },
           };
           setBoard(updated);
-          await putWeekBoard(weekStartISO, updated, proClientId);
+          await putWeekBoard(weekStartISO, updated, proClientId, BUILDER_NS.DIABETIC);
         }
 
         // Notify other widgets to refresh (macros/Header/etc.)

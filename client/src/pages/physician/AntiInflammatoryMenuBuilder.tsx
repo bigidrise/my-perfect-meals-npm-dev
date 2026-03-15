@@ -1154,7 +1154,7 @@ export default function AntiInflammatoryMenuBuilder() {
             snacks: [...(dayLists.snacks ?? []), newSnack],
           };
           const updatedBoard = setDayLists(board, activeDayISO, updatedDay);
-          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId);
+          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId, namespace);
           setBoard(week);
         } else {
           // ✅ WEEK (legacy) MODE: write into legacy week lists
@@ -1164,7 +1164,7 @@ export default function AntiInflammatoryMenuBuilder() {
             lists: { ...board.lists, snacks: [...snacks, newSnack] },
           };
           setBoard(updated);
-          await putWeekBoard(weekStartISO, updated, proClientId);
+          await putWeekBoard(weekStartISO, updated, proClientId, namespace);
         }
 
         // Notify other widgets to refresh (macros/Header/etc.)
