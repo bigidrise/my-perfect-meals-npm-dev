@@ -42,6 +42,7 @@ export default function MorePage() {
 
   const isProCareClient = !!user?.isProCare;
   const [showClientLegalModal, setShowClientLegalModal] = useState(false);
+  const [pendingLegalFlow, setPendingLegalFlow] = useState<"client" | "patient_physician">("client");
 
   useEffect(() => {
     document.title = "More | My Perfect Meals";
@@ -104,7 +105,9 @@ export default function MorePage() {
       await refreshUser();
     } catch (e: any) {
       const msg = e?.message ?? "";
-      if (msg.includes("LEGAL_REACCEPT_REQUIRED") || msg.includes("legal documents")) {
+      if ((e as any)?.code === "LEGAL_REACCEPT_REQUIRED" || msg.includes("LEGAL_REACCEPT_REQUIRED") || msg.includes("legal documents")) {
+        const rawFlow = (e as any)?.flow;
+        setPendingLegalFlow(rawFlow === "patient_physician" ? "patient_physician" : "client");
         setShowClientLegalModal(true);
       } else {
         setError(msg || "Invalid or expired access code.");

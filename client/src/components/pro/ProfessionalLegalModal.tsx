@@ -1,25 +1,35 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ShieldCheck, Stethoscope, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { LEGAL_DOCUMENTS } from "../../../../shared/legalDocuments";
 import { coachProfessionalAgreement } from "@/legal/coachProfessionalAgreement";
 import { coachConductPolicy } from "@/legal/coachConductPolicy";
 import { scopeOfPractice } from "@/legal/scopeOfPractice";
+import { physicianProfessionalAgreement } from "@/legal/physicianProfessionalAgreement";
+import { physicianConductPolicy } from "@/legal/physicianConductPolicy";
+import { physicianScopeOfPractice } from "@/legal/physicianScopeOfPractice";
 
-const PROFESSIONAL_DOCS = [
+const COACH_DOCS = [
   { ...LEGAL_DOCUMENTS.professional[0], ...coachProfessionalAgreement },
   { ...LEGAL_DOCUMENTS.professional[1], ...coachConductPolicy },
   { ...LEGAL_DOCUMENTS.professional[2], ...scopeOfPractice },
 ];
 
+const PHYSICIAN_DOCS = [
+  { ...LEGAL_DOCUMENTS.physician[0], ...physicianProfessionalAgreement },
+  { ...LEGAL_DOCUMENTS.physician[1], ...physicianConductPolicy },
+  { ...LEGAL_DOCUMENTS.physician[2], ...physicianScopeOfPractice },
+];
+
 interface ProfessionalLegalModalProps {
   open: boolean;
   onAccepted: () => void;
+  flow?: "professional" | "physician";
 }
 
-export default function ProfessionalLegalModal({ open, onAccepted }: ProfessionalLegalModalProps) {
+export default function ProfessionalLegalModal({ open, onAccepted, flow = "professional" }: ProfessionalLegalModalProps) {
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -27,7 +37,10 @@ export default function ProfessionalLegalModal({ open, onAccepted }: Professiona
 
   if (!open) return null;
 
-  const allAccepted = PROFESSIONAL_DOCS.every((doc) => accepted[doc.type]);
+  const isPhysicianFlow = flow === "physician";
+  const DOCS = isPhysicianFlow ? PHYSICIAN_DOCS : COACH_DOCS;
+
+  const allAccepted = DOCS.every((doc) => accepted[doc.type]);
 
   const toggleAccepted = (type: string) => {
     setAccepted((prev) => ({ ...prev, [type]: !prev[type] }));
@@ -41,7 +54,7 @@ export default function ProfessionalLegalModal({ open, onAccepted }: Professiona
     setSaving(true);
     setError(null);
     try {
-      for (const doc of PROFESSIONAL_DOCS) {
+      for (const doc of DOCS) {
         const res = await fetch(apiUrl("/api/legal/accept"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -66,17 +79,22 @@ export default function ProfessionalLegalModal({ open, onAccepted }: Professiona
       <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-blue-500/20">
-              <ShieldCheck className="w-6 h-6 text-blue-400" />
+            <div className={`p-2 rounded-xl ${isPhysicianFlow ? "bg-violet-500/20" : "bg-blue-500/20"}`}>
+              {isPhysicianFlow
+                ? <Stethoscope className="w-6 h-6 text-violet-400" />
+                : <ShieldCheck className="w-6 h-6 text-blue-400" />
+              }
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Professional Agreements</h2>
+              <h2 className="text-lg font-bold text-white">
+                {isPhysicianFlow ? "Physician Agreements" : "Professional Agreements"}
+              </h2>
               <p className="text-sm text-white/60">Please review and accept each document to continue.</p>
             </div>
           </div>
 
           <div className="space-y-3">
-            {PROFESSIONAL_DOCS.map((doc) => (
+            {DOCS.map((doc) => (
               <div key={doc.type} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
                 <button
                   onClick={() => toggleExpanded(doc.type)}
@@ -102,7 +120,11 @@ export default function ProfessionalLegalModal({ open, onAccepted }: Professiona
                 >
                   <div
                     className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                      accepted[doc.type] ? "border-blue-400 bg-blue-500" : "border-white/30 bg-transparent"
+                      accepted[doc.type]
+                        ? isPhysicianFlow
+                          ? "border-violet-400 bg-violet-500"
+                          : "border-blue-400 bg-blue-500"
+                        : "border-white/30 bg-transparent"
                     }`}
                   >
                     {accepted[doc.type] && (
@@ -126,7 +148,11 @@ export default function ProfessionalLegalModal({ open, onAccepted }: Professiona
           <Button
             onClick={handleAcceptAll}
             disabled={!allAccepted || saving}
-            className="w-full mt-6 h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white disabled:opacity-40"
+            className={`w-full mt-6 h-12 text-sm font-semibold rounded-xl text-white disabled:opacity-40 ${
+              isPhysicianFlow
+                ? "bg-gradient-to-r from-violet-600 to-violet-700"
+                : "bg-gradient-to-r from-blue-600 to-blue-700"
+            }`}
           >
             {saving ? (
               <>

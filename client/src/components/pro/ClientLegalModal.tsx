@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { FileText, Stethoscope, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { LEGAL_DOCUMENTS } from "../../../../shared/legalDocuments";
@@ -8,21 +8,31 @@ import { clientCoachingAgreement } from "@/legal/clientCoachingAgreement";
 import { clientLiabilityWaiver } from "@/legal/clientLiabilityWaiver";
 import { clientDataConsent } from "@/legal/clientDataConsent";
 import { nutritionDisclaimer } from "@/legal/nutritionDisclaimer";
+import { patientPhysicianAgreement } from "@/legal/patientPhysicianAgreement";
+import { patientClinicalDataConsent } from "@/legal/patientClinicalDataConsent";
+import { patientMedicalWaiver } from "@/legal/patientMedicalWaiver";
 
-const CLIENT_DOCS = [
+const TRAINER_DOCS = [
   { ...LEGAL_DOCUMENTS.client[0], ...clientCoachingAgreement },
   { ...LEGAL_DOCUMENTS.client[1], ...clientLiabilityWaiver },
   { ...LEGAL_DOCUMENTS.client[2], ...clientDataConsent },
   { ...LEGAL_DOCUMENTS.client[3], ...nutritionDisclaimer },
 ];
 
+const PHYSICIAN_DOCS = [
+  { ...LEGAL_DOCUMENTS.patient_physician[0], ...patientPhysicianAgreement },
+  { ...LEGAL_DOCUMENTS.patient_physician[1], ...patientClinicalDataConsent },
+  { ...LEGAL_DOCUMENTS.patient_physician[2], ...patientMedicalWaiver },
+];
+
 interface ClientLegalModalProps {
   open: boolean;
   onAccepted: () => void;
   onCancel?: () => void;
+  flow?: "client" | "patient_physician";
 }
 
-export default function ClientLegalModal({ open, onAccepted, onCancel }: ClientLegalModalProps) {
+export default function ClientLegalModal({ open, onAccepted, onCancel, flow = "client" }: ClientLegalModalProps) {
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -30,7 +40,11 @@ export default function ClientLegalModal({ open, onAccepted, onCancel }: ClientL
 
   if (!open) return null;
 
-  const allAccepted = CLIENT_DOCS.every((doc) => accepted[doc.type]);
+  const isPhysicianFlow = flow === "patient_physician";
+  const DOCS = isPhysicianFlow ? PHYSICIAN_DOCS : TRAINER_DOCS;
+  const accentColor = isPhysicianFlow ? "violet" : "emerald";
+
+  const allAccepted = DOCS.every((doc) => accepted[doc.type]);
 
   const toggleAccepted = (type: string) => {
     setAccepted((prev) => ({ ...prev, [type]: !prev[type] }));
@@ -44,7 +58,7 @@ export default function ClientLegalModal({ open, onAccepted, onCancel }: ClientL
     setSaving(true);
     setError(null);
     try {
-      for (const doc of CLIENT_DOCS) {
+      for (const doc of DOCS) {
         const res = await fetch(apiUrl("/api/legal/accept"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -69,17 +83,27 @@ export default function ClientLegalModal({ open, onAccepted, onCancel }: ClientL
       <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-emerald-500/20">
-              <FileText className="w-6 h-6 text-emerald-400" />
+            <div className={`p-2 rounded-xl ${isPhysicianFlow ? "bg-violet-500/20" : "bg-emerald-500/20"}`}>
+              {isPhysicianFlow
+                ? <Stethoscope className="w-6 h-6 text-violet-400" />
+                : <FileText className="w-6 h-6 text-emerald-400" />
+              }
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Client Agreements</h2>
-              <p className="text-sm text-white/60">Please review and accept before connecting with your coach.</p>
+              <h2 className="text-lg font-bold text-white">
+                {isPhysicianFlow ? "Patient Agreements" : "Client Agreements"}
+              </h2>
+              <p className="text-sm text-white/60">
+                {isPhysicianFlow
+                  ? "Please review and accept before connecting with your physician."
+                  : "Please review and accept before connecting with your coach."
+                }
+              </p>
             </div>
           </div>
 
           <div className="space-y-3">
-            {CLIENT_DOCS.map((doc) => (
+            {DOCS.map((doc) => (
               <div key={doc.type} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
                 <button
                   onClick={() => toggleExpanded(doc.type)}
@@ -105,7 +129,11 @@ export default function ClientLegalModal({ open, onAccepted, onCancel }: ClientL
                 >
                   <div
                     className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                      accepted[doc.type] ? "border-emerald-400 bg-emerald-500" : "border-white/30 bg-transparent"
+                      accepted[doc.type]
+                        ? isPhysicianFlow
+                          ? "border-violet-400 bg-violet-500"
+                          : "border-emerald-400 bg-emerald-500"
+                        : "border-white/30 bg-transparent"
                     }`}
                   >
                     {accepted[doc.type] && (
@@ -128,17 +156,21 @@ export default function ClientLegalModal({ open, onAccepted, onCancel }: ClientL
 
           <div className="flex gap-3 mt-6">
             {onCancel && (
-      <Button
-        onClick={onCancel}
-        className="flex-1 h-12 text-sm font-semibold rounded-xl bg-black text-white border border-white/20 hover:bg-black"
-      >
-        Cancel
-      </Button>
+              <Button
+                onClick={onCancel}
+                className="flex-1 h-12 text-sm font-semibold rounded-xl bg-black text-white border border-white/20 hover:bg-black"
+              >
+                Cancel
+              </Button>
             )}
             <Button
               onClick={handleAcceptAll}
               disabled={!allAccepted || saving}
-              className={`${onCancel ? "flex-1" : "w-full"} h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white disabled:opacity-40`}
+              className={`${onCancel ? "flex-1" : "w-full"} h-12 text-sm font-semibold rounded-xl text-white disabled:opacity-40 ${
+                isPhysicianFlow
+                  ? "bg-gradient-to-r from-violet-600 to-violet-700"
+                  : "bg-gradient-to-r from-emerald-600 to-emerald-700"
+              }`}
             >
               {saving ? (
                 <>

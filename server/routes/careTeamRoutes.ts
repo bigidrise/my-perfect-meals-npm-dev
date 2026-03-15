@@ -99,19 +99,38 @@ router.post("/connect", requireAuth, async (req, res) => {
     const trimmedCode = String(code).trim();
     console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}" (original: "${code}")`);
 
-    const clientCheck = await checkLegalAcceptance(userId, "client");
-    if (!clientCheck.allAccepted) {
-      return res.status(409).json({
-        code: "LEGAL_REACCEPT_REQUIRED",
-        missing: clientCheck.missing,
-        error: "Please accept all required legal documents before connecting with a coach.",
-      });
-    }
-
+    // Look up invite first so we can determine the pro's role before legal check
     const [invite] = await db
       .select()
       .from(careInvite)
       .where(eq(careInvite.inviteCode, trimmedCode));
+
+    const [accessCodeRow] = !invite
+      ? await db.select().from(careAccessCode).where(eq(careAccessCode.code, trimmedCode))
+      : [null];
+
+    if (!invite && !accessCodeRow) {
+      console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found in careInvite or careAccessCode tables`);
+      return res.status(404).json({ error: "Invalid code" });
+    }
+
+    const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
+    const [pro] = await db.select({ professionalRole: users.professionalRole }).from(users).where(eq(users.id, proUserId));
+    const isPhysician = pro?.professionalRole === "physician";
+    const legalFlow = isPhysician ? "patient_physician" : "client";
+
+    const clientCheck = await checkLegalAcceptance(userId, legalFlow);
+    if (!clientCheck.allAccepted) {
+      return res.status(409).json({
+        code: "LEGAL_REACCEPT_REQUIRED",
+        missing: clientCheck.missing,
+        flow: legalFlow,
+        professionalRole: pro?.professionalRole || "trainer",
+        error: isPhysician
+          ? "Please accept all required patient agreements before connecting with your physician."
+          : "Please accept all required legal documents before connecting with a coach.",
+      });
+    }
 
     if (invite) {
       if (new Date() > invite.expiresAt) {
@@ -165,11 +184,6 @@ router.post("/connect", requireAuth, async (req, res) => {
       return res.json({ member: updatedMember, studio: bridge });
     }
 
-    const [accessCodeRow] = await db
-      .select()
-      .from(careAccessCode)
-      .where(eq(careAccessCode.code, trimmedCode));
-
     if (accessCodeRow) {
       if (new Date() > accessCodeRow.expiresAt) {
         return res.status(400).json({ error: "Code expired" });
@@ -206,9 +220,6 @@ router.post("/connect", requireAuth, async (req, res) => {
 
       return res.json({ member: newMember, studio: bridge });
     }
-
-    console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found in careInvite or careAccessCode tables`);
-    return res.status(404).json({ error: "Invalid code" });
   } catch (error) {
     console.error("❌ Error connecting with code:", error);
     res.status(500).json({ error: "Failed to connect" });

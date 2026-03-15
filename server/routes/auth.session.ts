@@ -148,13 +148,15 @@ router.post("/api/auth/upgrade-to-procare", requireAuth, async (req: any, res) =
       return res.status(400).json({ error: "Attestation is required for professional accounts" });
     }
 
+    const proFlow = procare.professionalRole === "physician" ? "physician" : "professional";
     const attestationCheck = await checkLegalAcceptance(userId, "attestation");
-    const professionalCheck = await checkLegalAcceptance(userId, "professional");
+    const professionalCheck = await checkLegalAcceptance(userId, proFlow);
     const allMissing = [...attestationCheck.missing, ...professionalCheck.missing];
     if (allMissing.length > 0) {
       return res.status(409).json({
         code: "LEGAL_REACCEPT_REQUIRED",
         missing: allMissing,
+        flow: proFlow,
         error: "Please accept all required legal documents before upgrading.",
       });
     }

@@ -17,6 +17,18 @@ export const LEGAL_DOCUMENTS = {
     { type: "scope_of_practice", version: 1 },
   ] as LegalDocument[],
 
+  physician: [
+    { type: "physician_professional_agreement", version: 1 },
+    { type: "physician_conduct_policy", version: 1 },
+    { type: "physician_scope_of_practice", version: 1 },
+  ] as LegalDocument[],
+
+  patient_physician: [
+    { type: "patient_physician_agreement", version: 1 },
+    { type: "patient_clinical_data_consent", version: 1 },
+    { type: "patient_medical_waiver", version: 1 },
+  ] as LegalDocument[],
+
   attestation: [
     { type: "professional_attestation", version: 1 },
   ] as LegalDocument[],
