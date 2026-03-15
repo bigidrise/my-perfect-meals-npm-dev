@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ClientProfile } from "@/lib/proData";
+import { ClientProfile, proStore } from "@/lib/proData";
+import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
@@ -46,6 +47,11 @@ const BUILDER_LABELS: Record<string, string> = {
 function getBuilderLabel(client: ClientProfile): string | null {
   const raw = client.assignedBuilder || client.activeBoardId;
   if (!raw) return null;
+  const isAntiInflammatory = raw === 'anti_inflammatory' || raw === 'anti-inflammatory';
+  if (isAntiInflammatory) {
+    const targets = proStore.getTargets(client.id);
+    return resolveClinicalProtocolLabel(targets?.flags);
+  }
   return BUILDER_LABELS[raw] || raw.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 

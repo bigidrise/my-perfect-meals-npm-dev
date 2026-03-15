@@ -33,6 +33,7 @@ import {
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 
 interface ProClientsProps {
   workspace?: WorkspaceType;
@@ -250,6 +251,11 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const getBuilderBadge = (c: ClientProfile): string | null => {
     const raw = c.assignedBuilder || c.activeBoardId;
     if (!raw) return null;
+    const isAntiInflammatory = raw === 'anti_inflammatory' || raw === 'anti-inflammatory';
+    if (isAntiInflammatory) {
+      const targets = proStore.getTargets(c.id);
+      return resolveClinicalProtocolLabel(targets?.flags);
+    }
     return (
       BUILDER_LABELS[raw] ||
       raw.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase())

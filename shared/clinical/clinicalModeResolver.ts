@@ -80,3 +80,15 @@ export function resolveClinicalModeFromFlags(flags?: ClinicalFlags | null): Reso
     modifierBadges,
   };
 }
+
+/**
+ * Returns the human-readable clinical protocol label for a given set of flags.
+ * When no primary protocol flag is set, falls back to "Anti-Inflammatory".
+ *
+ * Use this anywhere the UI must show the active protocol name instead of the
+ * raw builder name (e.g., dashboards, client cards, folder modals).
+ */
+export function resolveClinicalProtocolLabel(flags?: ClinicalFlags | null): string {
+  const { primaryBadge } = resolveClinicalModeFromFlags(flags);
+  return primaryBadge?.label ?? 'Anti-Inflammatory';
+}

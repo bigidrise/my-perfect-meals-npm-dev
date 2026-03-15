@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   getBuilderKeys,
   type ProfessionalBuilderKey,
 } from "@/lib/professionalBuilderMap";
+import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -91,6 +92,18 @@ export default function ClinicianClientDashboard() {
   const [assignedBuilder, setAssignedBuilder] = useState<ProfessionalBuilderKey | undefined>(
     () => client?.assignedBuilder as ProfessionalBuilderKey | undefined
   );
+
+  // Resolves the human-readable protocol label.
+  // For Anti-Inflammatory, this reads physician flags and returns the specific
+  // clinical protocol (Kidney Disease, Heart Failure, etc.) instead of just
+  // "Anti-Inflammatory".  All other builders show their own map label.
+  const activeProtocolLabel = useMemo(() => {
+    if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder]) return null;
+    if (assignedBuilder === 'anti_inflammatory') {
+      return resolveClinicalProtocolLabel(t.flags);
+    }
+    return PROFESSIONAL_BUILDER_MAP[assignedBuilder].label;
+  }, [assignedBuilder, t.flags]);
 
   interface LabsSummary {
     a1c: number | null;
@@ -277,9 +290,9 @@ export default function ClinicianClientDashboard() {
           <p className="text-white/90 text-lg font-semibold">
             {client?.name || "Patient"}
           </p>
-          {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder] && (
+          {activeProtocolLabel && (
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-              Active Protocol: {PROFESSIONAL_BUILDER_MAP[assignedBuilder].label}
+              Active Protocol: {activeProtocolLabel}
             </div>
           )}
           <p className="text-sm text-white/60 mt-2">
@@ -659,8 +672,8 @@ export default function ClinicianClientDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder]
-                ? `Open the ${PROFESSIONAL_BUILDER_MAP[assignedBuilder].label} for ${client?.name || "this patient"}.`
+              {activeProtocolLabel
+                ? `Open the ${activeProtocolLabel} builder for ${client?.name || "this patient"}.`
                 : "Assign a builder above, then open it here."}
             </p>
             <Button
@@ -676,8 +689,8 @@ export default function ClinicianClientDashboard() {
               className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <LayoutGrid className="h-4 w-4 mr-2" />
-              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder]
-                ? `Open ${PROFESSIONAL_BUILDER_MAP[assignedBuilder].label}`
+              {activeProtocolLabel
+                ? `Open ${activeProtocolLabel} Builder`
                 : "Assign Builder First"}
             </Button>
           </CardContent>
