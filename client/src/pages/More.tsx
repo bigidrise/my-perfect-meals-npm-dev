@@ -9,6 +9,8 @@ import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
@@ -96,22 +98,27 @@ export default function MorePage() {
     }
     try {
       setLoading(true);
-      const response = await apiRequest("/api/care-team/connect", {
+      const res = await fetch(apiUrl("/api/care-team/connect"), {
         method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
         body: JSON.stringify({ code: accessCode }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data?.code === "LEGAL_REACCEPT_REQUIRED") {
+          setPendingLegalFlow(data.flow === "patient_physician" ? "patient_physician" : "client");
+          setShowClientLegalModal(true);
+        } else {
+          setError(data?.error || "Invalid or expired access code.");
+        }
+        return;
+      }
       setAccessCode("");
-      setConnectedResult(response);
+      setConnectedResult(data);
       await refreshUser();
     } catch (e: any) {
-      const msg = e?.message ?? "";
-      if ((e as any)?.code === "LEGAL_REACCEPT_REQUIRED" || msg.includes("LEGAL_REACCEPT_REQUIRED") || msg.includes("legal documents")) {
-        const rawFlow = (e as any)?.flow;
-        setPendingLegalFlow(rawFlow === "patient_physician" ? "patient_physician" : "client");
-        setShowClientLegalModal(true);
-      } else {
-        setError(msg || "Invalid or expired access code.");
-      }
+      setError(e?.message || "Unable to connect. Please try again.");
     } finally {
       setLoading(false);
     }

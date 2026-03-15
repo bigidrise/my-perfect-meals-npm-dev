@@ -4,11 +4,9 @@ import { apiUrl } from "./resolveApiBase";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let message = res.statusText;
-    let responseData: any = null;
 
     try {
       const data = await res.clone().json();
-      responseData = data;
       if (data?.error) message = data.error;
       else if (data?.message) message = data.message;
       else message = JSON.stringify(data);
@@ -20,13 +18,7 @@ async function throwIfResNotOk(res: Response) {
       }
     }
 
-    const err = new Error(`${res.status}: ${message}`) as any;
-    if (responseData) {
-      err.code = responseData.code;
-      err.flow = responseData.flow;
-      err.data = responseData;
-    }
-    throw err;
+    throw new Error(`${res.status}: ${message}`);
   }
 }
 
