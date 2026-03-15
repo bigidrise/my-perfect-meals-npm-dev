@@ -365,12 +365,14 @@ export default function ClinicianClientDashboard() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {([
-                  { key: "diabetesFriendly", label: "Diabetes-Friendly" },
-                  { key: "lowSodium", label: "Low-Sodium" },
-                  { key: "glp1", label: "GLP-1 Support" },
-                  { key: "cardiac", label: "Cardiac-Friendly" },
-                  { key: "renal", label: "Renal-Friendly" },
-                  { key: "postBariatric", label: "Post-Bariatric" },
+                  { key: "renal",            label: "Renal-Friendly"   },
+                  { key: "cardiac",          label: "Cardiac-Friendly" },
+                  { key: "liverDisease",     label: "Liver Disease"    },
+                  { key: "liverSupport",     label: "Liver Support"    },
+                  { key: "diabetesFriendly", label: "Diabetes-Friendly"},
+                  { key: "lowSodium",        label: "Low-Sodium"       },
+                  { key: "glp1",             label: "GLP-1 Support"    },
+                  { key: "postBariatric",    label: "Post-Bariatric"   },
                 ] as const).map(({ key, label }) => {
                   const isOn = !!(t.flags as Record<string, boolean> | undefined)?.[key];
                   return (

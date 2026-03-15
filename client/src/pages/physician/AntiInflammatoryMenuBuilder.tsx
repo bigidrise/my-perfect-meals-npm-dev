@@ -103,7 +103,8 @@ import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
-import { resolveClinicalMode, type ClinicalMode } from "../../../../shared/schema/weeklyBoard";
+import type { ClinicalMode } from "../../../../shared/schema/weeklyBoard";
+import { resolveClinicalModeFromFlags } from "@shared/clinical/clinicalModeResolver";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -135,22 +136,13 @@ export default function AntiInflammatoryMenuBuilder() {
   const quickTour = useQuickTour("anti-inflammatory-menu-builder");
   const [, setLocation] = useLocation();
   
-  // ProCare route detection — matches all clinical builder routes
+  // ProCare route detection — primary route + legacy routes kept for redirect
   const [, proParamsAntiInflam] = useRoute("/pro/clients/:id/anti-inflammatory-builder");
   const [matchesKidney, proParamsKidney] = useRoute("/pro/clients/:id/kidney-disease-builder");
   const [matchesHeart, proParamsHeart] = useRoute("/pro/clients/:id/heart-failure-builder");
   const [matchesLiverDisease, proParamsLiverDisease] = useRoute("/pro/clients/:id/liver-disease-builder");
   const proParams = proParamsAntiInflam || proParamsKidney || proParamsHeart || proParamsLiverDisease;
   const proClientId = proParams?.id;
-
-  // Determine if this builder is opened in a protocol-locked route
-  const forcedMode: ClinicalMode | null = matchesKidney
-    ? 'kidney-disease'
-    : matchesHeart
-    ? 'heart-failure'
-    : matchesLiverDisease
-    ? 'liver-disease'
-    : null;
 
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
@@ -164,24 +156,47 @@ export default function AntiInflammatoryMenuBuilder() {
   const [weekStartISO, setWeekStartISO] =
     React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
 
-  // Clinical mode is PRIMARY STATE — drives namespace and AI prompts.
-  // Forced by route when opening a protocol-specific builder; otherwise
-  // persisted to localStorage so it survives page reload.
+  // Clinical mode is FLAG-DRIVEN — physician sets flags in clinical dashboard.
+  // resolveClinicalModeFromFlags reads flags and picks the correct mode + namespace.
   const [clinicalModeState, setClinicalModeState] = React.useState<ClinicalMode>(
-    () => forcedMode ?? ((localStorage.getItem('mpm.antiInflammatoryMode') as ClinicalMode) ?? 'anti-inflammatory')
+    () => resolveClinicalModeFromFlags(
+      effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined
+    ).mode
   );
 
-  function getNamespaceForMode(mode: ClinicalMode) {
-    switch (mode) {
-      case 'liver-support': return BUILDER_NS.ANTI_INFLAMMATORY_LIVER;
-      case 'kidney-disease': return BUILDER_NS.KIDNEY_DISEASE;
-      case 'heart-failure': return BUILDER_NS.HEART_FAILURE;
-      case 'liver-disease': return BUILDER_NS.LIVER_DISEASE;
-      default: return BUILDER_NS.ANTI_INFLAMMATORY;
+  // Redirect legacy clinical routes to canonical anti-inflammatory route.
+  // Mode is now determined by physician flags, not by URL path.
+  useEffect(() => {
+    const legacyId = proParamsKidney?.id || proParamsHeart?.id || proParamsLiverDisease?.id;
+    if (legacyId) {
+      setLocation(`/pro/clients/${legacyId}/anti-inflammatory-builder`);
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchesKidney, matchesHeart, matchesLiverDisease]);
 
-  const namespace = getNamespaceForMode(clinicalModeState);
+  // Re-resolve mode when client context hydrates (handles page refresh)
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    const flags = getResolvedTargets(effectiveUserId)?.flags;
+    const { mode } = resolveClinicalModeFromFlags(flags);
+    setClinicalModeState(mode);
+  }, [effectiveUserId]);
+
+  const resolvedProtocol = useMemo(
+    () => resolveClinicalModeFromFlags(
+      effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveUserId, clinicalModeState]
+  );
+
+  const namespace = resolvedProtocol.namespace;
+  const hasClinicalBadges = !!(resolvedProtocol.primaryBadge || resolvedProtocol.modifierBadges.length > 0);
+  const contentPaddingTop = `calc(env(safe-area-inset-top, 0px) + ${
+    proClientId
+      ? (hasClinicalBadges ? '12rem' : '9rem')
+      : (hasClinicalBadges ? '9rem'  : '6rem')
+  })`;
 
   const {
     board: hookBoard,
@@ -251,14 +266,6 @@ export default function AntiInflammatoryMenuBuilder() {
       }
     },
     [saveToHook, clearDraft, markClean],
-  );
-
-  const handleClinicalModeChange = useCallback(
-    (nextMode: ClinicalMode) => {
-      setClinicalModeState(nextMode);
-      localStorage.setItem('mpm.antiInflammatoryMode', nextMode);
-    },
-    [],
   );
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -1389,87 +1396,23 @@ export default function AntiInflammatoryMenuBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20 overflow-x-hidden"
     >
-      <BuilderHeader title="Anti-Inflammatory Meal Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader
+        title="Anti-Inflammatory Meal Builder"
+        onOpenTour={quickTour.openTour}
+        clientId={proClientId}
+        protocols={[
+          resolvedProtocol.primaryBadge,
+          ...resolvedProtocol.modifierBadges,
+        ].filter((b): b is { label: string; cls: string } => !!b)}
+      />
 
       <TrialBanner />
 
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
+        style={{ paddingTop: contentPaddingTop }}
       >
-        <div className="flex flex-col gap-1.5 bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-3 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/50 font-medium">Clinical Protocol:</span>
-              {forcedMode ? (
-                <span className={`px-3 py-1 text-xs font-medium rounded-lg ${
-                  forcedMode === 'kidney-disease' ? 'bg-sky-600 text-white'
-                  : forcedMode === 'heart-failure' ? 'bg-red-600 text-white'
-                  : forcedMode === 'liver-disease' ? 'bg-amber-600 text-white'
-                  : 'bg-zinc-700 text-white'
-                }`}>
-                  {forcedMode === 'kidney-disease' ? 'Kidney Disease'
-                    : forcedMode === 'heart-failure' ? 'Heart Failure'
-                    : 'Liver Disease'}
-                </span>
-              ) : (
-                <div className="flex rounded-lg overflow-hidden border border-zinc-700/50">
-                  <button
-                    type="button"
-                    disabled={!board}
-                    onClick={() => handleClinicalModeChange("anti-inflammatory")}
-                    className={`px-3 py-1 text-xs font-medium transition-colors ${
-                      clinicalMode === "anti-inflammatory"
-                        ? "bg-orange-600 text-white"
-                        : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
-                    }`}
-                  >
-                    Anti-Inflammatory
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!board}
-                    onClick={() => handleClinicalModeChange("liver-support")}
-                    className={`px-3 py-1 text-xs font-medium transition-colors ${
-                      clinicalMode === "liver-support"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-zinc-800 text-white/50 hover:bg-zinc-700"
-                    }`}
-                  >
-                    Liver Support
-                  </button>
-                </div>
-              )}
-            </div>
-            {!forcedMode && clinicalMode === "liver-support" && (
-              <span className="text-[10px] text-emerald-400 font-medium">Liver Support Active</span>
-            )}
-          </div>
-
-          {/* Physician-set condition badges — driven by clinical dashboard toggles */}
-          {(() => {
-            const flags = getResolvedTargets(effectiveUserId)?.flags ?? {};
-            const active: { label: string; cls: string }[] = [];
-            if (flags.renal)              active.push({ label: "Renal-Friendly",    cls: "bg-sky-700 text-sky-100" });
-            if (flags.cardiac)            active.push({ label: "Cardiac Protocol",  cls: "bg-red-700 text-red-100" });
-            if (flags.diabetesFriendly)   active.push({ label: "Diabetes-Friendly", cls: "bg-purple-700 text-purple-100" });
-            if (flags.glp1)               active.push({ label: "GLP-1 Support",     cls: "bg-blue-700 text-blue-100" });
-            if (flags.lowSodium)          active.push({ label: "Low-Sodium",        cls: "bg-yellow-700 text-yellow-100" });
-            if (flags.postBariatric)      active.push({ label: "Post-Bariatric",    cls: "bg-orange-700 text-orange-100" });
-            if (!active.length) return null;
-            return (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] text-white/40 font-medium">Active Directives:</span>
-                {active.map(({ label, cls }) => (
-                  <span key={label} className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${cls}`}>
-                    {label}
-                  </span>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
         <NutritionBudgetBanner className="mb-2" />
         <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">

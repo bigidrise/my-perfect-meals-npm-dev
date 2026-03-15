@@ -7,11 +7,7 @@ export type ProfessionalBuilderKey =
   | "performance_competition"
   | "anti_inflammatory"
   | "diabetic"
-  | "glp1"
-  | "general_clinical"
-  | "kidney_disease"
-  | "heart_failure"
-  | "liver_disease";
+  | "glp1";
 
 export interface ProfessionalBuilderEntry {
   key: ProfessionalBuilderKey;
@@ -27,28 +23,28 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
 > = {
   weekly: {
     key: "weekly",
-    role: "trainer",
+    role: "both",
     label: "Weekly Meal Board",
     proRoute: "weekly-builder",
     description: "A flexible weekly meal plan for general fitness clients.",
   },
   general_nutrition: {
     key: "general_nutrition",
-    role: "trainer",
+    role: "both",
     label: "General Nutrition",
     proRoute: "general-nutrition-builder",
     description: "Balanced macro targets for everyday nutrition goals.",
   },
   beach_body: {
     key: "beach_body",
-    role: "trainer",
+    role: "both",
     label: "Beach Body",
     proRoute: "beach-body-builder",
     description: "Lean physique and fat-loss focused meal planning.",
   },
   performance_competition: {
     key: "performance_competition",
-    role: "trainer",
+    role: "both",
     label: "Performance & Competition",
     proRoute: "performance-competition-builder",
     description: "High-performance fueling for athletes and competitors.",
@@ -73,34 +69,6 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
     label: "GLP-1",
     proRoute: "glp1-builder",
     description: "Portion-aware meals for clients on GLP-1 medications.",
-  },
-  general_clinical: {
-    key: "general_clinical",
-    role: "physician",
-    label: "General Clinical",
-    proRoute: "general-nutrition-builder",
-    description: "Balanced clinical nutrition with physician-set macro targets.",
-  },
-  kidney_disease: {
-    key: "kidney_disease",
-    role: "physician",
-    label: "Kidney Disease Support",
-    proRoute: "kidney-disease-builder",
-    description: "Low-potassium, low-phosphorus meals for renal patients.",
-  },
-  heart_failure: {
-    key: "heart_failure",
-    role: "physician",
-    label: "Heart Failure Protocol",
-    proRoute: "heart-failure-builder",
-    description: "Sodium-restricted, heart-healthy nutrition for cardiac patients.",
-  },
-  liver_disease: {
-    key: "liver_disease",
-    role: "physician",
-    label: "Liver Disease Support",
-    proRoute: "liver-disease-builder",
-    description: "Liver-supportive nutrition for patients with hepatic conditions.",
   },
 };
 

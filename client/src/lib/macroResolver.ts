@@ -22,6 +22,8 @@ export type ResolvedTargets = {
     cardiac?: boolean;
     renal?: boolean;
     postBariatric?: boolean;
+    liverDisease?: boolean;
+    liverSupport?: boolean;
     highProtein?: boolean;
     carbCycling?: boolean;
     antiInflammatory?: boolean;

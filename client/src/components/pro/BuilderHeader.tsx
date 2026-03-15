@@ -1,20 +1,27 @@
 import { useProClient } from "@/contexts/ProClientContext";
 import { useLocation } from "wouter";
-import { Info, User2, LogOut } from "lucide-react";
+import { User2, LogOut } from "lucide-react";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+
+export interface ProtocolBadge {
+  label: string;
+  cls: string;
+}
 
 interface BuilderHeaderProps {
   title: string;
   onOpenTour: () => void;
   clientId?: string | null;
+  protocols?: ProtocolBadge[];
 }
 
-export function BuilderHeader({ title, onOpenTour, clientId }: BuilderHeaderProps) {
+export function BuilderHeader({ title, onOpenTour, clientId, protocols }: BuilderHeaderProps) {
   const { client, isProCareMode } = useProClient();
   const [, setLocation] = useLocation();
 
   const isInStudioClientContext = isProCareMode && !!client && !!clientId;
+  const hasProtocols = protocols && protocols.length > 0;
 
   return (
     <div
@@ -47,6 +54,20 @@ export function BuilderHeader({ title, onOpenTour, clientId }: BuilderHeaderProp
               <LogOut className="h-3.5 w-3.5" />
               <span>Exit Client</span>
             </button>
+          </div>
+        )}
+
+        {hasProtocols && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-white/50 font-medium uppercase tracking-wide">Active Protocol:</span>
+            {protocols.map(({ label, cls }) => (
+              <span
+                key={label}
+                className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full ${cls}`}
+              >
+                {label}
+              </span>
+            ))}
           </div>
         )}
       </div>
