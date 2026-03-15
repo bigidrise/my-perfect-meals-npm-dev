@@ -14,6 +14,7 @@ interface LabData {
   bun: number | null;
   inr: number | null;
   notes: string | null;
+  lab_date: string | null;
   recorded_at: string;
 }
 
@@ -260,8 +261,20 @@ export default function ProClientLabsSnapshot({ clientId }: ProClientLabsSnapsho
         <h4 className="text-xs font-medium text-white/60 flex items-center gap-1.5">
           <FlaskConical className="w-3.5 h-3.5 text-cyan-400" /> Clinical Labs
         </h4>
-        <span className="text-[9px] text-white/25">Labs: {recordedDate}</span>
+        <span className="text-[9px] text-white/25">Entered: {recordedDate}</span>
       </div>
+
+      {/* Lab Date — when the test was actually performed */}
+      {labs.lab_date && (
+        <p className="text-[10px] text-cyan-300/70 font-medium -mt-1">
+          Lab Date:{" "}
+          {new Date(labs.lab_date + "T12:00:00").toLocaleDateString(undefined, {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </p>
+      )}
 
       {/* Clinical Summary Banner */}
       {(warnings.length > 0 || normals.length > 0) && (

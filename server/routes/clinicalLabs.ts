@@ -21,6 +21,7 @@ const labsPayloadSchema = z.object({
   inr: z.number().optional().nullable(),
   notes: z.string().optional().nullable(),
   recorded_at: z.string().optional(),
+  lab_date: z.string().optional().nullable(),
 });
 
 router.post("/", requireAuth, async (req, res) => {
@@ -43,6 +44,7 @@ router.post("/", requireAuth, async (req, res) => {
       bun: body.bun != null ? String(body.bun) : null,
       inr: body.inr != null ? String(body.inr) : null,
       notes: body.notes || null,
+      labDate: body.lab_date || new Date().toISOString().split("T")[0],
       recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
     });
 
@@ -83,6 +85,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
         bun: r.bun ? parseFloat(r.bun) : null,
         inr: r.inr ? parseFloat(r.inr) : null,
         notes: r.notes,
+        lab_date: r.labDate || null,
         recorded_at: r.recordedAt,
       },
     });

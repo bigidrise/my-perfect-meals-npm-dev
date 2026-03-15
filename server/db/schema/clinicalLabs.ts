@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, numeric, text, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, timestamp, numeric, text, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,7 @@ export const clinicalLabs = pgTable("clinical_labs", {
   bun: numeric("bun", { precision: 5, scale: 1 }),
   inr: numeric("inr", { precision: 5, scale: 2 }),
   notes: text("notes"),
+  labDate: date("lab_date"),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({

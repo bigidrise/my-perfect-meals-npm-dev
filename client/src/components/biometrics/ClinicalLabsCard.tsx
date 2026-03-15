@@ -7,6 +7,10 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { FlaskConical, Loader2, Save } from "lucide-react";
 
+function todayIso() {
+  return new Date().toISOString().split("T")[0];
+}
+
 interface LabValues {
   a1c: string;
   ldl: string;
@@ -18,6 +22,7 @@ interface LabValues {
   bun: string;
   inr: string;
   notes: string;
+  lab_date: string;
 }
 
 const EMPTY_LABS: LabValues = {
@@ -31,6 +36,7 @@ const EMPTY_LABS: LabValues = {
   bun: "",
   inr: "",
   notes: "",
+  lab_date: todayIso(),
 };
 
 interface ClinicalLabsCardProps {
@@ -102,6 +108,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             bun: l.bun != null ? String(l.bun) : "",
             inr: l.inr != null ? String(l.inr) : "",
             notes: l.notes || "",
+            lab_date: l.lab_date || todayIso(),
           });
           setLastSaved(
             new Date(l.recorded_at).toLocaleDateString(undefined, {
@@ -145,6 +152,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         payload[field] = v !== "" ? parseFloat(v) : null;
       }
       payload.notes = form.notes.trim() || null;
+      payload.lab_date = form.lab_date || todayIso();
 
       const res = await fetch(apiUrl("/api/biometrics/labs"), {
         method: "POST",
@@ -184,6 +192,18 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           </div>
         ) : (
           <>
+            {/* Lab Date */}
+            <div className="flex items-center gap-2 pb-1 mb-1 border-b border-white/10">
+              <span className="text-xs text-white/50 w-36 shrink-0">Lab Date</span>
+              <Input
+                type="date"
+                value={form.lab_date}
+                max={todayIso()}
+                onChange={(e) => handleChange("lab_date", e.target.value)}
+                className="bg-black/40 border-white/20 text-white text-sm h-8 focus:bg-black/40 focus:text-white caret-white flex-1"
+              />
+            </div>
+
             <LabField label="A1C" name="a1c" value={form.a1c} unit="%" placeholder="e.g. 6.2" onChange={handleChange} />
             <LabField label="LDL" name="ldl" value={form.ldl} unit="mg/dL" placeholder="e.g. 145" onChange={handleChange} />
             <LabField label="HDL" name="hdl" value={form.hdl} unit="mg/dL" placeholder="e.g. 48" onChange={handleChange} />
