@@ -14,6 +14,7 @@ import {
   type ProfessionalBuilderKey,
 } from "@/lib/professionalBuilderMap";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
+import { linkUserToClient } from "@/lib/macroResolver";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Settings,
