@@ -97,6 +97,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Physicians Care Team / Pro Access",
       "Trainers Care Team / Pro Access",
       "Beach Body / Hard Body Meal Builder",
+      "Clinical Lab Results",
     ],
     entitlements: [
       "smart_menu_builder",
