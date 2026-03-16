@@ -1432,21 +1432,22 @@ export default function AntiInflammatoryMenuBuilder() {
     );
 
   return (
+    <>
+    <BuilderHeader
+      title="Anti-Inflammatory Meal Builder"
+      onOpenTour={quickTour.openTour}
+      clientId={proClientId}
+      protocols={[
+        activePrimaryBadge,
+        ...resolvedProtocol.modifierBadges,
+      ].filter((b): b is { label: string; cls: string } => !!b)}
+    />
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20 overflow-x-hidden"
     >
-      <BuilderHeader
-        title="Anti-Inflammatory Meal Builder"
-        onOpenTour={quickTour.openTour}
-        clientId={proClientId}
-        protocols={[
-          activePrimaryBadge,
-          ...resolvedProtocol.modifierBadges,
-        ].filter((b): b is { label: string; cls: string } => !!b)}
-      />
 
       <TrialBanner />
 
@@ -2176,5 +2177,6 @@ export default function AntiInflammatoryMenuBuilder() {
       />
       </div>
     </motion.div>
+    </>
   );
 }
