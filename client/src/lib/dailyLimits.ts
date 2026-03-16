@@ -66,7 +66,12 @@ export function getMacroTargets(userId?: string): MacroTargets | null {
   try {
     const key = TARGETS_KEY(userId);
     const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : null;
+    if (stored) return JSON.parse(stored);
+    if (userId) {
+      const anonStored = localStorage.getItem(TARGETS_KEY(undefined));
+      return anonStored ? JSON.parse(anonStored) : null;
+    }
+    return null;
   } catch (error) {
     console.error('Failed to parse macro targets:', error);
     return null;
