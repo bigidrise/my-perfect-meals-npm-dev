@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   getWeekBoard,
@@ -133,6 +134,7 @@ function makeNewSnack(nextIndex: number): Meal {
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function AntiInflammatoryMenuBuilder() {
+  usePageTitle("Anti-Inflammatory Builder");
   const quickTour = useQuickTour("anti-inflammatory-menu-builder");
   const [, setLocation] = useLocation();
   

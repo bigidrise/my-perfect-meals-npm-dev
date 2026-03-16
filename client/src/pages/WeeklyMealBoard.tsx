@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PillButton } from "@/components/ui/pill-button";
 import { useLocation, useRoute } from "wouter";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   getWeekBoard,
@@ -191,6 +192,7 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
 ];
 
 export default function WeeklyMealBoard() {
+  usePageTitle("Weekly Meal Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();

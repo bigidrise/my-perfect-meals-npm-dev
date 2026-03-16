@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   type WeekBoard,
@@ -171,6 +172,7 @@ interface AthleteBoardProps {
 }
 
 export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
+  usePageTitle("Performance & Competition Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();

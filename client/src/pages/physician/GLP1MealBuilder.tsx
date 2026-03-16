@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   getWeekBoard,
@@ -132,6 +133,7 @@ function makeNewSnack(nextIndex: number): Meal {
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function GLP1MealBuilder() {
+  usePageTitle("GLP-1 Builder");
   const quickTour = useQuickTour("glp1-meal-builder");
   const [, setLocation] = useLocation();
   

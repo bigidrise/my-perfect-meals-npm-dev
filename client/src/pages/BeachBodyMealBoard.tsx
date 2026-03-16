@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
 import {
   type WeekBoard,
@@ -178,6 +179,7 @@ const lists: Array<["breakfast" | "lunch" | "dinner" | "snacks", string]> = [
 ];
 
 export default function BeachBodyMealBoard() {
+  usePageTitle("Beach Body Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const quickTour = useQuickTour("beach-body-meal-board");

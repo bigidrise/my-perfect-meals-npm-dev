@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { proStore } from "@/lib/proData";
 import { MealCard, Meal } from "@/components/MealCard";
 import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
@@ -104,14 +105,15 @@ function makeNewSnack(nextIndex: number): Meal {
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function WeeklyMealBoard() {
+  usePageTitle("General Nutrition Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
-  
-  
+
+
+
   const quickTour = useQuickTour("general-nutrition-builder");
 
   const [, params] = useRoute("/pro/clients/:id/general-nutrition-builder");

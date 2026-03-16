@@ -16,6 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 import { loadRewardful } from "@/lib/rewardful";
 import { AudioProvider } from "@/audio/AudioProvider";
+import { PageTitleProvider } from "@/contexts/PageTitleContext";
 import { CopilotSystem } from "@/components/copilot/CopilotSystem";
 import type { CopilotAction } from "@/components/copilot/CopilotContext";
 import { setNavigationHandler, setModalHandler } from "@/components/copilot/CopilotCommandRegistry";
@@ -149,11 +150,13 @@ export default function App() {
 
                 <CopilotSystem onAction={handleCopilotAction}>
                 <ProClientProvider>
+                <PageTitleProvider>
                 <RootViewport>
                   <AppRouter>
                     <Router />
                   </AppRouter>
                 </RootViewport>
+                </PageTitleProvider>
                 <AvatarSelector />
                 <ChefVoiceAssistant />
                 <VoiceConcierge />

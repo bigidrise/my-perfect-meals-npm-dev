@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentPageTitle } from "@/contexts/PageTitleContext";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { HubControlIcon } from "@/components/icons/HubControlIcon";
 
@@ -10,22 +11,58 @@ const ROUTE_TITLES: Record<string, string> = {
   "/shopping-list": "Shopping List",
   "/shopping-list-v2": "Shopping List",
   "/fridge-rescue": "Fridge Rescue",
+  "/fridge-rescue-studio": "Fridge Rescue Studio",
   "/saved-meals": "Saved Meals",
+  "/care-team": "Care Team",
   "/care-team/physician": "Care Team",
   "/care-team/trainer": "Care Team",
-  "/pro/clients": "Professional Workspace",
-  "/pro/physician-clients": "Professional Workspace",
+  "/pro/clients": "My Clients",
+  "/pro/physician-clients": "Physician Clients",
+  "/pro/physician": "Physician Portal",
+  "/pro-portal": "Pro Portal",
   "/profile": "Settings",
   "/more": "More",
   "/my-biometrics": "My Biometrics",
+  "/biometrics": "My Biometrics",
+  "/biometrics/body-composition": "Body Composition",
+  "/biometrics/sleep": "Sleep Tracker",
   "/planner": "Meal Planner",
   "/get-inspiration": "Daily Journal & Inspiration",
   "/pricing": "Plans & Pricing",
-  "/lifestyle": "Lifestyle",
+  "/lifestyle": "Lifestyle Hub",
   "/lifestyle/beverage-creator": "Beverage Creator",
   "/lifestyle/chefs-kitchen": "Chef's Kitchen",
-  "/craving-creator-landing": "Craving Creator",
+  "/lifestyle/chef-pairings": "Chef Pairings",
+  "/lifestyle/pairings-hub": "Pairings Hub",
+  "/lifestyle/pairings-ai": "Drink Pairings",
+  "/lifestyle/wine-list-helper": "Wine List Helper",
+  "/lifestyle/reduce-drinking-plan": "Reduce Drinking Plan",
+  "/craving-creator-landing": "Craving Creator Hub",
+  "/craving-creator": "Craving Creator",
   "/craving-desserts": "Dessert Creator",
+  "/craving-studio": "Craving Creator",
+  "/dessert-studio": "Dessert Creator",
+  "/weekly": "Weekly Meal Builder",
+  "/weekly-meal-board": "Weekly Meal Builder",
+  "/plan-builder/classic": "Weekly Meal Builder",
+  "/builder/classic": "Weekly Meal Builder",
+  "/beach-body-meal-board": "Beach Body Builder",
+  "/diabetic-hub": "Diabetic Hub",
+  "/diabetes-support": "Diabetes Support",
+  "/diabetic-menu-builder": "Diabetic Builder",
+  "/glp1-hub": "GLP-1 Hub",
+  "/glp1-meal-builder": "GLP-1 Builder",
+  "/glp1-meals-tracking": "GLP-1 Tracking",
+  "/anti-inflammatory-menu-builder": "Anti-Inflammatory Builder",
+  "/social-hub": "Social Hub",
+  "/social-hub/find": "Find Meals",
+  "/social-hub/restaurant-guide": "Restaurant Guide",
+  "/supplement-hub": "Supplement Hub",
+  "/tutorials": "Tutorial Hub",
+  "/learn": "Learn",
+  "/weaning-off-tool": "Weaning Off Tool",
+  "/founders": "Founders",
+  "/apply-guidance": "Apply Guidance",
 };
 
 function getPlanLabel(planLookupKey?: string | null): string | null {
@@ -45,7 +82,12 @@ function getPageTitle(location: string): string {
   for (const [route, title] of Object.entries(ROUTE_TITLES)) {
     if (location.startsWith(route + "/")) return title;
   }
+  if (location.startsWith("/pro/clients/") && location.includes("/clinician")) return "Patient Dashboard";
+  if (location.startsWith("/pro/clients/") && location.includes("/trainer")) return "Client Dashboard";
+  if (location.startsWith("/pro/clients/") && location.includes("/board/")) return "Board View";
+  if (location.startsWith("/pro/clients/")) return "Client Dashboard";
   if (location.startsWith("/pro/")) return "Professional Workspace";
+  if (location.startsWith("/lifestyle/")) return "Lifestyle Hub";
   if (location.startsWith("/builder") || location.includes("-builder")) return "Meal Builder";
   return "My Perfect Meals";
 }
@@ -53,8 +95,9 @@ function getPageTitle(location: string): string {
 export default function DesktopHeader() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const contextTitle = useCurrentPageTitle();
 
-  const title = getPageTitle(location);
+  const title = contextTitle || getPageTitle(location);
   const planLabel = getPlanLabel(user?.planLookupKey);
 
   return (
