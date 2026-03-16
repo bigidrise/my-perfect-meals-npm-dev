@@ -213,8 +213,10 @@ export default function AntiInflammatoryMenuBuilder() {
     })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
+        console.log("[AntiInflamBuilder] labs fetch →", JSON.stringify(data?.protocolSignal ?? null));
         if (cancelled || !data?.protocolSignal?.protocol) return;
         const labMode = data.protocolSignal.protocol as ClinicalMode;
+        console.log("[AntiInflamBuilder] setting clinicalMode from labs →", labMode);
         setClinicalModeState(labMode);
       })
       .catch(() => {/* silently ignore */});
