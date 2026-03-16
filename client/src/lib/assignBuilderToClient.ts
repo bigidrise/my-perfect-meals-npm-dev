@@ -35,18 +35,25 @@ export async function assignBuilderToClient(
     };
 
     if (studioId) {
-      const studioRes = await fetch(
-        apiUrl(`/api/studios/${studioId}/clients/${clientUserId}/assign`),
-        {
-          method: "PATCH",
-          headers,
-          credentials: "include",
-          body: JSON.stringify({ assignedBuilder: builderKey }),
-        },
-      );
-      if (!studioRes.ok) {
-        const data = await studioRes.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to assign builder via studio");
+      try {
+        const studioRes = await fetch(
+          apiUrl(`/api/studios/${studioId}/clients/${clientUserId}/assign`),
+          {
+            method: "PATCH",
+            headers,
+            credentials: "include",
+            body: JSON.stringify({ assignedBuilder: builderKey }),
+          },
+        );
+        if (!studioRes.ok) {
+          const data = await studioRes.json().catch(() => ({}));
+          console.warn(
+            `[AssignBuilder] Studio membership sync failed (non-fatal): ${data.error || studioRes.status}. ` +
+            `studioId=${studioId} clientUserId=${clientUserId}`
+          );
+        }
+      } catch (studioErr: any) {
+        console.warn("[AssignBuilder] Studio membership sync error (non-fatal):", studioErr?.message);
       }
     }
 
