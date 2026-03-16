@@ -1516,6 +1516,42 @@ export default function AntiInflammatoryMenuBuilder() {
                 </div>
               )}
 
+            {/* ROW 4.5: Active Protocol Indicator */}
+            <div className="flex justify-center">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                <span className="font-medium text-white/70">Active Protocol:</span>
+                {[
+                  { key: "antiInflammatory", label: "Anti-Inflammatory" },
+                  { key: "heart-failure",    label: "Cardiac Health" },
+                  { key: "kidney-disease",   label: "Kidney Disease" },
+                  { key: "liver-support",    label: "Liver Support" },
+                  { key: "liver-disease",    label: "Liver Disease" },
+                ].map(({ key, label }) => {
+                  const isActive =
+                    clinicalModeState === key ||
+                    (key === "antiInflammatory" &&
+                      (clinicalModeState === "base" || !clinicalModeState));
+                  return (
+                    <span
+                      key={key}
+                      className={`flex items-center gap-1 ${
+                        isActive ? "text-green-400 font-semibold" : "text-white/25"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block w-1.5 h-1.5 rounded-full ${
+                          isActive
+                            ? "bg-green-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]"
+                            : "bg-white/15"
+                        }`}
+                      />
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
 
