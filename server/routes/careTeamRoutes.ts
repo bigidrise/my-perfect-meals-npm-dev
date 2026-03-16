@@ -37,7 +37,6 @@ router.post("/invite", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Sanitize and validate email format
     const email = String(rawEmail).trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -50,17 +49,29 @@ router.post("/invite", requireAuth, async (req, res) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    const [member] = await db
-      .insert(careTeamMember)
-      .values({
-        userId,
-        name: email.split("@")[0],
-        email,
-        role,
-        status: "pending",
-        permissions,
-      })
-      .returning();
+    const [caller] = await db
+      .select({ professionalRole: users.professionalRole })
+      .from(users)
+      .where(eq(users.id, userId));
+    const callerIsPro = ["physician", "trainer"].includes(caller?.professionalRole || "");
+
+    let member = null;
+    if (!callerIsPro) {
+      const [m] = await db
+        .insert(careTeamMember)
+        .values({
+          userId,
+          name: email.split("@")[0],
+          email,
+          role,
+          status: "pending",
+          permissions,
+        })
+        .returning();
+      member = m;
+    } else {
+      console.log(`ℹ️ [CareTeam Invite] Pro caller (${caller?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect to ensure correct direction`);
+    }
 
     await db.insert(careInvite).values({
       userId,
@@ -71,16 +82,14 @@ router.post("/invite", requireAuth, async (req, res) => {
       expiresAt,
     });
 
-    const userName = "Your client";
-
     await sendCareTeamInvite({
       to: email,
-      patientName: userName,
+      patientName: "Your client",
       inviteCode,
       role,
     });
 
-    res.json({ member });
+    res.json({ member: member ?? { email, role, status: "pending" } });
   } catch (error) {
     console.error("❌ Error sending invite:", error);
     res.status(500).json({ error: "Failed to send invite" });
@@ -99,7 +108,6 @@ router.post("/connect", requireAuth, async (req, res) => {
     const trimmedCode = String(code).trim();
     console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}" (original: "${code}")`);
 
-    // Look up invite first so we can determine the pro's role before legal check
     const [invite] = await db
       .select()
       .from(careInvite)
@@ -137,6 +145,24 @@ router.post("/connect", requireAuth, async (req, res) => {
         return res.status(400).json({ error: "Invite expired" });
       }
 
+      const [inviter] = await db
+        .select({ professionalRole: users.professionalRole })
+        .from(users)
+        .where(eq(users.id, invite.userId));
+      const inviterIsPro = ["physician", "trainer"].includes(inviter?.professionalRole || "");
+
+      const patientId = inviterIsPro ? userId : invite.userId;
+      const resolvedProId = inviterIsPro ? invite.userId : userId;
+
+      try {
+        await createLink(patientId, resolvedProId);
+      } catch (err) {
+        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+          return res.status(409).json({ error: err.code, message: err.message });
+        }
+        throw err;
+      }
+
       const [existingMember] = await db
         .select()
         .from(careTeamMember)
@@ -147,41 +173,60 @@ router.post("/connect", requireAuth, async (req, res) => {
           )
         );
 
-      if (!existingMember) {
-        return res.status(404).json({ error: "Member not found" });
-      }
+      let finalMember;
 
-      const trainerUserId = invite.userId;
-
-      try {
-        await createLink(userId, trainerUserId);
-      } catch (err) {
-        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
-          return res.status(409).json({ error: err.code, message: err.message });
+      if (existingMember) {
+        if (inviterIsPro) {
+          await db.delete(careTeamMember).where(eq(careTeamMember.id, existingMember.id));
+          const [newMember] = await db
+            .insert(careTeamMember)
+            .values({
+              userId: patientId,
+              proUserId: resolvedProId,
+              name: existingMember.name,
+              email: existingMember.email,
+              role: existingMember.role,
+              status: "active",
+              permissions: existingMember.permissions,
+            })
+            .returning();
+          finalMember = newMember;
+          console.log(`✅ [CareTeam Connect] Replaced inverted careTeamMember with correct direction (userId=patient, proUserId=pro)`);
+        } else {
+          const [updatedMember] = await db
+            .update(careTeamMember)
+            .set({ proUserId: resolvedProId, status: "active", updatedAt: new Date() })
+            .where(eq(careTeamMember.id, existingMember.id))
+            .returning();
+          finalMember = updatedMember;
         }
-        throw err;
+      } else {
+        const [newMember] = await db
+          .insert(careTeamMember)
+          .values({
+            userId: patientId,
+            proUserId: resolvedProId,
+            name: invite.email.split("@")[0],
+            email: invite.email,
+            role: invite.role,
+            status: "active",
+            permissions: invite.permissions,
+          })
+          .returning();
+        finalMember = newMember;
+        console.log(`✅ [CareTeam Connect] Created careTeamMember (no prior record found)`);
       }
-
-      const [updatedMember] = await db
-        .update(careTeamMember)
-        .set({
-          proUserId: userId,
-          status: "active",
-          updatedAt: new Date(),
-        })
-        .where(eq(careTeamMember.id, existingMember.id))
-        .returning();
 
       await db
         .update(careInvite)
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, userId));
+      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, patientId));
 
-      const bridge = await bridgeToStudio(trainerUserId, userId, "care_team_connect_code");
-      
-      return res.json({ member: updatedMember, studio: bridge });
+      const bridge = await bridgeToStudio(resolvedProId, patientId, "care_team_connect_code");
+
+      return res.json({ member: finalMember, studio: bridge });
     }
 
     if (accessCodeRow) {

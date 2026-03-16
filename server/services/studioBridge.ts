@@ -56,7 +56,8 @@ export async function ensureStudioForTrainer(trainerUserId: string): Promise<{ s
 
 export async function ensureStudioMembership(
   studioId: string,
-  clientUserId: string
+  clientUserId: string,
+  workspace: string = "trainer"
 ): Promise<string | null> {
   try {
     const [existing] = await db
@@ -65,7 +66,24 @@ export async function ensureStudioMembership(
       .where(eq(studioMemberships.clientUserId, clientUserId));
 
     if (existing) {
-      return existing.id;
+      if (existing.studioId === studioId) {
+        if (existing.workspace !== workspace) {
+          await db
+            .update(studioMemberships)
+            .set({ workspace, updatedAt: new Date() })
+            .where(eq(studioMemberships.clientUserId, clientUserId));
+          console.log(`🔄 [StudioBridge] Updated workspace to "${workspace}" for client ${clientUserId}`);
+        }
+        return existing.id;
+      }
+
+      const [updated] = await db
+        .update(studioMemberships)
+        .set({ studioId, workspace, status: "active", updatedAt: new Date() })
+        .where(eq(studioMemberships.clientUserId, clientUserId))
+        .returning();
+      console.log(`🔄 [StudioBridge] Moved client ${clientUserId} from studio ${existing.studioId} to ${studioId} with workspace "${workspace}"`);
+      return updated?.id ?? null;
     }
 
     const [membership] = await db
@@ -74,6 +92,7 @@ export async function ensureStudioMembership(
         studioId,
         clientUserId,
         status: "active",
+        workspace,
         joinedAt: new Date(),
       })
       .returning();
@@ -97,7 +116,9 @@ export async function bridgeToStudio(
       return null;
     }
 
-    const membershipId = await ensureStudioMembership(studioInfo.studioId, clientUserId);
+    const workspace = studioInfo.studioType === "clinic" ? "clinician" : "trainer";
+
+    const membershipId = await ensureStudioMembership(studioInfo.studioId, clientUserId, workspace);
     if (!membershipId) {
       console.error(`❌ [StudioBridge] Could not create membership for client ${clientUserId}`);
       return null;
@@ -113,7 +134,7 @@ export async function bridgeToStudio(
       { source, studioName: studioInfo.studioName }
     );
 
-    console.log(`✅ [StudioBridge] Client ${clientUserId} bridged to studio "${studioInfo.studioName}" (source: ${source})`);
+    console.log(`✅ [StudioBridge] Client ${clientUserId} bridged to studio "${studioInfo.studioName}" workspace="${workspace}" (source: ${source})`);
 
     return {
       studioId: studioInfo.studioId,
