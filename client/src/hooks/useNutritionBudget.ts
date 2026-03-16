@@ -48,12 +48,13 @@ export interface NutritionBudget {
   needsCoaching: boolean;
 }
 
-export function useNutritionBudget(): NutritionBudget {
+export function useNutritionBudget(userId?: string): NutritionBudget {
   const { user } = useAuth();
-  const todayMacros = useTodayMacros(user?.id || "");
+  const effectiveUserId = userId ?? user?.id ?? "";
+  const todayMacros = useTodayMacros(effectiveUserId);
 
   return useMemo(() => {
-    const resolved = getResolvedTargets(user?.id);
+    const resolved = getResolvedTargets(effectiveUserId || undefined);
 
     const starchyTarget = resolved.starchyCarbs_g ?? resolved.carbDirective?.starchyCapG ?? 0;
     const fibrousTarget = resolved.fibrousCarbs_g ?? resolved.carbDirective?.fibrousFloorG ?? 0;
@@ -126,5 +127,5 @@ export function useNutritionBudget(): NutritionBudget {
       isOverBudget,
       needsCoaching,
     };
-  }, [user?.id, todayMacros]);
+  }, [effectiveUserId, todayMacros]);
 }

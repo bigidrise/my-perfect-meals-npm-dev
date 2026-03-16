@@ -103,6 +103,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
+import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
@@ -1090,6 +1091,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         className="px-4"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
       >
+        <NutritionBudgetBanner className="mb-2" userId={clientId || user?.id} />
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">

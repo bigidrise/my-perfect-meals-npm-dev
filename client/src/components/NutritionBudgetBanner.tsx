@@ -3,6 +3,7 @@ import { Leaf, Wheat, Drumstick, CheckCircle2 } from "lucide-react";
 
 interface NutritionBudgetBannerProps {
   className?: string;
+  userId?: string;
 }
 
 const getStatusText = (status: NutrientStatus, remaining: number, nutrientLabel: string) => {
@@ -39,8 +40,8 @@ const baseColorClasses: Record<string, { bg: string; icon: string }> = {
   emerald: { bg: 'bg-emerald-500/20', icon: 'text-emerald-400' },
 };
 
-export function NutritionBudgetBanner({ className = "" }: NutritionBudgetBannerProps) {
-  const budget = useNutritionBudget();
+export function NutritionBudgetBanner({ className = "", userId }: NutritionBudgetBannerProps) {
+  const budget = useNutritionBudget(userId);
 
   if (!budget.hasTargets && !budget.hasStarchyFibrousTargets) {
     return null;

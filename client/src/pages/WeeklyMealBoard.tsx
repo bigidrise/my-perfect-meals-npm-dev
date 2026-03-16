@@ -1572,7 +1572,7 @@ export default function WeeklyMealBoard() {
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
-        <NutritionBudgetBanner className="mb-2" />
+        <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
 
         <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">
