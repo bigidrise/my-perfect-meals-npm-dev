@@ -15,6 +15,11 @@ export const clinicalLabs = pgTable("clinical_labs", {
   creatinine: numeric("creatinine", { precision: 5, scale: 2 }),
   bun: numeric("bun", { precision: 5, scale: 1 }),
   inr: numeric("inr", { precision: 5, scale: 2 }),
+  // Liver panel — drives liver-support and liver-disease protocol resolution
+  alt:       numeric("alt",       { precision: 6, scale: 1 }),
+  ast:       numeric("ast",       { precision: 6, scale: 1 }),
+  bilirubin: numeric("bilirubin", { precision: 5, scale: 2 }),
+  albumin:   numeric("albumin",   { precision: 4, scale: 2 }),
   notes: text("notes"),
   labDate: date("lab_date"),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
@@ -33,6 +38,10 @@ export const insertClinicalLabsSchema = createInsertSchema(clinicalLabs, {
   creatinine: z.string().or(z.number()).optional().nullable(),
   bun: z.string().or(z.number()).optional().nullable(),
   inr: z.string().or(z.number()).optional().nullable(),
+  alt:       z.string().or(z.number()).optional().nullable(),
+  ast:       z.string().or(z.number()).optional().nullable(),
+  bilirubin: z.string().or(z.number()).optional().nullable(),
+  albumin:   z.string().or(z.number()).optional().nullable(),
   notes: z.string().optional().nullable(),
   recordedAt: z.string().or(z.date()),
 }).omit({ id: true, createdAt: true });

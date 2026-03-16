@@ -21,6 +21,11 @@ interface LabValues {
   creatinine: string;
   bun: string;
   inr: string;
+  // Liver panel
+  alt: string;
+  ast: string;
+  bilirubin: string;
+  albumin: string;
   notes: string;
   lab_date: string;
 }
@@ -35,6 +40,10 @@ const EMPTY_LABS: LabValues = {
   creatinine: "",
   bun: "",
   inr: "",
+  alt: "",
+  ast: "",
+  bilirubin: "",
+  albumin: "",
   notes: "",
   lab_date: todayIso(),
 };
@@ -107,6 +116,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             creatinine: l.creatinine != null ? String(l.creatinine) : "",
             bun: l.bun != null ? String(l.bun) : "",
             inr: l.inr != null ? String(l.inr) : "",
+            alt:       l.alt       != null ? String(l.alt)       : "",
+            ast:       l.ast       != null ? String(l.ast)       : "",
+            bilirubin: l.bilirubin != null ? String(l.bilirubin) : "",
+            albumin:   l.albumin   != null ? String(l.albumin)   : "",
             notes: l.notes || "",
             lab_date: l.lab_date || todayIso(),
           });
@@ -146,6 +159,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
       const numFields: Array<keyof LabValues> = [
         "a1c", "ldl", "hdl", "blood_pressure_systolic", "blood_pressure_diastolic",
         "ejection_fraction", "creatinine", "bun", "inr",
+        "alt", "ast", "bilirubin", "albumin",
       ];
       for (const field of numFields) {
         const v = form[field].trim();
@@ -236,6 +250,15 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             <LabField label="Creatinine" name="creatinine" value={form.creatinine} unit="mg/dL" placeholder="e.g. 1.1" onChange={handleChange} />
             <LabField label="BUN" name="bun" value={form.bun} unit="mg/dL" placeholder="e.g. 18" onChange={handleChange} />
             <LabField label="INR" name="inr" value={form.inr} placeholder="e.g. 1.0" onChange={handleChange} />
+
+            {/* Liver Panel */}
+            <div className="pt-2 pb-1 border-t border-white/10">
+              <span className="text-[10px] font-semibold tracking-widest text-amber-400/70 uppercase">Liver Panel</span>
+            </div>
+            <LabField label="ALT" name="alt" value={form.alt} unit="U/L" placeholder="e.g. 25" onChange={handleChange} />
+            <LabField label="AST" name="ast" value={form.ast} unit="U/L" placeholder="e.g. 22" onChange={handleChange} />
+            <LabField label="Bilirubin (Total)" name="bilirubin" value={form.bilirubin} unit="mg/dL" placeholder="e.g. 0.8" onChange={handleChange} />
+            <LabField label="Albumin" name="albumin" value={form.albumin} unit="g/dL" placeholder="e.g. 4.0" onChange={handleChange} />
 
             <div className="flex items-start gap-2 pt-1">
               <span className="text-xs text-white/50 w-36 shrink-0 pt-2">Notes</span>
