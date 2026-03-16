@@ -17,39 +17,39 @@ import type { LabProtocolSignal } from "@shared/clinical/protocolDecision";
 // Citation map — protocol → authoritative guideline reference
 // ---------------------------------------------------------------------------
 const CITATIONS: Record<string, string> = {
-  "kidney-disease":  "KDIGO / NKF Clinical Practice Guidelines",
-  "heart-failure":   "ACC / AHA Heart Failure Guidelines",
-  "liver-support":   "AASLD / NIH Nutritional Support Guidelines",
-  "liver-disease":   "AASLD / EASL Liver Disease Guidelines",
+  "kidney-disease": "KDIGO / NKF Clinical Practice Guidelines",
+  "heart-failure": "ACC / AHA Heart Failure Guidelines",
+  "liver-support": "AASLD / NIH Nutritional Support Guidelines",
+  "liver-disease": "AASLD / EASL Liver Disease Guidelines",
 };
 
 // Protocol → human-readable title
 const PROTOCOL_TITLE: Record<string, string> = {
-  "kidney-disease":  "Kidney Support Nutrition Protocol",
-  "heart-failure":   "Cardiac Health Nutrition Protocol",
-  "liver-support":   "Liver Support Nutrition Protocol",
-  "liver-disease":   "Liver Disease Nutrition Protocol",
+  "kidney-disease": "Kidney Support Nutrition Protocol",
+  "heart-failure": "Cardiac Health Nutrition Protocol",
+  "liver-support": "Liver Support Nutrition Protocol",
+  "liver-disease": "Liver Disease Nutrition Protocol",
 };
 
 // Confidence → colour classes
 const CONFIDENCE_COLOR: Record<string, string> = {
-  high:     "bg-red-500/20 text-red-300 border-red-500/30",
+  high: "bg-red-500/20 text-red-300 border-red-500/30",
   moderate: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-  low:      "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  low: "bg-blue-500/20 text-blue-300 border-blue-500/30",
 };
 
 // Trigger field → readable label
 function labelTrigger(field: string): string {
   const map: Record<string, string> = {
-    alt:                     "ALT (liver enzyme)",
-    ast:                     "AST (liver enzyme)",
-    bilirubin:               "Bilirubin",
-    albumin:                 "Albumin",
-    creatinine:              "Creatinine",
-    bun:                     "BUN",
-    ldl:                     "LDL cholesterol",
+    alt: "ALT (liver enzyme)",
+    ast: "AST (liver enzyme)",
+    bilirubin: "Bilirubin",
+    albumin: "Albumin",
+    creatinine: "Creatinine",
+    bun: "BUN",
+    ldl: "LDL cholesterol",
     blood_pressure_systolic: "Systolic blood pressure",
-    ejection_fraction:       "Ejection fraction",
+    ejection_fraction: "Ejection fraction",
   };
   return map[field] ?? field;
 }
@@ -58,12 +58,12 @@ function labelTrigger(field: string): string {
 // Props
 // ---------------------------------------------------------------------------
 interface ProtocolRecommendationModalProps {
-  open:            boolean;
-  onClose:         () => void;
-  signal:          LabProtocolSignal;
-  labId:           number | null;
+  open: boolean;
+  onClose: () => void;
+  signal: LabProtocolSignal;
+  labId: number | null;
   physicianLocked: boolean;
-  onAccepted:      () => void;
+  onAccepted: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,9 +79,9 @@ export default function ProtocolRecommendationModal({
 }: ProtocolRecommendationModalProps) {
   const [busy, setBusy] = useState(false);
 
-  const title      = PROTOCOL_TITLE[signal.protocol] ?? signal.protocol;
-  const citation   = CITATIONS[signal.protocol];
-  const confColor  = CONFIDENCE_COLOR[signal.confidence] ?? CONFIDENCE_COLOR.low;
+  const title = PROTOCOL_TITLE[signal.protocol] ?? signal.protocol;
+  const citation = CITATIONS[signal.protocol];
+  const confColor = CONFIDENCE_COLOR[signal.confidence] ?? CONFIDENCE_COLOR.low;
 
   async function postDecision(status: "accepted" | "rejected") {
     setBusy(true);
@@ -91,12 +91,12 @@ export default function ProtocolRecommendationModal({
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          protocol:        signal.protocol,
+          protocol: signal.protocol,
           status,
-          labId:           labId ?? null,
-          triggerFields:   signal.triggerFields,
+          labId: labId ?? null,
+          triggerFields: signal.triggerFields,
           confidenceLevel: signal.confidence,
-          reason:          signal.reason,
+          reason: signal.reason,
         }),
       });
 
@@ -120,12 +120,12 @@ export default function ProtocolRecommendationModal({
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          protocol:        signal.protocol,
-          status:          "advisory",
-          labId:           labId ?? null,
-          triggerFields:   signal.triggerFields,
+          protocol: signal.protocol,
+          status: "advisory",
+          labId: labId ?? null,
+          triggerFields: signal.triggerFields,
           confidenceLevel: signal.confidence,
-          reason:          signal.reason,
+          reason: signal.reason,
         }),
       });
     } catch {
@@ -137,7 +137,12 @@ export default function ProtocolRecommendationModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && !busy) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v && !busy) onClose();
+      }}
+    >
       <DialogContent className="bg-[#0d1117] border border-white/10 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl">
         {/* Header band */}
         <div className="bg-gradient-to-r from-cyan-900/60 to-teal-900/60 px-6 pt-6 pb-4 border-b border-white/10">
@@ -170,7 +175,9 @@ export default function ProtocolRecommendationModal({
           </div>
 
           {/* Advisory reason */}
-          <p className="text-sm text-white/75 leading-relaxed">{signal.reason}</p>
+          <p className="text-sm text-white/75 leading-relaxed">
+            {signal.reason}
+          </p>
 
           {/* Triggered values */}
           {signal.triggerFields && signal.triggerFields.length > 0 && (
@@ -180,7 +187,10 @@ export default function ProtocolRecommendationModal({
               </p>
               <ul className="space-y-1">
                 {signal.triggerFields.map((t) => (
-                  <li key={t} className="flex items-center gap-2 text-xs text-white/70">
+                  <li
+                    key={t}
+                    className="flex items-center gap-2 text-xs text-white/70"
+                  >
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                     {labelTrigger(t)}
                   </li>
@@ -202,8 +212,8 @@ export default function ProtocolRecommendationModal({
             <div className="flex items-start gap-2 bg-violet-900/20 border border-violet-500/20 rounded-xl px-4 py-3">
               <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-violet-400" />
               <p className="text-xs text-violet-300/80 leading-relaxed">
-                Your care team has already selected a nutrition protocol for you.
-                These lab results are visible to your provider.
+                Your care team has already selected a nutrition protocol for
+                you. These lab results are visible to your provider.
               </p>
             </div>
           )}
@@ -223,12 +233,13 @@ export default function ProtocolRecommendationModal({
           ) : (
             <div className="flex gap-3">
               <Button
-                variant="outline"
-                className="flex-1 border-white/15 text-white/70 hover:bg-white/10 hover:text-white"
+                className="flex-1 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30 transition"
                 disabled={busy}
                 onClick={() => postDecision("rejected")}
               >
-                {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {busy ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
                 Keep Current Plan
               </Button>
               <Button
@@ -236,7 +247,9 @@ export default function ProtocolRecommendationModal({
                 disabled={busy}
                 onClick={() => postDecision("accepted")}
               >
-                {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {busy ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
                 Use Recommended Plan
               </Button>
             </div>
