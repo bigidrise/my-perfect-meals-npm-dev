@@ -165,6 +165,18 @@ export default function TrainerClientDashboard() {
       } catch (e) {
         console.error("Failed to sync macro targets to database:", e);
       }
+
+      // Mirror to localStorage so RemainingMacrosFooter resolves targets
+      // across sessions without needing "Send Macros to Biometrics" separately
+      try {
+        const { setMacroTargets } = await import("@/lib/dailyLimits");
+        await setMacroTargets(
+          { calories: totalCal, protein_g: t.protein, carbs_g: totalCarbs, fat_g: t.fat },
+          dbUserId,
+        );
+      } catch (e) {
+        console.error("Failed to mirror macro targets to localStorage:", e);
+      }
     }
 
     // Link both the proStore clientId and the real user ID so builders
