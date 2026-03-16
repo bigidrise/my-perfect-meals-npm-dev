@@ -96,7 +96,7 @@ export default function ClinicianClientDashboard() {
 
   // Resolves the human-readable protocol label.
   // For Anti-Inflammatory, this reads physician flags and returns the specific
-  // clinical protocol (Kidney Disease, Heart Failure, etc.) instead of just
+  // clinical protocol (Kidney Disease, Cardiac Protocol, etc.) instead of just
   // "Anti-Inflammatory".  All other builders show their own map label.
   const activeProtocolLabel = useMemo(() => {
     if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder]) return null;
@@ -384,14 +384,12 @@ export default function ClinicianClientDashboard() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {([
-                  { key: "renal",            label: "Renal-Friendly"   },
-                  { key: "cardiac",          label: "Cardiac-Friendly" },
-                  { key: "liverDisease",     label: "Liver Disease"    },
-                  { key: "liverSupport",     label: "Liver Support"    },
-                  { key: "diabetesFriendly", label: "Diabetes-Friendly"},
-                  { key: "lowSodium",        label: "Low-Sodium"       },
-                  { key: "glp1",             label: "GLP-1 Support"    },
-                  { key: "postBariatric",    label: "Post-Bariatric"   },
+                  { key: "renal",          label: "Renal-Friendly"   },
+                  { key: "cardiac",        label: "Cardiac-Friendly" },
+                  { key: "liverDisease",   label: "Liver Disease"    },
+                  { key: "liverSupport",   label: "Liver Support"    },
+                  { key: "lowSodium",      label: "Low-Sodium"       },
+                  { key: "postBariatric",  label: "Post-Bariatric"   },
                 ] as const).map(({ key, label }) => {
                   const isOn = !!(t.flags as Record<string, boolean> | undefined)?.[key];
                   return (

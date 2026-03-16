@@ -58,7 +58,7 @@ export function resolveClinicalModeFromFlags(flags?: ClinicalFlags | null): Reso
     primaryBadge = { label: 'Kidney Disease', cls: 'bg-sky-600 text-white' };
   } else if (f.cardiac) {
     mode = 'heart-failure';
-    primaryBadge = { label: 'Heart Failure', cls: 'bg-red-600 text-white' };
+    primaryBadge = { label: 'Cardiac Protocol', cls: 'bg-red-600 text-white' };
   } else if (f.liverDisease) {
     mode = 'liver-disease';
     primaryBadge = { label: 'Liver Disease', cls: 'bg-amber-600 text-white' };
