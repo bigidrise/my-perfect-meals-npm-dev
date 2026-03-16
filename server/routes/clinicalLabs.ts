@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
+import { resolveProtocolFromLabs, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
 
 const router = express.Router();
 
@@ -99,6 +100,21 @@ router.get("/:userId", requireAuth, async (req, res) => {
     }
 
     const r = rows[0];
+
+    // Run the resolver against the raw Drizzle row (accepts string | number | null).
+    // Returns LabProtocolSignal | null — null means base anti-inflammatory.
+    const protocolSignal = resolveProtocolFromLabs({
+      alt:                   r.alt,
+      ast:                   r.ast,
+      bilirubin:             r.bilirubin,
+      albumin:               r.albumin,
+      creatinine:            r.creatinine,
+      bun:                   r.bun,
+      ldl:                   r.ldl,
+      bloodPressureSystolic: r.bloodPressureSystolic,
+      ejectionFraction:      r.ejectionFraction,
+    });
+
     res.json({
       labs: {
         id: r.id,
@@ -120,6 +136,13 @@ router.get("/:userId", requireAuth, async (req, res) => {
         lab_date: r.labDate || null,
         recorded_at: r.recordedAt,
       },
+      // Protocol signal derived from the lab values.
+      // null  → no threshold crossed, patient stays on base anti-inflammatory.
+      // value → the resolver's recommended protocol with reason and confidence.
+      // Phase 4 (recommendation modal) consumes protocolSignal directly.
+      // The subtitle helper converts this to the display label used in builder headers.
+      protocolSignal,
+      protocolSubtitle: labSignalToSubtitle(protocolSignal),
     });
   } catch (error: any) {
     console.error("[clinicalLabs GET]", error);
