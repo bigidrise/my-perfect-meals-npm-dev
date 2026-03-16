@@ -207,13 +207,22 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     }
   };
 
+  const PROTOCOL_LABEL: Record<string, string> = {
+    "liver-disease": "Liver Disease",
+    "kidney-disease": "Kidney Disease",
+    "heart-failure": "Cardiac Health",
+    "liver-support": "Liver Support",
+  };
+
   const handleModalAccepted = () => {
+    const label = pendingSignal ? (PROTOCOL_LABEL[pendingSignal.protocol] ?? "Clinical") : "Clinical";
     toast({
-      title: "Nutrition Plan Updated",
-      description: "Your meal plan has been switched to the recommended protocol.",
+      title: `${label} protocol activated`,
+      description: "Your meals will now follow the recommended nutrition guardrails.",
     });
-    // Reload the page so the new builder selection takes effect everywhere
-    setTimeout(() => window.location.reload(), 1200);
+    setTimeout(() => {
+      window.location.href = "/anti-inflammatory-menu-builder";
+    }, 700);
   };
 
   const handleModalClose = () => {
