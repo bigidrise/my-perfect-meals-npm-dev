@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { proStore, type Targets } from "@/lib/proData";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { Loader2, TrendingDown, TrendingUp, Minus, RefreshCw } from "lucide-react";
@@ -13,6 +12,14 @@ interface MacroTotals {
   protein: number;
   carbs: number;
   fat: number;
+}
+
+interface DbMacroTargets {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  hasTargets: boolean;
 }
 
 interface BodyCompEntry {
@@ -44,15 +51,12 @@ function DeltaBadge({ delta }: { delta: number }) {
 
 export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapshotProps) {
   const [todayMacros, setTodayMacros] = useState<MacroTotals | null>(null);
+  const [dbTargets, setDbTargets] = useState<DbMacroTargets | null>(null);
   const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-
-  const targets = proStore.getTargets(clientId);
-  const totalCarbs = (targets.starchyCarbs || 0) + (targets.fibrousCarbs || 0);
-  const totalCal = (targets.protein * 4) + (totalCarbs * 4) + (targets.fat * 9);
 
   const fetchData = useCallback(async (isManual = false) => {
     if (!clientId) return;
@@ -63,12 +67,16 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
       const { start, end } = todayRange();
       const headers: Record<string, string> = { ...getAuthHeaders() };
 
-      const [macroRes, bodyCompRes] = await Promise.all([
+      const [macroRes, bodyCompRes, targetsRes] = await Promise.all([
         fetch(apiUrl(`/api/users/${clientId}/macros?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`), {
           headers,
           credentials: "include",
         }),
         fetch(apiUrl(`/api/users/${clientId}/body-composition/latest`), {
+          headers,
+          credentials: "include",
+        }),
+        fetch(apiUrl(`/api/users/${clientId}/macro-targets`), {
           headers,
           credentials: "include",
         }),
@@ -87,6 +95,17 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
       if (bodyCompRes.ok) {
         const data = await bodyCompRes.json();
         if (data?.entry) setBodyComp(data.entry);
+      }
+
+      if (targetsRes.ok) {
+        const data = await targetsRes.json();
+        setDbTargets({
+          calories: Math.round(Number(data.calories || 0)),
+          protein_g: Math.round(Number(data.protein_g || 0)),
+          carbs_g: Math.round(Number(data.carbs_g || 0)),
+          fat_g: Math.round(Number(data.fat_g || 0)),
+          hasTargets: !!data.hasTargets,
+        });
       }
 
       setLastRefreshed(new Date());
@@ -114,39 +133,46 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
     return <p className="text-xs text-red-400 py-2">{error}</p>;
   }
 
+  const hasTargets = dbTargets?.hasTargets ?? false;
+  const targetCal = hasTargets ? (dbTargets?.calories ?? 0) : 0;
+  const targetProtein = hasTargets ? (dbTargets?.protein_g ?? 0) : 0;
+  const targetCarbs = hasTargets ? (dbTargets?.carbs_g ?? 0) : 0;
+  const targetFat = hasTargets ? (dbTargets?.fat_g ?? 0) : 0;
+
   const rows = [
-    { label: "Calories", target: totalCal, logged: todayMacros?.kcal ?? 0, unit: "" },
-    { label: "Protein", target: targets.protein, logged: todayMacros?.protein ?? 0, unit: "g" },
-    { label: "Carbs", target: totalCarbs, logged: todayMacros?.carbs ?? 0, unit: "g" },
-    { label: "Fat", target: targets.fat, logged: todayMacros?.fat ?? 0, unit: "g" },
+    { label: "Calories", target: targetCal, logged: todayMacros?.kcal ?? 0, unit: "" },
+    { label: "Protein", target: targetProtein, logged: todayMacros?.protein ?? 0, unit: "g" },
+    { label: "Carbs", target: targetCarbs, logged: todayMacros?.carbs ?? 0, unit: "g" },
+    { label: "Fat", target: targetFat, logged: todayMacros?.fat ?? 0, unit: "g" },
   ];
 
   return (
     <div className="space-y-3">
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
         <h4 className="text-xs font-medium text-white/60 mb-2">Active Macro Targets</h4>
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div>
-            <p className="text-sm font-bold text-white">{totalCal}</p>
-            <p className="text-[10px] text-white/40">Cal</p>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-blue-300">{targets.protein}g</p>
-            <p className="text-[10px] text-white/40">Protein</p>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-orange-300">{totalCarbs}g</p>
-            <p className="text-[10px] text-white/40">Carbs</p>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-yellow-300">{targets.fat}g</p>
-            <p className="text-[10px] text-white/40">Fat</p>
-          </div>
-        </div>
-        {targets.starchStrategy && (
-          <p className="text-[10px] text-white/30 mt-1.5 text-center">
-            Starch strategy: {targets.starchStrategy === "one" ? "1 starch meal/day" : "Split across 2 meals"}
+        {!hasTargets ? (
+          <p className="text-xs text-white/30 text-center italic py-1">
+            No macro targets set yet
           </p>
+        ) : (
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <p className="text-sm font-bold text-white">{targetCal}</p>
+              <p className="text-[10px] text-white/40">Cal</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-blue-300">{targetProtein}g</p>
+              <p className="text-[10px] text-white/40">Protein</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-orange-300">{targetCarbs}g</p>
+              <p className="text-[10px] text-white/40">Carbs</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-yellow-300">{targetFat}g</p>
+              <p className="text-[10px] text-white/40">Fat</p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -179,10 +205,12 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
               return (
                 <tr key={row.label} className="border-t border-white/5">
                   <td className="py-1.5 text-white/70">{row.label}</td>
-                  <td className="py-1.5 text-right text-white/50">{row.target}{row.unit}</td>
+                  <td className="py-1.5 text-right text-white/50">
+                    {hasTargets ? `${row.target}${row.unit}` : "—"}
+                  </td>
                   <td className="py-1.5 text-right text-white">{row.logged}{row.unit}</td>
                   <td className="py-1.5 text-right">
-                    <DeltaBadge delta={delta} />
+                    {hasTargets ? <DeltaBadge delta={delta} /> : <Minus className="w-3 h-3 text-white/20" />}
                   </td>
                 </tr>
               );
