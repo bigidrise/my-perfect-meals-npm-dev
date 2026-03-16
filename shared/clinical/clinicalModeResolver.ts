@@ -38,11 +38,14 @@ const MODE_NAMESPACE_MAP: Record<ClinicalMode, BuilderNamespace> = {
  * Resolves the active clinical mode from physician-set flags.
  *
  * Priority order (highest wins):
- *   1. kidney-disease  (renal flag)
- *   2. heart-failure   (cardiac flag)
- *   3. liver-disease   (liverDisease flag)
+ *   1. liver-disease   (liverDisease flag) — most clinically severe
+ *   2. kidney-disease  (renal flag)
+ *   3. heart-failure   (cardiac flag)
  *   4. liver-support   (liverSupport flag)
  *   5. anti-inflammatory (default)
+ *
+ * liver-disease ALWAYS beats liver-support when both are set.
+ * This order must match resolveProtocolFromLabs() exactly.
  *
  * Modifier flags (lowSodium, diabetesFriendly, glp1, postBariatric) do not
  * change the mode — they appear as secondary directive badges only.
@@ -53,15 +56,15 @@ export function resolveClinicalModeFromFlags(flags?: ClinicalFlags | null): Reso
   let mode: ClinicalMode = 'anti-inflammatory';
   let primaryBadge: ProtocolBadge | null = null;
 
-  if (f.renal) {
+  if (f.liverDisease) {
+    mode = 'liver-disease';
+    primaryBadge = { label: 'Liver Disease', cls: 'bg-amber-600 text-white' };
+  } else if (f.renal) {
     mode = 'kidney-disease';
     primaryBadge = { label: 'Kidney Disease', cls: 'bg-sky-600 text-white' };
   } else if (f.cardiac) {
     mode = 'heart-failure';
-    primaryBadge = { label: 'Cardiac Protocol', cls: 'bg-red-600 text-white' };
-  } else if (f.liverDisease) {
-    mode = 'liver-disease';
-    primaryBadge = { label: 'Liver Disease', cls: 'bg-amber-600 text-white' };
+    primaryBadge = { label: 'Cardiac Health', cls: 'bg-red-600 text-white' };
   } else if (f.liverSupport) {
     mode = 'liver-support';
     primaryBadge = { label: 'Liver Support', cls: 'bg-emerald-600 text-white' };

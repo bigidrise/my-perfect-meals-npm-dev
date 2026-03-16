@@ -8,6 +8,25 @@ import { z } from "zod";
 
 const router = express.Router();
 
+/**
+ * API CONTRACT — Clinical Labs
+ *
+ * Casing convention (LOCKED — do not deviate):
+ *   Client  →  POST body / GET response: snake_case  (e.g. blood_pressure_systolic)
+ *   Route   →  Drizzle insert/select:   camelCase   (e.g. bloodPressureSystolic)
+ *   Database→  column names:            snake_case  (e.g. blood_pressure_systolic)
+ *
+ * Single-word fields (a1c, ldl, hdl, creatinine, bun, inr, alt, ast,
+ * bilirubin, albumin) are identical in all three layers — no mapping needed.
+ * Multi-word fields require explicit snake→camel mapping in the POST handler
+ * and explicit camel→snake mapping in the GET response.
+ *
+ * Protocol precedence (must match clinicalModeResolver.ts exactly):
+ *   liver-disease > kidney-disease > heart-failure > liver-support > base
+ *
+ * Future fields: follow this convention. Add to labsPayloadSchema,
+ * the Drizzle schema, the POST insert, and the GET response shape.
+ */
 const labsPayloadSchema = z.object({
   userId: z.string().optional(),
   a1c: z.number().optional().nullable(),
