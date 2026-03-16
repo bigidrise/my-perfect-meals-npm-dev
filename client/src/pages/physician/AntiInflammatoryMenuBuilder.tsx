@@ -198,22 +198,14 @@ export default function AntiInflammatoryMenuBuilder() {
   const namespace = resolvedProtocol.namespace;
 
   // -----------------------------------------------------------------------
-  // Lab-derived protocol badge
-  // Reads the server-provided protocolSignal from GET /api/biometrics/labs/:userId.
-  // No protocol logic lives here — we only display what the server resolved.
-  // Precedence: physician flags (resolvedProtocol.primaryBadge) > lab signal > none.
+  // Lab-derived mode update
+  // When no physician flags are set, read the server protocolSignal and update
+  // clinicalModeState so the badge, namespace, and guardrails all stay in sync.
+  // clinicalModeState is the single source of truth — badge derived from it below.
   // -----------------------------------------------------------------------
-  const LAB_SIGNAL_BADGE_MAP: Record<string, ProtocolBadge> = {
-    "liver-disease":  { label: "Liver Disease",  cls: "bg-amber-600 text-white" },
-    "kidney-disease": { label: "Kidney Disease", cls: "bg-sky-600 text-white" },
-    "heart-failure":  { label: "Cardiac Health", cls: "bg-red-600 text-white" },
-    "liver-support":  { label: "Liver Support",  cls: "bg-emerald-600 text-white" },
-  };
-
-  const [labProtocolBadge, setLabProtocolBadge] = React.useState<ProtocolBadge | null>(null);
-
   useEffect(() => {
     if (!effectiveUserId) return;
+    if (resolvedProtocol.primaryBadge) return; // physician flag wins — skip fetch
     let cancelled = false;
     fetch(apiUrl(`/api/biometrics/labs/${effectiveUserId}`), {
       headers: { ...getAuthHeaders() },
@@ -222,17 +214,22 @@ export default function AntiInflammatoryMenuBuilder() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (cancelled || !data?.protocolSignal?.protocol) return;
-        const badge = LAB_SIGNAL_BADGE_MAP[data.protocolSignal.protocol] ?? null;
-        setLabProtocolBadge(badge);
+        const labMode = data.protocolSignal.protocol as ClinicalMode;
+        setClinicalModeState(labMode);
       })
       .catch(() => {/* silently ignore */});
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId]);
 
-  // The active primary badge: physician flag wins; lab signal is the fallback.
-  const activePrimaryBadge: ProtocolBadge | null =
-    resolvedProtocol.primaryBadge ?? labProtocolBadge;
+  // Badge comes directly from the active clinical mode — always accurate.
+  const CLINICAL_MODE_BADGE: Partial<Record<ClinicalMode, ProtocolBadge>> = {
+    "liver-disease":  { label: "Liver Disease",  cls: "bg-amber-600 text-white" },
+    "kidney-disease": { label: "Kidney Disease", cls: "bg-sky-600 text-white" },
+    "heart-failure":  { label: "Cardiac Health", cls: "bg-red-600 text-white" },
+    "liver-support":  { label: "Liver Support",  cls: "bg-emerald-600 text-white" },
+  };
+  const activePrimaryBadge: ProtocolBadge | null = CLINICAL_MODE_BADGE[clinicalModeState] ?? null;
 
   const hasClinicalBadges = !!(activePrimaryBadge || resolvedProtocol.modifierBadges.length > 0);
   const contentPaddingTop = `calc(env(safe-area-inset-top, 0px) + ${
