@@ -106,6 +106,9 @@ import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
 import type { ClinicalMode } from "../../../../shared/schema/weeklyBoard";
 import { resolveClinicalModeFromFlags } from "@shared/clinical/clinicalModeResolver";
+import type { ProtocolBadge } from "@shared/clinical/clinicalModeResolver";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -193,7 +196,45 @@ export default function AntiInflammatoryMenuBuilder() {
   );
 
   const namespace = resolvedProtocol.namespace;
-  const hasClinicalBadges = !!(resolvedProtocol.primaryBadge || resolvedProtocol.modifierBadges.length > 0);
+
+  // -----------------------------------------------------------------------
+  // Lab-derived protocol badge
+  // Reads the server-provided protocolSignal from GET /api/biometrics/labs/:userId.
+  // No protocol logic lives here — we only display what the server resolved.
+  // Precedence: physician flags (resolvedProtocol.primaryBadge) > lab signal > none.
+  // -----------------------------------------------------------------------
+  const LAB_SIGNAL_BADGE_MAP: Record<string, ProtocolBadge> = {
+    "liver-disease":  { label: "Liver Disease",  cls: "bg-amber-600 text-white" },
+    "kidney-disease": { label: "Kidney Disease", cls: "bg-sky-600 text-white" },
+    "heart-failure":  { label: "Cardiac Health", cls: "bg-red-600 text-white" },
+    "liver-support":  { label: "Liver Support",  cls: "bg-emerald-600 text-white" },
+  };
+
+  const [labProtocolBadge, setLabProtocolBadge] = React.useState<ProtocolBadge | null>(null);
+
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    let cancelled = false;
+    fetch(apiUrl(`/api/biometrics/labs/${effectiveUserId}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled || !data?.protocolSignal?.protocol) return;
+        const badge = LAB_SIGNAL_BADGE_MAP[data.protocolSignal.protocol] ?? null;
+        setLabProtocolBadge(badge);
+      })
+      .catch(() => {/* silently ignore */});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveUserId]);
+
+  // The active primary badge: physician flag wins; lab signal is the fallback.
+  const activePrimaryBadge: ProtocolBadge | null =
+    resolvedProtocol.primaryBadge ?? labProtocolBadge;
+
+  const hasClinicalBadges = !!(activePrimaryBadge || resolvedProtocol.modifierBadges.length > 0);
   const contentPaddingTop = `calc(env(safe-area-inset-top, 0px) + ${
     proClientId
       ? (hasClinicalBadges ? '12rem' : '9rem')
@@ -1403,7 +1444,7 @@ export default function AntiInflammatoryMenuBuilder() {
         onOpenTour={quickTour.openTour}
         clientId={proClientId}
         protocols={[
-          resolvedProtocol.primaryBadge,
+          activePrimaryBadge,
           ...resolvedProtocol.modifierBadges,
         ].filter((b): b is { label: string; cls: string } => !!b)}
       />
