@@ -1,6 +1,9 @@
 import express from "express";
 import { db } from "../db";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
+import { clinicalProtocolRecommendations } from "../db/schema/clinicalProtocolRecommendations";
+import { studioMemberships } from "../db/schema/studio";
+import { users } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
@@ -49,6 +52,25 @@ const labsPayloadSchema = z.object({
   lab_date: z.string().optional().nullable(),
 });
 
+/** Check whether a physician has already explicitly assigned a builder to this user. */
+async function getPhysicianLock(userId: string): Promise<boolean> {
+  try {
+    const rows = await db
+      .select({ assignedBuilder: studioMemberships.assignedBuilder })
+      .from(studioMemberships)
+      .where(eq(studioMemberships.clientUserId, userId as any))
+      .limit(1);
+
+    return rows.length > 0 && !!rows[0].assignedBuilder;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/biometrics/labs
+// Save lab values → run resolver → return protocolSignal + physician lock info
+// ---------------------------------------------------------------------------
 router.post("/", requireAuth, async (req, res) => {
   try {
     const requesterId = getAuthUserId(req);
@@ -56,34 +78,115 @@ router.post("/", requireAuth, async (req, res) => {
 
     const targetUserId = body.userId || requesterId;
 
-    await db.insert(clinicalLabs).values({
-      userId: targetUserId as any,
-      recordedById: requesterId as any,
-      a1c: body.a1c != null ? String(body.a1c) : null,
-      ldl: body.ldl != null ? String(body.ldl) : null,
-      hdl: body.hdl != null ? String(body.hdl) : null,
-      bloodPressureSystolic: body.blood_pressure_systolic != null ? String(body.blood_pressure_systolic) : null,
-      bloodPressureDiastolic: body.blood_pressure_diastolic != null ? String(body.blood_pressure_diastolic) : null,
-      ejectionFraction: body.ejection_fraction != null ? String(body.ejection_fraction) : null,
-      creatinine: body.creatinine != null ? String(body.creatinine) : null,
-      bun: body.bun != null ? String(body.bun) : null,
-      inr: body.inr != null ? String(body.inr) : null,
-      alt:       body.alt       != null ? String(body.alt)       : null,
-      ast:       body.ast       != null ? String(body.ast)       : null,
-      bilirubin: body.bilirubin != null ? String(body.bilirubin) : null,
-      albumin:   body.albumin   != null ? String(body.albumin)   : null,
-      notes: body.notes || null,
-      labDate: body.lab_date || new Date().toISOString().split("T")[0],
-      recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
+    const inserted = await db
+      .insert(clinicalLabs)
+      .values({
+        userId: targetUserId as any,
+        recordedById: requesterId as any,
+        a1c: body.a1c != null ? String(body.a1c) : null,
+        ldl: body.ldl != null ? String(body.ldl) : null,
+        hdl: body.hdl != null ? String(body.hdl) : null,
+        bloodPressureSystolic: body.blood_pressure_systolic != null ? String(body.blood_pressure_systolic) : null,
+        bloodPressureDiastolic: body.blood_pressure_diastolic != null ? String(body.blood_pressure_diastolic) : null,
+        ejectionFraction: body.ejection_fraction != null ? String(body.ejection_fraction) : null,
+        creatinine: body.creatinine != null ? String(body.creatinine) : null,
+        bun: body.bun != null ? String(body.bun) : null,
+        inr: body.inr != null ? String(body.inr) : null,
+        alt:       body.alt       != null ? String(body.alt)       : null,
+        ast:       body.ast       != null ? String(body.ast)       : null,
+        bilirubin: body.bilirubin != null ? String(body.bilirubin) : null,
+        albumin:   body.albumin   != null ? String(body.albumin)   : null,
+        notes: body.notes || null,
+        labDate: body.lab_date || new Date().toISOString().split("T")[0],
+        recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
+      })
+      .returning({ id: clinicalLabs.id });
+
+    const labId = inserted[0]?.id ?? null;
+
+    // Run protocol resolver on the just-saved values
+    const protocolSignal = resolveProtocolFromLabs({
+      alt:                   body.alt,
+      ast:                   body.ast,
+      bilirubin:             body.bilirubin,
+      albumin:               body.albumin,
+      creatinine:            body.creatinine,
+      bun:                   body.bun,
+      ldl:                   body.ldl,
+      bloodPressureSystolic: body.blood_pressure_systolic,
+      ejectionFraction:      body.ejection_fraction,
     });
 
-    res.status(201).json({ success: true });
+    const [physicianLocked] = await Promise.all([
+      getPhysicianLock(targetUserId as string),
+    ]);
+
+    res.status(201).json({
+      success: true,
+      labId,
+      protocolSignal,
+      protocolSubtitle: labSignalToSubtitle(protocolSignal),
+      physicianLocked,
+    });
   } catch (error: any) {
     console.error("[clinicalLabs POST]", error);
     res.status(400).json({ error: "Failed to save labs", detail: error?.message });
   }
 });
 
+// ---------------------------------------------------------------------------
+// POST /api/biometrics/labs/recommendation
+// Record the user's accept / reject decision and (on accept) switch builder
+// ---------------------------------------------------------------------------
+const recommendationPayloadSchema = z.object({
+  protocol:        z.string(),
+  status:          z.enum(["accepted", "rejected", "advisory"]),
+  labId:           z.number().nullable().optional(),
+  triggerFields:   z.array(z.string()).optional(),
+  confidenceLevel: z.string().optional(),
+  reason:          z.string().optional(),
+});
+
+router.post("/recommendation", requireAuth, async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const body = recommendationPayloadSchema.parse(req.body);
+
+    // Audit record — always write regardless of status
+    await db.insert(clinicalProtocolRecommendations).values({
+      userId:              userId as any,
+      clinicalLabId:       body.labId ?? null,
+      recommendedProtocol: body.protocol,
+      status:              body.status,
+      confidenceLevel:     body.confidenceLevel ?? null,
+      triggerFields:       body.triggerFields ? (body.triggerFields as any) : null,
+      reason:              body.reason ?? null,
+    });
+
+    // On accept: switch the user's meal builder to anti_inflammatory
+    // (all clinical protocol variants live under this builder)
+    if (body.status === "accepted") {
+      await db
+        .update(users)
+        .set({ selectedMealBuilder: "anti_inflammatory", updatedAt: new Date() })
+        .where(eq(users.id, userId as any));
+
+      console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder set to anti_inflammatory`);
+    }
+
+    res.json({ ok: true, status: body.status });
+  } catch (error: any) {
+    console.error("[labs/recommendation POST]", error);
+    res.status(400).json({ error: "Failed to record recommendation", detail: error?.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/biometrics/labs/:userId
+// Return most-recent labs + protocol signal derived from those values
+// ---------------------------------------------------------------------------
 router.get("/:userId", requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -139,8 +242,6 @@ router.get("/:userId", requireAuth, async (req, res) => {
       // Protocol signal derived from the lab values.
       // null  → no threshold crossed, patient stays on base anti-inflammatory.
       // value → the resolver's recommended protocol with reason and confidence.
-      // Phase 4 (recommendation modal) consumes protocolSignal directly.
-      // The subtitle helper converts this to the display label used in builder headers.
       protocolSignal,
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
     });
