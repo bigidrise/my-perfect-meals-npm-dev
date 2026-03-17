@@ -89,6 +89,59 @@ The application is a full-stack TypeScript project focused on personalized nutri
 -   **Freemium "Show but Lock" System**: Free users see all features but only Fridge Rescue + macro tools are functional. Other features are visible but locked with icons and trigger an upgrade modal. `UpgradeLockModal` is a reusable modal. `useFreeLock` hook guards actions.
 -   **Tester Program Architecture**: `TESTER_PROGRAM_ACTIVE = true` flag controls tester bypass. Set in 3 files: `client/src/lib/subscriptionCheck.ts`, `server/lib/accessTier.ts`, `server/routes/auth.session.ts`. When `true`, users with `is_tester = true` in DB get full paid access, and all new signups auto-get `is_tester = true`. At launch, flip all 3 to `false` — testers become normal users subject to subscription checks. `freetest@myperfectmeals.com` is the only account with `is_tester = false` for testing the free-tier experience. The `is_tester` flag is permanent and remains useful post-launch for QA, demo, and Apple review accounts.
 
+## Coaching System Architecture
+
+The coaching system is built as a scalable, slug-based platform — not hardcoded per coach.
+
+### Adding a New Coach (3 steps, zero code rewrites)
+
+1. **Add to both config files:**
+
+   `client/src/config/coaches.ts` — for frontend UI (cards, forms, display names)
+   `server/config/coaches.ts` — for backend resolution (env var mapping, message templates)
+
+   ```ts
+   jen: {
+     slug: "jen",
+     displayName: "Coach Jen",
+     title: "Nutrition Coach",
+     isFounder: false,
+     userIdEnv: "COACH_JEN_USER_ID",
+     studioIdEnv: "COACH_JEN_STUDIO_ID",
+     image: "/assets/coach-jen.jpg",
+   }
+   ```
+
+2. **Set two env vars** in Replit Secrets:
+   - `COACH_JEN_USER_ID` — their database user ID
+   - `COACH_JEN_STUDIO_ID` — their studio ID
+
+3. **Done.** No routing changes, no new endpoints, no hardcoded logic.
+
+### How It Works (Flow)
+
+- User selects coach → form stores `{ coachSlug: "jen", sessionId: uuid }` in sessionStorage
+- Stripe payment completes → `/checkout/success` reads sessionStorage, fires `POST /api/coaching/notify-coach`
+- Backend calls `resolveCoach(slug)` → reads `COACH_JEN_USER_ID` and `COACH_JEN_STUDIO_ID` from env
+- Creates studio membership + drops a message in coach inbox
+
+### Key Files
+
+- `client/src/config/coaches.ts` — frontend coach registry
+- `server/config/coaches.ts` — server coach registry + `resolveCoach()` helper
+- `server/routes/coaching.ts` — `/api/coaching/notify-coach` endpoint (slug-driven)
+- `client/src/pages/ApplyGuidance.tsx` — onboarding form → Stripe
+- `client/src/pages/CheckoutSuccess.tsx` — post-payment coach notification + coaching-specific success UI
+- `client/src/pages/CoachesComingSoon.tsx` — coach selection grid
+
+### Current Coaches
+
+| Slug | Name | Role | Env Vars |
+|------|------|------|----------|
+| `idrise` | Coach Idrise | Founder & Head Coach | `COACH_IDRISE_USER_ID`, `COACH_IDRISE_STUDIO_ID` |
+
+### Rule: Never store coach user IDs on the frontend. Always use slug only.
+
 ## External Dependencies
 -   **PostgreSQL**: Primary database.
 -   **OpenAI API**: AI-powered features.
