@@ -97,11 +97,22 @@ const OFF_PLATFORM_STANDALONE: RegExp[] = [
 // "insta gram", or "x . com". A small allowlist permits legitimate professional
 // references (e.g. "YouTube tutorial", "Facebook ad campaign").
 
-const EXTERNAL_PLATFORMS = [
-  "facebook", "instagram", "ig", "snapchat", "snap",
+// Long platform names — safe to check via normalized (space-stripped) text.
+// SHORT abbreviations (ig, snap, kik) are intentionally excluded here because
+// stripping spaces causes them to appear as substrings of normal words
+// ("night" → "ig", "snapping" → "snap"). They are handled below with
+// word-boundary regex on the original text instead.
+const EXTERNAL_PLATFORMS_NORMALIZED = [
+  "facebook", "instagram", "snapchat",
   "whatsapp", "telegram", "discord", "twitter", "xcom",
   "tiktok", "pinterest", "reddit", "linkedin", "youtube",
-  "skype", "signal", "wechat", "kik", "viber",
+  "skype", "signal", "wechat", "viber",
+];
+
+// Short abbreviations checked with word-boundary regex on ORIGINAL text only.
+// This ensures "ig" matches "find me on ig" but NOT "I liked the dinner last night".
+const EXTERNAL_PLATFORMS_SHORT: RegExp[] = [
+  /\big\b/i,
 ];
 
 // Normalized substrings that are explicitly allowed (clinical/educational context)
@@ -120,10 +131,22 @@ function normalizePlatformText(text: string): string {
 
 function checkExternalPlatform(text: string): string[] {
   const normalized = normalizePlatformText(text);
+
+  // If the message matches an allowlisted context, let it through entirely
   const isAllowed = PLATFORM_ALLOWLIST.some((a) => normalized.includes(a));
   if (isAllowed) return [];
-  const found = EXTERNAL_PLATFORMS.filter((p) => normalized.includes(p));
-  return found;
+
+  // Check long platform names via normalized text (catches "face book", "insta gram")
+  const foundLong = EXTERNAL_PLATFORMS_NORMALIZED.filter((p) => normalized.includes(p));
+
+  // Check short abbreviations via word-boundary regex on ORIGINAL text
+  const foundShort: string[] = [];
+  for (const pattern of EXTERNAL_PLATFORMS_SHORT) {
+    const match = text.match(pattern);
+    if (match) foundShort.push(match[0]);
+  }
+
+  return [...foundLong, ...foundShort];
 }
 
 // Professional misconduct — condescending or coercive
