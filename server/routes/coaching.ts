@@ -2,10 +2,12 @@ import { Router, Request, Response } from "express";
 import Stripe from "stripe";
 import { db } from "../db";
 import { clientNotes, studioMemberships } from "../db/schema/studio";
+import { users } from "../../shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { eq, and, sql } from "drizzle-orm";
 import { resolveCoach, isValidCoachSlug, coaches } from "../config/coaches";
+import { sendCoachActivationEmail } from "../services/emailService";
 
 const router = Router();
 
@@ -152,11 +154,21 @@ router.post("/activate-client/:clientId", requireAuth, async (req: Request, res:
 
   const { clientId } = req.params;
 
+  const coach = resolveCoach(coachEntry.slug);
+  if (!coach) {
+    return res.status(500).json({ ok: false, error: "Coach config error" });
+  }
+
   try {
     const membership = await db
       .select({ id: studioMemberships.id, status: studioMemberships.status })
       .from(studioMemberships)
-      .where(eq(studioMemberships.clientUserId, clientId))
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, clientId),
+          eq(studioMemberships.studioId, coach.studioId)
+        )
+      )
       .limit(1);
 
     if (membership.length === 0) {
@@ -174,9 +186,33 @@ router.post("/activate-client/:clientId", requireAuth, async (req: Request, res:
         joinedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(studioMemberships.clientUserId, clientId));
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, clientId),
+          eq(studioMemberships.studioId, coach.studioId)
+        )
+      );
 
     console.log(`[CoachActivate] Client activated — coach: ${coachEntry.slug}, client: ${clientId}`);
+
+    const appUrl = process.env.APP_URL || "https://myperfectmeals.com";
+    try {
+      const [clientUser] = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, clientId));
+
+      if (clientUser?.email) {
+        await sendCoachActivationEmail({
+          to: clientUser.email,
+          coachDisplayName: coach.displayName,
+          appUrl,
+        });
+      }
+    } catch (emailErr) {
+      console.error("[CoachActivate] Email failed (non-fatal):", emailErr);
+    }
+
     return res.json({ ok: true });
   } catch (err) {
     console.error("[CoachActivate] Failed:", err);

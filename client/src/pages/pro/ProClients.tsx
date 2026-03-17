@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import PendingActivationQueue from "@/components/pro/PendingActivationQueue";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -322,6 +323,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         className="max-w-6xl mx-auto px-6 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <PendingActivationQueue onActivated={() => syncDbClients()} />
+
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
             <CardTitle className="text-white">{addLabel}</CardTitle>

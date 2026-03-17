@@ -125,11 +125,23 @@ The coaching system is built as a scalable, slug-based platform — not hardcode
 - Backend calls `resolveCoach(slug)` → reads `COACH_JEN_USER_ID` and `COACH_JEN_STUDIO_ID` from env
 - Creates studio membership + drops a message in coach inbox
 
+### Pro Portal (Coach Dashboard) — /pro/clients
+
+Coaches manage their client queue directly from `/pro/clients` (Trainer Studio Portal):
+
+- **PendingActivationQueue** (`client/src/components/pro/PendingActivationQueue.tsx`) — Fetches new clients via `GET /api/coaching/queue/new-clients`, shows overdue badges (24h+), one-tap orange "Activate Client" pill button. Only renders for registered coaches (403 for others = hidden).
+- **Client activation** — `POST /api/coaching/activate-client/:clientId` updates membership status to "active", scoped by `studioId` for security, then sends a Resend activation email to the client via `sendCoachActivationEmail()`.
+- **Queue endpoint** — `GET /api/coaching/queue/new-clients` returns pending clients with `hoursSincePaid` and `overdue` (>24h) flags.
+- **Retired**: `/coach/queue` standalone route removed — `CoachQueue.tsx` now redirects to `/pro/clients`.
+
 ### Key Files
 
 - `client/src/config/coaches.ts` — frontend coach registry
 - `server/config/coaches.ts` — server coach registry + `resolveCoach()` helper
-- `server/routes/coaching.ts` — `/api/coaching/notify-coach` endpoint (slug-driven)
+- `server/routes/coaching.ts` — notify-coach, activate-client, queue endpoints
+- `server/services/emailService.ts` — `sendCoachActivationEmail()` for client activation emails
+- `client/src/components/pro/PendingActivationQueue.tsx` — embedded queue widget inside Pro Portal
+- `client/src/pages/pro/ProClients.tsx` — Pro Portal; renders PendingActivationQueue at top
 - `client/src/pages/ApplyGuidance.tsx` — onboarding form → Stripe
 - `client/src/pages/CheckoutSuccess.tsx` — post-payment coach notification + coaching-specific success UI
 - `client/src/pages/CoachesComingSoon.tsx` — coach selection grid

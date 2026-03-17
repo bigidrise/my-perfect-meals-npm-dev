@@ -90,6 +90,76 @@ export async function sendPasswordResetEmail({
   }
 }
 
+export async function sendCoachActivationEmail({
+  to,
+  coachDisplayName,
+  appUrl,
+}: {
+  to: string;
+  coachDisplayName: string;
+  appUrl: string;
+}) {
+  if (!resend) {
+    console.log('⚠️ Resend service not available - skipping activation email');
+    return null;
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: `Your coaching program is ready — ${coachDisplayName}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #c2410c 0%, #ea580c 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Your Program Is Live</h1>
+          </div>
+
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-top: 0;">
+              Great news — <strong>${coachDisplayName}</strong> has activated your coaching program on My Perfect Meals.
+            </p>
+
+            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+              Your personalized nutrition journey officially starts now. Log into your account to see your dashboard and connect with your coach.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${appUrl}" style="display: inline-block; background: #ea580c; color: white; padding: 14px 32px; text-decoration: none; border-radius: 999px; font-weight: 600; font-size: 16px;">
+                Open My Dashboard
+              </a>
+            </div>
+
+            <div style="background: #fff7ed; border-left: 4px solid #ea580c; padding: 16px; margin: 20px 0; border-radius: 4px;">
+              <p style="color: #9a3412; font-size: 14px; margin: 0; line-height: 1.6;">
+                <strong>What's next:</strong><br>
+                Your coach will be in touch through the messaging system inside the app. Keep an eye on your inbox and notifications.
+              </p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-bottom: 0;">
+              My Perfect Meals — Personalized Nutrition &amp; Meal Planning
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Activation email error:', error);
+      return null;
+    }
+
+    console.log('✅ Coach activation email sent:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('❌ Activation email failed:', err);
+    return null;
+  }
+}
+
 export async function sendCareTeamInvite({
   to,
   patientName,
