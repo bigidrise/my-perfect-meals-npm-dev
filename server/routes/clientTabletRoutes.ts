@@ -5,7 +5,7 @@ import { clientLinks } from "../db/schema/procare";
 import { users } from "../../shared/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
-import { moderateContent } from "../services/tabletModerationService";
+import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 
@@ -118,11 +118,12 @@ router.post("/message", async (req: Request, res: Response) => {
       "message_blocked",
       "message",
       undefined,
-      { severity: moderation.severity, reason: moderation.reason, sender: "client" }
+      { severity: moderation.severity, category: moderation.category, reason: moderation.reason, sender: "client" }
     );
     res.status(422).json({
-      error: "Message blocked due to content policy violation",
+      error: BLOCKED_MESSAGE,
       severity: moderation.severity,
+      category: moderation.category,
       reason: moderation.reason,
     });
     return;
