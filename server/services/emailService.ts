@@ -196,10 +196,11 @@ export async function sendCareTeamInvite({
       subject: subjectLine,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 28px;">${ctaText}</h1>
-            <p style="color: rgba(255,255,255,0.85); margin: 12px 0 20px; font-size: 15px;">Get started by clicking below:</p>
-            <a href="${APP_URL}" style="display: inline-block; background: white; color: #6d28d9; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 50px; text-decoration: none; letter-spacing: 0.3px;">Get Started →</a>
+          <div style="background: linear-gradient(135deg, #000000 0%, #F97316 50%, #000000 100%); padding: 36px 30px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <img src="${APP_URL}/icons/icon-192x192.png" alt="My Perfect Meals" style="width: 64px; height: 64px; border-radius: 16px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" />
+            <h1 style="color: white; margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">${ctaText}</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 10px 0 22px; font-size: 15px;">Get started by clicking below:</p>
+            <a href="${APP_URL}" style="display: inline-block; background: white; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 50px; text-decoration: none; letter-spacing: 0.3px;">Get Started →</a>
           </div>
           
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
@@ -215,17 +216,17 @@ export async function sendCareTeamInvite({
               <strong>Your Invitation Code:</strong>
             </p>
             
-            <div style="background: #f3f4f6; border: 2px solid #6d28d9; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-              <div style="font-size: 32px; font-weight: bold; color: #6d28d9; letter-spacing: 2px; font-family: monospace;">
+            <div style="background: #fff7ed; border: 2px solid #F97316; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+              <div style="font-size: 32px; font-weight: bold; color: #ea580c; letter-spacing: 4px; font-family: monospace;">
                 ${inviteCode}
               </div>
             </div>
             
-            <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0; border-radius: 4px;">
-              <p style="color: #1e40af; font-size: 14px; margin: 0; line-height: 1.8;">
+            <div style="background: #f9fafb; border-left: 4px solid #F97316; padding: 16px; margin: 20px 0; border-radius: 4px;">
+              <p style="color: #1c1c1c; font-size: 14px; margin: 0; line-height: 1.8;">
                 <strong>To accept this invitation:</strong><br><br>
                 1. <strong>Download or open My Perfect Meals</strong><br>
-                &nbsp;&nbsp;&nbsp;<a href="${APP_URL}" style="color: #3b82f6;">${APP_URL}</a><br><br>
+                &nbsp;&nbsp;&nbsp;<a href="${APP_URL}" style="color: #ea580c;">${APP_URL}</a><br><br>
                 2. Create your account and complete setup<br><br>
                 3. Go to the <strong>More</strong> tab<br><br>
                 4. Tap <strong>Connect with Access Code</strong><br><br>
@@ -233,8 +234,8 @@ export async function sendCareTeamInvite({
               </p>
             </div>
 
-            <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 16px; margin: 20px 0; border-radius: 4px;">
-              <p style="color: #92400e; font-size: 14px; margin: 0; line-height: 1.6;">
+            <div style="background: #fff7ed; border-left: 4px solid #F97316; padding: 14px 16px; margin: 20px 0; border-radius: 4px;">
+              <p style="color: #7c2d12; font-size: 14px; margin: 0; line-height: 1.6;">
                 <strong>⚠️ Important:</strong> To work with your ${proLabel}, you'll need to activate the <strong>ProCare (Ultimate) plan</strong> during setup.
               </p>
             </div>
