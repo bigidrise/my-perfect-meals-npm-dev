@@ -328,64 +328,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
 
         <PendingCoachInvites />
 
-        <Card className="bg-white/5 border border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">{addLabel}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input
-                placeholder="Name"
-                className="bg-black/30 border-white/30 text-white"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <Input
-                placeholder="Email (optional)"
-                className="bg-black/30 border-white/30 text-white"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              {false && (
-                <Select value={defaultRole} onValueChange={() => {}}>
-                  <SelectTrigger className="bg-black/30 border-white/30 text-white">
-                    <SelectValue placeholder="Professional Role" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/95 border-white/20">
-                    <SelectItem value="trainer" className="text-white">
-                      Trainer
-                    </SelectItem>
-                    <SelectItem value="doctor" className="text-white">
-                      Doctor
-                    </SelectItem>
-                    <SelectItem value="np" className="text-white">
-                      Nurse Practitioner
-                    </SelectItem>
-                    <SelectItem value="rn" className="text-white">
-                      RN
-                    </SelectItem>
-                    <SelectItem value="pa" className="text-white">
-                      PA
-                    </SelectItem>
-                    <SelectItem value="nutritionist" className="text-white">
-                      Nutritionist
-                    </SelectItem>
-                    <SelectItem value="dietitian" className="text-white">
-                      Dietitian
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <Button
-              onClick={add}
-              className="w-full bg-white/10 border border-white/20 text-white active:scale-[0.98]"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              {addLabel}
-            </Button>
-          </CardContent>
-        </Card>
 
         <div className="flex justify-end mb-2">
           <Button
