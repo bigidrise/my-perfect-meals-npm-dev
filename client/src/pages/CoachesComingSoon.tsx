@@ -14,12 +14,14 @@ type Coach = {
   image: string;
   bio: string;
   available: boolean;
-  availableDate?: string;
   isFounder?: boolean;
+  isPlaceholder?: boolean;
 };
 
 const FOUNDER_BIO =
   "I've spent over 25 years working in performance nutrition, body composition, and structured meal design. My background combines competitive athletics, clinical awareness, and real-world coaching experience. My Perfect Meals was built to remove confusion, eliminate food stress, and help people eat confidently without restriction.";
+
+const CHEF_LOGO = "/assets/MPMFlameChefLogo.png";
 
 const coaches: Coach[] = [
   {
@@ -30,16 +32,57 @@ const coaches: Coach[] = [
     available: true,
     isFounder: true,
   },
+  {
+    id: "placeholder-1",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    available: false,
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-2",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    available: false,
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-3",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    available: false,
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-4",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    available: false,
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-5",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    available: false,
+    isPlaceholder: true,
+  },
 ];
 
 export default function MeetYourCoach() {
   const [, setLocation] = useLocation();
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
 
-  const sortedCoaches = [
-    ...coaches.filter((c) => c.isFounder),
-    ...coaches.filter((c) => !c.isFounder),
-  ];
+  const handleCardTap = (coach: Coach) => {
+    if (!coach.isPlaceholder) {
+      setSelectedCoach(coach);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white px-4 py-6">
@@ -55,40 +98,49 @@ export default function MeetYourCoach() {
         <h1 className="text-xl font-bold">Meet Your Coach</h1>
       </div>
 
-      {/* 2-column grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {sortedCoaches.map((coach) => (
+      {/* 3-column grid */}
+      <div className="grid grid-cols-3 gap-2">
+        {coaches.map((coach) => (
           <div
             key={coach.id}
-            onClick={() => setSelectedCoach(coach)}
-            className="bg-black/70 border border-white/10 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform"
+            onClick={() => handleCardTap(coach)}
+            className={`bg-black/70 border border-white/10 rounded-2xl overflow-hidden transition-transform ${
+              coach.isPlaceholder
+                ? "opacity-50 cursor-default"
+                : "cursor-pointer active:scale-[0.97]"
+            }`}
           >
             {/* Square image */}
             <div className="relative w-full">
               <img
                 src={coach.image}
                 alt={coach.name}
-                className="w-full aspect-square object-cover object-top"
+                className={`w-full aspect-square object-cover ${
+                  coach.isPlaceholder ? "object-center p-4" : "object-top"
+                }`}
               />
               {coach.isFounder && (
-                <div className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow">
+                <div className="absolute top-1.5 left-1.5 bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold shadow">
                   Founder
                 </div>
               )}
             </div>
 
-            <div className="p-3">
-              <p className="font-semibold text-sm leading-tight">{coach.name}</p>
-              <p className="text-xs text-white/60 mt-0.5">
-                {coach.available ? "Available now" : `Available ${coach.availableDate}`}
-              </p>
+            <div className="p-2">
+              <p className="font-semibold text-xs leading-tight truncate">{coach.name}</p>
+              {!coach.isPlaceholder && (
+                <p className="text-[10px] text-green-400 mt-0.5">Available</p>
+              )}
             </div>
           </div>
         ))}
       </div>
 
       {/* Bottom Sheet */}
-      <Sheet open={!!selectedCoach} onOpenChange={(open) => { if (!open) setSelectedCoach(null); }}>
+      <Sheet
+        open={!!selectedCoach}
+        onOpenChange={(open) => { if (!open) setSelectedCoach(null); }}
+      >
         <SheetContent
           side="bottom"
           className="bg-zinc-950 border-t border-white/10 text-white rounded-t-3xl px-5 pt-5 pb-8 max-h-[90vh] overflow-y-auto"
