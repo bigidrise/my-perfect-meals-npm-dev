@@ -55,7 +55,7 @@ const PERSONAL_INFO_HANDLES: RegExp[] = [
 // disrespect better than catching individual words. Only explicitly sexual
 // or predatory intent is blocked here.
 const INAPPROPRIATE_RELATIONSHIP: RegExp[] = [
-  /\b(i\s+love\s+you\b|i\s+like\s+you\s+(as\s+more|romantically|that\s+way))/i,
+  /\bi\s+like\s+you\s+(as\s+more|romantically|that\s+way)\b/i,
   /\byou('re|\s+are)\s+(so\s+)?(sexy|hot)\b/i,
   /\bi('m|\s+am)\s+(attracted|drawn)\s+to\s+you\b/i,
   /\b(let('s|\s+us)|want\s+to)\s+(date|hook\s+up|meet\s+up\s+privately|have\s+dinner|go\s+out)\b/i,
