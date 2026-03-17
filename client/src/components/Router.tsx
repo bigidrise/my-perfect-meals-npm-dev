@@ -16,6 +16,17 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const COACHING_ADMIN_USER_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
 
+function CoachingAdminGate({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  if (!user) return null;
+  if (user.id !== COACHING_ADMIN_USER_ID) {
+    setLocation("/");
+    return null;
+  }
+  return <Component />;
+}
+
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
 import Planner from "@/pages/Planner";
@@ -327,7 +338,7 @@ export default function Router() {
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/pricing" component={PricingPage} />
-        <Route path="/apply-guidance" component={ApplyGuidance} />
+        <Route path="/apply-guidance" component={() => <CoachingAdminGate component={ApplyGuidance} />} />
         <Route path="/paywall" component={PricingPage} />
         <Route path="/select-builder" component={MealBuilderSelection} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
@@ -495,7 +506,7 @@ export default function Router() {
         <Route path="/emotion-ai" component={LifestyleLandingPage} />
         {/* Founders Route */}
         <Route path="/founders" component={FoundersPage} />
-        <Route path="/coaches" component={CoachesComingSoon} />
+        <Route path="/coaches" component={() => <CoachingAdminGate component={CoachesComingSoon} />} />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}
         <Route path="/supplement-hub" component={SupplementHub} />
