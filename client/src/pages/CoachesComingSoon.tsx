@@ -42,7 +42,7 @@ const coaches: Coach[] = [
   { id: "placeholder-5", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
 ];
 
-const DEFAULT_AGREED = { conduct: false, expectations: false, nonMedical: false };
+const DEFAULT_AGREED = { conduct: false, expectations: false, nonMedical: false, conversationPrivacy: false };
 
 export default function MeetYourCoach() {
   const [, setLocation] = useLocation();
@@ -215,6 +215,20 @@ export default function MeetYourCoach() {
                   <span className="text-sm text-white/80 leading-snug">
                     <span className="text-white font-medium">Non-Medical Disclaimer — </span>
                     I understand this is not medical diagnosis or treatment.
+                  </span>
+                </label>
+
+                {/* Conversation privacy */}
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreed.conversationPrivacy}
+                    onChange={() => toggleAgreed("conversationPrivacy")}
+                    className="mt-0.5 w-4 h-4 accent-orange-500 shrink-0"
+                  />
+                  <span className="text-sm text-white/80 leading-snug">
+                    <span className="text-white font-medium">Conversation Privacy — </span>
+                    I understand that My Perfect Meals does not record, store, or provide transcripts of coach-client conversations. Communication is private between me and my coach, and it is my responsibility to save any information I wish to keep.
                   </span>
                 </label>
               </div>

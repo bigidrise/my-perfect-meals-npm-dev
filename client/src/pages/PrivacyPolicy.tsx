@@ -113,28 +113,41 @@ export default function PrivacyPolicy() {
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold text-white">5. Your Rights</h3>
+            <h3 className="text-lg font-semibold text-white">5. Messaging Privacy</h3>
+            <p className="text-white/70 text-sm leading-relaxed">
+              My Perfect Meals does not record or provide transcripts of coach-client conversations.
+            </p>
+            <p className="text-white/70 text-sm leading-relaxed">
+              All communication within ProCare is intended to remain private between the client and the coach. Users are responsible for saving any information they wish to keep.
+            </p>
+            <p className="text-white/70 text-sm leading-relaxed">
+              My Perfect Meals does not act as a record-keeping or documentation service for conversations.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-lg font-semibold text-white">6. Your Rights</h3>
             <p className="text-white/70 text-sm">Depending on your region, you may request a copy of your data, update or delete your data, withdraw consent, or close your account at any time.</p>
             <p className="text-white/70 text-sm">Contact us at <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a> for requests.</p>
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold text-white">6. Children's Privacy</h3>
+            <h3 className="text-lg font-semibold text-white">7. Children's Privacy</h3>
             <p className="text-white/70 text-sm">My Perfect Meals is intended for users 13+. We do not knowingly collect data from children under 13.</p>
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold text-white">7. AI Usage Disclosure</h3>
+            <h3 className="text-lg font-semibold text-white">8. AI Usage Disclosure</h3>
             <p className="text-white/70 text-sm">My Perfect Meals uses generative AI to suggest meals, personalize macros, transform cravings into healthier versions, and provide dietary recommendations within your selected guardrails. AI suggestions are not medical advice.</p>
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold text-white">8. Changes to This Policy</h3>
+            <h3 className="text-lg font-semibold text-white">9. Changes to This Policy</h3>
             <p className="text-white/70 text-sm">We may update this policy periodically. Continued use of the app means you accept the updated version.</p>
           </section>
 
           <section className="space-y-3 border-t border-white/10 pt-4">
-            <h3 className="text-lg font-semibold text-white">9. Contact Us</h3>
+            <h3 className="text-lg font-semibold text-white">10. Contact Us</h3>
             <p className="text-white/70 text-sm">My Perfect Meals</p>
             <p className="text-white/70 text-sm">Support Email: <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a></p>
           </section>
