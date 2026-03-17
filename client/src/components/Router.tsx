@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 
+const COACHING_ADMIN_USER_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
+
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
 import Planner from "@/pages/Planner";
