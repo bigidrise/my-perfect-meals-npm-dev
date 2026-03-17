@@ -3,20 +3,10 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import PendingActivationQueue from "@/components/pro/PendingActivationQueue";
-import PendingCoachInvites from "@/components/pro/PendingCoachInvites";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   proStore,
   ClientProfile,
@@ -25,7 +15,6 @@ import {
   BuilderType,
 } from "@/lib/proData";
 import {
-  Plus,
   ArrowLeft,
   Archive,
   RotateCcw,
@@ -50,8 +39,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     proStore.listClients(resolvedWorkspace),
   );
   const [showArchived, setShowArchived] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [dbSynced, setDbSynced] = useState(false);
   const [folderClient, setFolderClient] = useState<ClientProfile | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
@@ -169,21 +156,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     }
   }
 
-  const add = () => {
-    if (!name.trim()) return;
-    const c: ClientProfile = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      email: email.trim() || undefined,
-      role: defaultRole,
-      workspace: resolvedWorkspace,
-    };
-    proStore.upsertClient(c);
-    setClients([...proStore.listClients(resolvedWorkspace)]);
-    setName("");
-    setEmail("");
-  };
-
   const archiveClient = (id: string) => {
     proStore.archiveClient(id);
     setClients([...proStore.listClients(resolvedWorkspace)]);
@@ -268,7 +240,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const portalTitle = isPhysician
     ? "Physicians Clinic Portal"
     : "Trainer Studio Portal";
-  const addLabel = isPhysician ? "Add Patient" : "Add Client";
   const entityLabel = isPhysician ? "patient" : "client";
 
   const quickTour = useQuickTour(`pro-clients-${resolvedWorkspace}`);
@@ -276,8 +247,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const PRO_CLIENTS_TOUR_STEPS: TourStep[] = [
     {
       icon: "1",
-      title: `Add a ${isPhysician ? "Patient" : "Client"}`,
-      description: `Enter your ${entityLabel}'s name and email to add them to your ${isPhysician ? "clinic" : "studio"}.`,
+      title: `Pending Activation`,
+      description: `${isPhysician ? "Patients" : "Clients"} who have completed payment appear here. Tap Activate to move them to your active roster.`,
     },
     {
       icon: "2",
@@ -325,9 +296,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <PendingActivationQueue onActivated={() => syncDbClients()} />
-
-        <PendingCoachInvites />
-
 
         <div className="flex justify-end mb-2">
           <Button
