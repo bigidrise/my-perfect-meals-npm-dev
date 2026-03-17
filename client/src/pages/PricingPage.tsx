@@ -738,7 +738,6 @@ export default function PricingPage() {
               </CardContent>
             </Card>
           </div>
-        </div>
 
         {/* Family Plans Section */}
         <div className="mb-12">
