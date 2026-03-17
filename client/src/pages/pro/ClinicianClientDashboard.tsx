@@ -491,8 +491,8 @@ export default function ClinicianClientDashboard() {
             </div>
 
             <div className="col-span-full flex gap-2">
-              <Button onClick={saveTargets} className="bg-lime-600 border border-white/20 text-white active:scale-[0.98]">
-                Save Targets
+              <Button onClick={saveTargets} className="bg-lime-600 border border-white/20 text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 active:scale-[0.98] flex-1">
+                Save Targets &amp; Dietary Directives
               </Button>
               <Button
                 onClick={async () => {
