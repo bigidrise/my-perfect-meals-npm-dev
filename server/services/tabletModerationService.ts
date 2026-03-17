@@ -42,9 +42,9 @@ const PERSONAL_INFO_PHONE: RegExp[] = [
   /\b\d{3}[\s.\-]\d{4}\b/,
 ];
 
-// Social media handles and explicit off-platform contact info
+// Explicit social media ownership ("my ig is...", "my snap handle is...")
 const PERSONAL_INFO_HANDLES: RegExp[] = [
-  /\bmy\s+(ig|insta|instagram|snap(chat)?|fb|facebook|twitter|tiktok|telegram|whatsapp|signal)\s+(is|handle|username|account|@)\b/i,
+  /\bmy\s+(ig|insta|instagram|snap(chat)?|fb|facebook|twitter|tiktok|telegram|whatsapp|signal|discord|linkedin|skype)\s+(is|handle|username|account|page|@)/i,
   /\b@[a-zA-Z0-9_]{3,}\b/,
 ];
 
@@ -76,9 +76,9 @@ const GROOMING_PREDATORY: RegExp[] = [
 // ─── MEDIUM SEVERITY ──────────────────────────────────────────────────────────
 // Block + log. May be ignorance, not malice.
 
-// Off-platform contact attempts
-const OFF_PLATFORM: RegExp[] = [
-  /\b(text|call|ring|message|dm|pm)\s+me\b/i,
+// Off-platform: standalone phrases (no platform name needed — intent is clear)
+const OFF_PLATFORM_STANDALONE: RegExp[] = [
+  /\b(text|call|ring|dm|pm)\s+me\b/i,
   /\bhit\s+me\s+up\b/i,
   /\b(reach|contact|find)\s+me\s+(outside|off|beyond|away\s+from)\b/i,
   /\boutside\s+(the\s+)?(app|platform|system|my\s+perfect\s+meals)\b/i,
@@ -86,13 +86,30 @@ const OFF_PLATFORM: RegExp[] = [
   /\b(my|the)\s+number\s+is\b/i,
   /\bi('ll|\s+will)\s+send\s+you\s+my\s+(number|contact|info|details)\b/i,
   /\b(whatsapp|telegram|signal)\s+(me|us)\b/i,
-  /\bfind\s+me\s+on\b/i,
-  /\bfollow\s+me\s+on\b/i,
-  /\badd\s+me\s+on\b/i,
+  /\b(find|follow|add|look\s+me\s+up)\s+me\s+on\b/i,
   /\b(connect|talk)\s+(with\s+me\s+)?(offline|privately|in\s+private|outside)\b/i,
-  /\b(instagram|facebook|snapchat|tiktok|twitter)\.com\b/i,
+  /\b(instagram|facebook|snapchat|tiktok|twitter|discord)\.com\b/i,
   /\b(give|send|share)\s+(me\s+)?(your\s+)?(number|contact|phone|email|address)\b/i,
+  /\bmessage\s+me\s+(on|at|via|through|over)\b/i,
+  /\breach\s+(me|out)\s+(on|at|via|through|over)\b/i,
 ];
+
+// Off-platform combo: intent verb + platform name in the same message
+// "contact me on Facebook" ✅ blocked | "I saw a recipe on Facebook" ✅ allowed
+const OFF_PLATFORM_INTENT =
+  /\b(contact|reach|message|dm|pm|find|connect|talk|add|follow|look\s+up|meet|get)\s+(me\s+)?(at|on|via|through|over|using|in)?\b/i;
+
+const OFF_PLATFORM_PLATFORM_NAMES =
+  /\b(facebook|instagram|ig|snapchat|snap|whatsapp|telegram|discord|twitter|tiktok|signal|x\.com|linkedin|skype)\b/i;
+
+function checkOffPlatformCombo(text: string): string[] {
+  const intentMatch = text.match(OFF_PLATFORM_INTENT);
+  const platformMatch = text.match(OFF_PLATFORM_PLATFORM_NAMES);
+  if (intentMatch && platformMatch) {
+    return [intentMatch[0].trim(), platformMatch[0].trim()];
+  }
+  return [];
+}
 
 // Professional misconduct — condescending or coercive
 const PROFESSIONAL_MISCONDUCT: RegExp[] = [
@@ -173,10 +190,16 @@ export function moderateContent(text: string): ModerationResult {
     return { allowed: false, severity: "high", category: "grooming", reason: "grooming or predatory language", matchedTerms: grooming };
   }
 
-  // ── MEDIUM: off-platform contact attempt ───────────────────────────────────
-  const offPlatform = matchAny(text, OFF_PLATFORM);
-  if (offPlatform.length > 0) {
-    return { allowed: false, severity: "medium", category: "off_platform", reason: "off-platform contact attempt", matchedTerms: offPlatform };
+  // ── MEDIUM: off-platform — standalone clear intent ────────────────────────
+  const offPlatformStandalone = matchAny(text, OFF_PLATFORM_STANDALONE);
+  if (offPlatformStandalone.length > 0) {
+    return { allowed: false, severity: "medium", category: "off_platform", reason: "off-platform contact attempt", matchedTerms: offPlatformStandalone };
+  }
+
+  // ── MEDIUM: off-platform — intent verb + platform name combo ─────────────
+  const offPlatformCombo = checkOffPlatformCombo(text);
+  if (offPlatformCombo.length > 0) {
+    return { allowed: false, severity: "medium", category: "off_platform", reason: "off-platform contact attempt", matchedTerms: offPlatformCombo };
   }
 
   // ── MEDIUM: professional misconduct ────────────────────────────────────────
