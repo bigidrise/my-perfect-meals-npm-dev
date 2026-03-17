@@ -330,6 +330,7 @@ export default function Router() {
         <Route path="/select-builder" component={MealBuilderSelection} />
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
+        <Route path="/billing/success" component={CheckoutSuccess} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/procare-info" component={ProCareInfoPage} />
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />

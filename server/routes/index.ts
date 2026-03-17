@@ -6,6 +6,7 @@ import diabetesRoutes from "./diabetes";
 import glp1ShotsRoutes from "./glp1Shots";
 import glp1Router from "./glp1";
 import patientAssignmentRoutes from "./patientAssignment";
+import coachingRouter from "./coaching";
 
 // ...
 
@@ -13,3 +14,4 @@ app.use("/api/diabetes", diabetesRoutes);
   app.use("/api/glp1-shots", glp1ShotsRoutes);
   app.use("/api/glp1", glp1Router);
   app.use("/api/patients", patientAssignmentRoutes);
+  app.use("/api/coaching", coachingRouter);

@@ -92,6 +92,7 @@ import { templateRouter } from "./routes/mealTemplates";
 import { userMealPrefsRouter } from "./routes/userMealPrefs";
 import stripeRouter from "./routes/stripe";
 import stripeCheckoutRouter from "./routes/stripeCheckout";
+import coachingRouter from "./routes/coaching";
 import stripeWebhookRouter from "./routes/stripeWebhook";
 import builderPlansRouter from "./routes/builderPlans";
 
@@ -280,6 +281,9 @@ app.use("/api", keepaliveRouter);
 
 // Stripe checkout route (after express.json())
 app.use("/api/stripe", stripeCheckoutRouter);
+
+// Coaching notifications
+app.use("/api/coaching", coachingRouter);
 
 // Stripe checkout and billing (legacy routes)
 app.use("/api/stripe", stripeRouter);

@@ -4,11 +4,25 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
+
+function getCurrentUser() {
+  try {
+    const raw = localStorage.getItem("mpm_current_user") || localStorage.getItem("user");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 export default function ApplyGuidance() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     goal: "",
@@ -22,10 +36,39 @@ export default function ApplyGuidance() {
     formData.struggle.trim() !== "" &&
     formData.commitment;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canContinue) return;
-    setLocation("/pricing?coach=idrise");
+    if (!canContinue || submitting) return;
+
+    const user = getCurrentUser();
+    const sessionId = crypto.randomUUID();
+
+    sessionStorage.setItem("mpm_pending_coach", JSON.stringify({
+      coachSlug: "idrise",
+      clientEmail: user?.email || "",
+      sessionId,
+      ts: Date.now(),
+    }));
+
+    setSubmitting(true);
+    try {
+      await startCheckout("mpm_guidance", { context: "coaching" });
+    } catch (err: any) {
+      sessionStorage.removeItem("mpm_pending_coach");
+      if (err?.code === IOS_BLOCK_ERROR) {
+        toast({
+          title: "Use Browser for Checkout",
+          description: "Please open this page in Safari or Chrome to complete your purchase.",
+        });
+      } else {
+        toast({
+          title: "Something went wrong",
+          description: err?.message || "Please try again.",
+          variant: "destructive",
+        });
+      }
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -116,13 +159,23 @@ export default function ApplyGuidance() {
               <Button
                 type="submit"
                 size="lg"
-                disabled={!canContinue}
+                disabled={!canContinue || submitting}
                 className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-30 disabled:cursor-not-allowed text-black font-semibold"
               >
-                Continue to Secure Checkout
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Redirecting to checkout...
+                  </>
+                ) : (
+                  "Continue to Secure Checkout"
+                )}
               </Button>
               <p className="text-xs text-center text-white/40">
                 You will not be charged until your coach activates your program.
+              </p>
+              <p className="text-xs text-center text-white/30">
+                Your coach will contact you within 24 hours after activation.
               </p>
             </div>
           </form>

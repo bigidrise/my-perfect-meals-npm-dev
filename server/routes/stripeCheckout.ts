@@ -91,7 +91,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
         },
       ],
 
-      success_url: `${appUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
 
       cancel_url: `${appUrl}/billing/cancel`,
 
