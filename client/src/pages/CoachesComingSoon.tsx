@@ -26,7 +26,7 @@ const CHEF_LOGO = "/assets/MPMFlameChefLogo.png";
 const coaches: Coach[] = [
   {
     id: "idrise",
-    name: "Coach Idrise",
+    name: "Founder–Coach Idrise",
     image: "/assets/founder-photo.jpg",
     bio: FOUNDER_BIO,
     available: true,
