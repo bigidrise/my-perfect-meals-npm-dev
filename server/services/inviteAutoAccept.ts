@@ -164,6 +164,13 @@ export async function autoAcceptPendingInvites(
     if (pendingStudioInvites.length > 0) {
       const invite = pendingStudioInvites[0];
 
+      const [studio] = await db
+        .select()
+        .from(studios)
+        .where(eq(studios.id, invite.studioId));
+
+      const workspace = studio?.type === "clinic" ? "clinician" : "trainer";
+
       const result = await db.transaction(async (tx) => {
         const [membership] = await tx
           .insert(studioMemberships)
@@ -171,6 +178,7 @@ export async function autoAcceptPendingInvites(
             studioId: invite.studioId,
             clientUserId: userId,
             status: "active",
+            workspace,
             joinedAt: new Date(),
           })
           .returning();
@@ -184,11 +192,6 @@ export async function autoAcceptPendingInvites(
 
         return membership;
       });
-
-      const [studio] = await db
-        .select()
-        .from(studios)
-        .where(eq(studios.id, invite.studioId));
 
       console.log(`✅ [InviteAutoAccept] Auto-accepted studio invite for user ${userId}`);
 
