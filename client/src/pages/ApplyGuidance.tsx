@@ -5,13 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 export default function ApplyGuidance() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     goal: "",
@@ -19,58 +16,35 @@ export default function ApplyGuidance() {
     commitment: false,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const canContinue =
+    formData.name.trim() !== "" &&
+    formData.goal.trim() !== "" &&
+    formData.struggle.trim() !== "" &&
+    formData.commitment;
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      const response = await fetch("/api/apply-guidance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Application Submitted",
-          description: "The founder will review your application within 48-72 hours.",
-        });
-        setLocation("/pricing");
-      } else {
-        toast({
-          title: "Submission Failed",
-          description: "Please try again later.",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({
-        title: "Submission Failed",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    if (!canContinue) return;
+    setLocation("/pricing?coach=idrise");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-20">
       <MobileHeaderGuard>
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => setLocation("/pricing")}
-            className="flex items-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-lg font-bold text-white">Apply for Personal Guidance</h1>
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/pricing")}
+              className="flex items-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-lg font-bold text-white">Start Personal Guidance</h1>
+          </div>
         </div>
-      </div>
       </MobileHeaderGuard>
 
       <div
@@ -82,7 +56,7 @@ export default function ApplyGuidance() {
             <h2 className="text-2xl font-bold text-white mb-2">MPM Personal Guidance</h2>
             <p className="text-white/70 text-sm">
               Work directly with the founder of My Perfect Meals.
-              Applications are reviewed manually.
+              Tell us about your goals to get started.
             </p>
           </div>
 
@@ -132,25 +106,26 @@ export default function ApplyGuidance() {
                 required
                 className="mt-1 accent-amber-500"
               />
-              <Label htmlFor="commitment" className="text-white/80 text-sm leading-relaxed">
+              <Label htmlFor="commitment" className="text-white/80 text-sm leading-relaxed cursor-pointer">
                 I confirm a 6-month commitment and understand this is async, in-app guidance only.
                 No video calls. No off-platform contact.
               </Label>
             </div>
 
-            <Button
-              type="submit"
-              size="lg"
-              disabled={submitting}
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold"
-            >
-              {submitting ? "Submitting..." : "Submit Application"}
-            </Button>
+            <div className="space-y-2">
+              <Button
+                type="submit"
+                size="lg"
+                disabled={!canContinue}
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-30 disabled:cursor-not-allowed text-black font-semibold"
+              >
+                Continue to Secure Checkout
+              </Button>
+              <p className="text-xs text-center text-white/40">
+                You will not be charged until your coach activates your program.
+              </p>
+            </div>
           </form>
-
-          <p className="text-xs text-center text-white/50 mt-6">
-            Applications reviewed manually. You'll hear back within 48-72 hours if selected.
-          </p>
         </div>
       </div>
     </div>
