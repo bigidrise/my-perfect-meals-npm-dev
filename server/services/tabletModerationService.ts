@@ -85,30 +85,45 @@ const OFF_PLATFORM_STANDALONE: RegExp[] = [
   /\boff\s+(the\s+)?(app|platform)\b/i,
   /\b(my|the)\s+number\s+is\b/i,
   /\bi('ll|\s+will)\s+send\s+you\s+my\s+(number|contact|info|details)\b/i,
-  /\b(whatsapp|telegram|signal)\s+(me|us)\b/i,
   /\b(find|follow|add|look\s+me\s+up)\s+me\s+on\b/i,
   /\b(connect|talk)\s+(with\s+me\s+)?(offline|privately|in\s+private|outside)\b/i,
-  /\b(instagram|facebook|snapchat|tiktok|twitter|discord)\.com\b/i,
   /\b(give|send|share)\s+(me\s+)?(your\s+)?(number|contact|phone|email|address)\b/i,
   /\bmessage\s+me\s+(on|at|via|through|over)\b/i,
   /\breach\s+(me|out)\s+(on|at|via|through|over)\b/i,
 ];
 
-// Off-platform combo: intent verb + platform name in the same message
-// "contact me on Facebook" ✅ blocked | "I saw a recipe on Facebook" ✅ allowed
-const OFF_PLATFORM_INTENT =
-  /\b(contact|reach|message|dm|pm|find|connect|talk|add|follow|look\s+up|meet|get)\s+(me\s+)?(at|on|via|through|over|using|in)?\b/i;
+// Off-platform: closed system — any mention of an external platform is blocked.
+// We normalize the text first to catch obfuscated/spaced versions like "face book",
+// "insta gram", or "x . com". A small allowlist permits legitimate professional
+// references (e.g. "YouTube tutorial", "Facebook ad campaign").
 
-const OFF_PLATFORM_PLATFORM_NAMES =
-  /\b(facebook|instagram|ig|snapchat|snap|whatsapp|telegram|discord|twitter|tiktok|signal|x\.com|linkedin|skype)\b/i;
+const EXTERNAL_PLATFORMS = [
+  "facebook", "instagram", "ig", "snapchat", "snap",
+  "whatsapp", "telegram", "discord", "twitter", "xcom",
+  "tiktok", "pinterest", "reddit", "linkedin", "youtube",
+  "skype", "signal", "wechat", "kik", "viber",
+];
 
-function checkOffPlatformCombo(text: string): string[] {
-  const intentMatch = text.match(OFF_PLATFORM_INTENT);
-  const platformMatch = text.match(OFF_PLATFORM_PLATFORM_NAMES);
-  if (intentMatch && platformMatch) {
-    return [intentMatch[0].trim(), platformMatch[0].trim()];
-  }
-  return [];
+// Normalized substrings that are explicitly allowed (clinical/educational context)
+const PLATFORM_ALLOWLIST = [
+  "facebookad", "instagramad", "youtubevideo", "youtubetutorial",
+  "youtuberecipe", "youtubestudy", "twitterstud", "redditthread",
+  "linkedinjob", "linkedincourse",
+];
+
+function normalizePlatformText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[\s.\-_]+/g, "")   // collapse spaces and common separators
+    .replace(/[^\w]/g, "");      // strip remaining punctuation
+}
+
+function checkExternalPlatform(text: string): string[] {
+  const normalized = normalizePlatformText(text);
+  const isAllowed = PLATFORM_ALLOWLIST.some((a) => normalized.includes(a));
+  if (isAllowed) return [];
+  const found = EXTERNAL_PLATFORMS.filter((p) => normalized.includes(p));
+  return found;
 }
 
 // Professional misconduct — condescending or coercive
@@ -196,10 +211,12 @@ export function moderateContent(text: string): ModerationResult {
     return { allowed: false, severity: "medium", category: "off_platform", reason: "off-platform contact attempt", matchedTerms: offPlatformStandalone };
   }
 
-  // ── MEDIUM: off-platform — intent verb + platform name combo ─────────────
-  const offPlatformCombo = checkOffPlatformCombo(text);
-  if (offPlatformCombo.length > 0) {
-    return { allowed: false, severity: "medium", category: "off_platform", reason: "off-platform contact attempt", matchedTerms: offPlatformCombo };
+  // ── MEDIUM: off-platform — any external platform mention (closed system) ──
+  // Normalizes text to catch "face book", "insta gram", "x . com", etc.
+  // Allowlist permits clinical/educational references like "YouTube tutorial".
+  const offPlatformPlatform = checkExternalPlatform(text);
+  if (offPlatformPlatform.length > 0) {
+    return { allowed: false, severity: "medium", category: "off_platform", reason: "external platform reference", matchedTerms: offPlatformPlatform };
   }
 
   // ── MEDIUM: professional misconduct ────────────────────────────────────────
