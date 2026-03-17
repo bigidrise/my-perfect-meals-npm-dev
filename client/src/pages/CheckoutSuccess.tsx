@@ -124,7 +124,10 @@ export default function CheckoutSuccess() {
                     "Content-Type": "application/json",
                     ...getAuthHeaders(),
                   },
-                  body: JSON.stringify({ coachSlug: pendingCoach.coachSlug }),
+                  body: JSON.stringify({
+                    coachSlug: pendingCoach.coachSlug,
+                    stripeSessionId: sessionId,
+                  }),
                 });
                 console.log("[Checkout] Coach notification sent");
               } catch (err) {
