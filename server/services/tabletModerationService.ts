@@ -48,10 +48,15 @@ const PERSONAL_INFO_HANDLES: RegExp[] = [
   /\b@[a-zA-Z0-9_]{3,}\b/,
 ];
 
-// Romantic, sexual, or flirtatious language
+// Romantic, sexual, or flirtatious language.
+// NOTE: Terms of endearment (sweetie, hun, honey, dear) and warm compliments
+// (beautiful, gorgeous, cute) are intentionally NOT blocked — they can reflect
+// cultural warmth and professional care. The rating system surfaces genuine
+// disrespect better than catching individual words. Only explicitly sexual
+// or predatory intent is blocked here.
 const INAPPROPRIATE_RELATIONSHIP: RegExp[] = [
-  /\b(i\s+love\s+you|i\s+like\s+you\s+(as\s+more|romantically|that\s+way))/i,
-  /\byou('re|\s+are)\s+(so\s+)?(sexy|hot|gorgeous|beautiful|attractive|cute)\b/i,
+  /\b(i\s+love\s+you\b|i\s+like\s+you\s+(as\s+more|romantically|that\s+way))/i,
+  /\byou('re|\s+are)\s+(so\s+)?(sexy|hot)\b/i,
   /\bi('m|\s+am)\s+(attracted|drawn)\s+to\s+you\b/i,
   /\b(let('s|\s+us)|want\s+to)\s+(date|hook\s+up|meet\s+up\s+privately|have\s+dinner|go\s+out)\b/i,
   /\b(be\s+my\s+(girlfriend|boyfriend|partner|babe|baby))\b/i,
