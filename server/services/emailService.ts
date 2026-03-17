@@ -200,7 +200,7 @@ export async function sendCareTeamInvite({
             <img src="${APP_URL}/icons/icon-192x192.png" alt="My Perfect Meals" style="width: 64px; height: 64px; border-radius: 16px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" />
             <h1 style="color: white; margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">${ctaText}</h1>
             <p style="color: rgba(255,255,255,0.85); margin: 10px 0 22px; font-size: 15px;">Get started by clicking below:</p>
-            <a href="${APP_URL}" style="display: inline-block; background: white; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 50px; text-decoration: none; letter-spacing: 0.3px;">Get Started →</a>
+            <a href="${APP_URL}" style="display: inline-block; background: #000000; color: #ffffff; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 50px; text-decoration: none; letter-spacing: 0.3px;">Get Started →</a>
           </div>
           
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
