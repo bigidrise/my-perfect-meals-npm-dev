@@ -190,6 +190,23 @@ export async function autoAcceptPendingInvites(
             .where(eq(studioInvites.id, si.id));
         }
 
+        // For clinic studios, also create a careTeamMember record so the
+        // patient appears on the physician's Care Team page.
+        if (studio?.type === "clinic" && studio?.ownerUserId) {
+          await tx
+            .insert(careTeamMember)
+            .values({
+              userId: studio.ownerUserId,
+              proUserId: userId,
+              name: invite.email.split("@")[0],
+              email: invite.email,
+              role: "patient",
+              status: "active",
+              permissions: { canViewMacros: true, canAddMeals: false, canEditPlan: true },
+            })
+            .onConflictDoNothing();
+        }
+
         return membership;
       });
 
