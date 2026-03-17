@@ -7,6 +7,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import PendingActivationQueue from "@/components/pro/PendingActivationQueue";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   proStore,
   ClientProfile,
