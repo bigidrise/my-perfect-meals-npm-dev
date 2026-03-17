@@ -674,8 +674,7 @@ export default function PricingPage() {
         </div>
 
         {/* Founder Coaching Tier */}
-        {false ? (
-          <div className="mb-16">
+        <div className="mb-16">
             <h2 className="text-xl font-bold mb-6 text-center">
               Personal Guidance
             </h2>
@@ -739,7 +738,7 @@ export default function PricingPage() {
               </CardContent>
             </Card>
           </div>
-        ) : null}
+        </div>
 
         {/* Family Plans Section */}
         <div className="mb-12">
@@ -863,8 +862,7 @@ export default function PricingPage() {
         </CardContent>
         </Card>
 
-        {false ? (
-          <Card className="relative bg-black/30 backdrop-blur-lg border border-amber-500/30 text-white shadow-xl overflow-hidden ring-1 ring-amber-500/20">
+        <Card className="relative bg-black/30 backdrop-blur-lg border border-amber-500/30 text-white shadow-xl overflow-hidden ring-1 ring-amber-500/20">
             <img
               src="/images/personal-guidance-chef.png"
               alt="MPM Personal Guidance"
@@ -889,7 +887,6 @@ export default function PricingPage() {
               </Button>
             </CardContent>
           </Card>
-        ) : null}
 
         </div>
         </div>
