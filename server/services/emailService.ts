@@ -187,6 +187,8 @@ export async function sendCareTeamInvite({
     : 'ProCare is the system your trainer uses to guide your nutrition, training support, and progress.';
   const ctaText = isClinic ? 'Join ProCare Clinic' : 'Join ProCare Studio';
 
+  const APP_URL = 'https://app.myperfectmeals.com';
+
   try {
     const { data, error } = await resend.emails.send({
       from: EMAIL_FROM,
@@ -196,11 +198,13 @@ export async function sendCareTeamInvite({
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 28px;">${ctaText}</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 12px 0 20px; font-size: 15px;">Get started by clicking below:</p>
+            <a href="${APP_URL}" style="display: inline-block; background: white; color: #6d28d9; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 50px; text-decoration: none; letter-spacing: 0.3px;">Get Started →</a>
           </div>
           
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-              Your ${proLabel} has invited you to join their ProCare ${spaceLabel}.
+              Your ${proLabel} has invited you to join their ProCare ${spaceLabel} on My Perfect Meals.
             </p>
             
             <p style="color: #374151; font-size: 16px; line-height: 1.6;">
@@ -208,7 +212,7 @@ export async function sendCareTeamInvite({
             </p>
             
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-bottom: 8px;">
-              <strong>Your invitation code:</strong>
+              <strong>Your Invitation Code:</strong>
             </p>
             
             <div style="background: #f3f4f6; border: 2px solid #6d28d9; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
@@ -218,12 +222,20 @@ export async function sendCareTeamInvite({
             </div>
             
             <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0; border-radius: 4px;">
-              <p style="color: #1e40af; font-size: 14px; margin: 0; line-height: 1.6;">
-                <strong>To accept this invitation:</strong><br>
-                1. Log into My Perfect Meals<br>
-                2. Go to the <strong>More</strong> tab<br>
-                3. Enter the code under <strong>Connect with Access Code</strong><br>
-                4. Tap <strong>Connect</strong>
+              <p style="color: #1e40af; font-size: 14px; margin: 0; line-height: 1.8;">
+                <strong>To accept this invitation:</strong><br><br>
+                1. <strong>Download or open My Perfect Meals</strong><br>
+                &nbsp;&nbsp;&nbsp;<a href="${APP_URL}" style="color: #3b82f6;">${APP_URL}</a><br><br>
+                2. Create your account and complete setup<br><br>
+                3. Go to the <strong>More</strong> tab<br><br>
+                4. Tap <strong>Connect with Access Code</strong><br><br>
+                5. Enter your code and tap <strong>Connect</strong>
+              </p>
+            </div>
+
+            <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 16px; margin: 20px 0; border-radius: 4px;">
+              <p style="color: #92400e; font-size: 14px; margin: 0; line-height: 1.6;">
+                <strong>⚠️ Important:</strong> To work with your ${proLabel}, you'll need to activate the <strong>ProCare (Ultimate) plan</strong> during setup.
               </p>
             </div>
             
