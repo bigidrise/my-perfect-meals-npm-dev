@@ -253,3 +253,70 @@ export async function sendCareTeamInvite({
     throw error;
   }
 }
+
+export async function sendCoachingInviteEmail({
+  to,
+  coachDisplayName,
+  inviteToken,
+  appUrl,
+}: {
+  to: string;
+  coachDisplayName: string;
+  inviteToken: string;
+  appUrl: string;
+}) {
+  if (!resend) {
+    console.log('[CoachInvite] Resend not configured — skipping invite email');
+    return null;
+  }
+
+  const joinUrl = `${appUrl}/apply-guidance?token=${inviteToken}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: `${coachDisplayName} invited you to start personal coaching`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #c2410c 0%, #ea580c 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 26px;">Personal Coaching Invitation</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 15px;">My Perfect Meals</p>
+          </div>
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+              <strong>${coachDisplayName}</strong> has personally invited you to start a coaching program through My Perfect Meals.
+            </p>
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              As their client, you'll get personalized nutrition guidance, meal planning support, and direct in-app access to your coach.
+            </p>
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${joinUrl}" style="background: #ea580c; color: white; padding: 14px 32px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">
+                Accept Invitation &amp; Start Program
+              </a>
+            </div>
+            <div style="background: #fff7ed; border-left: 4px solid #ea580c; padding: 14px 16px; border-radius: 4px; margin: 20px 0;">
+              <p style="margin: 0; color: #92400e; font-size: 13px;">
+                A subscription is required to activate your coaching program. Your coach will personally review and activate your program after you sign up.
+              </p>
+            </div>
+            <p style="color: #6b7280; font-size: 13px; text-align: center; margin-top: 24px;">
+              This invitation expires in 30 days. If you didn't expect this email, you can safely ignore it.
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[CoachInvite] Resend error:', error);
+      return null;
+    }
+
+    console.log('[CoachInvite] Invite email sent:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('[CoachInvite] Email failed (non-fatal):', err);
+    return null;
+  }
+}

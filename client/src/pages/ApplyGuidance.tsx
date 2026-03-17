@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, FlaskConical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 function getCurrentUser() {
   try {
@@ -23,12 +24,34 @@ export default function ApplyGuidance() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [testSubmitting, setTestSubmitting] = useState(false);
+  const [coachName, setCoachName] = useState("Coach Idrise");
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteCoachSlug, setInviteCoachSlug] = useState<string>("idrise");
   const [formData, setFormData] = useState({
     name: "",
     goal: "",
     struggle: "",
     commitment: false,
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (!token) return;
+
+    setInviteToken(token);
+
+    fetch(apiUrl(`/api/coaching/invite/${encodeURIComponent(token)}`))
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          setCoachName(data.coachName);
+          setInviteCoachSlug(data.coachSlug);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const canContinue =
     formData.name.trim() !== "" &&
@@ -44,9 +67,10 @@ export default function ApplyGuidance() {
     const sessionId = crypto.randomUUID();
 
     sessionStorage.setItem("mpm_pending_coach", JSON.stringify({
-      coachSlug: "idrise",
+      coachSlug: inviteCoachSlug,
       clientEmail: user?.email || "",
       sessionId,
+      inviteToken: inviteToken || undefined,
       ts: Date.now(),
     }));
 
@@ -68,6 +92,26 @@ export default function ApplyGuidance() {
         });
       }
       setSubmitting(false);
+    }
+  };
+
+  const handleTestEnroll = async () => {
+    if (!canContinue || testSubmitting) return;
+    setTestSubmitting(true);
+    try {
+      const res = await fetch(apiUrl("/api/coaching/test-enroll"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ coachSlug: inviteCoachSlug }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Test enroll failed");
+      toast({ title: "Test Enrollment Successful", description: "Client added to coach queue (dev bypass — no payment)." });
+      setTimeout(() => setLocation("/"), 1500);
+    } catch (err: any) {
+      toast({ title: "Test Enroll Failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setTestSubmitting(false);
     }
   };
 
@@ -94,12 +138,17 @@ export default function ApplyGuidance() {
         className="max-w-2xl mx-auto px-4 pb-12"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {inviteToken && (
+          <div className="mb-4 bg-orange-500/20 border border-orange-400/30 rounded-xl px-4 py-3 text-sm text-orange-200 text-center">
+            You were personally invited by <strong>{coachName}</strong>. Complete the form below to begin your program.
+          </div>
+        )}
+
         <div className="bg-black/40 backdrop-blur-lg border border-white/10 rounded-2xl p-6">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">MPM Personal Guidance</h2>
             <p className="text-white/70 text-sm">
-              Work directly with the founder of My Perfect Meals.
-              Tell us about your goals to get started.
+              Work directly with {coachName}. Tell us about your goals to get started.
             </p>
           </div>
 
@@ -155,22 +204,38 @@ export default function ApplyGuidance() {
               </Label>
             </div>
 
-            <div className="space-y-2">
-              <Button
+            <div className="space-y-3">
+              <button
                 type="submit"
-                size="lg"
                 disabled={!canContinue || submitting}
-                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-30 disabled:cursor-not-allowed text-black font-semibold"
+                className="w-full rounded-full bg-amber-500 hover:bg-amber-600 disabled:opacity-30 disabled:cursor-not-allowed text-black font-semibold py-3 px-6 text-base transition-all active:scale-[0.98]"
               >
                 {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Redirecting to checkout...
-                  </>
+                  </span>
                 ) : (
                   "Continue to Secure Checkout"
                 )}
-              </Button>
+              </button>
+
+              {import.meta.env.DEV && (
+                <button
+                  type="button"
+                  onClick={handleTestEnroll}
+                  disabled={!canContinue || testSubmitting}
+                  className="w-full rounded-full bg-violet-700 hover:bg-violet-800 disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  {testSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FlaskConical className="h-4 w-4" />
+                  )}
+                  Test Mode — Skip Payment
+                </button>
+              )}
+
               <p className="text-xs text-center text-white/40">
                 You will not be charged until your coach activates your program.
               </p>

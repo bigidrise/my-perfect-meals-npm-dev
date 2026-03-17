@@ -127,6 +127,7 @@ export default function CheckoutSuccess() {
                   body: JSON.stringify({
                     coachSlug: pendingCoach.coachSlug,
                     stripeSessionId: sessionId,
+                    ...(pendingCoach.inviteToken ? { inviteToken: pendingCoach.inviteToken } : {}),
                   }),
                 });
                 console.log("[Checkout] Coach notification sent");

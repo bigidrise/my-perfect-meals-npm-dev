@@ -118,32 +118,64 @@ The coaching system is built as a scalable, slug-based platform — not hardcode
 
 3. **Done.** No routing changes, no new endpoints, no hardcoded logic.
 
-### How It Works (Flow)
+### Four Official Entry Flows (Architect-Approved)
 
-- User selects coach → form stores `{ coachSlug: "jen", sessionId: uuid }` in sessionStorage
-- Stripe payment completes → `/checkout/success` reads sessionStorage, fires `POST /api/coaching/notify-coach`
-- Backend calls `resolveCoach(slug)` → reads `COACH_JEN_USER_ID` and `COACH_JEN_STUDIO_ID` from env
-- Creates studio membership + drops a message in coach inbox
+**Flow A — Client via MPM Platform (client pays directly):**
+Client fills form on ApplyGuidance → pays via Stripe → notify-coach creates "invited" membership → appears in Pro Portal Pending Activation queue → coach activates → program live.
+
+**Flow B — Coach sees MPM client (coach perspective for Flow A):**
+Coach opens Pro Portal → sees Pending Activation queue → taps Activate → system sends activation email → client moves to active roster.
+
+**Flow C — Coach invites external client (Care Team → Pro Portal):**
+Coach sends coaching invite via Pro Portal "Invited Awaiting Payment" section → invite email with token link → client installs app, pays → notify-coach links via invite token, marks invite accepted → client appears in queue → coach activates.
+
+**Flow D — External client gets invited (client perspective for Flow C):**
+Client receives email → taps "Accept Invitation" → creates account / logs in → purchases ProCare via Stripe → notify-coach uses inviteToken to link correct coach → enters activation queue → coach activates.
+
+**RULE: No one enters the Pro Portal queue without completed payment. Period.**
+
+### How notify-coach Works
+
+- Accepts `{ coachSlug, stripeSessionId, inviteToken? }` (inviteToken optional for Flow C/D)
+- Verifies Stripe payment server-side (never trust client)
+- If `inviteToken` present: looks up `coaching_invites` table, uses that studioId, marks invite accepted
+- If no inviteToken: resolves coach from `coachSlug` env vars
+- Creates `studioMemberships` record with `status="invited"` (pending activation)
+- Drops assignment message in coach inbox with source tag
 
 ### Pro Portal (Coach Dashboard) — /pro/clients
 
-Coaches manage their client queue directly from `/pro/clients` (Trainer Studio Portal):
+- **PendingActivationQueue** — clients who have paid, awaiting coach activation. Shows overdue badges (24h+), orange "Activate Client" button. Only renders for registered coaches.
+- **PendingCoachInvites** — clients the coach personally invited who haven't paid yet. Shows "Invited Awaiting Payment" section with email input to send new coaching invites. Only renders for registered coaches.
+- **Client activation** — `POST /api/coaching/activate-client/:clientId` sets status=active, scoped by studioId, sends activation email to client.
+- **Retired**: `/coach/queue` standalone route → `CoachQueue.tsx` now redirects to `/pro/clients`.
 
-- **PendingActivationQueue** (`client/src/components/pro/PendingActivationQueue.tsx`) — Fetches new clients via `GET /api/coaching/queue/new-clients`, shows overdue badges (24h+), one-tap orange "Activate Client" pill button. Only renders for registered coaches (403 for others = hidden).
-- **Client activation** — `POST /api/coaching/activate-client/:clientId` updates membership status to "active", scoped by `studioId` for security, then sends a Resend activation email to the client via `sendCoachActivationEmail()`.
-- **Queue endpoint** — `GET /api/coaching/queue/new-clients` returns pending clients with `hoursSincePaid` and `overdue` (>24h) flags.
-- **Retired**: `/coach/queue` standalone route removed — `CoachQueue.tsx` now redirects to `/pro/clients`.
+### Coaching Invite System (coaching_invites table)
+
+- Coach calls `POST /api/coaching/send-invite` with client email → creates `coaching_invites` record (studioId, coachSlug, email, token UUID, 30-day expiry)
+- Email sent via `sendCoachingInviteEmail()` with link to `/apply-guidance?token=<uuid>`
+- Client visits link → `GET /api/coaching/invite/:token` returns coach info → ApplyGuidance pre-populates coach name and stores token in sessionStorage
+- After Stripe payment → CheckoutSuccess passes inviteToken to notify-coach → invite marked accepted
+- Coach sees pending invites via `GET /api/coaching/pending-invites`
+
+### Dev-Only Test Bypass
+
+- `POST /api/coaching/test-enroll` — **only available when `NODE_ENV=development`**, server-enforced (throws 404 in prod)
+- Creates "invited" membership + assignment note tagged with `source:dev_bypass`
+- "Test Mode — Skip Payment" button (violet pill) shown on ApplyGuidance only when `import.meta.env.DEV` is true
 
 ### Key Files
 
 - `client/src/config/coaches.ts` — frontend coach registry
 - `server/config/coaches.ts` — server coach registry + `resolveCoach()` helper
-- `server/routes/coaching.ts` — notify-coach, activate-client, queue endpoints
-- `server/services/emailService.ts` — `sendCoachActivationEmail()` for client activation emails
-- `client/src/components/pro/PendingActivationQueue.tsx` — embedded queue widget inside Pro Portal
-- `client/src/pages/pro/ProClients.tsx` — Pro Portal; renders PendingActivationQueue at top
-- `client/src/pages/ApplyGuidance.tsx` — onboarding form → Stripe
-- `client/src/pages/CheckoutSuccess.tsx` — post-payment coach notification + coaching-specific success UI
+- `server/routes/coaching.ts` — notify-coach, activate-client, queue, send-invite, pending-invites, invite token, test-enroll endpoints
+- `server/db/schema/studio.ts` — includes `coachingInvites` table definition
+- `server/services/emailService.ts` — `sendCoachActivationEmail()`, `sendCoachingInviteEmail()`
+- `client/src/components/pro/PendingActivationQueue.tsx` — paid clients awaiting activation
+- `client/src/components/pro/PendingCoachInvites.tsx` — invited clients awaiting payment + send invite UI
+- `client/src/pages/pro/ProClients.tsx` — Pro Portal; renders both queue components
+- `client/src/pages/ApplyGuidance.tsx` — onboarding form → Stripe (reads ?token= for invite flow, test bypass button in dev)
+- `client/src/pages/CheckoutSuccess.tsx` — post-payment coach notification (passes inviteToken if present)
 - `client/src/pages/CoachesComingSoon.tsx` — coach selection grid
 
 ### Current Coaches

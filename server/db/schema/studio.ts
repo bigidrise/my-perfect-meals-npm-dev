@@ -134,6 +134,26 @@ export type InsertClientSubscription = typeof clientSubscriptions.$inferInsert;
 export type ClientNote = typeof clientNotes.$inferSelect;
 export type InsertClientNote = typeof clientNotes.$inferInsert;
 
+export const coachingInvites = pgTable("coaching_invites", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull(),
+  coachSlug: text("coach_slug").notNull(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  status: text("status").notNull().default("pending"),
+  source: text("source").notNull().default("coach_invite"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+}, (table) => ({
+  tokenIdx: index("idx_coaching_invites_token").on(table.token),
+  emailIdx: index("idx_coaching_invites_email").on(table.email),
+  studioIdx: index("idx_coaching_invites_studio").on(table.studioId),
+}));
+
+export type CoachingInvite = typeof coachingInvites.$inferSelect;
+export type InsertCoachingInvite = typeof coachingInvites.$inferInsert;
+
 export const clientActivityLog = pgTable("client_activity_log", {
   id: uuid("id").defaultRandom().primaryKey(),
   studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),

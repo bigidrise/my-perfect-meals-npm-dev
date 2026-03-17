@@ -8,6 +8,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import PendingActivationQueue from "@/components/pro/PendingActivationQueue";
+import PendingCoachInvites from "@/components/pro/PendingCoachInvites";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -324,6 +325,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <PendingActivationQueue onActivated={() => syncDbClients()} />
+
+        <PendingCoachInvites />
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
