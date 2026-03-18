@@ -86,7 +86,7 @@ export default function MeetYourCoach() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white px-4 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white px-4 pb-6" style={{ paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
