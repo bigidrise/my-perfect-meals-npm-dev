@@ -13,16 +13,21 @@ type AvailabilityStatus = "available" | "unavailable";
 type Coach = {
   id: string;
   name: string;
+  title?: string;
   image: string;
   bio: string;
   availabilityStatus: AvailabilityStatus;
   availableDate?: string;
   isFounder?: boolean;
+  isCMA?: boolean;
   isPlaceholder?: boolean;
 };
 
 const FOUNDER_BIO =
   "I've spent over 25 years working in performance nutrition, body composition, and structured meal design. My background combines competitive athletics, clinical awareness, and real-world coaching experience. My Perfect Meals was built to remove confusion, eliminate food stress, and help people eat confidently without restriction.";
+
+const LINDSEY_BIO =
+  "Dr. Lindsey Prescher brings clinical precision to the My Perfect Meals platform. As Chief Medical Advisor, she ensures our nutrition protocols align with evidence-based medicine, oversees physician-supervised programs, and provides the clinical framework that separates structured meal design from guesswork.";
 
 const CHEF_LOGO = "/assets/MPMFlameChefLogo.png";
 
@@ -30,16 +35,25 @@ const coaches: Coach[] = [
   {
     id: "idrise",
     name: "Founder–Coach Idrise",
+    title: "Founder",
     image: "/assets/founder-photo.jpg",
     bio: FOUNDER_BIO,
     availabilityStatus: "available",
     isFounder: true,
   },
+  {
+    id: "lindsey",
+    name: "Dr. Lindsey Prescher",
+    title: "CMA",
+    image: "/assets/dr-lindsey.jpg",
+    bio: LINDSEY_BIO,
+    availabilityStatus: "available",
+    isCMA: true,
+  },
   { id: "placeholder-1", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
   { id: "placeholder-2", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
   { id: "placeholder-3", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
   { id: "placeholder-4", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
-  { id: "placeholder-5", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
 ];
 
 const DEFAULT_AGREED = { conduct: false, expectations: false, nonMedical: false, conversationPrivacy: false };
@@ -79,11 +93,11 @@ export default function MeetYourCoach() {
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <h1 className="text-xl font-bold">Meet Your Coach</h1>
+        <h1 className="text-xl font-bold">Meet the Professionals</h1>
       </div>
 
-      {/* 3-column grid */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* 2-column grid */}
+      <div className="grid grid-cols-2 gap-3">
         {coaches.map((coach) => (
           <div
             key={coach.id}
@@ -113,12 +127,20 @@ export default function MeetYourCoach() {
                   Founder
                 </div>
               )}
+              {coach.isCMA && (
+                <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold shadow">
+                  CMA
+                </div>
+              )}
             </div>
 
-            <div className="p-2">
-              <p className="font-semibold text-xs leading-tight truncate">{coach.name}</p>
+            <div className="p-2.5">
+              <p className="font-semibold text-sm leading-tight line-clamp-2">{coach.name}</p>
+              {coach.title && !coach.isPlaceholder && (
+                <p className="text-[11px] text-white/50 mt-0.5">{coach.title}</p>
+              )}
               {!coach.isPlaceholder && (
-                <p className={`text-[10px] mt-0.5 ${coach.availabilityStatus === "available" ? "text-green-400" : "text-white/50"}`}>
+                <p className={`text-[11px] mt-0.5 ${coach.availabilityStatus === "available" ? "text-green-400" : "text-white/50"}`}>
                   {coach.availabilityStatus === "available"
                     ? "Available now"
                     : coach.availableDate
@@ -139,7 +161,7 @@ export default function MeetYourCoach() {
         >
           {selectedCoach && (
             <>
-              {/* Coach photo */}
+              {/* Photo */}
               <img
                 src={selectedCoach.image}
                 alt={selectedCoach.name}
@@ -150,6 +172,9 @@ export default function MeetYourCoach() {
               <h2 className="text-xl font-bold">{selectedCoach.name}</h2>
               {selectedCoach.isFounder && (
                 <p className="text-orange-400 text-sm font-medium mt-1">Founder</p>
+              )}
+              {selectedCoach.isCMA && (
+                <p className="text-blue-400 text-sm font-medium mt-1">Chief Medical Advisor</p>
               )}
 
               {/* Bio */}
@@ -165,8 +190,8 @@ export default function MeetYourCoach() {
               ) : (
                 <p className="text-white/60 text-sm mb-5">
                   {selectedCoach.availableDate
-                    ? `Coach will return on ${selectedCoach.availableDate}. Your plan will begin once they activate your program.`
-                    : "This coach is currently unavailable."}
+                    ? `Returns ${selectedCoach.availableDate}. Your plan will begin once they activate your program.`
+                    : "This professional is currently unavailable."}
                 </p>
               )}
 
@@ -176,7 +201,6 @@ export default function MeetYourCoach() {
                   Please read and agree to continue
                 </p>
 
-                {/* Conduct */}
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -190,7 +214,6 @@ export default function MeetYourCoach() {
                   </span>
                 </label>
 
-                {/* Expectations */}
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -204,7 +227,6 @@ export default function MeetYourCoach() {
                   </span>
                 </label>
 
-                {/* Non-medical */}
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -218,7 +240,6 @@ export default function MeetYourCoach() {
                   </span>
                 </label>
 
-                {/* Conversation privacy */}
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -233,14 +254,12 @@ export default function MeetYourCoach() {
                 </label>
               </div>
 
-              {/* Gate hint */}
               {!allChecked && (
                 <p className="text-xs text-white/40 text-center mb-3">
                   Check all boxes above to continue
                 </p>
               )}
 
-              {/* Continue button */}
               <Button
                 disabled={!allChecked}
                 className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-full font-semibold mb-3"
@@ -249,7 +268,6 @@ export default function MeetYourCoach() {
                 Continue to Pricing
               </Button>
 
-              {/* Close */}
               <SheetClose asChild>
                 <Button className="w-full bg-white/10 hover:bg-white/20 text-white rounded-full">
                   Close
