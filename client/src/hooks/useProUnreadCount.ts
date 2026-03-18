@@ -16,7 +16,7 @@ async function fetchUnread() {
   try {
     const token = getAuthToken();
     if (!token) return;
-    const res = await fetch("/api/pro-tablet/unread-summary", {
+    const res = await fetch("/api/pro/tablet/unread-summary", {
       headers: { "x-auth-token": token },
     });
     if (!res.ok) return;

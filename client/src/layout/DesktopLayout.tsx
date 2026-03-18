@@ -18,6 +18,7 @@ import {
   FolderOpen,
   Briefcase,
 } from "lucide-react";
+import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 
 interface Props {
   children: ReactNode;
@@ -57,6 +58,8 @@ export default function DesktopLayout({ children }: Props) {
   const isProfessional =
     user?.professionalRole === "physician" ||
     user?.professionalRole === "trainer";
+
+  const proUnreadCount = useProUnreadCount();
 
   const isOnProRoute =
     location.startsWith("/care-team/") || location.startsWith("/pro/");
@@ -260,6 +263,12 @@ export default function DesktopLayout({ children }: Props) {
                   >
                     <FolderOpen className="w-4 h-4 shrink-0" />
                     Pro Portal
+                    {proUnreadCount > 0 && (
+                      <span className="ml-auto flex h-2.5 w-2.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-orange-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                      </span>
+                    )}
                   </div>
                 </>
               ) : (
@@ -300,6 +309,12 @@ export default function DesktopLayout({ children }: Props) {
                   >
                     <FolderOpen className="w-4 h-4 shrink-0" />
                     Pro Portal
+                    {proUnreadCount > 0 && (
+                      <span className="ml-auto flex h-2.5 w-2.5 shrink-0 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                      </span>
+                    )}
                   </button>
                 </>
               )}
