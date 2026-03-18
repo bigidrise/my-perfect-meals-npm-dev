@@ -37,6 +37,7 @@ const coaches: Coach[] = [
     id: "idrise",
     name: "Founder–Coach Idrise",
     title: "Founder",
+    credentials: "NASM-CPT · WFS · CNC · BCS",
     image: "/assets/founder-photo.jpg",
     bio: FOUNDER_BIO,
     availabilityStatus: "available",
@@ -45,7 +46,7 @@ const coaches: Coach[] = [
   {
     id: "lindsey",
     name: "Dr. Lindsey Prescher",
-    title: "CMCO",
+    title: "CMO",
     credentials: "CT Surgeon · DO FASC FACC · Ret. CDR USN MC",
     image: "/assets/dr-lindsey.jpg",
     bio: LINDSEY_BIO,
@@ -131,7 +132,7 @@ export default function MeetYourCoach() {
               )}
               {coach.isCMCO && (
                 <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[9px] px-1.5 py-1 rounded-lg font-semibold shadow leading-tight max-w-[80%]">
-                  Chief Medical Compliance Officer
+                  Chief Medical Officer
                 </div>
               )}
             </div>
@@ -176,7 +177,7 @@ export default function MeetYourCoach() {
                 <p className="text-orange-400 text-sm font-medium mt-1">Founder</p>
               )}
               {selectedCoach.isCMCO && (
-                <p className="text-blue-400 text-sm font-medium mt-1">Chief Medical Compliance Officer</p>
+                <p className="text-blue-400 text-sm font-medium mt-1">Chief Medical Officer</p>
               )}
               {selectedCoach.credentials && (
                 <p className="text-white/60 text-xs mt-1 leading-relaxed">{selectedCoach.credentials}</p>
