@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,32 @@ import {
   RotateCcw,
   LinkIcon,
   FolderOpen,
+  MessageSquare,
+  Bell,
+  ChevronDown,
+  ChevronUp,
+  X,
 } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+
+interface UnreadClient {
+  clientUserId: string;
+  unreadCount: number;
+  lastMessageAt: string;
+  lastMessageBody: string;
+}
+
+interface AggregatedMessage {
+  id: string;
+  body: string;
+  clientUserId: string;
+  clientName: string;
+  createdAt: string;
+  isUnread: boolean;
+}
 
 interface ProClientsProps {
   workspace?: WorkspaceType;
@@ -44,11 +65,72 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const [folderClient, setFolderClient] = useState<ClientProfile | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
 
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [totalUnread, setTotalUnread] = useState(0);
+  const [showInbox, setShowInbox] = useState(false);
+  const [inboxMessages, setInboxMessages] = useState<AggregatedMessage[]>([]);
+  const [inboxLoading, setInboxLoading] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const prevTotalUnread = useRef(0);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const defaultRole: ProRole = isPhysician ? "doctor" : "trainer";
+
+  const showToast = useCallback((msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+
+  const fetchUnreadSummary = useCallback(async () => {
+    try {
+      const headers: Record<string, string> = { ...getAuthHeaders() };
+      const res = await fetch("/api/pro/tablet/unread-summary", { headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      const map: Record<string, number> = {};
+      for (const c of (data.clients as UnreadClient[])) {
+        if (c.unreadCount > 0) map[c.clientUserId] = c.unreadCount;
+      }
+      setUnreadMap(map);
+      const total = data.totalUnread as number;
+      setTotalUnread(total);
+
+      if (prevTotalUnread.current > 0 && total > prevTotalUnread.current) {
+        const diff = total - prevTotalUnread.current;
+        showToast(`${diff} new client message${diff > 1 ? "s" : ""} received`);
+      }
+      prevTotalUnread.current = total;
+    } catch {
+    }
+  }, [showToast]);
+
+  const fetchInboxMessages = useCallback(async () => {
+    setInboxLoading(true);
+    try {
+      const headers: Record<string, string> = { ...getAuthHeaders() };
+      const res = await fetch("/api/pro/tablet/all-messages", { headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      setInboxMessages(data.messages || []);
+    } catch {
+    } finally {
+      setInboxLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     syncDbClients();
-  }, []);
+    fetchUnreadSummary();
+    const interval = setInterval(fetchUnreadSummary, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadSummary]);
+
+  useEffect(() => {
+    if (showInbox) {
+      fetchInboxMessages();
+    }
+  }, [showInbox, fetchInboxMessages]);
 
   async function syncDbClients() {
     try {
@@ -70,7 +152,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       const localClients = proStore.listClients(resolvedWorkspace);
 
       for (const dbClient of dbClients) {
-        // Skip any client the pro explicitly deleted — tombstone prevents resurrection
         if (proStore.isClientTombstoned(dbClient.clientUserId, dbClient.email)) {
           continue;
         }
@@ -122,8 +203,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         proStore.upsertClient(profile);
       }
 
-      // Deduplicate within this workspace: remove ghost entries created by
-      // previous sync runs where the same client ended up with two local records.
       const wsClients = proStore.listClients(resolvedWorkspace);
       const deduped: ClientProfile[] = [];
       const seenByClientUserId = new Map<string, number>();
@@ -143,7 +222,6 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       }
 
       if (deduped.length < wsClients.length) {
-        // Replace only this workspace's clients; leave other workspaces untouched
         const otherClients = proStore.listClients().filter(
           (c) => (c.workspace || "trainer") !== resolvedWorkspace
         );
@@ -209,6 +287,14 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     }
     setFolderClient(c);
     setFolderOpen(true);
+    if (c.clientUserId && unreadMap[c.clientUserId]) {
+      setUnreadMap(prev => {
+        const next = { ...prev };
+        delete next[c.clientUserId!];
+        return next;
+      });
+      setTotalUnread(prev => Math.max(0, prev - (unreadMap[c.clientUserId!] || 0)));
+    }
   };
 
   const BUILDER_LABELS: Record<string, string> = {
@@ -236,6 +322,19 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       raw.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase())
     );
   };
+
+  function formatRelativeTime(dateStr: string): string {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    const diffDays = Math.floor(diffHrs / 24);
+    return `${diffDays}d ago`;
+  }
 
   const backPath = isPhysician ? "/care-team/physician" : "/care-team/trainer";
   const portalTitle = isPhysician
@@ -298,6 +397,91 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       >
         <PendingActivationQueue onActivated={() => syncDbClients()} />
 
+        {totalUnread > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl bg-orange-500/15 border border-orange-500/40 px-4 py-3 flex items-center gap-3 cursor-pointer active:scale-[0.98]"
+            onClick={() => setShowInbox(!showInbox)}
+          >
+            <div className="relative">
+              <Bell className="h-5 w-5 text-orange-400" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-orange-300">
+                {totalUnread} unread client message{totalUnread > 1 ? "s" : ""}
+              </p>
+              <p className="text-xs text-white/50">Tap to view ProCare inbox</p>
+            </div>
+            {showInbox ? (
+              <ChevronUp className="h-4 w-4 text-white/40" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-white/40" />
+            )}
+          </motion.div>
+        )}
+
+        <AnimatePresence>
+          {showInbox && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-black/40 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-purple-400" />
+                  <h2 className="text-sm font-bold text-white">ProCare Messages Inbox</h2>
+                  <span className="ml-auto text-xs text-white/40">All client messages</span>
+                </div>
+
+                {inboxLoading ? (
+                  <div className="px-4 py-6 text-center text-white/40 text-sm">Loading messages…</div>
+                ) : inboxMessages.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-white/40 text-sm">No client messages yet.</div>
+                ) : (
+                  <div className="divide-y divide-white/5 max-h-80 overflow-y-auto">
+                    {inboxMessages.map((msg) => {
+                      const clientProfile = clients.find(c => c.clientUserId === msg.clientUserId);
+                      const displayName = clientProfile?.name || msg.clientName;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`px-4 py-3 flex gap-3 cursor-pointer hover:bg-white/5 active:scale-[0.99] transition-all ${msg.isUnread ? "bg-orange-500/5" : ""}`}
+                          onClick={() => {
+                            if (clientProfile) {
+                              openFolder(clientProfile);
+                              setShowInbox(false);
+                            }
+                          }}
+                        >
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center text-xs font-bold text-purple-300">
+                            {displayName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-white">{displayName}</span>
+                              {msg.isUnread && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                              )}
+                              <span className="ml-auto text-xs text-white/40 flex-shrink-0">
+                                {formatRelativeTime(msg.createdAt)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/60 truncate mt-0.5">{msg.body}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex justify-end mb-2">
           <Button
             onClick={() => setShowArchived(!showArchived)}
@@ -322,105 +506,136 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           ) : (
             clients
               .filter((c) => (showArchived ? c.archived : !c.archived))
-              .map((c) => (
-                <Card
-                  key={c.id}
-                  className="bg-white/5 border border-white/20"
-                  data-testid="pro-client-row"
-                >
-                  <CardContent className="p-4 flex flex-col gap-3">
-                    {/* Row 1: name */}
-                    <div className="text-white font-bold text-base leading-tight">
-                      {c.name}
-                    </div>
-
-                    {/* Row 2: action buttons */}
-                    <div className="flex items-center gap-2">
-                      {c.archived ? (
-                        <>
-                          <Button
-                            onClick={() => restoreClient(c.id)}
-                            variant="outline"
-                            size="sm"
-                            className="bg-green-600/20 border-green-500/30 text-green-300"
-                            data-testid={`button-restore-client-${c.id}`}
-                          >
-                            <RotateCcw className="h-4 w-4 mr-1" />
-                            Restore
-                          </Button>
-                          <TrashButton
-                            onClick={() => deleteClient(c.id, c.name)}
-                            size="sm"
-                            confirm
-                            confirmMessage={`Delete ${c.name} permanently? This will remove all data and cannot be undone.`}
-                            ariaLabel={`Permanently delete ${c.name}`}
-                            data-testid={`button-delete-client-${c.id}`}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={() => archiveClient(c.id)}
-                            variant="outline"
-                            size="sm"
-                            className="bg-orange-600/20 border-orange-500/30 text-orange-300"
-                            data-testid={`button-archive-client-${c.id}`}
-                          >
-                            <Archive className="h-4 w-4 mr-1" />
-                            Archive
-                          </Button>
-                          <Button
-                            onClick={() => openFolder(c)}
-                            size="sm"
-                            className="bg-purple-600 text-white active:scale-[0.98]"
-                            data-testid="button-open-client"
-                          >
-                            <FolderOpen className="h-4 w-4 mr-1" />
-                            Open
-                          </Button>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Row 3: linked / role / builder badges */}
-                    {(c.dbBacked || c.role || getBuilderBadge(c)) && (
-                      <div className="flex gap-2 flex-wrap">
-                        {c.dbBacked && (
-                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30">
-                            <LinkIcon className="h-3 w-3" />
-                            Linked
-                          </div>
-                        )}
-                        {c.role && (
-                          <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
-                            {c.role === "doctor"
-                              ? "Doctor"
-                              : c.role === "np"
-                                ? "NP"
-                                : c.role === "rn"
-                                  ? "RN"
-                                  : c.role === "pa"
-                                    ? "PA"
-                                    : c.role === "nutritionist"
-                                      ? "Nutritionist"
-                                      : c.role === "dietitian"
-                                        ? "Dietitian"
-                                        : "Trainer"}
-                          </div>
-                        )}
-                        {getBuilderBadge(c) && (
-                          <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
-                            {getBuilderBadge(c)}
+              .map((c) => {
+                const clientUnread = c.clientUserId ? (unreadMap[c.clientUserId] || 0) : 0;
+                return (
+                  <Card
+                    key={c.id}
+                    className={`bg-white/5 border transition-all ${clientUnread > 0 ? "border-orange-500/50 bg-orange-500/5" : "border-white/20"}`}
+                    data-testid="pro-client-row"
+                  >
+                    <CardContent className="p-4 flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-white font-bold text-base leading-tight">
+                          {c.name}
+                        </div>
+                        {clientUnread > 0 && (
+                          <div className="flex items-center gap-1.5 bg-orange-500/20 border border-orange-500/40 rounded-full px-2 py-0.5 flex-shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                            <span className="text-xs font-semibold text-orange-300">
+                              {clientUnread} new
+                            </span>
                           </div>
                         )}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
+
+                      <div className="flex items-center gap-2">
+                        {c.archived ? (
+                          <>
+                            <Button
+                              onClick={() => restoreClient(c.id)}
+                              variant="outline"
+                              size="sm"
+                              className="bg-green-600/20 border-green-500/30 text-green-300"
+                              data-testid={`button-restore-client-${c.id}`}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
+                            <TrashButton
+                              onClick={() => deleteClient(c.id, c.name)}
+                              size="sm"
+                              confirm
+                              confirmMessage={`Delete ${c.name} permanently? This will remove all data and cannot be undone.`}
+                              ariaLabel={`Permanently delete ${c.name}`}
+                              data-testid={`button-delete-client-${c.id}`}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              onClick={() => archiveClient(c.id)}
+                              variant="outline"
+                              size="sm"
+                              className="bg-orange-600/20 border-orange-500/30 text-orange-300"
+                              data-testid={`button-archive-client-${c.id}`}
+                            >
+                              <Archive className="h-4 w-4 mr-1" />
+                              Archive
+                            </Button>
+                            <Button
+                              onClick={() => openFolder(c)}
+                              size="sm"
+                              className={`text-white active:scale-[0.98] ${clientUnread > 0 ? "bg-orange-500 hover:bg-orange-600" : "bg-purple-600"}`}
+                              data-testid="button-open-client"
+                            >
+                              <FolderOpen className="h-4 w-4 mr-1" />
+                              Open{clientUnread > 0 ? ` (${clientUnread})` : ""}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+
+                      {(c.dbBacked || c.role || getBuilderBadge(c)) && (
+                        <div className="flex gap-2 flex-wrap">
+                          {c.dbBacked && (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30">
+                              <LinkIcon className="h-3 w-3" />
+                              Linked
+                            </div>
+                          )}
+                          {c.role && (
+                            <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                              {c.role === "doctor"
+                                ? "Doctor"
+                                : c.role === "np"
+                                  ? "NP"
+                                  : c.role === "rn"
+                                    ? "RN"
+                                    : c.role === "pa"
+                                      ? "PA"
+                                      : c.role === "nutritionist"
+                                        ? "Nutritionist"
+                                        : c.role === "dietitian"
+                                          ? "Dietitian"
+                                          : "Trainer"}
+                            </div>
+                          )}
+                          {getBuilderBadge(c) && (
+                            <div className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/30">
+                              {getBuilderBadge(c)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            className="fixed bottom-24 left-1/2 z-50 flex items-center gap-3 bg-black/90 border border-orange-500/40 rounded-full px-4 py-3 shadow-2xl"
+            style={{ transform: "translateX(-50%)", maxWidth: "calc(100vw - 32px)" }}
+          >
+            <div className="relative">
+              <MessageSquare className="h-4 w-4 text-orange-400" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+            </div>
+            <span className="text-sm text-white font-medium whitespace-nowrap">{toast}</span>
+            <button onClick={() => setToast(null)} className="text-white/40 hover:text-white ml-1">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <QuickTourModal
         isOpen={quickTour.shouldShow}
@@ -433,7 +648,12 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       <ProClientFolderModal
         client={folderClient}
         open={folderOpen}
-        onOpenChange={setFolderOpen}
+        onOpenChange={(open) => {
+          setFolderOpen(open);
+          if (!open) {
+            fetchUnreadSummary();
+          }
+        }}
         onNavigate={setLocation}
         isPhysician={isPhysician}
       />

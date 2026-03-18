@@ -1,12 +1,14 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { clientNotes, studios } from "../db/schema/studio";
-import { eq, and, asc } from "drizzle-orm";
+import { users } from "../../shared/schema";
+import { eq, and, asc, desc, inArray } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -18,6 +20,129 @@ async function getProStudioId(proUserId: string): Promise<string | null> {
     .limit(1);
   return studio?.id ?? null;
 }
+
+async function markMessagesRead(studioId: string, clientUserId: string): Promise<void> {
+  try {
+    await db.execute(sql`
+      INSERT INTO pro_message_reads (studio_id, client_user_id, last_read_at)
+      VALUES (${studioId}, ${clientUserId}, NOW())
+      ON CONFLICT (studio_id, client_user_id)
+      DO UPDATE SET last_read_at = NOW()
+    `);
+  } catch (err) {
+    console.warn("Could not mark messages as read:", err);
+  }
+}
+
+router.get("/unread-summary", async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.json({ clients: [], totalUnread: 0 });
+    return;
+  }
+
+  const rows = await db.execute(sql`
+    SELECT
+      cn.client_user_id AS "clientUserId",
+      COUNT(*) FILTER (
+        WHERE cn.created_at > COALESCE(pmr.last_read_at, '1970-01-01'::timestamptz)
+      )::int AS "unreadCount",
+      MAX(cn.created_at) AS "lastMessageAt",
+      (array_agg(cn.body ORDER BY cn.created_at DESC))[1] AS "lastMessageBody"
+    FROM client_notes cn
+    LEFT JOIN pro_message_reads pmr
+      ON pmr.studio_id = cn.studio_id
+      AND pmr.client_user_id = cn.client_user_id
+    WHERE cn.studio_id = ${studioId}
+      AND cn.entry_type = 'message'
+      AND cn.sender = 'client'
+    GROUP BY cn.client_user_id
+  `);
+
+  const clients = (rows as any[]).map((r: any) => ({
+    clientUserId: r.clientUserId,
+    unreadCount: Number(r.unreadCount) || 0,
+    lastMessageAt: r.lastMessageAt,
+    lastMessageBody: r.lastMessageBody,
+  }));
+
+  const totalUnread = clients.reduce((sum, c) => sum + c.unreadCount, 0);
+
+  res.set("Cache-Control", "no-store");
+  res.json({ clients, totalUnread });
+});
+
+router.get("/all-messages", async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.json({ messages: [] });
+    return;
+  }
+
+  const entries = await db
+    .select({
+      id: clientNotes.id,
+      body: clientNotes.body,
+      clientUserId: clientNotes.clientUserId,
+      authorUserId: clientNotes.authorUserId,
+      entryType: clientNotes.entryType,
+      sender: clientNotes.sender,
+      createdAt: clientNotes.createdAt,
+    })
+    .from(clientNotes)
+    .where(
+      and(
+        eq(clientNotes.studioId, studioId),
+        eq(clientNotes.entryType, "message"),
+        eq(clientNotes.sender, "client")
+      )
+    )
+    .orderBy(desc(clientNotes.createdAt))
+    .limit(100);
+
+  const clientUserIds = [...new Set(entries.map(e => e.clientUserId))];
+  let clientNames: Record<string, string> = {};
+  if (clientUserIds.length > 0) {
+    const userRows = await db
+      .select({ id: users.id, firstName: users.firstName, nickname: users.nickname })
+      .from(users)
+      .where(inArray(users.id, clientUserIds));
+    for (const u of userRows) {
+      clientNames[u.id] = u.nickname || u.firstName || "Client";
+    }
+  }
+
+  const readRows = await db.execute(sql`
+    SELECT client_user_id, last_read_at
+    FROM pro_message_reads
+    WHERE studio_id = ${studioId}
+  `);
+  const readMap: Record<string, Date> = {};
+  for (const r of readRows as any[]) {
+    readMap[r.client_user_id] = new Date(r.last_read_at);
+  }
+
+  const messages = entries.map(e => ({
+    ...e,
+    clientName: clientNames[e.clientUserId] || "Client",
+    isUnread: !readMap[e.clientUserId] || new Date(e.createdAt) > readMap[e.clientUserId],
+  }));
+
+  res.set("Cache-Control", "no-store");
+  res.json({ messages });
+});
 
 router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
@@ -48,6 +173,8 @@ router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Respo
     )
     .orderBy(asc(clientNotes.createdAt))
     .limit(200);
+
+  markMessagesRead(studioId, clientId);
 
   const messages = entries.filter(e => e.entryType === "message");
   const notes = entries.filter(e => e.entryType === "note");
@@ -137,6 +264,8 @@ router.post("/:clientId/message", requireWorkspaceAccess, async (req: Request, r
   );
 
   notifyClientOfMessage(clientId);
+
+  markMessagesRead(studioId, clientId);
 
   res.status(201).json({ entry });
 });

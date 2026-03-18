@@ -8,6 +8,7 @@ import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
+import { sendCoachMessageAlert } from "../services/emailService";
 
 const router = Router();
 
@@ -180,6 +181,35 @@ router.post("/message", async (req: Request, res: Response) => {
   const clientName = clientUser?.nickname || clientUser?.firstName || "Client";
 
   notifyProfessionalOfMessage(authUser.id, clientName);
+
+  (async () => {
+    try {
+      const [studio] = await db
+        .select({ ownerUserId: studios.ownerUserId })
+        .from(studios)
+        .where(eq(studios.id, studioId))
+        .limit(1);
+      if (!studio) return;
+
+      const [coach] = await db
+        .select({ email: users.email, firstName: users.firstName, nickname: users.nickname })
+        .from(users)
+        .where(eq(users.id, studio.ownerUserId))
+        .limit(1);
+      if (!coach?.email) return;
+
+      const coachName = coach.nickname || coach.firstName || "Coach";
+      await sendCoachMessageAlert({
+        to: coach.email,
+        coachName,
+        clientName,
+        messagePreview: body.trim(),
+        portalUrl: "https://app.myperfectmeals.com/pro/clients",
+      });
+    } catch (err) {
+      console.warn("[CoachAlert] Non-fatal email error:", err);
+    }
+  })();
 
   res.status(201).json({ entry });
 });

@@ -267,6 +267,73 @@ export async function sendCareTeamInvite({
   }
 }
 
+export async function sendCoachMessageAlert({
+  to,
+  coachName,
+  clientName,
+  messagePreview,
+  portalUrl,
+}: {
+  to: string;
+  coachName: string;
+  clientName: string;
+  messagePreview: string;
+  portalUrl: string;
+}) {
+  if (!resend) {
+    console.log('[CoachAlert] Resend not configured — skipping message alert');
+    return null;
+  }
+
+  const preview = messagePreview.length > 120 ? messagePreview.slice(0, 117) + '...' : messagePreview;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: `New message from ${clientName} — My Perfect Meals`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #000; border-radius: 16px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #000000 0%, #F97316 50%, #000000 100%); padding: 32px 24px; text-align: center;">
+            <img src="https://app.myperfectmeals.com/icons/icon-192x192.png" alt="My Perfect Meals" style="width: 64px; height: 64px; border-radius: 14px; margin-bottom: 12px;" />
+            <h1 style="color: #fff; margin: 0; font-size: 22px; font-weight: 700;">New Client Message</h1>
+            <p style="color: rgba(255,255,255,0.75); margin: 6px 0 0; font-size: 14px;">My Perfect Meals — ProCare</p>
+          </div>
+          <div style="background: #111; padding: 28px 24px;">
+            <p style="color: #fff; font-size: 16px; margin: 0 0 6px;">Hi ${coachName},</p>
+            <p style="color: rgba(255,255,255,0.75); font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
+              <strong style="color: #F97316;">${clientName}</strong> sent you a new message in the ProCare portal.
+            </p>
+            <div style="background: #1a1a1a; border-left: 3px solid #F97316; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px;">
+              <p style="color: rgba(255,255,255,0.55); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px;">Message</p>
+              <p style="color: #fff; font-size: 15px; line-height: 1.5; margin: 0; font-style: italic;">"${preview}"</p>
+            </div>
+            <div style="text-align: center; margin: 0 0 24px;">
+              <a href="${portalUrl}" style="background: #F97316; color: #000; padding: 14px 32px; border-radius: 999px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block;">
+                Open ProCare Portal →
+              </a>
+            </div>
+            <p style="color: rgba(255,255,255,0.35); font-size: 12px; text-align: center; margin: 0;">
+              You're receiving this because a client messaged you on My Perfect Meals.
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[CoachAlert] Resend error:', error);
+      return null;
+    }
+
+    console.log('[CoachAlert] Message alert sent:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('[CoachAlert] Email failed (non-fatal):', err);
+    return null;
+  }
+}
+
 export async function sendCoachingInviteEmail({
   to,
   coachDisplayName,
