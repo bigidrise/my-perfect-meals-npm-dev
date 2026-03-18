@@ -1,10 +1,9 @@
 {
-  "releaseId": "1.2.65",
-  "publishedAt": "2026-02-18",
+  "releaseId": "1.2.66",
+  "publishedAt": "2026-03-18",
   "changes": [
-    "New: Serving size selector on Fridge Rescue — choose 1 to 6 servings before generating",
-    "New: Favorite button on Find Meals Near Me — save restaurant meals to your favorites",
-    "New: Workspace switcher on More page — safely switch between personal and professional modes",
-    "Improved: Physician and Trainer clinic access now requires intentional workspace selection"
+    "Fixed: More page now shows 'Switch Workspace' — always opens the Workspace Chooser",
+    "Fixed: Profile saves correctly without requiring allergy information",
+    "Improved: Workspace switching requires intentional selection on all devices"
   ]
 }
