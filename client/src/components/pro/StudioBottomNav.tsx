@@ -3,11 +3,13 @@ import { useLocation } from "wouter";
 import { Users, LayoutDashboard, ArrowLeftRight } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 
 export default function StudioBottomNav() {
   const [location, setLocation] = useLocation();
   const [showChooser, setShowChooser] = useState(false);
   const { user } = useAuth();
+  const totalUnread = useProUnreadCount();
 
   const isPhysician = user?.professionalRole === "physician";
   const careTeamRoute = isPhysician ? "/care-team/physician" : "/care-team/trainer";
@@ -53,7 +55,15 @@ export default function StudioBottomNav() {
                 isActive("/pro") ? "text-orange-500" : "text-white/60"
               }`}
             >
-              <LayoutDashboard className="h-4 w-4 mb-1" />
+              <div className="relative mb-1">
+                <LayoutDashboard className="h-4 w-4" />
+                {totalUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                  </span>
+                )}
+              </div>
               Pro Portal
             </button>
 
