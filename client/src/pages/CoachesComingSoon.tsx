@@ -130,8 +130,8 @@ export default function MeetYourCoach() {
                 </div>
               )}
               {coach.isCMCO && (
-                <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold shadow">
-                  CMCO
+                <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[9px] px-1.5 py-1 rounded-lg font-semibold shadow leading-tight max-w-[80%]">
+                  Chief Medical Compliance Officer
                 </div>
               )}
             </div>
