@@ -5,7 +5,6 @@ const REQUIRED_PROFILE_FIELDS = [
   "activityLevel",
   "fitnessGoal",
   "dietaryRestrictions",
-  "allergies",
   "palateSpiceTolerance",
   "palateSeasoningIntensity",
   "palateFlavorStyle",
