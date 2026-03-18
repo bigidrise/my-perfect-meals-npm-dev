@@ -14,12 +14,13 @@ type Coach = {
   id: string;
   name: string;
   title?: string;
+  credentials?: string;
   image: string;
   bio: string;
   availabilityStatus: AvailabilityStatus;
   availableDate?: string;
   isFounder?: boolean;
-  isCMA?: boolean;
+  isCMCO?: boolean;
   isPlaceholder?: boolean;
 };
 
@@ -44,11 +45,12 @@ const coaches: Coach[] = [
   {
     id: "lindsey",
     name: "Dr. Lindsey Prescher",
-    title: "CMA",
+    title: "CMCO",
+    credentials: "CT Surgeon · DO FASC FACC · Ret. CDR USN MC",
     image: "/assets/dr-lindsey.jpg",
     bio: LINDSEY_BIO,
     availabilityStatus: "available",
-    isCMA: true,
+    isCMCO: true,
   },
   { id: "placeholder-1", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
   { id: "placeholder-2", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
@@ -127,20 +129,20 @@ export default function MeetYourCoach() {
                   Founder
                 </div>
               )}
-              {coach.isCMA && (
+              {coach.isCMCO && (
                 <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold shadow">
-                  CMA
+                  CMCO
                 </div>
               )}
             </div>
 
             <div className="p-2.5">
               <p className="font-semibold text-sm leading-tight line-clamp-2">{coach.name}</p>
-              {coach.title && !coach.isPlaceholder && (
-                <p className="text-[11px] text-white/50 mt-0.5">{coach.title}</p>
+              {coach.credentials && (
+                <p className="text-[10px] text-white/60 mt-0.5 leading-tight">{coach.credentials}</p>
               )}
               {!coach.isPlaceholder && (
-                <p className={`text-[11px] mt-0.5 ${coach.availabilityStatus === "available" ? "text-green-400" : "text-white/50"}`}>
+                <p className={`text-[11px] mt-1 ${coach.availabilityStatus === "available" ? "text-green-400" : "text-white/50"}`}>
                   {coach.availabilityStatus === "available"
                     ? "Available now"
                     : coach.availableDate
@@ -173,8 +175,11 @@ export default function MeetYourCoach() {
               {selectedCoach.isFounder && (
                 <p className="text-orange-400 text-sm font-medium mt-1">Founder</p>
               )}
-              {selectedCoach.isCMA && (
-                <p className="text-blue-400 text-sm font-medium mt-1">Chief Medical Advisor</p>
+              {selectedCoach.isCMCO && (
+                <p className="text-blue-400 text-sm font-medium mt-1">Chief Medical Compliance Officer</p>
+              )}
+              {selectedCoach.credentials && (
+                <p className="text-white/60 text-xs mt-1 leading-relaxed">{selectedCoach.credentials}</p>
               )}
 
               {/* Bio */}
