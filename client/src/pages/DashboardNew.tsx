@@ -454,20 +454,20 @@ export default function DashboardNew() {
         >
           {isProCareClient ? (
             <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative"
               onClick={() => setTabletOpen(!tabletOpen)}
             >
+              {tabletHasUnread && (
+                <span className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse z-10" />
+              )}
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/20 relative">
+                  <div className="p-2 rounded-lg bg-purple-500/20">
                     <MessageSquare className="h-5 w-5 text-purple-400" />
-                    {tabletHasUnread && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
-                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      Messages From Your Coach
+                      ProCare Messages
                     </h3>
                     <p className="text-xs text-white/70">
                       View and reply to your coach
@@ -483,7 +483,7 @@ export default function DashboardNew() {
             </Card>
           ) : (
             <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden opacity-70"
+              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative opacity-70"
               onClick={() => setLocation("/coaches")}
             >
               <CardContent className="p-4">
@@ -493,7 +493,7 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white/70 flex items-center gap-1.5">
-                      Messages with Coach
+                      ProCare Messages
                       <Lock className="h-3.5 w-3.5 text-orange-400" />
                     </h3>
                     <p className="text-xs text-white/50">
