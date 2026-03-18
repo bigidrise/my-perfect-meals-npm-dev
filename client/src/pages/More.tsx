@@ -181,12 +181,7 @@ export default function MorePage() {
             <Card
               className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
               onClick={() => {
-                if (!isDesktop) {
-                  const workspaceRoute = userRole === "physician" ? "/care-team/physician" : "/care-team/trainer";
-                  setLocation(workspaceRoute);
-                } else {
-                  setShowWorkspaceChooser(true);
-                }
+                setShowWorkspaceChooser(true);
               }}
               data-testid="card-switch-workspace"
             >
@@ -197,9 +192,9 @@ export default function MorePage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      {userRole === "physician" ? "Switch to Physicians Clinic" : "Switch to Trainers Studio"}
+                      Switch Workspace
                     </h3>
-                    <p className="text-xs text-white/70">Enter your professional workspace</p>
+                    <p className="text-xs text-white/70">Go to Workspace Chooser</p>
                   </div>
                 </div>
               </CardContent>
