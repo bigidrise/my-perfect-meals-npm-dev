@@ -168,7 +168,7 @@ export default function MeetYourCoach() {
               <img
                 src={selectedCoach.image}
                 alt={selectedCoach.name}
-                className="w-full h-52 object-cover object-top rounded-xl mb-4"
+                className="w-full h-80 object-cover object-top rounded-xl mb-4"
               />
 
               {/* Name + badge */}
