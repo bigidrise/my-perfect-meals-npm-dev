@@ -1,5 +1,5 @@
 {
-  "appId": "com.myperfectmeals.app",
+  "appId": "com.myperfectmeals.mobile",
   "appName": "My Perfect Meals",
   "webDir": "client/dist",
   "ios": {
