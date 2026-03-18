@@ -27,8 +27,9 @@ import { setupNotificationListeners } from "@/services/mealReminderService";
 import DevBadge from "./components/DevBadge";
 import DevNavigator from "./components/DevNavigator";
 import { Capacitor } from "@capacitor/core";
-
 import { VoiceProvider } from "@/voice/VoiceProvider";
+import { useUpdateCheck } from "@/hooks/useUpdateCheck";
+import { UpdateBanner } from "@/components/UpdateBanner";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -53,6 +54,7 @@ function VisibilityRefreshMount() {
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [, setLocation] = useLocation();
+  const showUpdate = useUpdateCheck();
 
   useEffect(() => {
     setNavigationHandler((path) => {
@@ -170,6 +172,7 @@ export default function App() {
               <VoiceProvider>
                 <VisibilityRefreshMount />
                 <ScrollManager />
+                <UpdateBanner show={showUpdate} />
                 <CopilotSystem onAction={handleCopilotAction}>
                 <ProClientProvider>
                 <PageTitleProvider>
