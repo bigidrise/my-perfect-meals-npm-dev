@@ -506,7 +506,7 @@ export default function Router() {
         <Route path="/emotion-ai" component={LifestyleLandingPage} />
         {/* Founders Route */}
         <Route path="/founders" component={FoundersPage} />
-        <Route path="/coaches" component={() => <CoachingAdminGate component={CoachesComingSoon} />} />
+        <Route path="/coaches" component={CoachesComingSoon} />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}
         <Route path="/supplement-hub" component={SupplementHub} />
