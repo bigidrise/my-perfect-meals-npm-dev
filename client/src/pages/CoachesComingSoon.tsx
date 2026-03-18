@@ -160,10 +160,10 @@ export default function MeetYourCoach() {
       <Sheet open={!!selectedCoach} onOpenChange={handleSheetClose}>
         <SheetContent
           side="bottom"
-          className="bg-zinc-950 border-t border-white/10 text-white rounded-t-3xl px-5 pt-5 pb-8 max-h-[92vh] overflow-y-auto"
+          className="bg-zinc-950 border-t border-white/10 text-white rounded-t-3xl max-h-[92vh] overflow-y-auto p-0"
         >
           {selectedCoach && (
-            <>
+            <div className="max-w-lg mx-auto px-5 pt-5 pb-8">
               {/* Photo */}
               <img
                 src={selectedCoach.image}
@@ -279,7 +279,7 @@ export default function MeetYourCoach() {
                   Close
                 </Button>
               </SheetClose>
-            </>
+            </div>
           )}
         </SheetContent>
       </Sheet>
