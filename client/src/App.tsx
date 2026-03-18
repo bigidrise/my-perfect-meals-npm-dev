@@ -74,6 +74,30 @@ export default function App() {
     return cleanup;
   }, [setLocation]);
 
+  // One-time automatic notification permission request on iOS
+  // Fires 4 seconds after first app open so the user sees the app before the prompt
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const ASKED_KEY = "mpm_notif_permission_asked";
+    if (localStorage.getItem(ASKED_KEY)) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const { LocalNotifications } = await import("@capacitor/local-notifications");
+        const current = await LocalNotifications.checkPermissions();
+        if (current.display !== "granted") {
+          await LocalNotifications.requestPermissions();
+        }
+        localStorage.setItem(ASKED_KEY, "1");
+      } catch {
+        // Silently fail — user can still enable from the Meal Reminders toggle
+      }
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     // Quick app readiness check
     const timer = setTimeout(() => setIsAppReady(true), 100);
