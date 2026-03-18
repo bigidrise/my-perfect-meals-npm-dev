@@ -47,7 +47,7 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
     return;
   }
 
-  const rows = await db.execute(sql`
+  const result = await db.execute(sql`
     SELECT
       cn.client_user_id AS "clientUserId",
       COUNT(*) FILTER (
@@ -65,7 +65,7 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
     GROUP BY cn.client_user_id
   `);
 
-  const clients = (rows as any[]).map((r: any) => ({
+  const clients = (result.rows as any[]).map((r: any) => ({
     clientUserId: r.clientUserId,
     unreadCount: Number(r.unreadCount) || 0,
     lastMessageAt: r.lastMessageAt,
@@ -124,13 +124,13 @@ router.get("/all-messages", async (req: Request, res: Response) => {
     }
   }
 
-  const readRows = await db.execute(sql`
+  const readResult = await db.execute(sql`
     SELECT client_user_id, last_read_at
     FROM pro_message_reads
     WHERE studio_id = ${studioId}
   `);
   const readMap: Record<string, Date> = {};
-  for (const r of readRows as any[]) {
+  for (const r of readResult.rows as any[]) {
     readMap[r.client_user_id] = new Date(r.last_read_at);
   }
 
