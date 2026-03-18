@@ -165,11 +165,14 @@ export default function MeetYourCoach() {
           {selectedCoach && (
             <div className="max-w-lg mx-auto px-5 pt-5 pb-8">
               {/* Photo */}
-              <img
-                src={selectedCoach.image}
-                alt={selectedCoach.name}
-                className="w-full h-80 object-cover object-top rounded-xl mb-4"
-              />
+              <div className="w-full bg-black/40 rounded-xl mb-4 overflow-hidden flex items-center justify-center" style={{ minHeight: "320px", maxHeight: "420px" }}>
+                <img
+                  src={selectedCoach.image}
+                  alt={selectedCoach.name}
+                  className="w-full h-full object-contain"
+                  style={{ maxHeight: "420px" }}
+                />
+              </div>
 
               {/* Name + badge */}
               <h2 className="text-xl font-bold">{selectedCoach.name}</h2>
