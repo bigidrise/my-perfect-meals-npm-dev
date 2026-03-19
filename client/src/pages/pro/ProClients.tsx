@@ -383,8 +383,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <h1 className="text-lg font-bold text-white">{portalTitle}</h1>
-          <div className="ml-auto flex items-center gap-2">
+          <h1 className="text-lg font-bold text-white flex-1 truncate min-w-0">{portalTitle}</h1>
+          <div className="flex-shrink-0 flex items-center gap-2">
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
