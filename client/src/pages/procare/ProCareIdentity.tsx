@@ -177,7 +177,7 @@ export default function ProCareIdentity() {
                   : "bg-black border-white/20"
               }`}
             >
-              I'm a Trainer or Coach
+              Trainer / Coach
               {role === "trainer" && <Check className="w-5 h-5 text-emerald-400" />}
             </button>
             <button
@@ -188,7 +188,7 @@ export default function ProCareIdentity() {
                   : "bg-blue-600"
               }`}
             >
-              I'm a Physician or Healthcare Provider
+              Physician / Healthcare Provider
               {role === "physician" && <Check className="w-5 h-5 text-white" />}
             </button>
           </div>
