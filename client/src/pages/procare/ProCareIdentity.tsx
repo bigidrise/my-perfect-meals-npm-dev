@@ -115,7 +115,7 @@ export default function ProCareIdentity() {
     selected !== "certified"
       ? true
       : isPhysician
-        ? (credentialType.trim() && credentialBody.trim() && credentialNumber.trim() && credentialYear.trim())
+        ? true
         : (credentialType.trim() && credentialBody.trim())
   );
 
@@ -204,7 +204,7 @@ export default function ProCareIdentity() {
           <div className="space-y-2 mb-3 px-1">
             {isPhysician && (
               <p className="text-xs text-blue-400/80">
-                Licensed physicians must provide full credential information. All fields below are required.
+                Credential fields are optional during beta — fill in what you have available.
               </p>
             )}
           </div>
@@ -244,7 +244,9 @@ export default function ProCareIdentity() {
 
             {/* Professional Role — text input with suggestions */}
             <div className="relative" ref={typeDropdownRef}>
-              <label className="text-xs text-white/50 mb-1 block">Professional Role *</label>
+              <label className="text-xs text-white/50 mb-1 block">
+                Professional Role {isPhysician ? <span className="text-white/30">(optional)</span> : <span className="text-red-400">*</span>}
+              </label>
               <div className="relative">
                 <Input
                   value={credentialType}
@@ -278,7 +280,9 @@ export default function ProCareIdentity() {
 
             {/* Certification Body — text input with suggestions */}
             <div className="relative" ref={bodyDropdownRef}>
-              <label className="text-xs text-white/50 mb-1 block">Certification Body / License State *</label>
+              <label className="text-xs text-white/50 mb-1 block">
+                Certification Body / License State {isPhysician ? <span className="text-white/30">(optional)</span> : <span className="text-red-400">*</span>}
+              </label>
               <div className="relative">
                 <Input
                   value={credentialBody}
@@ -313,7 +317,7 @@ export default function ProCareIdentity() {
             {/* License / Certification Date */}
             <div>
               <label className="text-xs text-white/50 mb-1 block">
-                License / Certification Date {isPhysician ? <span className="text-red-400">*</span> : "(optional)"}
+                License / Certification Date <span className="text-white/30">(optional)</span>
               </label>
               <Input
                 value={credentialYear}
@@ -327,7 +331,7 @@ export default function ProCareIdentity() {
             {/* Certification / License Number */}
             <div>
               <label className="text-xs text-white/50 mb-1 block">
-                Certification / License Number {isPhysician ? <span className="text-red-400">*</span> : "(optional)"}
+                Certification / License Number <span className="text-white/30">(optional)</span>
               </label>
               <Input
                 value={credentialNumber}
