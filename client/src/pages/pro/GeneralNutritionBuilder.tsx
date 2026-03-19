@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -1475,7 +1476,7 @@ export default function WeeklyMealBoard() {
                       });
                     } else {
                       try {
-                        await fetch(`/api/users/${effectiveUserId}/macros/daily-summary`, {
+                        await fetch(apiUrl(`/api/users/${effectiveUserId}/macros/daily-summary`), {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           credentials: "include",

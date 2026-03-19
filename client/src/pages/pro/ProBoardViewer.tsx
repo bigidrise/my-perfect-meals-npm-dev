@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { proStore } from "@/lib/proData";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface BoardItem {
@@ -63,7 +64,7 @@ export default function ProBoardViewer() {
   const fetchBoard = useCallback(async () => {
     try {
       const headers = getAuthHeaders();
-      const res = await fetch(`/api/pro/board/clients/${clientId}/boards/${program}/current`, {
+      const res = await fetch(apiUrl(`/api/pro/board/clients/${clientId}/boards/${program}/current`), {
         headers: { ...headers },
       });
       if (!res.ok) {
@@ -90,7 +91,7 @@ export default function ProBoardViewer() {
     if (!board) return;
     try {
       const headers = getAuthHeaders();
-      const res = await fetch(`/api/pro/board/clients/${clientId}/boards/${board.id}/items/${itemId}`, {
+      const res = await fetch(apiUrl(`/api/pro/board/clients/${clientId}/boards/${board.id}/items/${itemId}`), {
         method: "DELETE",
         headers: { ...headers },
       });
@@ -106,7 +107,7 @@ export default function ProBoardViewer() {
     if (!board) return;
     try {
       const headers = getAuthHeaders();
-      const res = await fetch(`/api/pro/board/clients/${clientId}/boards/${board.id}/repeat-day`, {
+      const res = await fetch(apiUrl(`/api/pro/board/clients/${clientId}/boards/${board.id}/repeat-day`), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({ sourceDayIndex: selectedDay }),

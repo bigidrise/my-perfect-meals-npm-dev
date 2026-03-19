@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -85,7 +86,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const fetchUnreadSummary = useCallback(async () => {
     try {
       const headers: Record<string, string> = { ...getAuthHeaders() };
-      const res = await fetch("/api/pro/tablet/unread-summary", { headers });
+      const res = await fetch(apiUrl("/api/pro/tablet/unread-summary"), { headers });
       if (!res.ok) return;
       const data = await res.json();
       const map: Record<string, number> = {};
@@ -109,7 +110,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     setInboxLoading(true);
     try {
       const headers: Record<string, string> = { ...getAuthHeaders() };
-      const res = await fetch("/api/pro/tablet/all-messages", { headers });
+      const res = await fetch(apiUrl("/api/pro/tablet/all-messages"), { headers });
       if (!res.ok) return;
       const data = await res.json();
       setInboxMessages(data.messages || []);
@@ -136,13 +137,13 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     try {
       const headers: Record<string, string> = { ...getAuthHeaders() };
 
-      const studioRes = await fetch("/api/studios/my-studio", { headers });
+      const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers });
       if (!studioRes.ok) return;
       const { studio } = await studioRes.json();
       if (!studio) return;
 
       const clientsRes = await fetch(
-        `/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`,
+        apiUrl(`/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`),
         { headers },
       );
       if (!clientsRes.ok) return;
@@ -258,12 +259,12 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     if (!c.clientUserId && !c.userId && c.email) {
       try {
         const headers: Record<string, string> = { ...getAuthHeaders() };
-        const studioRes = await fetch("/api/studios/my-studio", { headers });
+        const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers });
         if (studioRes.ok) {
           const { studio } = await studioRes.json();
           if (studio) {
             const clientsRes = await fetch(
-              `/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`,
+              apiUrl(`/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`),
               { headers },
             );
             if (clientsRes.ok) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Loader2, Activity, Target, UtensilsCrossed, CheckCircle2 } from "lucide-react";
 import { getAuthToken } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
 
 interface WorkspaceClient {
@@ -52,7 +53,7 @@ export default function WorkspaceShell() {
 
     async function fetchWorkspace() {
       try {
-        const res = await fetch(`/api/pro/workspace/${clientId}`, {
+        const res = await fetch(apiUrl(`/api/pro/workspace/${clientId}`), {
           headers: { "x-auth-token": token! },
         });
 
