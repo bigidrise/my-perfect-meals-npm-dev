@@ -1517,6 +1517,11 @@ export default function MyBiometrics() {
         className="max-w-6xl mx-auto space-y-6 px-4 md:px-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* iOS BUILD TEST BANNER — REMOVE AFTER CONFIRMING */}
+        <div style={{ background: "red", color: "white", padding: "12px", borderRadius: "8px", textAlign: "center", fontWeight: "bold", fontSize: "16px" }}>
+          NEW iOS BUILD TEST — March 2026
+        </div>
+
         {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
         <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
           <p className="text-sm text-white/90 leading-relaxed">
