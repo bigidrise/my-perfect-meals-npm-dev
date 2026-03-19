@@ -41,11 +41,22 @@ export default function PricingPage() {
 
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
+  const proPlans = getPlansByGroup("pro");
 
   const [purchasingProduct, setPurchasingProduct] = useState<string | null>(
     null,
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+
+  const [procareRole, setProcareRole] = useState<"trainer" | "physician" | null>(
+    () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || null
+  );
+
+  const procareRolePlans = procareRole === "trainer"
+    ? proPlans.filter((p) => p.sku.startsWith("mpm_trainer_"))
+    : procareRole === "physician"
+      ? proPlans.filter((p) => p.sku.startsWith("mpm_physician_"))
+      : [];
 
   async function handleIosPurchase(product: IosProduct) {
     setPurchasingProduct(product.productId);
@@ -567,6 +578,110 @@ export default function PricingPage() {
         className="max-w-6xl mx-auto px-4 text-white space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* ProCare Professional Plans — shown when user arrived from ProCare onboarding */}
+        {procareRole && procareRolePlans.length > 0 && (
+          <div className="mb-10">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-4">
+                <span className="text-blue-300 text-sm font-semibold tracking-wide uppercase">
+                  ProCare Professional
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold text-white">Choose Your Provider Plan</h2>
+              <p className="text-white/60 text-sm mt-2 max-w-lg mx-auto">
+                {procareRole === "trainer"
+                  ? "Select the plan that matches the number of clients you manage. You can upgrade any time."
+                  : "Select the plan that fits your practice size. Includes full patient nutrition management tools."}
+              </p>
+            </div>
+
+            <div className={`grid gap-5 ${procareRolePlans.length <= 2 ? "grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
+              {procareRolePlans.map((plan) => {
+                const isCurrentPlan = user?.planLookupKey === plan.sku;
+                const isMostPopular = !!plan.badge;
+                return (
+                  <Card
+                    key={plan.sku}
+                    className={`relative h-full backdrop-blur-lg text-white shadow-xl flex flex-col ${
+                      isMostPopular
+                        ? "bg-blue-900/40 border-2 border-blue-400/60 ring-2 ring-blue-400/30"
+                        : "bg-black/30 border border-white/15"
+                    }`}
+                  >
+                    {isMostPopular && (
+                      <Badge className="absolute top-3 right-3 bg-blue-500/80 text-white backdrop-blur-sm border border-white/10">
+                        {plan.badge}
+                      </Badge>
+                    )}
+                    {isCurrentPlan && (
+                      <Badge className="absolute top-3 left-3 bg-lime-500/80 text-white backdrop-blur-sm border border-white/10">
+                        Current
+                      </Badge>
+                    )}
+
+                    <CardHeader className="pb-4">
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-bold">{plan.label}</h3>
+                        {plan.clients && (
+                          <p className="text-blue-300 text-sm font-medium">
+                            Up to {plan.clients} {procareRole === "trainer" ? "clients" : "patients"}
+                          </p>
+                        )}
+                        <p className="text-2xl font-bold text-white mt-2">
+                          ${plan.price % 1 === 0 ? plan.price.toFixed(0) : plan.price.toFixed(2)}
+                          <span className="text-sm font-normal text-white/60"> / month</span>
+                        </p>
+                        <p className="text-xs text-white/50">{plan.blurb}</p>
+                      </div>
+                    </CardHeader>
+
+                    <Separator className="bg-white/10" />
+
+                    <CardContent className="pt-5 flex-1">
+                      <div className="space-y-2.5">
+                        {plan.features?.map((feat, fi) => (
+                          <div key={fi} className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-white/90">{feat}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+
+                    <Separator className="bg-white/10" />
+
+                    <div className="p-5">
+                      <Button
+                        className={`w-full font-semibold ${
+                          isCurrentPlan
+                            ? "bg-lime-500/20 text-lime-300 border border-lime-500/30 cursor-not-allowed"
+                            : isMostPopular
+                              ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                              : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                        }`}
+                        size="lg"
+                        disabled={isCurrentPlan}
+                        onClick={() => !isCurrentPlan && handleSelectPlan(plan.sku)}
+                      >
+                        {isCurrentPlan ? "Current Plan" : "Subscribe"}
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="text-center mt-6">
+              <button
+                onClick={() => setProcareRole(null)}
+                className="text-white/40 text-xs underline hover:text-white/60 transition-colors"
+              >
+                Looking for a personal subscription instead?
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Free Tier Card */}
         <div className="mb-2">
           <Card className="relative bg-black/30 backdrop-blur-lg text-white shadow-xl border border-white/15">
