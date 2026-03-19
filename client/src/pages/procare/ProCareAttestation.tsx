@@ -121,7 +121,7 @@ export default function ProCareAttestation() {
           return;
         }
 
-        await performUpgrade();
+        setLocation("/pricing");
       } catch (err: any) {
         setError(err.message || "Failed to process attestation. Please try again.");
         setUpgrading(false);
