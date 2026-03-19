@@ -41,6 +41,12 @@ export const studios = pgTable("studios", {
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
   status: text("status").notNull().default("active"),
+  verificationStatus: text("verification_status").$type<"pending" | "verified" | "rejected">().default("pending"),
+  providerSource: text("provider_source").$type<"internal" | "external">().default("external"),
+  availabilityStatus: text("availability_status").$type<"available" | "away">().default("available"),
+  awayStartDate: timestamp("away_start_date", { withTimezone: true }),
+  awayEndDate: timestamp("away_end_date", { withTimezone: true }),
+  awayMessage: text("away_message"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

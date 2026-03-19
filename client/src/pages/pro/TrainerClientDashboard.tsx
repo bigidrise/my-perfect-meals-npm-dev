@@ -24,6 +24,7 @@ import {
   Dumbbell,
   Check,
   Ruler,
+  CalendarCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -200,6 +201,24 @@ export default function TrainerClientDashboard() {
     toast({
       title: "Notes saved",
       description: "Coaching notes saved.",
+    });
+  };
+
+  const scheduleCheckIn = () => {
+    const weeks = ctx.checkInWeeks;
+    if (!weeks) {
+      toast({ title: "Select weeks", description: "Choose 2, 4, 8, or 12 weeks for the check-in." });
+      return;
+    }
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + weeks * 7);
+    const nextISO = nextDate.toISOString().split("T")[0];
+    const label = nextDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
+    setCtx({ ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
+    toast({
+      title: "Check-in scheduled",
+      description: `Next check-in set for ${label} (${weeks} weeks).`,
     });
   };
 
@@ -575,6 +594,64 @@ export default function TrainerClientDashboard() {
               {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]
                 ? `Open ${PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label} Builder`
                 : "Assign Builder First"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Schedule Check-In */}
+        <Card className="bg-white/5 border border-lime-500/30">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-lime-400" /> Schedule Check-In
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {ctx.nextCheckInISO && (
+              <div className="p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
+                <p className="text-xs text-lime-400 font-semibold">Next Check-In</p>
+                <p className="text-sm text-white mt-0.5">
+                  {new Date(ctx.nextCheckInISO + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                </p>
+              </div>
+            )}
+            <p className="text-white/70 text-sm">
+              Set a check-in reminder for this client. Select how many weeks out and tap Schedule.
+            </p>
+            <div>
+              <p className="text-xs text-white/50 mb-2">Weeks until check-in</p>
+              <div className="grid grid-cols-4 gap-2">
+                {([2, 4, 8, 12] as const).map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => setCtx({ ...ctx, checkInWeeks: w })}
+                    className={`py-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                      ctx.checkInWeeks === w
+                        ? "bg-lime-600 border-lime-400 text-white"
+                        : "bg-black/30 border-white/20 text-white/70"
+                    }`}
+                  >
+                    {w}w
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-white/50 mb-1">Coaching notes for this check-in</p>
+              <textarea
+                value={ctx.coachNote || ""}
+                onChange={(e) => setCtx({ ...ctx, coachNote: e.target.value })}
+                placeholder="Goals, focus areas, or session notes..."
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none"
+                rows={3}
+              />
+            </div>
+            <Button
+              onClick={scheduleCheckIn}
+              className="bg-lime-600 border border-lime-400/30 text-white active:scale-[0.98]"
+            >
+              <CalendarCheck className="h-4 w-4 mr-2" />
+              Schedule Check-In
             </Button>
           </CardContent>
         </Card>

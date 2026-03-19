@@ -96,6 +96,8 @@ export type ClinicalContext = {
   patientNote?: string;
   coachNote?: string;
   advisory?: ClinicalAdvisory;
+  checkInWeeks?: 2 | 4 | 8 | 12;
+  nextCheckInISO?: string;
 };
 
 export type Prefs = {
@@ -439,6 +441,8 @@ export const proStore = {
       patientNote: ctx.patientNote?.trim() || undefined,
       coachNote: ctx.coachNote?.trim() || undefined,
       advisory: ctx.advisory,
+      checkInWeeks: ctx.checkInWeeks,
+      nextCheckInISO: ctx.nextCheckInISO,
     };
     saveState(state);
   },

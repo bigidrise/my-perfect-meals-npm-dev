@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -41,6 +41,7 @@ export default function MorePage() {
   const [error, setError] = useState<string | null>(null);
   const [connectedResult, setConnectedResult] = useState<ConnectedResult | null>(null);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
+  const [showProviderModal, setShowProviderModal] = useState(false);
 
   const isProCareClient = !!user?.isProCare;
   const [showClientLegalModal, setShowClientLegalModal] = useState(false);
@@ -219,6 +220,27 @@ export default function MorePage() {
             />
           )}
 
+          {/* Become a Provider — only for users who are NOT already providers */}
+          {!userRole && (
+            <Card
+              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-blue-500/30 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+              onClick={() => setShowProviderModal(true)}
+              data-testid="card-become-provider"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-500/20">
+                    <UserPlus className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-white">Become a Provider</h3>
+                    <p className="text-xs text-white/70">Apply to work with clients inside My Perfect Meals</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Saved Meals / Favorites */}
           <Card
             className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
@@ -378,6 +400,62 @@ export default function MorePage() {
           </div>
         </div>
       </div>
+      {/* Become a Provider — Role Picker Modal */}
+      {showProviderModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowProviderModal(false)}>
+          <div
+            className="w-full max-w-lg bg-zinc-950 border border-white/10 rounded-t-3xl p-6 pb-10 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">Choose your role</h2>
+                <p className="text-xs text-white/50 mt-0.5">Select the path that fits your professional background</p>
+              </div>
+              <button onClick={() => setShowProviderModal(false)} className="p-2 rounded-full bg-white/10 active:scale-[0.95]">
+                <X className="h-4 w-4 text-white/70" />
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.setItem("procare_role", "trainer");
+                setShowProviderModal(false);
+                setLocation("/procare-welcome");
+              }}
+              className="w-full text-left p-4 rounded-2xl border border-white/15 bg-white/5 active:scale-[0.98] transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-orange-500/20">
+                  <Dumbbell className="h-5 w-5 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Trainer / Coach</p>
+                  <p className="text-xs text-white/50">Personal trainers, coaches, and fitness professionals</p>
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                localStorage.setItem("procare_role", "physician");
+                setShowProviderModal(false);
+                setLocation("/procare-welcome");
+              }}
+              className="w-full text-left p-4 rounded-2xl border border-blue-400/25 bg-blue-900/10 active:scale-[0.98] transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-blue-500/20">
+                  <Stethoscope className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Physician / Medical Provider</p>
+                  <p className="text-xs text-white/50">Licensed physicians, nurse practitioners, and healthcare providers</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
       <ClientLegalModal
         open={showClientLegalModal}
         flow={pendingLegalFlow}

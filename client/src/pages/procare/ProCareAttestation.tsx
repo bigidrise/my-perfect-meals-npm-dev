@@ -11,8 +11,8 @@ import ProfessionalLegalModal from "@/components/pro/ProfessionalLegalModal";
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
 const ATTESTATION_V1 = {
-  certified: "By continuing, you acknowledge that you are responsible for the guidance you provide to clients and that My Perfect Meals does not verify professional credentials at this time. You attest that the credential information you provided is accurate.",
-  experienced: "By continuing, you acknowledge that you are responsible for the guidance you provide to clients. You acknowledge that you are not currently maintaining an active professional certification and that My Perfect Meals does not verify professional credentials at this time.",
+  certified: "By continuing, you attest that the credential information you provided is accurate and current. All professional credentials submitted through My Perfect Meals are subject to manual verification by our team. Your account will be marked as Pending until your credentials are confirmed. Verified providers are marked accordingly and any misrepresentation of credentials will result in immediate removal.",
+  experienced: "By continuing, you acknowledge that you are responsible for the guidance you provide to clients. You acknowledge that you are not currently maintaining an active professional certification and that My Perfect Meals does not verify experience-based credentials. You are responsible for the accuracy of any professional background you represent.",
   non_certified: "By continuing, you acknowledge that you are not currently a licensed or certified healthcare or fitness professional and that you will not represent yourself as one within the platform. You are responsible for the guidance you provide to clients.",
 };
 
@@ -213,7 +213,21 @@ export default function ProCareAttestation() {
           </div>
         )}
 
-        <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-400/10">
+        {category === "certified" && (
+          <div className="mt-4 p-4 rounded-xl bg-amber-900/20 border border-amber-500/30">
+            <div className="flex items-start gap-2">
+              <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0 animate-pulse" />
+              <div>
+                <p className="text-xs font-semibold text-amber-300 mb-1">Account Status: Pending Verification</p>
+                <p className="text-xs text-amber-200/70 leading-relaxed">
+                  Your account will be active immediately, but will show as <strong>Pending</strong> until our team manually confirms your credentials. Physicians and licensed providers are prioritized for verification. You will not be endorsed as a Verified Provider until this is complete.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-400/10">
           <p className="text-xs text-white/50 text-center">
             This acknowledgment is recorded for platform safety and clarity. My Perfect Meals values your professional expertise and is designed to support — not replace — your judgment.
           </p>

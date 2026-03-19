@@ -91,6 +91,12 @@ export default function ProCareIdentity() {
   const bodyDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (role === "physician" && selected === null) {
+      setSelected("certified");
+    }
+  }, [role, selected]);
+
+  useEffect(() => {
     function handleTap(e: MouseEvent) {
       if (showTypeDropdown && typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node)) {
         setShowTypeDropdown(false);
@@ -103,8 +109,14 @@ export default function ProCareIdentity() {
     return () => document.removeEventListener("mousedown", handleTap);
   }, [showTypeDropdown, showBodyDropdown]);
 
+  const isPhysician = role === "physician";
+
   const canContinue = role !== null && selected !== null && (
-    selected !== "certified" || (credentialType.trim() && credentialBody.trim())
+    selected !== "certified"
+      ? true
+      : isPhysician
+        ? (credentialType.trim() && credentialBody.trim() && credentialNumber.trim() && credentialYear.trim())
+        : (credentialType.trim() && credentialBody.trim())
   );
 
   const handleContinue = () => {
@@ -115,8 +127,8 @@ export default function ProCareIdentity() {
     if (selected === "certified") {
       localStorage.setItem("procare_credential_type", credentialType.trim());
       localStorage.setItem("procare_credential_body", credentialBody.trim());
-      if (credentialNumber) localStorage.setItem("procare_credential_number", credentialNumber);
-      if (credentialYear) localStorage.setItem("procare_credential_year", credentialYear);
+      if (credentialNumber) localStorage.setItem("procare_credential_number", credentialNumber.trim());
+      if (credentialYear) localStorage.setItem("procare_credential_year", credentialYear.trim());
     } else {
       localStorage.removeItem("procare_credential_type");
       localStorage.removeItem("procare_credential_body");
@@ -187,9 +199,18 @@ export default function ProCareIdentity() {
           <p className="text-xs text-white/50 uppercase tracking-wider mb-3 px-1">Your Credential Status</p>
         )}
 
-        {/* Identity Options — shown after role selection */}
+        {/* Identity Options — physicians only see Certified; trainers see all three */}
+        {role && (
+          <div className="space-y-2 mb-3 px-1">
+            {isPhysician && (
+              <p className="text-xs text-blue-400/80">
+                Licensed physicians must provide full credential information. All fields below are required.
+              </p>
+            )}
+          </div>
+        )}
         {role && <div className="space-y-3 mb-6">
-          {OPTIONS.map((option) => {
+          {OPTIONS.filter((o) => !isPhysician || o.id === "certified").map((option) => {
             const isSelected = selected === option.id;
             return (
               <button
@@ -291,7 +312,9 @@ export default function ProCareIdentity() {
 
             {/* License / Certification Date */}
             <div>
-              <label className="text-xs text-white/50 mb-1 block">License / Certification Date (optional)</label>
+              <label className="text-xs text-white/50 mb-1 block">
+                License / Certification Date {isPhysician ? <span className="text-red-400">*</span> : "(optional)"}
+              </label>
               <Input
                 value={credentialYear}
                 onChange={(e) => setCredentialYear(e.target.value)}
@@ -303,11 +326,13 @@ export default function ProCareIdentity() {
 
             {/* Certification / License Number */}
             <div>
-              <label className="text-xs text-white/50 mb-1 block">Certification / License Number (optional)</label>
+              <label className="text-xs text-white/50 mb-1 block">
+                Certification / License Number {isPhysician ? <span className="text-red-400">*</span> : "(optional)"}
+              </label>
               <Input
                 value={credentialNumber}
                 onChange={(e) => setCredentialNumber(e.target.value)}
-                placeholder="e.g. CPT-123456"
+                placeholder={isPhysician ? "e.g. MD-123456 or NPI number" : "e.g. CPT-123456"}
                 className="bg-white/5 border-white/20 text-white placeholder:text-white/30"
               />
             </div>
