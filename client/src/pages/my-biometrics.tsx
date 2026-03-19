@@ -1970,42 +1970,6 @@ export default function MyBiometrics() {
               </div>
             )}
 
-            <div className="space-y-2 mt-2">
-              <Row
-                data-wt="bio-calories-today"
-                label="Calories"
-                value={`${todayRow.kcal} / ${activeTargets.calories} kcal`}
-              >
-                <ProgressBar
-                  value={todayRow.kcal}
-                  goal={activeTargets.calories}
-                />
-              </Row>
-              <Row
-                label="Protein"
-                value={`${todayRow.protein} / ${activeTargets.protein_g} g`}
-              >
-                <ProgressBar
-                  value={todayRow.protein}
-                  goal={activeTargets.protein_g}
-                />
-              </Row>
-              <Row
-                label="Carbs"
-                value={`${todayRow.carbs} / ${activeTargets.carbs_g} g`}
-              >
-                <ProgressBar
-                  value={todayRow.carbs}
-                  goal={activeTargets.carbs_g}
-                />
-              </Row>
-              <Row
-                label="Fat"
-                value={`${todayRow.fat} / ${activeTargets.fat_g} g`}
-              >
-                <ProgressBar value={todayRow.fat} goal={activeTargets.fat_g} />
-              </Row>
-            </div>
           </CardContent>
         </Card>
 
