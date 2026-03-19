@@ -1555,185 +1555,195 @@ export default function MyBiometrics() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Macro Targets Progress */}
-            {targets ? (
-              <div className="rounded-2xl border border-orange-400/30 p-4 mb-3 bg-orange-900/20 backdrop-blur-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Target className="h-4 w-4" />
-                    Macro Targets Active
-                  </div>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-orange-600/20 text-orange-200 border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-1 px-3 rounded-full text-xs flex items-center gap-1"
-                        data-testid="button-persistent-explanation"
-                      >
-                        <Info className="h-3 w-3" />
-                        <span>Persistent</span>
-                        <span className="text-orange-300/70 text-[10px]">
-                          (tap)
-                        </span>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-md">
-                      <DialogHeader>
-                        <DialogTitle className="text-white flex items-center gap-2">
-                          <Info className="h-5 w-5 text-orange-400" />
-                          What Does "Persistent" Mean?
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <p className="text-white/90 text-sm leading-relaxed">
-                          <strong className="text-orange-300">
-                            Persistent
-                          </strong>{" "}
-                          means these macro targets stay the same every day
-                          until you change them.
-                        </p>
-                        <p className="text-white/80 text-sm leading-relaxed">
-                          Unlike your daily macro tracking (which resets each
-                          day), your <strong>macro targets</strong> remain
-                          constant. They don't change automatically.
-                        </p>
-                        <div className="rounded-lg border border-orange-400/30 bg-orange-900/20 p-3">
-                          <p className="text-orange-200 text-sm">
-                            💡 <strong>Example:</strong> If your target is 2000
-                            calories today, it will still be 2000 calories
-                            tomorrow, next week, and next month—unless you
-                            update it.
-                          </p>
-                        </div>
-                        <p className="text-white/70 text-xs mb-4">
-                          {targetSource === "pro"
-                            ? `These targets were set by ${proName}. They'll stay active until ${proName} changes them.`
-                            : "You can change your macro targets anytime from:"}
-                        </p>
-
-                        {targetSource !== "pro" && !isGuestMode() && (
-                          <div className="grid grid-cols-2 gap-3">
-                            <Button
-                              onClick={() => setLocation("/macro-counter")}
-                              className="bg-orange-600/20 text-orange-200 border border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-2 text-xs"
-                              data-testid="button-go-macro-calculator"
-                            >
-                              Macro Calculator
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                const userId =
-                                  localStorage.getItem("userId") || "1";
-                                setLocation(`/athlete-meal-board/${userId}`);
-                              }}
-                              className="bg-orange-600/20 text-orange-200 border border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-2 text-xs"
-                              data-testid="button-go-athlete-board"
-                            >
-                              Professional Board
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+            {/* Macro Targets Progress - always visible */}
+            <div className="rounded-2xl border border-orange-400/30 p-4 mb-3 bg-orange-900/20 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  {targets ? "Macro Targets Active" : "Today's Macros"}
                 </div>
-
-                {/* Pro-set badge (if targets are set by professional) */}
-                {targetSource === "pro" && (
-                  <div className="mb-3 rounded-lg border border-orange-400/50 bg-orange-900/30 backdrop-blur-sm p-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Stethoscope className="h-4 w-4 text-orange-300" />
-                      <span className="font-semibold text-orange-200">
-                        Set by {proName}
-                      </span>
-                    </div>
-                    <div className="text-xs text-white/60 mt-1">
-                      Your professional has customized your macro targets
-                    </div>
-                  </div>
-                )}
-
-                {/* Top summary badges with pulsing effect */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {summaryBadges.map((b) => (
-                    <Badge
-                      key={b.key}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
                       variant="outline"
-                      className={[
-                        b.near
-                          ? "border-yellow-400/70 bg-yellow-500/15 text-yellow-100/90 mpm-badge-pulse"
-                          : "bg-white/10 text-white/80 border-white/20",
-                      ].join(" ")}
-                      title={`${Math.round(b.pct)}% of ${b.key}`}
+                      size="sm"
+                      className="bg-orange-600/20 text-orange-200 border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-1 px-3 rounded-full text-xs flex items-center gap-1"
+                      data-testid="button-persistent-explanation"
                     >
-                      {b.key}
-                      {b.over
-                        ? " (Over)"
-                        : b.near
-                          ? ` (${Math.round(b.pct)}%)`
-                          : ""}
-                    </Badge>
-                  ))}
-                </div>
-
-                {/* Progress bars - white/yellow/pink system */}
-                <div data-testid="biometrics-progress-bars">
-                  {summaryBadges.map((row) => {
-                    const near = row.pct >= 90;
-                    const over = row.pct >= 100;
-                    const barColor = over
-                      ? "bg-pink-500"
-                      : near
-                        ? "bg-yellow-400"
-                        : "bg-white/70";
-                    return (
-                      <div key={row.key} className="space-y-2 mb-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white">{row.key}</span>
-                          <span className="text-white">
-                            {Math.round(row.used)} / {Math.round(row.max)}{" "}
-                            {row.unit}{" "}
-                            {over
-                              ? "• Over"
-                              : near
-                                ? `• ${Math.round(row.pct)}%`
-                                : ""}
-                          </span>
-                        </div>
-                        <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
-                          <div
-                            className={`h-2 transition-all ${barColor}`}
-                            style={{ width: `${Math.min(row.pct, 110)}%` }}
-                          />
-                        </div>
-                        {near && (
-                          <div className="text-xs opacity-90 text-yellow-200">
-                            {over
-                              ? "Over today's limit."
-                              : "Approaching limit."}
-                          </div>
-                        )}
+                      <Info className="h-3 w-3" />
+                      <span>Persistent</span>
+                      <span className="text-orange-300/70 text-[10px]">
+                        (tap)
+                      </span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-white flex items-center gap-2">
+                        <Info className="h-5 w-5 text-orange-400" />
+                        What Does "Persistent" Mean?
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <p className="text-white/90 text-sm leading-relaxed">
+                        <strong className="text-orange-300">
+                          Persistent
+                        </strong>{" "}
+                        means these macro targets stay the same every day
+                        until you change them.
+                      </p>
+                      <p className="text-white/80 text-sm leading-relaxed">
+                        Unlike your daily macro tracking (which resets each
+                        day), your <strong>macro targets</strong> remain
+                        constant. They don't change automatically.
+                      </p>
+                      <div className="rounded-lg border border-orange-400/30 bg-orange-900/20 p-3">
+                        <p className="text-orange-200 text-sm">
+                          💡 <strong>Example:</strong> If your target is 2000
+                          calories today, it will still be 2000 calories
+                          tomorrow, next week, and next month—unless you
+                          update it.
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
+                      <p className="text-white/70 text-xs mb-4">
+                        {targetSource === "pro"
+                          ? `These targets were set by ${proName}. They'll stay active until ${proName} changes them.`
+                          : "You can change your macro targets anytime from:"}
+                      </p>
+
+                      {targetSource !== "pro" && !isGuestMode() && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            onClick={() => setLocation("/macro-counter")}
+                            className="bg-orange-600/20 text-orange-200 border border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-2 text-xs"
+                            data-testid="button-go-macro-calculator"
+                          >
+                            Macro Calculator
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              const userId =
+                                localStorage.getItem("userId") || "1";
+                              setLocation(`/athlete-meal-board/${userId}`);
+                            }}
+                            className="bg-orange-600/20 text-orange-200 border border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-2 text-xs"
+                            data-testid="button-go-athlete-board"
+                          >
+                            Professional Board
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
-            ) : (
-              <div className="rounded-2xl border border-orange-400/30 p-4 mb-3 bg-orange-900/10 backdrop-blur-sm">
-                <div className="text-sm text-white/70 text-center">
-                  💡 Go to{" "}
-                  <span className="font-semibold text-white">
-                    Macro Calculator
-                  </span>{" "}
-                  and tap{" "}
-                  <span className="font-semibold text-orange-300">
-                    "Set Macro Targets"
-                  </span>{" "}
-                  to track progress here
+
+              {/* Pro-set badge (if targets are set by professional) */}
+              {targetSource === "pro" && (
+                <div className="mb-3 rounded-lg border border-orange-400/50 bg-orange-900/30 backdrop-blur-sm p-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Stethoscope className="h-4 w-4 text-orange-300" />
+                    <span className="font-semibold text-orange-200">
+                      Set by {proName}
+                    </span>
+                  </div>
+                  <div className="text-xs text-white/60 mt-1">
+                    Your professional has customized your macro targets
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {targets ? (
+                <>
+                  {/* Top summary badges with pulsing effect */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {summaryBadges.map((b) => (
+                      <Badge
+                        key={b.key}
+                        variant="outline"
+                        className={[
+                          b.near
+                            ? "border-yellow-400/70 bg-yellow-500/15 text-yellow-100/90 mpm-badge-pulse"
+                            : "bg-white/10 text-white/80 border-white/20",
+                        ].join(" ")}
+                        title={`${Math.round(b.pct)}% of ${b.key}`}
+                      >
+                        {b.key}
+                        {b.over
+                          ? " (Over)"
+                          : b.near
+                            ? ` (${Math.round(b.pct)}%)`
+                            : ""}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {/* Progress bars - white/yellow/pink system */}
+                  <div data-testid="biometrics-progress-bars">
+                    {summaryBadges.map((row) => {
+                      const near = row.pct >= 90;
+                      const over = row.pct >= 100;
+                      const barColor = over
+                        ? "bg-pink-500"
+                        : near
+                          ? "bg-yellow-400"
+                          : "bg-white/70";
+                      return (
+                        <div key={row.key} className="space-y-2 mb-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white">{row.key}</span>
+                            <span className="text-white">
+                              {Math.round(row.used)} / {Math.round(row.max)}{" "}
+                              {row.unit}{" "}
+                              {over
+                                ? "• Over"
+                                : near
+                                  ? `• ${Math.round(row.pct)}%`
+                                  : ""}
+                            </span>
+                          </div>
+                          <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
+                            <div
+                              className={`h-2 transition-all ${barColor}`}
+                              style={{ width: `${Math.min(row.pct, 110)}%` }}
+                            />
+                          </div>
+                          {near && (
+                            <div className="text-xs opacity-90 text-yellow-200">
+                              {over
+                                ? "Over today's limit."
+                                : "Approaching limit."}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div data-testid="biometrics-progress-bars">
+                  {[
+                    { label: "Calories", value: todayRow.kcal, unit: "kcal" },
+                    { label: "Protein", value: todayRow.protein, unit: "g" },
+                    { label: "Carbs", value: todayRow.carbs, unit: "g" },
+                    { label: "Fat", value: todayRow.fat, unit: "g" },
+                  ].map((row) => (
+                    <div key={row.label} className="space-y-2 mb-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white">{row.label}</span>
+                        <span className="text-white/60">{row.value} {row.unit}</span>
+                      </div>
+                      <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
+                        <div className="h-2 bg-white/30 transition-all" style={{ width: row.value > 0 ? "30%" : "0%" }} />
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-white/40 text-center mt-1">
+                    Set targets in Macro Calculator to track progress
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Photo Upload Button */}
             <Button
@@ -1970,42 +1980,6 @@ export default function MyBiometrics() {
               </div>
             )}
 
-            <div className="space-y-2 mt-2">
-              <Row
-                data-wt="bio-calories-today"
-                label="Calories"
-                value={`${todayRow.kcal} / ${activeTargets.calories} kcal`}
-              >
-                <ProgressBar
-                  value={todayRow.kcal}
-                  goal={activeTargets.calories}
-                />
-              </Row>
-              <Row
-                label="Protein"
-                value={`${todayRow.protein} / ${activeTargets.protein_g} g`}
-              >
-                <ProgressBar
-                  value={todayRow.protein}
-                  goal={activeTargets.protein_g}
-                />
-              </Row>
-              <Row
-                label="Carbs"
-                value={`${todayRow.carbs} / ${activeTargets.carbs_g} g`}
-              >
-                <ProgressBar
-                  value={todayRow.carbs}
-                  goal={activeTargets.carbs_g}
-                />
-              </Row>
-              <Row
-                label="Fat"
-                value={`${todayRow.fat} / ${activeTargets.fat_g} g`}
-              >
-                <ProgressBar value={todayRow.fat} goal={activeTargets.fat_g} />
-              </Row>
-            </div>
           </CardContent>
         </Card>
 
