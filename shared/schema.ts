@@ -1767,4 +1767,26 @@ export const macroProgramHistory = pgTable("macro_program_history", {
 
 export type MacroProgramHistory = typeof macroProgramHistory.$inferSelect;
 
+export const complianceSnapshots = pgTable("compliance_snapshots", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  snapshotDate: varchar("snapshot_date").notNull(),
+  complianceScore: integer("compliance_score").notNull(),
+  calorieCompliance: integer("calorie_compliance").notNull(),
+  proteinCompliance: integer("protein_compliance").notNull(),
+  loggingCompliance: integer("logging_compliance").notNull(),
+  calorieTarget: integer("calorie_target").notNull(),
+  proteinTarget: integer("protein_target").notNull(),
+  calorieAverage: integer("calorie_average").notNull(),
+  proteinAverage: integer("protein_average").notNull(),
+  loggedDays: integer("logged_days").notNull(),
+  windowDays: integer("window_days").notNull().default(7),
+  rewardBand: varchar("reward_band").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  userDateIdx: uniqueIndex("idx_compliance_snapshots_user_date").on(t.userId, t.snapshotDate),
+}));
+
+export type ComplianceSnapshot = typeof complianceSnapshots.$inferSelect;
+
 export { userDocumentAcceptance } from "../server/db/schema/legal";
