@@ -123,7 +123,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_trainer_5",
     label: "ProCare Trainer 5",
-    price: 19.99,
+    price: 39.99,
     group: "pro",
     clients: 5,
     blurb: "For trainers managing up to 5 clients",
@@ -138,7 +138,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_trainer_10",
     label: "ProCare Trainer 10",
-    price: 29.99,
+    price: 69.99,
     group: "pro",
     clients: 10,
     blurb: "For trainers managing up to 10 clients",
@@ -153,7 +153,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_trainer_25",
     label: "ProCare Trainer 25",
-    price: 59.0,
+    price: 99.99,
     group: "pro",
     clients: 25,
     blurb: "For trainers managing up to 25 clients",
@@ -168,13 +168,13 @@ export const PLAN_SKUS: PlanSku[] = [
   },
   {
     sku: "mpm_trainer_50",
-    label: "ProCare Trainer 50",
-    price: 199.0,
+    label: "ProCare Trainer 50+",
+    price: 125.99,
     group: "pro",
     clients: 50,
-    blurb: "For trainers managing up to 50 clients",
+    blurb: "For trainers managing up to 50+ clients",
     features: [
-      "Manage up to 50 clients",
+      "Manage up to 50+ clients",
       "Client nutrition dashboards",
       "Assign meal builders",
       "Macro target management",
@@ -186,7 +186,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_physician_50",
     label: "ProCare Physician 50",
-    price: 299.0,
+    price: 199.99,
     group: "pro",
     clients: 50,
     blurb: "For physicians managing up to 50 patients",
@@ -201,7 +201,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_physician_150",
     label: "ProCare Physician 150",
-    price: 599.0,
+    price: 399.99,
     group: "pro",
     clients: 150,
     blurb: "For clinics and large practices",
