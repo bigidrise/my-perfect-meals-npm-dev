@@ -2,11 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetClose,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 
 type AvailabilityStatus = "available" | "unavailable";
 
@@ -35,7 +31,7 @@ const CHEF_LOGO = "/assets/MPMFlameChefLogo.png";
 const coaches: Coach[] = [
   {
     id: "idrise",
-    name: "Founder–Coach Idrise",
+    name: "Coach Idrise (Nutrition / Behavior Change)",
     title: "Founder",
     credentials: "NASM-CPT · WFS · CNC · BCS",
     image: "/assets/founder-photo.jpg",
@@ -45,21 +41,54 @@ const coaches: Coach[] = [
   },
   {
     id: "lindsey",
-    name: "Dr. Lindsey Prescher",
+    name: "Dr. Lindsey Prescher (Cardiothoracic Surgeon)",
     title: "CMO",
-    credentials: "CT Surgeon · DO FASC FACC · Ret. CDR USN MC",
+    credentials: "DO FASC FACC · Ret. CDR USN MC",
     image: "/assets/dr-lindsey.jpg",
     bio: LINDSEY_BIO,
     availabilityStatus: "available",
     isCMCO: true,
   },
-  { id: "placeholder-1", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
-  { id: "placeholder-2", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
-  { id: "placeholder-3", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
-  { id: "placeholder-4", name: "Coming Soon", image: CHEF_LOGO, bio: "", availabilityStatus: "unavailable", isPlaceholder: true },
+  {
+    id: "placeholder-1",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-2",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-3",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-4",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
 ];
 
-const DEFAULT_AGREED = { conduct: false, expectations: false, nonMedical: false, conversationPrivacy: false };
+const DEFAULT_AGREED = {
+  conduct: false,
+  expectations: false,
+  nonMedical: false,
+  conversationPrivacy: false,
+};
 
 export default function MeetYourCoach() {
   const [, setLocation] = useLocation();
@@ -86,8 +115,10 @@ export default function MeetYourCoach() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white px-4 pb-6" style={{ paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
-
+    <div
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white px-4 pb-6"
+      style={{ paddingTop: "max(24px, env(safe-area-inset-top))" }}
+    >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Button
@@ -96,7 +127,7 @@ export default function MeetYourCoach() {
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <h1 className="text-xl font-bold">Meet the Professionals</h1>
+        <h1 className="text-xl font-bold">Professional Team</h1>
       </div>
 
       {/* 2-column grid */}
@@ -138,17 +169,23 @@ export default function MeetYourCoach() {
             </div>
 
             <div className="p-2.5">
-              <p className="font-semibold text-sm leading-tight line-clamp-2">{coach.name}</p>
+              <p className="font-semibold text-sm leading-tight line-clamp-2">
+                {coach.name}
+              </p>
               {coach.credentials && (
-                <p className="text-[10px] text-white/60 mt-0.5 leading-tight">{coach.credentials}</p>
+                <p className="text-[10px] text-white/60 mt-0.5 leading-tight">
+                  {coach.credentials}
+                </p>
               )}
               {!coach.isPlaceholder && (
-                <p className={`text-[11px] mt-1 ${coach.availabilityStatus === "available" ? "text-green-400" : "text-white/50"}`}>
+                <p
+                  className={`text-[11px] mt-1 ${coach.availabilityStatus === "available" ? "text-green-400" : "text-white/50"}`}
+                >
                   {coach.availabilityStatus === "available"
                     ? "Available now"
                     : coach.availableDate
-                    ? `Returns ${coach.availableDate}`
-                    : "Unavailable"}
+                      ? `Returns ${coach.availableDate}`
+                      : "Unavailable"}
                 </p>
               )}
             </div>
@@ -163,9 +200,15 @@ export default function MeetYourCoach() {
           className="bg-zinc-950 border-t border-white/10 text-white rounded-t-3xl max-h-[92vh] overflow-y-auto p-0"
         >
           {selectedCoach && (
-            <div className="max-w-lg mx-auto px-5 pb-8" style={{ paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
+            <div
+              className="max-w-lg mx-auto px-5 pb-8"
+              style={{ paddingTop: "max(24px, env(safe-area-inset-top))" }}
+            >
               {/* Photo */}
-              <div className="w-full bg-black/40 rounded-xl mb-4 overflow-hidden flex items-center justify-center" style={{ minHeight: "320px", maxHeight: "420px" }}>
+              <div
+                className="w-full bg-black/40 rounded-xl mb-4 overflow-hidden flex items-center justify-center"
+                style={{ minHeight: "320px", maxHeight: "420px" }}
+              >
                 <img
                   src={selectedCoach.image}
                   alt={selectedCoach.name}
@@ -177,13 +220,19 @@ export default function MeetYourCoach() {
               {/* Name + badge */}
               <h2 className="text-xl font-bold">{selectedCoach.name}</h2>
               {selectedCoach.isFounder && (
-                <p className="text-orange-400 text-sm font-medium mt-1">Founder</p>
+                <p className="text-orange-400 text-sm font-medium mt-1">
+                  Founder
+                </p>
               )}
               {selectedCoach.isCMCO && (
-                <p className="text-blue-400 text-sm font-medium mt-1">Chief Medical Officer</p>
+                <p className="text-blue-400 text-sm font-medium mt-1">
+                  Chief Medical Officer
+                </p>
               )}
               {selectedCoach.credentials && (
-                <p className="text-white/60 text-xs mt-1 leading-relaxed">{selectedCoach.credentials}</p>
+                <p className="text-white/60 text-xs mt-1 leading-relaxed">
+                  {selectedCoach.credentials}
+                </p>
               )}
 
               {/* Bio */}
@@ -218,8 +267,11 @@ export default function MeetYourCoach() {
                     className="mt-0.5 w-4 h-4 accent-orange-500 shrink-0"
                   />
                   <span className="text-sm text-white/80 leading-snug">
-                    <span className="text-white font-medium">Conduct Agreement — </span>
-                    All communication must remain professional and within the platform.
+                    <span className="text-white font-medium">
+                      Conduct Agreement —{" "}
+                    </span>
+                    All communication must remain professional and within the
+                    platform.
                   </span>
                 </label>
 
@@ -231,8 +283,11 @@ export default function MeetYourCoach() {
                     className="mt-0.5 w-4 h-4 accent-orange-500 shrink-0"
                   />
                   <span className="text-sm text-white/80 leading-snug">
-                    <span className="text-white font-medium">Coaching Expectations — </span>
-                    I understand this is a structured coaching system and I am responsible for following guidance.
+                    <span className="text-white font-medium">
+                      Coaching Expectations —{" "}
+                    </span>
+                    I understand this is a structured coaching system and I am
+                    responsible for following guidance.
                   </span>
                 </label>
 
@@ -244,7 +299,9 @@ export default function MeetYourCoach() {
                     className="mt-0.5 w-4 h-4 accent-orange-500 shrink-0"
                   />
                   <span className="text-sm text-white/80 leading-snug">
-                    <span className="text-white font-medium">Non-Medical Disclaimer — </span>
+                    <span className="text-white font-medium">
+                      Non-Medical Disclaimer —{" "}
+                    </span>
                     I understand this is not medical diagnosis or treatment.
                   </span>
                 </label>
@@ -257,8 +314,13 @@ export default function MeetYourCoach() {
                     className="mt-0.5 w-4 h-4 accent-orange-500 shrink-0"
                   />
                   <span className="text-sm text-white/80 leading-snug">
-                    <span className="text-white font-medium">Conversation Privacy — </span>
-                    I understand that My Perfect Meals does not record, store, or provide transcripts of coach-client conversations. Communication is private between me and my coach, and it is my responsibility to save any information I wish to keep.
+                    <span className="text-white font-medium">
+                      Conversation Privacy —{" "}
+                    </span>
+                    I understand that My Perfect Meals does not record, store,
+                    or provide transcripts of coach-client conversations.
+                    Communication is private between me and my coach, and it is
+                    my responsibility to save any information I wish to keep.
                   </span>
                 </label>
               </div>
@@ -272,7 +334,9 @@ export default function MeetYourCoach() {
               <Button
                 disabled={!allChecked}
                 className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-full font-semibold mb-3"
-                onClick={() => setLocation(`/pricing?coach=${selectedCoach.id}`)}
+                onClick={() =>
+                  setLocation(`/pricing?coach=${selectedCoach.id}`)
+                }
               >
                 Continue to Pricing
               </Button>
