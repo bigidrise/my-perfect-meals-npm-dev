@@ -81,6 +81,7 @@ const FOUNDERS: Founder[] = [
   {
     name: "Kristen Bogan",
     title: "Founding Coach",
+    photo: "/assets/kristen-bogan.jpg",
     initials: "KB",
     bio: "Kristen Bogan is one of the founding coaches who helped shape My Perfect Meals from the ground up. Her expertise in performance and nutrition coaching, combined with a real-world approach to client relationships, helped define the coaching culture and standards the platform is built on.",
     credentials: [
