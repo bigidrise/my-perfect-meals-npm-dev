@@ -444,6 +444,69 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
   }
 });
 
+router.patch("/:studioId/clients/:clientUserId/apply-system-recommendation", async (req, res) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const { studioId, clientUserId } = req.params;
+    const { directiveKey, directiveLabel, protocol } = req.body;
+
+    if (!directiveKey || !directiveLabel) {
+      return res.status(400).json({ error: "directiveKey and directiveLabel are required" });
+    }
+
+    const ALLOWED_DIRECTIVE_KEYS = ["liverDisease", "renal", "cardiac", "liverSupport", "lowSodium", "postBariatric"];
+    if (!ALLOWED_DIRECTIVE_KEYS.includes(directiveKey)) {
+      return res.status(400).json({ error: "Invalid directive key" });
+    }
+
+    const [studio] = await db
+      .select()
+      .from(studios)
+      .where(and(eq(studios.id, studioId), eq(studios.ownerUserId, userId)));
+
+    if (!studio) {
+      return res.status(404).json({ error: "Studio not found" });
+    }
+
+    const [membership] = await db
+      .update(studioMemberships)
+      .set({ builderSource: "clinical", updatedAt: new Date() })
+      .where(
+        and(
+          eq(studioMemberships.studioId, studioId),
+          eq(studioMemberships.clientUserId, clientUserId)
+        )
+      )
+      .returning();
+
+    if (!membership) {
+      return res.status(404).json({ error: "Client not found in studio" });
+    }
+
+    await logClientActivity(
+      studioId,
+      clientUserId,
+      userId,
+      "system_recommendation_applied",
+      "membership",
+      membership.id,
+      {
+        directiveKey,
+        directiveLabel,
+        protocol: protocol ?? null,
+        source: "trainer",
+        origin: "lab-derived",
+      }
+    );
+
+    res.json({ membership, applied: true });
+  } catch (error) {
+    console.error("Error applying system recommendation:", error);
+    res.status(500).json({ error: "Failed to apply system recommendation" });
+  }
+});
+
 router.get("/:studioId/clients/:clientUserId/notes", async (req, res) => {
   try {
     const userId = await getUserId(req);

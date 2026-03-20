@@ -382,11 +382,14 @@ export default function TrainerClientDashboard() {
                       Anti-Inflammatory
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-white/50 w-28 shrink-0">Directive</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/30 border border-teal-400/50 text-teal-200 font-semibold">
-                      {recommendedProtocol}
-                    </span>
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs text-white/50 w-28 shrink-0 mt-0.5">Directive</span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/30 border border-teal-400/50 text-teal-200 font-semibold self-start">
+                        {recommendedProtocol}
+                      </span>
+                      <span className="text-[10px] text-white/35 italic pl-0.5">Based on lab-derived system recommendation</span>
+                    </div>
                   </div>
                 </>
               ) : activeProtocolLabel ? (
@@ -451,15 +454,38 @@ export default function TrainerClientDashboard() {
                   {!(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
                     <Button
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
+                        const studioId = client?.studioId;
+                        const targetUserId = resolvedClientUserId;
+                        if (studioId && targetUserId) {
+                          try {
+                            const res = await fetch(
+                              apiUrl(`/api/studios/${studioId}/clients/${targetUserId}/apply-system-recommendation`),
+                              {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                                credentials: "include",
+                                body: JSON.stringify({
+                                  directiveKey: recommendedDirectiveKey,
+                                  directiveLabel: recommendedProtocol,
+                                  protocol: recommendedDirectiveKey,
+                                }),
+                              }
+                            );
+                            if (!res.ok) throw new Error("Server rejected recommendation");
+                          } catch {
+                            toast({ title: "Could not apply recommendation", description: "Please try again.", variant: "destructive" });
+                            return;
+                          }
+                        }
                         const updated = { ...t, flags: { ...t.flags, [recommendedDirectiveKey]: true } };
                         setT(updated);
                         proStore.setTargets(clientId, updated);
-                        toast({ title: `${recommendedProtocol} directive applied`, description: "This client's meal plan now follows the lab-recommended protocol." });
+                        toast({ title: "System recommendation applied", description: `This client's plan now follows the ${recommendedProtocol} directive derived from their lab data.` });
                       }}
                       className="bg-amber-600 hover:bg-amber-500 text-white border-0 text-xs"
                     >
-                      Apply {recommendedProtocol} Directive
+                      Apply System Recommendation
                     </Button>
                   )}
                   {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (

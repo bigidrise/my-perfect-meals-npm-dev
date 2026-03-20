@@ -8,7 +8,8 @@ type ActivityAction =
   | "program_updated" | "macros_updated" | "settings_changed"
   | "invite_sent" | "invite_accepted" | "note_added"
   | "message_sent" | "message_deleted" | "note_deleted"
-  | "message_blocked" | "message_flagged";
+  | "message_blocked" | "message_flagged"
+  | "system_recommendation_applied";
 
 export async function logClientActivity(
   studioId: string,
