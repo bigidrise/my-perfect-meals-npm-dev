@@ -4,56 +4,72 @@ import { ttsService } from "@/lib/tts";
 export function useChefVoice(
   setIsPlaying: (v: boolean) => void
 ) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef  = useRef<HTMLAudioElement | null>(null);
+  const genRef    = useRef(0); // increments on every speak() call
 
   const speak = useCallback(
     async (text: string, onListened?: () => void): Promise<void> => {
+      // Stop any audio that is already playing / loading
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
+      }
+
+      // Capture this call's generation. If a newer call arrives while we are
+      // awaiting the network, we will bail out and not play stale audio.
+      const myGen = ++genRef.current;
+
       setIsPlaying(true);
 
+      // Unlock the UI step immediately — don't wait for slow TTS response
+      onListened?.();
+
       try {
-        ttsService.stop();
-        
-        // Immediately unlock UI - don't wait for TTS onStart which may fire late
-        onListened?.();
-        
         const result = await ttsService.speak(text, {
-          onStart: () => setIsPlaying(true),
-          onEnd: () => setIsPlaying(false),
-          onError: () => setIsPlaying(false),
+          onStart: () => { if (genRef.current === myGen) setIsPlaying(true); },
+          onEnd:   () => { if (genRef.current === myGen) setIsPlaying(false); },
+          onError: () => { if (genRef.current === myGen) setIsPlaying(false); },
         });
+
+        // A newer speak() call arrived while we were fetching — discard silently
+        if (genRef.current !== myGen) {
+          if (result.audioUrl) URL.revokeObjectURL(result.audioUrl);
+          return;
+        }
 
         if (result.audioUrl) {
           const audio = new Audio(result.audioUrl);
           audioRef.current = audio;
-          
-          // Return a promise that resolves when audio ends
+
           await new Promise<void>((resolve, reject) => {
             audio.onended = () => {
-              setIsPlaying(false);
+              if (genRef.current === myGen) setIsPlaying(false);
               URL.revokeObjectURL(result.audioUrl!);
+              audioRef.current = null;
               resolve();
             };
             audio.onerror = () => {
-              setIsPlaying(false);
+              if (genRef.current === myGen) setIsPlaying(false);
               URL.revokeObjectURL(result.audioUrl!);
+              audioRef.current = null;
               reject(new Error("Audio playback failed"));
             };
             audio.play().catch(reject);
           });
         }
       } catch {
-        setIsPlaying(false);
-        // onListened already called above, no need to call again
+        if (genRef.current === myGen) setIsPlaying(false);
       }
     },
     [setIsPlaying]
   );
 
   const stop = useCallback(() => {
-    ttsService.stop();
+    genRef.current++; // invalidate any in-flight fetch
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      audioRef.current.src = "";
       audioRef.current = null;
     }
     setIsPlaying(false);

@@ -110,9 +110,10 @@ class VoiceManagerSingleton {
       return { status: 'not_ready', reason: 'Voice not initialized' };
     }
 
+    // If already speaking (e.g. user tapped twice), stop the current audio
+    // and clear the queue so the new request starts fresh — no double-talk.
     if (this.state.status === 'speaking') {
-      this.state.queue.push({ text, onEnd });
-      return { status: 'queued' };
+      this.stop();
     }
 
     return this.playNow(text, onEnd);
