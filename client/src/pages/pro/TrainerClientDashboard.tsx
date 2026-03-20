@@ -27,6 +27,7 @@ import {
   CalendarCheck,
   Stethoscope,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -106,6 +107,14 @@ export default function TrainerClientDashboard() {
   }
   const [labs, setLabs] = useState<KeyLabs | null>(null);
   const [recommendedProtocol, setRecommendedProtocol] = useState<string | null>(null);
+  const [recommendedDirectiveKey, setRecommendedDirectiveKey] = useState<string | null>(null);
+
+  const PROTOCOL_TO_FLAG: Record<string, string> = {
+    "liver-disease": "liverDisease",
+    "kidney-disease": "renal",
+    "heart-failure": "cardiac",
+    "liver-support": "liverSupport",
+  };
 
   const activeProtocolLabel = useMemo(() => {
     if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]) return null;
@@ -158,6 +167,10 @@ export default function TrainerClientDashboard() {
         }
         if (data?.protocolSubtitle) {
           setRecommendedProtocol(data.protocolSubtitle);
+        }
+        if (data?.protocolSignal?.protocol) {
+          const flagKey = PROTOCOL_TO_FLAG[data.protocolSignal.protocol] ?? null;
+          setRecommendedDirectiveKey(flagKey);
         }
       })
       .catch(() => {});
@@ -361,22 +374,29 @@ export default function TrainerClientDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pt-0">
-              {recommendedProtocol && (
+              {recommendedProtocol ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-white/50 w-28 shrink-0">Builder</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/20 border border-teal-500/30 text-teal-300">
+                      Anti-Inflammatory
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-white/50 w-28 shrink-0">Directive</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/30 border border-teal-400/50 text-teal-200 font-semibold">
+                      {recommendedProtocol}
+                    </span>
+                  </div>
+                </>
+              ) : activeProtocolLabel ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/50 w-28 shrink-0">Recommended Builder</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/20 border border-teal-500/30 text-teal-300">
-                    {recommendedProtocol}
-                  </span>
-                </div>
-              )}
-              {activeProtocolLabel && !recommendedProtocol && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/50 w-28 shrink-0">Active Protocol</span>
+                  <span className="text-xs text-white/50 w-28 shrink-0">Protocol</span>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/20 border border-teal-500/30 text-teal-300">
                     {activeProtocolLabel}
                   </span>
                 </div>
-              )}
+              ) : null}
               {labs && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-white/50 w-28 shrink-0">Key Labs</span>
@@ -396,6 +416,59 @@ export default function TrainerClientDashboard() {
                   </span>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {recommendedDirectiveKey && recommendedProtocol && (
+          <Card className={`border ${
+            (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+              ? "bg-teal-900/20 border-teal-500/40"
+              : "bg-amber-900/20 border-amber-500/40"
+          }`}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className={`h-5 w-5 mt-0.5 shrink-0 ${
+                  (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                    ? "text-teal-400"
+                    : "text-amber-400"
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold mb-1 ${
+                    (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                      ? "text-teal-300"
+                      : "text-amber-300"
+                  }`}>
+                    {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                      ? `${recommendedProtocol} Directive Applied`
+                      : "Science-Backed Directive Recommended"}
+                  </p>
+                  <p className="text-xs text-white/60 leading-relaxed mb-3">
+                    {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                      ? `This client's meal plan is following the ${recommendedProtocol} directive derived from their lab values. Macros and meals will reflect this protocol.`
+                      : `This client's lab results support the ${recommendedProtocol} directive within the Anti-Inflammatory builder. Applying it aligns their meals with clinical lab findings — the macro targets still apply.`}
+                  </p>
+                  {!(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const updated = { ...t, flags: { ...t.flags, [recommendedDirectiveKey]: true } };
+                        setT(updated);
+                        proStore.setTargets(clientId, updated);
+                        toast({ title: `${recommendedProtocol} directive applied`, description: "This client's meal plan now follows the lab-recommended protocol." });
+                      }}
+                      className="bg-amber-600 hover:bg-amber-500 text-white border-0 text-xs"
+                    >
+                      Apply {recommendedProtocol} Directive
+                    </Button>
+                  )}
+                  {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-teal-400 font-medium">
+                      <Check className="h-3.5 w-3.5" /> Active on this client
+                    </span>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
