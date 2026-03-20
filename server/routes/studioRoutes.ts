@@ -159,6 +159,7 @@ router.get("/:studioId/clients", async (req, res) => {
         assignedBuilder: studioMemberships.assignedBuilder,
         activeBoardId: studioMemberships.activeBoardId,
         workspace: studioMemberships.workspace,
+        isArchived: studioMemberships.isArchived,
         joinedAt: studioMemberships.joinedAt,
         userName: users.username,
         firstName: users.firstName,
@@ -179,6 +180,7 @@ router.get("/:studioId/clients", async (req, res) => {
       assignedBuilder: r.assignedBuilder,
       activeBoardId: r.activeBoardId,
       workspace: r.workspace,
+      isArchived: r.isArchived,
       joinedAt: r.joinedAt,
       name: r.firstName && r.lastName
         ? `${r.firstName} ${r.lastName}`
@@ -190,6 +192,60 @@ router.get("/:studioId/clients", async (req, res) => {
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({ error: "Failed to fetch clients" });
+  }
+});
+
+router.patch("/:studioId/clients/:clientUserId/archive", async (req, res) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const { studioId, clientUserId } = req.params;
+
+    const [studio] = await db
+      .select()
+      .from(studios)
+      .where(and(eq(studios.id, studioId), eq(studios.ownerUserId, userId)));
+    if (!studio) return res.status(404).json({ error: "Studio not found" });
+
+    await db
+      .update(studioMemberships)
+      .set({ isArchived: true, updatedAt: new Date() })
+      .where(and(
+        eq(studioMemberships.studioId, studioId),
+        eq(studioMemberships.clientUserId, clientUserId),
+      ));
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error archiving client:", error);
+    res.status(500).json({ error: "Failed to archive client" });
+  }
+});
+
+router.patch("/:studioId/clients/:clientUserId/restore", async (req, res) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const { studioId, clientUserId } = req.params;
+
+    const [studio] = await db
+      .select()
+      .from(studios)
+      .where(and(eq(studios.id, studioId), eq(studios.ownerUserId, userId)));
+    if (!studio) return res.status(404).json({ error: "Studio not found" });
+
+    await db
+      .update(studioMemberships)
+      .set({ isArchived: false, updatedAt: new Date() })
+      .where(and(
+        eq(studioMemberships.studioId, studioId),
+        eq(studioMemberships.clientUserId, clientUserId),
+      ));
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error restoring client:", error);
+    res.status(500).json({ error: "Failed to restore client" });
   }
 });
 

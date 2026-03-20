@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 
 export const professionalSpaceTypeEnum = pgEnum("professional_space_type", ["studio", "clinic"]);
 
@@ -72,6 +72,7 @@ export const studioMemberships = pgTable("studio_memberships", {
   assignedBuilder: text("assigned_builder"),
   activeBoardId: uuid("active_board_id"),
   workspace: text("workspace").notNull().default("trainer"),
+  isArchived: boolean("is_archived").notNull().default(false),
   joinedAt: timestamp("joined_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

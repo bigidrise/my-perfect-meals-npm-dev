@@ -197,7 +197,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           ...(resolvedBuilder ? { assignedBuilder: resolvedBuilder } : {}),
           activeBoardId: dbClient.activeBoardId || existing?.activeBoardId,
           dbBacked: true,
-          archived: existing?.archived,
+          archived: dbClient.isArchived ?? existing?.archived ?? false,
           notes: existing?.notes,
         };
 
@@ -236,14 +236,28 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     }
   }
 
-  const archiveClient = (id: string) => {
+  const archiveClient = async (id: string) => {
     proStore.archiveClient(id);
     setClients([...proStore.listClients(resolvedWorkspace)]);
+    const client = proStore.getClient(id);
+    if (client?.studioId && client?.clientUserId) {
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json", ...getAuthHeaders() };
+        await fetch(apiUrl(`/api/studios/${client.studioId}/clients/${client.clientUserId}/archive`), { method: "PATCH", headers });
+      } catch { }
+    }
   };
 
-  const restoreClient = (id: string) => {
+  const restoreClient = async (id: string) => {
     proStore.restoreClient(id);
     setClients([...proStore.listClients(resolvedWorkspace)]);
+    const client = proStore.getClient(id);
+    if (client?.studioId && client?.clientUserId) {
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json", ...getAuthHeaders() };
+        await fetch(apiUrl(`/api/studios/${client.studioId}/clients/${client.clientUserId}/restore`), { method: "PATCH", headers });
+      } catch { }
+    }
   };
 
   const deleteClient = (id: string, _name: string) => {

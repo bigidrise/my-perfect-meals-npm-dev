@@ -282,17 +282,15 @@ export const proStore = {
     }
 
     if (i >= 0) {
-      // Merge new data but always preserve the local archived flag.
-      // The server never stores archived state — only archiveClient /
-      // restoreClient should change it.
       state.clients[i] = {
         ...state.clients[i],
         ...c,
-        id: state.clients[i].id,           // keep original local id
-        archived: state.clients[i].archived, // never overwrite with server value
+        id: state.clients[i].id, // keep original local id
+        // use incoming archived value (server is now source of truth for db-backed clients)
+        archived: c.archived ?? state.clients[i].archived ?? false,
       };
     } else {
-      state.clients.unshift(c);
+      state.clients.unshift({ ...c, archived: c.archived ?? false });
     }
     saveState(state);
   },
