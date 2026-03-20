@@ -582,7 +582,7 @@ export default function EditProfilePage() {
                       type="text"
                       value={goalTarget}
                       onChange={(e) => setGoalTarget(e.target.value)}
-                      placeholder={goalType === "lose" ? "Target (e.g. 20 lbs) — optional" : goalType === "gain" ? "Target (e.g. 10 lbs) — optional" : "Notes — optional"}
+                      placeholder={goalType === "lose" ? "e.g. 20 lbs or 9 kg — optional" : goalType === "gain" ? "e.g. 10 lbs or 4.5 kg — optional" : "e.g. stay at 160 lbs — optional"}
                       maxLength={100}
                       className="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none"
                     />
