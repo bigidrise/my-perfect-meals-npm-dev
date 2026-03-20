@@ -26,6 +26,11 @@ const UpdateProfileSchema = z.object({
   palateFlavorStyle: z.enum(["classic", "herb", "savory", "bright"]).optional(),
   fontSizePreference: z.enum(["standard", "large", "xl"]).optional(),
   fromOnboarding: z.boolean().optional(),
+  // Client goals
+  goalType: z.enum(["lose", "maintain", "gain"]).optional().nullable(),
+  goalTarget: z.number().int().min(0).max(500).optional().nullable(),
+  goalTimelineWeeks: z.number().int().min(1).max(260).optional().nullable(),
+  goalStartDate: z.string().datetime({ offset: true }).optional().nullable(),
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -67,6 +72,10 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;
     if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
     if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
+    if (patch.goalType !== undefined) updateData.goalType = patch.goalType;
+    if (patch.goalTarget !== undefined) updateData.goalTarget = patch.goalTarget;
+    if (patch.goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = patch.goalTimelineWeeks;
+    if (patch.goalStartDate !== undefined) updateData.goalStartDate = patch.goalStartDate ? new Date(patch.goalStartDate) : null;
 
     const updatedFields = Object.keys(updateData).filter(k => k !== 'updatedAt').join(', ');
     console.log(`✅ Profile updated for user ${userId}: ${updatedFields}`);

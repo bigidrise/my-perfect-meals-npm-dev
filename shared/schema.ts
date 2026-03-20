@@ -361,6 +361,14 @@ export const users = pgTable("users", {
   preferredBuilder: text("preferred_builder"), // diabetic, glp1, anti-inflammatory, general — starting recommendation from onboarding
   flavorPreference: text("flavor_preference"), // bold-spicy, comfort, mediterranean, balanced, unsure
   sweetenerPreferences: text("sweetener_preferences").array(),
+  // Client Goals — set during onboarding, displayed on dashboard + coach folder
+  goalType: text("goal_type").$type<"lose"|"maintain"|"gain">(),
+  goalTarget: integer("goal_target"), // e.g. 20 (lbs to lose/gain)
+  goalTimelineWeeks: integer("goal_timeline_weeks"), // e.g. 12
+  goalStartDate: timestamp("goal_start_date", { withTimezone: true }),
+  // Coach / Provider Availability — controlled from Care Team page (professionals only)
+  availabilityStatus: text("availability_status").$type<"available"|"busy"|"away"|"offline">().default("available"),
+  backAt: timestamp("back_at", { withTimezone: true }), // optional return date when not available
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),

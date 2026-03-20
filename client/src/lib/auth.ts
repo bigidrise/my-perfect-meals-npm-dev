@@ -112,6 +112,14 @@ export interface User {
     status?: string;
     assignedBuilder?: string | null;
   } | null;
+  // Client goal fields
+  goalType?: "lose" | "maintain" | "gain" | null;
+  goalTarget?: string | null;
+  goalTimelineWeeks?: number | null;
+  goalStartDate?: string | null;
+  // Professional availability fields
+  availabilityStatus?: "available" | "busy" | "away" | "offline" | null;
+  backAt?: string | null;
 }
 
 export function getAuthToken(): string | null {
