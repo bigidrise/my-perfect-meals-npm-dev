@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile, maskPlantMilks } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
 import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
@@ -234,8 +234,15 @@ export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
 
 function findMatchedTerms(text: string, termBank: Set<string>): string[] {
   const normalizedText = normalize(text);
-  const maskedText = maskPlantMilks(normalizedText);
-  const maskedOriginal = maskPlantMilks(text.toLowerCase());
+
+  // Mask plant milks so bare "milk" doesn't match "almond milk", "oat milk", etc.
+  const milkMaskedText     = maskPlantMilks(normalizedText);
+  const milkMaskedOriginal = maskPlantMilks(text.toLowerCase());
+
+  // Mask nut butters so bare "butter" doesn't match "peanut butter", "almond butter", etc.
+  const butterMaskedText     = maskNutButters(normalizedText);
+  const butterMaskedOriginal = maskNutButters(text.toLowerCase());
+
   const matches: string[] = [];
   const termsArray = Array.from(termBank);
   
@@ -243,10 +250,23 @@ function findMatchedTerms(text: string, termBank: Set<string>): string[] {
     if (!term) continue;
     
     const pattern = new RegExp(`\\b${escapeRegex(term)}\\b`, 'i');
-    
-    const isBareMilk = (term === "milk");
-    const textToScan = isBareMilk ? maskedText : normalizedText;
-    const origToScan = isBareMilk ? maskedOriginal : text.toLowerCase();
+
+    const isBareMilk   = (term === "milk");
+    const isBareButter = (term === "butter");
+
+    let textToScan: string;
+    let origToScan: string;
+
+    if (isBareMilk) {
+      textToScan = milkMaskedText;
+      origToScan = milkMaskedOriginal;
+    } else if (isBareButter) {
+      textToScan = butterMaskedText;
+      origToScan = butterMaskedOriginal;
+    } else {
+      textToScan = normalizedText;
+      origToScan = text.toLowerCase();
+    }
     
     if (pattern.test(textToScan) || pattern.test(origToScan)) {
       matches.push(term);
