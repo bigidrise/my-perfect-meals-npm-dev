@@ -997,6 +997,12 @@ export default function EditProfilePage() {
                     : "—"}
                 </p>
                 <p className="text-white/80 text-xs">
+                  Personal Goal:{" "}
+                  {goalType
+                    ? `${goalType === "lose" ? "🔥 Lose Weight" : goalType === "gain" ? "💪 Gain Muscle" : "⚖️ Maintain Weight"}${goalTarget.trim() ? ` — ${goalTarget.trim()}` : ""}${goalTimelineWeeks ? ` in ${goalTimelineWeeks >= 52 ? "1 year" : goalTimelineWeeks >= 26 ? "6 months" : `${goalTimelineWeeks} weeks`}` : ""}`
+                    : "Not set"}
+                </p>
+                <p className="text-white/80 text-xs">
                   Restrictions: {dietaryText.trim() || "None"}
                 </p>
                 <p className="text-white/80 text-xs">
