@@ -1,6 +1,7 @@
 // 🔒 RESTAURANT GUIDE BACKEND - SHARED RESOLVER + AI MEALS 🔒
 // Refactored: Uses shared Restaurant Resolver (January 2026)
 import { Router } from "express";
+import axios from "axios";
 import { generateRestaurantMealsAI } from "../services/restaurantMealGeneratorAI";
 import { resolveRestaurantsByZip } from "../services/restaurantResolver";
 import { coordsToZip } from "../services/zipToCoordsService";
@@ -191,6 +192,47 @@ router.post("/reverse-geocode", async (req, res) => {
       error: "Failed to get ZIP code",
       details: error instanceof Error ? error.message : "Unknown error"
     });
+  }
+});
+
+// Diagnostic endpoint: tests the Google Places API key directly
+// Call GET /api/restaurants/test-key to see raw Google response
+router.get("/test-key", async (_req, res) => {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) {
+    return res.json({ ok: false, issue: "GOOGLE_PLACES_API_KEY env var is not set in Replit secrets" });
+  }
+
+  const keyPreview = `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}`;
+
+  try {
+    const response = await axios.get(
+      "https://maps.googleapis.com/maps/api/place/textsearch/json",
+      {
+        params: {
+          query: "McDonald's restaurant",
+          location: "41.8781,-87.6298",
+          radius: 8000,
+          key: apiKey,
+          type: "restaurant",
+        },
+        timeout: 8000,
+      }
+    );
+
+    const { status, error_message, results } = response.data;
+    return res.json({
+      keyPreview,
+      googleStatus: status,
+      googleErrorMessage: error_message || null,
+      resultCount: results?.length ?? 0,
+      firstResult: results?.[0]
+        ? { name: results[0].name, formatted_address: results[0].formatted_address, vicinity: results[0].vicinity }
+        : null,
+      ok: status === "OK",
+    });
+  } catch (err: any) {
+    return res.json({ ok: false, keyPreview, networkError: err.message });
   }
 });
 
