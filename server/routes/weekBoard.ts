@@ -721,12 +721,17 @@ export default function weekBoardRoutes(app: Express) {
         instructions: meal.instructions || [],
       };
 
+      // Check occupancy before replacing
+      const existingMeals = board.days[dateISO][slot as "breakfast" | "lunch" | "dinner" | "snacks"] || [];
+      const wasOccupied = slot !== "snacks" && existingMeals.length > 0;
+      const previousMealTitle = wasOccupied ? (existingMeals[0]?.title || existingMeals[0]?.name || null) : null;
+
       // Replace existing meal in slot (single meal per slot for breakfast/lunch/dinner)
       if (slot === "snacks") {
         // Snacks can have multiple, append
         board.days[dateISO].snacks.push(mealToAdd);
       } else {
-        // Breakfast/lunch/dinner: replace
+        // Breakfast/lunch/dinner: replace (enforced here — no stacking)
         board.days[dateISO][slot as "breakfast" | "lunch" | "dinner"] = [mealToAdd];
       }
 
@@ -742,6 +747,12 @@ export default function weekBoardRoutes(app: Express) {
         success: true,
         message: `Meal added to ${dateISO} ${slot}`,
         meal: mealToAdd,
+        wasOccupied,
+        previousMealTitle: wasOccupied ? previousMealTitle : null,
+        weekStartISO: mondayISO,
+        dateISO,
+        slot,
+        updatedDay: board.days[dateISO],
       });
     } catch (error) {
       if (error instanceof AuthenticationRequiredError) {

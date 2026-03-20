@@ -270,8 +270,32 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       }).catch(() => {});
     };
 
+    // Instant board patch when a meal is added via "Add to Plan"
+    const handleBoardSlotAdded = (e: Event) => {
+      const { weekStartISO: eventWeek, dateISO, slot, updatedDay } = (e as CustomEvent).detail || {};
+      if (!dateISO || !slot || !updatedDay) return;
+      // Only patch if this hook is tracking the same week
+      if (eventWeek && eventWeek !== monday) return;
+      setData(prev => {
+        if (!prev) return prev;
+        const prevWeek = prev.week;
+        const updatedDays = {
+          ...(prevWeek.days || {}),
+          [dateISO]: updatedDay,
+        };
+        const patched = { ...prevWeek, days: updatedDays };
+        // Sync localStorage
+        const key = namespace
+          ? `${CACHE_NS}:${namespace}:${proClientId || userId}:${monday}`
+          : `${CACHE_NS}:${proClientId || userId}:${monday}`;
+        try { localStorage.setItem(key, JSON.stringify({ ...prev, week: patched })); } catch {}
+        return { ...prev, week: patched };
+      });
+    };
+
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("mpm:visibility-resumed", handleMpmResume);
+    window.addEventListener("mpm:board-slot-added", handleBoardSlotAdded);
 
     if (document.visibilityState === "visible") {
       startPolling();
@@ -281,6 +305,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("mpm:visibility-resumed", handleMpmResume);
+      window.removeEventListener("mpm:board-slot-added", handleBoardSlotAdded);
     };
   }, [userId, monday, proClientId, namespace]);
 

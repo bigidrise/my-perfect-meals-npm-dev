@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Lock } from "lucide-react";
+import { CalendarPlus, Lock, ChevronLeft } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import {
   Drawer,
   DrawerContent,
@@ -16,52 +17,136 @@ interface AddToMealPlanButtonProps {
   onSuccess?: () => void;
 }
 
-function getTodayChicago(): string {
-  const now = new Date();
-  const chicagoTime = new Intl.DateTimeFormat("en-CA", {
+type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
+
+const SLOT_OPTIONS: { value: Slot; label: string; emoji: string }[] = [
+  { value: "breakfast", label: "Breakfast", emoji: "🌅" },
+  { value: "lunch",     label: "Lunch",     emoji: "☀️" },
+  { value: "dinner",    label: "Dinner",    emoji: "🌙" },
+  { value: "snacks",    label: "Snack",     emoji: "🍎" },
+];
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function getChicagoTodayISO(): string {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
-  return chicagoTime;
+  }).format(new Date());
 }
 
-const SLOT_OPTIONS = [
-  { value: "breakfast", label: "Breakfast", emoji: "🌅" },
-  { value: "lunch", label: "Lunch", emoji: "☀️" },
-  { value: "dinner", label: "Dinner", emoji: "🌙" },
-  { value: "snacks", label: "Snack", emoji: "🍎" },
-] as const;
+function getCurrentWeekDates(): string[] {
+  const today = new Date();
+  const d = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7; // Mon = 0
+  d.setUTCDate(d.getUTCDate() - dayNum);
+  return Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(d);
+    day.setUTCDate(d.getUTCDate() + i);
+    return day.toISOString().slice(0, 10);
+  });
+}
+
+function getWeekStartISO(): string {
+  return getCurrentWeekDates()[0];
+}
+
+function formatDayLabel(dateISO: string, todayISO: string): { short: string; dayNum: string; isToday: boolean } {
+  const d = new Date(dateISO + "T00:00:00Z");
+  const dayIndex = (d.getUTCDay() + 6) % 7;
+  return {
+    short: DAY_LABELS[dayIndex],
+    dayNum: String(d.getUTCDate()),
+    isToday: dateISO === todayISO,
+  };
+}
 
 export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [occupiedMealTitle, setOccupiedMealTitle] = useState<string | null>(null);
+  const [boardDays, setBoardDays] = useState<Record<string, any> | null>(null);
+  const [boardLoading, setBoardLoading] = useState(false);
+
+  const todayISO = getChicagoTodayISO();
+  const weekDates = getCurrentWeekDates();
+  const [selectedDate, setSelectedDate] = useState<string>(todayISO);
+
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
 
   if (!meal) return null;
 
+  const fetchBoard = useCallback(async () => {
+    setBoardLoading(true);
+    try {
+      const weekStart = getWeekStartISO();
+      const res = await fetch(apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`), {
+        credentials: "include",
+        headers: { ...getAuthHeaders() },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      setBoardDays(json?.week?.days || null);
+    } catch {
+    } finally {
+      setBoardLoading(false);
+    }
+  }, []);
+
   const handleOpenDrawer = (e: React.MouseEvent) => {
     e.stopPropagation();
     guardAction("Add meals to your weekly plan and track your nutrition with Premium.", () => {
+      setSelectedDate(todayISO);
+      setSelectedSlot(null);
+      setConfirming(false);
+      setOccupiedMealTitle(null);
       setIsOpen(true);
+      fetchBoard();
     });
   };
 
-  const handleAddToMealPlan = async (slot: string) => {
+  const slotMeals = (dateISO: string, slot: Slot): any[] => {
+    return boardDays?.[dateISO]?.[slot] || [];
+  };
+
+  const isOccupied = (dateISO: string, slot: Slot): boolean => {
+    if (slot === "snacks") return false;
+    return slotMeals(dateISO, slot).length > 0;
+  };
+
+  const occupiedTitle = (dateISO: string, slot: Slot): string | null => {
+    const meals = slotMeals(dateISO, slot);
+    if (!meals.length) return null;
+    return meals[0]?.title || meals[0]?.name || "existing meal";
+  };
+
+  const handleSlotTap = (slot: Slot) => {
+    if (isAdding) return;
+    if (isOccupied(selectedDate, slot)) {
+      setSelectedSlot(slot);
+      setOccupiedMealTitle(occupiedTitle(selectedDate, slot));
+      setConfirming(true);
+    } else {
+      doAdd(slot);
+    }
+  };
+
+  const doAdd = async (slot: Slot) => {
     setSelectedSlot(slot);
     setIsAdding(true);
+    setConfirming(false);
 
     try {
-      const todayISO = getTodayChicago();
-
       const response = await fetch(apiUrl("/api/weekly-board/add-meal"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          dateISO: todayISO,
+          dateISO: selectedDate,
           slot,
           meal: {
             id: meal.id,
@@ -84,32 +169,51 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to add meal");
+      if (!response.ok) throw new Error("Failed to add meal");
+
+      const result = await response.json();
+
+      // Dispatch instant board update event — useWeeklyBoard listens to this
+      window.dispatchEvent(new CustomEvent("mpm:board-slot-added", {
+        detail: {
+          weekStartISO: result.weekStartISO,
+          dateISO: result.dateISO,
+          slot: result.slot,
+          updatedDay: result.updatedDay,
+        },
+      }));
+
+      // Update local occupancy cache
+      if (result.updatedDay) {
+        setBoardDays(prev => ({
+          ...(prev || {}),
+          [selectedDate]: result.updatedDay,
+        }));
       }
 
-      const slotLabel = SLOT_OPTIONS.find((s) => s.value === slot)?.label || slot;
-      
-      const event = new CustomEvent("show-toast", {
+      const slotLabel = SLOT_OPTIONS.find(s => s.value === slot)?.label || slot;
+      const dayLabel = selectedDate === todayISO
+        ? "Today"
+        : `${formatDayLabel(selectedDate, todayISO).short} ${formatDayLabel(selectedDate, todayISO).dayNum}`;
+
+      window.dispatchEvent(new CustomEvent("show-toast", {
         detail: {
-          title: "Added to Meal Plan!",
-          description: `${meal.name || meal.title} added to Today's ${slotLabel}`,
+          title: result.wasOccupied ? "Meal Replaced!" : "Added to Meal Plan!",
+          description: `${meal.name || meal.title} → ${dayLabel} ${slotLabel}`,
         },
-      });
-      window.dispatchEvent(event);
+      }));
 
       setIsOpen(false);
       onSuccess?.();
     } catch (error) {
       console.error("Failed to add meal to plan:", error);
-      const event = new CustomEvent("show-toast", {
+      window.dispatchEvent(new CustomEvent("show-toast", {
         detail: {
           title: "Error",
           description: "Failed to add meal to your plan. Please try again.",
           variant: "destructive",
         },
-      });
-      window.dispatchEvent(event);
+      }));
     } finally {
       setIsAdding(false);
       setSelectedSlot(null);
@@ -118,7 +222,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
 
   return (
     <>
-      <Drawer open={isOpen} onOpenChange={setIsOpen}>
+      <Drawer open={isOpen} onOpenChange={(open) => { if (!isAdding) setIsOpen(open); }}>
         <Button
           size="sm"
           className={`flex-1 text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 ${
@@ -132,36 +236,113 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
           Add to Plan
           {isFree && <Lock className="h-3 w-3 ml-1 opacity-60" />}
         </Button>
+
         <DrawerContent className="bg-black/95 border-t border-white/20">
-          <DrawerHeader className="text-center">
-            <DrawerTitle className="text-white text-lg">
-              Add to Today's Meal Plan
-            </DrawerTitle>
-            <p className="text-sm text-white/70 mt-1">
-              {meal.name || meal.title}
-            </p>
-          </DrawerHeader>
-          <div className="p-4 pb-8 space-y-3">
-            {SLOT_OPTIONS.map((slot) => (
+          {confirming ? (
+            /* Replace confirmation screen */
+            <div className="p-6 pb-10">
+              <button
+                onClick={() => setConfirming(false)}
+                className="flex items-center gap-1 text-white/50 text-sm mb-5 active:opacity-70"
+              >
+                <ChevronLeft className="h-4 w-4" /> Back
+              </button>
+              <p className="text-white text-base font-semibold text-center mb-1">
+                Replace existing meal?
+              </p>
+              <p className="text-white/50 text-sm text-center mb-6 px-4">
+                "{occupiedMealTitle}" is already in this slot. Replacing it removes the old meal.
+              </p>
               <Button
-                key={slot.value}
-                variant="outline"
-                className={`w-full h-14 text-lg justify-start gap-3 bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                  selectedSlot === slot.value && isAdding
-                    ? "opacity-70 pointer-events-none"
-                    : ""
-                }`}
-                onClick={() => handleAddToMealPlan(slot.value)}
+                className="w-full h-14 bg-green-600 hover:bg-green-700 text-white text-base font-semibold rounded-full mb-3 active:scale-[0.98]"
+                onClick={() => selectedSlot && doAdd(selectedSlot)}
                 disabled={isAdding}
               >
-                <span className="text-2xl">{slot.emoji}</span>
-                <span>{slot.label}</span>
-                {selectedSlot === slot.value && isAdding && (
-                  <span className="ml-auto text-sm text-white/60">Adding...</span>
-                )}
+                {isAdding ? "Replacing…" : "Replace"}
               </Button>
-            ))}
-          </div>
+              <Button
+                variant="ghost"
+                className="w-full h-12 text-white/60 text-base"
+                onClick={() => setConfirming(false)}
+                disabled={isAdding}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            /* Day + slot picker */
+            <>
+              <DrawerHeader className="text-center pb-0">
+                <DrawerTitle className="text-white text-lg">Add to Meal Plan</DrawerTitle>
+                <p className="text-sm text-white/60 mt-1 truncate px-4">{meal.name || meal.title}</p>
+              </DrawerHeader>
+
+              <div className="px-4 pt-4 pb-2">
+                <p className="text-xs text-white/40 uppercase tracking-widest mb-2">Day</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {weekDates.map((dateISO) => {
+                    const { short, dayNum, isToday } = formatDayLabel(dateISO, todayISO);
+                    const active = selectedDate === dateISO;
+                    return (
+                      <button
+                        key={dateISO}
+                        onClick={() => { setSelectedDate(dateISO); setSelectedSlot(null); }}
+                        className={`flex-shrink-0 flex flex-col items-center justify-center w-12 h-14 rounded-xl border transition-all active:scale-95 ${
+                          active
+                            ? "bg-green-600 border-green-600 text-white"
+                            : "bg-white/5 border-white/15 text-white/70"
+                        }`}
+                      >
+                        <span className={`text-[10px] font-medium ${active ? "text-white/80" : "text-white/40"}`}>
+                          {isToday ? "Today" : short}
+                        </span>
+                        <span className="text-base font-bold leading-tight">{dayNum}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="px-4 pt-3 pb-8">
+                <p className="text-xs text-white/40 uppercase tracking-widest mb-2">Slot</p>
+                <div className="space-y-2">
+                  {SLOT_OPTIONS.map((slot) => {
+                    const occupied = isOccupied(selectedDate, slot.value);
+                    const existingName = occupiedTitle(selectedDate, slot.value);
+                    const isLoading = selectedSlot === slot.value && isAdding;
+                    return (
+                      <button
+                        key={slot.value}
+                        onClick={() => handleSlotTap(slot.value)}
+                        disabled={isAdding}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all active:scale-[0.98] ${
+                          isAdding && selectedSlot === slot.value
+                            ? "opacity-60 border-white/20 bg-white/5"
+                            : "border-white/15 bg-white/5 hover:bg-white/10 active:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-2xl">{slot.emoji}</span>
+                        <div className="flex-1 text-left">
+                          <p className="text-white font-medium text-sm">{slot.label}</p>
+                          {occupied && existingName && (
+                            <p className="text-white/40 text-xs truncate">{existingName}</p>
+                          )}
+                        </div>
+                        {boardLoading ? (
+                          <span className="text-white/20 text-xs">…</span>
+                        ) : occupied ? (
+                          <span className="text-xs text-amber-400/80 font-medium">Replace</span>
+                        ) : (
+                          <span className="text-xs text-green-500/70">Open</span>
+                        )}
+                        {isLoading && <span className="text-xs text-white/40 ml-1">Adding…</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </DrawerContent>
       </Drawer>
       <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />
