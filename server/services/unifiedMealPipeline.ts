@@ -38,8 +38,13 @@ import {
   validateMealSafety,
   logSafetyEnforcement,
   extractSafetyProfile,
-  UserSafetyProfile
+  UserSafetyProfile,
+  buildDietPromptBlock,
+  violatesDietaryConstraints
 } from './allergyGuardrails';
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import { 
   enforceSafetyProfile,
   validateGeneratedMeal,
@@ -468,11 +473,28 @@ export async function generateCravingMealUnified(
     // No template match - use AI generation for creative cravings
     console.log(`🤖 No template match, using AI generation for "${cravingInput}"`);
     
+    // Fetch dietary restrictions for craving generator
+    let cravingDietBlock = "";
+    let cravingDietRestrictions: string[] = [];
+    if (userId) {
+      try {
+        const [cravingUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        cravingDietRestrictions = (cravingUser?.dietaryRestrictions as string[]) || [];
+        cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
+        if (cravingDietBlock) {
+          console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
+        }
+      } catch (err) {
+        console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
+      }
+    }
+
     try {
       const openai = getOpenAI();
       
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-
+${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
@@ -558,6 +580,15 @@ Respond with ONLY valid JSON in this exact format:
       
       // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
       const unifiedMeal = enforceCarbs(rawMeal);
+      
+      // POST-GENERATION dietary hard filter (vegan/vegetarian/pescatarian)
+      if (cravingDietRestrictions.length > 0) {
+        const mealText = `${unifiedMeal.name} ${unifiedMeal.ingredients.map((i: any) => i.name).join(' ')}`;
+        const { violates, reasons } = violatesDietaryConstraints(mealText, cravingDietRestrictions);
+        if (violates) {
+          console.warn(`⚠️ [DIET GUARD] Craving generator: ${reasons.join(", ")} — diet: ${cravingDietRestrictions.join("|")}`);
+        }
+      }
       
       console.log(`✅ AI generated meal: ${unifiedMeal.name}`);
       
@@ -787,11 +818,28 @@ export async function generateFromDescriptionUnified(
       }
     }
     
+    // Fetch user's primary dietary restriction (vegan/vegetarian/pescatarian)
+    let chefDietBlock = "";
+    let chefDietRestrictions: string[] = [];
+    if (userId) {
+      try {
+        const [chefUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        chefDietRestrictions = (chefUser?.dietaryRestrictions as string[]) || [];
+        chefDietBlock = buildDietPromptBlock(chefDietRestrictions);
+        if (chefDietBlock) {
+          console.log(`🥗 [CREATE-WITH-CHEF] Dietary constraint enforced: ${chefDietRestrictions.join("|")}`);
+        }
+      } catch (err) {
+        console.warn("[CREATE-WITH-CHEF] Could not fetch dietary restrictions:", err);
+      }
+    }
+
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
-
+${chefDietBlock ? `\n${chefDietBlock}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
 
 REQUIREMENTS:
@@ -924,6 +972,19 @@ Create the recipe for: "${description}"`;
         const validation = validateMealForDiet(tempMeal, dietType);
         if (!validation.isValid) {
           console.warn(`⚠️ Meal has legacy guardrail violations: ${validation.violations.join(', ')}`);
+        }
+      }
+
+      // POST-GENERATION dietary hard filter (vegan/vegetarian/pescatarian)
+      if (chefDietRestrictions.length > 0) {
+        const mealText = `${tempMeal.name} ${tempMeal.ingredients.map((i: any) => i.name).join(' ')}`;
+        const { violates, reasons } = violatesDietaryConstraints(mealText, chefDietRestrictions);
+        if (violates) {
+          console.warn(`⚠️ [DIET GUARD] Create-With-Chef: ${reasons.join(", ")} — diet: ${chefDietRestrictions.join("|")}`);
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = `DIETARY VIOLATION DETECTED. The user follows a strict ${chefDietRestrictions[0]} diet. Issues found: ${reasons.join(", ")}. Regenerate with a fully ${chefDietRestrictions[0]}-compliant recipe that contains ZERO animal products.`;
+            continue;
+          }
         }
       }
 
