@@ -68,10 +68,10 @@ export default function MealReadySheet({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none px-4">
       <div
-        className="w-full max-w-lg mx-4 mb-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 pointer-events-auto"
-        style={{ animation: "mealReadySlideUp 0.25s ease-out" }}
+        className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 pointer-events-auto"
+        style={{ animation: "mealReadyPopIn 0.2s ease-out" }}
       >
         <div className="p-5">
           <div className="flex items-start justify-between mb-3">
@@ -121,9 +121,9 @@ export default function MealReadySheet({
         </div>
       </div>
       <style>{`
-        @keyframes mealReadySlideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
+        @keyframes mealReadyPopIn {
+          from { transform: scale(0.92); opacity: 0; }
+          to   { transform: scale(1);    opacity: 1; }
         }
       `}</style>
     </div>
