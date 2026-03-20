@@ -105,6 +105,7 @@ export default function TrainerClientDashboard() {
     ldl: number | null;
   }
   const [labs, setLabs] = useState<KeyLabs | null>(null);
+  const [recommendedProtocol, setRecommendedProtocol] = useState<string | null>(null);
 
   const activeProtocolLabel = useMemo(() => {
     if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]) return null;
@@ -154,6 +155,9 @@ export default function TrainerClientDashboard() {
       .then((data) => {
         if (data?.labs) {
           setLabs({ a1c: data.labs.a1c ?? null, ldl: data.labs.ldl ?? null });
+        }
+        if (data?.protocolSubtitle) {
+          setRecommendedProtocol(data.protocolSubtitle);
         }
       })
       .catch(() => {});
@@ -348,7 +352,7 @@ export default function TrainerClientDashboard() {
           )}
         </div>
 
-        {(activeProtocolLabel || labs) && (
+        {(activeProtocolLabel || recommendedProtocol || labs) && (
           <Card className="bg-white/5 border border-teal-500/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
@@ -357,7 +361,15 @@ export default function TrainerClientDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pt-0">
-              {activeProtocolLabel && (
+              {recommendedProtocol && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/50 w-28 shrink-0">Recommended Builder</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/20 border border-teal-500/30 text-teal-300">
+                    {recommendedProtocol}
+                  </span>
+                </div>
+              )}
+              {activeProtocolLabel && !recommendedProtocol && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-white/50 w-28 shrink-0">Active Protocol</span>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/20 border border-teal-500/30 text-teal-300">
