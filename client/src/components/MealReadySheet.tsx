@@ -70,22 +70,22 @@ export default function MealReadySheet({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none px-4">
       <div
-        className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 pointer-events-auto"
-        style={{ animation: "mealReadyPopIn 0.2s ease-out" }}
+        className="w-full max-w-sm rounded-2xl shadow-2xl pointer-events-auto"
+        style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.12)", animation: "mealReadyPopIn 0.2s ease-out" }}
       >
         <div className="p-5">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white text-base leading-snug">
+              <p className="font-semibold text-white text-base leading-snug">
                 Your meal is ready
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-sm text-white/70 mt-0.5">
                 If it doesn't appear automatically, tap below.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-4 mt-0.5 shrink-0"
+              className="text-white/60 hover:text-white ml-4 mt-0.5 shrink-0 transition-colors"
               aria-label="Close"
             >
               <svg
@@ -113,7 +113,7 @@ export default function MealReadySheet({
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="px-4 py-2.5 rounded-xl text-sm font-medium text-black bg-orange-400 hover:bg-orange-500 active:bg-orange-600 transition-colors"
             >
               Close
             </button>
