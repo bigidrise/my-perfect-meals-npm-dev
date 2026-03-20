@@ -231,6 +231,9 @@ export default function EditProfilePage() {
     setForm(initial);
     setDietaryText(initial.dietaryRestrictions.join(", "));
     setAllergiesText(initial.allergies.join(", "));
+    setGoalType(((user as any)?.goalType as GoalType) || null);
+    setGoalTarget((user as any)?.goalTarget || "");
+    setGoalTimelineWeeks((user as any)?.goalTimelineWeeks ?? null);
     // NOTE: intentionally NOT resetting allergiesUnlocked / allergyEditToken here
     // so that a background user-data refresh doesn't wipe the PIN unlock mid-flow
   }, [initial]);
