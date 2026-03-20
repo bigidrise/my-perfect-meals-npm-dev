@@ -356,8 +356,50 @@ export function buildForbiddenIngredients(profile: UserSafetyProfile): string[] 
 }
 
 /**
- * Build safety guardrails for prompts and validation
+ * PROMPT-SAFE TERM MAP
+ * When sending forbidden terms to the AI, replace ambiguous single words with
+ * precise descriptions so the AI does not over-block unrelated ingredients.
+ * The scanner layer (maskNutButters / maskPlantMilks) handles post-gen validation;
+ * this map handles the AI guidance layer.
  */
+const PROMPT_TERM_CLARIFICATIONS: Record<string, string> = {
+  butter: "dairy butter (cow's milk butter — NOT nut or seed butters)",
+  milk:   "dairy milk (cow's milk — NOT plant-based milks such as almond milk, oat milk, soy milk, or coconut milk)",
+  cream:  "dairy cream (cow's milk cream — NOT coconut cream or oat cream)",
+};
+
+/**
+ * Convert the raw forbidden list into AI-readable language.
+ * Replaces vague bare terms with precise descriptions so the AI
+ * understands EXACTLY what is forbidden without over-blocking.
+ */
+function humanizeForPrompt(forbiddenIngredients: string[]): string[] {
+  return forbiddenIngredients.map(term => {
+    const clarified = PROMPT_TERM_CLARIFICATIONS[term.toLowerCase()];
+    return clarified ?? term;
+  });
+}
+
+/**
+ * Build a clarification block to inject when dairy (or milk) is in the allergy list.
+ * This is the single most important line for preventing nut-butter false positives.
+ */
+function buildDairyClarificationBlock(allergies: string[]): string | null {
+  const hasDairy = allergies.some(a =>
+    ["dairy", "milk", "lactose", "lactose intolerance"].includes(a.toLowerCase())
+  );
+  if (!hasDairy) return null;
+
+  return [
+    "IMPORTANT CLARIFICATION — DAIRY vs NUT/SEED BUTTERS:",
+    "  • \"Butter\" in this allergy list refers ONLY to dairy butter (made from cow's milk).",
+    "  • Peanut butter, almond butter, cashew butter, sunflower butter, and all other nut/seed butters are NOT dairy. They are safe to include UNLESS the user also has a nut allergy.",
+    "  • Plant-based milks (almond milk, oat milk, coconut milk, soy milk, rice milk) are NOT dairy. They are safe to include UNLESS the user also has an allergy to that specific plant.",
+    "  • Coconut cream, oat cream, and cashew cream are NOT dairy. They are safe substitutes.",
+    "ALLOWED EXAMPLES (dairy allergy only, no nut allergy): peanut butter, almond butter, cashew butter, sunflower butter, oat milk, almond milk, coconut milk, coconut cream.",
+  ].join("\n");
+}
+
 export function buildSafetyGuardrails(profile: UserSafetyProfile): SafetyGuardrails {
   const allergies = profile.allergies || [];
   const restrictions = profile.dietaryRestrictions || [];
@@ -369,9 +411,16 @@ export function buildSafetyGuardrails(profile: UserSafetyProfile): SafetyGuardra
     promptLines.push(
       `🚨 CRITICAL ALLERGY SAFETY: User has life-threatening allergies to: ${allergies.join(", ")}.`
     );
+
+    const humanizedList = humanizeForPrompt(forbiddenIngredients.slice(0, 50));
     promptLines.push(
-      `ABSOLUTE PROHIBITION: You must NEVER include, suggest, or use ANY of these ingredients or their derivatives: ${forbiddenIngredients.slice(0, 50).join(", ")}${forbiddenIngredients.length > 50 ? '...' : ''}.`
+      `ABSOLUTE PROHIBITION: You must NEVER include, suggest, or use ANY of these ingredients or their derivatives: ${humanizedList.join(", ")}${forbiddenIngredients.length > 50 ? '...' : ''}.`
     );
+
+    const dairyClarification = buildDairyClarificationBlock(allergies);
+    if (dairyClarification) {
+      promptLines.push(dairyClarification);
+    }
   }
   
   if (restrictions.length > 0) {
