@@ -443,29 +443,37 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     if (!board || !activeDayISO) return;
 
     const cached = loadAIMealsCache();
-    if (cached && cached.dayISO === activeDayISO && cached.meals.length > 0) {
-      console.log(
-        "🔋 Loading AI meals from localStorage:",
-        cached.meals.length,
-        "meals for",
-        activeDayISO,
-        "into slot:",
-        cached.slot,
-      );
+    if (!cached || cached.dayISO !== activeDayISO || cached.meals.length === 0) return;
 
-      // Merge cached AI meals into the correct slot
-      const dayLists = getDayLists(board, activeDayISO);
-      const targetSlot = cached.slot || "breakfast";
-      const existingSlotMeals = dayLists[targetSlot].filter(
-        (m) => !m.id.startsWith("ai-meal-"),
-      );
-      const updatedSlotMeals = [...existingSlotMeals, ...cached.meals];
-      const updatedDayLists = { ...dayLists, [targetSlot]: updatedSlotMeals };
-      const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+    const dayLists = getDayLists(board, activeDayISO);
+    const targetSlot = cached.slot || "breakfast";
+    const currentSlotMeals = dayLists[targetSlot];
 
-      setBoard(updatedBoard);
-    }
-  }, [board, activeDayISO]);
+    // Guard: if all cached meals are already present, do not setBoard (prevents infinite loop)
+    const allAlreadyPresent = cached.meals.every((cm) =>
+      currentSlotMeals.some((m) => m.id === cm.id),
+    );
+    if (allAlreadyPresent) return;
+
+    console.log(
+      "🔋 Loading AI meals from localStorage:",
+      cached.meals.length,
+      "meals for",
+      activeDayISO,
+      "into slot:",
+      cached.slot,
+    );
+
+    // Merge cached AI meals into the correct slot
+    const existingSlotMeals = currentSlotMeals.filter(
+      (m) => !m.id.startsWith("ai-meal-"),
+    );
+    const updatedSlotMeals = [...existingSlotMeals, ...cached.meals];
+    const updatedDayLists = { ...dayLists, [targetSlot]: updatedSlotMeals };
+    const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+
+    setBoard(updatedBoard);
+  }, [board, activeDayISO]); // board dep is intentional; guard above prevents infinite loop
 
   // Load/save tour progress from localStorage
   useEffect(() => {
@@ -814,6 +822,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             activeDayISO,
             updatedDayLists,
           );
+          setBoard(updatedBoard);
           await saveBoard(updatedBoard);
         } else {
           // Add to week board
@@ -824,6 +833,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               snacks: [...board.lists.snacks, snack],
             },
           };
+          setBoard(updatedBoard);
           await saveBoard(updatedBoard);
         }
 
@@ -880,6 +890,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           [list]: [...dayLists[list as keyof typeof dayLists], meal],
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       } else {
         // Week mode: update local board and save
@@ -959,6 +970,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             activeDayISO,
             updatedDayLists,
           );
+          setBoard(updatedBoard);
           await saveBoard(updatedBoard);
         } else {
           // WEEK MODE: Remove from board.lists
@@ -971,6 +983,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               ),
             },
           };
+          setBoard(updatedBoard);
           await saveBoard(updatedBoard);
         }
 

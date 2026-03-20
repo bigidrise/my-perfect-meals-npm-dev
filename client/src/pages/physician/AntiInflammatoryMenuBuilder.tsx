@@ -609,29 +609,37 @@ export default function AntiInflammatoryMenuBuilder() {
     if (!board || !activeDayISO) return;
 
     const cached = loadAIMealsCache();
-    if (cached && cached.dayISO === activeDayISO && cached.meals.length > 0) {
-      console.log(
-        "🔋 Loading AI meals from localStorage:",
-        cached.meals.length,
-        "meals for",
-        activeDayISO,
-        "into slot:",
-        cached.slot,
-      );
+    if (!cached || cached.dayISO !== activeDayISO || cached.meals.length === 0) return;
 
-      // Merge cached AI meals into the correct slot (not hardcoded to breakfast!)
-      const dayLists = getDayLists(board, activeDayISO);
-      const targetSlot = cached.slot || "breakfast"; // Fallback to breakfast for old cached data
-      const existingSlotMeals = dayLists[targetSlot].filter(
-        (m) => !m.id.startsWith("ai-meal-"),
-      );
-      const updatedSlotMeals = [...existingSlotMeals, ...cached.meals];
-      const updatedDayLists = { ...dayLists, [targetSlot]: updatedSlotMeals };
-      const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+    const dayLists = getDayLists(board, activeDayISO);
+    const targetSlot = cached.slot || "breakfast";
+    const currentSlotMeals = dayLists[targetSlot];
 
-      setBoard(updatedBoard);
-    }
-  }, [board, activeDayISO]); // Run when board loads OR day changes
+    // Guard: if all cached meals are already present, do not setBoard (prevents infinite loop)
+    const allAlreadyPresent = cached.meals.every((cm) =>
+      currentSlotMeals.some((m) => m.id === cm.id),
+    );
+    if (allAlreadyPresent) return;
+
+    console.log(
+      "🔋 Loading AI meals from localStorage:",
+      cached.meals.length,
+      "meals for",
+      activeDayISO,
+      "into slot:",
+      cached.slot,
+    );
+
+    // Merge cached AI meals into the correct slot
+    const existingSlotMeals = currentSlotMeals.filter(
+      (m) => !m.id.startsWith("ai-meal-"),
+    );
+    const updatedSlotMeals = [...existingSlotMeals, ...cached.meals];
+    const updatedDayLists = { ...dayLists, [targetSlot]: updatedSlotMeals };
+    const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+
+    setBoard(updatedBoard);
+  }, [board, activeDayISO]); // board dep is intentional; guard above prevents infinite loop
 
   // Load/save tour progress from localStorage
   useEffect(() => {
