@@ -157,6 +157,7 @@ router.get("/:studioId/clients", async (req, res) => {
         clientUserId: studioMemberships.clientUserId,
         status: studioMemberships.status,
         assignedBuilder: studioMemberships.assignedBuilder,
+        builderSource: studioMemberships.builderSource,
         activeBoardId: studioMemberships.activeBoardId,
         workspace: studioMemberships.workspace,
         isArchived: studioMemberships.isArchived,
@@ -178,6 +179,7 @@ router.get("/:studioId/clients", async (req, res) => {
       clientUserId: r.clientUserId,
       status: r.status,
       assignedBuilder: r.assignedBuilder,
+      builderSource: r.builderSource ?? "manual",
       activeBoardId: r.activeBoardId,
       workspace: r.workspace,
       isArchived: r.isArchived,
@@ -403,6 +405,7 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       .update(studioMemberships)
       .set({
         assignedBuilder,
+        builderSource: "trainer",
         activeBoardId,
         updatedAt: new Date(),
       })

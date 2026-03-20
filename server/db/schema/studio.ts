@@ -70,6 +70,7 @@ export const studioMemberships = pgTable("studio_memberships", {
   clientUserId: text("client_user_id").notNull().unique(),
   status: text("status").notNull().default("invited"),
   assignedBuilder: text("assigned_builder"),
+  builderSource: text("builder_source").$type<"clinical" | "trainer" | "manual">().notNull().default("manual"),
   activeBoardId: uuid("active_board_id"),
   workspace: text("workspace").notNull().default("trainer"),
   isArchived: boolean("is_archived").notNull().default(false),

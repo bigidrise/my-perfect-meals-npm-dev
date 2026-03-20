@@ -198,6 +198,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           activeBoardId: dbClient.activeBoardId || existing?.activeBoardId,
           dbBacked: true,
           archived: dbClient.isArchived ?? existing?.archived ?? false,
+          builderSource: (dbClient.builderSource as "clinical" | "trainer" | "manual") ?? existing?.builderSource ?? "manual",
           notes: existing?.notes,
         };
 

@@ -29,6 +29,7 @@ export type ClientProfile = {
   archived?: boolean;
   workspace?: WorkspaceType;
   assignedBuilder?: BuilderType;
+  builderSource?: "clinical" | "trainer" | "manual";
   userId?: string;
   clientUserId?: string;
   studioId?: string;

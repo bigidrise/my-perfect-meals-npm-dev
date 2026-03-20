@@ -173,7 +173,13 @@ router.post("/recommendation", requireAuth, async (req, res) => {
         .set({ selectedMealBuilder: "anti_inflammatory", updatedAt: new Date() })
         .where(eq(users.id, userId as any));
 
-      console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder set to anti_inflammatory`);
+      // Stamp all studio memberships for this user as clinically assigned
+      await db
+        .update(studioMemberships)
+        .set({ assignedBuilder: "anti_inflammatory", builderSource: "clinical", updatedAt: new Date() } as any)
+        .where(eq(studioMemberships.clientUserId, userId as any));
+
+      console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder set to anti_inflammatory (source: clinical)`);
     }
 
     res.json({ ok: true, status: body.status });

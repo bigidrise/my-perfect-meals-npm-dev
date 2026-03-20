@@ -26,6 +26,7 @@ import {
   Ruler,
   CalendarCheck,
   Stethoscope,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -142,8 +143,7 @@ export default function TrainerClientDashboard() {
   }, [fetchBodyComp]);
 
   useEffect(() => {
-    const c = proStore.getClient(clientId);
-    const uid = c?.clientUserId || c?.userId;
+    const uid = resolvedClientUserId;
     if (!uid) return;
     fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
@@ -157,7 +157,7 @@ export default function TrainerClientDashboard() {
         }
       })
       .catch(() => {});
-  }, [clientId]);
+  }, [clientId, resolvedClientUserId]);
 
   useEffect(() => {
     const handleResume = () => {
@@ -615,10 +615,28 @@ export default function TrainerClientDashboard() {
           </CardContent>
         </Card>
 
+        {client?.builderSource === "clinical" && (
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+            <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-amber-300 text-sm font-semibold">Clinically Assigned Builder</p>
+              <p className="text-amber-200/70 text-xs mt-0.5">
+                This client's meal plan builder was assigned based on clinical lab data.
+                Changing it is not recommended without medical authorization.
+              </p>
+            </div>
+          </div>
+        )}
+
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Trophy className="h-5 w-5 text-lime-400" /> Assigned Builder
+              {client?.builderSource === "clinical" && (
+                <span title="Clinically assigned — see advisory above">
+                  <AlertTriangle className="h-4 w-4 text-amber-400 ml-1" />
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -655,6 +673,11 @@ export default function TrainerClientDashboard() {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Dumbbell className="h-5 w-5 text-lime-400" /> Client Meal Builder
+              {client?.builderSource === "clinical" && (
+                <span title="Clinically assigned — see advisory above">
+                  <AlertTriangle className="h-4 w-4 text-amber-400 ml-1" />
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

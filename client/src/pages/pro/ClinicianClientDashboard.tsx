@@ -153,7 +153,7 @@ export default function ClinicianClientDashboard() {
         }
       })
       .catch(() => {});
-    fetch(apiUrl(`/api/clinical-labs/${uid}/latest`), {
+    fetch(apiUrl(`/api/biometrics/labs/${uid}`), {
       headers: { ...getAuthHeaders() },
       credentials: "include",
     })
