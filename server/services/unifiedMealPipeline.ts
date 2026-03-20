@@ -413,16 +413,38 @@ export async function generateCravingMealUnified(
   userId?: string
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+
+  // Step 0: Fetch dietary restrictions FIRST — before cache or template checks
+  // This ensures the cache key is diet-aware and templates are validated against the user's diet
+  let cravingDietBlock = "";
+  let cravingDietRestrictions: string[] = [];
+  if (userId) {
+    try {
+      const [cravingUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+        .from(users).where(eq(users.id, userId)).limit(1);
+      cravingDietRestrictions = (cravingUser?.dietaryRestrictions as string[]) || [];
+      cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
+      if (cravingDietBlock) {
+        console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
+      }
+    } catch (err) {
+      console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
+    }
+  }
+
+  // Resolve primary diet for cache key segregation
+  const cravingPrimaryDiet = getPrimaryDiet(cravingDietRestrictions) || "none";
   
-  // Step 1: Check cache first (both memory and database)
+  // Step 1: Check diet-aware cache (includes primaryDiet in key — no cross-diet contamination)
   const signature = createIngredientSignature({
     ingredients: [cravingInput],
-    mealType: validMealType
+    mealType: validMealType,
+    primaryDiet: cravingPrimaryDiet
   });
   
   const cached = await getCachedMeals(signature);
   if (cached && cached.meals.length > 0) {
-    console.log(`🚀 Cache hit for craving: "${cravingInput}" (source: ${cached.source})`);
+    console.log(`🚀 Cache hit for craving: "${cravingInput}" diet:${cravingPrimaryDiet} (source: ${cached.source})`);
     return {
       success: true,
       meal: cached.meals[0],
@@ -436,59 +458,70 @@ export async function generateCravingMealUnified(
     mealType: validMealType
   }, 1);
 
-  // Step 2: ALWAYS use deterministic source first (template match OR hash-based fallback)
-  // Only escalate to AI if user explicitly requests it (which we don't support yet)
-  
   if (templateMatches.length > 0 && templateMatches[0].score >= 0.3) {
-    // Good template match - use it
-    console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score})`);
     const meal = templateToMeal(templateMatches[0].template);
-    const unifiedMeal: UnifiedMeal = {
-      id: meal.id,
-      name: meal.name,
-      description: meal.description,
-      ingredients: meal.ingredients,
-      instructions: meal.instructions,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      starchyCarbs: 0,
-      fibrousCarbs: 0,
-      fat: meal.fat,
-      cookingTime: '20 minutes',
-      difficulty: 'Easy',
-      imageUrl: meal.imageUrl,
-      medicalBadges: [],
-      source: 'catalog'
-    };
-    
-    await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
-    
-    return {
-      success: true,
-      meal: unifiedMeal,
-      source: 'catalog'
-    };
-  } else {
-    // No template match - use AI generation for creative cravings
-    console.log(`🤖 No template match, using AI generation for "${cravingInput}"`);
-    
-    // Fetch dietary restrictions for craving generator
-    let cravingDietBlock = "";
-    let cravingDietRestrictions: string[] = [];
-    if (userId) {
-      try {
-        const [cravingUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
-          .from(users).where(eq(users.id, userId)).limit(1);
-        cravingDietRestrictions = (cravingUser?.dietaryRestrictions as string[]) || [];
-        cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
-        if (cravingDietBlock) {
-          console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
-        }
-      } catch (err) {
-        console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
+
+    // TEMPLATE DIET ENFORCEMENT: reject templates that violate the user's dietary restrictions
+    // before returning — a vegan user must never receive an egg-based template
+    if (cravingDietRestrictions.length > 0) {
+      const templateText = `${meal.name} ${(meal.ingredients || []).map((i: any) => i.name).join(' ')}`;
+      const { violates, reasons } = violatesDietaryConstraints(templateText, cravingDietRestrictions);
+      if (violates) {
+        console.log(`🚫 [TEMPLATE GUARD] Template "${meal.name}" violates ${cravingPrimaryDiet} diet (${reasons.join(", ")}) — escalating to AI`);
+        // Fall through to AI generation below — do NOT return this template
+      } else {
+        // Template passes dietary check — safe to use
+        console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score}) — diet OK`);
+        const unifiedMeal: UnifiedMeal = {
+          id: meal.id,
+          name: meal.name,
+          description: meal.description,
+          ingredients: meal.ingredients,
+          instructions: meal.instructions,
+          calories: meal.calories,
+          protein: meal.protein,
+          carbs: meal.carbs,
+          starchyCarbs: 0,
+          fibrousCarbs: 0,
+          fat: meal.fat,
+          cookingTime: '20 minutes',
+          difficulty: 'Easy',
+          imageUrl: meal.imageUrl,
+          medicalBadges: [],
+          source: 'catalog'
+        };
+        await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
+        return { success: true, meal: unifiedMeal, source: 'catalog' };
       }
+    } else {
+      // No dietary restrictions — use template as-is
+      console.log(`📋 Template match for "${cravingInput}" (score: ${templateMatches[0].score})`);
+      const unifiedMeal: UnifiedMeal = {
+        id: meal.id,
+        name: meal.name,
+        description: meal.description,
+        ingredients: meal.ingredients,
+        instructions: meal.instructions,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        starchyCarbs: 0,
+        fibrousCarbs: 0,
+        fat: meal.fat,
+        cookingTime: '20 minutes',
+        difficulty: 'Easy',
+        imageUrl: meal.imageUrl,
+        medicalBadges: [],
+        source: 'catalog'
+      };
+      await cacheMeals(signature, [unifiedMeal], validMealType, 'template');
+      return { success: true, meal: unifiedMeal, source: 'catalog' };
     }
+  }
+
+  {
+    // No valid template (or template was rejected by diet guard) — use AI generation
+    console.log(`🤖 Using AI generation for "${cravingInput}" (diet: ${cravingPrimaryDiet})`);
 
     try {
       const openai = getOpenAI();
@@ -654,11 +687,25 @@ export async function generateFridgeRescueUnified(
   useFallbackOnly: boolean = false
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+
+  // Fetch dietary restrictions FIRST to ensure diet-aware cache key
+  let fridgeDietRestrictions: string[] = [];
+  if (userId) {
+    try {
+      const [fridgeUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+        .from(users).where(eq(users.id, userId)).limit(1);
+      fridgeDietRestrictions = (fridgeUser?.dietaryRestrictions as string[]) || [];
+    } catch (err) {
+      console.warn("[FRIDGE] Could not fetch dietary restrictions for cache key:", err);
+    }
+  }
+  const fridgePrimaryDiet = getPrimaryDiet(fridgeDietRestrictions) || "none";
   
-  // Step 1: Check cache first (both memory and database)
+  // Step 1: Check diet-aware cache (includes primaryDiet to prevent cross-diet contamination)
   const signature = createIngredientSignature({
     ingredients: fridgeItems,
-    mealType: validMealType
+    mealType: validMealType,
+    primaryDiet: fridgePrimaryDiet
   });
   
   const cached = await getCachedMeals(signature);

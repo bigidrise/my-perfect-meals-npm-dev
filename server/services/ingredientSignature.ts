@@ -12,6 +12,8 @@ export interface IngredientSignatureInput {
   ingredients: string[];
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   cookingMethods?: Record<string, string>;
+  /** Primary diet mode (vegan/vegetarian/pescatarian/none). Ensures diet-specific meals are cached separately. */
+  primaryDiet?: string;
 }
 
 /**
@@ -34,7 +36,7 @@ function normalizeIngredient(name: string): string {
  * Sorted alphabetically so order doesn't matter
  */
 export function createIngredientSignature(input: IngredientSignatureInput): string {
-  const { ingredients, mealType, cookingMethods } = input;
+  const { ingredients, mealType, cookingMethods, primaryDiet } = input;
   
   const normalizedIngredients = ingredients
     .map(normalizeIngredient)
@@ -50,11 +52,15 @@ export function createIngredientSignature(input: IngredientSignatureInput): stri
         .join(',')
     : '';
   
-  const signature = methodPart 
+  // Include primaryDiet in the signature so vegan/vegetarian/pescatarian meals
+  // are cached separately from unrestricted meals — prevents diet bypass via cache
+  const dietPart = primaryDiet ? primaryDiet.toLowerCase() : 'none';
+  
+  const base = methodPart 
     ? `${mealType}|${ingredientPart}|${methodPart}`
     : `${mealType}|${ingredientPart}`;
   
-  return signature;
+  return `${base}|diet:${dietPart}`;
 }
 
 /**

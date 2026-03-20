@@ -9,6 +9,7 @@ import type {
 import type { UnifiedMeal } from '../../unifiedMealPipeline';
 import { db } from '../../../db';
 import { glucoseLogs, diabetesProfile, Guardrails, DEFAULT_GUARDRAILS } from '../../../../shared/diabetes-schema';
+import { userGlycemicSettings } from '../../../../shared/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export type GlucoseState = 
@@ -135,27 +136,47 @@ export const diabeticHubModule: HubModule = {
   },
 
   async getGuardrails(userId: string): Promise<HubGuardrails> {
-    const profile = await db.query.diabetesProfile.findFirst({
-      where: (p, { eq }) => eq(p.userId, userId)
-    });
+    const [profile, glycemicRow] = await Promise.all([
+      db.query.diabetesProfile.findFirst({
+        where: (p, { eq }) => eq(p.userId, userId)
+      }),
+      db.select({ preferredCarbs: userGlycemicSettings.preferredCarbs })
+        .from(userGlycemicSettings)
+        .where(eq(userGlycemicSettings.userId, userId))
+        .limit(1)
+        .then(rows => rows[0] ?? null)
+    ]);
 
     const guardrails = profile?.guardrails as Guardrails | null;
+
+    // User's personally selected low-GI carbs from Glycemic Settings screen
+    const userPreferredCarbs: string[] = (glycemicRow?.preferredCarbs as string[]) || [];
+    
+    const basePreferred = [
+      'leafy greens', 'broccoli', 'cauliflower', 'zucchini', 'asparagus',
+      'chicken breast', 'salmon', 'turkey', 'eggs', 'greek yogurt',
+      'olive oil', 'avocado', 'nuts', 'seeds', 'legumes'
+    ];
+
+    // Merge user's preferred carbs — deduplicated
+    const mergedPreferred = [...new Set([...basePreferred, ...userPreferredCarbs])];
+
+    if (userPreferredCarbs.length > 0) {
+      console.log(`🩺 [DIABETIC HUB] Loaded user glycemic preferences: ${userPreferredCarbs.join(", ")}`);
+    }
     
     return {
       hubType: 'diabetic',
       carbCeiling: guardrails?.carbLimit ?? DEFAULT_GUARDRAILS.carbLimit!,
       fiberMin: guardrails?.fiberMin ?? DEFAULT_GUARDRAILS.fiberMin!,
       giCap: guardrails?.giCap ?? DEFAULT_GUARDRAILS.giCap!,
+      userPreferredCarbs,
       blockedIngredients: [
         'white sugar', 'brown sugar', 'corn syrup', 'high fructose corn syrup',
         'candy', 'soda', 'fruit juice', 'white bread', 'white rice',
         'regular pasta', 'potato chips', 'french fries', 'donuts', 'pastries'
       ],
-      preferredIngredients: [
-        'leafy greens', 'broccoli', 'cauliflower', 'zucchini', 'asparagus',
-        'chicken breast', 'salmon', 'turkey', 'eggs', 'greek yogurt',
-        'olive oil', 'avocado', 'nuts', 'seeds', 'legumes'
-      ]
+      preferredIngredients: mergedPreferred
     };
   },
 
@@ -167,13 +188,17 @@ export const diabeticHubModule: HubModule = {
     const data = context?.data as DiabeticContextData | undefined;
     const glucoseGuidance = data ? buildGlucoseGuidance(data) : '';
 
+    const userCarbsLine = guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0
+      ? `- User's preferred low-GI carb sources (PRIORITIZE THESE): ${guardrails.userPreferredCarbs.join(', ')}\n`
+      : '';
+
     let promptAddition = `
 DIABETIC MEAL REQUIREMENTS:
 - Maximum carbohydrates: ${guardrails.carbCeiling}g per meal
 - Minimum fiber: ${guardrails.fiberMin}g
 - Prioritize low glycemic index ingredients (under GI ${guardrails.giCap})
 - Focus on lean proteins, non-starchy vegetables, and healthy fats
-- Avoid: ${guardrails.blockedIngredients?.slice(0, 8).join(', ')}
+${userCarbsLine}- Avoid: ${guardrails.blockedIngredients?.slice(0, 8).join(', ')}
 `;
 
     if (glucoseGuidance) {
