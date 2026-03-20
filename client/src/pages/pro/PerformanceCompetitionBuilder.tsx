@@ -60,6 +60,7 @@ import {
   formatDateDisplay
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
+import MealReadySheet from "@/components/MealReadySheet";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -228,6 +229,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     error,
     save: saveToHook,
     source,
+    refresh: refreshBoard,
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
 
   // Local mutable board state for optimistic updates
@@ -235,6 +237,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
+  const [showMealReady, setShowMealReady] = React.useState(false);
 
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
@@ -275,6 +278,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       try {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
+        if (!showMealReady) setShowMealReady(true);
         setTimeout(() => setJustSaved(false), 2000);
         clearDraft();
       } catch (err) {
@@ -2204,6 +2208,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         title="Performance & Competition Builder Guide"
         steps={PERFORMANCE_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+      <MealReadySheet
+        show={showMealReady}
+        board={board}
+        onRefresh={refreshBoard}
+        onClose={() => setShowMealReady(false)}
       />
     </motion.div>
   );

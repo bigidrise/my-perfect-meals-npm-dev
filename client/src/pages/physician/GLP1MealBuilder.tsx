@@ -78,6 +78,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
+import MealReadySheet from "@/components/MealReadySheet";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -158,6 +159,7 @@ export default function GLP1MealBuilder() {
     error,
     save: saveToHook,
     source,
+    refresh: refreshBoard,
   } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.GLP1);
 
   // Local mutable board state for optimistic updates
@@ -165,6 +167,7 @@ export default function GLP1MealBuilder() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
+  const [showMealReady, setShowMealReady] = React.useState(false);
 
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
@@ -206,6 +209,7 @@ export default function GLP1MealBuilder() {
         // Type assertion needed because ExtendedMeal has optional title, but schema requires it
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
+        if (!showMealReady) setShowMealReady(true);
         setTimeout(() => setJustSaved(false), 2000);
         clearDraft();
       } catch (err) {
@@ -1137,6 +1141,7 @@ export default function GLP1MealBuilder() {
       const saved = await saveWeekBoard(board);
       setBoard(saved);
       setJustSaved(true);
+      if (!showMealReady) setShowMealReady(true);
       // Reset success state after 2.5 seconds
       setTimeout(() => {
         setJustSaved(false);
@@ -2102,6 +2107,12 @@ export default function GLP1MealBuilder() {
           const resolved = getResolvedTargets(effectiveUserId);
           return Math.max(0, (resolved.carbs_g || 0) - Math.round(totals.carbs));
         })()}
+      />
+      <MealReadySheet
+        show={showMealReady}
+        board={board}
+        onRefresh={refreshBoard}
+        onClose={() => setShowMealReady(false)}
       />
       </div>
     </motion.div>

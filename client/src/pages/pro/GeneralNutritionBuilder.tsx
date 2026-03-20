@@ -60,6 +60,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
+import MealReadySheet from "@/components/MealReadySheet";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -138,13 +139,14 @@ export default function WeeklyMealBoard() {
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
-  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION);
+  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source, refresh: refreshBoard } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const boardRef = React.useRef<WeekBoard | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
+  const [showMealReady, setShowMealReady] = React.useState(false);
 
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
@@ -185,6 +187,7 @@ export default function WeeklyMealBoard() {
       // Type assertion needed because ExtendedMeal has optional title, but schema requires it
       await saveToHook(updatedBoard as any, uuidv4());
       setJustSaved(true);
+      if (!showMealReady) setShowMealReady(true);
       setTimeout(() => setJustSaved(false), 2000);
       clearDraft();
     } catch (err) {
@@ -869,6 +872,7 @@ export default function WeeklyMealBoard() {
       const saved = await saveWeekBoard(board);
       setBoard(saved);
       setJustSaved(true);
+      if (!showMealReady) setShowMealReady(true);
       // Reset success state after 2.5 seconds
       setTimeout(() => {
         setJustSaved(false);
@@ -1794,6 +1798,12 @@ export default function WeeklyMealBoard() {
         title="General Nutrition Builder"
         steps={GENERAL_NUTRITION_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+      <MealReadySheet
+        show={showMealReady}
+        board={board}
+        onRefresh={refreshBoard}
+        onClose={() => setShowMealReady(false)}
       />
       </div>
     </motion.div>
