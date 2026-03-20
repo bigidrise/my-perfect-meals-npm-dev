@@ -340,9 +340,10 @@ export default function WeeklyMealBoard() {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
-        // Clear draft and mark clean after successful server save
+        // Clear draft after successful server save
+        // Note: do NOT call markClean() — keeping dirtyRef=true blocks hookBoard
+        // from overwriting local board (which may have imageUrls the server stripped)
         clearDraft();
-        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         // Silent retry - no toast during decision-making flows

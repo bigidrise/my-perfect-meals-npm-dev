@@ -187,7 +187,6 @@ export default function WeeklyMealBoard() {
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
       clearDraft();
-      markClean();
     } catch (err) {
       console.error("Failed to save board:", err);
       // Silent retry - no toast during decision-making flows

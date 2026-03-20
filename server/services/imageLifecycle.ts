@@ -195,10 +195,10 @@ export async function processMealImageForSave(
         ingestionAttempted: true
       };
     } else {
-      // Ingestion failed - save with pending flag (Policy 1 - Option B)
-      console.warn(`⚠️ Image ingestion failed for ${mealName}, marking as pending`);
+      // Ingestion failed - keep original URL so image stays visible in current session
+      console.warn(`⚠️ Image ingestion failed for ${mealName}, keeping original URL`);
       return {
-        imageUrl: null, // Don't save temp URL
+        imageUrl: imageUrl,
         imagePending: true,
         ingestionAttempted: true
       };
