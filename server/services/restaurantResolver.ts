@@ -137,11 +137,14 @@ export async function resolveRestaurantsByZip(
     });
 
     if (response.data.status !== 'OK' || !response.data.results?.length) {
+      const googleStatus = response.data.status;
+      const googleErrorMsg = response.data.error_message || '(no error_message)';
+      console.error(`❌ Google Places API returned status: ${googleStatus} | error_message: ${googleErrorMsg} | query: "${searchQuery}"`);
       return {
         success: false,
         restaurants: [],
         coordinates: coords,
-        error: `No restaurants found for "${query}" near ZIP ${zipCode}`
+        error: `Google Places status ${googleStatus}: ${googleErrorMsg}`
       };
     }
 
