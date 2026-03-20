@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
@@ -25,6 +25,7 @@ import {
   Check,
   Ruler,
   CalendarCheck,
+  Stethoscope,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -33,6 +34,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -97,6 +99,20 @@ export default function TrainerClientDashboard() {
   const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
   const [clientGoal, setClientGoal] = useState<{ goalType?: string | null; goalTarget?: string | null; goalTimelineWeeks?: number | null } | null>(null);
 
+  interface KeyLabs {
+    a1c: number | null;
+    ldl: number | null;
+  }
+  const [labs, setLabs] = useState<KeyLabs | null>(null);
+
+  const activeProtocolLabel = useMemo(() => {
+    if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]) return null;
+    if (assignedBuilder === "anti_inflammatory") {
+      return resolveClinicalProtocolLabel(t.flags);
+    }
+    return PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label;
+  }, [assignedBuilder, t.flags]);
+
   useEffect(() => {
     setT(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
@@ -132,6 +148,14 @@ export default function TrainerClientDashboard() {
     fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setClientGoal(data); })
+      .catch(() => {});
+    fetch(apiUrl(`/api/biometrics/labs/${uid}`), { headers: { ...getAuthHeaders() }, credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.labs) {
+          setLabs({ a1c: data.labs.a1c ?? null, ldl: data.labs.ldl ?? null });
+        }
+      })
       .catch(() => {});
   }, [clientId]);
 
@@ -323,6 +347,46 @@ export default function TrainerClientDashboard() {
             </div>
           )}
         </div>
+
+        {(activeProtocolLabel || labs) && (
+          <Card className="bg-white/5 border border-teal-500/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+                <Stethoscope className="h-4 w-4 text-teal-400" /> Health Context
+                <span className="ml-auto text-xs font-normal text-white/40 italic">read-only</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 pt-0">
+              {activeProtocolLabel && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/50 w-28 shrink-0">Active Protocol</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-600/20 border border-teal-500/30 text-teal-300">
+                    {activeProtocolLabel}
+                  </span>
+                </div>
+              )}
+              {labs && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-white/50 w-28 shrink-0">Key Labs</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    labs.a1c != null && labs.a1c >= 6.5
+                      ? "bg-red-500/10 border-red-500/30 text-red-300"
+                      : "bg-white/5 border-white/20 text-white/70"
+                  }`}>
+                    A1C: {labs.a1c != null ? `${labs.a1c}${labs.a1c >= 6.5 ? " ⚠" : ""}` : "N/A"}
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    labs.ldl != null && labs.ldl >= 130
+                      ? "bg-orange-500/10 border-orange-500/30 text-orange-300"
+                      : "bg-white/5 border-white/20 text-white/70"
+                  }`}>
+                    LDL: {labs.ldl != null ? `${labs.ldl}${labs.ldl >= 130 ? " ⚠" : ""}` : "N/A"}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">
