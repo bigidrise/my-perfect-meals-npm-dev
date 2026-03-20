@@ -11,6 +11,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
+import { buildDietPromptBlock, violatesDietaryConstraints } from "../services/allergyGuardrails";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -138,25 +139,35 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     // 🎨 PALATE PREFERENCES: Load flavor preferences for seasoning/flavor guidance
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
-    if (!skipPalate && userId && userId !== "1") {
+    let dietPromptBlock = "";
+    if (userId && userId !== "1") {
       try {
         const [user] = await db.select({
           palateSpiceTolerance: users.palateSpiceTolerance,
           palateSeasoningIntensity: users.palateSeasoningIntensity,
           palateFlavorStyle: users.palateFlavorStyle,
+          dietaryRestrictions: users.dietaryRestrictions,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
-        if (user && (user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
-          const palatePrefs: PalatePreferences = {
-            palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
-            palateSeasoningIntensity: user.palateSeasoningIntensity as PalatePreferences['palateSeasoningIntensity'],
-            palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
-          };
-          palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
-          console.log(`🎨 [DESSERT] Loaded palate preferences for user`);
+        if (user) {
+          if (!skipPalate && (user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
+            const palatePrefs: PalatePreferences = {
+              palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
+              palateSeasoningIntensity: user.palateSeasoningIntensity as PalatePreferences['palateSeasoningIntensity'],
+              palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
+            };
+            palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
+            console.log(`🎨 [DESSERT] Loaded palate preferences for user`);
+          }
+          // Dietary constraints always enforced regardless of skipPalate
+          const restrictions = (user.dietaryRestrictions as string[]) || [];
+          dietPromptBlock = buildDietPromptBlock(restrictions);
+          if (dietPromptBlock) {
+            console.log(`🥗 [DESSERT] Dietary constraint enforced: ${restrictions.join("|")}`);
+          }
         }
       } catch (err) {
-        console.log("[DESSERT] Could not fetch palate preferences:", err);
+        console.log("[DESSERT] Could not fetch user preferences:", err);
       }
     } else if (skipPalate) {
       console.log(`🎨 [DESSERT] Palate preferences skipped - using neutral flavoring for shared dessert`);
@@ -217,6 +228,7 @@ CELEBRATION CAKE REQUIREMENTS:
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
+${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 

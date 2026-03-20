@@ -5,6 +5,7 @@ import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
 import { buildPalateSection, PalatePreferences } from './promptBuilder';
 import { BASELINE_MACROS } from './guardrails/baselineMacros';
+import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -233,6 +234,13 @@ export async function generateFridgeRescueMeals(request: FridgeRescueRequest): P
   const medicalConditionsText = userConditions.length > 0 ? 
     `\n\nIMPORTANT: The user has these medical conditions: ${userConditions.join(", ")}. Ensure all meal recommendations are safe and appropriate for these conditions.` : "";
 
+  // DIETARY HARD CONSTRAINT (vegan/vegetarian/pescatarian)
+  const userDietaryRestrictions = user?.dietaryRestrictions || [];
+  const fridgeDietBlock = buildDietPromptBlock(userDietaryRestrictions as string[]);
+  if (fridgeDietBlock) {
+    console.log(`🥗 [FRIDGE] Dietary constraint enforced: ${userDietaryRestrictions.join("|")}`);
+  }
+
   // 🎯 Add macro targeting instructions if targets provided
   const macroTargetingText = macroTargets ? `
 🎯 CRITICAL MACRO TARGETING REQUIREMENT:
@@ -257,7 +265,7 @@ This is for athlete meal planning - precision is critical for contest preparatio
 ` : "";
 
   const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
-
+${fridgeDietBlock ? `\n${fridgeDietBlock}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}
