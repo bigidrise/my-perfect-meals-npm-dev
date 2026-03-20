@@ -2019,6 +2019,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         preferredBuilder,
         flavorPreference,
         sweetenerPreferences,
+        goalType,
+        goalTarget,
+        goalTimelineWeeks,
+        goalStartDate,
       } = req.body;
       
       // Build update object with only provided fields
@@ -2044,6 +2048,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (preferredBuilder !== undefined) updateData.preferredBuilder = preferredBuilder;
       if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
       if (sweetenerPreferences !== undefined) updateData.sweetenerPreferences = sweetenerPreferences;
+      if (goalType !== undefined) updateData.goalType = goalType;
+      if (goalTarget !== undefined) updateData.goalTarget = goalTarget;
+      if (goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = goalTimelineWeeks;
+      if (goalStartDate !== undefined) updateData.goalStartDate = goalStartDate ? new Date(goalStartDate) : null;
       
       if (allergies !== undefined) {
         const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
