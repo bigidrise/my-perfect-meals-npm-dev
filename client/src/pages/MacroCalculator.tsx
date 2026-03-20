@@ -767,6 +767,50 @@ export default function MacroCounter() {
     };
   }, [stop]);
 
+  // Prefill from server profile when no saved settings exist (e.g. after reinstall)
+  useEffect(() => {
+    if (!user) return;
+    const hasSaved = !!localStorage.getItem("macro_calculator_settings");
+    if (hasSaved) return;
+
+    if (user.age) setAge(user.age);
+
+    if (user.activityLevel) {
+      const validActivity = [
+        "sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active"
+      ];
+      if (validActivity.includes(user.activityLevel)) {
+        setActivity(user.activityLevel as typeof activity);
+      }
+    }
+
+    if (user.fitnessGoal) {
+      const goalMap: Record<string, Goal> = {
+        weight_loss: "loss",
+        muscle_gain: "gain",
+        maintenance: "maint",
+        endurance: "maint",
+        lean_gain: "lean_gain",
+      };
+      const mapped = goalMap[user.fitnessGoal];
+      if (mapped) setGoal(mapped);
+    }
+
+    // height is stored in cm, weight in lbs
+    if (user.height && user.height > 0) {
+      setHeightCm(user.height);
+      const totalIn = Math.round(user.height / 2.54);
+      setHeightFt(Math.floor(totalIn / 12));
+      setHeightIn(totalIn % 12);
+    }
+
+    if (user.weight && user.weight > 0) {
+      setWeightLbs(user.weight);
+      setWeightKg(Math.round((user.weight / 2.205) * 10) / 10);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   // Global click handler: stop voice on any click when playing
   useEffect(() => {
     const handleGlobalClick = () => {

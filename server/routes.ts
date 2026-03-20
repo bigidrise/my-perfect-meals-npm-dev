@@ -89,6 +89,7 @@ import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for st
 import iosVerifyRouter from "./routes/iosVerify";
 import lockedDaysRouter from "./routes/lockedDays";
 import usersProfileRouter from "./routes/usersProfile";
+import userPreferencesRouter from "./routes/userPreferences";
 import { loadStudioMembership } from "./middleware/studioAccess";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
@@ -1967,6 +1968,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         flavorPreference: user.flavorPreference || null,
         hasAllergyPin: !!user.safetyPinHash,
         fontSizePreference: user.fontSizePreference || "standard",
+        dailyCalorieTarget: user.dailyCalorieTarget ?? null,
+        dailyProteinTarget: user.dailyProteinTarget ?? null,
+        dailyCarbsTarget: user.dailyCarbsTarget ?? null,
+        dailyFatTarget: user.dailyFatTarget ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -5966,6 +5971,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/founders", foundersRoutes);
   app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
   app.use("/api/users", usersProfileRouter);
+  app.use("/api", userPreferencesRouter);
 
   // Mount builder plans routes
   app.use(builderPlansRoutes);

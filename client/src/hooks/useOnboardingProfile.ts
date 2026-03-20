@@ -1,9 +1,9 @@
-// Replace the internals to match your real context/store.
-// Expect: allergies[], avoidBadges[], dailyCalories/protein/carbs/fat, etc.
+import { useAuth } from "@/contexts/AuthContext";
+
 export type OnboardingProfile = {
-  allergies?: string[];            // e.g. ["peanut","gluten"]
-  avoidBadges?: string[];          // e.g. ["high-sugar"]
-  preferredBadges?: string[];      // e.g. ["low-GI","gluten-free"]
+  allergies?: string[];
+  avoidBadges?: string[];
+  preferredBadges?: string[];
   dailyCalories?: number;
   proteinGrams?: number;
   carbsGrams?: number;
@@ -11,15 +11,15 @@ export type OnboardingProfile = {
 };
 
 export function useOnboardingProfile(): OnboardingProfile {
-  // wire this into your real context
-  // eslint-disable-next-line
-  return (window as any).__DEBUG_PROFILE__ || {
-    allergies: [],
-    avoidBadges: [],
-    preferredBadges: ["low-GI"],
-    dailyCalories: 2000,
-    proteinGrams: 120,
-    carbsGrams: 200,
-    fatGrams: 67,
+  const { user } = useAuth();
+
+  return {
+    allergies: user?.allergies || [],
+    avoidBadges: user?.dietaryRestrictions || [],
+    preferredBadges: [],
+    dailyCalories: user?.dailyCalorieTarget ?? undefined,
+    proteinGrams: user?.dailyProteinTarget ?? undefined,
+    carbsGrams: user?.dailyCarbsTarget ?? undefined,
+    fatGrams: user?.dailyFatTarget ?? undefined,
   };
 }

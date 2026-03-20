@@ -86,6 +86,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           flavorPreference: userData.flavorPreference || null,
           hasAllergyPin: userData.hasAllergyPin || false,
           studioMembership: userData.studioMembership || null,
+          dailyCalorieTarget: userData.dailyCalorieTarget ?? null,
+          dailyProteinTarget: userData.dailyProteinTarget ?? null,
+          dailyCarbsTarget: userData.dailyCarbsTarget ?? null,
+          dailyFatTarget: userData.dailyFatTarget ?? null,
         };
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));

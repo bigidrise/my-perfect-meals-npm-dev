@@ -86,6 +86,11 @@ export interface User {
   preferredBuilder?: string | null;
   flavorPreference?: string | null;
   hasAllergyPin?: boolean;
+  // Macro targets (from DB — survive reinstall)
+  dailyCalorieTarget?: number | null;
+  dailyProteinTarget?: number | null;
+  dailyCarbsTarget?: number | null;
+  dailyFatTarget?: number | null;
   // Display preferences
   fontSizePreference?: "standard" | "large" | "xl";
   // ProCare Professional fields

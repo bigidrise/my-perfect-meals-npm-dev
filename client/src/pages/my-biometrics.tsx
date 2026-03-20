@@ -660,7 +660,28 @@ export default function MyBiometrics() {
       window.dispatchEvent(event);
     }, 500);
 
-    // if (SYNC_ENDPOINT) fetch(SYNC_ENDPOINT+"/macros", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ day: today, P,C,F,K })}).catch(()=>{});
+    if (userId) {
+      fetch(apiUrl("/api/macros/log"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          loggedAt: new Date().toISOString(),
+          mealType: "manual",
+          protein: P,
+          carbs: C,
+          fat: F,
+          kcal: K,
+          starchyCarbs: SC,
+          fibrousCarbs: FC,
+          source: "manual",
+        }),
+      })
+        .then((r) => {
+          if (r.ok) window.dispatchEvent(new Event("macros:updated"));
+        })
+        .catch(() => {});
+    }
   };
 
   const resetToday = () => {
@@ -916,6 +937,27 @@ export default function MyBiometrics() {
 
     setPasteText("");
     setOpenPaste(false);
+
+    if (userId) {
+      fetch(apiUrl("/api/macros/log"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          loggedAt: new Date().toISOString(),
+          mealType: "manual",
+          protein: P,
+          carbs: C,
+          fat: F,
+          kcal: K2,
+          source: "manual",
+        }),
+      })
+        .then((r) => {
+          if (r.ok) window.dispatchEvent(new Event("macros:updated"));
+        })
+        .catch(() => {});
+    }
   }
 
   // Default targets if user hasn't set any yet
