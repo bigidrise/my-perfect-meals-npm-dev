@@ -5,6 +5,7 @@
 import { resolveRestaurantsByZip, ResolvedRestaurant } from './restaurantResolver';
 import { generateRestaurantMealsAI } from './restaurantMealGeneratorAI';
 import type { User } from '@shared/schema';
+import { violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
 
 interface MealFinderRequest {
   mealQuery: string;
@@ -172,6 +173,26 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   const results: RestaurantResult[] = restaurantResults.flat();
   
   console.log(`✅ Successfully generated ${results.length} meal recommendations`);
+
+  // DEFENSIVE FINAL DIETARY FILTER — catches anything that slipped through upstream
+  const userDietaryRestrictions = user?.dietaryRestrictions || [];
+  if (userDietaryRestrictions.length > 0 && getPrimaryDiet(userDietaryRestrictions)) {
+    const beforeCount = results.length;
+    const filteredResults = results.filter(r => {
+      const fullText = `${r.meal.name} ${r.meal.description} ${r.meal.ingredients.join(" ")}`;
+      const { violates, reasons } = violatesDietaryConstraints(fullText, userDietaryRestrictions);
+      if (violates) {
+        console.log(`🚫 [MEAL FINDER DIET FILTER] Removed "${r.meal.name}" from ${r.restaurantName} — violates ${getPrimaryDiet(userDietaryRestrictions)} diet (${reasons.join(", ")})`);
+        return false;
+      }
+      return true;
+    });
+    if (filteredResults.length < beforeCount) {
+      console.log(`🥗 [MEAL FINDER DIET FILTER] Removed ${beforeCount - filteredResults.length} non-compliant result(s), ${filteredResults.length} remaining`);
+    }
+    return filteredResults;
+  }
+
   return results;
 }
 

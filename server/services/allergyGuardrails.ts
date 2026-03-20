@@ -271,6 +271,22 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
 };
 
 /**
+ * DIET PRIORITY ORDER — strictest wins when multiple diets are present
+ */
+export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian"] as const;
+export type DietMode = typeof DIET_PRIORITY[number];
+
+/**
+ * Resolve a single primary diet from a dietary restrictions array.
+ * Follows priority: vegan > vegetarian > pescatarian
+ * Returns null if no diet mode is present.
+ */
+export function getPrimaryDiet(restrictions: string[]): DietMode | null {
+  const normalized = (restrictions || []).map(r => r.trim().toLowerCase());
+  return DIET_PRIORITY.find(d => normalized.includes(d)) ?? null;
+}
+
+/**
  * DIETARY RESTRICTION EXPANSION MAP
  * Maps dietary restrictions to ingredients that must be blocked
  */
@@ -319,6 +335,63 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
     "pork loin", "pork belly", "chorizo", "sausage", "lard"
   ]
 };
+
+/**
+ * Build a CRITICAL DIETARY RULE prompt block for injection into AI generators.
+ * Uses word-boundary–safe forbidden lists from RESTRICTION_EXPANSION.
+ * Priority: vegan > vegetarian > pescatarian (strictest wins).
+ * Returns an empty string when no diet mode applies.
+ */
+export function buildDietPromptBlock(restrictions: string[]): string {
+  const diet = getPrimaryDiet(restrictions);
+  if (!diet) return "";
+
+  const forbidden = RESTRICTION_EXPANSION[diet] || [];
+  return [
+    `CRITICAL DIETARY RULE:`,
+    `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
+    `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
+    forbidden.join(", ") + ".",
+    `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
+    `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
+    `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
+  ].join("\n");
+}
+
+/**
+ * Check whether generated text violates the user's primary dietary constraint.
+ * Uses word-boundary matching to avoid false positives (eggplant ≠ egg, almond milk ≠ milk).
+ * Returns { violates, reasons } so callers can log the violation.
+ */
+export function violatesDietaryConstraints(
+  text: string,
+  restrictions: string[]
+): { violates: boolean; reasons: string[] } {
+  const diet = getPrimaryDiet(restrictions);
+  if (!diet) return { violates: false, reasons: [] };
+
+  const forbidden = RESTRICTION_EXPANSION[diet] || [];
+  const lower = text.toLowerCase();
+  // Mask plant milks and nut butters before bare-word checks
+  const milkMasked = maskPlantMilks(lower);
+  const butterMasked = maskNutButters(lower);
+
+  const reasons: string[] = [];
+  for (const term of forbidden) {
+    if (!term) continue;
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`\\b${escaped}\\b`, "i");
+    const textToScan =
+      term === "milk" ? milkMasked :
+      term === "butter" ? butterMasked :
+      lower;
+    if (pattern.test(textToScan)) {
+      reasons.push(term);
+    }
+  }
+
+  return { violates: reasons.length > 0, reasons };
+}
 
 /**
  * Build forbidden ingredients list from user's allergies and restrictions
@@ -424,9 +497,16 @@ export function buildSafetyGuardrails(profile: UserSafetyProfile): SafetyGuardra
   }
   
   if (restrictions.length > 0) {
-    promptLines.push(
-      `DIETARY REQUIREMENTS: User follows ${restrictions.join(", ")} diet. Strictly comply with these restrictions.`
-    );
+    // Use hard CRITICAL language for recognized diet modes (vegan/vegetarian/pescatarian)
+    const dietBlock = buildDietPromptBlock(restrictions);
+    if (dietBlock) {
+      promptLines.push(dietBlock);
+    } else {
+      // Generic fallback for other restrictions (halal, kosher, no_pork, etc.)
+      promptLines.push(
+        `DIETARY REQUIREMENTS: User follows ${restrictions.join(", ")} diet. Strictly comply with these restrictions.`
+      );
+    }
   }
   
   promptLines.push(

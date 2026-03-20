@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 import { enforceCarbs } from '../utils/carbClassifier';
+import { buildDietPromptBlock, violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -115,9 +116,13 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     ? `\n\nCRITICAL ALLERGY SAFETY: User is allergic to: ${userAllergies.join(", ")}. NEVER suggest meals containing these ingredients or any derivatives. This is a medical safety requirement.`
     : "";
 
-  const dietaryContext = userDietaryRestrictions.length > 0
-    ? `\nDietary restrictions: ${userDietaryRestrictions.join(", ")}. All meals must comply.`
-    : "";
+  // Use hard dietary constraint block for vegan/vegetarian/pescatarian; generic fallback for others
+  const dietPromptBlock = buildDietPromptBlock(userDietaryRestrictions);
+  const dietaryContext = dietPromptBlock
+    ? `\n\n${dietPromptBlock}`
+    : userDietaryRestrictions.length > 0
+      ? `\nDietary restrictions: ${userDietaryRestrictions.join(", ")}. All meals must comply.`
+      : "";
 
   const avoidContext = userAvoidedFoods.length > 0
     ? `\nUser avoids these foods: ${userAvoidedFoods.join(", ")}. Do not include them.`
@@ -135,8 +140,18 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
   try {
     // Add timestamp for variety on each request
     const varietyTimestamp = Date.now();
+    // Build diet-aware variety hints so suggestions don't contradict the user's diet
+    const primaryDiet = getPrimaryDiet(userDietaryRestrictions);
+    const proteinVarietyHint = primaryDiet === "vegan"
+      ? "Focus on different plant-based protein sources (tofu, tempeh, lentils, chickpeas, black beans)"
+      : primaryDiet === "vegetarian"
+        ? "Focus on different vegetarian protein sources (eggs, tofu, tempeh, lentils, cheese, chickpeas)"
+        : primaryDiet === "pescatarian"
+          ? "Focus on different seafood protein sources (salmon, tuna, shrimp, cod, tilapia)"
+          : "Focus on different protein sources (chicken, fish, beef, turkey, plant-based)";
+
     const varietyInstructions = [
-      "Focus on different protein sources (chicken, fish, beef, turkey, plant-based)",
+      proteinVarietyHint,
       "Vary the cooking methods (grilled, baked, steamed, roasted)",
       "Include different meal types (salads, bowls, wraps, plates)",
       "Mix appetizers and entrees",
@@ -286,6 +301,31 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
 
       meals.length = 0;
       meals.push(...safeMeals);
+    }
+
+    // DIETARY HARD FILTER (vegan/vegetarian/pescatarian)
+    if (userDietaryRestrictions.length > 0 && getPrimaryDiet(userDietaryRestrictions)) {
+      const dietSafeMeals = meals.filter(meal => {
+        const fullText = `${meal.name} ${meal.description} ${meal.ingredients.join(" ")}`;
+        const { violates, reasons } = violatesDietaryConstraints(fullText, userDietaryRestrictions);
+        if (violates) {
+          console.log(`🚫 [DIET FILTER] Removed "${meal.name}" — violates ${getPrimaryDiet(userDietaryRestrictions)} diet (${reasons.join(", ")})`);
+          return false;
+        }
+        return true;
+      });
+
+      if (dietSafeMeals.length < meals.length) {
+        console.log(`🥗 [DIET FILTER] Filtered ${meals.length - dietSafeMeals.length} meal(s) violating diet, ${dietSafeMeals.length} remaining`);
+      }
+
+      if (dietSafeMeals.length === 0) {
+        console.warn(`⚠️ [DIET FILTER] All meals violated dietary constraints — falling back to locked generator`);
+        return generateFallbackMeals(request);
+      }
+
+      meals.length = 0;
+      meals.push(...dietSafeMeals);
     }
 
     // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)

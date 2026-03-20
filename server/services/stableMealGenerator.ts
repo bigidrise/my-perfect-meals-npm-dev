@@ -377,7 +377,7 @@ function loadCatalog(): Skeleton[] {
 }
 
 // ---- RULES (in CODE, deterministic) ----
-import { buildForbiddenIngredients, scanForViolations, UserSafetyProfile } from "./allergyGuardrails";
+import { buildForbiddenIngredients, scanForViolations, UserSafetyProfile, getPrimaryDiet, RESTRICTION_EXPANSION } from "./allergyGuardrails";
 
 function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[]) {
   // Use comprehensive guardrails system for allergy checking
@@ -405,6 +405,19 @@ function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[]) {
 
 function violatesDiet(ings: Skeleton["ingredients"], diet: string[]) {
   const txt = ings.map(i => i.name.toLowerCase()).join(" | ");
+
+  // Check vegan/vegetarian/pescatarian via centralized RESTRICTION_EXPANSION (strictest wins)
+  const primaryDiet = getPrimaryDiet(diet);
+  if (primaryDiet) {
+    const forbidden = RESTRICTION_EXPANSION[primaryDiet] || [];
+    for (const term of forbidden) {
+      if (!term) continue;
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${escaped}\\b`, "i").test(txt)) return true;
+    }
+  }
+
+  // Legacy checks for other restriction types
   for (const r of diet) {
     if (r === "gluten_free" && /\b(wheat|barley|rye|breadcrumbs|panko|pasta)\b/.test(txt)) return true;
     if (r === "no_pork" && /\bpork\b/.test(txt)) return true;

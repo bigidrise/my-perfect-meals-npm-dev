@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
 import { BASELINE_MACROS } from "./guardrails/baselineMacros";
+import { buildDietPromptBlock, violatesDietaryConstraints } from "./allergyGuardrails";
 
 let openai: OpenAI | null = null;
 
@@ -79,6 +80,10 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
   
   const sessionId = telemetry.createSession("universalMealGenerator");
 
+  // Build dietary constraint block (empty string if no diet restriction)
+  const dietaryRestrictions = userPrefs?.dietaryRestrictions || [];
+  const dietPromptBlock = buildDietPromptBlock(dietaryRestrictions);
+
   let gptResponse;
   try {
     gptResponse = await getOpenAI().chat.completions.create({
@@ -88,7 +93,7 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
         {
           role: "system",
           content: `You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
-
+${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
 BASELINE MACRO REQUIREMENTS (MANDATORY):
 Every meal must meet these minimum targets:
 - Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
@@ -263,6 +268,15 @@ Fat: 12g`
     telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
   }
   
+  // POST-GENERATION DIETARY HARD SCAN
+  if (dietaryRestrictions.length > 0) {
+    const fullMealText = [name, description, ...ingredients.map(i => i.name), ...finalInstructions].join(" ");
+    const { violates, reasons } = violatesDietaryConstraints(fullMealText, dietaryRestrictions);
+    if (violates) {
+      console.warn(`⚠️ [DIET GUARD] universalMealGenerator produced a meal with dietary violations: ${reasons.join(", ")} — diet: ${dietaryRestrictions.join("|")}`);
+    }
+  }
+
   // Build debug metadata and close session
   const debugMetadata = telemetry.buildDebugMetadata(sessionId);
   telemetry.closeSession(sessionId);
