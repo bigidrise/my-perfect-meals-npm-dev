@@ -126,6 +126,7 @@ export default function ClinicianClientDashboard() {
   }
   const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
   const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
+  const [clientGoal, setClientGoal] = useState<{ goalType?: string | null; goalTarget?: string | null; goalTimelineWeeks?: number | null } | null>(null);
 
   useEffect(() => {
     setT(proStore.getTargets(clientId));
@@ -160,6 +161,10 @@ export default function ClinicianClientDashboard() {
       .then((data) => {
         if (data?.labs) setLabs(data.labs);
       })
+      .catch(() => {});
+    fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setClientGoal(data); })
       .catch(() => {});
   }, [clientId]);
 
@@ -311,6 +316,23 @@ export default function ClinicianClientDashboard() {
           {activeProtocolLabel && (
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
               Active Protocol: {activeProtocolLabel}
+            </div>
+          )}
+          {clientGoal?.goalType && (
+            <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
+              <span className="text-2xl">
+                {clientGoal.goalType === "lose" ? "🔥" : clientGoal.goalType === "gain" ? "💪" : "⚖️"}
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {clientGoal.goalType === "lose" ? "Lose Weight" : clientGoal.goalType === "gain" ? "Gain Muscle" : "Maintain Weight"}
+                  {clientGoal.goalTarget ? ` — ${clientGoal.goalTarget}` : ""}
+                  {clientGoal.goalTimelineWeeks ? ` in ${clientGoal.goalTimelineWeeks >= 52 ? "1 year" : clientGoal.goalTimelineWeeks >= 26 ? "6 months" : `${clientGoal.goalTimelineWeeks} weeks`}` : ""}
+                </p>
+                {!clientGoal.goalTimelineWeeks && (
+                  <p className="text-xs text-white/50">No timeline set</p>
+                )}
+              </div>
             </div>
           )}
           <p className="text-sm text-white/60 mt-2">

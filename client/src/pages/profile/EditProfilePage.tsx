@@ -74,6 +74,8 @@ type SweetenerPreference =
   | "splenda"
   | "avoid_sweeteners";
 
+type GoalType = "lose" | "maintain" | "gain";
+
 type EditProfilePayload = {
   firstName?: string;
   lastName?: string;
@@ -86,6 +88,10 @@ type EditProfilePayload = {
   palateSeasoningIntensity?: SeasoningIntensity;
   palateFlavorStyle?: FlavorStyle;
   sweetenerPreferences?: SweetenerPreference[];
+  goalType?: GoalType | null;
+  goalTarget?: string | null;
+  goalTimelineWeeks?: number | null;
+  goalStartDate?: string | null;
 };
 
 function StepShell({
@@ -193,6 +199,10 @@ export default function EditProfilePage() {
   const [sweetenerPreferences, setSweetenerPreferences] = useState<SweetenerPreference[]>(
     initial.sweetenerPreferences || []
   );
+
+  const [goalType, setGoalType] = useState<GoalType | null>(((user as any)?.goalType as GoalType) || null);
+  const [goalTarget, setGoalTarget] = useState<string>((user as any)?.goalTarget || "");
+  const [goalTimelineWeeks, setGoalTimelineWeeks] = useState<number | null>((user as any)?.goalTimelineWeeks || null);
 
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
@@ -315,11 +325,19 @@ export default function EditProfilePage() {
         return;
       }
 
+      const originalGoalTarget = (user as any)?.goalTarget || "";
+      const originalGoalTimelineWeeks = (user as any)?.goalTimelineWeeks || null;
+      const goalChanged = goalTarget !== originalGoalTarget || goalTimelineWeeks !== originalGoalTimelineWeeks;
+
       const payload: EditProfilePayload & { allergyEditToken?: string } = {
         ...form,
         dietaryRestrictions: dietaryArray,
         allergies: allergiesChanged ? allergiesArray : undefined,
         sweetenerPreferences,
+        goalType: goalType || null,
+        goalTarget: goalTarget.trim() || null,
+        goalTimelineWeeks: goalTimelineWeeks,
+        goalStartDate: goalChanged && (goalTarget.trim() || goalTimelineWeeks) ? new Date().toISOString() : undefined,
         ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
       };
 
@@ -539,6 +557,51 @@ export default function EditProfilePage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <label className="text-white/70 text-xs">Personal Goal (optional)</label>
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {([
+                    { value: "lose", label: "🔥 Lose Weight" },
+                    { value: "maintain", label: "⚖️ Maintain" },
+                    { value: "gain", label: "💪 Gain Muscle" },
+                  ] as { value: GoalType; label: string }[]).map((opt) => (
+                    <PillButton
+                      key={opt.value}
+                      active={goalType === opt.value}
+                      onClick={() => setGoalType(goalType === opt.value ? null : opt.value)}
+                    >
+                      {opt.label}
+                    </PillButton>
+                  ))}
+                </div>
+                {goalType && (
+                  <div className="mt-3 space-y-2">
+                    <input
+                      type="text"
+                      value={goalTarget}
+                      onChange={(e) => setGoalTarget(e.target.value)}
+                      placeholder={goalType === "lose" ? "Target (e.g. 20 lbs) — optional" : goalType === "gain" ? "Target (e.g. 10 lbs) — optional" : "Notes — optional"}
+                      maxLength={100}
+                      className="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none"
+                    />
+                    <select
+                      value={goalTimelineWeeks ?? ""}
+                      onChange={(e) => setGoalTimelineWeeks(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+                    >
+                      <option value="">No timeline — optional</option>
+                      <option value="4">4 weeks</option>
+                      <option value="8">8 weeks</option>
+                      <option value="12">12 weeks</option>
+                      <option value="16">16 weeks</option>
+                      <option value="20">20 weeks</option>
+                      <option value="26">6 months</option>
+                      <option value="52">1 year</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">
