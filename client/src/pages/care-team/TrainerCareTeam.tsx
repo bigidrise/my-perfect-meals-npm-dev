@@ -42,6 +42,8 @@ import { ProRole } from "@/lib/proData";
 import { ProfessionalIntroOverlay } from "@/components/pro/ProfessionalIntroOverlay";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { PillButton } from "@/components/ui/pill-button";
+import { Wifi, WifiOff } from "lucide-react";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
@@ -240,6 +242,43 @@ export default function CareTeamPage() {
 
   const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
 
+  // ── Availability ──────────────────────────────────────────────────────────
+  type AvailStatus = "available" | "busy" | "away" | "offline";
+  const [availStatus, setAvailStatus] = useState<AvailStatus>(
+    (user?.availabilityStatus as AvailStatus) ?? "available",
+  );
+  const [backAtInput, setBackAtInput] = useState<string>(user?.backAt ? user.backAt.slice(0, 10) : "");
+  const [availSaving, setAvailSaving] = useState(false);
+
+  async function updateAvailability(status: AvailStatus) {
+    setAvailStatus(status);
+    setAvailSaving(true);
+    try {
+      await apiRequest("/api/professionals/me/availability", {
+        method: "PATCH",
+        body: JSON.stringify({ status, backAt: backAtInput || null }),
+      });
+    } catch {
+      setError("Failed to update availability.");
+    } finally {
+      setAvailSaving(false);
+    }
+  }
+
+  async function saveBackAt() {
+    setAvailSaving(true);
+    try {
+      await apiRequest("/api/professionals/me/availability", {
+        method: "PATCH",
+        body: JSON.stringify({ status: availStatus, backAt: backAtInput || null }),
+      });
+    } catch {
+      setError("Failed to save back date.");
+    } finally {
+      setAvailSaving(false);
+    }
+  }
+
   async function revokeMember(id: string) {
     try {
       await apiRequest(`/api/care-team/${id}/revoke`, { method: "POST" });
@@ -284,6 +323,45 @@ export default function CareTeamPage() {
         className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* Availability Status */}
+        <GlassCard className="border border-white/10">
+          <GlassCardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              {availStatus === "offline" ? (
+                <WifiOff className="h-4 w-4 text-white/50" />
+              ) : (
+                <Wifi className="h-4 w-4 text-orange-400" />
+              )}
+              <h2 className="text-base font-bold text-white">Your Availability</h2>
+              {availSaving && <span className="text-xs text-white/40 ml-auto">Saving…</span>}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(["available", "busy", "away", "offline"] as const).map((s) => (
+                <PillButton
+                  key={s}
+                  active={availStatus === s}
+                  variant={s === "available" ? "emerald" : "amber"}
+                  onClick={() => updateAvailability(s)}
+                >
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </PillButton>
+              ))}
+            </div>
+            {(availStatus === "busy" || availStatus === "away") && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-white/60 whitespace-nowrap">Back on:</label>
+                <Input
+                  type="date"
+                  value={backAtInput}
+                  onChange={(e) => setBackAtInput(e.target.value)}
+                  onBlur={saveBackAt}
+                  className="h-7 text-xs text-white bg-white/10 border-white/20 max-w-[160px]"
+                />
+              </div>
+            )}
+          </GlassCardContent>
+        </GlassCard>
+
         {/* Invite Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Invite by Email */}

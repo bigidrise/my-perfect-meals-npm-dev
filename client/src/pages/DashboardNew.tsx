@@ -446,6 +446,29 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
+        {user?.goalType && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.11, duration: 0.4 }}
+            className="mb-4"
+          >
+            <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 flex items-center gap-3">
+              <span className="text-xl">
+                {user.goalType === "lose" ? "🔥" : user.goalType === "gain" ? "💪" : "⚖️"}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 uppercase tracking-wide font-medium">Active Goal</p>
+                <p className="text-sm font-semibold text-white leading-tight">
+                  {user.goalType === "lose" ? "Lose Weight" : user.goalType === "gain" ? "Gain Muscle" : "Maintain Weight"}
+                  {user.goalTarget ? ` — ${user.goalTarget}` : ""}
+                  {user.goalTimelineWeeks ? ` in ${user.goalTimelineWeeks >= 52 ? "1 year" : user.goalTimelineWeeks >= 26 ? "6 months" : `${user.goalTimelineWeeks} weeks`}` : ""}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

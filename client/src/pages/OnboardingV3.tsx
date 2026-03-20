@@ -10,7 +10,22 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
+
+const GOAL_OPTIONS = [
+  { label: "Lose Weight", value: "lose", emoji: "🔥" },
+  { label: "Maintain Weight", value: "maintain", emoji: "⚖️" },
+  { label: "Gain Muscle", value: "gain", emoji: "💪" },
+];
+
+const TIMELINE_OPTIONS = [
+  { label: "4 weeks", value: 4 },
+  { label: "8 weeks", value: 8 },
+  { label: "12 weeks", value: 12 },
+  { label: "16 weeks", value: 16 },
+  { label: "6 months", value: 26 },
+  { label: "1 year", value: 52 },
+];
 
 const ALLERGY_OPTIONS = [
   "Peanuts", "Tree Nuts", "Dairy", "Lactose Intolerance", "Eggs",
@@ -97,6 +112,9 @@ export default function OnboardingV3() {
   const [customConditionInput, setCustomConditionInput] = useState("");
   const [flavorPreference, setFlavorPreference] = useState("");
   const [sweetenerPreferences, setSweetenerPreferences] = useState<string[]>([]);
+  const [goalType, setGoalType] = useState<"lose" | "maintain" | "gain" | "">("");
+  const [goalTarget, setGoalTarget] = useState("");
+  const [goalTimelineWeeks, setGoalTimelineWeeks] = useState<number | null>(null);
   const [selectedBuilder, setSelectedBuilder] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -197,6 +215,19 @@ export default function OnboardingV3() {
           await saveProfile({ medicalConditions });
           break;
         case 4:
+          if (!goalType) {
+            toast({ title: "Please select your main goal", variant: "destructive" });
+            setSaving(false);
+            return;
+          }
+          await saveProfile({
+            goalType,
+            goalTarget: goalTarget.trim() || null,
+            goalTimelineWeeks: goalTimelineWeeks ?? null,
+            goalStartDate: new Date().toISOString(),
+          });
+          break;
+        case 5:
           if (!flavorPreference) {
             toast({ title: "Please pick a flavor style", variant: "destructive" });
             setSaving(false);
@@ -451,6 +482,66 @@ export default function OnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
+              <h1 className="text-2xl font-bold text-white">What's your main goal?</h1>
+              <p className="text-white/60 text-sm">We'll personalize your plan around this</p>
+            </div>
+            <div className="flex flex-col gap-3 max-w-xs mx-auto">
+              {GOAL_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setGoalType(opt.value as "lose" | "maintain" | "gain")}
+                  className={`flex items-center gap-3 px-5 py-4 rounded-2xl border text-left text-sm font-medium transition-all ${
+                    goalType === opt.value
+                      ? "bg-orange-500 border-orange-500 text-white"
+                      : "bg-white/5 border-white/20 text-white/80"
+                  }`}
+                >
+                  <span className="text-2xl">{opt.emoji}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {goalType && goalType !== "maintain" && (
+              <div className="max-w-xs mx-auto space-y-2">
+                <label className="text-white/70 text-sm">
+                  {goalType === "lose" ? "How much do you want to lose?" : "How much muscle do you want to gain?"}
+                  <span className="text-white/40 ml-1">(optional)</span>
+                </label>
+                <Input
+                  value={goalTarget}
+                  onChange={(e) => setGoalTarget(e.target.value)}
+                  placeholder={goalType === "lose" ? "e.g. 20 lbs" : "e.g. 10 lbs"}
+                  className="text-white bg-white/10 border-white/20"
+                />
+              </div>
+            )}
+            <div className="max-w-xs mx-auto space-y-2">
+              <label className="text-white/70 text-sm">
+                Timeline <span className="text-white/40">(optional)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {TIMELINE_OPTIONS.map((t) => (
+                  <button
+                    key={t.value}
+                    onClick={() => setGoalTimelineWeeks(goalTimelineWeeks === t.value ? null : t.value)}
+                    className={`px-4 py-2 rounded-full border text-xs font-medium transition-all ${
+                      goalTimelineWeeks === t.value
+                        ? "bg-orange-500 border-orange-500 text-white"
+                        : "bg-white/5 border-white/20 text-white/70"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-white">What's your flavor style?</h1>
             </div>
             <div className="flex flex-wrap justify-center gap-3 max-w-md mx-auto">
@@ -491,7 +582,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">

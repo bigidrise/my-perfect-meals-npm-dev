@@ -98,6 +98,13 @@ export default function ProClientFolderModal({
   const noteScrollRef = useRef<HTMLDivElement>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
 
+  const [clientGoal, setClientGoal] = useState<{
+    goalType?: string | null;
+    goalTarget?: string | null;
+    goalTimelineWeeks?: number | null;
+    goalStartDate?: string | null;
+  } | null>(null);
+
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const clientId = resolvedClientId || client?.clientUserId || client?.userId || null;
   const hasDbBackedId = !!(client?.clientUserId || client?.userId);
@@ -126,6 +133,24 @@ export default function ProClientFolderModal({
     })();
     return () => { cancelled = true; };
   }, [open, hasDbBackedId, client?.email]);
+
+  useEffect(() => {
+    if (!open || !clientId) { setClientGoal(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl(`/api/users/${clientId}/goal`), {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+        });
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setClientGoal(data);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [open, clientId]);
 
   const proInitialLoad = useRef(true);
 
@@ -401,6 +426,22 @@ export default function ProClientFolderModal({
               </div>
             )}
           </div>
+
+          {clientGoal?.goalType && (
+            <div className="flex items-center gap-2.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2">
+              <span className="text-base">
+                {clientGoal.goalType === "lose" ? "🔥" : clientGoal.goalType === "gain" ? "💪" : "⚖️"}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] text-white/50 uppercase tracking-wide font-medium">Client Goal</p>
+                <p className="text-xs font-semibold text-white leading-snug">
+                  {clientGoal.goalType === "lose" ? "Lose Weight" : clientGoal.goalType === "gain" ? "Gain Muscle" : "Maintain Weight"}
+                  {clientGoal.goalTarget ? ` — ${clientGoal.goalTarget}` : ""}
+                  {clientGoal.goalTimelineWeeks ? ` in ${clientGoal.goalTimelineWeeks >= 52 ? "1 year" : clientGoal.goalTimelineWeeks >= 26 ? "6 months" : `${clientGoal.goalTimelineWeeks} wks`}` : ""}
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-white/10 pt-3 space-y-2">
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">

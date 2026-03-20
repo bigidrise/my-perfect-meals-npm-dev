@@ -25,12 +25,13 @@ const UpdateProfileSchema = z.object({
   palateSeasoningIntensity: z.enum(["light", "balanced", "bold"]).optional(),
   palateFlavorStyle: z.enum(["classic", "herb", "savory", "bright"]).optional(),
   fontSizePreference: z.enum(["standard", "large", "xl"]).optional(),
+  sweetenerPreferences: z.array(z.string()).optional(),
   fromOnboarding: z.boolean().optional(),
   // Client goals
   goalType: z.enum(["lose", "maintain", "gain"]).optional().nullable(),
-  goalTarget: z.number().int().min(0).max(500).optional().nullable(),
+  goalTarget: z.string().max(100).optional().nullable(),
   goalTimelineWeeks: z.number().int().min(1).max(260).optional().nullable(),
-  goalStartDate: z.string().datetime({ offset: true }).optional().nullable(),
+  goalStartDate: z.string().optional().nullable(),
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -72,6 +73,7 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;
     if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
     if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
+    if (patch.sweetenerPreferences !== undefined) updateData.sweetenerPreferences = patch.sweetenerPreferences;
     if (patch.goalType !== undefined) updateData.goalType = patch.goalType;
     if (patch.goalTarget !== undefined) updateData.goalTarget = patch.goalTarget;
     if (patch.goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = patch.goalTimelineWeeks;

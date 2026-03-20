@@ -10,8 +10,8 @@ const router = Router();
 const ALLOWED_STATUSES = ["available", "busy", "away", "offline"] as const;
 
 const AvailabilitySchema = z.object({
-  availabilityStatus: z.enum(ALLOWED_STATUSES),
-  backAt: z.string().datetime({ offset: true }).optional().nullable(),
+  status: z.enum(ALLOWED_STATUSES),
+  backAt: z.string().optional().nullable(),
 });
 
 // PATCH /api/professionals/me/availability
@@ -42,23 +42,23 @@ router.patch("/me/availability", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
     }
 
-    const { availabilityStatus, backAt } = parsed.data;
+    const { status, backAt } = parsed.data;
 
     await db.update(users).set({
-      availabilityStatus,
+      availabilityStatus: status,
       backAt: backAt ? new Date(backAt) : null,
-    }).where(eq(users.id, userId));
+    } as any).where(eq(users.id, userId));
 
-    console.log(`📡 [AVAILABILITY] ${userId} → ${availabilityStatus}${backAt ? ` (back: ${backAt})` : ""}`);
+    console.log(`📡 [AVAILABILITY] ${userId} → ${status}${backAt ? ` (back: ${backAt})` : ""}`);
 
     // Notify linked clients via in-app tablet message (reuses existing tablet system)
     try {
-      await notifyLinkedClients(userId, availabilityStatus, backAt ?? null);
+      await notifyLinkedClients(userId, status, backAt ?? null);
     } catch (notifyErr) {
       console.warn("[AVAILABILITY] Client notification failed (non-fatal):", notifyErr);
     }
 
-    return res.json({ ok: true, availabilityStatus, backAt: backAt ?? null });
+    return res.json({ ok: true, availabilityStatus: status, backAt: backAt ?? null });
   } catch (e) {
     console.error("Availability update error:", e);
     return res.status(500).json({ error: "Failed to update availability" });

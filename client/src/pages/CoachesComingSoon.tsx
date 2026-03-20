@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 type AvailabilityStatus = "available" | "unavailable";
 
@@ -95,6 +97,54 @@ export default function MeetYourCoach() {
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
   const [agreed, setAgreed] = useState(DEFAULT_AGREED);
 
+  const [liveCoaches, setLiveCoaches] = useState<Coach[]>(coaches);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/providers"), {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data: Array<{
+          professionalRole?: string;
+          availabilityStatus?: string;
+          backAt?: string | null;
+        }> = await res.json();
+
+        const firstTrainer = data.find((p) => p.professionalRole === "trainer");
+        const firstPhysician = data.find((p) => p.professionalRole === "physician");
+
+        setLiveCoaches((prev) =>
+          prev.map((c) => {
+            if (c.isFounder && firstTrainer) {
+              const liveStatus = firstTrainer.availabilityStatus;
+              return {
+                ...c,
+                availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
+                availableDate: (liveStatus === "busy" || liveStatus === "away") && firstTrainer.backAt
+                  ? new Date(firstTrainer.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                  : undefined,
+              };
+            }
+            if (c.isCMCO && firstPhysician) {
+              const liveStatus = firstPhysician.availabilityStatus;
+              return {
+                ...c,
+                availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
+                availableDate: (liveStatus === "busy" || liveStatus === "away") && firstPhysician.backAt
+                  ? new Date(firstPhysician.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                  : undefined,
+              };
+            }
+            return c;
+          }),
+        );
+      } catch {}
+    })();
+  }, []);
+
   const allChecked = Object.values(agreed).every(Boolean);
 
   const handleCardTap = (coach: Coach) => {
@@ -132,7 +182,7 @@ export default function MeetYourCoach() {
 
       {/* 2-column grid */}
       <div className="grid grid-cols-2 gap-3">
-        {coaches.map((coach) => (
+        {liveCoaches.map((coach) => (
           <div
             key={coach.id}
             onClick={() => handleCardTap(coach)}

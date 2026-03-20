@@ -363,7 +363,7 @@ export const users = pgTable("users", {
   sweetenerPreferences: text("sweetener_preferences").array(),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder
   goalType: text("goal_type").$type<"lose"|"maintain"|"gain">(),
-  goalTarget: integer("goal_target"), // e.g. 20 (lbs to lose/gain)
+  goalTarget: text("goal_target"), // e.g. "20 lbs" or "10 kg"
   goalTimelineWeeks: integer("goal_timeline_weeks"), // e.g. 12
   goalStartDate: timestamp("goal_start_date", { withTimezone: true }),
   // Coach / Provider Availability — controlled from Care Team page (professionals only)
