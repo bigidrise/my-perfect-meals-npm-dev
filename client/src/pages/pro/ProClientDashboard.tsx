@@ -27,6 +27,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { Percent } from "lucide-react";
 
 const CLIENT_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -97,6 +98,19 @@ export default function ProClientDashboard() {
     proStore.getContext(clientId),
   );
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [clientBodyComp, setClientBodyComp] = useState<{ currentBodyFatPct?: string; goalBodyFatPct?: string } | null>(null);
+
+  useEffect(() => {
+    const effectiveId = client?.clientUserId || client?.userId || clientId;
+    if (!effectiveId) return;
+    fetch(apiUrl(`/api/pro/clients/${effectiveId}/body-composition`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.entry) setClientBodyComp(data.entry); })
+      .catch(() => {});
+  }, [clientId, client]);
 
   useEffect(() => {
     setT(proStore.getTargets(clientId));
@@ -289,6 +303,29 @@ export default function ProClientDashboard() {
         </div>
 
         <WeeklyWeightTrendCard clientId={client?.clientUserId || client?.userId || clientId} />
+
+        {clientBodyComp && (clientBodyComp.currentBodyFatPct || clientBodyComp.goalBodyFatPct) && (
+          <div className="bg-white/5 border border-white/15 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Percent className="w-4 h-4 text-orange-400" />
+              <span className="text-sm font-semibold text-white/80">Body Composition</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {clientBodyComp.currentBodyFatPct && parseFloat(clientBodyComp.currentBodyFatPct) > 0 && (
+                <div className="bg-black/20 rounded-lg p-3 text-center">
+                  <p className="text-xl font-bold text-white">{parseFloat(clientBodyComp.currentBodyFatPct).toFixed(1)}%</p>
+                  <p className="text-[10px] text-white/40 mt-0.5">Current Body Fat</p>
+                </div>
+              )}
+              {clientBodyComp.goalBodyFatPct && (
+                <div className="bg-black/20 rounded-lg p-3 text-center">
+                  <p className="text-xl font-bold text-orange-400">{parseFloat(clientBodyComp.goalBodyFatPct).toFixed(1)}%</p>
+                  <p className="text-[10px] text-white/40 mt-0.5">Target Body Fat</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* MACRO TARGETS - SHOWN TO BOTH */}
         <Card className="bg-white/5 border border-white/20">

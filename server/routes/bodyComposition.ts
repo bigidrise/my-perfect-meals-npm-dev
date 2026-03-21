@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import { db } from "../db";
 import { bodyFatEntries } from "../db/schema/bodyComposition";
 import { eq, and, desc } from "drizzle-orm";
