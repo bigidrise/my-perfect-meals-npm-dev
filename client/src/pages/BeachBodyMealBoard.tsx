@@ -58,6 +58,7 @@ import {
   todayISOInTZ 
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
+import MealReadySheet from "@/components/MealReadySheet";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -218,11 +219,13 @@ export default function BeachBodyMealBoard() {
     loading: hookLoading,
     error,
     save: saveToHook,
+    refresh: refreshBoard,
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.BEACH_BODY);
 
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [showMealReady, setShowMealReady] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
   React.useEffect(() => {
@@ -238,16 +241,15 @@ export default function BeachBodyMealBoard() {
       try {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
+        if (!showMealReady) setShowMealReady(true);
         setTimeout(() => setJustSaved(false), 2000);
       } catch (err) {
         console.error("Failed to save board:", err);
-        // Silent retry - no toast during decision-making flows
-        // Save will auto-retry on next user action
       } finally {
         setSaving(false);
       }
     },
-    [saveToHook, toast],
+    [saveToHook, showMealReady],
   );
 
   // Manual save handler for Save Plan button
@@ -1183,6 +1185,7 @@ export default function BeachBodyMealBoard() {
       : board.lists;
 
   return (
+  <>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -2116,100 +2119,6 @@ export default function BeachBodyMealBoard() {
           dietPhase="lean"
         />
 
-        {board &&
-          (() => {
-            const currentBoard = board;
-
-            const allMeals =
-              planningMode === "day" && activeDayISO
-                ? (() => {
-                    const dayLists = getDayLists(currentBoard, activeDayISO);
-                    return [
-                      ...dayLists.breakfast,
-                      ...dayLists.lunch,
-                      ...dayLists.dinner,
-                      ...dayLists.snacks,
-                    ];
-                  })()
-                : [
-                    ...currentBoard.lists.breakfast,
-                    ...currentBoard.lists.lunch,
-                    ...currentBoard.lists.dinner,
-                    ...currentBoard.lists.snacks,
-                  ];
-
-            const ingredients = allMeals.flatMap((meal) =>
-              normalizeIngredients(meal.ingredients || []),
-            );
-
-            if (ingredients.length === 0) return null;
-
-            if (
-              FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              activeDayISO
-            ) {
-              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
-
-              return (
-                <div className="fixed left-0 right-0 z-[45] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl" style={{ bottom: "calc(64px + var(--safe-bottom, 0px))" }}>
-                  <div className="container mx-auto px-4 py-3">
-                    <div className="flex flex-col gap-2">
-                      <div className="text-white text-sm font-semibold">
-                        Shopping List Ready - {ingredients.length} ingredients
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => {
-                            handleAddToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=beach-body-meal-board",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
-                          data-testid="button-send-day-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send {dayName}
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            handleAddEntireWeekToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=beach-body-meal-board",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
-                          data-testid="button-send-week-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send Entire Week
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <ShoppingAggregateBar
-                ingredients={ingredients}
-                source="Beach Body Meal Board"
-                sourceSlug="beach-body-meal-board"
-                aboveBottomNav
-              />
-            );
-          })()}
-
         {/* Quick Tour Modal */}
         <QuickTourModal
           isOpen={quickTour.shouldShow}
@@ -2229,5 +2138,51 @@ export default function BeachBodyMealBoard() {
         />
       </div>
     </motion.div>
+
+    {/* Shopping bar outside motion.div — fixed positioning requires no transform ancestor */}
+    {board &&
+      (() => {
+        const currentBoard = board;
+        const allMeals =
+          planningMode === "day" && activeDayISO
+            ? (() => {
+                const dayLists = getDayLists(currentBoard, activeDayISO);
+                return [
+                  ...dayLists.breakfast,
+                  ...dayLists.lunch,
+                  ...dayLists.dinner,
+                  ...dayLists.snacks,
+                ];
+              })()
+            : [
+                ...currentBoard.lists.breakfast,
+                ...currentBoard.lists.lunch,
+                ...currentBoard.lists.dinner,
+                ...currentBoard.lists.snacks,
+              ];
+
+        const ingredients = allMeals.flatMap((meal) =>
+          normalizeIngredients(meal.ingredients || []),
+        );
+
+        if (ingredients.length === 0) return null;
+
+        return (
+          <ShoppingAggregateBar
+            ingredients={ingredients}
+            source="Beach Body Meal Board"
+            sourceSlug="beach-body-meal-board"
+            aboveBottomNav={false}
+          />
+        );
+      })()}
+
+    <MealReadySheet
+      show={showMealReady}
+      board={board}
+      onRefresh={refreshBoard}
+      onClose={() => setShowMealReady(false)}
+    />
+  </>
   );
 }
