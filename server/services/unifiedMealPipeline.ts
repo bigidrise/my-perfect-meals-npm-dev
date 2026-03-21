@@ -40,7 +40,8 @@ import {
   extractSafetyProfile,
   UserSafetyProfile,
   buildDietPromptBlock,
-  violatesDietaryConstraints
+  violatesDietaryConstraints,
+  getPrimaryDiet
 } from './allergyGuardrails';
 import { db } from '../db';
 import { users } from '@shared/schema';
