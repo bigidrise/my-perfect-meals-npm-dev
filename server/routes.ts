@@ -3173,6 +3173,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1, safetyMode, overrideToken } = req.body;
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      let dietAdapted = false;
+      let dietNotice = "";
       if (userId && cravingInput) {
         const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
@@ -3196,6 +3198,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ambiguousTerms: safetyCheck.ambiguousTerms,
             suggestion: safetyCheck.suggestion
           });
+        }
+        if (safetyCheck.result === "DIET_ADAPT") {
+          dietAdapted = true;
+          dietNotice = safetyCheck.message;
         }
       }
 
@@ -3321,7 +3327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         meal: generatedMeal,
-        generationSource: result.source
+        generationSource: result.source,
+        ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
     } catch (error: any) {
       console.error("❌ Craving creator error:", error);

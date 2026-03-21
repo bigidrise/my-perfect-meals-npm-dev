@@ -13,7 +13,7 @@ export interface SafetyOptions {
   overrideToken?: string;
 }
 
-export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED";
+export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT";
 
 export interface SafetyAssessment {
   result: SafetyResult;
@@ -204,9 +204,9 @@ export async function loadSafetyProfile(userId: string): Promise<SafetyProfile |
   }
 }
 
-export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
+function buildAllergyTermBank(profile: SafetyProfile): Set<string> {
   const terms = new Set<string>();
-  
+
   for (const allergy of profile.allergies) {
     const key = normalize(allergy);
     const expanded = ALLERGEN_EXPANSION[key];
@@ -216,7 +216,17 @@ export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
       terms.add(key);
     }
   }
-  
+
+  for (const avoid of profile.avoidIngredients) {
+    terms.add(normalize(avoid));
+  }
+
+  return terms;
+}
+
+function buildDietTermBank(profile: SafetyProfile): Set<string> {
+  const terms = new Set<string>();
+
   for (const restriction of profile.dietaryRestrictions) {
     const key = normalize(restriction);
     const expanded = RESTRICTION_EXPANSION[key];
@@ -224,12 +234,14 @@ export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
       expanded.forEach(term => terms.add(normalize(term)));
     }
   }
-  
-  for (const avoid of profile.avoidIngredients) {
-    terms.add(normalize(avoid));
-  }
-  
+
   return terms;
+}
+
+export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
+  const allergyTerms = buildAllergyTermBank(profile);
+  const dietTerms = buildDietTermBank(profile);
+  return new Set([...allergyTerms, ...dietTerms]);
 }
 
 function findMatchedTerms(text: string, termBank: Set<string>): string[] {
@@ -383,7 +395,7 @@ export async function enforceSafetyProfile(
     };
   }
   
-  if (profile.allergies.length === 0 && profile.dietaryRestrictions.length === 0) {
+  if (profile.allergies.length === 0 && profile.dietaryRestrictions.length === 0 && profile.avoidIngredients.length === 0) {
     return {
       result: "SAFE",
       blockedTerms: [],
@@ -392,27 +404,20 @@ export async function enforceSafetyProfile(
       message: "No allergies or restrictions configured"
     };
   }
-  
-  const termBank = buildActiveTermBank(profile);
-  const matchedTerms = findMatchedTerms(userText, termBank);
-  const matchedCategories = findMatchedCategories(matchedTerms, profile);
-  
-  if (matchedTerms.length > 0) {
+
+  // === PATH 1: ALLERGY CHECK — hard block for medical safety ===
+  const allergyTermBank = buildAllergyTermBank(profile);
+  const allergyMatches = findMatchedTerms(userText, allergyTermBank);
+  const allergyCategories = findMatchedCategories(allergyMatches, profile);
+
+  if (allergyMatches.length > 0) {
     // Check for authenticated override with valid one-time token
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
       const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
-      
+
       if (tokenData) {
-        // Log the authenticated override for audit trail
-        await logSafetyOverride(
-          userId,
-          userText,
-          tokenData.allergen,
-          builderId
-        );
-        
+        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
         console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}`);
-        
         return {
           result: "SAFE",
           blockedTerms: [],
@@ -421,45 +426,36 @@ export async function enforceSafetyProfile(
           message: "Allergen override authorized with Safety PIN - proceeding with user consent"
         };
       } else {
-        // Invalid or expired token - still block
         console.log(`[SafetyGuard] Invalid/expired override token for user ${userId}`);
       }
     }
-    
-    const primaryTerm = matchedTerms[0];
-    const primaryCategory = matchedCategories[0] || "your allergy profile";
+
+    const primaryTerm = allergyMatches[0];
+    const primaryCategory = allergyCategories[0] || "your allergy profile";
     const substitute = getSafeSubstitute(primaryTerm);
-    
-    await logSafetyBlock(userId, builderId, matchedTerms, matchedCategories, userText);
-    
+
+    await logSafetyBlock(userId, builderId, allergyMatches, allergyCategories, userText);
+
     return {
       result: "BLOCKED",
-      blockedTerms: matchedTerms,
-      blockedCategories: matchedCategories,
+      blockedTerms: allergyMatches,
+      blockedCategories: allergyCategories,
       ambiguousTerms: [],
       message: `🚨 Safety Alert: Your request includes "${primaryTerm}" which conflicts with ${primaryCategory}. For your safety, this meal cannot be generated.`,
       suggestion: `Try requesting with ${substitute} instead.`
     };
   }
-  
+
+  // === PATH 2: AMBIGUOUS DISH CHECK — allergy-only, no change ===
   const ambiguousDishes = checkAmbiguousDishes(userText, profile);
-  
+
   if (ambiguousDishes.length > 0) {
-    // Check for authenticated override with valid one-time token (also applies to AMBIGUOUS)
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
       const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
-      
+
       if (tokenData) {
-        // Log the authenticated override for audit trail
-        await logSafetyOverride(
-          userId,
-          userText,
-          tokenData.allergen,
-          builderId
-        );
-        
+        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
         console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}`);
-        
         return {
           result: "SAFE",
           blockedTerms: [],
@@ -471,7 +467,7 @@ export async function enforceSafetyProfile(
         console.log(`[SafetyGuard] Invalid/expired override token for AMBIGUOUS check, user ${userId}`);
       }
     }
-    
+
     const firstDish = ambiguousDishes[0];
     return {
       result: "AMBIGUOUS",
@@ -482,7 +478,26 @@ export async function enforceSafetyProfile(
       suggestion: `Try requesting: "${firstDish.info.safeAlternative}"`
     };
   }
-  
+
+  // === PATH 3: DIET CHECK — soft adaptation, AI handles generation ===
+  if (profile.dietaryRestrictions.length > 0) {
+    const dietTermBank = buildDietTermBank(profile);
+    const dietMatches = findMatchedTerms(userText, dietTermBank);
+
+    if (dietMatches.length > 0) {
+      const primaryDiet = profile.dietaryRestrictions[0];
+      console.log(`🔄 [DIET ADAPT] User ${userId} — "${userText}" conflicts with ${primaryDiet} diet (${dietMatches.join(", ")}) — AI will adapt`);
+      return {
+        result: "DIET_ADAPT",
+        blockedTerms: [],
+        blockedCategories: [],
+        ambiguousTerms: [],
+        message: `Adapting to your ${primaryDiet} preferences`,
+        suggestion: `The AI will create a ${primaryDiet}-friendly version for you.`
+      };
+    }
+  }
+
   return {
     result: "SAFE",
     blockedTerms: [],
@@ -496,7 +511,7 @@ export function enforceSafetyProfileSync(
   profile: SafetyProfile,
   userText: string
 ): SafetyAssessment {
-  if (profile.allergies.length === 0 && profile.dietaryRestrictions.length === 0) {
+  if (profile.allergies.length === 0 && profile.dietaryRestrictions.length === 0 && profile.avoidIngredients.length === 0) {
     return {
       result: "SAFE",
       blockedTerms: [],
@@ -505,28 +520,30 @@ export function enforceSafetyProfileSync(
       message: "No allergies or restrictions configured"
     };
   }
-  
-  const termBank = buildActiveTermBank(profile);
-  const matchedTerms = findMatchedTerms(userText, termBank);
-  const matchedCategories = findMatchedCategories(matchedTerms, profile);
-  
-  if (matchedTerms.length > 0) {
-    const primaryTerm = matchedTerms[0];
-    const primaryCategory = matchedCategories[0] || "your allergy profile";
+
+  // === PATH 1: ALLERGY CHECK — hard block for medical safety ===
+  const allergyTermBank = buildAllergyTermBank(profile);
+  const allergyMatches = findMatchedTerms(userText, allergyTermBank);
+  const allergyCategories = findMatchedCategories(allergyMatches, profile);
+
+  if (allergyMatches.length > 0) {
+    const primaryTerm = allergyMatches[0];
+    const primaryCategory = allergyCategories[0] || "your allergy profile";
     const substitute = getSafeSubstitute(primaryTerm);
-    
+
     return {
       result: "BLOCKED",
-      blockedTerms: matchedTerms,
-      blockedCategories: matchedCategories,
+      blockedTerms: allergyMatches,
+      blockedCategories: allergyCategories,
       ambiguousTerms: [],
       message: `🚨 Safety Alert: Your request includes "${primaryTerm}" which conflicts with ${primaryCategory}. For your safety, this meal cannot be generated.`,
       suggestion: `Try requesting with ${substitute} instead.`
     };
   }
-  
+
+  // === PATH 2: AMBIGUOUS DISH CHECK — allergy-only ===
   const ambiguousDishes = checkAmbiguousDishes(userText, profile);
-  
+
   if (ambiguousDishes.length > 0) {
     const firstDish = ambiguousDishes[0];
     return {
@@ -538,7 +555,25 @@ export function enforceSafetyProfileSync(
       suggestion: `Try requesting: "${firstDish.info.safeAlternative}"`
     };
   }
-  
+
+  // === PATH 3: DIET CHECK — soft adaptation, AI handles generation ===
+  if (profile.dietaryRestrictions.length > 0) {
+    const dietTermBank = buildDietTermBank(profile);
+    const dietMatches = findMatchedTerms(userText, dietTermBank);
+
+    if (dietMatches.length > 0) {
+      const primaryDiet = profile.dietaryRestrictions[0];
+      return {
+        result: "DIET_ADAPT",
+        blockedTerms: [],
+        blockedCategories: [],
+        ambiguousTerms: [],
+        message: `Adapting to your ${primaryDiet} preferences`,
+        suggestion: `The AI will create a ${primaryDiet}-friendly version for you.`
+      };
+    }
+  }
+
   return {
     result: "SAFE",
     blockedTerms: [],

@@ -80,6 +80,8 @@ beverageCreatorRouter.post("/", async (req, res) => {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
+    let dietAdapted = false;
+    let dietNotice = "";
     if (userId) {
       const inputText = [specificDrink, flavorFamily, beverageCategory].filter(Boolean).join(' ');
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "beverage-creator", {
@@ -104,6 +106,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
           ambiguousTerms: safetyCheck.ambiguousTerms,
           suggestion: safetyCheck.suggestion
         });
+      }
+      if (safetyCheck.result === "DIET_ADAPT") {
+        dietAdapted = true;
+        dietNotice = safetyCheck.message;
       }
     }
 
@@ -355,6 +361,7 @@ INCORRECT (NEVER DO THIS):
       ...meal,
       imageUrl,
       medicalBadges,
+      ...(dietAdapted && { dietAdapted: true, dietNotice }),
       meta: {
         userId: userId ?? "1",
         beverageCategory,

@@ -117,7 +117,7 @@ router.post("/", async (req, res) => {
       overrideToken,
     });
 
-    if (safetyCheck.result !== "SAFE") {
+    if (safetyCheck.result === "BLOCKED" || safetyCheck.result === "AMBIGUOUS") {
       return res.status(400).json({
         error: "Safety check failed",
         safety: safetyCheck,

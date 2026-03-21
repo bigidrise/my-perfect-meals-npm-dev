@@ -110,6 +110,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
     }
 
     // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+    let dietAdapted = false;
+    let dietNotice = "";
     if (userId) {
       const inputText = [specificDessert, flavorFamily, dessertCategory].filter(Boolean).join(' ');
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator", {
@@ -134,6 +136,10 @@ dessertCreatorRouter.post("/", async (req, res) => {
           ambiguousTerms: safetyCheck.ambiguousTerms,
           suggestion: safetyCheck.suggestion
         });
+      }
+      if (safetyCheck.result === "DIET_ADAPT") {
+        dietAdapted = true;
+        dietNotice = safetyCheck.message;
       }
     }
 
@@ -385,6 +391,7 @@ INCORRECT (NEVER DO THIS):
       ...meal,
       imageUrl,
       medicalBadges,
+      ...(dietAdapted && { dietAdapted: true, dietNotice }),
       meta: {
         userId: userId ?? "1",
         dessertCategory,
