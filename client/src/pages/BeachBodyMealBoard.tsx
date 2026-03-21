@@ -59,6 +59,7 @@ import {
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import MealReadySheet from "@/components/MealReadySheet";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -227,6 +228,7 @@ export default function BeachBodyMealBoard() {
   const [saving, setSaving] = React.useState(false);
   const [showMealReady, setShowMealReady] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
+  const isDesktop = useIsDesktop();
 
   React.useEffect(() => {
     if (hookBoard) {
@@ -2137,7 +2139,7 @@ export default function BeachBodyMealBoard() {
           onCreateNewDay={handleGoToToday}
         />
 
-        {/* Shopping bar — inside motion.div to match all other builders */}
+        {/* Shopping bar — matches Anti-Inflammatory pattern exactly */}
         {board &&
           (() => {
             const currentBoard = board;
@@ -2165,6 +2167,64 @@ export default function BeachBodyMealBoard() {
 
             if (ingredients.length === 0) return null;
 
+            // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
+            if (
+              FEATURES.dayPlanning === "alpha" &&
+              planningMode === "day" &&
+              activeDayISO
+            ) {
+              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
+
+              return (
+                <div className={`fixed ${isDesktop ? "left-[240px]" : "left-0"} right-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl`} style={{ bottom: isDesktop ? 0 : "calc(64px + var(--safe-bottom, 0px))" }}>
+                  <div className="container mx-auto px-4 py-3">
+                    <div className="flex flex-col gap-2">
+                      <div className="text-white text-sm font-semibold">
+                        Shopping List Ready - {ingredients.length} ingredients
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            handleAddToShoppingList();
+                            setTimeout(
+                              () =>
+                                setLocation(
+                                  "/shopping-list-v2?from=beach-body-meal-board",
+                                ),
+                              100,
+                            );
+                          }}
+                          className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
+                          data-testid="button-send-day-shopping"
+                        >
+                          <ShoppingCart className="h-5 w-5 mr-2" />
+                          Send {dayName}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            handleAddEntireWeekToShoppingList();
+                            setTimeout(
+                              () =>
+                                setLocation(
+                                  "/shopping-list-v2?from=beach-body-meal-board",
+                                ),
+                              100,
+                            );
+                          }}
+                          className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
+                          data-testid="button-send-week-shopping"
+                        >
+                          <ShoppingCart className="h-5 w-5 mr-2" />
+                          Send Entire Week
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // WEEK MODE: Use existing ShoppingAggregateBar component
             return (
               <ShoppingAggregateBar
                 ingredients={ingredients}
