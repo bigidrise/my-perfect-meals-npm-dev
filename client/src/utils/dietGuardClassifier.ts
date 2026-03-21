@@ -93,13 +93,15 @@ const PESCATARIAN_EXCLUSIONS: string[] = [
   "lard", "tallow",
 ];
 
-export function normalizeDietPreference(raw: string | undefined | null): SupportedDiet | null {
-  if (!raw) return null;
-  const lower = raw.toLowerCase().trim();
-  if (lower.includes("vegan")) return "vegan";
+export function normalizeDietPreference(raw: string | string[] | undefined | null): SupportedDiet | null {
+  if (!raw || (Array.isArray(raw) && raw.length === 0)) return null;
+  const lower = Array.isArray(raw)
+    ? raw.join(" ").toLowerCase().trim()
+    : raw.toLowerCase().trim();
+  if (lower.includes("vegan") || lower.includes("plant-based") || lower.includes("plant based")) return "vegan";
   if (lower.includes("vegetarian")) return "vegetarian";
   if (lower.includes("keto")) return "keto";
-  if (lower.includes("pescatarian")) return "pescatarian";
+  if (lower.includes("pescatarian") || lower.includes("pesco")) return "pescatarian";
   return null;
 }
 
