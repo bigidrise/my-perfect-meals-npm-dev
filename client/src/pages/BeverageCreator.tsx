@@ -164,8 +164,10 @@ export default function BeverageCreator() {
 
   const {
     alert: dietAlert,
+    decision: dietDecision,
     checkDiet,
     clearAlert: clearDietAlert,
+    setDecision: setDietDecision,
     triggerAlert: triggerDietAlert,
     activeDiet,
   } = useDietGuardPrecheck();
@@ -189,7 +191,7 @@ export default function BeverageCreator() {
       !safetyChecking
     ) {
       setPendingGeneration(false);
-      handleGenerateBeverage(overrideToken);
+      handleGenerateBeverage(false, overrideToken);
     }
   }, [pendingGeneration, overrideToken, isGenerating, safetyChecking]);
 
@@ -233,7 +235,7 @@ export default function BeverageCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateBeverage(overrideToken?: string) {
+  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string) {
     if (!beverageCategory) {
       toast({
         title: "Missing Information",
@@ -261,9 +263,12 @@ export default function BeverageCreator() {
       }
     }
 
-    // 🥗 DietGuard precheck — soft intercept for dietary preferences (not allergies)
-    const dietInput = `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
-    if (!checkDiet(dietInput)) return;
+    // 🥗 DietGuard preflight — advisory, skipped on "Let Chef Adapt" retry
+    if (!skipDietPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const dietInput = `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
+      const dietOk = checkDiet(dietInput);
+      if (!dietOk) return;
+    }
 
     setIsGenerating(true);
     startProgressTicker();
@@ -603,8 +608,8 @@ export default function BeverageCreator() {
               if (decision === "pick_something_else") {
                 clearDietAlert();
               } else if (decision === "let_chef_adapt") {
-                clearDietAlert();
-                handleGenerateBeverage();
+                setDietDecision("let_chef_adapt");
+                handleGenerateBeverage(true);
               }
             }}
           />
