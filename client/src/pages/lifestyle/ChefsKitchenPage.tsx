@@ -446,7 +446,19 @@ export default function ChefsKitchenPage() {
     externalMeal,
   );
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [mealOptions, setMealOptions] = useState<any[]>([]);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const getRecentMealsChef = (): string[] => {
+    try { return JSON.parse(sessionStorage.getItem('ck_recent_meals') || '[]'); } catch { return []; }
+  };
+  const addRecentMealChef = (mealName: string): void => {
+    try {
+      const recent = getRecentMealsChef();
+      const updated = [mealName, ...recent.filter((m: string) => m !== mealName)].slice(0, 3);
+      sessionStorage.setItem('ck_recent_meals', JSON.stringify(updated));
+    } catch {}
+  };
 
   // Display meal for translations (allows showing translated content while preserving original)
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
@@ -776,6 +788,7 @@ export default function ChefsKitchenPage() {
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
           skipPalate: !flavorPersonal,
+          excludeMeals: getRecentMealsChef(),
         }),
       });
 
@@ -815,6 +828,19 @@ export default function ChefsKitchenPage() {
         return;
       }
 
+      // 🎲 Multi-option response from variety engine — show selection panel
+      if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        const userDiet = normalizeDiet(user?.dietaryRestrictions);
+        if (data.dietAdapted) {
+          setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+          clearDietAlert();
+        }
+        setMealOptions(data.meals);
+        return;
+      }
+
       const meal = data.meal;
 
       if (!meal) {
@@ -826,8 +852,8 @@ export default function ChefsKitchenPage() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
-        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
+      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet} diet.`);
@@ -1002,6 +1028,7 @@ export default function ChefsKitchenPage() {
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
           skipPalate: !flavorPersonal,
+          excludeMeals: getRecentMealsChef(),
         }),
       });
 
@@ -1042,6 +1069,19 @@ export default function ChefsKitchenPage() {
         return;
       }
 
+      // 🎲 Multi-option response from variety engine — show selection panel
+      if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        const userDiet2 = normalizeDiet(user?.dietaryRestrictions);
+        if (data.dietAdapted) {
+          setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
+          clearDietAlert();
+        }
+        setMealOptions(data.meals);
+        return;
+      }
+
       const meal = data.meal;
 
       if (!meal) {
@@ -1053,8 +1093,8 @@ export default function ChefsKitchenPage() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
         clearDietAlert();
-      } else if (activeDiet && !mealMatchesDiet(userDiet2, meal)) {
-        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
+      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet2, meal)) {
+        // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet2} diet.`);
@@ -1460,6 +1500,35 @@ export default function ChefsKitchenPage() {
                         }
                       />
 
+                      {/* 🎲 Variety Engine: Meal Options Panel */}
+                      {mealOptions.length > 0 && (
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-white font-bold text-base">Pick your favorite</span>
+                            <span className="text-white/50 text-sm">{mealOptions.length} options</span>
+                          </div>
+                          {mealOptions.map((option, idx) => (
+                            <div key={idx} className="bg-black/30 border border-white/20 rounded-xl p-4 flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-semibold text-sm mb-1 truncate">{option.name}</p>
+                                <p className="text-white/60 text-xs mb-2 line-clamp-2">{option.description}</p>
+                                <div className="flex gap-3 text-xs text-white/50 flex-wrap">
+                                  <span>{option.nutrition?.calories ?? option.calories ?? "—"} cal</span>
+                                  <span>{option.nutrition?.protein ?? option.protein ?? "—"}g protein</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => { setMealOptions([]); setGeneratedMeal(option); addRecentMealChef(option.name); }}
+                                className="shrink-0 bg-lime-600 hover:bg-lime-500 active:scale-95 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all"
+                              >
+                                Pick This
+                              </button>
+                            </div>
+                          ))}
+                          <button onClick={() => setMealOptions([])} className="w-full text-xs text-white/40 hover:text-white/70 py-1 transition-colors">Dismiss</button>
+                        </div>
+                      )}
+
                       {/* DietGuard Intercept — advisory panel, fires at generate time */}
                       <DietGuardIntercept
                         alert={dietAlert}
@@ -1467,6 +1536,7 @@ export default function ChefsKitchenPage() {
                           if (decision === "pick_something_else") {
                             clearDietAlert();
                             setGeneratedMeal(null);
+                            setMealOptions([]);
                           } else if (decision === "let_chef_adapt") {
                             setDietDecision("let_chef_adapt");
                             startOpenKitchen(true);

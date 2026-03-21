@@ -346,8 +346,8 @@ export default function BeverageCreator() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
-        // 🥗 Scenario B fallback — post-generation mismatch, show soft DietGuard panel
+      } else if (!skipDietPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         stopProgressTicker();
         setIsGenerating(false);
         triggerDietAlert([], `This drink may not fully match your ${userDiet} diet.`);

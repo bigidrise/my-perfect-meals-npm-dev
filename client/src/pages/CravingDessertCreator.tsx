@@ -227,7 +227,7 @@ export default function DessertCreator() {
       !safetyChecking
     ) {
       setPendingGeneration(false);
-      handleGenerateDessert(overrideToken);
+      handleGenerateDessert(false, overrideToken);
     }
   }, [pendingGeneration, overrideToken, isGenerating, safetyChecking]);
 
@@ -279,7 +279,7 @@ export default function DessertCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateDessert(overrideToken?: string) {
+  async function handleGenerateDessert(skipPreflight = false, overrideToken?: string) {
     setDietAdaptedNotice(null);
     if (!dessertCategory) {
       toast({
@@ -310,7 +310,7 @@ export default function DessertCreator() {
     }
 
     // 🥗 Diet Guard precheck — advisory, fires at generate time
-    if (!overrideToken && activeDiet && dietDecision !== "let_chef_adapt") {
+    if (!skipPreflight && activeDiet) {
       const requestText = `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
       const dietOk = checkDiet(requestText);
       if (!dietOk) {
@@ -398,8 +398,8 @@ export default function DessertCreator() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
-        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
+      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         stopProgressTicker();
         setIsGenerating(false);
         triggerDietAlert([], `This dessert may not fully match your ${userDiet} diet.`);
@@ -688,7 +688,7 @@ export default function DessertCreator() {
                     setGeneratedDessert(null);
                   } else if (decision === "let_chef_adapt") {
                     setDietDecision("let_chef_adapt");
-                    handleGenerateDessert();
+                    handleGenerateDessert(true);
                   }
                 }}
                 className="mt-3"

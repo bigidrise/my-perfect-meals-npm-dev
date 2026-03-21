@@ -198,6 +198,18 @@ export default function CravingCreator() {
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
+  const [mealOptions, setMealOptions] = useState<any[]>([]);
+
+  const getRecentMeals = (): string[] => {
+    try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
+  };
+  const addRecentMeal = (mealName: string): void => {
+    try {
+      const recent = getRecentMeals();
+      const updated = [mealName, ...recent.filter((m: string) => m !== mealName)].slice(0, 3);
+      sessionStorage.setItem('cc_recent_meals', JSON.stringify(updated));
+    } catch {}
+  };
   const [selectedDiet, setSelectedDiet] = useState<string>("");
   const [servings, setServings] = useState<number>(1); // NEW: Serving size support (1-10)
   const [isDeclinedMeal, setIsDeclinedMeal] = useState(false);
@@ -290,6 +302,19 @@ export default function CravingCreator() {
       });
     }
   }, [generatedMeals, cravingInput, servings]);
+
+  const handleSelectMeal = (meal: any) => {
+    setMealOptions([]);
+    setGeneratedMeals([meal]);
+    addRecentMeal(meal.name);
+    saveCravingCache({
+      generatedMeal: meal,
+      craving: cravingInput,
+      servings: servings,
+      mealType: "snacks",
+      generatedAtISO: new Date().toISOString(),
+    });
+  };
 
   useEffect(() => {
     const declined = localStorage.getItem("declinedMeal");
@@ -510,6 +535,7 @@ export default function CravingCreator() {
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
+          excludeMeals: getRecentMeals(),
         }),
       });
 
@@ -541,15 +567,28 @@ export default function CravingCreator() {
         }
         throw new Error(data.message || "Failed to generate meal");
       }
-      const meal = data.meal || data; // Handle both response formats
+      // 🎲 Multi-option response from variety engine — show selection panel
+      if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        const userDiet = normalizeDiet(user?.dietaryRestrictions);
+        if (data.dietAdapted) {
+          setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+          clearDietAlert();
+        }
+        setMealOptions(data.meals);
+        return;
+      }
+
+      const meal = data.meal || data; // Handle single-meal fallback
 
       // 🥗 Scenario A: server already flagged diet adaptation — accept the meal, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
-        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
+      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — only fires on initial generate, not on "let chef adapt" retry
         stopProgressTicker();
         setIsGenerating(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet} diet.`);
@@ -970,6 +1009,7 @@ export default function CravingCreator() {
                       if (decision === "pick_something_else") {
                         clearDietAlert();
                         setGeneratedMeals([]);
+                        setMealOptions([]);
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
@@ -1044,6 +1084,47 @@ export default function CravingCreator() {
               </Card>
             </div>
           </div>
+
+          {/* 🎲 Variety Engine: Meal Options Panel */}
+          {mealOptions.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="h-5 w-5 text-yellow-500" />
+                <h3 className="text-lg font-bold text-white">Pick your favorite</h3>
+                <span className="text-sm text-white/60">{mealOptions.length} options created for you</span>
+              </div>
+              {mealOptions.map((option, idx) => (
+                <Card key={idx} className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-white font-bold text-base mb-1 truncate">{option.name}</h4>
+                        <p className="text-white/70 text-sm mb-3 line-clamp-2">{option.description}</p>
+                        <div className="flex gap-4 text-xs text-white/60 flex-wrap">
+                          <span>{option.nutrition?.calories ?? option.calories ?? "—"} cal</span>
+                          <span>{option.nutrition?.protein ?? option.protein ?? "—"}g protein</span>
+                          <span>{option.nutrition?.fat ?? option.fat ?? "—"}g fat</span>
+                          {option.cookingTime && <span>{option.cookingTime}</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleSelectMeal(option)}
+                        className="shrink-0 bg-lime-600 hover:bg-lime-500 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+                      >
+                        Pick This
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              <button
+                onClick={() => { setMealOptions([]); setCravingInput(""); }}
+                className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
+              >
+                Start over with a different craving
+              </button>
+            </div>
+          )}
 
           {generatedMeals.length > 0 && (
             <div className="mt-8 space-y-6">

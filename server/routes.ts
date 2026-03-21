@@ -3223,111 +3223,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Use unified meal pipeline (deterministic: cache → templates → fallback)
-      const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
-      
+      // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
+      const { generateCravingMealOptions } = await import("./services/unifiedMealPipeline");
+
       const bodyDietRestrictions = dietaryRestrictions
         ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
         : [];
-      const result = await generateCravingMealUnified(
+      const excludeMeals: string[] = Array.isArray(req.body.excludeMeals)
+        ? req.body.excludeMeals.slice(0, 5)
+        : [];
+
+      const mealOptions = await generateCravingMealOptions(
         cravingInput || "something delicious",
         targetMealType || "lunch",
         userId,
-        bodyDietRestrictions
+        bodyDietRestrictions,
+        excludeMeals
       );
-      
-      if (!result.success || !result.meal) {
-        throw new Error("Failed to generate meal");
+
+      if (!mealOptions || mealOptions.length === 0) {
+        throw new Error("Variety engine returned no options");
       }
-      
-      const generatedMeal = {
-        id: result.meal.id,
-        name: result.meal.name,
-        description: result.meal.description,
-        ingredients: result.meal.ingredients,
-        instructions: result.meal.instructions,
-        nutrition: {
-          calories: result.meal.calories,
-          protein: result.meal.protein,
-          carbs: result.meal.carbs,
-          fat: result.meal.fat
-        },
-        medicalBadges: result.meal.medicalBadges || [],
-        imageUrl: result.meal.imageUrl,
-        servingSize: "1 serving"
-      };
 
-      // Scale ingredients and macros by serving size if > 1
-      if (validatedServings > 1) {
-        const meal = generatedMeal as any; // Type assertion for dynamic properties
-
-        // Scale ingredient quantities
-        if (meal.ingredients && Array.isArray(meal.ingredients)) {
-          meal.ingredients = meal.ingredients.map((ing: any) => {
-            const scaledIng = { ...ing };
-            if (ing.quantity && !isNaN(parseFloat(ing.quantity))) {
-              const originalQty = parseFloat(ing.quantity);
-              scaledIng.quantity = originalQty * validatedServings;
-            }
-            return scaledIng;
-          });
+      // Format and optionally scale each option
+      const formattedOptions = mealOptions.map(meal => {
+        const formatted: any = {
+          id: meal.id,
+          name: meal.name,
+          description: meal.description,
+          ingredients: meal.ingredients,
+          instructions: meal.instructions,
+          nutrition: {
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fat: meal.fat
+          },
+          medicalBadges: meal.medicalBadges || [],
+          imageUrl: meal.imageUrl,
+          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving"
+        };
+        if (validatedServings > 1) {
+          formatted.nutrition.calories *= validatedServings;
+          formatted.nutrition.protein *= validatedServings;
+          formatted.nutrition.carbs *= validatedServings;
+          formatted.nutrition.fat *= validatedServings;
+          if (Array.isArray(formatted.ingredients)) {
+            formatted.ingredients = formatted.ingredients.map((ing: any) => {
+              if (ing.quantity && !isNaN(parseFloat(ing.quantity))) {
+                return { ...ing, quantity: String(parseFloat(ing.quantity) * validatedServings) };
+              }
+              return ing;
+            });
+          }
         }
-
-        // Scale macros (top-level properties)
-        if (meal.calories) meal.calories = meal.calories * validatedServings;
-        if (meal.protein) meal.protein = meal.protein * validatedServings;
-        if (meal.carbs) meal.carbs = meal.carbs * validatedServings;
-        if (meal.fat) meal.fat = meal.fat * validatedServings;
-
-        // Also scale nutrition object if it exists
-        if (meal.nutrition) {
-          if (meal.nutrition.calories) meal.nutrition.calories = meal.nutrition.calories * validatedServings;
-          if (meal.nutrition.protein) meal.nutrition.protein = meal.nutrition.protein * validatedServings;
-          if (meal.nutrition.carbs) meal.nutrition.carbs = meal.nutrition.carbs * validatedServings;
-          if (meal.nutrition.fat) meal.nutrition.fat = meal.nutrition.fat * validatedServings;
-        }
-
-        // Update serving size description
-        meal.servingSize = `${validatedServings} servings`;
-        console.log(`📏 Scaled meal for ${validatedServings} servings`);
-      }
-
-      // Generate image for the meal
-      try {
-        const { generateImage } = await import("./services/imageService");
-        const imageUrl = await generateImage({
-          name: generatedMeal.name,
-          description: generatedMeal.description,
-          type: 'meal',
-          style: 'homemade'
-        });
-
-        if (imageUrl) {
-          generatedMeal.imageUrl = imageUrl;
-          console.log("🖼️ Image generated for meal:", generatedMeal.name);
-        }
-      } catch (error) {
-        console.error(`Failed to generate image for ${generatedMeal.name}:`, error);
-      }
-
-      // Add ingredients to shopping list
-      if (generatedMeal.ingredients) {
-        // TODO: Implement shopping list service integration
-        console.log("Would add ingredients to shopping list:", generatedMeal.ingredients);
-      }
+        return formatted;
+      });
 
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
-      console.log("🍽️ Stable craving creator generated meal:", generatedMeal.name);
-      console.log("🏥 Medical badges:", generatedMeal.medicalBadges.length);
-      console.log("📊 Generation source:", result.source);
+      console.log(`🍽️ Variety engine: ${formattedOptions.map((m: any) => m.name).join(" | ")}`);
 
       // Record metrics for health endpoint
       const { recordGeneration } = await import("./services/aiHealthMetrics");
-      recordGeneration('/api/meals/craving-creator', result.source as any, Date.now() - startTime);
+      recordGeneration('/api/meals/craving-creator', 'ai' as any, Date.now() - startTime);
 
-      res.json({ 
-        meal: generatedMeal,
-        generationSource: result.source,
+      res.json({
+        meals: formattedOptions,
+        generationSource: 'ai',
         ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
     } catch (error: any) {

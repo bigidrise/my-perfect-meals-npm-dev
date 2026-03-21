@@ -474,8 +474,8 @@ const FridgeRescuePage = () => {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (activeDiet) {
-        // 🥗 Scenario B fallback — filter post-generation; if none pass, show advisory intercept
+      } else if (!skipPreflight && activeDiet) {
+        // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
         if (compliantMeals.length === 0) {
           stopProgressTicker();

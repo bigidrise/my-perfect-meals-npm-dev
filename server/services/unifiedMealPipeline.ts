@@ -680,6 +680,142 @@ Respond with ONLY valid JSON in this exact format:
 }
 
 /**
+ * 🎲 VARIETY ENGINE: Generate 3 distinct meal options
+ * Layer 1: Temperature 0.85 (creative variety, breaks repetition)
+ * Layer 2: Explicit protein pool + rotation rules (no portobello default)
+ * Layer 3: excludeMeals anti-repetition memory
+ * Layer 4: Always returns 3 genuinely distinct options
+ */
+export async function generateCravingMealOptions(
+  cravingInput: string,
+  mealType: string,
+  userId?: string,
+  dietaryRestrictionsOverride?: string[],
+  excludeMeals?: string[]
+): Promise<UnifiedMeal[]> {
+  const validMealType = normalizeMealType(mealType);
+  console.log(`🎲 [VARIETY ENGINE] Generating 3 options for: "${cravingInput}"`);
+
+  let dietRestrictions: string[] = [];
+  if (userId) {
+    try {
+      const [u] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+        .from(users).where(eq(users.id, userId)).limit(1);
+      dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
+    } catch (err) {
+      console.warn("[VARIETY ENGINE] Could not fetch dietary restrictions:", err);
+    }
+  }
+  if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
+    const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
+    dietRestrictions = Array.from(merged);
+  }
+  const dietBlock = buildDietPromptBlock(dietRestrictions);
+
+  const excludeClause = excludeMeals && excludeMeals.length > 0
+    ? `\nANTI-REPETITION (CRITICAL): Do NOT repeat or closely resemble any of these recent meals — avoid the same primary protein, base ingredient, or overall concept: ${excludeMeals.join(", ")}`
+    : "";
+
+  const prompt = `You are a creative chef generating 3 DISTINCT meal options for a food craving.
+${dietBlock ? `\n${dietBlock}\n` : ""}
+CRAVING: "${cravingInput}"
+MEAL TYPE: ${validMealType}
+${excludeClause}
+
+VARIETY ENGINE RULES (ALL MANDATORY — NO EXCEPTIONS):
+1. Generate EXACTLY 3 distinct options — no more, no less
+2. Each option MUST use a DIFFERENT primary protein or base ingredient — never repeat the same main ingredient across options
+3. HARD PROTEIN ROTATION — select from this pool:
+   • Vegan/Vegetarian pool: tofu, tempeh, seitan, jackfruit, lentils, chickpeas, black beans, eggplant, cauliflower, white beans
+   • Omnivore pool: chicken breast, salmon fillet, shrimp, ground turkey, tilapia, NY strip steak, pork tenderloin, eggs, ahi tuna, lamb chops
+   • NEVER make portobello mushroom the primary protein in more than 1 option
+4. Vary the COOKING METHOD across the 3 options (e.g., grilled / pan-seared / oven-roasted — no repeats)
+5. Vary the CUISINE/FLAVOR across the 3 options (e.g., Mediterranean / Asian-inspired / Mexican — no repeats)
+6. Each option must feel genuinely, distinctly different — not the same concept with slight seasoning changes
+
+CRITICAL INGREDIENT FORMAT:
+- Use ONLY U.S. measurements: oz, lb, cup, tbsp, tsp, each, fl oz
+- NEVER use grams or milliliters
+- Each ingredient: name, quantity (as a string number), unit
+
+Respond with ONLY valid JSON (no markdown, no explanation):
+{
+  "options": [
+    {
+      "name": "Creative meal name",
+      "description": "Appetizing 1-2 sentence description",
+      "ingredients": [{"name": "ingredient", "quantity": "4", "unit": "oz"}],
+      "instructions": "Full step-by-step instructions as a single paragraph",
+      "calories": 450,
+      "protein": 30,
+      "starchyCarbs": 25,
+      "fibrousCarbs": 15,
+      "fat": 12,
+      "cookingTime": "25 minutes"
+    },
+    {},
+    {}
+  ]
+}`;
+
+  const openai = getOpenAI();
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.85,
+    max_tokens: 2500,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("Empty AI response from variety engine");
+
+  let jsonStr = content;
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) jsonStr = jsonMatch[1];
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(jsonStr.trim());
+  } catch (e) {
+    console.error("[VARIETY ENGINE] JSON parse failed:", jsonStr.slice(0, 300));
+    throw new Error("Failed to parse meal options from AI response");
+  }
+
+  const rawOptions: any[] = parsed.options || (Array.isArray(parsed) ? parsed : [parsed]);
+  console.log(`✅ [VARIETY ENGINE] ${rawOptions.length} options: ${rawOptions.map((o: any) => o?.name).join(" | ")}`);
+
+  return rawOptions.slice(0, 3).map((opt: any, idx: number) => {
+    const starchyCarbs = opt.starchyCarbs ?? 0;
+    const fibrousCarbs = opt.fibrousCarbs ?? 0;
+    const totalCarbs = opt.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+
+    const rawMeal: UnifiedMeal = {
+      id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+      name: opt.name || `${cravingInput} Option ${idx + 1}`,
+      description: opt.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
+      ingredients: (opt.ingredients || []).map((i: any) => ({
+        name: i.name || '',
+        quantity: String(i.quantity || ''),
+        unit: i.unit || ''
+      })),
+      instructions: opt.instructions || "Cook as desired.",
+      calories: opt.calories || 400,
+      protein: opt.protein || 25,
+      carbs: totalCarbs,
+      starchyCarbs,
+      fibrousCarbs,
+      fat: opt.fat || 15,
+      cookingTime: opt.cookingTime || '25 minutes',
+      difficulty: 'Easy',
+      imageUrl: FALLBACK_IMAGES[validMealType] || FALLBACK_IMAGES.default,
+      medicalBadges: [],
+      source: 'ai'
+    };
+    return enforceCarbs(rawMeal);
+  });
+}
+
+/**
  * Generate multiple meals using fridge rescue
  * 
  * Flow: Cache → REAL Fridge Rescue AI Generator (same as Fridge Rescue page)
