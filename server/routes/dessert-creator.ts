@@ -173,6 +173,17 @@ dessertCreatorRouter.post("/", async (req, res) => {
       console.log(`🎨 [DESSERT] Palate preferences skipped - using neutral flavoring for shared dessert`);
     }
 
+    // Fallback: if DB had no dietary restriction, promote body dietaryPreferences to hard constraint
+    if (!dietPromptBlock && dietaryPreferences) {
+      const bodyRestrictions = (Array.isArray(dietaryPreferences) ? dietaryPreferences : [dietaryPreferences]).filter(Boolean);
+      if (bodyRestrictions.length > 0) {
+        dietPromptBlock = buildDietPromptBlock(bodyRestrictions);
+        if (dietPromptBlock) {
+          console.log(`🥗 [DESSERT] Dietary constraint (body fallback): ${bodyRestrictions.join("|")}`);
+        }
+      }
+    }
+
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
     const categoryLabel = CATEGORY_LABELS[dessertCategory] || dessertCategory;
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;

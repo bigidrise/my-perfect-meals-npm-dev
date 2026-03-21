@@ -142,6 +142,17 @@ beverageCreatorRouter.post("/", async (req, res) => {
       console.log(`🎨 [BEVERAGE] Palate preferences skipped - using neutral flavoring for shared drink`);
     }
 
+    // Fallback: if DB had no dietary restriction, promote body dietaryPreferences to hard constraint
+    if (!dietPromptBlock && dietaryPreferences) {
+      const bodyRestrictions = (Array.isArray(dietaryPreferences) ? dietaryPreferences : [dietaryPreferences]).filter(Boolean);
+      if (bodyRestrictions.length > 0) {
+        dietPromptBlock = buildDietPromptBlock(bodyRestrictions);
+        if (dietPromptBlock) {
+          console.log(`🥗 [BEVERAGE] Dietary constraint (body fallback): ${bodyRestrictions.join("|")}`);
+        }
+      }
+    }
+
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
     const categoryLabel = CATEGORY_LABELS[beverageCategory] || beverageCategory;
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;

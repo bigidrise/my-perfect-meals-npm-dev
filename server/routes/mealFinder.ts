@@ -14,7 +14,7 @@ const router = express.Router();
  */
 router.post('/meal-finder', async (req, res) => {
   try {
-    const { mealQuery, zipCode } = req.body;
+    const { mealQuery, zipCode, dietaryRestrictions } = req.body;
     
     // Validate request
     if (!mealQuery || typeof mealQuery !== 'string') {
@@ -41,11 +41,16 @@ router.post('/meal-finder', async (req, res) => {
     // Get user from session (if available)
     const user = (req as any).user;
     
+    const bodyDietRestrictions = dietaryRestrictions
+      ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
+      : [];
+
     // Find meals
     const results = await findMealsNearby({
       mealQuery,
       zipCode,
-      user
+      user,
+      dietaryRestrictions: bodyDietRestrictions.length > 0 ? bodyDietRestrictions : undefined
     });
     
     return res.status(200).json({

@@ -418,6 +418,16 @@ export default function RestaurantGuidePage() {
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       const rawRecs = data.recommendations || [];
       const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
+      if (compliantRecs.length === 0) {
+        toast({
+          title: "No matching meals found",
+          description: rawRecs.length > 0
+            ? `No recommendations matched your ${userDiet} diet. Try a different restaurant or craving.`
+            : "No recommendations were generated. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
       setGeneratedMeals(compliantRecs);
       setGuidedStep("results");
 

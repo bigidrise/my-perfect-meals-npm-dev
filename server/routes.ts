@@ -3220,10 +3220,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use unified meal pipeline (deterministic: cache → templates → fallback)
       const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
       
+      const bodyDietRestrictions = dietaryRestrictions
+        ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
+        : [];
       const result = await generateCravingMealUnified(
         cravingInput || "something delicious",
         targetMealType || "lunch",
-        userId
+        userId,
+        bodyDietRestrictions
       );
       
       if (!result.success || !result.meal) {

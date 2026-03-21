@@ -11,6 +11,7 @@ interface MealFinderRequest {
   mealQuery: string;
   zipCode: string;
   user?: User;
+  dietaryRestrictions?: string[];
 }
 
 interface RestaurantResult {
@@ -44,8 +45,17 @@ interface RestaurantResult {
  * Uses shared Restaurant Resolver for location logic
  */
 export async function findMealsNearby(request: MealFinderRequest): Promise<RestaurantResult[]> {
-  const { mealQuery, zipCode, user } = request;
+  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet } = request;
   
+  // Merge body-supplied dietary restrictions with the user's DB restrictions
+  const effectiveDiet: string[] = Array.from(new Set([
+    ...((user?.dietaryRestrictions as string[]) || []),
+    ...(bodyDiet || [])
+  ]));
+  const aiUser = effectiveDiet.length > 0
+    ? { ...(user || {}), dietaryRestrictions: effectiveDiet } as typeof user
+    : user;
+
   console.log(`🔍 Finding meals for "${mealQuery}" near ZIP ${zipCode}`);
   
   // Step 1: Use shared resolver to find restaurants
@@ -86,7 +96,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
         const aiMeals = await generateRestaurantMealsAI({
           restaurantName: restaurant.name,
           cuisine: restaurant.cuisine,
-          user,
+          user: aiUser,
           cravingContext: mealQuery
         });
         if (aiMeals && aiMeals.length > 0) {
@@ -134,7 +144,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
       const aiMeals = await generateRestaurantMealsAI({
         restaurantName: restaurant.name,
         cuisine: restaurant.cuisine,
-        user,
+        user: aiUser,
         cravingContext: mealQuery
       });
       
@@ -175,14 +185,14 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   console.log(`✅ Successfully generated ${results.length} meal recommendations`);
 
   // DEFENSIVE FINAL DIETARY FILTER — catches anything that slipped through upstream
-  const userDietaryRestrictions = user?.dietaryRestrictions || [];
-  if (userDietaryRestrictions.length > 0 && getPrimaryDiet(userDietaryRestrictions)) {
+  // Uses effectiveDiet (merged DB + body) for complete coverage
+  if (effectiveDiet.length > 0 && getPrimaryDiet(effectiveDiet)) {
     const beforeCount = results.length;
     const filteredResults = results.filter(r => {
       const fullText = `${r.meal.name} ${r.meal.description} ${r.meal.ingredients.join(" ")}`;
-      const { violates, reasons } = violatesDietaryConstraints(fullText, userDietaryRestrictions);
+      const { violates, reasons } = violatesDietaryConstraints(fullText, effectiveDiet);
       if (violates) {
-        console.log(`🚫 [MEAL FINDER DIET FILTER] Removed "${r.meal.name}" from ${r.restaurantName} — violates ${getPrimaryDiet(userDietaryRestrictions)} diet (${reasons.join(", ")})`);
+        console.log(`🚫 [MEAL FINDER DIET FILTER] Removed "${r.meal.name}" from ${r.restaurantName} — violates ${getPrimaryDiet(effectiveDiet)} diet (${reasons.join(", ")})`);
         return false;
       }
       return true;

@@ -15,7 +15,7 @@ const router = Router();
 // Uses shared Restaurant Resolver for location logic
 router.post("/guide", async (req, res) => {
   try {
-    const { restaurantName, craving, cuisine, zipCode, userId } = req.body;
+    const { restaurantName, craving, cuisine, zipCode, userId, dietaryRestrictions } = req.body;
     
     if (!restaurantName || !craving) {
       return res.status(400).json({ 
@@ -80,12 +80,23 @@ router.post("/guide", async (req, res) => {
       };
     }
     
+    // Merge body-supplied dietary restrictions into the user object so the AI prompt is constrained
+    const bodyDiet: string[] = dietaryRestrictions
+      ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
+      : [];
+    let aiUser = user;
+    if (bodyDiet.length > 0) {
+      const existing = (user?.dietaryRestrictions as string[]) || [];
+      const merged = Array.from(new Set([...existing, ...bodyDiet]));
+      aiUser = { ...(user || {}), dietaryRestrictions: merged } as any;
+    }
+
     // Step 2: Generate AI meal recommendations for this restaurant
     const recommendations = await generateRestaurantMealsAI({
       restaurantName: restaurantInfo.name,
       cuisine: detectedCuisine,
       cravingContext: craving,
-      user
+      user: aiUser
     });
 
     const generationTime = Date.now() - generationStart;

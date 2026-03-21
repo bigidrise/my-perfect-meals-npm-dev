@@ -410,7 +410,8 @@ function normalizeMedicalBadges(badges: any[]): Array<{ id: string; label: strin
 export async function generateCravingMealUnified(
   cravingInput: string,
   mealType: string,
-  userId?: string
+  userId?: string,
+  dietaryRestrictionsOverride?: string[]
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -423,13 +424,18 @@ export async function generateCravingMealUnified(
       const [cravingUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
         .from(users).where(eq(users.id, userId)).limit(1);
       cravingDietRestrictions = (cravingUser?.dietaryRestrictions as string[]) || [];
-      cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
-      if (cravingDietBlock) {
-        console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
-      }
     } catch (err) {
       console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
     }
+  }
+  // Supplement with client-provided override (for UI diet selectors or guest flows)
+  if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
+    const merged = new Set([...cravingDietRestrictions, ...dietaryRestrictionsOverride]);
+    cravingDietRestrictions = Array.from(merged);
+  }
+  cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
+  if (cravingDietBlock) {
+    console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
   }
 
   // Resolve primary diet for cache key segregation
