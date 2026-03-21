@@ -238,47 +238,55 @@ function goalAdjust(tdee: number, goal: Goal) {
   return Math.round(tdee);
 }
 
-function calcMacrosBase({ calories, kg, proteinPerKg, fatPct, sex }: any) {
-  const MAX_PROTEIN_KCAL = calories * 0.4;
-  const rawPG = Math.round(kg * proteinPerKg);
-  const rawPK = rawPG * 4;
-  const pK = Math.min(rawPK, MAX_PROTEIN_KCAL);
-  const pG = Math.round(pK / 4);
-  const fK = Math.round(calories * fatPct);
-  const fG = Math.round(fK / 9);
-  const cK = Math.max(0, calories - pK - fK);
-  const cG = Math.round(cK / 4);
+function calcMacrosBase({ calories, kg, proteinPerKg, starchyBase, fibrousMin }: any) {
+  // Priority 1: Protein — capped at 40% of calories
+  const rawProteinKcal = Math.round(kg * proteinPerKg) * 4;
+  let proteinKcal = Math.min(rawProteinKcal, calories * 0.40);
+
+  // Priority 2: Fibrous carbs — locked floor, always guaranteed
+  const fibrousKcal = fibrousMin * 4;
+
+  // Policy: if protein would consume calories needed for the fiber floor, compress protein first
+  if (proteinKcal + fibrousKcal > calories) {
+    proteinKcal = Math.max(0, calories - fibrousKcal);
+  }
+
+  // Priority 3: Starchy carbs — flexible, compresses toward 0 before fat is touched
+  const remainingAfterPF = Math.max(0, calories - proteinKcal - fibrousKcal);
+  const starchyKcal = Math.min(starchyBase * 4, remainingAfterPF);
+  const starchyG = Math.round(starchyKcal / 4);
+
+  // Priority 4: Fat — residual (whatever is left)
+  const fatKcal = Math.max(0, calories - proteinKcal - fibrousKcal - starchyKcal);
+
+  const proteinG = Math.round(proteinKcal / 4);
+  const carbsG = fibrousMin + starchyG; // strict reconciliation: total = fibrous + starchy
+
   return {
     calories,
-    protein: { g: pG, kcal: pK },
-    fat: { g: fG, kcal: fK },
-    carbs: { g: cG, kcal: cK },
+    protein: { g: proteinG, kcal: Math.round(proteinKcal) },
+    fat: { g: Math.round(fatKcal / 9), kcal: Math.round(fatKcal) },
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousMin },
   };
 }
 
-function applyBodyTypeTilt(base: any, bodyType: BodyType) {
-  let tilt = 0;
-  if (bodyType === "ecto") tilt = +0.14;
-  if (bodyType === "endo") tilt = -0.18;
-  if (tilt === 0) return base;
-  const shiftKcal = Math.round(base.calories * Math.abs(tilt));
-  if (tilt > 0) {
-    const nextFatK = Math.max(0, base.fat.kcal - shiftKcal);
-    const nextCarbK = base.carbs.kcal + shiftKcal;
-    return {
-      ...base,
-      fat: { kcal: nextFatK, g: Math.round(nextFatK / 9) },
-      carbs: { kcal: nextCarbK, g: Math.round(nextCarbK / 4) },
-    };
-  } else {
-    const nextCarbK = Math.max(0, base.carbs.kcal - shiftKcal);
-    const nextFatK = base.fat.kcal + shiftKcal;
-    return {
-      ...base,
-      fat: { kcal: nextFatK, g: Math.round(nextFatK / 9) },
-      carbs: { kcal: nextCarbK, g: Math.round(nextCarbK / 4) },
-    };
-  }
+function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
+  if (bodyType !== "endo") return base;
+  // Shift is applied as a % reduction of the starchy allocation only — not % of total calories.
+  // This prevents carb collapse in low-starchy scenarios (e.g. sedentary weight-loss profiles).
+  const shiftPct = activity === "sedentary" ? 0.10 : activity === "light" ? 0.12 : 0.15;
+  const fibrousG = base.carbs.fibrous as number;
+  const starchyKcal = (base.carbs.starchy as number) * 4;
+  const newStarchyKcal = Math.max(0, Math.round(starchyKcal * (1 - shiftPct)));
+  const newStarchyG = Math.round(newStarchyKcal / 4);
+  const newCarbsG = fibrousG + newStarchyG;
+  const newCarbsKcal = newCarbsG * 4;
+  const newFatKcal = Math.max(0, base.calories - base.protein.kcal - newCarbsKcal);
+  return {
+    ...base,
+    fat: { g: Math.round(newFatKcal / 9), kcal: newFatKcal },
+    carbs: { g: newCarbsG, kcal: newCarbsKcal, starchy: newStarchyG, fibrous: fibrousG },
+  };
 }
 
 function BodyTypeGuide() {
@@ -597,18 +605,20 @@ const getStarchyCarbs = (sex: Sex, goal: Goal) => {
   return 25;
 };
 
-const FIBROUS_MIN = 25;
+function getFibrousBaseline(weightKg: number): number {
+  if (weightKg < 70) return 25;
+  if (weightKg < 100) return 30;
+  if (weightKg < 130) return 35;
+  return 40;
+}
 
-function splitStarchyFibrous(totalCarbs: number, starchyBase: number): { starchy: number; fibrous: number } {
-  const safeBase = Math.max(0, starchyBase);
-  let starchy: number;
-  if (totalCarbs < FIBROUS_MIN + safeBase) {
-    starchy = Math.max(0, totalCarbs - FIBROUS_MIN);
-  } else {
-    starchy = safeBase;
-  }
-  const fibrous = Math.max(FIBROUS_MIN, totalCarbs - starchy);
-  return { starchy: Math.round(starchy), fibrous: Math.round(fibrous) };
+function splitStarchyFibrous(totalCarbs: number, starchyBase: number, fibrousMin: number): { starchy: number; fibrous: number } {
+  const floor = Math.max(25, Math.round(fibrousMin));
+  const safeBase = Math.max(0, Math.round(starchyBase));
+  const carbs = Math.max(0, Math.round(totalCarbs));
+  const starchy = carbs < floor + safeBase ? Math.max(0, carbs - floor) : safeBase;
+  const fibrous = carbs - starchy; // strict reconciliation: no clamping that creates overflow
+  return { starchy, fibrous };
 }
 
 export default function MacroCounter() {
@@ -1089,14 +1099,16 @@ export default function MacroCounter() {
       bmr * ACTIVITY_FACTORS[activity as keyof typeof ACTIVITY_FACTORS],
     );
     const target = goalAdjust(tdee, goal);
+    const starchyBase = getStarchyCarbs(sex, goal);
+    const fibrousMin = getFibrousBaseline(kg);
     const base = calcMacrosBase({
       calories: target,
       kg,
-      sex,
       proteinPerKg,
-      fatPct,
+      starchyBase,
+      fibrousMin,
     });
-    const macros = applyBodyTypeTilt(base, bodyType);
+    const macros = applyBodyTypeTilt(base, bodyType, activity);
     return { bmr, tdee, target, macros };
   }, [isCalcInputValid, sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
 
@@ -2009,7 +2021,7 @@ export default function MacroCounter() {
                       {(() => {
                         const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
                         const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                        const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase);
+                        const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
                         return (
                           <>
                             <MacroRow label="Carbs - Starchy" grams={starchy} />
@@ -2228,7 +2240,7 @@ export default function MacroCounter() {
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
                           const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase);
+                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
 
                           await setMacroTargets(
                             {
@@ -2935,7 +2947,7 @@ export default function MacroCounter() {
                         {(() => {
                           const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
                           const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase);
+                          const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
                           return (
                             <>
                               <MacroRow label="Carbs - Starchy" grams={starchy} />
@@ -2977,7 +2989,7 @@ export default function MacroCounter() {
                             const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
                             const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
                             const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                            const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase);
+                            const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
 
                             await setMacroTargets(
                               {
@@ -3134,7 +3146,7 @@ export default function MacroCounter() {
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
                           const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase);
+                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
 
                           await setMacroTargets(
                             {
@@ -3219,7 +3231,7 @@ export default function MacroCounter() {
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
                           const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase);
+                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
 
                           await setMacroTargets(
                             {
