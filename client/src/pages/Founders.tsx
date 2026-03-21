@@ -172,10 +172,14 @@ export default function Founder() {
               </p>
 
               <p className="text-white/70 text-sm mt-1">
-                Performance & Nutrition Coaching
+                CPT · Corrective Exercise · Strength & Recovery
               </p>
             </div>
           </div>
+
+          <p className="text-white/70 text-sm leading-relaxed mt-6">
+            As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training—focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy—empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.
+          </p>
         </section>
 
         {/* CONTACT */}

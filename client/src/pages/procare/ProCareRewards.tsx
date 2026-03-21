@@ -83,9 +83,10 @@ const FOUNDERS: Founder[] = [
     title: "Founding Coach",
     photo: "/assets/kristen-bogan.jpg",
     initials: "KB",
-    bio: "Kristen Bogan is one of the founding coaches who helped shape My Perfect Meals from the ground up. Her expertise in performance and nutrition coaching, combined with a real-world approach to client relationships, helped define the coaching culture and standards the platform is built on.",
+    bio: "As a dedicated personal trainer, I specialize in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. My approach is rooted in functional and lifestyle-based training—focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, I design programs that improve mobility, stability, and overall body mechanics. I believe fitness should support the way you live, whether that means lifting with confidence, moving without pain, or having the energy to take on your day. Recovery and longevity are at the core of my philosophy—to empower you with the strength, confidence, and resilience you need to thrive in both the gym and everyday life.",
     credentials: [
-      "Performance & Nutrition Coaching",
+      "CPT · Corrective Exercise",
+      "Strength & Recovery Coaching",
       "Founding Platform Coach",
     ],
   },
