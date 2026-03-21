@@ -26,6 +26,9 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { normalizeDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
+import DietBadge from "@/components/meal/DietBadge";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import {
   generateMedicalBadges,
@@ -69,7 +72,7 @@ const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const CACHE_KEY = "mealFinder.cache.v2";
+const CACHE_KEY = "mealFinder.cache.v3";
 
 type CachedMealFinderState = {
   results: MealResult[];
@@ -131,6 +134,7 @@ interface MealResult {
 export default function MealFinder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const quickTour = useQuickTour("social-find-meals");
   const { speak, stop } = useChefVoice();
 
@@ -222,7 +226,10 @@ export default function MealFinder() {
       try {
         const response = await apiRequest("/api/meal-finder", {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            ...data,
+            dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          }),
           headers: { "Content-Type": "application/json" },
         });
 
@@ -235,7 +242,10 @@ export default function MealFinder() {
       }
     },
     onSuccess: (data) => {
-      const newResults = data.results || [];
+      const rawResults = data.results || [];
+      // Dietary compliance: filter BEFORE render — never show non-compliant options
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      const newResults = filterMealsByDiet(userDiet, rawResults, (r) => r);
       setResults(newResults);
 
       if (newResults.length === 0) {
@@ -243,7 +253,9 @@ export default function MealFinder() {
         setGuidedStep("step2");
         toast({
           title: "No Meals Found",
-          description: data.message || "Nothing matched that search near your ZIP. Try a different craving or expand your search.",
+          description: rawResults.length > 0
+            ? `No results matched your ${userDiet} diet. Try a different craving.`
+            : (data.message || "Nothing matched that search near your ZIP. Try a different craving or expand your search."),
           variant: "destructive",
         });
       } else {

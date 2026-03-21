@@ -60,6 +60,8 @@ import TranslateToggle from "@/components/TranslateToggle";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
+import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
+import DietBadge from "@/components/meal/DietBadge";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -514,6 +516,19 @@ export default function CravingCreator() {
         throw new Error(data.message || "Failed to generate meal");
       }
       const meal = data.meal || data; // Handle both response formats
+
+      // Dietary compliance: validate BEFORE render — never show non-compliant content
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      if (!mealMatchesDiet(userDiet, meal)) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        toast({
+          title: "Dietary mismatch",
+          description: `This meal doesn't match your ${userDiet} diet. Please try a different craving.`,
+          variant: "destructive",
+        });
+        return;
+      }
 
       stopProgressTicker();
       setGeneratedMeals([meal]);

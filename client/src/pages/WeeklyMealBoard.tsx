@@ -47,6 +47,7 @@ import {
 import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
 import { useAuth } from "@/contexts/AuthContext";
+import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import BottomNav from "@/components/BottomNav";
@@ -1421,6 +1422,17 @@ export default function WeeklyMealBoard() {
 
     // Guard: Check if day is locked before allowing edits
     if (checkLockedDay()) return;
+
+    // Hard dietary compliance guard — block non-compliant meals from reaching the board
+    const userDiet = normalizeDiet(user?.dietaryRestrictions);
+    if (!mealMatchesDiet(userDiet, meal)) {
+      toast({
+        title: "Dietary restriction",
+        description: `"${meal.name}" doesn't meet your ${userDiet} dietary requirements and cannot be added to the board.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // In Day mode, add to the specific day. In Week mode, use legacy behavior

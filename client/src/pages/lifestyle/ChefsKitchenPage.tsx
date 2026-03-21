@@ -1,4 +1,7 @@
 import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { normalizeDiet, mealMatchesDiet, dietExclusionList } from "@/utils/dietaryFilter";
+import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +25,7 @@ import TalkToChefButton from "@/components/voice/TalkToChefButton";
 import VoiceModeOverlay from "@/components/voice/VoiceModeOverlay";
 import { useVoiceStudio } from "@/hooks/useVoiceStudio";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { useToast } from "@/hooks/use-toast";
 import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
@@ -181,6 +185,8 @@ interface GeneratedMeal {
 
 export default function ChefsKitchenPage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const quickTour = useQuickTour("chefs-kitchen");
 
   // Check for external prepare mode SYNCHRONOUSLY on first render
@@ -740,6 +746,7 @@ export default function ChefsKitchenPage() {
           cravingInput: cravingPrompt,
           targetMealType: "dinner",
           servings: voiceServings,
+          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
           skipPalate: !flavorPersonal,
@@ -786,6 +793,19 @@ export default function ChefsKitchenPage() {
 
       if (!meal) {
         throw new Error("No meal data returned from API");
+      }
+
+      // Dietary compliance: validate BEFORE render — never show non-compliant content
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      if (!mealMatchesDiet(userDiet, meal)) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        toast({
+          title: "Dietary mismatch",
+          description: `This recipe doesn't match your ${userDiet} diet. Please try a different dish idea.`,
+          variant: "destructive",
+        });
+        return;
       }
 
       const srcNutrition = meal.nutrition || {};
@@ -942,6 +962,7 @@ export default function ChefsKitchenPage() {
           cravingInput: cravingPrompt,
           targetMealType: "dinner",
           servings: servings,
+          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
           skipPalate: !flavorPersonal,
@@ -989,6 +1010,19 @@ export default function ChefsKitchenPage() {
 
       if (!meal) {
         throw new Error("No meal data returned from API");
+      }
+
+      // Dietary compliance: validate BEFORE render
+      const userDiet2 = normalizeDiet(user?.dietaryRestrictions);
+      if (!mealMatchesDiet(userDiet2, meal)) {
+        setGenerationProgress(0);
+        setIsGeneratingMeal(false);
+        toast({
+          title: "Dietary mismatch",
+          description: `This recipe doesn't match your ${userDiet2} diet. Please try a different dish idea.`,
+          variant: "destructive",
+        });
+        return;
       }
 
       // Normalize the meal response - preserve all fields exactly as Craving Creator returns

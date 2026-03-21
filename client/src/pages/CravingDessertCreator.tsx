@@ -33,6 +33,8 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
+import DietBadge from "@/components/meal/DietBadge";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -364,6 +366,19 @@ export default function DessertCreator() {
 
       console.log("🍨 [DESSERT] Parsed response data:", data);
       const meal = data.meal || data;
+
+      // Dietary compliance: validate BEFORE render — catches dairy/egg-based desserts for vegans
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      if (!mealMatchesDiet(userDiet, meal)) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        toast({
+          title: "Dietary mismatch",
+          description: `This dessert doesn't match your ${userDiet} diet. Please try a different selection.`,
+          variant: "destructive",
+        });
+        return;
+      }
 
       stopProgressTicker();
       setGeneratedDessert(meal);

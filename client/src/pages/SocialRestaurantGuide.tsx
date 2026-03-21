@@ -17,6 +17,9 @@
 // - Real-time progress ticker (0-90% with visual feedback)
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { normalizeDiet, filterMealsByDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
+import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -293,6 +296,7 @@ export default function RestaurantGuidePage() {
     photoUrl?: string;
   } | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
   const [progress, setProgress] = useState(0);
@@ -401,6 +405,7 @@ export default function RestaurantGuidePage() {
           cuisine: params.cuisine,
           zipCode: params.zipCode,
           userId: localStorage.getItem("userId") || "1",
+          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
         }),
       });
     },
@@ -409,7 +414,11 @@ export default function RestaurantGuidePage() {
     },
     onSuccess: (data) => {
       stopProgressTicker();
-      setGeneratedMeals(data.recommendations || []);
+      // Dietary compliance: filter BEFORE render — never show non-compliant recommendations
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      const rawRecs = data.recommendations || [];
+      const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
+      setGeneratedMeals(compliantRecs);
       setGuidedStep("results");
 
       // Store restaurant info from Google Places

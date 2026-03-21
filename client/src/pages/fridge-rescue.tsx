@@ -55,6 +55,7 @@ import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -389,6 +390,7 @@ const FridgeRescuePage = () => {
             .map((i) => i.trim())
             .filter((i) => i),
           servings,
+          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
@@ -442,9 +444,23 @@ const FridgeRescuePage = () => {
         throw new Error("No meals found in response");
       }
 
-      console.log("✅ Setting meals:", mealsArray.length);
+      // Dietary compliance: filter out non-compliant meals BEFORE render
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
+      if (compliantMeals.length === 0) {
+        stopProgressTicker();
+        setIsLoading(false);
+        toast({
+          title: "No compliant meals found",
+          description: `None of the generated meals matched your ${userDiet} diet. Try different ingredients.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("✅ Setting meals:", compliantMeals.length);
       stopProgressTicker();
-      setMeals(mealsArray);
+      setMeals(compliantMeals);
       setShowResults(true);
 
       if (data.quota) {
