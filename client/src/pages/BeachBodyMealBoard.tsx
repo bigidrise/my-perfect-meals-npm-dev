@@ -2136,46 +2136,46 @@ export default function BeachBodyMealBoard() {
           onViewOnly={() => setLockedDayDialogOpen(false)}
           onCreateNewDay={handleGoToToday}
         />
+
+        {/* Shopping bar — inside motion.div to match all other builders */}
+        {board &&
+          (() => {
+            const currentBoard = board;
+            const allMeals =
+              planningMode === "day" && activeDayISO
+                ? (() => {
+                    const dayLists = getDayLists(currentBoard, activeDayISO);
+                    return [
+                      ...dayLists.breakfast,
+                      ...dayLists.lunch,
+                      ...dayLists.dinner,
+                      ...dayLists.snacks,
+                    ];
+                  })()
+                : [
+                    ...currentBoard.lists.breakfast,
+                    ...currentBoard.lists.lunch,
+                    ...currentBoard.lists.dinner,
+                    ...currentBoard.lists.snacks,
+                  ];
+
+            const ingredients = allMeals.flatMap((meal) =>
+              normalizeIngredients(meal.ingredients || []),
+            );
+
+            if (ingredients.length === 0) return null;
+
+            return (
+              <ShoppingAggregateBar
+                ingredients={ingredients}
+                source="Beach Body Meal Board"
+                sourceSlug="beach-body-meal-board"
+                aboveBottomNav
+              />
+            );
+          })()}
       </div>
     </motion.div>
-
-    {/* Shopping bar outside motion.div — fixed positioning requires no transform ancestor */}
-    {board &&
-      (() => {
-        const currentBoard = board;
-        const allMeals =
-          planningMode === "day" && activeDayISO
-            ? (() => {
-                const dayLists = getDayLists(currentBoard, activeDayISO);
-                return [
-                  ...dayLists.breakfast,
-                  ...dayLists.lunch,
-                  ...dayLists.dinner,
-                  ...dayLists.snacks,
-                ];
-              })()
-            : [
-                ...currentBoard.lists.breakfast,
-                ...currentBoard.lists.lunch,
-                ...currentBoard.lists.dinner,
-                ...currentBoard.lists.snacks,
-              ];
-
-        const ingredients = allMeals.flatMap((meal) =>
-          normalizeIngredients(meal.ingredients || []),
-        );
-
-        if (ingredients.length === 0) return null;
-
-        return (
-          <ShoppingAggregateBar
-            ingredients={ingredients}
-            source="Beach Body Meal Board"
-            sourceSlug="beach-body-meal-board"
-            aboveBottomNav={false}
-          />
-        );
-      })()}
 
     <MealReadySheet
       show={showMealReady}
