@@ -37,6 +37,11 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import {
+  DietGuardIntercept,
+  DietAdaptedNotice,
+} from "@/components/DietGuardIntercept";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
@@ -157,6 +162,16 @@ export default function BeverageCreator() {
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
 
+  const {
+    alert: dietAlert,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    triggerAlert: triggerDietAlert,
+    activeDiet,
+  } = useDietGuardPrecheck();
+
+  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
@@ -246,6 +261,10 @@ export default function BeverageCreator() {
       }
     }
 
+    // 🥗 DietGuard precheck — soft intercept for dietary preferences (not allergies)
+    const dietInput = `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
+    if (!checkDiet(dietInput)) return;
+
     setIsGenerating(true);
     startProgressTicker();
     console.log("🍹 [BEVERAGE] Starting generation...", {
@@ -317,16 +336,16 @@ export default function BeverageCreator() {
       console.log("🍹 [BEVERAGE] Parsed response data:", data);
       const meal = data.meal || data;
 
-      // Dietary compliance: validate BEFORE render — catches dairy/egg-based drinks for vegans
+      // 🥗 Scenario A: server flagged diet adaptation — accept result, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      if (!mealMatchesDiet(userDiet, meal)) {
+      if (data.dietAdapted) {
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        clearDietAlert();
+      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — post-generation mismatch, show soft DietGuard panel
         stopProgressTicker();
         setIsGenerating(false);
-        toast({
-          title: "Dietary mismatch",
-          description: `This drink doesn't match your ${userDiet} diet. Please try a different selection.`,
-          variant: "destructive",
-        });
+        triggerDietAlert([], `This drink may not fully match your ${userDiet} diet.`);
         return;
       }
 
@@ -577,6 +596,25 @@ export default function BeverageCreator() {
               )}
             </CardContent>
           </Card>
+
+          <DietGuardIntercept
+            alert={dietAlert}
+            onDecision={(decision) => {
+              if (decision === "pick_something_else") {
+                clearDietAlert();
+              } else if (decision === "let_chef_adapt") {
+                clearDietAlert();
+                handleGenerateBeverage();
+              }
+            }}
+          />
+
+          {dietAdaptedNotice && (
+            <DietAdaptedNotice
+              message={dietAdaptedNotice}
+              onDismiss={() => setDietAdaptedNotice(null)}
+            />
+          )}
 
           {generatedBeverage && (
             <div className="space-y-6">
