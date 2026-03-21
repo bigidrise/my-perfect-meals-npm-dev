@@ -57,7 +57,7 @@ const coaches: Coach[] = [
     title: "Founding Coach",
     credentials: "CPT · Corrective Exercise · Strength & Recovery",
     image: "/assets/kristen-bogan.jpg",
-    bio: "As a dedicated personal trainer, I specialize in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. My approach is rooted in functional and lifestyle-based training—focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, I design programs that improve mobility, stability, and overall body mechanics. I believe fitness should support the way you live, whether that means lifting with confidence, moving without pain, or having the energy to take on your day. Recovery and longevity are at the core of my philosophy—to empower you with the strength, confidence, and resilience you need to thrive in both the gym and everyday life.",
+    bio: "I help clients build strength, lose weight, and recover safely from injury or surgery through structured, real-world training.\n\nMy approach is rooted in functional movement and lifestyle-based coaching—focusing on improving how your body moves so everyday life feels easier, safer, and more controlled.\n\nWith a background in muscle development and corrective exercise, I design programs that enhance mobility, stability, and overall body mechanics. Whether your goal is to move without pain, build confidence in your strength, or simply feel better day to day, everything is built to support how you live.\n\nRecovery and longevity are at the core of my philosophy. My goal is to help you develop the strength, confidence, and resilience to perform at your best—both in and out of the gym.",
     availabilityStatus: "available",
   },
   {
@@ -287,9 +287,11 @@ export default function MeetYourCoach() {
               )}
 
               {/* Bio */}
-              <p className="text-sm text-white/80 leading-relaxed mt-3 mb-3">
-                {selectedCoach.bio}
-              </p>
+              <div className="text-sm text-white/80 leading-relaxed mt-3 mb-3 space-y-3">
+                {selectedCoach.bio.split("\n\n").map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </div>
 
               {/* Availability */}
               {selectedCoach.availabilityStatus === "available" ? (
