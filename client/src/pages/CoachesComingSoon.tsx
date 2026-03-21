@@ -56,7 +56,7 @@ const coaches: Coach[] = [
     name: "Kristen Bogan (Performance & Nutrition)",
     title: "Founding Coach",
     credentials: "CPT · Corrective Exercise · Strength & Recovery",
-    image: "/assets/kristen-bogan.jpg",
+    image: "/assets/kristen-bogan-2.jpg",
     bio: "I help clients build strength, lose weight, and recover safely from injury or surgery through structured, real-world training.\n\nMy approach is rooted in functional movement and lifestyle-based coaching—focusing on improving how your body moves so everyday life feels easier, safer, and more controlled.\n\nWith a background in muscle development and corrective exercise, I design programs that enhance mobility, stability, and overall body mechanics. Whether your goal is to move without pain, build confidence in your strength, or simply feel better day to day, everything is built to support how you live.\n\nRecovery and longevity are at the core of my philosophy. My goal is to help you develop the strength, confidence, and resilience to perform at your best—both in and out of the gym.",
     availabilityStatus: "available",
   },

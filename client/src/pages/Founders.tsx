@@ -156,7 +156,7 @@ export default function Founder() {
           <div className="flex items-center gap-6">
             <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0">
               <img
-                src="/assets/kristen-bogan.jpg"
+                src="/assets/kristen-bogan-2.jpg"
                 alt="Kristen Bogan"
                 className="w-full h-full object-cover object-top"
               />
