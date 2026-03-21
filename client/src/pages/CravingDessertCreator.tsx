@@ -38,8 +38,8 @@ import DietBadge from "@/components/meal/DietBadge";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
-  type DietGuardDecision,
 } from "@/components/DietGuardIntercept";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -177,10 +177,17 @@ export default function DessertCreator() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  // 🥗 Diet guard state
-  const [showDietGuard, setShowDietGuard] = useState(false);
+  // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
+  const {
+    alert: dietAlert,
+    decision: dietDecision,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    setDecision: setDietDecision,
+    triggerAlert: triggerDietAlert,
+    activeDiet,
+  } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
-  const retryDietAdaptRef = useRef<(() => void) | null>(null);
 
   // Safety PIN integration
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -273,7 +280,6 @@ export default function DessertCreator() {
   };
 
   async function handleGenerateDessert(overrideToken?: string) {
-    setShowDietGuard(false);
     setDietAdaptedNotice(null);
     if (!dessertCategory) {
       toast({
@@ -300,6 +306,15 @@ export default function DessertCreator() {
       const isSafe = await checkSafety(requestDescription, "dessert-creator");
       if (!isSafe) {
         return; // Banner will show automatically
+      }
+    }
+
+    // 🥗 Diet Guard precheck — advisory, fires at generate time
+    if (!overrideToken && activeDiet && dietDecision !== "let_chef_adapt") {
+      const requestText = `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
+      const dietOk = checkDiet(requestText);
+      if (!dietOk) {
+        return; // DietGuardIntercept will show inline
       }
     }
 
@@ -382,13 +397,12 @@ export default function DessertCreator() {
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
-        setShowDietGuard(false);
-      } else if (!mealMatchesDiet(userDiet, meal)) {
-        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
+        clearDietAlert();
+      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
         stopProgressTicker();
         setIsGenerating(false);
-        retryDietAdaptRef.current = () => handleGenerateDessert(overrideToken);
-        setShowDietGuard(true);
+        triggerDietAlert([], `This dessert may not fully match your ${userDiet} diet.`);
         return;
       }
 
@@ -665,17 +679,16 @@ export default function DessertCreator() {
                 }
               />
 
-              {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+              {/* DietGuard Intercept — advisory panel, fires at generate time */}
               <DietGuardIntercept
-                show={showDietGuard}
-                diet={normalizeDiet(user?.dietaryRestrictions)}
-                onDecision={(decision: DietGuardDecision) => {
-                  if (decision === "change_request") {
-                    setShowDietGuard(false);
+                alert={dietAlert}
+                onDecision={(decision) => {
+                  if (decision === "pick_something_else") {
+                    clearDietAlert();
                     setGeneratedDessert(null);
                   } else if (decision === "let_chef_adapt") {
-                    setShowDietGuard(false);
-                    retryDietAdaptRef.current?.();
+                    setDietDecision("let_chef_adapt");
+                    handleGenerateDessert();
                   }
                 }}
                 className="mt-3"

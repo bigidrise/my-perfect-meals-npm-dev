@@ -59,8 +59,8 @@ import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dieta
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
-  type DietGuardDecision,
 } from "@/components/DietGuardIntercept";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -245,10 +245,17 @@ const FridgeRescuePage = () => {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
-  // 🥗 Diet guard state
-  const [showDietGuard, setShowDietGuard] = useState(false);
+  // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
+  const {
+    alert: dietAlert,
+    decision: dietDecision,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    setDecision: setDietDecision,
+    triggerAlert: triggerDietAlert,
+    activeDiet,
+  } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
-  const retryDietAdaptRef = useRef<(() => void) | null>(null);
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
     [],
   );
@@ -363,7 +370,6 @@ const FridgeRescuePage = () => {
   };
 
   const handleGenerateMeals = async (skipPreflight = false) => {
-    setShowDietGuard(false);
     setDietAdaptedNotice(null);
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
@@ -382,6 +388,14 @@ const FridgeRescuePage = () => {
       if (!isSafe) {
         // Banner will show automatically via safetyAlert state
         return;
+      }
+    }
+
+    // 🥗 Diet Guard precheck — advisory, fires at generate time
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const dietOk = checkDiet(ingredients);
+      if (!dietOk) {
+        return; // DietGuardIntercept will show inline
       }
     }
 
@@ -459,15 +473,14 @@ const FridgeRescuePage = () => {
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
-        setShowDietGuard(false);
-      } else {
-        // 🥗 Scenario B: filter meals post-generation; if none pass, show non-blocking intercept
+        clearDietAlert();
+      } else if (activeDiet) {
+        // 🥗 Scenario B fallback — filter post-generation; if none pass, show advisory intercept
         const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
         if (compliantMeals.length === 0) {
           stopProgressTicker();
           setIsLoading(false);
-          retryDietAdaptRef.current = () => handleGenerateMeals(false);
-          setShowDietGuard(true);
+          triggerDietAlert([], `None of the generated meals matched your ${userDiet} diet.`);
           return;
         }
         mealsArray = compliantMeals;
@@ -835,19 +848,17 @@ const FridgeRescuePage = () => {
                   }
                 />
 
-                {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+                {/* DietGuard Intercept — advisory panel, fires at generate time */}
                 <DietGuardIntercept
-                  show={showDietGuard}
-                  diet={normalizeDiet(user?.dietaryRestrictions)}
-                  message={`Some of your fridge ingredients don't fit your ${normalizeDiet(user?.dietaryRestrictions)} diet. The chef can work around them, or you can adjust your ingredient list.`}
-                  onDecision={(decision: DietGuardDecision) => {
-                    if (decision === "change_request") {
-                      setShowDietGuard(false);
+                  alert={dietAlert}
+                  onDecision={(decision) => {
+                    if (decision === "pick_something_else") {
+                      clearDietAlert();
                       setMeals([]);
                       setShowResults(false);
                     } else if (decision === "let_chef_adapt") {
-                      setShowDietGuard(false);
-                      retryDietAdaptRef.current?.();
+                      setDietDecision("let_chef_adapt");
+                      handleGenerateMeals(true);
                     }
                   }}
                   className="mt-3"

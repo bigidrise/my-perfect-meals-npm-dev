@@ -4,8 +4,8 @@ import { normalizeDiet, mealMatchesDiet, dietExclusionList } from "@/utils/dieta
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
-  type DietGuardDecision,
 } from "@/components/DietGuardIntercept";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -389,10 +389,17 @@ export default function ChefsKitchenPage() {
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  // 🥗 Diet guard state
-  const [showDietGuard, setShowDietGuard] = useState(false);
+  // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
+  const {
+    alert: dietAlert,
+    decision: dietDecision,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    setDecision: setDietDecision,
+    triggerAlert: triggerDietAlert,
+    activeDiet,
+  } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
-  const retryDietAdaptRef = useRef<(() => void) | null>(null);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -696,7 +703,6 @@ export default function ChefsKitchenPage() {
     voiceEquipment: string,
     skipPreflight = false,
   ) => {
-    setShowDietGuard(false);
     setDietAdaptedNotice(null);
     // Parse servings from voice input
     const voiceServings =
@@ -709,6 +715,15 @@ export default function ChefsKitchenPage() {
       const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
       if (!isSafe) {
         return;
+      }
+    }
+
+    // 🥗 Diet Guard precheck — advisory, fires at generate time
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const requestText = `${voiceDish} ${voiceMethod} ${voiceIngredients}`.trim();
+      const dietOk = checkDiet(requestText);
+      if (!dietOk) {
+        return; // DietGuardIntercept will show inline
       }
     }
 
@@ -810,15 +825,12 @@ export default function ChefsKitchenPage() {
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
-        setShowDietGuard(false);
-      } else if (!mealMatchesDiet(userDiet, meal)) {
-        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
+        clearDietAlert();
+      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
-        retryDietAdaptRef.current = () => generateMealWithValues(
-          voiceDish, voiceMethod, voiceIngredients, voiceServingsStr, voiceEquipment, false
-        );
-        setShowDietGuard(true);
+        triggerDietAlert([], `This meal may not fully match your ${userDiet} diet.`);
         return;
       }
 
@@ -909,7 +921,6 @@ export default function ChefsKitchenPage() {
   };
 
   const startOpenKitchen = async (skipPreflight = false) => {
-    setShowDietGuard(false);
     setDietAdaptedNotice(null);
     // 🔐 Preflight safety check - BEFORE starting progress bar
     if (!skipPreflight && !hasActiveOverride) {
@@ -919,6 +930,15 @@ export default function ChefsKitchenPage() {
       if (!isSafe) {
         // Banner will show automatically via safetyAlert state
         return;
+      }
+    }
+
+    // 🥗 Diet Guard precheck — advisory, fires at generate time
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const requestText = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
+      const dietOk = checkDiet(requestText);
+      if (!dietOk) {
+        return; // DietGuardIntercept will show inline
       }
     }
 
@@ -1032,13 +1052,12 @@ export default function ChefsKitchenPage() {
       const userDiet2 = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
-        setShowDietGuard(false);
-      } else if (!mealMatchesDiet(userDiet2, meal)) {
-        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
+        clearDietAlert();
+      } else if (activeDiet && !mealMatchesDiet(userDiet2, meal)) {
+        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
-        retryDietAdaptRef.current = () => startOpenKitchen(false);
-        setShowDietGuard(true);
+        triggerDietAlert([], `This meal may not fully match your ${userDiet2} diet.`);
         return;
       }
 
@@ -1441,17 +1460,16 @@ export default function ChefsKitchenPage() {
                         }
                       />
 
-                      {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+                      {/* DietGuard Intercept — advisory panel, fires at generate time */}
                       <DietGuardIntercept
-                        show={showDietGuard}
-                        diet={normalizeDiet(user?.dietaryRestrictions)}
-                        onDecision={(decision: DietGuardDecision) => {
-                          if (decision === "change_request") {
-                            setShowDietGuard(false);
+                        alert={dietAlert}
+                        onDecision={(decision) => {
+                          if (decision === "pick_something_else") {
+                            clearDietAlert();
                             setGeneratedMeal(null);
                           } else if (decision === "let_chef_adapt") {
-                            setShowDietGuard(false);
-                            retryDietAdaptRef.current?.();
+                            setDietDecision("let_chef_adapt");
+                            startOpenKitchen(true);
                           }
                         }}
                         className="mt-3"

@@ -75,8 +75,8 @@ import {
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
-  type DietGuardDecision,
 } from "@/components/DietGuardIntercept";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 
 interface StructuredIngredient {
   name: string;
@@ -207,10 +207,17 @@ export default function CravingCreator() {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
-  // 🥗 Diet guard state
-  const [showDietGuard, setShowDietGuard] = useState(false);
+  // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
+  const {
+    alert: dietAlert,
+    decision: dietDecision,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    setDecision: setDietDecision,
+    triggerAlert: triggerDietAlert,
+    activeDiet,
+  } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
-  const retryDietAdaptRef = useRef<(() => void) | null>(null);
   // Get actual user ID from auth context for medical safety
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -429,7 +436,6 @@ export default function CravingCreator() {
 
   const handleGenerateMeal = async (skipPreflight = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
-    setShowDietGuard(false);
     setDietAdaptedNotice(null);
 
     if (!cravingInput.trim()) {
@@ -456,6 +462,15 @@ export default function CravingCreator() {
       const starchOk = checkStarch(cravingInput);
       if (!starchOk) {
         // Intercept will show - user must choose before proceeding
+        return;
+      }
+    }
+
+    // 🥗 Diet Guard preflight check — advisory, fires at generate time (not on keystroke)
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const dietOk = checkDiet(cravingInput);
+      if (!dietOk) {
+        // DietGuardIntercept will show inline — user chooses path
         return;
       }
     }
@@ -532,13 +547,12 @@ export default function CravingCreator() {
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
-        setShowDietGuard(false);
-      } else if (!mealMatchesDiet(userDiet, meal)) {
-        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
+        clearDietAlert();
+      } else if (activeDiet && !mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B fallback — post-generation mismatch (safety net, rare with precheck)
         stopProgressTicker();
         setIsGenerating(false);
-        retryDietAdaptRef.current = () => handleGenerateMeal(false);
-        setShowDietGuard(true);
+        triggerDietAlert([], `This meal may not fully match your ${userDiet} diet.`);
         return;
       }
 
@@ -949,18 +963,17 @@ export default function CravingCreator() {
                     className="mt-3"
                   />
 
-                  {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+                  {/* DietGuard Intercept — advisory panel, fires at generate time */}
                   <DietGuardIntercept
-                    show={showDietGuard}
-                    diet={normalizeDiet(user?.dietaryRestrictions)}
-                    onDecision={(decision: DietGuardDecision) => {
-                      if (decision === "change_request") {
-                        setShowDietGuard(false);
+                    alert={dietAlert}
+                    onDecision={(decision) => {
+                      if (decision === "pick_something_else") {
+                        clearDietAlert();
                         setGeneratedMeals([]);
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
-                        setShowDietGuard(false);
-                        retryDietAdaptRef.current?.();
+                        setDietDecision("let_chef_adapt");
+                        handleGenerateMeal(true);
                       }
                     }}
                     className="mt-3"
