@@ -199,6 +199,7 @@ export default function CravingCreator() {
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
+  const [isPlatingMeal, setIsPlatingMeal] = useState(false);
 
   const getRecentMeals = (): string[] => {
     try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
@@ -303,12 +304,38 @@ export default function CravingCreator() {
     }
   }, [generatedMeals, cravingInput, servings]);
 
-  const handleSelectMeal = (meal: any) => {
+  const handleSelectMeal = async (meal: any) => {
     setMealOptions([]);
-    setGeneratedMeals([meal]);
     addRecentMeal(meal.name);
+    setIsPlatingMeal(true);
+
+    let finalMeal = { ...meal };
+    try {
+      const imgRes = await fetch("/api/meal-images/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mealName: meal.name,
+          ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
+          style: "overhead",
+          mealType: "snacks",
+        }),
+      });
+      if (imgRes.ok) {
+        const imgData = await imgRes.json();
+        if (imgData.success && imgData.image?.url) {
+          finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
+        }
+      }
+    } catch (imgErr) {
+      console.warn("[CRAVING CREATOR] Image generation failed, using fallback:", imgErr);
+    } finally {
+      setIsPlatingMeal(false);
+    }
+
+    setGeneratedMeals([finalMeal]);
     saveCravingCache({
-      generatedMeal: meal,
+      generatedMeal: finalMeal,
       craving: cravingInput,
       servings: servings,
       mealType: "snacks",
@@ -1086,7 +1113,14 @@ export default function CravingCreator() {
           </div>
 
           {/* 🎲 Variety Engine: Meal Options Panel */}
-          {mealOptions.length > 0 && (
+          {isPlatingMeal && (
+            <div className="mt-8 flex flex-col items-center gap-4 py-10">
+              <div className="w-10 h-10 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-white/80 text-base font-medium">Chef is plating your meal…</p>
+            </div>
+          )}
+
+          {!isPlatingMeal && mealOptions.length > 0 && (
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />

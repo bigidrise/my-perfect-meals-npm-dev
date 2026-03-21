@@ -447,6 +447,7 @@ export default function ChefsKitchenPage() {
   );
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
+  const [isPlatingMeal, setIsPlatingMeal] = useState(false);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const getRecentMealsChef = (): string[] => {
@@ -1501,7 +1502,14 @@ export default function ChefsKitchenPage() {
                       />
 
                       {/* 🎲 Variety Engine: Meal Options Panel */}
-                      {mealOptions.length > 0 && (
+                      {isPlatingMeal && (
+                        <div className="mt-4 flex flex-col items-center gap-3 py-8">
+                          <div className="w-8 h-8 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-white/80 text-sm font-medium">Chef is plating your meal…</p>
+                        </div>
+                      )}
+
+                      {!isPlatingMeal && mealOptions.length > 0 && (
                         <div className="mt-4 space-y-3">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-white font-bold text-base">Pick your favorite</span>
@@ -1518,7 +1526,35 @@ export default function ChefsKitchenPage() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => { setMealOptions([]); setGeneratedMeal(option); addRecentMealChef(option.name); }}
+                                onClick={async () => {
+                                  setMealOptions([]);
+                                  addRecentMealChef(option.name);
+                                  setIsPlatingMeal(true);
+                                  let finalMeal = { ...option };
+                                  try {
+                                    const imgRes = await fetch("/api/meal-images/generate", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        mealName: option.name,
+                                        ingredients: (option.ingredients || []).map((i: any) => i.name || i),
+                                        style: "overhead",
+                                        mealType: "dinner",
+                                      }),
+                                    });
+                                    if (imgRes.ok) {
+                                      const imgData = await imgRes.json();
+                                      if (imgData.success && imgData.image?.url) {
+                                        finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
+                                      }
+                                    }
+                                  } catch (e) {
+                                    console.warn("[CHEF] Image gen failed, using fallback", e);
+                                  } finally {
+                                    setIsPlatingMeal(false);
+                                  }
+                                  setGeneratedMeal(finalMeal);
+                                }}
                                 className="shrink-0 bg-lime-600 hover:bg-lime-500 active:scale-95 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all"
                               >
                                 Pick This

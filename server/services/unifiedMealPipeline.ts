@@ -686,6 +686,189 @@ Respond with ONLY valid JSON in this exact format:
  * Layer 3: excludeMeals anti-repetition memory
  * Layer 4: Always returns 3 genuinely distinct options
  */
+// ─── VARIETY ENGINE HELPERS ────────────────────────────────────────────────
+
+/** Determine if the craving is dessert-like */
+function isCravingDessert(input: string): boolean {
+  const dessertTerms = /cheesecake|cake|cookie|brownie|tart|pie|pudding|mousse|parfait|custard|ice.?cream|gelato|sorbet|fudge|truffle|macaron|crepe|waffle|muffin|donut|sundae|tiramisu|cannoli|panna.?cotta|cobbler|crisp|bread.?pudding|eclair|profiterole|dessert|sweet|chocolate|vanilla|caramel|strawberry.*cake|lemon.*bar|banana.*bread/i;
+  return dessertTerms.test(input);
+}
+
+/** Infer dominant category from craving text */
+function inferCravingCategory(input: string, mealType: string): string {
+  if (isCravingDessert(input)) return "dessert";
+  if (/smoothie|juice|shake|latte|coffee|tea|drink|beverage|cocktail|mocktail/i.test(input)) return "beverage";
+  if (/soup|salad|sandwich|wrap|bowl|pasta|rice|steak|chicken|fish|shrimp|burger|taco|burrito|pizza/i.test(input)) return "meal";
+  if (/snack|bite|bar|chip|dip|hummus|cracker/i.test(input)) return "snack";
+  return mealType;
+}
+
+/** Extract dish family keyword from craving (e.g. "cheesecake", "steak", "smoothie") */
+function extractDishFamily(input: string): string {
+  const words = input.toLowerCase().split(/\s+/);
+  // Key dish-type nouns to lock onto
+  const dishNouns = ['cheesecake','cake','pie','tart','brownie','cookie','pudding','mousse','parfait','smoothie','shake','bowl','soup','salad','sandwich','wrap','steak','burger','pasta','pizza','taco','burrito','curry','stir-fry','risotto','omelette','pancake','waffle','muffin','scone','crepe','ice cream','gelato'];
+  for (const noun of dishNouns) {
+    if (input.toLowerCase().includes(noun)) return noun;
+  }
+  // fallback: last meaningful word
+  return words[words.length - 1] || input;
+}
+
+/** Server-side validation: check each option stays within category and diet */
+function validateVarietyOption(opt: any, category: string, dishFamily: string, dietRestrictions: string[]): boolean {
+  const nameAndDesc = `${opt.name || ''} ${opt.description || ''}`.toLowerCase();
+  
+  // Category drift check — dessert requests must not return savory mains
+  if (category === "dessert") {
+    const savoryTerms = /lettuce wrap|taco|steak|chicken breast|salmon|shrimp|burger|pasta salad|rice bowl|stir.?fry|carnitas|pulled pork|fish fillet|pork chop|beef|lamb chop/i;
+    if (savoryTerms.test(nameAndDesc)) return false;
+  }
+  if (category === "beverage") {
+    const nonBeverageTerms = /salad|sandwich|steak|pasta|taco|burger|rice bowl|stir.?fry/i;
+    if (nonBeverageTerms.test(nameAndDesc)) return false;
+  }
+  
+  // Dish family drift check — core dish type must appear in name or description
+  const simpleDishFamily = dishFamily.replace(/-/g, ' ');
+  if (dishFamily.length > 3 && !nameAndDesc.includes(simpleDishFamily)) {
+    // Allow very close synonyms before rejecting
+    const synonymMap: Record<string, string[]> = {
+      cheesecake: ['cheesecake', 'cheese cake', 'no-bake', 'cashew cream', 'cream cheese'],
+      smoothie: ['smoothie', 'shake', 'blend'],
+      steak: ['steak', 'beef', 'sirloin', 'ribeye'],
+      burger: ['burger', 'patty', 'smash'],
+    };
+    const synonyms = synonymMap[dishFamily] || [simpleDishFamily];
+    const passes = synonyms.some(s => nameAndDesc.includes(s));
+    if (!passes) return false;
+  }
+  
+  // Diet compliance — vegan: no meat/dairy/egg keywords in name/desc
+  const primaryDiet = getPrimaryDiet(dietRestrictions);
+  if (primaryDiet === 'vegan') {
+    const nonVeganTerms = /beef|chicken|pork|salmon|shrimp|tuna|lamb|bacon|turkey|milk|butter|cream cheese|heavy cream|egg(?!plant)|gelatin|whey/i;
+    if (nonVeganTerms.test(nameAndDesc)) return false;
+  }
+  
+  return true;
+}
+
+/** Build the hierarchy-enforcing prompt for the variety engine */
+function buildVarietyPrompt(
+  cravingInput: string,
+  validMealType: string,
+  category: string,
+  dishFamily: string,
+  dietBlock: string,
+  dietRestrictions: string[],
+  excludeClause: string
+): string {
+  const primaryDiet = getPrimaryDiet(dietRestrictions);
+  const dietLine = primaryDiet
+    ? `USER DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply fully. Zero exceptions.`
+    : `USER DIET: None set — generate standard (non-vegan, non-restricted) food.`;
+
+  const dessertNote = category === "dessert"
+    ? `\nCATEGORY LOCK: This is a DESSERT request. ALL 3 options must be desserts. Never generate savory meals, wraps, salads, or non-dessert items.`
+    : category === "beverage"
+    ? `\nCATEGORY LOCK: This is a BEVERAGE request. ALL 3 options must be drinks. Never generate solid food.`
+    : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
+
+  return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
+
+═══════════════════════════════════════
+HIERARCHY (follow in this EXACT order):
+═══════════════════════════════════════
+1. DIET COMPLIANCE (non-negotiable)
+   ${dietLine}
+   ${dietBlock ? dietBlock : ''}
+
+2. CATEGORY LOCK (non-negotiable)${dessertNote}
+
+3. DISH FAMILY LOCK (non-negotiable)
+   The user asked for: "${cravingInput}"
+   Core dish to stay within: "${dishFamily}"
+   ALL 3 options must be variations of "${dishFamily}" — different preparations, textures, or styles.
+   Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
+   NEVER drift to a completely different dish type.
+
+4. VARIATION (apply last, within constraints above)
+   Each option must differ meaningfully:
+   - Different preparation method (baked vs no-bake vs layered vs mousse vs parfait)
+   - Different texture or format (slice, cup, jar, bar)
+   - Different flavor accent (classic vs fruity vs nutty vs spiced)
+   NO minor wording changes — make each option genuinely distinct.
+
+${excludeClause}
+
+═══════════════════════════════════════
+OUTPUT FORMAT — ONLY valid JSON, no markdown:
+═══════════════════════════════════════
+{
+  "options": [
+    {
+      "name": "Specific variation name",
+      "description": "Appetizing 1-2 sentence description matching the dish and diet",
+      "ingredients": [{"name": "ingredient", "quantity": "4", "unit": "oz"}],
+      "instructions": "Full step-by-step instructions as a single paragraph",
+      "calories": 400,
+      "protein": 10,
+      "starchyCarbs": 30,
+      "fibrousCarbs": 5,
+      "fat": 15,
+      "cookingTime": "20 minutes"
+    },
+    {},
+    {}
+  ]
+}
+
+INGREDIENT FORMAT: US measurements only (oz, lb, cup, tbsp, tsp, each, fl oz). Never grams or ml.
+MEAL TYPE context: ${validMealType}`;
+}
+
+/** Parse raw AI content into options array */
+function parseVarietyContent(content: string): any[] {
+  let jsonStr = content;
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) jsonStr = jsonMatch[1];
+  const parsed = JSON.parse(jsonStr.trim());
+  return parsed.options || (Array.isArray(parsed) ? parsed : [parsed]);
+}
+
+/** Map a raw AI option object into a UnifiedMeal */
+function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMealType: string): UnifiedMeal {
+  const starchyCarbs = opt.starchyCarbs ?? 0;
+  const fibrousCarbs = opt.fibrousCarbs ?? 0;
+  const totalCarbs = opt.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+  const raw: UnifiedMeal = {
+    id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+    name: opt.name || `${cravingInput} Option ${idx + 1}`,
+    description: opt.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
+    ingredients: (opt.ingredients || []).map((i: any) => ({
+      name: i.name || '',
+      quantity: String(i.quantity || ''),
+      unit: i.unit || ''
+    })),
+    instructions: opt.instructions || "Cook as desired.",
+    calories: opt.calories || 400,
+    protein: opt.protein || 15,
+    carbs: totalCarbs,
+    starchyCarbs,
+    fibrousCarbs,
+    fat: opt.fat || 12,
+    cookingTime: opt.cookingTime || '25 minutes',
+    difficulty: 'Easy',
+    imageUrl: FALLBACK_IMAGES[validMealType] || FALLBACK_IMAGES.default,
+    medicalBadges: [],
+    source: 'ai'
+  };
+  return enforceCarbs(raw);
+}
+
+// ─── MAIN VARIETY ENGINE ────────────────────────────────────────────────────
+
 export async function generateCravingMealOptions(
   cravingInput: string,
   mealType: string,
@@ -694,8 +877,11 @@ export async function generateCravingMealOptions(
   excludeMeals?: string[]
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
-  console.log(`🎲 [VARIETY ENGINE] Generating 3 options for: "${cravingInput}"`);
+  const category = inferCravingCategory(cravingInput, validMealType);
+  const dishFamily = extractDishFamily(cravingInput);
+  console.log(`🎲 [VARIETY ENGINE] "${cravingInput}" → category: ${category}, dish: ${dishFamily}`);
 
+  // Fetch + merge dietary restrictions
   let dietRestrictions: string[] = [];
   if (userId) {
     try {
@@ -713,106 +899,61 @@ export async function generateCravingMealOptions(
   const dietBlock = buildDietPromptBlock(dietRestrictions);
 
   const excludeClause = excludeMeals && excludeMeals.length > 0
-    ? `\nANTI-REPETITION (CRITICAL): Do NOT repeat or closely resemble any of these recent meals — avoid the same primary protein, base ingredient, or overall concept: ${excludeMeals.join(", ")}`
+    ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
     : "";
 
-  const prompt = `You are a creative chef generating 3 DISTINCT meal options for a food craving.
-${dietBlock ? `\n${dietBlock}\n` : ""}
-CRAVING: "${cravingInput}"
-MEAL TYPE: ${validMealType}
-${excludeClause}
-
-VARIETY ENGINE RULES (ALL MANDATORY — NO EXCEPTIONS):
-1. Generate EXACTLY 3 distinct options — no more, no less
-2. Each option MUST use a DIFFERENT primary protein or base ingredient — never repeat the same main ingredient across options
-3. HARD PROTEIN ROTATION — select from this pool:
-   • Vegan/Vegetarian pool: tofu, tempeh, seitan, jackfruit, lentils, chickpeas, black beans, eggplant, cauliflower, white beans
-   • Omnivore pool: chicken breast, salmon fillet, shrimp, ground turkey, tilapia, NY strip steak, pork tenderloin, eggs, ahi tuna, lamb chops
-   • NEVER make portobello mushroom the primary protein in more than 1 option
-4. Vary the COOKING METHOD across the 3 options (e.g., grilled / pan-seared / oven-roasted — no repeats)
-5. Vary the CUISINE/FLAVOR across the 3 options (e.g., Mediterranean / Asian-inspired / Mexican — no repeats)
-6. Each option must feel genuinely, distinctly different — not the same concept with slight seasoning changes
-
-CRITICAL INGREDIENT FORMAT:
-- Use ONLY U.S. measurements: oz, lb, cup, tbsp, tsp, each, fl oz
-- NEVER use grams or milliliters
-- Each ingredient: name, quantity (as a string number), unit
-
-Respond with ONLY valid JSON (no markdown, no explanation):
-{
-  "options": [
-    {
-      "name": "Creative meal name",
-      "description": "Appetizing 1-2 sentence description",
-      "ingredients": [{"name": "ingredient", "quantity": "4", "unit": "oz"}],
-      "instructions": "Full step-by-step instructions as a single paragraph",
-      "calories": 450,
-      "protein": 30,
-      "starchyCarbs": 25,
-      "fibrousCarbs": 15,
-      "fat": 12,
-      "cookingTime": "25 minutes"
-    },
-    {},
-    {}
-  ]
-}`;
-
   const openai = getOpenAI();
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.85,
-    max_tokens: 2500,
-  });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("Empty AI response from variety engine");
+  /** One attempt at calling AI and parsing result */
+  const attempt = async (stricterMode: boolean): Promise<any[]> => {
+    const prompt = buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause);
+    const stricter = stricterMode
+      ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
+      : "";
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt + stricter }],
+      temperature: stricterMode ? 0.6 : 0.85,
+      max_tokens: 2500,
+    });
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("Empty AI response from variety engine");
+    return parseVarietyContent(content);
+  };
 
-  let jsonStr = content;
-  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (jsonMatch) jsonStr = jsonMatch[1];
-
-  let parsed: any;
+  let rawOptions: any[];
   try {
-    parsed = JSON.parse(jsonStr.trim());
+    rawOptions = await attempt(false);
   } catch (e) {
-    console.error("[VARIETY ENGINE] JSON parse failed:", jsonStr.slice(0, 300));
-    throw new Error("Failed to parse meal options from AI response");
+    console.error("[VARIETY ENGINE] JSON parse failed on first attempt, retrying…");
+    rawOptions = await attempt(true);
   }
 
-  const rawOptions: any[] = parsed.options || (Array.isArray(parsed) ? parsed : [parsed]);
-  console.log(`✅ [VARIETY ENGINE] ${rawOptions.length} options: ${rawOptions.map((o: any) => o?.name).join(" | ")}`);
+  // Server-side validation — check category, dish family, diet for each option
+  const valid = rawOptions.slice(0, 3).filter(opt =>
+    validateVarietyOption(opt, category, dishFamily, dietRestrictions)
+  );
 
-  return rawOptions.slice(0, 3).map((opt: any, idx: number) => {
-    const starchyCarbs = opt.starchyCarbs ?? 0;
-    const fibrousCarbs = opt.fibrousCarbs ?? 0;
-    const totalCarbs = opt.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+  // If majority fail validation, regenerate once with stricter prompt
+  if (valid.length < 2) {
+    console.warn(`[VARIETY ENGINE] Only ${valid.length}/3 options passed validation — regenerating with strict prompt`);
+    try {
+      rawOptions = await attempt(true);
+      const strictValid = rawOptions.slice(0, 3).filter(opt =>
+        validateVarietyOption(opt, category, dishFamily, dietRestrictions)
+      );
+      // Use the better result
+      if (strictValid.length >= valid.length) {
+        rawOptions = rawOptions.slice(0, 3);
+      }
+    } catch (retryErr) {
+      console.error("[VARIETY ENGINE] Strict retry also failed:", retryErr);
+    }
+  }
 
-    const rawMeal: UnifiedMeal = {
-      id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
-      name: opt.name || `${cravingInput} Option ${idx + 1}`,
-      description: opt.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
-      ingredients: (opt.ingredients || []).map((i: any) => ({
-        name: i.name || '',
-        quantity: String(i.quantity || ''),
-        unit: i.unit || ''
-      })),
-      instructions: opt.instructions || "Cook as desired.",
-      calories: opt.calories || 400,
-      protein: opt.protein || 25,
-      carbs: totalCarbs,
-      starchyCarbs,
-      fibrousCarbs,
-      fat: opt.fat || 15,
-      cookingTime: opt.cookingTime || '25 minutes',
-      difficulty: 'Easy',
-      imageUrl: FALLBACK_IMAGES[validMealType] || FALLBACK_IMAGES.default,
-      medicalBadges: [],
-      source: 'ai'
-    };
-    return enforceCarbs(rawMeal);
-  });
+  const finalOptions = rawOptions.slice(0, 3);
+  console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
+  return finalOptions.map((opt, idx) => mapToUnifiedMeal(opt, idx, cravingInput, validMealType));
 }
 
 /**
