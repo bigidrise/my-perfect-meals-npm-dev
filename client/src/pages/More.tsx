@@ -402,9 +402,9 @@ export default function MorePage() {
       </div>
       {/* Become a Provider — Role Picker Modal */}
       {showProviderModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowProviderModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4" onClick={() => setShowProviderModal(false)}>
           <div
-            className="w-full max-w-lg bg-zinc-950 border border-white/10 rounded-t-3xl p-6 pb-10 space-y-5"
+            className="w-full max-w-lg bg-zinc-950 border border-white/10 rounded-3xl p-6 pb-8 space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
