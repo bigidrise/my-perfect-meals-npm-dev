@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 
 export type DietType = 
@@ -88,14 +88,18 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     setProgress(100);
   };
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    stopProgressTicker();
+    if (tickerRef.current) {
+      clearInterval(tickerRef.current);
+      tickerRef.current = null;
+    }
+    setProgress(100);
     setGenerating(false);
-  };
+  }, []);
 
   const generateMeal = async (
     description: string,
