@@ -56,6 +56,11 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
+import {
+  DietGuardIntercept,
+  DietAdaptedNotice,
+  type DietGuardDecision,
+} from "@/components/DietGuardIntercept";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -240,6 +245,10 @@ const FridgeRescuePage = () => {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  // 🥗 Diet guard state
+  const [showDietGuard, setShowDietGuard] = useState(false);
+  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const retryDietAdaptRef = useRef<(() => void) | null>(null);
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
     [],
   );
@@ -354,6 +363,8 @@ const FridgeRescuePage = () => {
   };
 
   const handleGenerateMeals = async (skipPreflight = false) => {
+    setShowDietGuard(false);
+    setDietAdaptedNotice(null);
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
       detail: { testId: "fridge-rescue-interacted", event: "interacted" },
@@ -444,23 +455,27 @@ const FridgeRescuePage = () => {
         throw new Error("No meals found in response");
       }
 
-      // Dietary compliance: filter out non-compliant meals BEFORE render
+      // 🥗 Scenario A: server already flagged diet adaptation — accept all meals, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
-      if (compliantMeals.length === 0) {
-        stopProgressTicker();
-        setIsLoading(false);
-        toast({
-          title: "No compliant meals found",
-          description: `None of the generated meals matched your ${userDiet} diet. Try different ingredients.`,
-          variant: "destructive",
-        });
-        return;
+      if (data.dietAdapted) {
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setShowDietGuard(false);
+      } else {
+        // 🥗 Scenario B: filter meals post-generation; if none pass, show non-blocking intercept
+        const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
+        if (compliantMeals.length === 0) {
+          stopProgressTicker();
+          setIsLoading(false);
+          retryDietAdaptRef.current = () => handleGenerateMeals(false);
+          setShowDietGuard(true);
+          return;
+        }
+        mealsArray = compliantMeals;
       }
 
-      console.log("✅ Setting meals:", compliantMeals.length);
+      console.log("✅ Setting meals:", mealsArray.length);
       stopProgressTicker();
-      setMeals(compliantMeals);
+      setMeals(mealsArray);
       setShowResults(true);
 
       if (data.quota) {
@@ -820,6 +835,24 @@ const FridgeRescuePage = () => {
                   }
                 />
 
+                {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+                <DietGuardIntercept
+                  show={showDietGuard}
+                  diet={normalizeDiet(user?.dietaryRestrictions)}
+                  message={`Some of your fridge ingredients don't fit your ${normalizeDiet(user?.dietaryRestrictions)} diet. The chef can work around them, or you can adjust your ingredient list.`}
+                  onDecision={(decision: DietGuardDecision) => {
+                    if (decision === "change_request") {
+                      setShowDietGuard(false);
+                      setMeals([]);
+                      setShowResults(false);
+                    } else if (decision === "let_chef_adapt") {
+                      setShowDietGuard(false);
+                      retryDietAdaptRef.current?.();
+                    }
+                  }}
+                  className="mt-3"
+                />
+
                 {/* Meal Safety Section */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
                   <span className="text-xs text-white/60 block mb-2">
@@ -911,6 +944,15 @@ const FridgeRescuePage = () => {
                   Create New
                 </button>
               </div>
+
+              {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
+              {dietAdaptedNotice && (
+                <DietAdaptedNotice
+                  diet={normalizeDiet(user?.dietaryRestrictions)}
+                  notice={dietAdaptedNotice}
+                  className="mb-6"
+                />
+              )}
 
               <div className="grid grid-cols-1 gap-6 mb-8 max-w-2xl mx-auto">
                 {meals.map((meal, index) => (

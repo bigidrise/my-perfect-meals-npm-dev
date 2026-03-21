@@ -35,6 +35,11 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietBadge from "@/components/meal/DietBadge";
+import {
+  DietGuardIntercept,
+  DietAdaptedNotice,
+  type DietGuardDecision,
+} from "@/components/DietGuardIntercept";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -172,6 +177,10 @@ export default function DessertCreator() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  // 🥗 Diet guard state
+  const [showDietGuard, setShowDietGuard] = useState(false);
+  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const retryDietAdaptRef = useRef<(() => void) | null>(null);
 
   // Safety PIN integration
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -264,6 +273,8 @@ export default function DessertCreator() {
   };
 
   async function handleGenerateDessert(overrideToken?: string) {
+    setShowDietGuard(false);
+    setDietAdaptedNotice(null);
     if (!dessertCategory) {
       toast({
         title: "Missing Information",
@@ -367,16 +378,17 @@ export default function DessertCreator() {
       console.log("🍨 [DESSERT] Parsed response data:", data);
       const meal = data.meal || data;
 
-      // Dietary compliance: validate BEFORE render — catches dairy/egg-based desserts for vegans
+      // 🥗 Scenario A: server already flagged diet adaptation — accept the dessert, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      if (!mealMatchesDiet(userDiet, meal)) {
+      if (data.dietAdapted) {
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setShowDietGuard(false);
+      } else if (!mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
         stopProgressTicker();
         setIsGenerating(false);
-        toast({
-          title: "Dietary mismatch",
-          description: `This dessert doesn't match your ${userDiet} diet. Please try a different selection.`,
-          variant: "destructive",
-        });
+        retryDietAdaptRef.current = () => handleGenerateDessert(overrideToken);
+        setShowDietGuard(true);
         return;
       }
 
@@ -653,6 +665,22 @@ export default function DessertCreator() {
                 }
               />
 
+              {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+              <DietGuardIntercept
+                show={showDietGuard}
+                diet={normalizeDiet(user?.dietaryRestrictions)}
+                onDecision={(decision: DietGuardDecision) => {
+                  if (decision === "change_request") {
+                    setShowDietGuard(false);
+                    setGeneratedDessert(null);
+                  } else if (decision === "let_chef_adapt") {
+                    setShowDietGuard(false);
+                    retryDietAdaptRef.current?.();
+                  }
+                }}
+                className="mt-3"
+              />
+
               {/* Meal Safety Section */}
               <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
                 <span className="text-xs text-white/60 block mb-2">
@@ -737,6 +765,15 @@ export default function DessertCreator() {
                       Create New
                     </button>
                   </div>
+
+                  {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
+                  {dietAdaptedNotice && (
+                    <DietAdaptedNotice
+                      diet={normalizeDiet(user?.dietaryRestrictions)}
+                      notice={dietAdaptedNotice}
+                      className="mb-4"
+                    />
+                  )}
 
                   <p className="text-white/90 mb-4">
                     {generatedDessert.description}

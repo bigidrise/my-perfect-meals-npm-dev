@@ -72,6 +72,11 @@ import {
   StarchGuardIntercept,
   StarchSubstitutionNotice,
 } from "@/components/StarchGuardIntercept";
+import {
+  DietGuardIntercept,
+  DietAdaptedNotice,
+  type DietGuardDecision,
+} from "@/components/DietGuardIntercept";
 
 interface StructuredIngredient {
   name: string;
@@ -202,6 +207,10 @@ export default function CravingCreator() {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  // 🥗 Diet guard state
+  const [showDietGuard, setShowDietGuard] = useState(false);
+  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const retryDietAdaptRef = useRef<(() => void) | null>(null);
   // Get actual user ID from auth context for medical safety
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -420,6 +429,8 @@ export default function CravingCreator() {
 
   const handleGenerateMeal = async (skipPreflight = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
+    setShowDietGuard(false);
+    setDietAdaptedNotice(null);
 
     if (!cravingInput.trim()) {
       console.log("❌ Empty craving input - showing toast");
@@ -517,16 +528,17 @@ export default function CravingCreator() {
       }
       const meal = data.meal || data; // Handle both response formats
 
-      // Dietary compliance: validate BEFORE render — never show non-compliant content
+      // 🥗 Scenario A: server already flagged diet adaptation — accept the meal, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      if (!mealMatchesDiet(userDiet, meal)) {
+      if (data.dietAdapted) {
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setShowDietGuard(false);
+      } else if (!mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
         stopProgressTicker();
         setIsGenerating(false);
-        toast({
-          title: "Dietary mismatch",
-          description: `This meal doesn't match your ${userDiet} diet. Please try a different craving.`,
-          variant: "destructive",
-        });
+        retryDietAdaptRef.current = () => handleGenerateMeal(false);
+        setShowDietGuard(true);
         return;
       }
 
@@ -937,6 +949,23 @@ export default function CravingCreator() {
                     className="mt-3"
                   />
 
+                  {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+                  <DietGuardIntercept
+                    show={showDietGuard}
+                    diet={normalizeDiet(user?.dietaryRestrictions)}
+                    onDecision={(decision: DietGuardDecision) => {
+                      if (decision === "change_request") {
+                        setShowDietGuard(false);
+                        setGeneratedMeals([]);
+                        setCravingInput("");
+                      } else if (decision === "let_chef_adapt") {
+                        setShowDietGuard(false);
+                        retryDietAdaptRef.current?.();
+                      }
+                    }}
+                    className="mt-3"
+                  />
+
                   {/* Meal Safety Section */}
                   <div className="mt-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
                     <span className="text-xs text-white/60 block mb-2">
@@ -1044,6 +1073,15 @@ export default function CravingCreator() {
                       {substitutedStarchTerms.length > 0 && (
                         <StarchSubstitutionNotice
                           originalTerms={substitutedStarchTerms}
+                          className="mb-4"
+                        />
+                      )}
+
+                      {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
+                      {dietAdaptedNotice && (
+                        <DietAdaptedNotice
+                          diet={normalizeDiet(user?.dietaryRestrictions)}
+                          notice={dietAdaptedNotice}
                           className="mb-4"
                         />
                       )}

@@ -1,6 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, dietExclusionList } from "@/utils/dietaryFilter";
+import {
+  DietGuardIntercept,
+  DietAdaptedNotice,
+  type DietGuardDecision,
+} from "@/components/DietGuardIntercept";
 import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -384,6 +389,10 @@ export default function ChefsKitchenPage() {
   // Step 5 - Open Kitchen
   const [isGeneratingMeal, setIsGeneratingMeal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  // 🥗 Diet guard state
+  const [showDietGuard, setShowDietGuard] = useState(false);
+  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const retryDietAdaptRef = useRef<(() => void) | null>(null);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -687,6 +696,8 @@ export default function ChefsKitchenPage() {
     voiceEquipment: string,
     skipPreflight = false,
   ) => {
+    setShowDietGuard(false);
+    setDietAdaptedNotice(null);
     // Parse servings from voice input
     const voiceServings =
       parseInt(voiceServingsStr?.replace(/\D/g, ""), 10) || 2;
@@ -795,16 +806,19 @@ export default function ChefsKitchenPage() {
         throw new Error("No meal data returned from API");
       }
 
-      // Dietary compliance: validate BEFORE render — never show non-compliant content
+      // 🥗 Scenario A: server already flagged diet adaptation — accept the meal, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      if (!mealMatchesDiet(userDiet, meal)) {
+      if (data.dietAdapted) {
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setShowDietGuard(false);
+      } else if (!mealMatchesDiet(userDiet, meal)) {
+        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
-        toast({
-          title: "Dietary mismatch",
-          description: `This recipe doesn't match your ${userDiet} diet. Please try a different dish idea.`,
-          variant: "destructive",
-        });
+        retryDietAdaptRef.current = () => generateMealWithValues(
+          voiceDish, voiceMethod, voiceIngredients, voiceServingsStr, voiceEquipment, false
+        );
+        setShowDietGuard(true);
         return;
       }
 
@@ -895,6 +909,8 @@ export default function ChefsKitchenPage() {
   };
 
   const startOpenKitchen = async (skipPreflight = false) => {
+    setShowDietGuard(false);
+    setDietAdaptedNotice(null);
     // 🔐 Preflight safety check - BEFORE starting progress bar
     if (!skipPreflight && !hasActiveOverride) {
       const requestDescription =
@@ -1012,16 +1028,17 @@ export default function ChefsKitchenPage() {
         throw new Error("No meal data returned from API");
       }
 
-      // Dietary compliance: validate BEFORE render
+      // 🥗 Scenario A: server already flagged diet adaptation — accept the meal, show soft notice
       const userDiet2 = normalizeDiet(user?.dietaryRestrictions);
-      if (!mealMatchesDiet(userDiet2, meal)) {
+      if (data.dietAdapted) {
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
+        setShowDietGuard(false);
+      } else if (!mealMatchesDiet(userDiet2, meal)) {
+        // 🥗 Scenario B: AI generated non-compliant content — show non-blocking intercept
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
-        toast({
-          title: "Dietary mismatch",
-          description: `This recipe doesn't match your ${userDiet2} diet. Please try a different dish idea.`,
-          variant: "destructive",
-        });
+        retryDietAdaptRef.current = () => startOpenKitchen(false);
+        setShowDietGuard(true);
         return;
       }
 
@@ -1424,6 +1441,22 @@ export default function ChefsKitchenPage() {
                         }
                       />
 
+                      {/* DietGuard Intercept — non-blocking choice when diet conflict detected */}
+                      <DietGuardIntercept
+                        show={showDietGuard}
+                        diet={normalizeDiet(user?.dietaryRestrictions)}
+                        onDecision={(decision: DietGuardDecision) => {
+                          if (decision === "change_request") {
+                            setShowDietGuard(false);
+                            setGeneratedMeal(null);
+                          } else if (decision === "let_chef_adapt") {
+                            setShowDietGuard(false);
+                            retryDietAdaptRef.current?.();
+                          }
+                        }}
+                        className="mt-3"
+                      />
+
                       {/* Meal Safety - GlucoseGuard + SafetyGuard */}
                       <div className="mb-3 flex justify-end space-y-2">
                         <GlucoseGuardToggle />
@@ -1508,6 +1541,15 @@ export default function ChefsKitchenPage() {
                           Create New
                         </button>
                       </div>
+
+                      {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
+                      {dietAdaptedNotice && (
+                        <DietAdaptedNotice
+                          diet={normalizeDiet(user?.dietaryRestrictions)}
+                          notice={dietAdaptedNotice}
+                          className="mb-2"
+                        />
+                      )}
 
                       {mealToShow.description && (
                         <p className="text-white/90">
