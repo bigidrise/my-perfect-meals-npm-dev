@@ -1225,6 +1225,7 @@ export default function CravingCreator() {
                       {meal.imageUrl && (
                         <div className="mb-6 rounded-lg overflow-hidden">
                           <img
+                            key={meal.imageUrl}
                             src={meal.imageUrl}
                             alt={meal.name}
                             className="w-full h-64 object-cover"

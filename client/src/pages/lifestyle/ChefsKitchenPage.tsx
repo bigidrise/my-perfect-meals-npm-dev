@@ -1690,6 +1690,7 @@ export default function ChefsKitchenPage() {
                       {mealToShow.imageUrl && (
                         <div className="rounded-lg overflow-hidden">
                           <img
+                            key={mealToShow.imageUrl}
                             src={mealToShow.imageUrl}
                             alt={mealToShow.name}
                             className="w-full h-64 object-cover"
