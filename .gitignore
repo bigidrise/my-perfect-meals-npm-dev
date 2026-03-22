@@ -54,3 +54,12 @@ node_modules
 # env
 .env
 .env.*
+
+# Legacy bulk image directories — never re-add
+client/public/images/alcohol/
+client/public/images/kids-meals/
+client/public/images/mocktails/
+client/public/images/toddlers/
+client/public/images/cravings/*
+!client/public/images/cravings/satisfy-cravings.jpg
+!client/public/images/cravings/satisfy-cravings.png
