@@ -9,11 +9,11 @@
  * Any drift between dev and prod entrypoints caused the Jan 2026 fallback bug.
  */
 
-// Alias VITE_OPENAI_API_KEY to OPENAI_API_KEY if the latter isn't set
-// (VITE_ prefix is for client-side Vite builds, server code uses OPENAI_API_KEY)
-if (!process.env.OPENAI_API_KEY && process.env.VITE_OPENAI_API_KEY) {
-  process.env.OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
-  console.log("✅ Aliased VITE_OPENAI_API_KEY to OPENAI_API_KEY");
+// Security: VITE_ prefixed variables are exposed to the browser by Vite.
+// OPENAI_API_KEY must never use the VITE_ prefix. If it was previously stored
+// as VITE_OPENAI_API_KEY in Secrets, delete that entry and add OPENAI_API_KEY instead.
+if (process.env.VITE_OPENAI_API_KEY) {
+  console.warn("⚠️ SECURITY WARNING: VITE_OPENAI_API_KEY is set - this key is exposed to the browser! Delete it from Secrets and use OPENAI_API_KEY instead.");
 }
 
 // Boot-time health check logging
@@ -39,7 +39,7 @@ export function logBootStatus(environment: 'development' | 'production') {
 // Validate critical environment variables
 export function validateCriticalEnv(): { valid: boolean; missing: string[] } {
   const critical = [
-    { key: 'OPENAI_API_KEY', fallback: 'VITE_OPENAI_API_KEY' },
+    { key: 'OPENAI_API_KEY', fallback: null },
     { key: 'DATABASE_URL', fallback: null },
   ];
   
