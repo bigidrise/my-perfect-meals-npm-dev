@@ -313,8 +313,7 @@ export default function CravingCreator() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 20000); // 20s hard timeout
-      const baseUrl = window.location.origin;
-      const imgRes = await fetch(`${baseUrl}/api/meal-images/generate`, {
+      const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,

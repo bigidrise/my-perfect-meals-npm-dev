@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { apiUrl } from "@/lib/resolveApiBase";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, dietExclusionList } from "@/utils/dietaryFilter";
 import {
@@ -1534,8 +1535,7 @@ export default function ChefsKitchenPage() {
                                   try {
                                     const controller = new AbortController();
                                     const timeout = setTimeout(() => controller.abort(), 20000);
-                                    const baseUrl = window.location.origin;
-                                    const imgRes = await fetch(`${baseUrl}/api/meal-images/generate`, {
+                                    const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
                                       method: "POST",
                                       headers: { "Content-Type": "application/json" },
                                       signal: controller.signal,
