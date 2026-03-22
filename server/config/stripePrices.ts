@@ -10,12 +10,13 @@ const keyMode = stripeKey.startsWith("sk_live_")
 
 console.log(`🔑 Stripe key mode: ${keyMode}`);
 
-function getPrice(envVarName: string, planLabel: string): string {
+function requirePrice(envVarName: string, planLabel: string): string {
   const value = process.env[envVarName]?.trim();
 
   if (!value) {
-    console.warn(`⚠️ Missing env var ${envVarName} for plan "${planLabel}" - Stripe payments disabled for this plan`);
-    return "";
+    throw new Error(
+      `Missing required env var ${envVarName} for plan "${planLabel}"`,
+    );
   }
 
   return value;
@@ -23,35 +24,35 @@ function getPrice(envVarName: string, planLabel: string): string {
 
 /* Consumer Plans */
 
-const basic = getPrice("STRIPE_PRICE_BASIC", "Basic");
-const premium = getPrice("STRIPE_PRICE_PREMIUM", "Premium");
-const ultimate = getPrice("STRIPE_PRICE_ULTIMATE", "Ultimate");
+const basic = requirePrice("STRIPE_PRICE_BASIC", "Basic");
+const premium = requirePrice("STRIPE_PRICE_PREMIUM", "Premium");
+const ultimate = requirePrice("STRIPE_PRICE_ULTIMATE", "Ultimate");
 
 /* Family Plans */
 
-const familyBase = getPrice("STRIPE_PRICE_FAMILY_BASE", "Family Base");
-const familyPremium = getPrice("STRIPE_PRICE_FAMILY_ALL_PREMIUM", "Family Premium");
-const familyUltimate = getPrice(
+const familyBase = requirePrice("STRIPE_PRICE_FAMILY_BASE", "Family Base");
+const familyPremium = requirePrice("STRIPE_PRICE_FAMILY_ALL_PREMIUM", "Family Premium");
+const familyUltimate = requirePrice(
   "STRIPE_PRICE_FAMILY_ALL_ULTIMATE",
   "Family Ultimate",
 );
 
 /* Trainer Plans */
 
-const trainer5 = getPrice("STRIPE_PRICE_PROCARE_TRAINER_5", "Trainer 5");
-const trainer10 = getPrice("STRIPE_PRICE_PROCARE_TRAINER_10", "Trainer 10");
-const trainer25 = getPrice("STRIPE_PRICE_PROCARE_TRAINER_25", "Trainer 25");
-const trainer50 = getPrice("STRIPE_PRICE_PROCARE_TRAINER_50_PLUS", "Trainer 50");
+const trainer5 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_5", "Trainer 5");
+const trainer10 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_10", "Trainer 10");
+const trainer25 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_25", "Trainer 25");
+const trainer50 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_50_PLUS", "Trainer 50");
 
 /* Physician Plans */
 
-const physician50 = getPrice("STRIPE_PRICE_PROCARE_PHYSICIAN_50", "Physician 50");
-const physician150 = getPrice("STRIPE_PRICE_PROCARE_PROFESSIONAL_150", "Physician 150");
+const physician50 = requirePrice("STRIPE_PRICE_PROCARE_PHYSICIAN_50", "Physician 50");
+const physician150 = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL_150", "Physician 150");
 
 /* ProCare / Guidance */
 
-const procare = getPrice("STRIPE_PRICE_PROCARE", "ProCare");
-const guidance = getPrice("STRIPE_PRICE_PROCARE_PROFESSIONAL", "Personal Guidance");
+const procare = requirePrice("STRIPE_PRICE_PROCARE", "ProCare");
+const guidance = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL", "Personal Guidance");
 
 /* Mapping must match LookupKey exactly */
 

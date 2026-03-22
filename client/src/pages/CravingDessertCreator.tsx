@@ -1027,6 +1027,7 @@ export default function DessertCreator() {
                 }))}
                 source="Dessert Creator"
                 hideShareButton={true}
+                aboveBottomNav={true}
               />
             </div>
           )}

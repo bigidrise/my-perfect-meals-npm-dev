@@ -631,14 +631,9 @@ process.on('unhandledRejection', (reason, promise) => {
   // Don't exit - log and continue for stability
 });
 
-process.on('uncaughtException', (error: NodeJS.ErrnoException) => {
+process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught Exception:', error);
-  // Always exit on port-in-use so the process doesn't linger and block restarts
-  if (error.code === 'EADDRINUSE') {
-    console.error(`🚨 Port ${process.env.PORT || 5000} already in use - exiting so restart can succeed`);
-    process.exit(1);
-  }
-  // In production, exit on any uncaught exception
+  // Log but don't exit in development for better stability
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
   }
