@@ -1532,9 +1532,13 @@ export default function ChefsKitchenPage() {
                                   setIsPlatingMeal(true);
                                   let finalMeal = { ...option };
                                   try {
-                                    const imgRes = await fetch("/api/meal-images/generate", {
+                                    const controller = new AbortController();
+                                    const timeout = setTimeout(() => controller.abort(), 20000);
+                                    const baseUrl = window.location.origin;
+                                    const imgRes = await fetch(`${baseUrl}/api/meal-images/generate`, {
                                       method: "POST",
                                       headers: { "Content-Type": "application/json" },
+                                      signal: controller.signal,
                                       body: JSON.stringify({
                                         mealName: option.name,
                                         ingredients: (option.ingredients || []).map((i: any) => i.name || i),
@@ -1542,6 +1546,7 @@ export default function ChefsKitchenPage() {
                                         mealType: "dinner",
                                       }),
                                     });
+                                    clearTimeout(timeout);
                                     if (imgRes.ok) {
                                       const imgData = await imgRes.json();
                                       if (imgData.success && imgData.image?.url) {
