@@ -1555,10 +1555,9 @@ export default function ChefsKitchenPage() {
                                     }
                                   } catch (e) {
                                     console.warn("[CHEF] Image gen failed, using fallback", e);
-                                  } finally {
-                                    setIsPlatingMeal(false);
                                   }
                                   setGeneratedMeal(finalMeal);
+                                  setIsPlatingMeal(false);
                                 }}
                                 className="shrink-0 bg-lime-600 hover:bg-lime-500 active:scale-95 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all"
                               >
@@ -2287,6 +2286,7 @@ export default function ChefsKitchenPage() {
           }))}
           source="Chef's Kitchen"
           sourceSlug="chefs-kitchen"
+          aboveBottomNav={true}
         />
       )}
     </motion.div>

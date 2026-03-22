@@ -333,11 +333,10 @@ export default function CravingCreator() {
       }
     } catch (imgErr) {
       console.warn("[CRAVING CREATOR] Image generation failed, using fallback:", imgErr);
-    } finally {
-      setIsPlatingMeal(false);
     }
 
     setGeneratedMeals([finalMeal]);
+    setIsPlatingMeal(false);
     saveCravingCache({
       generatedMeal: finalMeal,
       craving: cravingInput,
@@ -1551,6 +1550,7 @@ export default function CravingCreator() {
             )}
             source="Craving Creator"
             hideShareButton={true}
+            aboveBottomNav={true}
           />
         )}
 
