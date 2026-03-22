@@ -455,14 +455,26 @@ export default function DashboardNew() {
           >
             <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 flex items-center gap-3">
               <span className="text-xl">
-                {user.goalType === "lose" ? "🔥" : user.goalType === "gain" ? "💪" : "⚖️"}
+                {user.goalType === "lose"
+                  ? "🔥"
+                  : user.goalType === "gain"
+                    ? "💪"
+                    : "⚖️"}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/60 uppercase tracking-wide font-medium">Active Goal</p>
+                <p className="text-xs text-white/60 uppercase tracking-wide font-medium">
+                  Active Goal
+                </p>
                 <p className="text-sm font-semibold text-white leading-tight">
-                  {user.goalType === "lose" ? "Lose Weight" : user.goalType === "gain" ? "Gain Muscle" : "Maintain Weight"}
+                  {user.goalType === "lose"
+                    ? "Lose Weight"
+                    : user.goalType === "gain"
+                      ? "Gain Muscle"
+                      : "Maintain Weight"}
                   {user.goalTarget ? ` — ${user.goalTarget}` : ""}
-                  {user.goalTimelineWeeks ? ` in ${user.goalTimelineWeeks >= 52 ? "1 year" : user.goalTimelineWeeks >= 26 ? "6 months" : `${user.goalTimelineWeeks} weeks`}` : ""}
+                  {user.goalTimelineWeeks
+                    ? ` in ${user.goalTimelineWeeks >= 52 ? "1 year" : user.goalTimelineWeeks >= 26 ? "6 months" : `${user.goalTimelineWeeks} weeks`}`
+                    : ""}
                 </p>
               </div>
             </div>
@@ -490,7 +502,7 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      ProCare Messages
+                      New ProCare Messages
                     </h3>
                     <p className="text-xs text-white/70">
                       View and reply to your coach
