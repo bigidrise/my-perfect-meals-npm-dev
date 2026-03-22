@@ -502,7 +502,7 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      New ProCare Messages
+                      Messages
                     </h3>
                     <p className="text-xs text-white/70">
                       View and reply to your coach
