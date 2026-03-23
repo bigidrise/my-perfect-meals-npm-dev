@@ -296,17 +296,17 @@ export default function GeneratedMealCard({
         </div>
       )}
 
-      {/* 9. Smart Substitutions — only shown on low/zero-starch days when swaps were made */}
-      {mealToShow.substitutionNotes && mealToShow.substitutionNotes.length > 0 && (
-        <div className="rounded-xl bg-emerald-950/60 border border-emerald-700/40 p-4 space-y-2">
-          <h4 className="font-semibold text-sm flex items-center gap-2 text-emerald-300">
+      {/* 8b. Smart Substitutions (if strategy made changes) */}
+      {generatedMeal.substitutionNotes && generatedMeal.substitutionNotes.length > 0 && (
+        <div className="bg-green-950/40 border border-green-500/20 rounded-xl p-3">
+          <h4 className="font-semibold mb-2 flex items-center gap-2 text-green-300 text-sm">
             <Leaf className="h-4 w-4" />
             Smart Substitutions
           </h4>
-          <ul className="space-y-1.5">
-            {mealToShow.substitutionNotes.map((note, i) => (
-              <li key={i} className="text-sm text-emerald-100/90 flex items-start gap-2">
-                <span className="mt-0.5 text-emerald-400 shrink-0">›</span>
+          <ul className="space-y-1">
+            {generatedMeal.substitutionNotes.map((note, i) => (
+              <li key={i} className="text-xs text-green-200/80 flex items-start gap-1.5">
+                <span className="mt-0.5 shrink-0 text-green-400">›</span>
                 <span>{note}</span>
               </li>
             ))}
@@ -314,7 +314,7 @@ export default function GeneratedMealCard({
         </div>
       )}
 
-      {/* 10. Action Buttons - Standardized 3-Row Layout */}
+      {/* 9. Action Buttons - Standardized 3-Row Layout */}
       <div className="space-y-2">
         {/* Row 1: Add to Macros (full width) */}
         <button

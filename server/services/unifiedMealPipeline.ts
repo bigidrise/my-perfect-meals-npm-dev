@@ -12,6 +12,7 @@
  */
 
 import { generateImage } from './imageService';
+import { buildVegetableStrategyPrompt, NutritionStrategyContext } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 import { createIngredientSignature, hashSignature } from './ingredientSignature';
@@ -120,6 +121,7 @@ export interface UnifiedMeal {
   cookingTime?: string;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   imageUrl: string; // ALWAYS present
+  substitutionNotes?: string[]; // Smart Substitutions: explains ingredient swaps made for nutrition strategy
   medicalBadges?: Array<{
     id: string;
     label: string;
@@ -128,7 +130,6 @@ export interface UnifiedMeal {
     textColor: string;
     category: string;
   }>;
-  substitutionNotes?: string[]; // Smart Substitutions: coach-voice swap explanations for low/zero-starch days
   source?: 'ai' | 'catalog' | 'fallback';
 }
 
@@ -161,6 +162,7 @@ export interface MealGenerationRequest {
   count?: number; // number of meals to generate (default 1)
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
+  nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
 }
 
@@ -1093,22 +1095,6 @@ export async function generateFridgeRescueUnified(
 }
 
 /**
- * Build the Smart Substitutions prompt block.
- * On fiber-based (low/zero starch) days, instructs the model to populate
- * substitutionNotes with one coach-voice sentence per ingredient swap.
- * Returns empty string on normal starch days so nothing extra is added.
- */
-function buildVegetableStrategyPrompt(shouldIncludeStarch: boolean): string {
-  if (shouldIncludeStarch) return '';
-  return `
-SMART SUBSTITUTIONS (required for this fiber-based meal):
-This is a low-starch or zero-starch day. If you replace a starchy ingredient (rice, pasta, bread, potatoes, grains) with a fiber-based alternative (cauliflower rice, zucchini noodles, lettuce wraps, extra vegetables, legumes), add one plain-English sentence to the "substitutionNotes" array for each swap.
-Write like a coach talking directly to a client — clear, motivating, and specific about what changed and why. Never mention AI, system prompts, or algorithms.
-Example note: "Swapped white rice for cauliflower rice to keep your carbs clean and your energy steady through the afternoon."
-If you make no starch substitutions, return an empty array for substitutionNotes.`;
-}
-
-/**
  * Generate a meal from a free-form description (Create With Chef)
  * Uses OpenAI to generate a complete recipe with ingredients, instructions, and image
  * Supports diet-specific guardrails for specialized builders
@@ -1119,7 +1105,8 @@ export async function generateFromDescriptionUnified(
   mealType: string,
   userId?: string,
   dietType?: DietType,
-  starchContext?: StarchContext
+  starchContext?: StarchContext,
+  nutritionStrategy?: NutritionStrategyContext
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1138,8 +1125,9 @@ export async function generateFromDescriptionUnified(
   // Get starch placement decision
   const starchPlacement = determineStarchPlacement(validMealType, starchContext);
   const starchGuidance = buildStarchGuidance(validMealType, starchContext);
+  const vegetableStrategyGuidance = nutritionStrategy ? buildVegetableStrategyPrompt(nutritionStrategy) : '';
   
-  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})`);
+  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})${vegetableStrategyGuidance ? ' | 🥦 VegStrategy: ON' : ''}`);
   
   try {
     await ensureHubsRegistered();
@@ -1197,8 +1185,7 @@ REQUIREMENTS:
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
 ${starchGuidance}
-${buildVegetableStrategyPrompt(starchPlacement.shouldIncludeStarch)}
-
+${vegetableStrategyGuidance ? `\n${vegetableStrategyGuidance}\n` : ''}
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
@@ -1228,7 +1215,7 @@ FORMAT: Return as JSON object:
   "fat": number (grams),
   "cookingTime": "X minutes",
   "difficulty": "Easy" or "Medium" or "Hard",
-  "substitutionNotes": ["optional — one plain-English coach-voice sentence per starch swap made; empty array if no substitutions"]
+  "substitutionNotes": ["1-sentence explanation per substitution made due to nutrition strategy, e.g. Rice was replaced with cauliflower rice to match your low-starch plan. Omit this field entirely if no substitutions were made."]
 }
 
 Create the recipe for: "${description}"`;
@@ -1280,9 +1267,6 @@ Create the recipe for: "${description}"`;
       const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
       const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
       const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
-      const substitutionNotes: string[] = Array.isArray(mealData.substitutionNotes)
-        ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
-        : [];
       
       const tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1341,6 +1325,9 @@ Create the recipe for: "${description}"`;
         }
       }
 
+      const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
+        ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
+        : undefined;
       finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes };
       break;
     }
@@ -1390,8 +1377,8 @@ Create the recipe for: "${description}"`;
       cookingTime: finalMealData.cookingTime || '25 minutes',
       difficulty: finalMealData.difficulty || 'Easy',
       imageUrl,
+      substitutionNotes: finalMealData.substitutionNotes,
       medicalBadges: [],
-      substitutionNotes: finalMealData.substitutionNotes || [],
       source: 'ai'
     };
     
@@ -1776,7 +1763,7 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy);
       break;
 
     case 'snack-creator':

@@ -19,6 +19,7 @@ import {
   MACRO_CALC_SYNC_WEIGHT,
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
+  MACRO_CALC_NUTRITION_STRATEGY,
   MACRO_CALC_STARCH,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
@@ -77,6 +78,7 @@ type GuidedStep =
   | "syncWeight"
   | "metabolic"
   | "results"
+  | "nutritionStrategy"
   | "starch"
   | "bodyComposition"
   | "save"
@@ -86,6 +88,10 @@ import {
   setMacroTargets,
   getMacroTargets,
   type StarchStrategy,
+  type CutIntensity,
+  type CutStyle,
+  type CycleMode,
+  type CycleDayType,
 } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,8 +108,10 @@ import WaistRiskSection from "@/components/macro-targeting/WaistRiskSection";
 import {
   MacroDeltas,
   AdvisorySources,
+  ClinicalAdvisoryState,
   sumAdvisorySources,
   capCombinedDeltas,
+  loadUserAdvisory,
 } from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import {
@@ -238,54 +246,295 @@ function goalAdjust(tdee: number, goal: Goal) {
   return Math.round(tdee);
 }
 
-function calcMacrosBase({ calories, kg, proteinPerKg, starchyBase, fibrousMin }: any) {
-  // Priority 1: Protein — capped at 40% of calories
-  const rawProteinKcal = Math.round(kg * proteinPerKg) * 4;
-  let proteinKcal = Math.min(rawProteinKcal, calories * 0.40);
+// Macro-first multipliers — macros drive the system, calories are a result
+const PROTEIN_MULT: Record<Goal, number> = { loss: 1.1,  maint: 0.9,  gain: 1.3  };
+const STARCHY_MULT: Record<Goal, number> = { loss: 0.25, maint: 0.8,  gain: 1.25 }; // 0.25 = real fat-loss baseline
+const FAT_MULT:     Record<Goal, number> = { loss: 0.35, maint: 0.42, gain: 0.5  };
 
-  // Priority 2: Fibrous carbs — locked floor, always guaranteed
-  const fibrousKcal = fibrousMin * 4;
+function calcMacrosBase({ lb, goal }: { lb: number; goal: Goal }) {
+  // Step 1: Protein (anchor — bodyweight × multiplier)
+  const proteinG = Math.round(lb * (PROTEIN_MULT[goal] ?? 1.1));
 
-  // Policy: if protein would consume calories needed for the fiber floor, compress protein first
-  if (proteinKcal + fibrousKcal > calories) {
-    proteinKcal = Math.max(0, calories - fibrousKcal);
+  // Step 2: Fibrous carbs (non-negotiable floor)
+  const fibrousG = Math.max(30, Math.round(lb * 0.2));
+
+  // Step 3: Starchy carbs (controlled variable by goal)
+  let starchyG = Math.round(lb * (STARCHY_MULT[goal] ?? 0.45));
+
+  // Step 4: Fat (support macro — NOT residual)
+  const fatG = Math.round(lb * (FAT_MULT[goal] ?? 0.35));
+
+  // Step 5: Totals derived from macros
+  let carbsG = starchyG + fibrousG;
+
+  // Step 6: Calories computed last — never used to determine macros
+  let calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  // Step 7: Safety — only starchy carbs adjusted, protein and fibrous stay fixed
+  if (calories < 1200) {
+    starchyG += Math.ceil((1200 - calories) / 4);
+    carbsG = starchyG + fibrousG;
+    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+  } else if (calories > 4000) {
+    starchyG = Math.max(0, starchyG - Math.ceil((calories - 4000) / 4));
+    carbsG = starchyG + fibrousG;
+    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
   }
-
-  // Priority 3: Starchy carbs — flexible, compresses toward 0 before fat is touched
-  const remainingAfterPF = Math.max(0, calories - proteinKcal - fibrousKcal);
-  const starchyKcal = Math.min(starchyBase * 4, remainingAfterPF);
-  const starchyG = Math.round(starchyKcal / 4);
-
-  // Priority 4: Fat — residual (whatever is left)
-  const fatKcal = Math.max(0, calories - proteinKcal - fibrousKcal - starchyKcal);
-
-  const proteinG = Math.round(proteinKcal / 4);
-  const carbsG = fibrousMin + starchyG; // strict reconciliation: total = fibrous + starchy
 
   return {
     calories,
-    protein: { g: proteinG, kcal: Math.round(proteinKcal) },
-    fat: { g: Math.round(fatKcal / 9), kcal: Math.round(fatKcal) },
-    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousMin },
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat: { g: fatG, kcal: fatG * 9 },
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
   };
 }
 
 function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
-  if (bodyType !== "endo") return base;
-  // Shift is applied as a % reduction of the starchy allocation only — not % of total calories.
-  // This prevents carb collapse in low-starchy scenarios (e.g. sedentary weight-loss profiles).
-  const shiftPct = activity === "sedentary" ? 0.10 : activity === "light" ? 0.12 : 0.15;
+  if (bodyType === "meso") return base; // mesomorph: no adjustment
+
   const fibrousG = base.carbs.fibrous as number;
-  const starchyKcal = (base.carbs.starchy as number) * 4;
-  const newStarchyKcal = Math.max(0, Math.round(starchyKcal * (1 - shiftPct)));
-  const newStarchyG = Math.round(newStarchyKcal / 4);
-  const newCarbsG = fibrousG + newStarchyG;
-  const newCarbsKcal = newCarbsG * 4;
-  const newFatKcal = Math.max(0, base.calories - base.protein.kcal - newCarbsKcal);
+  let starchyG = base.carbs.starchy as number;
+
+  if (bodyType === "endo") {
+    // Endomorph: reduce starchy carbs only — fat is never touched
+    const shiftPct = activity === "sedentary" ? 0.10 : activity === "light" ? 0.12 : 0.15;
+    starchyG = Math.max(0, Math.round(starchyG * (1 - shiftPct)));
+  } else if (bodyType === "ecto") {
+    // Ectomorph: increase starchy carbs — fat is never touched
+    starchyG = Math.round(starchyG * 1.15);
+  }
+
+  // Recompute derived totals — fat unchanged, fibrous unchanged
+  const carbsG = fibrousG + starchyG;
+  const calories = base.protein.g * 4 + carbsG * 4 + base.fat.g * 9;
+
   return {
     ...base,
-    fat: { g: Math.round(newFatKcal / 9), kcal: newFatKcal },
-    carbs: { g: newCarbsG, kcal: newCarbsKcal, starchy: newStarchyG, fibrous: fibrousG },
+    calories,
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
+  };
+}
+
+// Pipeline step 1.5: Input adjustments — clinical flags, activity, waist risk
+// Inserted AFTER calcMacrosBase, BEFORE applyStrategyLayer
+interface InputAdjConfig {
+  age: number;
+  activity: string;
+  highWaistRisk: boolean;
+  menopause: boolean;
+  insulinResistance: boolean;
+  highStress: boolean;
+  mealsPerDay: number;
+  fibrousCarbSafetyCap_g: number;
+}
+
+function applyInputAdjustments(base: any, cfg: InputAdjConfig) {
+  const fibrousBase = base.carbs.fibrous as number;
+
+  // Activity starchy multiplier — direct lever on starchy, not just TDEE
+  const ACTIVITY_STARCH: Record<string, number> = {
+    sedentary: 0.85,
+    light:     0.95,
+    moderate:  1.00,
+    very:      1.10,
+    extra:     1.20,
+  };
+  let starchyG = Math.round((base.carbs.starchy as number) * (ACTIVITY_STARCH[cfg.activity] ?? 1.0));
+  const baselineAfterActivity = starchyG; // snapshot for fibrous scaling
+
+  // Priority-based clinical adjustments — capped stacking, not blind multiplication
+  let starchyMult = 1.0;
+  let proteinMult = 1.0;
+  let fatMult     = 1.0;
+  let extraCupsPerMeal = 0;
+
+  // Tier 1 — Insulin Resistance (strongest; waist risk softens when stacked)
+  if (cfg.insulinResistance) {
+    starchyMult *= 0.60;
+    if (cfg.highWaistRisk) starchyMult *= 0.85; // controlled stack, not full 0.75
+  } else if (cfg.highWaistRisk) {
+    starchyMult *= 0.75;
+  }
+
+  // Tier 2 — Age > 55
+  if (cfg.age > 55) {
+    starchyMult *= 0.90;
+    proteinMult *= 1.05;
+  }
+
+  // Tier 2 — Menopause
+  if (cfg.menopause) {
+    starchyMult *= 0.85;
+    fatMult     *= 1.10;
+  }
+
+  // Tier 3 — High Stress / Poor Sleep
+  if (cfg.highStress) {
+    starchyMult  *= 0.80;
+    proteinMult  *= 1.10;
+    extraCupsPerMeal += 1;
+  }
+
+  // Hard cap — starchy never drops below 50% of what activity already set
+  starchyMult = Math.max(starchyMult, 0.50);
+
+  starchyG = Math.max(0, Math.round(starchyG * starchyMult));
+  let proteinG = Math.round((base.protein.g as number) * proteinMult);
+  let fatG     = Math.round((base.fat.g as number)     * fatMult);
+
+  // Fibrous scales harder based on how much starchy dropped (not flat +1 cup)
+  const starchyReduction = baselineAfterActivity > 0 ? starchyG / baselineAfterActivity : 0;
+  if (starchyG === 0) {
+    extraCupsPerMeal += 2; // zero starch: maximum vegetable volume
+  } else if (starchyReduction < 0.50) {
+    extraCupsPerMeal += 2; // deep cut
+  } else if (starchyReduction < 0.75) {
+    extraCupsPerMeal += 1; // moderate cut
+  }
+
+  const addedFibrous = extraCupsPerMeal > 0 ? Math.round(cfg.mealsPerDay * extraCupsPerMeal * 5) : 0;
+  const fibrousG = Math.min(cfg.fibrousCarbSafetyCap_g, fibrousBase + addedFibrous);
+
+  const carbsG   = starchyG + fibrousG;
+  const calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  return {
+    calories,
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat:     { g: fatG,     kcal: fatG * 9 },
+    carbs:   { g: carbsG,   kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
+  };
+}
+
+// Strategy layer configuration
+type StrategyConfig = {
+  lb: number;
+  mealsPerDay: number;
+  cutIntensity: CutIntensity;
+  cutStyle: CutStyle;
+  cycleMode: CycleMode;
+  cycleDayType: CycleDayType;
+  starchyCarbCap_g: number | null;
+  allowZeroStarchyOnLowDay: boolean;
+  fibrousCarbSafetyCap_g: number;
+  strictMode: boolean;
+};
+
+// Pipeline step 2: strategy layer — applied after calcMacrosBase, before bodyType tilt
+function applyStrategyLayer(base: any, cfg: StrategyConfig) {
+  let proteinG   = base.protein.g as number;
+  let fatG       = base.fat.g as number;
+  let starchyG   = base.carbs.starchy as number;
+  const fibrousBase = Math.min(base.carbs.fibrous as number, cfg.fibrousCarbSafetyCap_g);
+  const baselineStarchyG = starchyG; // snapshot before any strategy modifications
+
+  // 1. Hard cut — adjusts protein, starchy, AND fat
+  if (cfg.cutIntensity === "hard") {
+    proteinG = Math.round(proteinG * 1.1);
+    if (cfg.cutStyle === "balanced") {
+      starchyG = Math.round(starchyG * 0.7);
+      fatG     = Math.round(cfg.lb * 0.30);
+    } else if (cfg.cutStyle === "lowCarb") {
+      starchyG = Math.round(starchyG * 0.4);
+      fatG     = Math.round(cfg.lb * 0.55);
+    }
+  }
+
+  // 2. Carb cycle — starchy only
+  if (cfg.cycleMode === "carbCycle") {
+    if (cfg.cycleDayType === "low") {
+      starchyG = cfg.allowZeroStarchyOnLowDay ? 0 : Math.round(starchyG * 0.5);
+    } else if (cfg.cycleDayType === "high") {
+      starchyG = Math.round(starchyG * 1.4);
+    }
+    // moderate: no change
+  }
+
+  // 3. Fat cycle — fat only
+  if (cfg.cycleMode === "fatCycle") {
+    if (cfg.cycleDayType === "low") {
+      fatG = Math.round(fatG * 0.7);
+    } else if (cfg.cycleDayType === "high") {
+      fatG = Math.round(fatG * 1.3);
+    }
+    // moderate: no change
+  }
+
+  // 4. Optional starchy cap (post-multiplier)
+  if (cfg.starchyCarbCap_g !== null && cfg.starchyCarbCap_g !== undefined) {
+    starchyG = Math.min(starchyG, cfg.starchyCarbCap_g);
+  }
+
+  // 5. Floor starchy at 0 — it can legally be 0
+  starchyG = Math.max(0, Math.round(starchyG));
+
+  // 6. ADAPTIVE FIBROUS — fiber goes UP when starch goes DOWN
+  //    Vegetable prescription: cups per meal × meals per day × 5g per cup
+  //    Rule: starch drop → more vegetables, never fewer than baseline
+  const starchyRatio = baselineStarchyG > 0 ? starchyG / baselineStarchyG : 0;
+  let cupsPerMeal: number;
+  if (starchyG === 0) {
+    cupsPerMeal = 6;    // zero starch day: maximum vegetable volume
+  } else if (starchyRatio < 0.25) {
+    cupsPerMeal = 5;    // deep cut: high vegetable replacement
+  } else if (starchyRatio < 0.5) {
+    cupsPerMeal = 4;    // low carb: elevated vegetables
+  } else if (starchyRatio < 0.75) {
+    cupsPerMeal = 3.5;  // moderate cut: slightly elevated
+  } else {
+    cupsPerMeal = 3;    // standard day: baseline vegetables (3 cups/meal)
+  }
+  const computedFibrous = Math.round(cfg.mealsPerDay * cupsPerMeal * 5);
+  // Never below baseline, never above safety cap
+  const fibrousG = Math.min(cfg.fibrousCarbSafetyCap_g, Math.max(fibrousBase, computedFibrous));
+  const vegetableCupsPerDay = Math.round(cfg.mealsPerDay * cupsPerMeal);
+
+  const carbsG   = starchyG + fibrousG;
+  const calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  return {
+    calories,
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat: { g: fatG, kcal: fatG * 9 },
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
+    vegetableCupsPerMeal: cupsPerMeal,
+    vegetableCupsPerDay,
+  };
+}
+
+// Pipeline step 4 (final): safety pass — starchy-only correction; strict mode bypasses all
+function finalSafetyPass(base: any, { strictMode }: { strictMode: boolean }) {
+  if (strictMode) return base; // strict: no adjustments, raw macros only
+
+  let starchyG   = base.carbs.starchy as number;
+  const fibrousG = base.carbs.fibrous as number;
+  const proteinG = base.protein.g as number;
+  const fatG     = base.fat.g as number;
+
+  let carbsG   = starchyG + fibrousG;
+  let calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  if (calories < 1200) {
+    if (starchyG > 0) {
+      starchyG += Math.ceil((1200 - calories) / 4);
+      carbsG    = starchyG + fibrousG;
+      calories  = proteinG * 4 + carbsG * 4 + fatG * 9;
+    } else {
+      // starchy already at 0 — flag it, do NOT touch protein/fibrous/fat
+      // safetyFallbackAvailable = true (reserved for ProCare / advanced mode)
+      return { ...base, safetyFloorUnmet: true, safetyFloorReason: "starchy_at_zero" };
+    }
+  } else if (calories > 4000) {
+    starchyG = Math.max(0, starchyG - Math.ceil((calories - 4000) / 4));
+    carbsG   = starchyG + fibrousG;
+    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+  }
+
+  return {
+    calories,
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat: { g: fatG, kcal: fatG * 9 },
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
   };
 }
 
@@ -693,12 +942,42 @@ export default function MacroCounter() {
     waistRisk: null,
   });
 
+  // Clinical flags feed directly into the macro pipeline (applyInputAdjustments)
+  const [clinicalFlags, setClinicalFlags] = useState<ClinicalAdvisoryState>(
+    () => loadUserAdvisory() || {}
+  );
+
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
   // Start with undefined so user must make an active choice (UX improvement)
   const existingTargets = getMacroTargets(user?.id);
   const [starchStrategy, setStarchStrategy] = useState<
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
+
+  // Strategy layer state
+  const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
+    existingTargets?.cutIntensity ?? "standard"
+  );
+  const [cutStyle, setCutStyle] = useState<CutStyle>(
+    existingTargets?.cutStyle ?? "balanced"
+  );
+  const [cycleMode, setCycleMode] = useState<CycleMode>(
+    existingTargets?.cycleMode ?? "none"
+  );
+  const [cycleDayType, setCycleDayType] = useState<CycleDayType>(
+    existingTargets?.cycleDayType ?? "moderate"
+  );
+  const [starchyCarbCap_g, setStarchyCarbCap_g] = useState<number | null>(
+    existingTargets?.starchyCarbCap_g ?? null
+  );
+  const [allowZeroStarchyOnLowDay] = useState<boolean>(true);
+  const fibrousCarbSafetyCap_g = 200;
+  const [strictMode, setStrictMode] = useState<boolean>(
+    existingTargets?.strictMode ?? false
+  );
+  const [mealsPerDay, setMealsPerDay] = useState<number>(
+    existingTargets?.mealsPerDay ?? 4
+  );
 
   // Guided Mode State
   const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
@@ -708,7 +987,7 @@ export default function MacroCounter() {
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
       if (persisted) {
-        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","starch","bodyComposition","save","done"];
+        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","bodyComposition","save","done"];
         if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
       }
     } catch {}
@@ -744,6 +1023,7 @@ export default function MacroCounter() {
       syncWeight: MACRO_CALC_SYNC_WEIGHT,
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
+      nutritionStrategy: MACRO_CALC_NUTRITION_STRATEGY,
       starch: MACRO_CALC_STARCH,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
       save: MACRO_CALC_SAVE,
@@ -876,6 +1156,7 @@ export default function MacroCounter() {
       "syncWeight",
       "metabolic",
       "results",
+      "nutritionStrategy",
       "starch",
       "bodyComposition",
       "save",
@@ -1094,23 +1375,58 @@ export default function MacroCounter() {
   const results = useMemo(() => {
     if (!isCalcInputValid) return null;
 
+    // BMR / TDEE kept for display purposes only — they no longer drive macro allocation
     const bmr = mifflin({ sex, kg, cm, age });
     const tdee = Math.round(
       bmr * ACTIVITY_FACTORS[activity as keyof typeof ACTIVITY_FACTORS],
     );
-    const target = goalAdjust(tdee, goal);
-    const starchyBase = getStarchyCarbs(sex, goal);
-    const fibrousMin = getFibrousBaseline(kg);
-    const base = calcMacrosBase({
-      calories: target,
-      kg,
-      proteinPerKg,
-      starchyBase,
-      fibrousMin,
+
+    // Macro-first engine — full 5-step pipeline
+    const lb = Math.round(kg * 2.20462);
+
+    // Compute waist risk for pipeline (separate from UI advisory)
+    const waistCmForPipeline = units === "imperial" ? waistIn * 2.54 : waistCm;
+    let highWaistRisk = false;
+    if (waistCmForPipeline > 0 && cm > 0) {
+      const ratio = calculateWaistHeightRatio(waistCmForPipeline, cm);
+      const risk  = classifyWaistRisk(ratio);
+      highWaistRisk = risk.level === "red"; // red = waist/height > 0.6 — metabolic high risk
+    }
+
+    // Step 1: Base macros (protein → fibrous → starchy → fat → calories)
+    const base = calcMacrosBase({ lb, goal });
+
+    // Step 1.5: Input adjustments (age, activity, waist risk, clinical flags)
+    const adjResult = applyInputAdjustments(base, {
+      age,
+      activity: activity || "moderate",
+      highWaistRisk,
+      menopause:         !!(clinicalFlags.menopause?.enabled),
+      insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
+      highStress:        !!(clinicalFlags.highStress?.enabled),
+      mealsPerDay,
+      fibrousCarbSafetyCap_g,
     });
-    const macros = applyBodyTypeTilt(base, bodyType, activity);
-    return { bmr, tdee, target, macros };
-  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
+
+    // Step 2: Strategy layer (hard cut, carb/fat cycle, starchy cap, adaptive fibrous)
+    const stratResult = applyStrategyLayer(adjResult, {
+      lb, mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
+      starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
+    });
+
+    // Step 3: Body-type tilt (starchy-only ecto/endo adjustment)
+    const tiltResult = applyBodyTypeTilt(stratResult, bodyType, activity);
+
+    // Step 4: Final safety pass (starchy-only correction; honours strictMode)
+    const macros = finalSafetyPass(tiltResult, { strictMode });
+
+    return { bmr, tdee, target: macros.calories, macros };
+  }, [
+    isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType,
+    mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
+    starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
+    waistIn, waistCm, units, clinicalFlags,
+  ]);
 
   const estimatedBodyFat = useMemo(() => {
     const waistCmVal = units === "imperial" ? waistIn * 2.54 : waistCm;
@@ -1960,6 +2276,7 @@ export default function MacroCounter() {
                           carbs: results.macros.carbs.g,
                           fat: results.macros.fat.g,
                         }}
+                        onFlagsChange={(flags) => setClinicalFlags(flags)}
                         onApplyAdjustments={(deltas) => {
                           setAdvisorySources((prev) => ({
                             ...prev,
@@ -2019,13 +2336,18 @@ export default function MacroCounter() {
                         )}
                       />
                       {(() => {
-                        const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                        const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                        const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
+                        const starchy = results.macros.carbs.starchy;
+                        const fibrous = results.macros.carbs.fibrous;
+                        const cupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                        const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                         return (
                           <>
                             <MacroRow label="Carbs - Starchy" grams={starchy} />
-                            <MacroRow label="Carbs - Fibrous" grams={fibrous} />
+                            <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                            <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
+                              <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
+                              <span>1 cup ≈ 5g</span>
+                            </div>
                           </>
                         );
                       })()}
@@ -2039,6 +2361,236 @@ export default function MacroCounter() {
                     </div>
                   </CardContent>
                 </Card>
+                <Button
+                  onClick={() => advanceGuided("nutritionStrategy")}
+                  className="
+                    w-full py-4
+                    bg-lime-600
+                    text-white font-semibold text-lg
+                    rounded-xl
+                    border border-white/60
+                  "
+                >
+                  Continue
+                </Button>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 12: Nutrition Strategy */}
+            {guidedStep === "nutritionStrategy" && (
+              <motion.div
+                key="guided-nutrition-strategy"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card data-wt="mc-nutrition-strategy" className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-400 text-xl">⚡</span>
+                      <h3 className="text-lg font-semibold text-white">Nutrition Strategy</h3>
+                    </div>
+
+                    {/* Meals Per Day */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Meals Per Day</p>
+                      <p className="text-xs text-white/50">Drives your daily vegetable prescription — more meals = more vegetable volume</p>
+                      <div className="space-y-3">
+                        {([3, 4, 5] as const).map((n) => (
+                          <div key={n} className={`p-4 rounded-xl border transition-all ${mealsPerDay === n ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">{n} Meals</span>
+                                <p className="text-xs text-white/60 mt-0.5">
+                                  {n === 3 ? "3 meals, no snacks — simple structure" : n === 4 ? "3 meals + 1 snack — most common" : "5 smaller meals — frequent fueling"}
+                                </p>
+                              </div>
+                              <PillButton onClick={() => setMealsPerDay(n)} active={mealsPerDay === n}>
+                                {mealsPerDay === n ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Cut Intensity */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Cut Intensity</p>
+                      <div className="space-y-3">
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "standard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Standard</span>
+                              <p className="text-xs text-white/60 mt-0.5">Balanced deficit — recommended for most goals</p>
+                            </div>
+                            <PillButton onClick={() => setCutIntensity("standard")} active={cutIntensity === "standard"}>
+                              {cutIntensity === "standard" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "hard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Hard Cut</span>
+                              <p className="text-xs text-white/60 mt-0.5">Aggressive deficit with protein boost</p>
+                            </div>
+                            <PillButton onClick={() => setCutIntensity("hard")} active={cutIntensity === "hard"}>
+                              {cutIntensity === "hard" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cut Style — only when hard cut selected */}
+                    {cutIntensity === "hard" && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-white/80">Cut Style</p>
+                        <div className="space-y-3">
+                          <div className={`p-4 rounded-xl border transition-all ${cutStyle === "balanced" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">Balanced</span>
+                                <p className="text-xs text-white/60 mt-0.5">Moderate carb reduction, fat held steady</p>
+                              </div>
+                              <PillButton onClick={() => setCutStyle("balanced")} active={cutStyle === "balanced"}>
+                                {cutStyle === "balanced" ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                          <div className={`p-4 rounded-xl border transition-all ${cutStyle === "lowCarb" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">Low Carb</span>
+                                <p className="text-xs text-white/60 mt-0.5">Deep carb cut, fat raised to compensate</p>
+                              </div>
+                              <PillButton onClick={() => setCutStyle("lowCarb")} active={cutStyle === "lowCarb"}>
+                                {cutStyle === "lowCarb" ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cycle Mode */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Cycle Mode</p>
+                      <div className="space-y-3">
+                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "none" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">None</span>
+                              <p className="text-xs text-white/60 mt-0.5">Same macros every day</p>
+                            </div>
+                            <PillButton onClick={() => setCycleMode("none")} active={cycleMode === "none"}>
+                              {cycleMode === "none" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "carbCycle" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Carb Cycle</span>
+                              <p className="text-xs text-white/60 mt-0.5">Starchy carbs vary by day type (zero on Low days)</p>
+                            </div>
+                            <PillButton onClick={() => setCycleMode("carbCycle")} active={cycleMode === "carbCycle"}>
+                              {cycleMode === "carbCycle" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "fatCycle" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Fat Cycle</span>
+                              <p className="text-xs text-white/60 mt-0.5">Fat varies by day type, carbs stay constant</p>
+                            </div>
+                            <PillButton onClick={() => setCycleMode("fatCycle")} active={cycleMode === "fatCycle"}>
+                              {cycleMode === "fatCycle" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cycle Day Type — only when a cycle is active */}
+                    {cycleMode !== "none" && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-white/80">Day Type</p>
+                        <div className="space-y-3">
+                          {(["low", "moderate", "high"] as CycleDayType[]).map((v) => (
+                            <div key={v} className={`p-4 rounded-xl border transition-all ${cycleDayType === v ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="text-sm font-medium text-white">{v.charAt(0).toUpperCase() + v.slice(1)}</span>
+                                  {cycleMode === "carbCycle" && v === "low" && (
+                                    <p className="text-xs text-green-400/80 mt-0.5">Starchy carbs → 0g (fibrous protected)</p>
+                                  )}
+                                  {cycleMode === "carbCycle" && v === "high" && (
+                                    <p className="text-xs text-white/60 mt-0.5">Starchy carbs ×1.4</p>
+                                  )}
+                                  {cycleMode === "fatCycle" && v === "low" && (
+                                    <p className="text-xs text-white/60 mt-0.5">Fat ×0.7</p>
+                                  )}
+                                  {cycleMode === "fatCycle" && v === "high" && (
+                                    <p className="text-xs text-white/60 mt-0.5">Fat ×1.3</p>
+                                  )}
+                                </div>
+                                <PillButton onClick={() => setCycleDayType(v)} active={cycleDayType === v}>
+                                  {cycleDayType === v ? "On" : "Off"}
+                                </PillButton>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Starchy Carb Cap (optional) */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Starchy Carb Cap <span className="text-white/40 font-normal">(optional)</span></p>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={400}
+                          placeholder="No cap"
+                          value={starchyCarbCap_g ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setStarchyCarbCap_g(v === "" ? null : Math.max(0, parseInt(v) || 0));
+                          }}
+                          className="w-28 bg-white/10 border-white/20 text-white placeholder:text-white/30"
+                        />
+                        <span className="text-sm text-white/50">g / day</span>
+                        {starchyCarbCap_g !== null && (
+                          <button
+                            onClick={() => setStarchyCarbCap_g(null)}
+                            className="text-xs text-white/40 hover:text-white/70 underline"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Strict Mode toggle */}
+                    <div className={`p-4 rounded-xl border transition-all ${strictMode ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-medium text-white">Strict Mode</span>
+                          <p className="text-xs text-white/60 mt-0.5">No auto-corrections — raw macros only (competition / ProCare)</p>
+                        </div>
+                        <PillButton onClick={() => setStrictMode(!strictMode)} active={strictMode} variant="amber">
+                          {strictMode ? "On" : "Off"}
+                        </PillButton>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Button
                   onClick={() => advanceGuided("starch")}
                   className="
@@ -2054,7 +2606,7 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 12: Starch Strategy */}
+            {/* GUIDED STEP 13: Starch Strategy */}
             {guidedStep === "starch" && (
               <motion.div
                 key="guided-starch"
@@ -2063,7 +2615,7 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <Card data-wt="mc-starch-game-plan" className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <span className="text-amber-400 text-xl">🌾</span>
@@ -2138,7 +2690,7 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 13: Body Composition (Optional) */}
+            {/* GUIDED STEP 14: Body Composition (Optional) */}
             {guidedStep === "bodyComposition" && (
               <BodyCompositionGuidedStep
                 sex={sex}
@@ -2239,8 +2791,10 @@ export default function MacroCounter() {
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                          const fibrousCarbs_g = results.macros.carbs.fibrous;
+                          const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
+                          const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                           await setMacroTargets(
                             {
@@ -2248,9 +2802,20 @@ export default function MacroCounter() {
                               protein_g: adjustedProtein,
                               carbs_g: adjustedCarbs,
                               fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
+                              starchyCarbs_g,
+                              fibrousCarbs_g,
                               starchStrategy,
+                              cutIntensity,
+                              cutStyle,
+                              cycleMode,
+                              cycleDayType,
+                              starchyCarbCap_g,
+                              allowZeroStarchyOnLowDay,
+                              fibrousCarbSafetyCap_g,
+                              strictMode,
+                              mealsPerDay,
+                              vegetableCupsPerMeal,
+                              vegetableCupsPerDay,
                             },
                             user?.id,
                           );
@@ -2863,6 +3428,7 @@ export default function MacroCounter() {
                     carbs: results.macros.carbs.g,
                     fat: results.macros.fat.g,
                   }}
+                  onFlagsChange={(flags) => setClinicalFlags(flags)}
                   onApplyAdjustments={(deltas) => {
                     setAdvisorySources((prev) => ({
                       ...prev,
@@ -2945,13 +3511,18 @@ export default function MacroCounter() {
                           )}
                         />
                         {(() => {
-                          const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                          const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
+                          const starchy = results.macros.carbs.starchy;
+                          const fibrous = results.macros.carbs.fibrous;
+                          const cupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                           return (
                             <>
                               <MacroRow label="Carbs - Starchy" grams={starchy} />
-                              <MacroRow label="Carbs - Fibrous" grams={fibrous} />
+                              <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                              <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
+                                <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
+                                <span>1 cup ≈ 5g</span>
+                              </div>
                             </>
                           );
                         })()}
@@ -2988,8 +3559,10 @@ export default function MacroCounter() {
                             const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
                             const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
                             const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
-                            const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                            const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                            const fibrousCarbs_g = results.macros.carbs.fibrous;
+                            const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
+                            const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                            const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                             await setMacroTargets(
                               {
@@ -2997,9 +3570,20 @@ export default function MacroCounter() {
                                 protein_g: adjustedProtein,
                                 carbs_g: adjustedCarbs,
                                 fat_g: adjustedFat,
-                                starchyCarbs_g: adjustedStarchy,
-                                fibrousCarbs_g: adjustedFibrous,
+                                starchyCarbs_g,
+                                fibrousCarbs_g,
                                 starchStrategy,
+                                cutIntensity,
+                                cutStyle,
+                                cycleMode,
+                                cycleDayType,
+                                starchyCarbCap_g,
+                                allowZeroStarchyOnLowDay,
+                                fibrousCarbSafetyCap_g,
+                                strictMode,
+                                mealsPerDay,
+                                vegetableCupsPerMeal,
+                                vegetableCupsPerDay,
                               },
                               user?.id,
                             );
@@ -3145,8 +3729,10 @@ export default function MacroCounter() {
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                          const fibrousCarbs_g_s3 = results.macros.carbs.fibrous;
+                          const starchyCarbs_g_s3 = Math.max(0, adjustedCarbs - fibrousCarbs_g_s3);
+                          const vegetableCupsPerMeal_s3 = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const vegetableCupsPerDay_s3 = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                           await setMacroTargets(
                             {
@@ -3154,9 +3740,20 @@ export default function MacroCounter() {
                               protein_g: adjustedProtein,
                               carbs_g: adjustedCarbs,
                               fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
+                              starchyCarbs_g: starchyCarbs_g_s3,
+                              fibrousCarbs_g: fibrousCarbs_g_s3,
                               starchStrategy,
+                              cutIntensity,
+                              cutStyle,
+                              cycleMode,
+                              cycleDayType,
+                              starchyCarbCap_g,
+                              allowZeroStarchyOnLowDay,
+                              fibrousCarbSafetyCap_g,
+                              strictMode,
+                              mealsPerDay,
+                              vegetableCupsPerMeal: vegetableCupsPerMeal_s3,
+                              vegetableCupsPerDay: vegetableCupsPerDay_s3,
                             },
                             user?.id,
                           );
@@ -3230,8 +3827,10 @@ export default function MacroCounter() {
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                          const fibrousCarbs_g_s4 = results.macros.carbs.fibrous;
+                          const starchyCarbs_g_s4 = Math.max(0, adjustedCarbs - fibrousCarbs_g_s4);
+                          const vegetableCupsPerMeal_s4 = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const vegetableCupsPerDay_s4 = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                           await setMacroTargets(
                             {
@@ -3239,9 +3838,20 @@ export default function MacroCounter() {
                               protein_g: adjustedProtein,
                               carbs_g: adjustedCarbs,
                               fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
+                              starchyCarbs_g: starchyCarbs_g_s4,
+                              fibrousCarbs_g: fibrousCarbs_g_s4,
                               starchStrategy,
+                              cutIntensity,
+                              cutStyle,
+                              cycleMode,
+                              cycleDayType,
+                              starchyCarbCap_g,
+                              allowZeroStarchyOnLowDay,
+                              fibrousCarbSafetyCap_g,
+                              strictMode,
+                              mealsPerDay,
+                              vegetableCupsPerMeal: vegetableCupsPerMeal_s4,
+                              vegetableCupsPerDay: vegetableCupsPerDay_s4,
                             },
                             user?.id,
                           );
