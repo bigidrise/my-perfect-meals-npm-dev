@@ -128,6 +128,7 @@ export interface UnifiedMeal {
     textColor: string;
     category: string;
   }>;
+  substitutionNotes?: string[]; // Smart Substitutions: coach-voice swap explanations for low/zero-starch days
   source?: 'ai' | 'catalog' | 'fallback';
 }
 
@@ -1092,6 +1093,22 @@ export async function generateFridgeRescueUnified(
 }
 
 /**
+ * Build the Smart Substitutions prompt block.
+ * On fiber-based (low/zero starch) days, instructs the model to populate
+ * substitutionNotes with one coach-voice sentence per ingredient swap.
+ * Returns empty string on normal starch days so nothing extra is added.
+ */
+function buildVegetableStrategyPrompt(shouldIncludeStarch: boolean): string {
+  if (shouldIncludeStarch) return '';
+  return `
+SMART SUBSTITUTIONS (required for this fiber-based meal):
+This is a low-starch or zero-starch day. If you replace a starchy ingredient (rice, pasta, bread, potatoes, grains) with a fiber-based alternative (cauliflower rice, zucchini noodles, lettuce wraps, extra vegetables, legumes), add one plain-English sentence to the "substitutionNotes" array for each swap.
+Write like a coach talking directly to a client — clear, motivating, and specific about what changed and why. Never mention AI, system prompts, or algorithms.
+Example note: "Swapped white rice for cauliflower rice to keep your carbs clean and your energy steady through the afternoon."
+If you make no starch substitutions, return an empty array for substitutionNotes.`;
+}
+
+/**
  * Generate a meal from a free-form description (Create With Chef)
  * Uses OpenAI to generate a complete recipe with ingredients, instructions, and image
  * Supports diet-specific guardrails for specialized builders
@@ -1180,6 +1197,7 @@ REQUIREMENTS:
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
 ${starchGuidance}
+${buildVegetableStrategyPrompt(starchPlacement.shouldIncludeStarch)}
 
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
@@ -1209,7 +1227,8 @@ FORMAT: Return as JSON object:
   "fibrousCarbs": number (grams from vegetables and fibrous sources),
   "fat": number (grams),
   "cookingTime": "X minutes",
-  "difficulty": "Easy" or "Medium" or "Hard"
+  "difficulty": "Easy" or "Medium" or "Hard",
+  "substitutionNotes": ["optional — one plain-English coach-voice sentence per starch swap made; empty array if no substitutions"]
 }
 
 Create the recipe for: "${description}"`;
@@ -1261,6 +1280,9 @@ Create the recipe for: "${description}"`;
       const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
       const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
       const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
+      const substitutionNotes: string[] = Array.isArray(mealData.substitutionNotes)
+        ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
+        : [];
       
       const tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1319,7 +1341,7 @@ Create the recipe for: "${description}"`;
         }
       }
 
-      finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs };
+      finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes };
       break;
     }
     
@@ -1369,6 +1391,7 @@ Create the recipe for: "${description}"`;
       difficulty: finalMealData.difficulty || 'Easy',
       imageUrl,
       medicalBadges: [],
+      substitutionNotes: finalMealData.substitutionNotes || [],
       source: 'ai'
     };
     

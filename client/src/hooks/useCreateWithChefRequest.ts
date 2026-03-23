@@ -51,6 +51,7 @@ interface Meal {
     fibrousCarbs?: number;
   };
   medicalBadges?: string[];
+  substitutionNotes?: string[];
 }
 
 interface SafetyOptions {
@@ -173,6 +174,9 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         },
         medicalBadges: generatedMeal.medicalBadges || [],
+        substitutionNotes: Array.isArray(generatedMeal.substitutionNotes)
+          ? generatedMeal.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
+          : [],
       };
 
       stopProgressTicker();

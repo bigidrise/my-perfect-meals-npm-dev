@@ -1,4 +1,4 @@
-import { Sparkles, Users, Brain, ChefHat, CalendarPlus } from "lucide-react";
+import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
@@ -44,6 +44,7 @@ export interface GeneratedMealData {
   servingSize?: string;
   servings?: number;
   reasoning?: string;
+  substitutionNotes?: string[];
 }
 
 interface GeneratedMealCardProps {
@@ -295,7 +296,25 @@ export default function GeneratedMealCard({
         </div>
       )}
 
-      {/* 9. Action Buttons - Standardized 3-Row Layout */}
+      {/* 9. Smart Substitutions — only shown on low/zero-starch days when swaps were made */}
+      {mealToShow.substitutionNotes && mealToShow.substitutionNotes.length > 0 && (
+        <div className="rounded-xl bg-emerald-950/60 border border-emerald-700/40 p-4 space-y-2">
+          <h4 className="font-semibold text-sm flex items-center gap-2 text-emerald-300">
+            <Leaf className="h-4 w-4" />
+            Smart Substitutions
+          </h4>
+          <ul className="space-y-1.5">
+            {mealToShow.substitutionNotes.map((note, i) => (
+              <li key={i} className="text-sm text-emerald-100/90 flex items-start gap-2">
+                <span className="mt-0.5 text-emerald-400 shrink-0">›</span>
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 10. Action Buttons - Standardized 3-Row Layout */}
       <div className="space-y-2">
         {/* Row 1: Add to Macros (full width) */}
         <button
