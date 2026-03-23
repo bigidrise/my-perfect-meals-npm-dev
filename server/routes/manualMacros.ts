@@ -67,7 +67,7 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       protein: (Number(proteinVal) || 0).toString(),
       carbs: (Number(carbsVal) || 0).toString(),
       fat: (Number(fatVal) || 0).toString(),
-      fiber: "0",
+      fiber: (Number(nutrition?.fiber_g ?? req.body?.fiber) || 0).toString(),
       alcohol: "0",
       starchyCarbs: starchyCarbsVal.toString(),
       fibrousCarbs: fibrousCarbsVal.toString(),
@@ -373,6 +373,8 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         dailyProteinTarget: users.dailyProteinTarget,
         dailyCarbsTarget: users.dailyCarbsTarget,
         dailyFatTarget: users.dailyFatTarget,
+        dailyStarchyCarbsTarget: users.dailyStarchyCarbsTarget,
+        dailyFibrousCarbsTarget: users.dailyFibrousCarbsTarget,
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -386,6 +388,8 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
       protein_g: user.dailyProteinTarget || 0,
       carbs_g: user.dailyCarbsTarget || 0,
       fat_g: user.dailyFatTarget || 0,
+      starchyCarbs_g: user.dailyStarchyCarbsTarget || 0,
+      fibrousCarbs_g: user.dailyFibrousCarbsTarget || 0,
       hasTargets: !!(
         user.dailyCalorieTarget ||
         user.dailyProteinTarget ||
@@ -407,7 +411,7 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
     if (!hasAccess) {
       return res.status(403).json({ error: "Access denied" });
     }
-    const { calories, protein_g, carbs_g, fat_g, reason } = req.body;
+    const { calories, protein_g, carbs_g, fat_g, starchyCarbs_g, fibrousCarbs_g, reason } = req.body;
 
     if (typeof calories !== 'number' || typeof protein_g !== 'number' || 
         typeof carbs_g !== 'number' || typeof fat_g !== 'number') {
@@ -424,6 +428,8 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
           dailyProteinTarget: protein_g,
           dailyCarbsTarget: carbs_g,
           dailyFatTarget: fat_g,
+          dailyStarchyCarbsTarget: typeof starchyCarbs_g === 'number' ? starchyCarbs_g : null,
+          dailyFibrousCarbsTarget: typeof fibrousCarbs_g === 'number' ? fibrousCarbs_g : null,
         })
         .where(eq(users.id, userId))
         .returning();
@@ -447,7 +453,7 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    console.log(`✅ Saved macro targets for user ${userId}: ${calories}cal, ${protein_g}p/${carbs_g}c/${fat_g}f`);
+    console.log(`✅ Saved macro targets for user ${userId}: ${calories}cal, ${protein_g}p/${carbs_g}c/${fat_g}f (starchy:${starchyCarbs_g ?? '-'} fibrous:${fibrousCarbs_g ?? '-'})`);
 
     if (authUserId && authUserId !== userId) {
       pushToUser(userId, {
@@ -463,7 +469,9 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         calories,
         protein_g,
         carbs_g,
-        fat_g
+        fat_g,
+        starchyCarbs_g: starchyCarbs_g ?? null,
+        fibrousCarbs_g: fibrousCarbs_g ?? null,
       }
     });
   } catch (e: any) {

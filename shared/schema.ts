@@ -275,6 +275,8 @@ export const users = pgTable("users", {
   dailyProteinTarget: integer("daily_protein_target"),
   dailyCarbsTarget: integer("daily_carbs_target"),
   dailyFatTarget: integer("daily_fat_target"),
+  dailyStarchyCarbsTarget: integer("daily_starchy_carbs_target"),
+  dailyFibrousCarbsTarget: integer("daily_fibrous_carbs_target"),
   dietaryRestrictions: text("dietary_restrictions").array().default(sql`ARRAY[]::text[]`),
   healthConditions: text("health_conditions").array().default(sql`ARRAY[]::text[]`),
   allergies: text("allergies").array().default(sql`ARRAY[]::text[]`),

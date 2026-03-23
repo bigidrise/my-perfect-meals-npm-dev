@@ -239,6 +239,12 @@ function goalAdjust(tdee: number, goal: Goal) {
 }
 
 function calcMacrosBase({ calories, kg, proteinPerKg, starchyBase, fibrousMin }: any) {
+  // Fat cap: 35% of total calories max
+  const fatMaxG = Math.floor((calories * 0.35) / 9);
+
+  // Carb minimum: starchy baseline + fibrous floor must always be honored
+  const totalCarbsMin = starchyBase + fibrousMin;
+
   // Priority 1: Protein — capped at 40% of calories
   const rawProteinKcal = Math.round(kg * proteinPerKg) * 4;
   let proteinKcal = Math.min(rawProteinKcal, calories * 0.40);
@@ -254,18 +260,34 @@ function calcMacrosBase({ calories, kg, proteinPerKg, starchyBase, fibrousMin }:
   // Priority 3: Starchy carbs — flexible, compresses toward 0 before fat is touched
   const remainingAfterPF = Math.max(0, calories - proteinKcal - fibrousKcal);
   const starchyKcal = Math.min(starchyBase * 4, remainingAfterPF);
-  const starchyG = Math.round(starchyKcal / 4);
+  let starchyG = Math.round(starchyKcal / 4);
 
-  // Priority 4: Fat — residual (whatever is left)
-  const fatKcal = Math.max(0, calories - proteinKcal - fibrousKcal - starchyKcal);
+  // Priority 4: Fat — residual, but capped at 35% of calories
+  let rawFatKcal = Math.max(0, calories - proteinKcal - fibrousKcal - starchyKcal);
+  let fatG = Math.round(rawFatKcal / 9);
 
+  // If fat exceeds cap, redirect the excess calories into starchy carbs
+  if (fatG > fatMaxG) {
+    fatG = fatMaxG;
+    const fatKcalCapped = fatG * 9;
+    const excessKcal = rawFatKcal - fatKcalCapped;
+    starchyG = Math.round(starchyG + excessKcal / 4);
+  }
+
+  // Enforce carb minimum floor: if total carbs are still below minimum, raise starchy
   const proteinG = Math.round(proteinKcal / 4);
-  const carbsG = fibrousMin + starchyG; // strict reconciliation: total = fibrous + starchy
+  let carbsG = fibrousMin + starchyG;
+  if (carbsG < totalCarbsMin) {
+    starchyG = totalCarbsMin - fibrousMin;
+    carbsG = totalCarbsMin;
+  }
+
+  const fatKcal = fatG * 9;
 
   return {
     calories,
     protein: { g: proteinG, kcal: Math.round(proteinKcal) },
-    fat: { g: Math.round(fatKcal / 9), kcal: Math.round(fatKcal) },
+    fat: { g: fatG, kcal: fatKcal },
     carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousMin },
   };
 }
@@ -278,14 +300,27 @@ function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
   const fibrousG = base.carbs.fibrous as number;
   const starchyKcal = (base.carbs.starchy as number) * 4;
   const newStarchyKcal = Math.max(0, Math.round(starchyKcal * (1 - shiftPct)));
-  const newStarchyG = Math.round(newStarchyKcal / 4);
-  const newCarbsG = fibrousG + newStarchyG;
+  let newStarchyG = Math.round(newStarchyKcal / 4);
+  let newCarbsG = fibrousG + newStarchyG;
   const newCarbsKcal = newCarbsG * 4;
-  const newFatKcal = Math.max(0, base.calories - base.protein.kcal - newCarbsKcal);
+  let newFatKcal = Math.max(0, base.calories - base.protein.kcal - newCarbsKcal);
+  let newFatG = Math.round(newFatKcal / 9);
+
+  // Post-tilt fat cap: 35% of total calories max — tilt cannot drive fat past the guardrail
+  const fatMaxG = Math.floor((base.calories * 0.35) / 9);
+  if (newFatG > fatMaxG) {
+    newFatG = fatMaxG;
+    newFatKcal = newFatG * 9;
+    // Redirect displaced calories back into starchy carbs (never touch fibrous floor)
+    const displacedKcal = (base.calories - base.protein.kcal - newCarbsKcal) - newFatKcal;
+    newStarchyG = Math.round(newStarchyG + displacedKcal / 4);
+    newCarbsG = fibrousG + newStarchyG;
+  }
+
   return {
     ...base,
-    fat: { g: Math.round(newFatKcal / 9), kcal: newFatKcal },
-    carbs: { g: newCarbsG, kcal: newCarbsKcal, starchy: newStarchyG, fibrous: fibrousG },
+    fat: { g: newFatG, kcal: newFatKcal },
+    carbs: { g: newCarbsG, kcal: newCarbsG * 4, starchy: newStarchyG, fibrous: fibrousG },
   };
 }
 
