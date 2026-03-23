@@ -1,4 +1,4 @@
-import { Sparkles, Users, Brain, ChefHat, CalendarPlus } from "lucide-react";
+import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
@@ -44,6 +44,7 @@ export interface GeneratedMealData {
   servingSize?: string;
   servings?: number;
   reasoning?: string;
+  substitutionNotes?: string[];
 }
 
 interface GeneratedMealCardProps {
@@ -292,6 +293,24 @@ export default function GeneratedMealCard({
           <p className="text-sm text-white/80">
             {mealToShow.reasoning}
           </p>
+        </div>
+      )}
+
+      {/* 8b. Smart Substitutions (if strategy made changes) */}
+      {generatedMeal.substitutionNotes && generatedMeal.substitutionNotes.length > 0 && (
+        <div className="bg-green-950/40 border border-green-500/20 rounded-xl p-3">
+          <h4 className="font-semibold mb-2 flex items-center gap-2 text-green-300 text-sm">
+            <Leaf className="h-4 w-4" />
+            Smart Substitutions
+          </h4>
+          <ul className="space-y-1">
+            {generatedMeal.substitutionNotes.map((note, i) => (
+              <li key={i} className="text-xs text-green-200/80 flex items-start gap-1.5">
+                <span className="mt-0.5 shrink-0 text-green-400">›</span>
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

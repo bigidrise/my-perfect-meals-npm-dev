@@ -121,6 +121,7 @@ export interface UnifiedMeal {
   cookingTime?: string;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   imageUrl: string; // ALWAYS present
+  substitutionNotes?: string[]; // Smart Substitutions: explains ingredient swaps made for nutrition strategy
   medicalBadges?: Array<{
     id: string;
     label: string;
@@ -1213,7 +1214,8 @@ FORMAT: Return as JSON object:
   "fibrousCarbs": number (grams from vegetables and fibrous sources),
   "fat": number (grams),
   "cookingTime": "X minutes",
-  "difficulty": "Easy" or "Medium" or "Hard"
+  "difficulty": "Easy" or "Medium" or "Hard",
+  "substitutionNotes": ["1-sentence explanation per substitution made due to nutrition strategy, e.g. Rice was replaced with cauliflower rice to match your low-starch plan. Omit this field entirely if no substitutions were made."]
 }
 
 Create the recipe for: "${description}"`;
@@ -1323,7 +1325,10 @@ Create the recipe for: "${description}"`;
         }
       }
 
-      finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs };
+      const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
+        ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
+        : undefined;
+      finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes };
       break;
     }
     
@@ -1372,6 +1377,7 @@ Create the recipe for: "${description}"`;
       cookingTime: finalMealData.cookingTime || '25 minutes',
       difficulty: finalMealData.difficulty || 'Easy',
       imageUrl,
+      substitutionNotes: finalMealData.substitutionNotes,
       medicalBadges: [],
       source: 'ai'
     };
