@@ -2241,20 +2241,29 @@ export default function MacroCounter() {
                     {/* Cut Intensity */}
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-white/80">Cut Intensity</p>
-                      <div className="flex gap-2">
-                        {(["standard", "hard"] as CutIntensity[]).map((v) => (
-                          <button
-                            key={v}
-                            onClick={() => setCutIntensity(v)}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
-                              cutIntensity === v
-                                ? "bg-blue-500/30 border-blue-400 text-white"
-                                : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
-                            }`}
-                          >
-                            {v === "standard" ? "Standard" : "Hard Cut"}
-                          </button>
-                        ))}
+                      <div className="space-y-3">
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "standard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Standard</span>
+                              <p className="text-xs text-white/60 mt-0.5">Balanced deficit — recommended for most goals</p>
+                            </div>
+                            <PillButton onClick={() => setCutIntensity("standard")} active={cutIntensity === "standard"}>
+                              {cutIntensity === "standard" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "hard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Hard Cut</span>
+                              <p className="text-xs text-white/60 mt-0.5">Aggressive deficit with protein boost</p>
+                            </div>
+                            <PillButton onClick={() => setCutIntensity("hard")} active={cutIntensity === "hard"}>
+                              {cutIntensity === "hard" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -2262,20 +2271,29 @@ export default function MacroCounter() {
                     {cutIntensity === "hard" && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-white/80">Cut Style</p>
-                        <div className="flex gap-2">
-                          {(["balanced", "lowCarb"] as CutStyle[]).map((v) => (
-                            <button
-                              key={v}
-                              onClick={() => setCutStyle(v)}
-                              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
-                                cutStyle === v
-                                  ? "bg-orange-500/30 border-orange-400 text-white"
-                                  : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
-                              }`}
-                            >
-                              {v === "balanced" ? "Balanced" : "Low Carb"}
-                            </button>
-                          ))}
+                        <div className="space-y-3">
+                          <div className={`p-4 rounded-xl border transition-all ${cutStyle === "balanced" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">Balanced</span>
+                                <p className="text-xs text-white/60 mt-0.5">Moderate carb reduction, fat held steady</p>
+                              </div>
+                              <PillButton onClick={() => setCutStyle("balanced")} active={cutStyle === "balanced"}>
+                                {cutStyle === "balanced" ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                          <div className={`p-4 rounded-xl border transition-all ${cutStyle === "lowCarb" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">Low Carb</span>
+                                <p className="text-xs text-white/60 mt-0.5">Deep carb cut, fat raised to compensate</p>
+                              </div>
+                              <PillButton onClick={() => setCutStyle("lowCarb")} active={cutStyle === "lowCarb"}>
+                                {cutStyle === "lowCarb" ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2283,20 +2301,40 @@ export default function MacroCounter() {
                     {/* Cycle Mode */}
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-white/80">Cycle Mode</p>
-                      <div className="flex gap-2">
-                        {(["none", "carbCycle", "fatCycle"] as CycleMode[]).map((v) => (
-                          <button
-                            key={v}
-                            onClick={() => setCycleMode(v)}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
-                              cycleMode === v
-                                ? "bg-purple-500/30 border-purple-400 text-white"
-                                : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
-                            }`}
-                          >
-                            {v === "none" ? "None" : v === "carbCycle" ? "Carb Cycle" : "Fat Cycle"}
-                          </button>
-                        ))}
+                      <div className="space-y-3">
+                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "none" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">None</span>
+                              <p className="text-xs text-white/60 mt-0.5">Same macros every day</p>
+                            </div>
+                            <PillButton onClick={() => setCycleMode("none")} active={cycleMode === "none"}>
+                              {cycleMode === "none" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "carbCycle" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Carb Cycle</span>
+                              <p className="text-xs text-white/60 mt-0.5">Starchy carbs vary by day type (zero on Low days)</p>
+                            </div>
+                            <PillButton onClick={() => setCycleMode("carbCycle")} active={cycleMode === "carbCycle"}>
+                              {cycleMode === "carbCycle" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "fatCycle" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Fat Cycle</span>
+                              <p className="text-xs text-white/60 mt-0.5">Fat varies by day type, carbs stay constant</p>
+                            </div>
+                            <PillButton onClick={() => setCycleMode("fatCycle")} active={cycleMode === "fatCycle"}>
+                              {cycleMode === "fatCycle" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -2304,24 +2342,32 @@ export default function MacroCounter() {
                     {cycleMode !== "none" && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-white/80">Day Type</p>
-                        <div className="flex gap-2">
+                        <div className="space-y-3">
                           {(["low", "moderate", "high"] as CycleDayType[]).map((v) => (
-                            <button
-                              key={v}
-                              onClick={() => setCycleDayType(v)}
-                              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
-                                cycleDayType === v
-                                  ? "bg-green-500/30 border-green-400 text-white"
-                                  : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
-                              }`}
-                            >
-                              {v.charAt(0).toUpperCase() + v.slice(1)}
-                            </button>
+                            <div key={v} className={`p-4 rounded-xl border transition-all ${cycleDayType === v ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="text-sm font-medium text-white">{v.charAt(0).toUpperCase() + v.slice(1)}</span>
+                                  {cycleMode === "carbCycle" && v === "low" && (
+                                    <p className="text-xs text-green-400/80 mt-0.5">Starchy carbs → 0g (fibrous protected)</p>
+                                  )}
+                                  {cycleMode === "carbCycle" && v === "high" && (
+                                    <p className="text-xs text-white/60 mt-0.5">Starchy carbs ×1.4</p>
+                                  )}
+                                  {cycleMode === "fatCycle" && v === "low" && (
+                                    <p className="text-xs text-white/60 mt-0.5">Fat ×0.7</p>
+                                  )}
+                                  {cycleMode === "fatCycle" && v === "high" && (
+                                    <p className="text-xs text-white/60 mt-0.5">Fat ×1.3</p>
+                                  )}
+                                </div>
+                                <PillButton onClick={() => setCycleDayType(v)} active={cycleDayType === v}>
+                                  {cycleDayType === v ? "On" : "Off"}
+                                </PillButton>
+                              </div>
+                            </div>
                           ))}
                         </div>
-                        {cycleMode === "carbCycle" && cycleDayType === "low" && (
-                          <p className="text-xs text-green-400/80">Low day: starchy carbs → 0g (fibrous protected)</p>
-                        )}
                       </div>
                     )}
 
@@ -2354,21 +2400,16 @@ export default function MacroCounter() {
                     </div>
 
                     {/* Strict Mode toggle */}
-                    <div className="flex items-center justify-between pt-1">
-                      <div>
-                        <p className="text-sm font-medium text-white/80">Strict Mode</p>
-                        <p className="text-xs text-white/40">No auto-corrections — raw macros only (competition / ProCare)</p>
+                    <div className={`p-4 rounded-xl border transition-all ${strictMode ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-medium text-white">Strict Mode</span>
+                          <p className="text-xs text-white/60 mt-0.5">No auto-corrections — raw macros only (competition / ProCare)</p>
+                        </div>
+                        <PillButton onClick={() => setStrictMode(!strictMode)} active={strictMode} variant="amber">
+                          {strictMode ? "On" : "Off"}
+                        </PillButton>
                       </div>
-                      <button
-                        onClick={() => setStrictMode(!strictMode)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                          strictMode
-                            ? "bg-red-500/30 border-red-400 text-white"
-                            : "bg-white/5 border-white/20 text-white/50"
-                        }`}
-                      >
-                        {strictMode ? "ON" : "OFF"}
-                      </button>
                     </div>
                   </CardContent>
                 </Card>
