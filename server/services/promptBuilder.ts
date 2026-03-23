@@ -70,7 +70,7 @@ HARD RULES:
 4. Increase vegetable variety and portion to compensate for removed starch.
 5. Prioritise high-volume, low-energy vegetables: ${HIGH_VOL_VEGS}.
 6. Protein and fat remain unchanged from user targets.
-7. Add a brief note in the description explaining the substitution (e.g. "Cauliflower rice replaces rice to match your zero-starch day.").
+7. In your JSON response, populate the "substitutionNotes" array with 1-sentence explanations for each substitution (e.g. "Rice was replaced with cauliflower rice to match your zero-starch plan."). Do NOT mention AI or prompts — keep it human and coach-like.
 `.trim();
   }
 
@@ -87,6 +87,7 @@ HARD RULES:
 3. Fill volume with high-volume vegetables: ${HIGH_VOL_VEGS}.
 4. If the user requested a starchy meal, generate the closest low-starch compliant version.
 5. Meal must still feel satisfying — use protein presence, vegetable variety, and sauces/seasonings.
+6. In your JSON response, populate the "substitutionNotes" array with 1-sentence explanations for each substitution made (e.g. "Pasta portion was reduced and replaced with zucchini noodles to match your low-starch plan."). Do NOT mention AI or prompts — keep it human and coach-like.
 `.trim();
   }
 
