@@ -169,6 +169,58 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "vegetable-volume",
+    title: "Vegetable Volume System",
+    subtitle: "How meals stay full, satisfying, and effective",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "The Core Idea",
+          text: "Most nutrition apps reduce your food when carbs or calories go down. That leads to hunger, frustration, and eventually quitting. My Perfect Meals does the opposite. When starchy carbs go down, vegetables go up.",
+        },
+        {
+          heading: "Why This Works",
+          list: [
+            "Vegetables increase fullness without excess calories",
+            "They provide volume so your meals still feel complete",
+            "They support digestion and overall health",
+            "They help you stay consistent instead of feeling restricted",
+          ],
+        },
+        {
+          heading: "How It Works In Your Plan",
+          text: "Your vegetable intake is based on your nutrition strategy and meals per day. Instead of just tracking fiber, the app assigns a real-world vegetable target per meal.",
+        },
+        {
+          heading: "Typical Vegetable Targets",
+          list: [
+            "Standard plan: about 3–4 cups of vegetables per meal",
+            "Low carb: about 4–5 cups per meal",
+            "Zero starch or hard cut: about 5–6 cups per meal",
+          ],
+        },
+        {
+          heading: "What You'll Notice",
+          list: [
+            "Bigger meals even when carbs are lower",
+            "Less hunger throughout the day",
+            "More vegetables automatically added to meals",
+            "Smart substitutions like cauliflower instead of rice",
+          ],
+        },
+        {
+          heading: "How It Connects To Meal Builders",
+          text: "Once your macro calculator sets your strategy, every meal builder follows it automatically. If your plan is low starch, the app will replace foods like rice or potatoes with vegetable-based options while increasing your vegetable portions.",
+        },
+        {
+          heading: "The Bottom Line",
+          text: "You are not eating less food. You are eating smarter. The Vegetable Volume System is how the app keeps you full while still moving toward your goals.",
+        },
+      ],
+    },
+  },
+  {
     id: "compliance-system",
     title: "Compliance System",
     subtitle: "Macro Adherence & Coaching Analytics",
