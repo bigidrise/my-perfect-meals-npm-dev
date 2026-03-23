@@ -16,7 +16,7 @@ export const ChefCapIcon: React.FC<ChefCapIconProps> = ({
       style={{ width: size, height: size }}
     >
       <img
-        src="/assets/MPMFlameChefLogo.png"
+        src="/icons/MPMFlameChefLogo.jpg"
         alt="MPM Logo"
         className="relative z-10 object-contain"
         style={{
