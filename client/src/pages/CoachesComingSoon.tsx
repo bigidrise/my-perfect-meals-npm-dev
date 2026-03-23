@@ -28,7 +28,7 @@ const FOUNDER_BIO =
 const LINDSEY_BIO =
   "Dr. Lindsey Prescher brings clinical precision to the My Perfect Meals platform. As Chief Medical Advisor, she ensures our nutrition protocols align with evidence-based medicine, oversees physician-supervised programs, and provides the clinical framework that separates structured meal design from guesswork.";
 
-const CHEF_LOGO = "/assets/MPMFlameChefLogo.png";
+const CHEF_LOGO = "/icons/MPMFlameChefLogo.jpg";
 
 const coaches: Coach[] = [
   {
