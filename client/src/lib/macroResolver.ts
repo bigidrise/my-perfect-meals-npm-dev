@@ -6,15 +6,6 @@ import { proStore, type Targets } from './proData';
 
 export type MacroSource = 'pro' | 'self' | 'none';
 
-// ProCare coach override hook — allows coach to override individual macro multipliers.
-// When present, these values take precedence over strategy-layer multipliers.
-// No UI yet — this is reserved for ProCare and advanced mode.
-export type CoachMacroOverride = {
-  proteinMult?: number;
-  starchyMult?: number;
-  fatMult?: number;
-};
-
 export type ResolvedTargets = {
   calories: number;
   protein_g: number;
@@ -44,8 +35,6 @@ export type ResolvedTargets = {
     addedSugarCapG?: number | null;
   };
   setBy?: string;
-  // ProCare hook: coach-level multiplier overrides (no UI yet)
-  coachOverride?: CoachMacroOverride;
 };
 
 const LS_USER_CLIENT_MAP = 'mpm_user_client_map';

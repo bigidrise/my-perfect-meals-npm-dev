@@ -7,11 +7,21 @@ const vapidKeys = {
   privateKey: process.env.VAPID_PRIVATE_KEY || ''
 };
 
-webpush.setVapidDetails(
-  'mailto:support@perfectmeals.com',
-  vapidKeys.publicKey,
-  vapidKeys.privateKey
-);
+let pushEnabled = false;
+if (vapidKeys.privateKey) {
+  try {
+    webpush.setVapidDetails(
+      'mailto:support@perfectmeals.com',
+      vapidKeys.publicKey,
+      vapidKeys.privateKey
+    );
+    pushEnabled = true;
+  } catch (err) {
+    console.warn('⚠️ VAPID_PRIVATE_KEY invalid - web push notifications disabled');
+  }
+} else {
+  console.warn('⚠️ VAPID_PRIVATE_KEY not set - web push notifications disabled');
+}
 
 export interface PushSubscription {
   endpoint: string;
@@ -47,6 +57,9 @@ export class PushNotificationService {
   }
 
   static async sendNotification(userId: string, payload: NotificationPayload) {
+    if (!pushEnabled) {
+      return { success: false, error: 'Push notifications not configured' };
+    }
     try {
       const subscription = await storage.getPushSubscription(userId);
       if (!subscription) {
