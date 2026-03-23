@@ -128,6 +128,7 @@ type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
 type Units = "imperial" | "metric";
 type BodyType = "ecto" | "meso" | "endo";
+type UserType = "general" | "committed" | "athlete";
 
 const toNum = (v: string | number) => {
   const n = typeof v === "string" ? v.trim() : v;
@@ -248,31 +249,37 @@ function goalAdjust(tdee: number, goal: Goal) {
 
 // Macro-first multipliers — macros drive the system, calories are a result
 const PROTEIN_MULT: Record<Goal, number> = { loss: 1.1,  maint: 0.9,  gain: 1.3  };
-const STARCHY_MULT: Record<Goal, number> = { loss: 0.25, maint: 0.8,  gain: 1.25 }; // 0.25 = real fat-loss baseline
+const STARCHY_MULT: Record<Goal, number> = { loss: 0.25, maint: 0.55, gain: 1.25 }; // maint 0.55 = livable (was 0.8 = athlete-only)
 const FAT_MULT:     Record<Goal, number> = { loss: 0.35, maint: 0.42, gain: 0.5  };
 
-// Tiered protein model — avoids linear inflation at high bodyweights
-function calcProtein(lb: number, goal: Goal): number {
+// Tiered protein model — scaled by user type for realistic compliance
+function calcProtein(lb: number, goal: Goal, userType: UserType = "general"): number {
   let raw: number;
-  if (goal === "loss") {
-    if (lb < 200)       raw = lb * 1.1;
-    else if (lb < 260)  raw = lb * 1.0;
-    else                raw = lb * 0.9;
-  } else if (goal === "gain") {
-    raw = lb * 1.1;
+
+  if (userType === "general") {
+    // Most users — adherence-first, still above RDA
+    if (goal === "loss")  raw = lb * 0.8;
+    else if (goal === "gain") raw = lb * 0.9;
+    else                  raw = lb * 0.7; // maint
+  } else if (userType === "committed") {
+    // Dedicated dieters / gym-goers — coach-level targets
+    if (goal === "loss")  raw = lb * 1.0;
+    else if (goal === "gain") raw = lb * 1.1;
+    else                  raw = lb * 0.9; // maint
   } else {
-    // maint
-    raw = lb < 200 ? lb * 0.9 : lb * 0.8;
+    // athlete — performance-level; same regardless of goal
+    raw = lb * 1.1;
   }
-  return Math.min(260, Math.round(raw)); // hard cap: nobody needs >260g
+
+  return Math.min(260, Math.round(raw)); // global hard cap
 }
 
-function calcMacrosBase({ lb, goal }: { lb: number; goal: Goal }) {
-  // Step 1: Protein (anchor — tiered non-linear, capped at 260g)
-  const proteinG = calcProtein(lb, goal);
+function calcMacrosBase({ lb, goal, userType }: { lb: number; goal: Goal; userType: UserType }) {
+  // Step 1: Protein (anchor — tiered, user-type-aware, capped at 260g)
+  const proteinG = calcProtein(lb, goal, userType);
 
-  // Step 2: Fibrous carbs (non-negotiable floor)
-  const fibrousG = Math.max(30, Math.round(lb * 0.2));
+  // Step 2: Fibrous carbs (non-negotiable floor — raised for satiety)
+  const fibrousG = Math.max(40, Math.round(lb * 0.25));
 
   // Step 3: Starchy carbs (controlled variable by goal)
   let starchyG = Math.round(lb * (STARCHY_MULT[goal] ?? 0.45));
@@ -919,6 +926,9 @@ export default function MacroCounter() {
   const [bodyType, setBodyType] = useState<BodyType>(
     savedSettings?.bodyType ?? "meso",
   );
+  const [userType, setUserType] = useState<UserType>(
+    savedSettings?.userType ?? "general",
+  );
   const [units, setUnits] = useState<Units>(savedSettings?.units ?? "imperial");
   const [sex, setSex] = useState<Sex>(savedSettings?.sex ?? "female");
   const [age, setAge] = useState<number>(savedSettings?.age ?? 30);
@@ -1273,6 +1283,7 @@ export default function MacroCounter() {
       const settings = {
         goal,
         bodyType,
+        userType,
         units,
         sex,
         age,
@@ -1299,6 +1310,7 @@ export default function MacroCounter() {
   }, [
     goal,
     bodyType,
+    userType,
     units,
     sex,
     age,
@@ -1411,7 +1423,7 @@ export default function MacroCounter() {
     }
 
     // Step 1: Base macros (protein → fibrous → starchy → fat → calories)
-    const base = calcMacrosBase({ lb, goal });
+    const base = calcMacrosBase({ lb, goal, userType });
 
     // Step 1.5: Input adjustments (age, activity, waist risk, clinical flags)
     const adjResult = applyInputAdjustments(base, {
@@ -1439,7 +1451,7 @@ export default function MacroCounter() {
 
     return { bmr, tdee, target: macros.calories, macros };
   }, [
-    isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType,
+    isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType, userType,
     mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
     starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
     waistIn, waistCm, units, clinicalFlags,
@@ -1717,6 +1729,28 @@ export default function MacroCounter() {
                     <p className="text-white text-base">
                       What's your body type?
                     </p>
+                    {/* User type — set before body type so pipeline has it on first render */}
+                    <div className="space-y-1">
+                      <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
+                        Commitment Level
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { v: "general",   label: "General",   sub: "Everyday" },
+                          { v: "committed", label: "Committed", sub: "Consistent" },
+                          { v: "athlete",   label: "Athlete",   sub: "Performance" },
+                        ] as { v: UserType; label: string; sub: string }[]).map((u) => (
+                          <div
+                            key={u.v}
+                            onClick={() => setUserType(u.v)}
+                            className={`px-2 py-2 border rounded-lg cursor-pointer text-center text-sm ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-300" : "border-white/30 text-white/70 hover:border-white/60"}`}
+                          >
+                            <div className="font-semibold">{u.label}</div>
+                            <div className="text-[10px] opacity-70">{u.sub}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     <BodyTypeGuide />
                     <div className="grid grid-cols-3 gap-3">
                       {[
@@ -3009,8 +3043,29 @@ export default function MacroCounter() {
                   id="bodytype-card"
                   className="bg-zinc-900/80 border border-white/30 text-white"
                 >
-                  <CardContent className="p-5">
+                  <CardContent className="p-5 space-y-4">
                     <h3 className="text-lg font-semibold flex items-center">
+                      <User2 className="h-5 w-5 mr-2 text-pink-300" />
+                      Commitment Level
+                    </h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { v: "general",   label: "General",   sub: "Everyday habits" },
+                        { v: "committed", label: "Committed", sub: "Consistent dieter" },
+                        { v: "athlete",   label: "Athlete",   sub: "Performance focus" },
+                      ] as { v: UserType; label: string; sub: string }[]).map((u) => (
+                        <div
+                          key={u.v}
+                          onClick={() => setUserType(u.v)}
+                          className={`px-2 py-3 border rounded-lg cursor-pointer text-center ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-300" : "border-white/30 text-white/70 hover:border-white/60"}`}
+                        >
+                          <div className="text-sm font-semibold">{u.label}</div>
+                          <div className="text-[11px] opacity-70 mt-0.5">{u.sub}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <h3 className="text-lg font-semibold flex items-center pt-1">
                       <User2 className="h-5 w-5 mr-2 text-pink-300" />
                       What's Your Body Type
                     </h3>
