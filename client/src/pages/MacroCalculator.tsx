@@ -19,6 +19,7 @@ import {
   MACRO_CALC_SYNC_WEIGHT,
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
+  MACRO_CALC_NUTRITION_STRATEGY,
   MACRO_CALC_STARCH,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
@@ -77,6 +78,7 @@ type GuidedStep =
   | "syncWeight"
   | "metabolic"
   | "results"
+  | "nutritionStrategy"
   | "starch"
   | "bodyComposition"
   | "save"
@@ -859,7 +861,7 @@ export default function MacroCounter() {
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
       if (persisted) {
-        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","starch","bodyComposition","save","done"];
+        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","bodyComposition","save","done"];
         if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
       }
     } catch {}
@@ -895,6 +897,7 @@ export default function MacroCounter() {
       syncWeight: MACRO_CALC_SYNC_WEIGHT,
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
+      nutritionStrategy: MACRO_CALC_NUTRITION_STRATEGY,
       starch: MACRO_CALC_STARCH,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
       save: MACRO_CALC_SAVE,
@@ -1027,6 +1030,7 @@ export default function MacroCounter() {
       "syncWeight",
       "metabolic",
       "results",
+      "nutritionStrategy",
       "starch",
       "bodyComposition",
       "save",
@@ -2204,7 +2208,7 @@ export default function MacroCounter() {
                   </CardContent>
                 </Card>
                 <Button
-                  onClick={() => advanceGuided("starch")}
+                  onClick={() => advanceGuided("nutritionStrategy")}
                   className="
                     w-full py-4
                     bg-lime-600
@@ -2218,17 +2222,16 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 12: Starch Strategy */}
-            {guidedStep === "starch" && (
+            {/* GUIDED STEP 12: Nutrition Strategy */}
+            {guidedStep === "nutritionStrategy" && (
               <motion.div
-                key="guided-starch"
+                key="guided-nutrition-strategy"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                {/* Strategy Controls */}
-                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <Card data-wt="mc-nutrition-strategy" className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <span className="text-blue-400 text-xl">⚡</span>
@@ -2370,7 +2373,31 @@ export default function MacroCounter() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <Button
+                  onClick={() => advanceGuided("starch")}
+                  className="
+                    w-full py-4
+                    bg-lime-600
+                    text-white font-semibold text-lg
+                    rounded-xl
+                    border border-white/60
+                  "
+                >
+                  Continue
+                </Button>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 13: Starch Strategy */}
+            {guidedStep === "starch" && (
+              <motion.div
+                key="guided-starch"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card data-wt="mc-starch-game-plan" className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <span className="text-amber-400 text-xl">🌾</span>
@@ -2445,7 +2472,7 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 13: Body Composition (Optional) */}
+            {/* GUIDED STEP 14: Body Composition (Optional) */}
             {guidedStep === "bodyComposition" && (
               <BodyCompositionGuidedStep
                 sex={sex}
