@@ -67,6 +67,7 @@ import {
 type GuidedStep =
   | "entry"
   | "goal"
+  | "commitmentLevel"
   | "bodyType"
   | "units"
   | "sex"
@@ -1014,7 +1015,7 @@ export default function MacroCounter() {
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
       if (persisted) {
-        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","bodyComposition","save","done"];
+        const stepOrder: GuidedStep[] = ["entry","goal","commitmentLevel","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","bodyComposition","save","done"];
         if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
       }
     } catch {}
@@ -1199,6 +1200,11 @@ export default function MacroCounter() {
       title: "Choose Your Goal",
       description:
         "Cut = lose weight (15% deficit), Maintain = stay the same, Gain = build muscle (10% surplus).",
+    },
+    {
+      title: "Commitment Level",
+      description:
+        "General = realistic, sustainable targets for everyday eaters. Committed = higher protein and tighter carb targets for consistent gym-goers. Athlete = maximum protein regardless of goal, built for training load. This shapes your numbers — not how hard the plan is to follow.",
     },
     {
       title: "Select Body Type",
@@ -1683,7 +1689,7 @@ export default function MacroCounter() {
                           key={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
-                            advanceGuided("bodyType");
+                            advanceGuided("commitmentLevel");
                           }}
                           className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${goal === g.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
@@ -1696,10 +1702,10 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 2: Body Type */}
-            {guidedStep === "bodyType" && (
+            {/* GUIDED STEP 2: Commitment Level */}
+            {guidedStep === "commitmentLevel" && (
               <motion.div
-                key="guided-bodytype"
+                key="guided-commitment"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -1707,8 +1713,7 @@ export default function MacroCounter() {
               >
                 {/* Completed: Goal */}
                 <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                  <p className="text-sm text-white/90 font-medium flex items-center gap-2">
-                    <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
+                  <p className="text-sm text-white/60">
                     Goal:{" "}
                     {goal === "loss"
                       ? "Cut"
@@ -1727,30 +1732,93 @@ export default function MacroCounter() {
                       </h3>
                     </div>
                     <p className="text-white text-base">
+                      What's your commitment level?
+                    </p>
+                    <p className="text-sm text-white/60">
+                      This shapes how aggressive your protein and carb targets are — not how hard the plan is to follow.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3">
+                      {([
+                        {
+                          v: "general",
+                          label: "General",
+                          sub: "Everyday eater — realistic, sustainable targets most people can actually follow.",
+                        },
+                        {
+                          v: "committed",
+                          label: "Committed",
+                          sub: "Consistent gym-goer or dieter — higher protein, more structured carb targets.",
+                        },
+                        {
+                          v: "athlete",
+                          label: "Athlete",
+                          sub: "Performance focus — maximum protein regardless of goal, built for training load.",
+                        },
+                      ] as { v: UserType; label: string; sub: string }[]).map((u) => (
+                        <div
+                          key={u.v}
+                          onClick={() => {
+                            setUserType(u.v);
+                            advanceGuided("bodyType");
+                          }}
+                          className={`flex flex-col gap-1 px-4 py-3 border rounded-xl cursor-pointer transition-colors ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-200" : "border-white/30 text-white/80 hover:border-white/60"}`}
+                        >
+                          <span className="font-semibold text-base">{u.label}</span>
+                          <span className="text-xs opacity-70 leading-snug">{u.sub}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 3: Body Type */}
+            {guidedStep === "bodyType" && (
+              <motion.div
+                key="guided-bodytype"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                {/* Completed: Goal + Commitment Level */}
+                <div className="flex flex-col gap-2">
+                  <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                    <p className="text-sm text-white/90 font-medium flex items-center gap-2">
+                      <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
+                      Goal:{" "}
+                      {goal === "loss"
+                        ? "Cut"
+                        : goal === "maint"
+                          ? "Maintain"
+                          : "Gain"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3">
+                    <p className="text-sm text-orange-200 font-medium flex items-center gap-2">
+                      <Check className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                      Commitment:{" "}
+                      {userType === "general"
+                        ? "General"
+                        : userType === "committed"
+                          ? "Committed"
+                          : "Athlete"}
+                    </p>
+                  </div>
+                </div>
+
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">
+                        Step 3
+                      </h3>
+                    </div>
+                    <p className="text-white text-base">
                       What's your body type?
                     </p>
-                    {/* User type — set before body type so pipeline has it on first render */}
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
-                        Commitment Level
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {([
-                          { v: "general",   label: "General",   sub: "Everyday" },
-                          { v: "committed", label: "Committed", sub: "Consistent" },
-                          { v: "athlete",   label: "Athlete",   sub: "Performance" },
-                        ] as { v: UserType; label: string; sub: string }[]).map((u) => (
-                          <div
-                            key={u.v}
-                            onClick={() => setUserType(u.v)}
-                            className={`px-2 py-2 border rounded-lg cursor-pointer text-center text-sm ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-300" : "border-white/30 text-white/70 hover:border-white/60"}`}
-                          >
-                            <div className="font-semibold">{u.label}</div>
-                            <div className="text-[10px] opacity-70">{u.sub}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                     <BodyTypeGuide />
                     <div className="grid grid-cols-3 gap-3">
                       {[
