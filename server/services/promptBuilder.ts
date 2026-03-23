@@ -3,6 +3,115 @@ import { MealGenerationRequest, UserOnboardingProfile } from "./mealEngineServic
 import { UnitPrefs } from "./validators";
 import { BASELINE_MACROS_PROMPT } from "./guardrails/baselineMacros";
 
+// ─── VEGETABLE STRATEGY SYSTEM ───────────────────────────────────────────────
+
+export interface NutritionStrategyContext {
+  cutIntensity?: string;        // "standard" | "hard"
+  cutStyle?: string;            // "balanced" | "lowCarb"
+  cycleMode?: string;           // "none" | "carbCycle" | "fatCycle"
+  cycleDayType?: string;        // "low" | "moderate" | "high"
+  starchyCarbs_g?: number;
+  fibrousCarbs_g?: number;
+  mealsPerDay?: number;
+  vegetableCupsPerMeal?: number;
+  vegetableCupsPerDay?: number;
+  strictMode?: boolean;
+}
+
+/**
+ * Converts the user's active nutrition strategy into hard meal-generation rules.
+ * Injected into the system prompt for every builder that should obey macro strategy.
+ *
+ * Rules:
+ *   - On zero-starch days: block all starchy sources, maximise vegetable volume
+ *   - On low-starch days: replace starches with high-volume vegetable substitutes
+ *   - On moderate/standard days: allow starch, still hit minimum vegetable cups
+ *   - NEVER reject the user's request — translate it into the compliant version
+ */
+export function buildVegetableStrategyPrompt(ctx: NutritionStrategyContext): string {
+  if (!ctx || (!ctx.cutIntensity && !ctx.cycleMode && !ctx.starchyCarbs_g && !ctx.fibrousCarbs_g)) {
+    return ''; // No strategy set — legacy behaviour, don't inject anything
+  }
+
+  const cupsPerMeal = ctx.vegetableCupsPerMeal ?? 3;
+  const cupsPerDay  = ctx.vegetableCupsPerDay ?? ((ctx.mealsPerDay ?? 3) * cupsPerMeal);
+  const starchyG    = ctx.starchyCarbs_g ?? null;
+  const fibrousG    = ctx.fibrousCarbs_g ?? null;
+
+  // Determine starch condition
+  const isZeroStarch   = starchyG !== null && starchyG === 0;
+  const isLowStarch    = !isZeroStarch && (
+    ctx.cycleMode === 'carbCycle' && ctx.cycleDayType === 'low' ||
+    ctx.cutIntensity === 'hard' && ctx.cutStyle === 'lowCarb' ||
+    (starchyG !== null && starchyG < 30)
+  );
+  const isModerateStarch = !isZeroStarch && !isLowStarch && (
+    ctx.cutIntensity === 'hard' ||
+    ctx.cycleMode === 'carbCycle' && ctx.cycleDayType === 'moderate'
+  );
+
+  // Vegetable substitution lists
+  const HIGH_VOL_VEGS = 'broccoli, cauliflower, zucchini, spinach, kale, asparagus, green beans, peppers, mushrooms, cabbage, celery, Brussels sprouts, cucumber, mixed greens, lettuce';
+  const STARCH_SUBS   = 'cauliflower rice (for rice), cauliflower mash (for potatoes), zucchini noodles (for pasta), spaghetti squash (for pasta), shredded cabbage (for grain bowls), lettuce wraps (for tortillas/bread)';
+  const STARCH_SOURCES = 'rice, white potatoes, pasta, bread, tortillas, oats, corn, crackers, rolls, noodles, beans as primary carb source';
+
+  if (isZeroStarch) {
+    return `
+🥦 NUTRITION STRATEGY — ZERO STARCH DAY (MANDATORY GUARDRAILS):
+This user is on a zero-starch day. Their fibrous carb target is ${fibrousG ?? 'high'}g from vegetables.
+
+VEGETABLE REQUIREMENT: ${cupsPerMeal} cups per meal (${cupsPerDay} cups/day total).
+- 1 cup vegetables ≈ 5g fibrous carbs.
+
+HARD RULES:
+1. DO NOT include ANY starchy carb sources in the final meal: ${STARCH_SOURCES}.
+2. If the user requested a starchy food, translate it into the closest compliant version using: ${STARCH_SUBS}.
+3. Volume, satiety, and realism MUST be preserved — the meal should feel complete and satisfying.
+4. Increase vegetable variety and portion to compensate for removed starch.
+5. Prioritise high-volume, low-energy vegetables: ${HIGH_VOL_VEGS}.
+6. Protein and fat remain unchanged from user targets.
+7. Add a brief note in the description explaining the substitution (e.g. "Cauliflower rice replaces rice to match your zero-starch day.").
+`.trim();
+  }
+
+  if (isLowStarch) {
+    return `
+🥦 NUTRITION STRATEGY — LOW STARCH DAY (MANDATORY GUARDRAILS):
+This user is on a low-starch day. Starchy carbs are restricted to ${starchyG ?? 'minimal'}g. Fibrous carb target is ${fibrousG ?? 'elevated'}g from vegetables.
+
+VEGETABLE REQUIREMENT: ${cupsPerMeal} cups per meal (${cupsPerDay} cups/day total).
+
+HARD RULES:
+1. Reduce starch portions significantly. Use smaller amounts of starchy ingredients OR substitute them.
+2. Preferred substitutes for starches: ${STARCH_SUBS}.
+3. Fill volume with high-volume vegetables: ${HIGH_VOL_VEGS}.
+4. If the user requested a starchy meal, generate the closest low-starch compliant version.
+5. Meal must still feel satisfying — use protein presence, vegetable variety, and sauces/seasonings.
+`.trim();
+  }
+
+  if (isModerateStarch) {
+    return `
+🥦 NUTRITION STRATEGY — MODERATE STARCH DAY:
+This user is on a moderate-starch plan. Starchy carbs are available but reduced. Fibrous carb target is ${fibrousG ?? 'elevated'}g.
+
+VEGETABLE REQUIREMENT: ${cupsPerMeal} cups per meal (${cupsPerDay} cups/day total).
+
+GUIDELINES:
+1. Use moderate starch portions (smaller serving than usual).
+2. Pair starch with extra vegetables to meet volume target.
+3. Prioritise lean protein + vegetables as the base; starch is a side, not the foundation.
+`.trim();
+  }
+
+  // Standard day — no restrictions, just remind to include vegetables
+  return `
+🥦 NUTRITION STRATEGY — STANDARD DAY:
+Vegetable target: ${cupsPerMeal} cups per meal (${cupsPerDay} cups/day total).
+Include a generous vegetable component in every meal. High-volume options: ${HIGH_VOL_VEGS}.
+`.trim();
+}
+
 export interface PalatePreferences {
   palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
   palateSeasoningIntensity?: "light" | "balanced" | "bold";

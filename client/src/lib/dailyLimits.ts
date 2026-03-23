@@ -37,6 +37,10 @@ export type MacroTargets = {
   fibrousCarbSafetyCap_g?: number;
   strictMode?: boolean;
   coachOverrideMode?: boolean;
+  // Vegetable system — meals per day drives fibrous carb prescription
+  mealsPerDay?: number;
+  vegetableCupsPerMeal?: number;
+  vegetableCupsPerDay?: number;
 };
 
 const LS_KEY = (userId?: string) => `mpm.dailyLimits.${userId ?? "anon"}`;

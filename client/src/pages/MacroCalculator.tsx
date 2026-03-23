@@ -316,6 +316,7 @@ function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
 // Strategy layer configuration
 type StrategyConfig = {
   lb: number;
+  mealsPerDay: number;
   cutIntensity: CutIntensity;
   cutStyle: CutStyle;
   cycleMode: CycleMode;
@@ -331,7 +332,8 @@ function applyStrategyLayer(base: any, cfg: StrategyConfig) {
   let proteinG   = base.protein.g as number;
   let fatG       = base.fat.g as number;
   let starchyG   = base.carbs.starchy as number;
-  const fibrousG = Math.min(base.carbs.fibrous as number, cfg.fibrousCarbSafetyCap_g); // ceiling only
+  const fibrousBase = Math.min(base.carbs.fibrous as number, cfg.fibrousCarbSafetyCap_g);
+  const baselineStarchyG = starchyG; // snapshot before any strategy modifications
 
   // 1. Hard cut — adjusts protein, starchy, AND fat
   if (cfg.cutIntensity === "hard") {
@@ -373,6 +375,27 @@ function applyStrategyLayer(base: any, cfg: StrategyConfig) {
   // 5. Floor starchy at 0 — it can legally be 0
   starchyG = Math.max(0, Math.round(starchyG));
 
+  // 6. ADAPTIVE FIBROUS — fiber goes UP when starch goes DOWN
+  //    Vegetable prescription: cups per meal × meals per day × 5g per cup
+  //    Rule: starch drop → more vegetables, never fewer than baseline
+  const starchyRatio = baselineStarchyG > 0 ? starchyG / baselineStarchyG : 0;
+  let cupsPerMeal: number;
+  if (starchyG === 0) {
+    cupsPerMeal = 6;    // zero starch day: maximum vegetable volume
+  } else if (starchyRatio < 0.25) {
+    cupsPerMeal = 5;    // deep cut: high vegetable replacement
+  } else if (starchyRatio < 0.5) {
+    cupsPerMeal = 4;    // low carb: elevated vegetables
+  } else if (starchyRatio < 0.75) {
+    cupsPerMeal = 3.5;  // moderate cut: slightly elevated
+  } else {
+    cupsPerMeal = 3;    // standard day: baseline vegetables (3 cups/meal)
+  }
+  const computedFibrous = Math.round(cfg.mealsPerDay * cupsPerMeal * 5);
+  // Never below baseline, never above safety cap
+  const fibrousG = Math.min(cfg.fibrousCarbSafetyCap_g, Math.max(fibrousBase, computedFibrous));
+  const vegetableCupsPerDay = Math.round(cfg.mealsPerDay * cupsPerMeal);
+
   const carbsG   = starchyG + fibrousG;
   const calories = proteinG * 4 + carbsG * 4 + fatG * 9;
 
@@ -381,6 +404,8 @@ function applyStrategyLayer(base: any, cfg: StrategyConfig) {
     protein: { g: proteinG, kcal: proteinG * 4 },
     fat: { g: fatG, kcal: fatG * 9 },
     carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
+    vegetableCupsPerMeal: cupsPerMeal,
+    vegetableCupsPerDay,
   };
 }
 
@@ -852,6 +877,9 @@ export default function MacroCounter() {
   const [strictMode, setStrictMode] = useState<boolean>(
     existingTargets?.strictMode ?? false
   );
+  const [mealsPerDay, setMealsPerDay] = useState<number>(
+    existingTargets?.mealsPerDay ?? 4
+  );
 
   // Guided Mode State
   const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
@@ -1261,9 +1289,9 @@ export default function MacroCounter() {
     // Step 1: Base macros (protein → fibrous → starchy → fat → calories)
     const base = calcMacrosBase({ lb, goal });
 
-    // Step 2: Strategy layer (hard cut, carb/fat cycle, starchy cap, fibrous ceiling)
+    // Step 2: Strategy layer (hard cut, carb/fat cycle, starchy cap, adaptive fibrous)
     const stratResult = applyStrategyLayer(base, {
-      lb, cutIntensity, cutStyle, cycleMode, cycleDayType,
+      lb, mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
       starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
     });
 
@@ -1276,7 +1304,7 @@ export default function MacroCounter() {
     return { bmr, tdee, target: macros.calories, macros };
   }, [
     isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType,
-    cutIntensity, cutStyle, cycleMode, cycleDayType,
+    mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
     starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
   ]);
 
@@ -2187,13 +2215,18 @@ export default function MacroCounter() {
                         )}
                       />
                       {(() => {
-                        const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                        const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                        const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
+                        const starchy = results.macros.carbs.starchy;
+                        const fibrous = results.macros.carbs.fibrous;
+                        const cupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                        const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                         return (
                           <>
                             <MacroRow label="Carbs - Starchy" grams={starchy} />
-                            <MacroRow label="Carbs - Fibrous" grams={fibrous} />
+                            <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                            <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
+                              <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
+                              <span>1 cup ≈ 5g</span>
+                            </div>
                           </>
                         );
                       })()}
@@ -2236,6 +2269,29 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <span className="text-blue-400 text-xl">⚡</span>
                       <h3 className="text-lg font-semibold text-white">Nutrition Strategy</h3>
+                    </div>
+
+                    {/* Meals Per Day */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Meals Per Day</p>
+                      <p className="text-xs text-white/50">Drives your daily vegetable prescription — more meals = more vegetable volume</p>
+                      <div className="space-y-3">
+                        {([3, 4, 5] as const).map((n) => (
+                          <div key={n} className={`p-4 rounded-xl border transition-all ${mealsPerDay === n ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">{n} Meals</span>
+                                <p className="text-xs text-white/60 mt-0.5">
+                                  {n === 3 ? "3 meals, no snacks — simple structure" : n === 4 ? "3 meals + 1 snack — most common" : "5 smaller meals — frequent fueling"}
+                                </p>
+                              </div>
+                              <PillButton onClick={() => setMealsPerDay(n)} active={mealsPerDay === n}>
+                                {mealsPerDay === n ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Cut Intensity */}
@@ -2614,8 +2670,10 @@ export default function MacroCounter() {
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                          const fibrousCarbs_g = results.macros.carbs.fibrous;
+                          const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
+                          const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                           await setMacroTargets(
                             {
@@ -2623,8 +2681,8 @@ export default function MacroCounter() {
                               protein_g: adjustedProtein,
                               carbs_g: adjustedCarbs,
                               fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
+                              starchyCarbs_g,
+                              fibrousCarbs_g,
                               starchStrategy,
                               cutIntensity,
                               cutStyle,
@@ -2634,6 +2692,9 @@ export default function MacroCounter() {
                               allowZeroStarchyOnLowDay,
                               fibrousCarbSafetyCap_g,
                               strictMode,
+                              mealsPerDay,
+                              vegetableCupsPerMeal,
+                              vegetableCupsPerDay,
                             },
                             user?.id,
                           );
@@ -3328,13 +3389,18 @@ export default function MacroCounter() {
                           )}
                         />
                         {(() => {
-                          const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                          const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
+                          const starchy = results.macros.carbs.starchy;
+                          const fibrous = results.macros.carbs.fibrous;
+                          const cupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                           return (
                             <>
                               <MacroRow label="Carbs - Starchy" grams={starchy} />
-                              <MacroRow label="Carbs - Fibrous" grams={fibrous} />
+                              <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                              <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
+                                <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
+                                <span>1 cup ≈ 5g</span>
+                              </div>
                             </>
                           );
                         })()}
@@ -3371,8 +3437,10 @@ export default function MacroCounter() {
                             const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
                             const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
                             const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
-                            const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                            const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                            const fibrousCarbs_g = results.macros.carbs.fibrous;
+                            const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
+                            const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                            const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                             await setMacroTargets(
                               {
@@ -3380,9 +3448,20 @@ export default function MacroCounter() {
                                 protein_g: adjustedProtein,
                                 carbs_g: adjustedCarbs,
                                 fat_g: adjustedFat,
-                                starchyCarbs_g: adjustedStarchy,
-                                fibrousCarbs_g: adjustedFibrous,
+                                starchyCarbs_g,
+                                fibrousCarbs_g,
                                 starchStrategy,
+                                cutIntensity,
+                                cutStyle,
+                                cycleMode,
+                                cycleDayType,
+                                starchyCarbCap_g,
+                                allowZeroStarchyOnLowDay,
+                                fibrousCarbSafetyCap_g,
+                                strictMode,
+                                mealsPerDay,
+                                vegetableCupsPerMeal,
+                                vegetableCupsPerDay,
                               },
                               user?.id,
                             );
@@ -3528,8 +3607,10 @@ export default function MacroCounter() {
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                          const fibrousCarbs_g_s3 = results.macros.carbs.fibrous;
+                          const starchyCarbs_g_s3 = Math.max(0, adjustedCarbs - fibrousCarbs_g_s3);
+                          const vegetableCupsPerMeal_s3 = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const vegetableCupsPerDay_s3 = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                           await setMacroTargets(
                             {
@@ -3537,8 +3618,8 @@ export default function MacroCounter() {
                               protein_g: adjustedProtein,
                               carbs_g: adjustedCarbs,
                               fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
+                              starchyCarbs_g: starchyCarbs_g_s3,
+                              fibrousCarbs_g: fibrousCarbs_g_s3,
                               starchStrategy,
                               cutIntensity,
                               cutStyle,
@@ -3548,6 +3629,9 @@ export default function MacroCounter() {
                               allowZeroStarchyOnLowDay,
                               fibrousCarbSafetyCap_g,
                               strictMode,
+                              mealsPerDay,
+                              vegetableCupsPerMeal: vegetableCupsPerMeal_s3,
+                              vegetableCupsPerDay: vegetableCupsPerDay_s3,
                             },
                             user?.id,
                           );
@@ -3621,8 +3705,10 @@ export default function MacroCounter() {
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
                           );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
+                          const fibrousCarbs_g_s4 = results.macros.carbs.fibrous;
+                          const starchyCarbs_g_s4 = Math.max(0, adjustedCarbs - fibrousCarbs_g_s4);
+                          const vegetableCupsPerMeal_s4 = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const vegetableCupsPerDay_s4 = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
 
                           await setMacroTargets(
                             {
@@ -3630,8 +3716,8 @@ export default function MacroCounter() {
                               protein_g: adjustedProtein,
                               carbs_g: adjustedCarbs,
                               fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
+                              starchyCarbs_g: starchyCarbs_g_s4,
+                              fibrousCarbs_g: fibrousCarbs_g_s4,
                               starchStrategy,
                               cutIntensity,
                               cutStyle,
@@ -3641,6 +3727,9 @@ export default function MacroCounter() {
                               allowZeroStarchyOnLowDay,
                               fibrousCarbSafetyCap_g,
                               strictMode,
+                              mealsPerDay,
+                              vegetableCupsPerMeal: vegetableCupsPerMeal_s4,
+                              vegetableCupsPerDay: vegetableCupsPerDay_s4,
                             },
                             user?.id,
                           );

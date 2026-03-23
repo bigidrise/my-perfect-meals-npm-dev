@@ -281,6 +281,7 @@ export const users = pgTable("users", {
   macroCutStyle: text("macro_cut_style"),
   macroCycleMode: text("macro_cycle_mode").default("none"),
   macroCycleDayType: text("macro_cycle_day_type"),
+  macroMealsPerDay: integer("macro_meals_per_day"),
   dietaryRestrictions: text("dietary_restrictions").array().default(sql`ARRAY[]::text[]`),
   healthConditions: text("health_conditions").array().default(sql`ARRAY[]::text[]`),
   allergies: text("allergies").array().default(sql`ARRAY[]::text[]`),
