@@ -238,89 +238,72 @@ function goalAdjust(tdee: number, goal: Goal) {
   return Math.round(tdee);
 }
 
-function calcMacrosBase({ calories, kg, proteinPerKg, starchyBase, fibrousMin }: any) {
-  // Fat cap: 35% of total calories max
-  const fatMaxG = Math.floor((calories * 0.35) / 9);
+// Macro-first multipliers — macros drive the system, calories are a result
+const PROTEIN_MULT: Record<Goal, number> = { loss: 1.1, maint: 0.9, gain: 1.3 };
+const STARCHY_MULT: Record<Goal, number> = { loss: 0.45, maint: 0.8, gain: 1.25 };
+const FAT_MULT:     Record<Goal, number> = { loss: 0.35, maint: 0.42, gain: 0.5 };
 
-  // Carb minimum: starchy baseline + fibrous floor must always be honored
-  const totalCarbsMin = starchyBase + fibrousMin;
+function calcMacrosBase({ lb, goal }: { lb: number; goal: Goal }) {
+  // Step 1: Protein (anchor — bodyweight × multiplier)
+  const proteinG = Math.round(lb * (PROTEIN_MULT[goal] ?? 1.1));
 
-  // Priority 1: Protein — capped at 40% of calories
-  const rawProteinKcal = Math.round(kg * proteinPerKg) * 4;
-  let proteinKcal = Math.min(rawProteinKcal, calories * 0.40);
+  // Step 2: Fibrous carbs (non-negotiable floor)
+  const fibrousG = Math.max(30, Math.round(lb * 0.2));
 
-  // Priority 2: Fibrous carbs — locked floor, always guaranteed
-  const fibrousKcal = fibrousMin * 4;
+  // Step 3: Starchy carbs (controlled variable by goal)
+  let starchyG = Math.round(lb * (STARCHY_MULT[goal] ?? 0.45));
 
-  // Policy: if protein would consume calories needed for the fiber floor, compress protein first
-  if (proteinKcal + fibrousKcal > calories) {
-    proteinKcal = Math.max(0, calories - fibrousKcal);
+  // Step 4: Fat (support macro — NOT residual)
+  const fatG = Math.round(lb * (FAT_MULT[goal] ?? 0.35));
+
+  // Step 5: Totals derived from macros
+  let carbsG = starchyG + fibrousG;
+
+  // Step 6: Calories computed last — never used to determine macros
+  let calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  // Step 7: Safety — only starchy carbs adjusted, protein and fibrous stay fixed
+  if (calories < 1200) {
+    starchyG += Math.ceil((1200 - calories) / 4);
+    carbsG = starchyG + fibrousG;
+    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+  } else if (calories > 4000) {
+    starchyG = Math.max(0, starchyG - Math.ceil((calories - 4000) / 4));
+    carbsG = starchyG + fibrousG;
+    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
   }
-
-  // Priority 3: Starchy carbs — flexible, compresses toward 0 before fat is touched
-  const remainingAfterPF = Math.max(0, calories - proteinKcal - fibrousKcal);
-  const starchyKcal = Math.min(starchyBase * 4, remainingAfterPF);
-  let starchyG = Math.round(starchyKcal / 4);
-
-  // Priority 4: Fat — residual, but capped at 35% of calories
-  let rawFatKcal = Math.max(0, calories - proteinKcal - fibrousKcal - starchyKcal);
-  let fatG = Math.round(rawFatKcal / 9);
-
-  // If fat exceeds cap, redirect the excess calories into starchy carbs
-  if (fatG > fatMaxG) {
-    fatG = fatMaxG;
-    const fatKcalCapped = fatG * 9;
-    const excessKcal = rawFatKcal - fatKcalCapped;
-    starchyG = Math.round(starchyG + excessKcal / 4);
-  }
-
-  // Enforce carb minimum floor: if total carbs are still below minimum, raise starchy
-  const proteinG = Math.round(proteinKcal / 4);
-  let carbsG = fibrousMin + starchyG;
-  if (carbsG < totalCarbsMin) {
-    starchyG = totalCarbsMin - fibrousMin;
-    carbsG = totalCarbsMin;
-  }
-
-  const fatKcal = fatG * 9;
 
   return {
     calories,
-    protein: { g: proteinG, kcal: Math.round(proteinKcal) },
-    fat: { g: fatG, kcal: fatKcal },
-    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousMin },
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat: { g: fatG, kcal: fatG * 9 },
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
   };
 }
 
 function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
-  if (bodyType !== "endo") return base;
-  // Shift is applied as a % reduction of the starchy allocation only — not % of total calories.
-  // This prevents carb collapse in low-starchy scenarios (e.g. sedentary weight-loss profiles).
-  const shiftPct = activity === "sedentary" ? 0.10 : activity === "light" ? 0.12 : 0.15;
-  const fibrousG = base.carbs.fibrous as number;
-  const starchyKcal = (base.carbs.starchy as number) * 4;
-  const newStarchyKcal = Math.max(0, Math.round(starchyKcal * (1 - shiftPct)));
-  let newStarchyG = Math.round(newStarchyKcal / 4);
-  let newCarbsG = fibrousG + newStarchyG;
-  const newCarbsKcal = newCarbsG * 4;
-  let newFatKcal = Math.max(0, base.calories - base.protein.kcal - newCarbsKcal);
-  let newFatG = Math.round(newFatKcal / 9);
+  if (bodyType === "meso") return base; // mesomorph: no adjustment
 
-  // Post-tilt fat cap: 35% of total calories max — tilt cannot drive fat past the guardrail
-  const fatMaxG = Math.floor((base.calories * 0.35) / 9);
-  if (newFatG > fatMaxG) {
-    newFatG = fatMaxG;
-    newFatKcal = newFatG * 9;
-    // Redirect displaced calories back into starchy carbs (never touch fibrous floor)
-    const displacedKcal = (base.calories - base.protein.kcal - newCarbsKcal) - newFatKcal;
-    newStarchyG = Math.round(newStarchyG + displacedKcal / 4);
-    newCarbsG = fibrousG + newStarchyG;
+  const fibrousG = base.carbs.fibrous as number;
+  let starchyG = base.carbs.starchy as number;
+
+  if (bodyType === "endo") {
+    // Endomorph: reduce starchy carbs only — fat is never touched
+    const shiftPct = activity === "sedentary" ? 0.10 : activity === "light" ? 0.12 : 0.15;
+    starchyG = Math.max(0, Math.round(starchyG * (1 - shiftPct)));
+  } else if (bodyType === "ecto") {
+    // Ectomorph: increase starchy carbs — fat is never touched
+    starchyG = Math.round(starchyG * 1.15);
   }
+
+  // Recompute derived totals — fat unchanged, fibrous unchanged
+  const carbsG = fibrousG + starchyG;
+  const calories = base.protein.g * 4 + carbsG * 4 + base.fat.g * 9;
 
   return {
     ...base,
-    fat: { g: newFatG, kcal: newFatKcal },
-    carbs: { g: newCarbsG, kcal: newCarbsG * 4, starchy: newStarchyG, fibrous: fibrousG },
+    calories,
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
   };
 }
 
@@ -1129,23 +1112,19 @@ export default function MacroCounter() {
   const results = useMemo(() => {
     if (!isCalcInputValid) return null;
 
+    // BMR / TDEE kept for display purposes only — they no longer drive macro allocation
     const bmr = mifflin({ sex, kg, cm, age });
     const tdee = Math.round(
       bmr * ACTIVITY_FACTORS[activity as keyof typeof ACTIVITY_FACTORS],
     );
-    const target = goalAdjust(tdee, goal);
-    const starchyBase = getStarchyCarbs(sex, goal);
-    const fibrousMin = getFibrousBaseline(kg);
-    const base = calcMacrosBase({
-      calories: target,
-      kg,
-      proteinPerKg,
-      starchyBase,
-      fibrousMin,
-    });
+
+    // Macro-first engine: weight in lbs is the primary input
+    const lb = Math.round(kg * 2.20462);
+    const base = calcMacrosBase({ lb, goal });
     const macros = applyBodyTypeTilt(base, bodyType, activity);
-    return { bmr, tdee, target, macros };
-  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
+
+    return { bmr, tdee, target: macros.calories, macros };
+  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType]);
 
   const estimatedBodyFat = useMemo(() => {
     const waistCmVal = units === "imperial" ? waistIn * 2.54 : waistCm;
