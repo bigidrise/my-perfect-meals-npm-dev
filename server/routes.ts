@@ -633,6 +633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count = 1,
         dietType,                   // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
         starchContext,              // Starch Game Plan context for intelligent carb distribution
+        nutritionStrategy: bodyNutritionStrategy, // Explicitly provided nutrition strategy
         safetyMode,                 // Safety override mode
         overrideToken               // One-time override token from PIN verification
       } = req.body;
@@ -701,6 +702,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generateMealUnified } = await import("./services/unifiedMealPipeline");
       const { recordGeneration } = await import("./services/aiHealthMetrics");
 
+      // Auto-enrich nutritionStrategy from user profile if not explicitly provided
+      let nutritionStrategy = bodyNutritionStrategy ?? null;
+      if (!nutritionStrategy && userId && type === 'create-with-chef') {
+        try {
+          const { db } = await import("./db");
+          const { users } = await import("../shared/schema");
+          const { eq } = await import("drizzle-orm");
+          const [macroUser] = await db.select({
+            dailyStarchyCarbsTarget: users.dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget: users.dailyFibrousCarbsTarget,
+            macroCutIntensity: users.macroCutIntensity,
+            macroCutStyle: users.macroCutStyle,
+            macroCycleMode: users.macroCycleMode,
+            macroCycleDayType: users.macroCycleDayType,
+            macroMealsPerDay: users.macroMealsPerDay,
+          }).from(users).where(eq(users.id, userId)).limit(1);
+          if (macroUser) {
+            const starchyG = macroUser.dailyStarchyCarbsTarget ?? null;
+            const fibrousG = macroUser.dailyFibrousCarbsTarget ?? null;
+            const mpdVal = macroUser.macroMealsPerDay ?? 4;
+            // Only inject strategy if the user has saved macro targets
+            if (starchyG !== null || fibrousG !== null) {
+              const cupsPerMeal = starchyG === 0 ? 6 : starchyG !== null && starchyG < 30 ? 5 : fibrousG !== null && fibrousG > 100 ? 4 : 3;
+              nutritionStrategy = {
+                cutIntensity: macroUser.macroCutIntensity ?? 'standard',
+                cutStyle: macroUser.macroCutStyle ?? undefined,
+                cycleMode: macroUser.macroCycleMode ?? 'none',
+                cycleDayType: macroUser.macroCycleDayType ?? undefined,
+                starchyCarbs_g: starchyG ?? undefined,
+                fibrousCarbs_g: fibrousG ?? undefined,
+                mealsPerDay: mpdVal,
+                vegetableCupsPerMeal: cupsPerMeal,
+                vegetableCupsPerDay: mpdVal * cupsPerMeal,
+              };
+              console.log(`🥦 [VegStrategy] Auto-enriched from profile: starchy=${starchyG}g, fibrous=${fibrousG}g, cups/meal=${cupsPerMeal}`);
+            }
+          }
+        } catch (err) {
+          console.warn('[VegStrategy] Could not auto-enrich nutritionStrategy:', err);
+        }
+      }
+
       const result = await generateMealUnified({
         type,
         mealType,
@@ -710,6 +753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count,
         dietType,
         starchContext,
+        nutritionStrategy: nutritionStrategy ?? undefined,
         safetyAlreadyChecked: true // Route already verified with enforceSafetyProfile (may include override token)
       });
 

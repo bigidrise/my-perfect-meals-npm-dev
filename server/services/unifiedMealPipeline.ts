@@ -12,6 +12,7 @@
  */
 
 import { generateImage } from './imageService';
+import { buildVegetableStrategyPrompt, NutritionStrategyContext } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 import { createIngredientSignature, hashSignature } from './ingredientSignature';
@@ -160,6 +161,7 @@ export interface MealGenerationRequest {
   count?: number; // number of meals to generate (default 1)
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
+  nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
 }
 
@@ -1102,7 +1104,8 @@ export async function generateFromDescriptionUnified(
   mealType: string,
   userId?: string,
   dietType?: DietType,
-  starchContext?: StarchContext
+  starchContext?: StarchContext,
+  nutritionStrategy?: NutritionStrategyContext
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1121,8 +1124,9 @@ export async function generateFromDescriptionUnified(
   // Get starch placement decision
   const starchPlacement = determineStarchPlacement(validMealType, starchContext);
   const starchGuidance = buildStarchGuidance(validMealType, starchContext);
+  const vegetableStrategyGuidance = nutritionStrategy ? buildVegetableStrategyPrompt(nutritionStrategy) : '';
   
-  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})`);
+  console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})${vegetableStrategyGuidance ? ' | 🥦 VegStrategy: ON' : ''}`);
   
   try {
     await ensureHubsRegistered();
@@ -1180,7 +1184,7 @@ REQUIREMENTS:
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
 ${starchGuidance}
-
+${vegetableStrategyGuidance ? `\n${vegetableStrategyGuidance}\n` : ''}
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
@@ -1753,7 +1757,7 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy);
       break;
 
     case 'snack-creator':

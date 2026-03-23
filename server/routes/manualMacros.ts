@@ -379,6 +379,7 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         macroCutStyle: users.macroCutStyle,
         macroCycleMode: users.macroCycleMode,
         macroCycleDayType: users.macroCycleDayType,
+        macroMealsPerDay: users.macroMealsPerDay,
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -404,6 +405,7 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
       cutStyle: user.macroCutStyle ?? null,
       cycleMode: user.macroCycleMode ?? "none",
       cycleDayType: user.macroCycleDayType ?? null,
+      mealsPerDay: user.macroMealsPerDay ?? 4,
     });
   } catch (e: any) {
     console.error("get macro targets error:", e);
@@ -421,7 +423,7 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
     }
     const {
       calories, protein_g, carbs_g, fat_g, starchyCarbs_g, fibrousCarbs_g,
-      cutIntensity, cutStyle, cycleMode, cycleDayType, reason,
+      cutIntensity, cutStyle, cycleMode, cycleDayType, reason, mealsPerDay,
     } = req.body;
 
     if (typeof calories !== 'number' || typeof protein_g !== 'number' || 
@@ -445,6 +447,7 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
           macroCutStyle: typeof cutStyle === 'string' ? cutStyle : null,
           macroCycleMode: typeof cycleMode === 'string' ? cycleMode : 'none',
           macroCycleDayType: typeof cycleDayType === 'string' ? cycleDayType : null,
+          macroMealsPerDay: typeof mealsPerDay === 'number' ? mealsPerDay : null,
         })
         .where(eq(users.id, userId))
         .returning();
