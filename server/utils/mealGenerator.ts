@@ -17,7 +17,17 @@ function getOpenAI(): OpenAI {
   }
   return _openai;
 }
-  
+
+export async function generateMeal(req: MealRequest): Promise<MealResult> {
+  let meal: MealResult;
+
+  try {
+    meal = await gptFallback(req);
+  } catch (error) {
+    console.error("GPT generation failed, using fallback:", error);
+    meal = fallbackMeal(req);
+  }
+
   // Fix units
   meal.ingredients = meal.ingredients.map(normalizeUnits);
   
@@ -114,8 +124,6 @@ Return ONLY valid JSON - no explanations or extra text.`;
     console.error("Failed to parse GPT response:", error);
     return fallbackMeal(req);
   }
-
-
 }
 
 function fallbackMeal(req: MealRequest): MealResult {

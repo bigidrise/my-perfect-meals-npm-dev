@@ -15,6 +15,63 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
+export interface IntelligentMealRequest {
+  userId: string;
+  description: string;
+  mealType?: string;
+  mode?: "generate" | "suggest";
+  preferences?: {
+    calories?: number;
+    protein?: number;
+    restrictions?: string[];
+    allergies?: string[];
+  };
+}
+
+export interface IntelligentMealResponse {
+  conversationalResponse?: string;
+  suggestions?: string[];
+  followUpQuestions?: string[];
+  meal?: {
+    name: string;
+    description: string;
+    ingredients: Array<{ name: string; quantity: string; unit: string }>;
+    instructions: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    imageUrl?: string;
+  };
+}
+
+export async function generateIntelligentMeal(request: IntelligentMealRequest): Promise<IntelligentMealResponse> {
+  try {
+    const user = await storage.getUser(request.userId);
+    const userContext = buildUserContext(user);
+
+    const systemPrompt = `You are an expert nutritionist and chef AI. Generate personalized meal recommendations based on user profiles.
+
+USER PROFILE:
+${userContext}
+
+Provide responses in JSON format with:
+- conversationalResponse: friendly, conversational explanation
+- meal: complete meal with ingredients, instructions, macros
+- suggestions: 2-3 alternative options
+- followUpQuestions: relevant questions to refine the recommendation`;
+
+    const response = await getOpenAI().chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: request.description }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
     const result = JSON.parse(response.choices[0].message.content || "{}");
     
     // Post-process to ensure quality
