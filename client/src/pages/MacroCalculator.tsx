@@ -86,6 +86,10 @@ import {
   setMacroTargets,
   getMacroTargets,
   type StarchStrategy,
+  type CutIntensity,
+  type CutStyle,
+  type CycleMode,
+  type CycleDayType,
 } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
@@ -303,6 +307,113 @@ function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
   return {
     ...base,
     calories,
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
+  };
+}
+
+// Strategy layer configuration
+type StrategyConfig = {
+  lb: number;
+  cutIntensity: CutIntensity;
+  cutStyle: CutStyle;
+  cycleMode: CycleMode;
+  cycleDayType: CycleDayType;
+  starchyCarbCap_g: number | null;
+  allowZeroStarchyOnLowDay: boolean;
+  fibrousCarbSafetyCap_g: number;
+  strictMode: boolean;
+};
+
+// Pipeline step 2: strategy layer — applied after calcMacrosBase, before bodyType tilt
+function applyStrategyLayer(base: any, cfg: StrategyConfig) {
+  let proteinG   = base.protein.g as number;
+  let fatG       = base.fat.g as number;
+  let starchyG   = base.carbs.starchy as number;
+  const fibrousG = Math.min(base.carbs.fibrous as number, cfg.fibrousCarbSafetyCap_g); // ceiling only
+
+  // 1. Hard cut — adjusts protein, starchy, AND fat
+  if (cfg.cutIntensity === "hard") {
+    proteinG = Math.round(proteinG * 1.1);
+    if (cfg.cutStyle === "balanced") {
+      starchyG = Math.round(starchyG * 0.7);
+      fatG     = Math.round(cfg.lb * 0.30);
+    } else if (cfg.cutStyle === "lowCarb") {
+      starchyG = Math.round(starchyG * 0.4);
+      fatG     = Math.round(cfg.lb * 0.55);
+    }
+  }
+
+  // 2. Carb cycle — starchy only
+  if (cfg.cycleMode === "carbCycle") {
+    if (cfg.cycleDayType === "low") {
+      starchyG = cfg.allowZeroStarchyOnLowDay ? 0 : Math.round(starchyG * 0.5);
+    } else if (cfg.cycleDayType === "high") {
+      starchyG = Math.round(starchyG * 1.4);
+    }
+    // moderate: no change
+  }
+
+  // 3. Fat cycle — fat only
+  if (cfg.cycleMode === "fatCycle") {
+    if (cfg.cycleDayType === "low") {
+      fatG = Math.round(fatG * 0.7);
+    } else if (cfg.cycleDayType === "high") {
+      fatG = Math.round(fatG * 1.3);
+    }
+    // moderate: no change
+  }
+
+  // 4. Optional starchy cap (post-multiplier)
+  if (cfg.starchyCarbCap_g !== null && cfg.starchyCarbCap_g !== undefined) {
+    starchyG = Math.min(starchyG, cfg.starchyCarbCap_g);
+  }
+
+  // 5. Floor starchy at 0 — it can legally be 0
+  starchyG = Math.max(0, Math.round(starchyG));
+
+  const carbsG   = starchyG + fibrousG;
+  const calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  return {
+    calories,
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat: { g: fatG, kcal: fatG * 9 },
+    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
+  };
+}
+
+// Pipeline step 4 (final): safety pass — starchy-only correction; strict mode bypasses all
+function finalSafetyPass(base: any, { strictMode }: { strictMode: boolean }) {
+  if (strictMode) return base; // strict: no adjustments, raw macros only
+
+  let starchyG   = base.carbs.starchy as number;
+  const fibrousG = base.carbs.fibrous as number;
+  const proteinG = base.protein.g as number;
+  const fatG     = base.fat.g as number;
+
+  let carbsG   = starchyG + fibrousG;
+  let calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  if (calories < 1200) {
+    if (starchyG > 0) {
+      starchyG += Math.ceil((1200 - calories) / 4);
+      carbsG    = starchyG + fibrousG;
+      calories  = proteinG * 4 + carbsG * 4 + fatG * 9;
+    } else {
+      // starchy already at 0 — flag it, do NOT touch protein/fibrous/fat
+      // safetyFallbackAvailable = true (reserved for ProCare / advanced mode)
+      return { ...base, safetyFloorUnmet: true, safetyFloorReason: "starchy_at_zero" };
+    }
+  } else if (calories > 4000) {
+    starchyG = Math.max(0, starchyG - Math.ceil((calories - 4000) / 4));
+    carbsG   = starchyG + fibrousG;
+    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+  }
+
+  return {
+    calories,
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat: { g: fatG, kcal: fatG * 9 },
     carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
   };
 }
@@ -718,6 +829,28 @@ export default function MacroCounter() {
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
 
+  // Strategy layer state
+  const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
+    existingTargets?.cutIntensity ?? "standard"
+  );
+  const [cutStyle, setCutStyle] = useState<CutStyle>(
+    existingTargets?.cutStyle ?? "balanced"
+  );
+  const [cycleMode, setCycleMode] = useState<CycleMode>(
+    existingTargets?.cycleMode ?? "none"
+  );
+  const [cycleDayType, setCycleDayType] = useState<CycleDayType>(
+    existingTargets?.cycleDayType ?? "moderate"
+  );
+  const [starchyCarbCap_g, setStarchyCarbCap_g] = useState<number | null>(
+    existingTargets?.starchyCarbCap_g ?? null
+  );
+  const [allowZeroStarchyOnLowDay] = useState<boolean>(true);
+  const fibrousCarbSafetyCap_g = 200;
+  const [strictMode, setStrictMode] = useState<boolean>(
+    existingTargets?.strictMode ?? false
+  );
+
   // Guided Mode State
   const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
 
@@ -1118,13 +1251,30 @@ export default function MacroCounter() {
       bmr * ACTIVITY_FACTORS[activity as keyof typeof ACTIVITY_FACTORS],
     );
 
-    // Macro-first engine: weight in lbs is the primary input
+    // Macro-first engine — full 4-step pipeline
     const lb = Math.round(kg * 2.20462);
+
+    // Step 1: Base macros (protein → fibrous → starchy → fat → calories)
     const base = calcMacrosBase({ lb, goal });
-    const macros = applyBodyTypeTilt(base, bodyType, activity);
+
+    // Step 2: Strategy layer (hard cut, carb/fat cycle, starchy cap, fibrous ceiling)
+    const stratResult = applyStrategyLayer(base, {
+      lb, cutIntensity, cutStyle, cycleMode, cycleDayType,
+      starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
+    });
+
+    // Step 3: Body-type tilt (starchy-only ecto/endo adjustment)
+    const tiltResult = applyBodyTypeTilt(stratResult, bodyType, activity);
+
+    // Step 4: Final safety pass (starchy-only correction; honours strictMode)
+    const macros = finalSafetyPass(tiltResult, { strictMode });
 
     return { bmr, tdee, target: macros.calories, macros };
-  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType]);
+  }, [
+    isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType,
+    cutIntensity, cutStyle, cycleMode, cycleDayType,
+    starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
+  ]);
 
   const estimatedBodyFat = useMemo(() => {
     const waistCmVal = units === "imperial" ? waistIn * 2.54 : waistCm;
@@ -2077,6 +2227,149 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
+                {/* Strategy Controls */}
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-400 text-xl">⚡</span>
+                      <h3 className="text-lg font-semibold text-white">Nutrition Strategy</h3>
+                    </div>
+
+                    {/* Cut Intensity */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Cut Intensity</p>
+                      <div className="flex gap-2">
+                        {(["standard", "hard"] as CutIntensity[]).map((v) => (
+                          <button
+                            key={v}
+                            onClick={() => setCutIntensity(v)}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                              cutIntensity === v
+                                ? "bg-blue-500/30 border-blue-400 text-white"
+                                : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
+                            }`}
+                          >
+                            {v === "standard" ? "Standard" : "Hard Cut"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Cut Style — only when hard cut selected */}
+                    {cutIntensity === "hard" && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-white/80">Cut Style</p>
+                        <div className="flex gap-2">
+                          {(["balanced", "lowCarb"] as CutStyle[]).map((v) => (
+                            <button
+                              key={v}
+                              onClick={() => setCutStyle(v)}
+                              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                                cutStyle === v
+                                  ? "bg-orange-500/30 border-orange-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
+                              }`}
+                            >
+                              {v === "balanced" ? "Balanced" : "Low Carb"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cycle Mode */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Cycle Mode</p>
+                      <div className="flex gap-2">
+                        {(["none", "carbCycle", "fatCycle"] as CycleMode[]).map((v) => (
+                          <button
+                            key={v}
+                            onClick={() => setCycleMode(v)}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                              cycleMode === v
+                                ? "bg-purple-500/30 border-purple-400 text-white"
+                                : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
+                            }`}
+                          >
+                            {v === "none" ? "None" : v === "carbCycle" ? "Carb Cycle" : "Fat Cycle"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Cycle Day Type — only when a cycle is active */}
+                    {cycleMode !== "none" && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-white/80">Day Type</p>
+                        <div className="flex gap-2">
+                          {(["low", "moderate", "high"] as CycleDayType[]).map((v) => (
+                            <button
+                              key={v}
+                              onClick={() => setCycleDayType(v)}
+                              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                                cycleDayType === v
+                                  ? "bg-green-500/30 border-green-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
+                              }`}
+                            >
+                              {v.charAt(0).toUpperCase() + v.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                        {cycleMode === "carbCycle" && cycleDayType === "low" && (
+                          <p className="text-xs text-green-400/80">Low day: starchy carbs → 0g (fibrous protected)</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Starchy Carb Cap (optional) */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Starchy Carb Cap <span className="text-white/40 font-normal">(optional)</span></p>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={400}
+                          placeholder="No cap"
+                          value={starchyCarbCap_g ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setStarchyCarbCap_g(v === "" ? null : Math.max(0, parseInt(v) || 0));
+                          }}
+                          className="w-28 bg-white/10 border-white/20 text-white placeholder:text-white/30"
+                        />
+                        <span className="text-sm text-white/50">g / day</span>
+                        {starchyCarbCap_g !== null && (
+                          <button
+                            onClick={() => setStarchyCarbCap_g(null)}
+                            className="text-xs text-white/40 hover:text-white/70 underline"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Strict Mode toggle */}
+                    <div className="flex items-center justify-between pt-1">
+                      <div>
+                        <p className="text-sm font-medium text-white/80">Strict Mode</p>
+                        <p className="text-xs text-white/40">No auto-corrections — raw macros only (competition / ProCare)</p>
+                      </div>
+                      <button
+                        onClick={() => setStrictMode(!strictMode)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                          strictMode
+                            ? "bg-red-500/30 border-red-400 text-white"
+                            : "bg-white/5 border-white/20 text-white/50"
+                        }`}
+                      >
+                        {strictMode ? "ON" : "OFF"}
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
@@ -2265,6 +2558,14 @@ export default function MacroCounter() {
                               starchyCarbs_g: adjustedStarchy,
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
+                              cutIntensity,
+                              cutStyle,
+                              cycleMode,
+                              cycleDayType,
+                              starchyCarbCap_g,
+                              allowZeroStarchyOnLowDay,
+                              fibrousCarbSafetyCap_g,
+                              strictMode,
                             },
                             user?.id,
                           );
@@ -3171,6 +3472,14 @@ export default function MacroCounter() {
                               starchyCarbs_g: adjustedStarchy,
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
+                              cutIntensity,
+                              cutStyle,
+                              cycleMode,
+                              cycleDayType,
+                              starchyCarbCap_g,
+                              allowZeroStarchyOnLowDay,
+                              fibrousCarbSafetyCap_g,
+                              strictMode,
                             },
                             user?.id,
                           );
@@ -3256,6 +3565,14 @@ export default function MacroCounter() {
                               starchyCarbs_g: adjustedStarchy,
                               fibrousCarbs_g: adjustedFibrous,
                               starchStrategy,
+                              cutIntensity,
+                              cutStyle,
+                              cycleMode,
+                              cycleDayType,
+                              starchyCarbCap_g,
+                              allowZeroStarchyOnLowDay,
+                              fibrousCarbSafetyCap_g,
+                              strictMode,
                             },
                             user?.id,
                           );
