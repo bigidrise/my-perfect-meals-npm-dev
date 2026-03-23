@@ -251,9 +251,25 @@ const PROTEIN_MULT: Record<Goal, number> = { loss: 1.1,  maint: 0.9,  gain: 1.3 
 const STARCHY_MULT: Record<Goal, number> = { loss: 0.25, maint: 0.8,  gain: 1.25 }; // 0.25 = real fat-loss baseline
 const FAT_MULT:     Record<Goal, number> = { loss: 0.35, maint: 0.42, gain: 0.5  };
 
+// Tiered protein model — avoids linear inflation at high bodyweights
+function calcProtein(lb: number, goal: Goal): number {
+  let raw: number;
+  if (goal === "loss") {
+    if (lb < 200)       raw = lb * 1.1;
+    else if (lb < 260)  raw = lb * 1.0;
+    else                raw = lb * 0.9;
+  } else if (goal === "gain") {
+    raw = lb * 1.1;
+  } else {
+    // maint
+    raw = lb < 200 ? lb * 0.9 : lb * 0.8;
+  }
+  return Math.min(260, Math.round(raw)); // hard cap: nobody needs >260g
+}
+
 function calcMacrosBase({ lb, goal }: { lb: number; goal: Goal }) {
-  // Step 1: Protein (anchor — bodyweight × multiplier)
-  const proteinG = Math.round(lb * (PROTEIN_MULT[goal] ?? 1.1));
+  // Step 1: Protein (anchor — tiered non-linear, capped at 260g)
+  const proteinG = calcProtein(lb, goal);
 
   // Step 2: Fibrous carbs (non-negotiable floor)
   const fibrousG = Math.max(30, Math.round(lb * 0.2));
@@ -379,7 +395,8 @@ function applyInputAdjustments(base: any, cfg: InputAdjConfig) {
   starchyMult = Math.max(starchyMult, 0.50);
 
   starchyG = Math.max(0, Math.round(starchyG * starchyMult));
-  let proteinG = Math.round((base.protein.g as number) * proteinMult);
+  // Cap at 260g — clinical boosts can raise but never beyond the hard ceiling
+  let proteinG = Math.min(260, Math.round((base.protein.g as number) * proteinMult));
   let fatG     = Math.round((base.fat.g as number)     * fatMult);
 
   // Fibrous scales harder based on how much starchy dropped (not flat +1 cup)
