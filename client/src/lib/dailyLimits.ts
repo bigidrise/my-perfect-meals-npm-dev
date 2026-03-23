@@ -12,6 +12,11 @@ export type DailyLimits = {
 // Starch Meal Strategy: "one" = 1 starch meal per day (default), "flex" = 2 smaller portions
 export type StarchStrategy = "one" | "flex";
 
+export type CutIntensity = "standard" | "hard";
+export type CutStyle = "balanced" | "lowCarb";
+export type CycleMode = "none" | "carbCycle" | "fatCycle";
+export type CycleDayType = "low" | "moderate" | "high";
+
 export type MacroTargets = {
   calories: number;
   protein_g: number;
@@ -22,6 +27,16 @@ export type MacroTargets = {
   fibrousCarbs_g?: number;
   // Starch Meal Strategy - defaults to "one" if not set
   starchStrategy?: StarchStrategy;
+  // Strategy layer fields
+  cutIntensity?: CutIntensity;
+  cutStyle?: CutStyle;
+  cycleMode?: CycleMode;
+  cycleDayType?: CycleDayType;
+  starchyCarbCap_g?: number | null;
+  allowZeroStarchyOnLowDay?: boolean;
+  fibrousCarbSafetyCap_g?: number;
+  strictMode?: boolean;
+  coachOverrideMode?: boolean;
 };
 
 const LS_KEY = (userId?: string) => `mpm.dailyLimits.${userId ?? "anon"}`;

@@ -375,6 +375,10 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         dailyFatTarget: users.dailyFatTarget,
         dailyStarchyCarbsTarget: users.dailyStarchyCarbsTarget,
         dailyFibrousCarbsTarget: users.dailyFibrousCarbsTarget,
+        macroCutIntensity: users.macroCutIntensity,
+        macroCutStyle: users.macroCutStyle,
+        macroCycleMode: users.macroCycleMode,
+        macroCycleDayType: users.macroCycleDayType,
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -396,6 +400,10 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         user.dailyCarbsTarget ||
         user.dailyFatTarget
       ),
+      cutIntensity: user.macroCutIntensity ?? "standard",
+      cutStyle: user.macroCutStyle ?? null,
+      cycleMode: user.macroCycleMode ?? "none",
+      cycleDayType: user.macroCycleDayType ?? null,
     });
   } catch (e: any) {
     console.error("get macro targets error:", e);
@@ -411,7 +419,10 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
     if (!hasAccess) {
       return res.status(403).json({ error: "Access denied" });
     }
-    const { calories, protein_g, carbs_g, fat_g, starchyCarbs_g, fibrousCarbs_g, reason } = req.body;
+    const {
+      calories, protein_g, carbs_g, fat_g, starchyCarbs_g, fibrousCarbs_g,
+      cutIntensity, cutStyle, cycleMode, cycleDayType, reason,
+    } = req.body;
 
     if (typeof calories !== 'number' || typeof protein_g !== 'number' || 
         typeof carbs_g !== 'number' || typeof fat_g !== 'number') {
@@ -430,6 +441,10 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
           dailyFatTarget: fat_g,
           dailyStarchyCarbsTarget: typeof starchyCarbs_g === 'number' ? starchyCarbs_g : null,
           dailyFibrousCarbsTarget: typeof fibrousCarbs_g === 'number' ? fibrousCarbs_g : null,
+          macroCutIntensity: typeof cutIntensity === 'string' ? cutIntensity : 'standard',
+          macroCutStyle: typeof cutStyle === 'string' ? cutStyle : null,
+          macroCycleMode: typeof cycleMode === 'string' ? cycleMode : 'none',
+          macroCycleDayType: typeof cycleDayType === 'string' ? cycleDayType : null,
         })
         .where(eq(users.id, userId))
         .returning();
