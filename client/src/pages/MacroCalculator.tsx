@@ -8,6 +8,7 @@ import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import {
   MACRO_CALC_ENTRY,
   MACRO_CALC_GOAL,
+  MACRO_CALC_COMMITMENT_LEVEL,
   MACRO_CALC_BODY_TYPE,
   MACRO_CALC_UNITS,
   MACRO_CALC_SEX,
@@ -1040,6 +1041,7 @@ export default function MacroCounter() {
     () => ({
       entry: MACRO_CALC_ENTRY,
       goal: MACRO_CALC_GOAL,
+      commitmentLevel: MACRO_CALC_COMMITMENT_LEVEL,
       bodyType: MACRO_CALC_BODY_TYPE,
       units: MACRO_CALC_UNITS,
       sex: MACRO_CALC_SEX,

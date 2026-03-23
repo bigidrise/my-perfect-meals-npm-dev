@@ -7,6 +7,9 @@ export const MACRO_CALC_ENTRY =
 export const MACRO_CALC_GOAL =
   "What's your goal? Are you wanting to cut, maintain, or build?";
 
+export const MACRO_CALC_COMMITMENT_LEVEL =
+  "Next, tell me your commitment level. General means you're an everyday eater looking for realistic, sustainable targets. Committed means you're a consistent gym-goer or dieter and want more structured numbers. Athlete means performance is your priority — we'll push protein to its maximum regardless of your goal. Pick the one that best describes where you are right now.";
+
 export const MACRO_CALC_BODY_TYPE =
   "Are you an ectomorph, mesomorph, or an endomorph? If your not sure tap the body type guide button below to see which category you fit in.";
 
