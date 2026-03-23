@@ -48,11 +48,13 @@ import {
 interface MetabolicConsiderationsProps {
   baseTargets: MacroTargets;
   onApplyAdjustments: (deltas: MacroDeltas) => void;
+  onFlagsChange?: (flags: ClinicalAdvisoryState) => void;
 }
 
 export default function MetabolicConsiderations({
   baseTargets,
   onApplyAdjustments,
+  onFlagsChange,
 }: MetabolicConsiderationsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [advisory, setAdvisory] = useState<ClinicalAdvisoryState>(
@@ -96,6 +98,8 @@ export default function MetabolicConsiderations({
     };
     setAdvisory(updated);
     saveUserAdvisory(updated);
+    // Immediately push flags into the pipeline (no "Apply" needed for pipeline)
+    onFlagsChange?.(updated);
   };
 
   const handlePreviewChanges = () => {

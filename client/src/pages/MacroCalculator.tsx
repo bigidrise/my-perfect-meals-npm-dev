@@ -108,8 +108,10 @@ import WaistRiskSection from "@/components/macro-targeting/WaistRiskSection";
 import {
   MacroDeltas,
   AdvisorySources,
+  ClinicalAdvisoryState,
   sumAdvisorySources,
   capCombinedDeltas,
+  loadUserAdvisory,
 } from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import {
@@ -245,9 +247,9 @@ function goalAdjust(tdee: number, goal: Goal) {
 }
 
 // Macro-first multipliers — macros drive the system, calories are a result
-const PROTEIN_MULT: Record<Goal, number> = { loss: 1.1, maint: 0.9, gain: 1.3 };
-const STARCHY_MULT: Record<Goal, number> = { loss: 0.45, maint: 0.8, gain: 1.25 };
-const FAT_MULT:     Record<Goal, number> = { loss: 0.35, maint: 0.42, gain: 0.5 };
+const PROTEIN_MULT: Record<Goal, number> = { loss: 1.1,  maint: 0.9,  gain: 1.3  };
+const STARCHY_MULT: Record<Goal, number> = { loss: 0.25, maint: 0.8,  gain: 1.25 }; // 0.25 = real fat-loss baseline
+const FAT_MULT:     Record<Goal, number> = { loss: 0.35, maint: 0.42, gain: 0.5  };
 
 function calcMacrosBase({ lb, goal }: { lb: number; goal: Goal }) {
   // Step 1: Protein (anchor — bodyweight × multiplier)
@@ -310,6 +312,97 @@ function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
     ...base,
     calories,
     carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
+  };
+}
+
+// Pipeline step 1.5: Input adjustments — clinical flags, activity, waist risk
+// Inserted AFTER calcMacrosBase, BEFORE applyStrategyLayer
+interface InputAdjConfig {
+  age: number;
+  activity: string;
+  highWaistRisk: boolean;
+  menopause: boolean;
+  insulinResistance: boolean;
+  highStress: boolean;
+  mealsPerDay: number;
+  fibrousCarbSafetyCap_g: number;
+}
+
+function applyInputAdjustments(base: any, cfg: InputAdjConfig) {
+  const fibrousBase = base.carbs.fibrous as number;
+
+  // Activity starchy multiplier — direct lever on starchy, not just TDEE
+  const ACTIVITY_STARCH: Record<string, number> = {
+    sedentary: 0.85,
+    light:     0.95,
+    moderate:  1.00,
+    very:      1.10,
+    extra:     1.20,
+  };
+  let starchyG = Math.round((base.carbs.starchy as number) * (ACTIVITY_STARCH[cfg.activity] ?? 1.0));
+  const baselineAfterActivity = starchyG; // snapshot for fibrous scaling
+
+  // Priority-based clinical adjustments — capped stacking, not blind multiplication
+  let starchyMult = 1.0;
+  let proteinMult = 1.0;
+  let fatMult     = 1.0;
+  let extraCupsPerMeal = 0;
+
+  // Tier 1 — Insulin Resistance (strongest; waist risk softens when stacked)
+  if (cfg.insulinResistance) {
+    starchyMult *= 0.60;
+    if (cfg.highWaistRisk) starchyMult *= 0.85; // controlled stack, not full 0.75
+  } else if (cfg.highWaistRisk) {
+    starchyMult *= 0.75;
+  }
+
+  // Tier 2 — Age > 55
+  if (cfg.age > 55) {
+    starchyMult *= 0.90;
+    proteinMult *= 1.05;
+  }
+
+  // Tier 2 — Menopause
+  if (cfg.menopause) {
+    starchyMult *= 0.85;
+    fatMult     *= 1.10;
+  }
+
+  // Tier 3 — High Stress / Poor Sleep
+  if (cfg.highStress) {
+    starchyMult  *= 0.80;
+    proteinMult  *= 1.10;
+    extraCupsPerMeal += 1;
+  }
+
+  // Hard cap — starchy never drops below 50% of what activity already set
+  starchyMult = Math.max(starchyMult, 0.50);
+
+  starchyG = Math.max(0, Math.round(starchyG * starchyMult));
+  let proteinG = Math.round((base.protein.g as number) * proteinMult);
+  let fatG     = Math.round((base.fat.g as number)     * fatMult);
+
+  // Fibrous scales harder based on how much starchy dropped (not flat +1 cup)
+  const starchyReduction = baselineAfterActivity > 0 ? starchyG / baselineAfterActivity : 0;
+  if (starchyG === 0) {
+    extraCupsPerMeal += 2; // zero starch: maximum vegetable volume
+  } else if (starchyReduction < 0.50) {
+    extraCupsPerMeal += 2; // deep cut
+  } else if (starchyReduction < 0.75) {
+    extraCupsPerMeal += 1; // moderate cut
+  }
+
+  const addedFibrous = extraCupsPerMeal > 0 ? Math.round(cfg.mealsPerDay * extraCupsPerMeal * 5) : 0;
+  const fibrousG = Math.min(cfg.fibrousCarbSafetyCap_g, fibrousBase + addedFibrous);
+
+  const carbsG   = starchyG + fibrousG;
+  const calories = proteinG * 4 + carbsG * 4 + fatG * 9;
+
+  return {
+    calories,
+    protein: { g: proteinG, kcal: proteinG * 4 },
+    fat:     { g: fatG,     kcal: fatG * 9 },
+    carbs:   { g: carbsG,   kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
   };
 }
 
@@ -849,6 +942,11 @@ export default function MacroCounter() {
     waistRisk: null,
   });
 
+  // Clinical flags feed directly into the macro pipeline (applyInputAdjustments)
+  const [clinicalFlags, setClinicalFlags] = useState<ClinicalAdvisoryState>(
+    () => loadUserAdvisory() || {}
+  );
+
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
   // Start with undefined so user must make an active choice (UX improvement)
   const existingTargets = getMacroTargets(user?.id);
@@ -1283,14 +1381,35 @@ export default function MacroCounter() {
       bmr * ACTIVITY_FACTORS[activity as keyof typeof ACTIVITY_FACTORS],
     );
 
-    // Macro-first engine — full 4-step pipeline
+    // Macro-first engine — full 5-step pipeline
     const lb = Math.round(kg * 2.20462);
+
+    // Compute waist risk for pipeline (separate from UI advisory)
+    const waistCmForPipeline = units === "imperial" ? waistIn * 2.54 : waistCm;
+    let highWaistRisk = false;
+    if (waistCmForPipeline > 0 && cm > 0) {
+      const ratio = calculateWaistHeightRatio(waistCmForPipeline, cm);
+      const risk  = classifyWaistRisk(ratio);
+      highWaistRisk = risk.level === "red"; // red = waist/height > 0.6 — metabolic high risk
+    }
 
     // Step 1: Base macros (protein → fibrous → starchy → fat → calories)
     const base = calcMacrosBase({ lb, goal });
 
+    // Step 1.5: Input adjustments (age, activity, waist risk, clinical flags)
+    const adjResult = applyInputAdjustments(base, {
+      age,
+      activity: activity || "moderate",
+      highWaistRisk,
+      menopause:         !!(clinicalFlags.menopause?.enabled),
+      insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
+      highStress:        !!(clinicalFlags.highStress?.enabled),
+      mealsPerDay,
+      fibrousCarbSafetyCap_g,
+    });
+
     // Step 2: Strategy layer (hard cut, carb/fat cycle, starchy cap, adaptive fibrous)
-    const stratResult = applyStrategyLayer(base, {
+    const stratResult = applyStrategyLayer(adjResult, {
       lb, mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
       starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
     });
@@ -1306,6 +1425,7 @@ export default function MacroCounter() {
     isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType,
     mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
     starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
+    waistIn, waistCm, units, clinicalFlags,
   ]);
 
   const estimatedBodyFat = useMemo(() => {
@@ -2156,6 +2276,7 @@ export default function MacroCounter() {
                           carbs: results.macros.carbs.g,
                           fat: results.macros.fat.g,
                         }}
+                        onFlagsChange={(flags) => setClinicalFlags(flags)}
                         onApplyAdjustments={(deltas) => {
                           setAdvisorySources((prev) => ({
                             ...prev,
@@ -3307,6 +3428,7 @@ export default function MacroCounter() {
                     carbs: results.macros.carbs.g,
                     fat: results.macros.fat.g,
                   }}
+                  onFlagsChange={(flags) => setClinicalFlags(flags)}
                   onApplyAdjustments={(deltas) => {
                     setAdvisorySources((prev) => ({
                       ...prev,
