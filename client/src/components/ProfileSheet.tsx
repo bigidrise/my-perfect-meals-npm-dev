@@ -37,6 +37,7 @@ import {
   Loader2,
   ImageIcon,
   Users,
+  LifeBuoy,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -257,6 +258,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const handleMenuItemClick = (item: (typeof menuItems)[0]) => {
     if (item.action === "restorePurchases") {
       handleRestorePurchases();
+    } else if (item.action === "contactSupport") {
+      window.location.href = "mailto:support@myperfectmeals.com";
     } else if (item.route) {
       setLocation(item.route);
     }
@@ -311,6 +314,13 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       icon: User,
       route: "/profile",
       testId: "menu-my-profile",
+    },
+    {
+      title: "Contact & Support",
+      description: "Questions, bugs, or feedback — we read everything",
+      icon: LifeBuoy,
+      action: "contactSupport",
+      testId: "menu-contact-support",
     },
 
     // Product
