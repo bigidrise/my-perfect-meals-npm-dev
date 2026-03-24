@@ -664,7 +664,7 @@ export default function ChefsKitchenPage() {
                   </div>
 
                   {/* Guards */}
-                  <div className="flex justify-end space-y-2">
+                  <div className="flex flex-row items-center justify-end gap-3">
                     <GlucoseGuardToggle />
                     <SafetyGuardToggle
                       safetyEnabled={safetyEnabled}
