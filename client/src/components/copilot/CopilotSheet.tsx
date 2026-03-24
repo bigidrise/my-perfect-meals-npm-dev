@@ -611,7 +611,9 @@ export const CopilotSheet: React.FC = () => {
                 {/* Contact Support — always visible at the bottom of every Copilot card */}
                 <div className="mx-4 mb-3 mt-1 border-t border-white/8 pt-2 flex items-center justify-center">
                   <a
-                    href="mailto:support@myperfectmeals.com"
+                    href="mailto:support@myperfectmeals.com?subject=My Perfect Meals Feedback"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-[11px] text-white/40 hover:text-orange-300 transition-colors"
                   >
                     Something not right or confusing?{" "}
