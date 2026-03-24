@@ -184,13 +184,24 @@ export default function Founder() {
 
         {/* CONTACT */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl text-center">
-          <h2 className="text-2xl font-semibold mb-4">Contact</h2>
-          <a
-            href="mailto:support@myperfectmeals.com"
-            className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-orange-600 text-white font-medium transition-colors ring-1 ring-white/20"
-          >
-            support@myperfectmeals.com
-          </a>
+          <h2 className="text-2xl font-semibold mb-2">Contact & Support</h2>
+          <p className="text-white/60 text-sm mb-6">
+            Questions, bugs, or feedback — email us anytime. We read everything.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href="mailto:support@myperfectmeals.com"
+              className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-orange-600 text-white font-medium transition-colors ring-1 ring-white/20"
+            >
+              support@myperfectmeals.com
+            </a>
+            <a
+              href="mailto:support@myperfectmeals.com?subject=Feedback"
+              className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white/10 text-white font-medium transition-colors ring-1 ring-white/20 hover:bg-white/20"
+            >
+              Send Feedback
+            </a>
+          </div>
         </section>
       </div>
     </div>
