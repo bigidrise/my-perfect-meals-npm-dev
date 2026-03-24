@@ -191,12 +191,16 @@ export default function Founder() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
               href="mailto:support@myperfectmeals.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-orange-600 text-white font-medium transition-colors ring-1 ring-white/20"
             >
               support@myperfectmeals.com
             </a>
             <a
-              href="mailto:support@myperfectmeals.com?subject=Feedback"
+              href="mailto:support@myperfectmeals.com?subject=My Perfect Meals Feedback"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white/10 text-white font-medium transition-colors ring-1 ring-white/20 hover:bg-white/20"
             >
               Send Feedback

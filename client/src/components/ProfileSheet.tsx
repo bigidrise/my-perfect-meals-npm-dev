@@ -259,7 +259,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     if (item.action === "restorePurchases") {
       handleRestorePurchases();
     } else if (item.action === "contactSupport") {
-      window.location.href = "mailto:support@myperfectmeals.com";
+      window.open("mailto:support@myperfectmeals.com?subject=My Perfect Meals Feedback", "_blank");
     } else if (item.route) {
       setLocation(item.route);
     }
