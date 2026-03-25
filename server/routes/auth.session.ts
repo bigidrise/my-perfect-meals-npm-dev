@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, isNotNull, gt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
@@ -412,9 +412,14 @@ router.post("/api/auth/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
+    const now = new Date();
     const usersWithValidExpiry = await db.select().from(users).where(
-      sql`${users.resetTokenHash} IS NOT NULL AND ${users.resetTokenExpires} > NOW()`
+      and(
+        isNotNull(users.resetTokenHash),
+        gt(users.resetTokenExpires!, now)
+      )
     );
+    console.log(`🔑 [RESET-PASSWORD] Users with valid tokens: ${usersWithValidExpiry.length}`);
 
     let matchedUser = null;
     for (const user of usersWithValidExpiry) {
@@ -431,7 +436,7 @@ router.post("/api/auth/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired reset token" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
     const newAuthToken = generateAuthToken();
 
     await db.update(users).set({
@@ -442,7 +447,14 @@ router.post("/api/auth/reset-password", async (req, res) => {
       resetTokenExpires: null,
     }).where(eq(users.id, matchedUser.id));
 
-    console.log(`✅ Password reset successful for user ID: ${matchedUser.id}`);
+    // Verify the update actually landed
+    const [verify] = await db.select({ password: users.password })
+      .from(users)
+      .where(eq(users.id, matchedUser.id))
+      .limit(1);
+
+    const verifyOk = verify && await bcrypt.compare(password, verify.password);
+    console.log(`✅ Password reset for user ${matchedUser.id} — verify bcrypt: ${verifyOk}`);
 
     res.json({
       message: "Password reset successful",
