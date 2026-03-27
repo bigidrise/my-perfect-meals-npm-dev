@@ -32,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PillButton } from "@/components/ui/pill-button";
 import { Wifi, WifiOff } from "lucide-react";
+import NutritionStrategyCard from "@/components/pro/NutritionStrategyCard";
 
 /* -------------------------------- TOUR -------------------------------- */
 
@@ -302,6 +303,9 @@ export default function PhysicianCareTeamPage() {
             )}
           </GlassCardContent>
         </GlassCard>
+
+        {/* Current Nutrition Strategy — client read-only */}
+        <NutritionStrategyCard />
 
         {/* INVITE ROW */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

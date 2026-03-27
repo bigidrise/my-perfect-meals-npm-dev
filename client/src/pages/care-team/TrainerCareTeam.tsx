@@ -44,6 +44,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PillButton } from "@/components/ui/pill-button";
 import { Wifi, WifiOff } from "lucide-react";
+import NutritionStrategyCard from "@/components/pro/NutritionStrategyCard";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
@@ -361,6 +362,9 @@ export default function CareTeamPage() {
             )}
           </GlassCardContent>
         </GlassCard>
+
+        {/* Current Nutrition Strategy — client read-only */}
+        <NutritionStrategyCard />
 
         {/* Invite Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

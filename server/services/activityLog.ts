@@ -10,7 +10,9 @@ type ActivityAction =
   | "message_sent" | "message_deleted" | "note_deleted"
   | "message_blocked" | "message_flagged"
   | "system_recommendation_applied"
-  | "cycle_protocol_updated";
+  | "cycle_protocol_updated"
+  | "nutrition_strategy_viewed"
+  | "nutrition_strategy_acknowledged";
 
 export async function logClientActivity(
   studioId: string,
