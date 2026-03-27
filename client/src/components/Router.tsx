@@ -350,6 +350,8 @@ export default function Router() {
         <Route path="/admin-moderation" component={AdminModerationPage} />
         <Route path="/consumer-welcome" component={ConsumerWelcome} />
         <Route path="/procare-welcome" component={ProCareWelcome} />
+        <Route path="/trainer-welcome" component={ProCareWelcome} />
+        <Route path="/physician-welcome" component={ProCareWelcome} />
         <Route path="/procare-identity" component={ProCareIdentity} />
         <Route path="/procare-rewards" component={ProCareRewards} />
         <Route path="/procare-attestation" component={ProCareAttestation} />

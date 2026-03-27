@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User, Dumbbell } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
 import { startGuestSession, endGuestSession } from "@/lib/guestMode";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,7 +45,7 @@ const slides = [
   },
 ] as const;
 
-type ModalStep = "choose" | "account-type";
+type ModalStep = "choose" | "account-type" | "pro-type";
 
 export default function Welcome() {
   const [, setLocation] = useLocation();
@@ -190,9 +190,14 @@ export default function Welcome() {
     setLocation("/auth?mode=signup");
   };
 
-  const handleProfessionalSignUp = () => {
+  const handleTrainerSignUp = () => {
     closeModal();
-    setLocation("/procare-welcome");
+    setLocation("/auth?mode=signup&role=trainer");
+  };
+
+  const handlePhysicianSignUp = () => {
+    closeModal();
+    setLocation("/auth?mode=signup&role=physician");
   };
 
   const renderModal = () => (
@@ -228,9 +233,9 @@ export default function Welcome() {
                 </button>
               )}
 
-              {modalStep === "account-type" && (
+              {(modalStep === "account-type" || modalStep === "pro-type") && (
                 <button
-                  onClick={() => setModalStep("choose")}
+                  onClick={() => setModalStep(modalStep === "pro-type" ? "account-type" : "choose")}
                   className="absolute top-4 left-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
                   aria-label="Back"
                 >
@@ -238,7 +243,7 @@ export default function Welcome() {
                 </button>
               )}
 
-              {modalStep === "account-type" && (
+              {(modalStep === "account-type" || modalStep === "pro-type") && (
                 <button
                   onClick={closeModal}
                   className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
@@ -248,7 +253,7 @@ export default function Welcome() {
                 </button>
               )}
 
-              {modalStep === "choose" ? (
+              {modalStep === "choose" && (
                 <div className="space-y-5 pt-2">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-white mb-1">Welcome</h2>
@@ -285,11 +290,13 @@ export default function Welcome() {
                     </div>
                   </button>
                 </div>
-              ) : (
+              )}
+
+              {modalStep === "account-type" && (
                 <div className="space-y-5 pt-2">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-white mb-1">Create Account</h2>
-                    <p className="text-white/50 text-sm">What type of account?</p>
+                    <p className="text-white/50 text-sm">What kind of account?</p>
                   </div>
 
                   <button
@@ -301,14 +308,14 @@ export default function Welcome() {
                         <User className="h-5 w-5 text-lime-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Regular Sign Up</h3>
-                        <p className="text-white/50 text-sm mt-0.5">Personal meal planning</p>
+                        <h3 className="text-white font-semibold text-base">Personal Account</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Meal planning for yourself</p>
                       </div>
                     </div>
                   </button>
 
                   <button
-                    onClick={handleProfessionalSignUp}
+                    onClick={() => setModalStep("pro-type")}
                     className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
                   >
                     <div className="flex items-center gap-4">
@@ -316,8 +323,47 @@ export default function Welcome() {
                         <Stethoscope className="h-5 w-5 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Professional Sign Up</h3>
+                        <h3 className="text-white font-semibold text-base">Professional Account</h3>
                         <p className="text-white/50 text-sm mt-0.5">Trainer, coach, or physician</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {modalStep === "pro-type" && (
+                <div className="space-y-5 pt-2">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-white mb-1">Professional Account</h2>
+                    <p className="text-white/50 text-sm">What kind of professional?</p>
+                  </div>
+
+                  <button
+                    onClick={handleTrainerSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/20">
+                        <Dumbbell className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Trainer / Coach</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Fitness and nutrition coaching</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handlePhysicianSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/20">
+                        <Stethoscope className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Physician / Medical</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Clinical and medical professional</p>
                       </div>
                     </div>
                   </button>

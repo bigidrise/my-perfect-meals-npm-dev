@@ -17,6 +17,8 @@ const FULL_SCREEN_ROUTES = [
   "/guest-suite",
   "/guest",
   "/procare-welcome",
+  "/trainer-welcome",
+  "/physician-welcome",
   "/procare-identity",
   "/procare-attestation",
   "/consumer-welcome",
