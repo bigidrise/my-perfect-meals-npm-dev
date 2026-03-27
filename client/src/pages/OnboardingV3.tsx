@@ -665,7 +665,7 @@ export default function OnboardingV3() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm p-4 space-y-2">
+      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] space-y-2">
         <div className="flex items-center justify-between text-xs text-white/50">
           <span>Step {step} of {TOTAL_STEPS}</span>
           <span>{Math.round(progress)}%</span>
@@ -677,7 +677,7 @@ export default function OnboardingV3() {
         {renderPage()}
       </div>
 
-      <div className="sticky bottom-0 bg-black/90 backdrop-blur-sm border-t border-white/10 p-4">
+      <div className="sticky bottom-0 bg-black/90 backdrop-blur-sm border-t border-white/10 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex gap-3 max-w-md mx-auto">
           {step > 1 && (
             <Button
