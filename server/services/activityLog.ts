@@ -12,7 +12,8 @@ type ActivityAction =
   | "system_recommendation_applied"
   | "cycle_protocol_updated"
   | "nutrition_strategy_viewed"
-  | "nutrition_strategy_acknowledged";
+  | "nutrition_strategy_acknowledged"
+  | "board_access_changed";
 
 export async function logClientActivity(
   studioId: string,

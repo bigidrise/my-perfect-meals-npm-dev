@@ -1,10 +1,13 @@
 import { Router } from "express";
 import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
+import { careTeamMember } from "../db/schema/careTeam";
+import { clientNotes, studios } from "../db/schema/studio";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireBoardAccess, BoardAccessRequest } from "../middleware/requireBoardAccess";
 import { logActivityFireAndForget } from "../services/activityLog";
+import { pushToUser } from "../services/pushNotify";
 
 const router = Router();
 
@@ -249,6 +252,141 @@ router.post(
     } catch (error) {
       console.error("Error repeating day on pro board:", error);
       res.status(500).json({ error: "Failed to repeat day" });
+    }
+  }
+);
+
+router.patch(
+  "/clients/:clientId/board-access",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const authUser = (req as AuthenticatedRequest).authUser;
+      const { clientId } = req.params;
+      const { clientCanEdit } = req.body as { clientCanEdit: boolean };
+
+      if (typeof clientCanEdit !== "boolean") {
+        return res.status(400).json({ error: "clientCanEdit must be a boolean" });
+      }
+
+      const [relation] = await db
+        .select()
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, clientId),
+            eq(careTeamMember.proUserId, authUser.id),
+            eq(careTeamMember.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (!relation) {
+        return res.status(403).json({ error: "No active relationship with this client" });
+      }
+
+      const now = new Date();
+      const changedByRole = relation.role;
+
+      await db
+        .update(careTeamMember)
+        .set({
+          clientCanEdit,
+          clientEditLastChangedAt: now,
+          clientEditLastChangedByRole: changedByRole,
+          updatedAt: now,
+        })
+        .where(eq(careTeamMember.id, relation.id));
+
+      const accessLabel = clientCanEdit ? "Collaborative" : "Coach Managed";
+      const notifyBody = clientCanEdit
+        ? "Your coach enabled editing access on your shared meal plan."
+        : "Your meal plan is now coach-managed.";
+
+      const [studio] = await db
+        .select({ id: studios.id })
+        .from(studios)
+        .where(eq(studios.ownerUserId, authUser.id))
+        .limit(1);
+
+      if (studio) {
+        await db.insert(clientNotes).values({
+          studioId: studio.id,
+          clientUserId: clientId,
+          authorUserId: authUser.id,
+          entryType: "message",
+          sender: "pro",
+          visibility: "shared_with_client",
+          body: notifyBody,
+          tags: ["system:board_access_changed"],
+        });
+      }
+
+      logActivityFireAndForget(
+        clientId,
+        authUser.id,
+        "board_access_changed",
+        "meal_board",
+        relation.id,
+        { clientCanEdit, accessLabel, changedByRole }
+      );
+
+      pushToUser(clientId, {
+        title: "Shared Plan Access Updated",
+        body: notifyBody,
+        url: "/care-team/trainer",
+      }).catch(() => {});
+
+      return res.json({
+        ok: true,
+        clientCanEdit,
+        clientEditLastChangedAt: now,
+        clientEditLastChangedByRole: changedByRole,
+      });
+    } catch (error) {
+      console.error("Error updating board access:", error);
+      return res.status(500).json({ error: "Failed to update board access" });
+    }
+  }
+);
+
+router.get(
+  "/clients/:clientId/board-access",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const authUser = (req as AuthenticatedRequest).authUser;
+      const { clientId } = req.params;
+
+      const [relation] = await db
+        .select({
+          clientCanEdit: careTeamMember.clientCanEdit,
+          clientEditLastChangedAt: careTeamMember.clientEditLastChangedAt,
+          clientEditLastChangedByRole: careTeamMember.clientEditLastChangedByRole,
+          role: careTeamMember.role,
+        })
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, clientId),
+            eq(careTeamMember.proUserId, authUser.id),
+            eq(careTeamMember.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (!relation) {
+        return res.status(403).json({ error: "No active relationship with this client" });
+      }
+
+      return res.json({
+        clientCanEdit: relation.clientCanEdit,
+        clientEditLastChangedAt: relation.clientEditLastChangedAt,
+        clientEditLastChangedByRole: relation.clientEditLastChangedByRole,
+      });
+    } catch (error) {
+      console.error("Error fetching board access:", error);
+      return res.status(500).json({ error: "Failed to fetch board access" });
     }
   }
 );

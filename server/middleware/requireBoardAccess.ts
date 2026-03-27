@@ -13,6 +13,9 @@ export interface BoardAccessRequest extends Request {
     proUserId: string;
     role: string;
     permissions: Permissions;
+    clientCanEdit: boolean;
+    clientEditLastChangedAt: Date | null;
+    clientEditLastChangedByRole: string | null;
   };
 }
 
@@ -34,11 +37,39 @@ export async function requireBoardAccess(
   }
 
   if (authUser.id === clientId) {
+    const activeRelations = await db
+      .select({
+        clientCanEdit: careTeamMember.clientCanEdit,
+        clientEditLastChangedAt: careTeamMember.clientEditLastChangedAt,
+        clientEditLastChangedByRole: careTeamMember.clientEditLastChangedByRole,
+      })
+      .from(careTeamMember)
+      .where(
+        and(
+          eq(careTeamMember.userId, clientId),
+          eq(careTeamMember.status, "active")
+        )
+      );
+
+    const anyLocked = activeRelations.some((r) => !r.clientCanEdit);
+    const lockedRelation = activeRelations.find((r) => !r.clientCanEdit) ?? null;
+
+    const clientCanEdit = !anyLocked;
+    const clientEditLastChangedAt = lockedRelation?.clientEditLastChangedAt ?? null;
+    const clientEditLastChangedByRole = lockedRelation?.clientEditLastChangedByRole ?? null;
+
     (req as BoardAccessRequest).boardAccess = {
       clientUserId: clientId,
       proUserId: authUser.id,
       role: "client",
-      permissions: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
+      permissions: {
+        canViewMacros: true,
+        canAddMeals: clientCanEdit,
+        canEditPlan: clientCanEdit,
+      },
+      clientCanEdit,
+      clientEditLastChangedAt,
+      clientEditLastChangedByRole,
     };
     return next();
   }
@@ -62,6 +93,9 @@ export async function requireBoardAccess(
       proUserId: authUser.id,
       role: relation.role === "trainer" ? "trainer" : "physician",
       permissions,
+      clientCanEdit: relation.clientCanEdit,
+      clientEditLastChangedAt: relation.clientEditLastChangedAt ?? null,
+      clientEditLastChangedByRole: relation.clientEditLastChangedByRole ?? null,
     };
     return next();
   }
@@ -84,6 +118,9 @@ export async function requireBoardAccess(
       proUserId: authUser.id,
       role: "professional",
       permissions: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
+      clientCanEdit: true,
+      clientEditLastChangedAt: null,
+      clientEditLastChangedByRole: null,
     };
     return next();
   }
@@ -107,6 +144,9 @@ export async function requireBoardAccess(
       proUserId: authUser.id,
       role: "professional",
       permissions: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
+      clientCanEdit: true,
+      clientEditLastChangedAt: null,
+      clientEditLastChangedByRole: null,
     };
     return next();
   }

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { studios, studioMemberships } from "../db/schema/studio";
+import { careTeamMember } from "../db/schema/careTeam";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import {
@@ -145,6 +146,36 @@ router.post(
 
     const result = await acknowledgeStrategy(authUser.id, authUser.id, membership.studioId);
     return res.json(result);
+  }
+);
+
+router.get(
+  "/client/board-access-status",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const authUser = (req as AuthenticatedRequest).authUser;
+    if (!authUser?.id) return res.status(401).json({ error: "Unauthenticated" });
+
+    const activeRelations = await db
+      .select({
+        clientCanEdit: careTeamMember.clientCanEdit,
+        clientEditLastChangedByRole: careTeamMember.clientEditLastChangedByRole,
+      })
+      .from(careTeamMember)
+      .where(
+        and(
+          eq(careTeamMember.userId, authUser.id),
+          eq(careTeamMember.status, "active")
+        )
+      );
+
+    const anyLocked = activeRelations.some((r) => !r.clientCanEdit);
+    const lockedRelation = activeRelations.find((r) => !r.clientCanEdit) ?? null;
+
+    return res.json({
+      clientCanEdit: !anyLocked,
+      lockedByRole: lockedRelation?.clientEditLastChangedByRole ?? null,
+    });
   }
 );
 

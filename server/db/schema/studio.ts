@@ -31,7 +31,8 @@ export const activityActionEnum = pgEnum("activity_action", [
   "message_flagged",
   "cycle_protocol_updated",
   "nutrition_strategy_viewed",
-  "nutrition_strategy_acknowledged"
+  "nutrition_strategy_acknowledged",
+  "board_access_changed"
 ]);
 
 export const studios = pgTable("studios", {

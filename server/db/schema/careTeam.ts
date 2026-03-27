@@ -15,6 +15,9 @@ export const careTeamMember = pgTable("care_team_member", {
   role: varchar("role", { length: 32 }).notNull(),
   status: varchar("status", { length: 16 }).notNull().default("pending"),
   permissions: jsonb("permissions").$type<Permissions>().notNull(),
+  clientCanEdit: boolean("client_can_edit").notNull().default(false),
+  clientEditLastChangedAt: timestamp("client_edit_last_changed_at", { withTimezone: true }),
+  clientEditLastChangedByRole: varchar("client_edit_last_changed_by_role", { length: 32 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
