@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex, boolean, integer } from "drizzle-orm/pg-core";
 
 export const professionalSpaceTypeEnum = pgEnum("professional_space_type", ["studio", "clinic"]);
 
@@ -29,7 +29,9 @@ export const activityActionEnum = pgEnum("activity_action", [
   "note_deleted",
   "message_blocked",
   "message_flagged",
-  "cycle_protocol_updated"
+  "cycle_protocol_updated",
+  "nutrition_strategy_viewed",
+  "nutrition_strategy_acknowledged"
 ]);
 
 export const studios = pgTable("studios", {
@@ -182,16 +184,35 @@ export const clientActivityLog = pgTable("client_activity_log", {
 export type ClientActivityLog = typeof clientActivityLog.$inferSelect;
 export type InsertClientActivityLog = typeof clientActivityLog.$inferInsert;
 
+export const STRATEGY_TYPES = [
+  "Lower Carb Phase",
+  "Higher Carb Push",
+  "Carb Refeed",
+  "Lower Fat Phase",
+  "Higher Fat Adjustment",
+  "Maintenance Hold",
+  "Custom Strategy",
+] as const;
+
+export type StrategyType = typeof STRATEGY_TYPES[number];
+
 export const clientCycleProtocols = pgTable("client_cycle_protocols", {
   id: uuid("id").defaultRandom().primaryKey(),
   studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
   clientUserId: text("client_user_id").notNull().unique(),
-  protocolType: text("protocol_type").notNull().default("off"),
-  dayType: text("day_type"),
+  strategyType: text("strategy_type").notNull().default("Custom Strategy"),
+  coachInstructions: text("coach_instructions"),
+  watchFor: text("watch_for"),
+  strategyVersion: integer("strategy_version").notNull().default(1),
   updatedByUserId: text("updated_by_user_id").notNull(),
   updatedByRole: text("updated_by_role").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }),
+  lastViewedByUserId: text("last_viewed_by_user_id"),
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  acknowledgedByUserId: text("acknowledged_by_user_id"),
+  acknowledgedVersion: integer("acknowledged_version"),
 }, (table) => ({
   studioIdx: index("idx_cycle_protocols_studio").on(table.studioId),
   clientIdx: index("idx_cycle_protocols_client").on(table.clientUserId),

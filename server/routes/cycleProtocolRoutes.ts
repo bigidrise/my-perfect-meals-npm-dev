@@ -3,14 +3,22 @@ import { db } from "../db";
 import { studios, studioMemberships } from "../db/schema/studio";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
-import { applyCycleProtocol, getCycleProtocol, type ProtocolType, type DayType } from "../services/cycleProtocolService";
+import {
+  upsertNutritionStrategy,
+  getNutritionStrategy,
+  markStrategyViewed,
+  acknowledgeStrategy,
+  STRATEGY_TYPES,
+  type StrategyType,
+} from "../services/cycleProtocolService";
 import { z } from "zod";
 
 const router = Router();
 
-const cycleProtocolSchema = z.object({
-  protocolType: z.enum(["off", "carbCycle", "fatCycle"]),
-  dayType: z.enum(["low", "moderate", "high"]).nullable().optional(),
+const nutritionStrategySchema = z.object({
+  strategyType: z.enum(STRATEGY_TYPES as [string, ...string[]]),
+  coachInstructions: z.string().min(1).max(1000),
+  watchFor: z.string().max(500).nullable().optional(),
 });
 
 async function getProRoleAndStudio(
@@ -24,7 +32,6 @@ async function getProRoleAndStudio(
     .limit(1);
 
   if (!studio) return null;
-
   const role = studio.type === "clinic" ? "physician" : "trainer";
   return { studioId: studio.id, role };
 }
@@ -38,6 +45,15 @@ async function assertClientInStudio(studioId: string, clientUserId: string): Pro
   return !!membership;
 }
 
+async function getClientMembership(clientUserId: string): Promise<{ studioId: string } | null> {
+  const [membership] = await db
+    .select({ studioId: studioMemberships.studioId })
+    .from(studioMemberships)
+    .where(eq(studioMemberships.clientUserId, clientUserId))
+    .limit(1);
+  return membership ?? null;
+}
+
 router.get(
   "/studios/:studioId/clients/:clientUserId/cycle-protocol",
   requireAuth,
@@ -46,15 +62,14 @@ router.get(
     if (!authUser?.id) return res.status(401).json({ error: "Unauthenticated" });
 
     const { studioId, clientUserId } = req.params;
-
     const proAccess = await getProRoleAndStudio(authUser.id, studioId);
     if (!proAccess) return res.status(403).json({ error: "Access denied" });
 
     const inStudio = await assertClientInStudio(studioId, clientUserId);
     if (!inStudio) return res.status(404).json({ error: "Client not found in studio" });
 
-    const protocol = await getCycleProtocol(clientUserId);
-    return res.json({ protocol });
+    const strategy = await getNutritionStrategy(clientUserId);
+    return res.json({ strategy });
   }
 );
 
@@ -66,35 +81,70 @@ router.put(
     if (!authUser?.id) return res.status(401).json({ error: "Unauthenticated" });
 
     const { studioId, clientUserId } = req.params;
-
     const proAccess = await getProRoleAndStudio(authUser.id, studioId);
     if (!proAccess) return res.status(403).json({ error: "Access denied" });
 
     const inStudio = await assertClientInStudio(studioId, clientUserId);
     if (!inStudio) return res.status(404).json({ error: "Client not found in studio" });
 
-    const parsed = cycleProtocolSchema.safeParse(req.body);
+    const parsed = nutritionStrategySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: "Invalid payload", details: parsed.error.errors });
     }
 
-    const { protocolType, dayType } = parsed.data;
+    const { strategyType, coachInstructions, watchFor } = parsed.data;
 
-    if (protocolType !== "off" && !dayType) {
-      return res.status(400).json({ error: "dayType is required when protocolType is not off" });
-    }
-
-    const result = await applyCycleProtocol({
+    const result = await upsertNutritionStrategy({
       studioId: proAccess.studioId,
       clientUserId,
-      protocolType: protocolType as ProtocolType,
-      dayType: (dayType ?? null) as DayType | null,
+      strategyType: strategyType as StrategyType,
+      coachInstructions,
+      watchFor: watchFor ?? null,
       updatedByUserId: authUser.id,
       updatedByRole: proAccess.role,
     });
 
     if (!result.ok) return res.status(500).json({ error: result.error });
     return res.json({ ok: true });
+  }
+);
+
+router.get(
+  "/client/nutrition-strategy",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const authUser = (req as AuthenticatedRequest).authUser;
+    if (!authUser?.id) return res.status(401).json({ error: "Unauthenticated" });
+
+    const strategy = await getNutritionStrategy(authUser.id);
+    return res.json({ strategy });
+  }
+);
+
+router.post(
+  "/client/nutrition-strategy/view",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const authUser = (req as AuthenticatedRequest).authUser;
+    if (!authUser?.id) return res.status(401).json({ error: "Unauthenticated" });
+
+    const result = await markStrategyViewed(authUser.id, authUser.id);
+    return res.json(result);
+  }
+);
+
+router.post(
+  "/client/nutrition-strategy/acknowledge",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const authUser = (req as AuthenticatedRequest).authUser;
+    if (!authUser?.id) return res.status(401).json({ error: "Unauthenticated" });
+
+    const membership = await getClientMembership(authUser.id);
+    if (!membership) return res.status(404).json({ error: "No studio membership found" });
+
+    const result = await acknowledgeStrategy(authUser.id, authUser.id, membership.studioId);
+    return res.json(result);
   }
 );
 
