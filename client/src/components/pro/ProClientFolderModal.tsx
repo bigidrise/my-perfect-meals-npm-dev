@@ -9,6 +9,7 @@ import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
 import ProClientLabsSnapshot from "@/components/pro/ProClientLabsSnapshot";
 import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
+import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -106,12 +107,14 @@ export default function ProClientFolderModal({
   } | null>(null);
 
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
+  const [resolvedStudioId, setResolvedStudioId] = useState<string | null>(null);
   const clientId = resolvedClientId || client?.clientUserId || client?.userId || null;
+  const studioId = resolvedStudioId || client?.studioId || null;
   const hasDbBackedId = !!(client?.clientUserId || client?.userId);
 
   useEffect(() => {
-    if (!open || hasDbBackedId || !client?.email) {
-      setResolvedClientId(null);
+    if (!open || !client?.email) {
+      if (!hasDbBackedId) setResolvedClientId(null);
       return;
     }
     let cancelled = false;
@@ -122,12 +125,15 @@ export default function ProClientFolderModal({
         if (!studioRes.ok || cancelled) return;
         const { studio } = await studioRes.json();
         if (!studio || cancelled) return;
-        const clientsRes = await fetch(apiUrl(`/api/studios/${studio.id}/clients`), { headers, credentials: "include" });
-        if (!clientsRes.ok || cancelled) return;
-        const { clients: dbClients } = await clientsRes.json();
-        const match = dbClients?.find((dc: any) => dc.email === client.email);
-        if (match?.clientUserId && !cancelled) {
-          setResolvedClientId(match.clientUserId);
+        if (!cancelled) setResolvedStudioId(studio.id);
+        if (!hasDbBackedId) {
+          const clientsRes = await fetch(apiUrl(`/api/studios/${studio.id}/clients`), { headers, credentials: "include" });
+          if (!clientsRes.ok || cancelled) return;
+          const { clients: dbClients } = await clientsRes.json();
+          const match = dbClients?.find((dc: any) => dc.email === client.email);
+          if (match?.clientUserId && !cancelled) {
+            setResolvedClientId(match.clientUserId);
+          }
         }
       } catch {}
     })();
@@ -564,6 +570,10 @@ export default function ProClientFolderModal({
             {clientId && <ProClientWeightSnapshot clientId={clientId} />}
 
             {clientId && isPhysician && <ProClientLabsSnapshot clientId={clientId} />}
+
+            {clientId && studioId && (
+              <CycleProtocolControl studioId={studioId} clientUserId={clientId} />
+            )}
 
             <Button
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"

@@ -92,8 +92,6 @@ import {
   type StarchStrategy,
   type CutIntensity,
   type CutStyle,
-  type CycleMode,
-  type CycleDayType,
 } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
@@ -438,8 +436,6 @@ type StrategyConfig = {
   mealsPerDay: number;
   cutIntensity: CutIntensity;
   cutStyle: CutStyle;
-  cycleMode: CycleMode;
-  cycleDayType: CycleDayType;
   starchyCarbCap_g: number | null;
   allowZeroStarchyOnLowDay: boolean;
   fibrousCarbSafetyCap_g: number;
@@ -466,27 +462,7 @@ function applyStrategyLayer(base: any, cfg: StrategyConfig) {
     }
   }
 
-  // 2. Carb cycle — starchy only
-  if (cfg.cycleMode === "carbCycle") {
-    if (cfg.cycleDayType === "low") {
-      starchyG = cfg.allowZeroStarchyOnLowDay ? 0 : Math.round(starchyG * 0.5);
-    } else if (cfg.cycleDayType === "high") {
-      starchyG = Math.round(starchyG * 1.4);
-    }
-    // moderate: no change
-  }
-
-  // 3. Fat cycle — fat only
-  if (cfg.cycleMode === "fatCycle") {
-    if (cfg.cycleDayType === "low") {
-      fatG = Math.round(fatG * 0.7);
-    } else if (cfg.cycleDayType === "high") {
-      fatG = Math.round(fatG * 1.3);
-    }
-    // moderate: no change
-  }
-
-  // 4. Optional starchy cap (post-multiplier)
+  // 2. Optional starchy cap (post-multiplier)
   if (cfg.starchyCarbCap_g !== null && cfg.starchyCarbCap_g !== undefined) {
     starchyG = Math.min(starchyG, cfg.starchyCarbCap_g);
   }
@@ -990,12 +966,6 @@ export default function MacroCounter() {
   const [cutStyle, setCutStyle] = useState<CutStyle>(
     existingTargets?.cutStyle ?? "balanced"
   );
-  const [cycleMode, setCycleMode] = useState<CycleMode>(
-    existingTargets?.cycleMode ?? "none"
-  );
-  const [cycleDayType, setCycleDayType] = useState<CycleDayType>(
-    existingTargets?.cycleDayType ?? "moderate"
-  );
   const [starchyCarbCap_g, setStarchyCarbCap_g] = useState<number | null>(
     existingTargets?.starchyCarbCap_g ?? null
   );
@@ -1447,7 +1417,7 @@ export default function MacroCounter() {
 
     // Step 2: Strategy layer (hard cut, carb/fat cycle, starchy cap, adaptive fibrous)
     const stratResult = applyStrategyLayer(adjResult, {
-      lb, mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
+      lb, mealsPerDay, cutIntensity, cutStyle,
       starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
     });
 
@@ -1460,7 +1430,7 @@ export default function MacroCounter() {
     return { bmr, tdee, target: macros.calories, macros };
   }, [
     isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType, userType,
-    mealsPerDay, cutIntensity, cutStyle, cycleMode, cycleDayType,
+    mealsPerDay, cutIntensity, cutStyle,
     starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
     waistIn, waistCm, units, clinicalFlags,
   ]);
@@ -2596,79 +2566,6 @@ export default function MacroCounter() {
                       </div>
                     )}
 
-                    {/* Cycle Mode */}
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-white/80">Cycle Mode</p>
-                      <div className="space-y-3">
-                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "none" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-sm font-medium text-white">None</span>
-                              <p className="text-xs text-white/60 mt-0.5">Same macros every day</p>
-                            </div>
-                            <PillButton onClick={() => setCycleMode("none")} active={cycleMode === "none"}>
-                              {cycleMode === "none" ? "On" : "Off"}
-                            </PillButton>
-                          </div>
-                        </div>
-                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "carbCycle" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-sm font-medium text-white">Carb Cycle</span>
-                              <p className="text-xs text-white/60 mt-0.5">Starchy carbs vary by day type (zero on Low days)</p>
-                            </div>
-                            <PillButton onClick={() => setCycleMode("carbCycle")} active={cycleMode === "carbCycle"}>
-                              {cycleMode === "carbCycle" ? "On" : "Off"}
-                            </PillButton>
-                          </div>
-                        </div>
-                        <div className={`p-4 rounded-xl border transition-all ${cycleMode === "fatCycle" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-sm font-medium text-white">Fat Cycle</span>
-                              <p className="text-xs text-white/60 mt-0.5">Fat varies by day type, carbs stay constant</p>
-                            </div>
-                            <PillButton onClick={() => setCycleMode("fatCycle")} active={cycleMode === "fatCycle"}>
-                              {cycleMode === "fatCycle" ? "On" : "Off"}
-                            </PillButton>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Cycle Day Type — only when a cycle is active */}
-                    {cycleMode !== "none" && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-white/80">Day Type</p>
-                        <div className="space-y-3">
-                          {(["low", "moderate", "high"] as CycleDayType[]).map((v) => (
-                            <div key={v} className={`p-4 rounded-xl border transition-all ${cycleDayType === v ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <span className="text-sm font-medium text-white">{v.charAt(0).toUpperCase() + v.slice(1)}</span>
-                                  {cycleMode === "carbCycle" && v === "low" && (
-                                    <p className="text-xs text-green-400/80 mt-0.5">Starchy carbs → 0g (fibrous protected)</p>
-                                  )}
-                                  {cycleMode === "carbCycle" && v === "high" && (
-                                    <p className="text-xs text-white/60 mt-0.5">Starchy carbs ×1.4</p>
-                                  )}
-                                  {cycleMode === "fatCycle" && v === "low" && (
-                                    <p className="text-xs text-white/60 mt-0.5">Fat ×0.7</p>
-                                  )}
-                                  {cycleMode === "fatCycle" && v === "high" && (
-                                    <p className="text-xs text-white/60 mt-0.5">Fat ×1.3</p>
-                                  )}
-                                </div>
-                                <PillButton onClick={() => setCycleDayType(v)} active={cycleDayType === v}>
-                                  {cycleDayType === v ? "On" : "Off"}
-                                </PillButton>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     {/* Starchy Carb Cap (optional) */}
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-white/80">Starchy Carb Cap <span className="text-white/40 font-normal">(optional)</span></p>
@@ -2928,8 +2825,6 @@ export default function MacroCounter() {
                               starchStrategy,
                               cutIntensity,
                               cutStyle,
-                              cycleMode,
-                              cycleDayType,
                               starchyCarbCap_g,
                               allowZeroStarchyOnLowDay,
                               fibrousCarbSafetyCap_g,
@@ -3717,8 +3612,6 @@ export default function MacroCounter() {
                                 starchStrategy,
                                 cutIntensity,
                                 cutStyle,
-                                cycleMode,
-                                cycleDayType,
                                 starchyCarbCap_g,
                                 allowZeroStarchyOnLowDay,
                                 fibrousCarbSafetyCap_g,
@@ -3887,8 +3780,6 @@ export default function MacroCounter() {
                               starchStrategy,
                               cutIntensity,
                               cutStyle,
-                              cycleMode,
-                              cycleDayType,
                               starchyCarbCap_g,
                               allowZeroStarchyOnLowDay,
                               fibrousCarbSafetyCap_g,
@@ -3985,8 +3876,6 @@ export default function MacroCounter() {
                               starchStrategy,
                               cutIntensity,
                               cutStyle,
-                              cycleMode,
-                              cycleDayType,
                               starchyCarbCap_g,
                               allowZeroStarchyOnLowDay,
                               fibrousCarbSafetyCap_g,

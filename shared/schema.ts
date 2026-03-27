@@ -65,13 +65,15 @@ export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGene
 
 export { 
   professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
-  studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog 
+  studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog,
+  clientCycleProtocols
 } from "../server/db/schema/studio";
 export type { 
   Studio, InsertStudio, StudioBilling, InsertStudioBilling, 
   StudioMembership, InsertStudioMembership, StudioInvite, InsertStudioInvite,
   ClientSubscription, InsertClientSubscription, ClientNote, InsertClientNote,
-  ClientActivityLog, InsertClientActivityLog 
+  ClientActivityLog, InsertClientActivityLog,
+  ClientCycleProtocol, InsertClientCycleProtocol
 } from "../server/db/schema/studio";
 
 /**
