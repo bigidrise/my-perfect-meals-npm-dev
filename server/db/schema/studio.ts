@@ -28,7 +28,8 @@ export const activityActionEnum = pgEnum("activity_action", [
   "message_deleted",
   "note_deleted",
   "message_blocked",
-  "message_flagged"
+  "message_flagged",
+  "cycle_protocol_updated"
 ]);
 
 export const studios = pgTable("studios", {
@@ -180,3 +181,21 @@ export const clientActivityLog = pgTable("client_activity_log", {
 
 export type ClientActivityLog = typeof clientActivityLog.$inferSelect;
 export type InsertClientActivityLog = typeof clientActivityLog.$inferInsert;
+
+export const clientCycleProtocols = pgTable("client_cycle_protocols", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull().unique(),
+  protocolType: text("protocol_type").notNull().default("off"),
+  dayType: text("day_type"),
+  updatedByUserId: text("updated_by_user_id").notNull(),
+  updatedByRole: text("updated_by_role").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  studioIdx: index("idx_cycle_protocols_studio").on(table.studioId),
+  clientIdx: index("idx_cycle_protocols_client").on(table.clientUserId),
+}));
+
+export type ClientCycleProtocol = typeof clientCycleProtocols.$inferSelect;
+export type InsertClientCycleProtocol = typeof clientCycleProtocols.$inferInsert;
