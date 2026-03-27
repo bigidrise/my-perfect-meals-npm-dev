@@ -10,6 +10,7 @@ import ProClientLabsSnapshot from "@/components/pro/ProClientLabsSnapshot";
 import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
 import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
+import SharedPlanAccessControl from "@/components/pro/SharedPlanAccessControl";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -570,6 +571,10 @@ export default function ProClientFolderModal({
             {clientId && <ProClientWeightSnapshot clientId={clientId} />}
 
             {clientId && isPhysician && <ProClientLabsSnapshot clientId={clientId} />}
+
+            {clientId && (
+              <SharedPlanAccessControl clientId={clientId} />
+            )}
 
             {clientId && studioId && (
               <CycleProtocolControl studioId={studioId} clientUserId={clientId} />

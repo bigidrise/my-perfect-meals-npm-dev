@@ -45,6 +45,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PillButton } from "@/components/ui/pill-button";
 import { Wifi, WifiOff } from "lucide-react";
 import NutritionStrategyCard from "@/components/pro/NutritionStrategyCard";
+import SharedPlanLockedBanner from "@/components/pro/SharedPlanLockedBanner";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
@@ -363,7 +364,8 @@ export default function CareTeamPage() {
           </GlassCardContent>
         </GlassCard>
 
-        {/* Current Nutrition Strategy — client read-only */}
+        {/* Shared Plan Access status + Nutrition Strategy — client read-only */}
+        <SharedPlanLockedBanner />
         <NutritionStrategyCard />
 
         {/* Invite Row */}
