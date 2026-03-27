@@ -12,8 +12,9 @@ export default function Auth() {
   const { user, setUser, refreshUser } = useAuth();
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
+  const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | null, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
-    isProCare ? "signup" : urlMode === "signup" ? "signup" : "login"
+    isProCare || urlRole ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -27,9 +28,18 @@ export default function Auth() {
     try {
       let u;
       if (mode === "signup") {
-        const procareData = isProCare ? getProCareSignupData() : null;
+        let procareData = isProCare ? getProCareSignupData() : null;
+        if (!procareData && urlRole) {
+          procareData = {
+            professionalRole: urlRole,
+            professionalCategory: "certified",
+            attestationText: "Direct signup via welcome flow",
+            attestedAt: new Date().toISOString(),
+            procareEntryPath: urlRole,
+          };
+        }
         u = await signUp(email.trim(), pwd, procareData);
-        if (procareData) {
+        if (isProCare) {
           clearProCareSignupData();
         }
       } else {
@@ -47,9 +57,13 @@ export default function Auth() {
 
       const onboardingDone = fullUser?.onboardingCompletedAt;
 
-      if (isProfessional) {
+      if (isProfessional && mode === "login") {
         localStorage.removeItem("mpm_workspace_preference");
         setShowWorkspaceChooser(true);
+      } else if (mode === "signup" && urlRole === "trainer") {
+        setLocation("/trainer-welcome");
+      } else if (mode === "signup" && urlRole === "physician") {
+        setLocation("/physician-welcome");
       } else if (mode === "signup") {
         setLocation("/consumer-welcome");
       } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
@@ -73,7 +87,12 @@ export default function Auth() {
             setLocation(workspaceRoute);
           } else {
             localStorage.setItem("mpm_active_space", "personal");
-            setLocation("/");
+            const hasPersonalSetup = user?.onboardingCompletedAt;
+            if (!hasPersonalSetup) {
+              setLocation("/consumer-welcome");
+            } else {
+              setLocation("/");
+            }
           }
         }}
       />
@@ -87,23 +106,28 @@ export default function Auth() {
         <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
                          bg-gradient-to-br from-white/10 via-transparent to-transparent" />
 
-        {isProCare && mode === "signup" && (
+        {(isProCare || urlRole) && mode === "signup" && (
           <div className="relative z-10 mb-4 flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-900/40 rounded-full border border-blue-400/30">
               <Stethoscope className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-semibold text-blue-300">Professional Account</span>
+              <span className="text-xs font-semibold text-blue-300">
+                {urlRole === "trainer" ? "Trainer Account" : urlRole === "physician" ? "Physician Account" : "Professional Account"}
+              </span>
             </div>
           </div>
         )}
 
         <h1 className="relative z-10 text-2xl font-bold mb-1">
           {mode === "signup"
-            ? isProCare ? "Create Professional Account" : "Create Your Account"
+            ? urlRole === "trainer" ? "Create Trainer Account"
+            : urlRole === "physician" ? "Create Physician Account"
+            : isProCare ? "Create Professional Account"
+            : "Create Your Account"
             : "Welcome Back"}
         </h1>
         <p className="relative z-10 text-sm text-white/85 mb-6">
-          {mode === "signup" && isProCare
-            ? "Your professional credentials have been recorded."
+          {mode === "signup" && (isProCare || urlRole)
+            ? "Enter your email and a password to get started."
             : mode === "signup"
             ? "Enter your email and a password to get started."
             : "Sign in with your email and password."}

@@ -104,7 +104,10 @@ And here's something you'll want to know about: the Professional Affiliate Progr
 When you're ready, choose your professional role below to get started.`;
 
 export default function ProCareWelcome() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const isTrainerWelcome = location === "/trainer-welcome";
+  const isPhysicianWelcome = location === "/physician-welcome";
+  const role: "trainer" | "physician" | null = isTrainerWelcome ? "trainer" : isPhysicianWelcome ? "physician" : null;
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "respect",
   );
@@ -166,10 +169,10 @@ export default function ProCareWelcome() {
             className="w-[26rem] h-auto -mb-3"
           />
           <h1 className="text-2xl font-bold italic mt-0">
-            Welcome, Professional
+            {role === "trainer" ? "Welcome, Trainer" : role === "physician" ? "Welcome, Physician" : "Welcome, Professional"}
           </h1>
           <p className="text-white/60 text-sm leading-relaxed text-center mt-1 max-w-xs">
-            Before you create an account, understand how My Perfect Meals works{" "}
+            {role ? "Your account is ready. Here's how My Perfect Meals works" : "Before you create an account, understand how My Perfect Meals works"}{" "}
             <span className="italic">with</span> you, not instead of you.
           </p>
           <p className="text-green-400/80 text-xs mt-2 font-medium">
@@ -255,10 +258,14 @@ export default function ProCareWelcome() {
       {/* Fixed Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
         <Button
-          onClick={() => setLocation("/procare-identity")}
+          onClick={() => {
+            if (role === "trainer") setLocation("/care-team/trainer");
+            else if (role === "physician") setLocation("/care-team/physician");
+            else setLocation("/procare-identity");
+          }}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          Continue
+          {role ? "Enter Your Studio" : "Continue"}
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
