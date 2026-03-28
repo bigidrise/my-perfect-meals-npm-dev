@@ -150,16 +150,19 @@ export default function ProCareWelcome() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-32">
-        {/* Back button */}
-        <div className="pt-10 pb-2">
-          <button
-            onClick={() => setLocation("/welcome")}
-            className="flex items-center gap-1 text-white/60 text-sm mb-2 active:scale-[0.98]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-        </div>
+        {/* Back button — only shown on the legacy /procare-welcome path, not post-signup role routes */}
+        {!role && (
+          <div className="pt-10 pb-2">
+            <button
+              onClick={() => setLocation("/welcome")}
+              className="flex items-center gap-1 text-white/60 text-sm mb-2 active:scale-[0.98]"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          </div>
+        )}
+        {role && <div className="pt-10 pb-2" />}
 
         {/* Chef Hero Section */}
         <div className="flex flex-col items-center mb-4 -mt-2">
