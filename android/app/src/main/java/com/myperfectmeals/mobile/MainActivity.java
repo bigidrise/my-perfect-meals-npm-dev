@@ -1,4 +1,4 @@
-package com.myperfectmeals.app;
+package com.myperfectmeals.mobile;
 
 import android.os.Bundle;
 import android.webkit.CookieManager;
