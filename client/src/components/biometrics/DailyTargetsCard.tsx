@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { PillButton } from "@/components/ui/pill-button";
 import { getResolvedTargets } from "@/lib/macroResolver";
 
@@ -20,6 +21,14 @@ export function DailyTargetsCard({
   showQuickAddButton = true,
   targetsOverride,
 }: DailyTargetsCardProps) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => setTick(t => t + 1);
+    window.addEventListener("mpm:targetsUpdated", handleUpdate);
+    return () => window.removeEventListener("mpm:targetsUpdated", handleUpdate);
+  }, []);
+
   const resolved = targetsOverride || getResolvedTargets(userId);
   const starchyCarbs = resolved.starchyCarbs_g ?? 0;
   const fibrousCarbs = resolved.fibrousCarbs_g ?? 0;

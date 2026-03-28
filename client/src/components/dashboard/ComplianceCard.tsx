@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Target, AlertCircle } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -71,6 +72,16 @@ interface ComplianceCardProps {
 
 export function ComplianceCard({ userId }: ComplianceCardProps) {
   const isDesktop = useIsDesktop();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleTargetsUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["macro-targets", userId] });
+      queryClient.invalidateQueries({ queryKey: ["compliance", userId] });
+    };
+    window.addEventListener("mpm:targetsUpdated", handleTargetsUpdated);
+    return () => window.removeEventListener("mpm:targetsUpdated", handleTargetsUpdated);
+  }, [userId, queryClient]);
 
   const { data, isLoading, isError } = useQuery<ComplianceResponse>({
     queryKey: ["compliance", userId],
