@@ -274,6 +274,7 @@ export default function Router() {
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
     "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation",
+    "/trainer-welcome", "/physician-welcome",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
     "/profile", "/settings",
@@ -283,13 +284,20 @@ export default function Router() {
   const isUngatedRoute = ungatedRoutes.some(r => location === r || location.startsWith(r + "/"));
   const isMacroRoute = location === "/macro-counter" || location.startsWith("/macro-counter");
 
+  const isProfessionalUser =
+    user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+
   // Onboarding + Macro route guards with toast feedback
   useEffect(() => {
     if (!user || isUngatedRoute || isMacroRoute) return;
     if (user.id.startsWith("guest-") || user.isTester) return;
     if (guardRedirectedRef.current) return;
 
-    // Guard 1: Onboarding must be complete (only for paid users)
+    // Professionals (trainers, physicians) are never subject to consumer guards.
+    // They have their own onboarding path and do not need a macro profile to use the app.
+    if (isProfessionalUser) return;
+
+    // Guard 1: Onboarding must be complete (only for paid consumers)
     if (hasActivePaidSubscription(user) && !user.onboardingCompletedAt) {
       guardRedirectedRef.current = true;
       toast({
@@ -301,7 +309,7 @@ export default function Router() {
       return;
     }
 
-    // Guard 2: Macro profile must be complete (age, height, weight required)
+    // Guard 2: Macro profile must be complete (age, height, weight required — consumers only)
     const hasMacroProfile = user.age && user.height && user.weight;
     const hasLocalMacroSettings = (() => {
       try {
@@ -321,7 +329,7 @@ export default function Router() {
       setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
       return;
     }
-  }, [location, user]);
+  }, [location, user, isProfessionalUser]);
 
   return (
     <>
