@@ -26,7 +26,11 @@ export default function StudioBottomNav() {
             if (choice === "personal") {
               localStorage.setItem("mpm_active_space", "personal");
               sessionStorage.removeItem("mpm.welcomeGateDone");
-              setLocation("/");
+              if (!user?.onboardingCompletedAt) {
+                setLocation("/consumer-welcome");
+              } else {
+                setLocation("/");
+              }
             } else {
               localStorage.setItem("mpm_active_space", "workspace");
             }
