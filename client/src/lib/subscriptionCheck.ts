@@ -48,3 +48,13 @@ export function hasActivePaidSubscription(user: UserForSubscriptionCheck | null 
 export function isFreeTier(user: UserForSubscriptionCheck | null | undefined): boolean {
   return !hasActivePaidSubscription(user);
 }
+
+// Returns true only for users on an actual paid plan (not trial, not free).
+// Use this to suppress upsell UI for paying customers.
+export function hasPaidPlan(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (user.isTester) return true;
+  if (user.accessTier === "PAID_FULL") return true;
+  if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) return true;
+  return false;
+}
