@@ -23,18 +23,13 @@ allprojects {
         mavenCentral()
     }
 
-    // Fix: Kotlin stdlib-jdk7 and stdlib-jdk8 were merged into stdlib in 1.8.0.
-    // Cordova framework 10.x still pulls them at 1.6.21, causing duplicate class errors
-    // when combined with newer plugins that use stdlib 1.8+.
-    // Force all three to the same version so only one copy of each class is on the classpath.
+    // Fix: org.apache.cordova:framework:10.1.1 (pulled by capacitor-cordova-android-plugins)
+    // drags in kotlin-stdlib-jdk7:1.6.21 and kotlin-stdlib-jdk8:1.6.21 transitively.
+    // Since Kotlin 1.8.0 these artifacts were merged into the main kotlin-stdlib.
+    // Hard-exclude the old jdk7/jdk8 jars so they are never added to the classpath.
     configurations.all {
-        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-            if (details.requested.group == 'org.jetbrains.kotlin') {
-                if (details.requested.name in ['kotlin-stdlib', 'kotlin-stdlib-jdk7', 'kotlin-stdlib-jdk8', 'kotlin-stdlib-common']) {
-                    details.useVersion '1.9.25'
-                }
-            }
-        }
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
     }
 }
 
