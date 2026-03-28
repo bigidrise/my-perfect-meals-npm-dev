@@ -29,11 +29,13 @@ task clean(type: Delete) {
 }
 
 // Force Java 17 across all subprojects (overrides Capacitor 7's VERSION_21 default)
+// Uses extensions.findByName because hasProperty() misses Android library plugin extensions
 subprojects {
     afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
-            project.android.compileOptions.targetCompatibility = JavaVersion.VERSION_17
+        def androidExt = project.extensions.findByName('android')
+        if (androidExt != null) {
+            androidExt.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+            androidExt.compileOptions.targetCompatibility = JavaVersion.VERSION_17
         }
     }
 }
