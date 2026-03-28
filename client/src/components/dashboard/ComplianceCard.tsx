@@ -113,7 +113,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
       return res.json();
     },
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   if (!userId || isLoading) {

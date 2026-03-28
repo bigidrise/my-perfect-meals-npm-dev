@@ -62,6 +62,8 @@ interface FeatureCard {
   testId: string;
 }
 
+const todayMacros = { protein: 50, carbs: 150, fat: 70 };
+
 export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
