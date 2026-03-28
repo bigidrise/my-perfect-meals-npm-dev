@@ -46,7 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, hasPaidPlan } from "@/lib/subscriptionCheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -293,6 +293,7 @@ export default function DashboardNew() {
 
   useEffect(() => {
     if (!user) return;
+    if (hasPaidPlan(user)) return;
     const hasShown = localStorage.getItem("mpm_subscription_modal_shown");
     if (!hasShown) {
       setShowSubscriptionModal(true);
