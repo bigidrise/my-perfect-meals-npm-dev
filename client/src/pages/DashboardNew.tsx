@@ -47,6 +47,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { hasActivePaidSubscription, hasPaidPlan } from "@/lib/subscriptionCheck";
+import { getResolvedTargets } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -61,12 +62,6 @@ interface FeatureCard {
   testId: string;
 }
 
-// Placeholder for todayMacros - this would typically come from a query or state management
-const todayMacros = {
-  protein: 50,
-  carbs: 150,
-  fat: 70,
-};
 export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
