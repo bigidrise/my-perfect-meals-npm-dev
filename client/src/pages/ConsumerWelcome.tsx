@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft,
   ArrowRight,
   Play,
   Pause,
@@ -59,15 +58,7 @@ export default function ConsumerWelcome() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-40">
-        <div className="pt-10 pb-2">
-          <button
-            onClick={() => setLocation("/welcome")}
-            className="flex items-center gap-1 text-white/60 text-sm mb-2 active:scale-[0.98]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-        </div>
+        <div className="pt-10 pb-2" />
 
         <div className="flex flex-col items-center mb-4 -mt-2">
           <img
