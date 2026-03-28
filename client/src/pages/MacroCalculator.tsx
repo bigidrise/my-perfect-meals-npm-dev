@@ -20,7 +20,6 @@ import {
   MACRO_CALC_SYNC_WEIGHT,
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
-  MACRO_CALC_NUTRITION_STRATEGY,
   MACRO_CALC_STARCH,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
@@ -1023,7 +1022,7 @@ export default function MacroCounter() {
       syncWeight: MACRO_CALC_SYNC_WEIGHT,
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
-      nutritionStrategy: MACRO_CALC_NUTRITION_STRATEGY,
+      nutritionStrategy: "",
       starch: MACRO_CALC_STARCH,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
       save: MACRO_CALC_SAVE,
@@ -2453,7 +2452,7 @@ export default function MacroCounter() {
                   </CardContent>
                 </Card>
                 <Button
-                  onClick={() => advanceGuided("nutritionStrategy")}
+                  onClick={() => advanceGuided("starch")}
                   className="
                     w-full py-4
                     bg-lime-600
@@ -2467,7 +2466,7 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 12: Nutrition Strategy */}
+            {/* GUIDED STEP 12: Nutrition Strategy (hidden — managed via ProCare settings) */}
             {guidedStep === "nutritionStrategy" && (
               <motion.div
                 key="guided-nutrition-strategy"

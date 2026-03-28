@@ -39,9 +39,6 @@ export const MACRO_CALC_METABOLIC =
 export const MACRO_CALC_RESULTS =
   "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal changes—loss, gain, or maintenance—rerun the Macro Calculator to reset your targets.";
 
-export const MACRO_CALC_NUTRITION_STRATEGY =
-  "Before we lock your starch game in, let's dial in your Nutrition Strategy. Cut Intensity controls how aggressive your deficit is — Standard is the default balanced approach. Hard Cut steps it up: choose Balanced to keep things moderate, or Low Carb to push carbs lower and raise fat to keep you full. You can also set a hard ceiling on starchy carbs with the Starchy Carb Cap if you want extra control. Strict Mode is for competition prep or ProCare use — it disables all auto-corrections. When you've made your selections, tap Continue.";
-
 export const MACRO_CALC_STARCH =
   "Starchy carbs are the biggest lever for controlling body weight, so we place them intentionally. Tap one of the buttons below to choose your strategy. One Starch Meal puts all your carbs in one meal for appetite control. Flex Split divides them across two meals if you prefer. Tap the one that fits your lifestyle, then we'll lock it in.";
 
