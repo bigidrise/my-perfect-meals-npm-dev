@@ -7,7 +7,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "fuser -k 5000/tcp 2>/dev/null; NODE_ENV=development tsx server/index.ts",
     "dev:client": "cd client && vite",
     "dev:server": "NODE_ENV=development tsx server/index.ts",
     "dev:clean": "bash scripts/killports.sh && npm run dev",
