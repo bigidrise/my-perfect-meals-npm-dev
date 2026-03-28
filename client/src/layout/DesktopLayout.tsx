@@ -119,7 +119,11 @@ export default function DesktopLayout({ children }: Props) {
   const handlePersonalSpace = () => {
     setWorkspaceMode("personal");
     sessionStorage.removeItem("mpm.welcomeGateDone");
-    setLocation("/dashboard");
+    if (!user?.onboardingCompletedAt) {
+      setLocation("/consumer-welcome");
+    } else {
+      setLocation("/dashboard");
+    }
   };
 
   const handleStudioSpace = () => {
