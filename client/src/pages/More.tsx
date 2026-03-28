@@ -214,7 +214,11 @@ export default function MorePage() {
                 } else {
                   localStorage.setItem("mpm_active_space", "personal");
                   sessionStorage.removeItem("mpm.welcomeGateDone");
-                  setLocation("/");
+                  if (!user?.onboardingCompletedAt) {
+                    setLocation("/consumer-welcome");
+                  } else {
+                    setLocation("/");
+                  }
                 }
               }}
             />
