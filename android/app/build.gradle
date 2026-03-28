@@ -40,6 +40,15 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
+// Override Java version: Capacitor 7+ sets VERSION_21 in capacitor.build.gradle
+// This block must come AFTER the apply above so it wins.
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {
