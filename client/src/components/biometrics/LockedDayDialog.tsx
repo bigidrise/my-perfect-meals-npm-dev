@@ -1,14 +1,13 @@
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Lock, Calendar, Eye } from "lucide-react";
+import { Lock } from "lucide-react";
 import { formatDateDisplay } from "@/utils/midnight";
 
 interface LockedDayDialogProps {
@@ -24,9 +23,7 @@ export function LockedDayDialog({
   onOpenChange,
   dateISO,
   onViewOnly,
-  onCreateNewDay,
 }: LockedDayDialogProps) {
-  // Defensive: only format if we have a valid dateISO
   const formattedDate = dateISO
     ? formatDateDisplay(dateISO, {
         weekday: 'long',
@@ -48,24 +45,15 @@ export function LockedDayDialog({
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-white/70 text-sm">
-            <span className="font-medium text-orange-300">{formattedDate}</span> has been saved to Biometrics and is now locked. 
-            Your meals are safe! You can view this day or switch to today's plan.
+            <span className="font-medium text-orange-300">{formattedDate}</span> has been saved to Biometrics and is now locked. Your meals are safe.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4">
-          <AlertDialogCancel
-            onClick={onCreateNewDay}
-            className="flex-1 bg-black/40 border-white/20 text-white hover:bg-black/60 hover:text-white"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Switch to Today
-          </AlertDialogCancel>
+        <AlertDialogFooter className="mt-4">
           <AlertDialogAction
             onClick={onViewOnly}
-            className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700"
+            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700"
           >
-            <Eye className="w-4 h-4 mr-2" />
-            Stay Here
+            Got it
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
