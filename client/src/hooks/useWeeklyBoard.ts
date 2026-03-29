@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { WeekBoardResponseSchema, createEmptyWeekStructure, getMondayISO, type WeekBoardResponse, type WeekBoard } from "@/../../shared/schema/weeklyBoard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
