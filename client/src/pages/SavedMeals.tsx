@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import MealCardActions from "@/components/MealCardActions";
 import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 
 const SOURCE_LABELS: Record<string, string> = {
   "meal-builder": "Meal Builder",
@@ -66,7 +67,7 @@ export default function SavedMeals() {
       dateISO: new Date().toISOString().slice(0, 10),
       mealSlot: null,
     });
-    setLocation("/biometrics?view=macros");
+    setLocation(buildBiometricsUrl({ section: "macros", from: "saved-meals", highlight: true }));
   };
 
   return (

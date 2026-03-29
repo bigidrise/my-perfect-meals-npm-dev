@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1981,7 +1982,7 @@ export default function BeachBodyMealBoard() {
                           title: "Day Saved to Biometrics",
                           description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
                         });
-                        setLocation('/my-biometrics');
+                        setLocation(buildBiometricsUrl({ section: "macros", from: "beachbody-meal-board", highlight: true }));
                       }
                     }}
                   />
