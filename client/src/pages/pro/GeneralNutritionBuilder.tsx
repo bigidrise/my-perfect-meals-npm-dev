@@ -60,7 +60,6 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
-import MealReadySheet from "@/components/MealReadySheet";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -146,7 +145,6 @@ export default function WeeklyMealBoard() {
   const boardRef = React.useRef<WeekBoard | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
-  const [showMealReady, setShowMealReady] = React.useState(false);
 
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
@@ -187,7 +185,6 @@ export default function WeeklyMealBoard() {
       // Type assertion needed because ExtendedMeal has optional title, but schema requires it
       await saveToHook(updatedBoard as any, uuidv4());
       setJustSaved(true);
-      if (!showMealReady) setShowMealReady(true);
       setTimeout(() => setJustSaved(false), 2000);
       clearDraft();
     } catch (err) {
@@ -279,8 +276,6 @@ export default function WeeklyMealBoard() {
         await saveBoard(updatedBoard);
       }
 
-      // Dispatch board update event
-      window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
       window.dispatchEvent(new Event("macros:updated"));
       
       toast({
@@ -331,8 +326,6 @@ export default function WeeklyMealBoard() {
         await saveBoard(updatedBoard);
       }
 
-      // Dispatch board update event
-      window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
       window.dispatchEvent(new Event("macros:updated"));
     } catch (error) {
       console.error("Failed to add snack:", error);
@@ -730,41 +723,6 @@ export default function WeeklyMealBoard() {
     }
   }, [board, loading]);
 
-  // Listen for board updates from external sources
-  React.useEffect(() => {
-    const handleBoardUpdate = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { weekStartISO: eventWeekISO } = customEvent.detail || {};
-
-      console.log("🔄 Board update event received:", {
-        eventWeekISO,
-        currentWeekISO: weekStartISO,
-        matches: eventWeekISO === weekStartISO
-      });
-
-      // Refetch if it's for the current week OR if we don't have a week loaded yet
-      if (!weekStartISO || (eventWeekISO && eventWeekISO === weekStartISO)) {
-        try {
-          console.log("✅ Refetching board data...");
-          const { week, weekStartISO: newWeekStartISO } = await getCurrentWeekBoard(proClientId);
-          setBoard(week);
-          if (newWeekStartISO !== weekStartISO) {
-            setWeekStartISO(newWeekStartISO);
-          }
-          console.log("✅ Board data refetched successfully");
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : JSON.stringify(error);
-          console.error("Failed to refetch board after update:", errorMsg, error);
-        }
-      } else {
-        console.log("❌ Skipping refetch - week mismatch");
-      }
-    };
-
-    window.addEventListener("board:updated", handleBoardUpdate);
-    return () => window.removeEventListener("board:updated", handleBoardUpdate);
-  }, [weekStartISO]);
-
   // Add Snack handlers
   const onAddSnack = useCallback(() => setShowSnackModal(true), []);
 
@@ -824,11 +782,7 @@ export default function WeeklyMealBoard() {
         await putWeekBoard(weekStartISO, updated, proClientId);
       }
 
-      // Notify other widgets to refresh (macros/Header/etc.)
-      try {
-        window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
-        window.dispatchEvent(new Event("macros:updated"));
-      } catch { /* no-op, safest on older browsers */ }
+      window.dispatchEvent(new Event("macros:updated"));
 
     } catch (e) {
       console.error("Failed to save snack:", e);
@@ -872,7 +826,6 @@ export default function WeeklyMealBoard() {
       const saved = await saveWeekBoard(board);
       setBoard(saved);
       setJustSaved(true);
-      if (!showMealReady) setShowMealReady(true);
       // Reset success state after 2.5 seconds
       setTimeout(() => {
         setJustSaved(false);
@@ -918,13 +871,6 @@ export default function WeeklyMealBoard() {
         await saveBoard(updatedBoard);
         console.log("✅ Successfully added meal to", list, "for", weekStartISO);
       }
-
-      // Dispatch board update event for instant refresh
-      try {
-        window.dispatchEvent(new CustomEvent("board:updated", { detail: { weekStartISO } }));
-        window.dispatchEvent(new Event("macros:updated"));
-      } catch { /* no-op, safest on older browsers */ }
-
     } catch (error) {
       console.error("Failed to add meal:", error);
     }
@@ -1798,12 +1744,6 @@ export default function WeeklyMealBoard() {
         title="General Nutrition Builder"
         steps={GENERAL_NUTRITION_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
-      />
-      <MealReadySheet
-        show={showMealReady}
-        board={board}
-        onRefresh={refreshBoard}
-        onClose={() => setShowMealReady(false)}
       />
       </div>
     </motion.div>

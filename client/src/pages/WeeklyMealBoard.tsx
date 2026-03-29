@@ -96,7 +96,6 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
-import MealReadySheet from "@/components/MealReadySheet";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
 import { v4 as uuidv4 } from "uuid";
@@ -229,7 +228,6 @@ export default function WeeklyMealBoard() {
   const boardRef = React.useRef<WeekBoard | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
-  const [showMealReady, setShowMealReady] = React.useState(false);
 
   // Initialize locked days cache from server on component load
   React.useEffect(() => {
@@ -344,7 +342,6 @@ export default function WeeklyMealBoard() {
         // Type assertion needed because ExtendedMeal has optional title, but schema requires it
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
-        if (!showMealReady) setShowMealReady(true);
         setTimeout(() => setJustSaved(false), 2000);
         // Clear draft after successful server save
         // Note: do NOT call markClean() — keeping dirtyRef=true blocks hookBoard
@@ -1224,45 +1221,6 @@ export default function WeeklyMealBoard() {
     }
   }, [board, loading]);
 
-  // Listen for board updates from external sources
-  React.useEffect(() => {
-    const handleBoardUpdate = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { weekStartISO: eventWeekISO } = customEvent.detail || {};
-
-      console.log("🔄 Board update event received:", {
-        eventWeekISO,
-        currentWeekISO: weekStartISO,
-        matches: eventWeekISO === weekStartISO,
-      });
-
-      // Refetch ONLY the currently-viewed week. Never override weekStartISO here.
-      if (!weekStartISO) return;
-
-      if (!eventWeekISO || eventWeekISO === weekStartISO) {
-        try {
-          console.log("✅ Refetching current week board data...");
-          const { week } = await getWeekBoardByDate(weekStartISO, proClientId);
-          setBoard(week);
-          console.log("✅ Board data refetched successfully");
-        } catch (error) {
-          const errorMsg =
-            error instanceof Error ? error.message : JSON.stringify(error);
-          console.error(
-            "Failed to refetch board after update:",
-            errorMsg,
-            error,
-          );
-        }
-      } else {
-        console.log("❌ Skipping refetch - week mismatch");
-      }
-    };
-
-    window.addEventListener("board:updated", handleBoardUpdate);
-    return () => window.removeEventListener("board:updated", handleBoardUpdate);
-  }, [weekStartISO]);
-
   // Add Snack handlers
   const onAddSnack = useCallback(() => setShowSnackModal(true), []);
 
@@ -1403,7 +1361,6 @@ export default function WeeklyMealBoard() {
       const saved = await saveWeekBoard(board);
       setBoard(saved);
       setJustSaved(true);
-      if (!showMealReady) setShowMealReady(true);
       // Reset success state after 2.5 seconds
       setTimeout(() => {
         setJustSaved(false);
@@ -2523,12 +2480,6 @@ export default function WeeklyMealBoard() {
               (resolved.carbs_g || 0) - Math.round(totals.carbs),
             );
           })()}
-        />
-        <MealReadySheet
-          show={showMealReady}
-          board={board}
-          onRefresh={refreshBoard}
-          onClose={() => setShowMealReady(false)}
         />
       </div>
     </motion.div>
