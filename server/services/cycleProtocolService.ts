@@ -18,9 +18,9 @@ export interface NutritionStrategyInput {
   updatedByRole: "trainer" | "physician";
 }
 
-function buildClientMessage(role: string, strategyType: string): string {
+function buildSystemMessage(role: string, strategyType: string): string {
   const roleLabel = role === "physician" ? "Your physician" : "Your coach";
-  return `${roleLabel} updated your Current Nutrition Strategy to "${strategyType}". Tap to review your instructions.`;
+  return `${roleLabel} updated your nutrition strategy to "${strategyType}".`;
 }
 
 async function getActorName(userId: string, fallback: string): Promise<string> {
@@ -40,7 +40,7 @@ export async function upsertNutritionStrategy(
   const { studioId, clientUserId, strategyType, coachInstructions, watchFor, updatedByUserId, updatedByRole } = input;
 
   const actorName = await getActorName(updatedByUserId, updatedByRole);
-  const clientMsg = buildClientMessage(updatedByRole, strategyType);
+  const systemMsg = buildSystemMessage(updatedByRole, strategyType);
 
   const existing = await db
     .select({ strategyVersion: clientCycleProtocols.strategyVersion })
@@ -95,9 +95,22 @@ export async function upsertNutritionStrategy(
       entryType: "message",
       sender: "pro",
       visibility: "shared_with_client",
-      body: clientMsg,
-      tags: ["system:cycle_protocol_updated"],
+      body: systemMsg,
+      tags: ["system:cycle_protocol_updated", "visibleTo:client"],
     });
+
+    if (coachInstructions && coachInstructions.trim().length > 0) {
+      await tx.insert(clientNotes).values({
+        studioId,
+        clientUserId,
+        authorUserId: updatedByUserId,
+        entryType: "message",
+        sender: "pro",
+        visibility: "shared_with_client",
+        body: coachInstructions.trim(),
+        tags: ["system:coach_instructions"],
+      });
+    }
   });
 
   await logClientActivity(
@@ -117,7 +130,7 @@ export async function upsertNutritionStrategy(
 
   pushToUser(clientUserId, {
     title: "Nutrition Strategy Updated",
-    body: clientMsg,
+    body: systemMsg,
     url: "/care-team/trainer",
   }).catch(() => {});
 

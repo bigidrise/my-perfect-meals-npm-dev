@@ -162,6 +162,7 @@ router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Respo
       entryType: clientNotes.entryType,
       visibility: clientNotes.visibility,
       sender: clientNotes.sender,
+      tags: clientNotes.tags,
       createdAt: clientNotes.createdAt,
     })
     .from(clientNotes)
@@ -176,7 +177,12 @@ router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Respo
 
   markMessagesRead(studioId, clientId);
 
-  const messages = entries.filter(e => e.entryType === "message");
+  const isClientOnly = (tags: string[] | null) =>
+    Array.isArray(tags) && tags.includes("visibleTo:client");
+
+  const messages = entries.filter(
+    e => e.entryType === "message" && !isClientOnly(e.tags)
+  );
   const notes = entries.filter(e => e.entryType === "note");
 
   res.set("Cache-Control", "no-store");
