@@ -543,6 +543,8 @@ export default function MyBiometrics() {
   // SAFE: Start with null, load from storage in useEffect
   const [qv, setQv] = useState<QuickView | null>(null);
   const [highlightQv, setHighlightQv] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showNextActionModal, setShowNextActionModal] = useState(false);
 
   // Return-to-source state (populated from ?from= param on arrival)
   const [returnSource, setReturnSource] = useState<{ label: string; path: string } | null>(null);
@@ -588,6 +590,22 @@ export default function MyBiometrics() {
     return () => clearTimeout(t);
   }, [highlightQv]);
 
+  // Check for guide modal signal on mount (from MacroBridgeButton or RemainingMacrosFooter)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasUrlFlag = params.get("showGuide") === "1";
+    const hasSessionFlag = sessionStorage.getItem("biometrics:showGuide") === "1";
+    if (hasUrlFlag || hasSessionFlag) {
+      setShowGuideModal(true);
+      sessionStorage.removeItem("biometrics:showGuide");
+      if (hasUrlFlag) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("showGuide");
+        window.history.replaceState(null, "", url.toString());
+      }
+    }
+  }, []);
+
   // Load Quick View from storage on mount (deferred read)
   useEffect(() => {
     try {
@@ -612,6 +630,7 @@ export default function MyBiometrics() {
   const addFromQuickView = () => {
     if (!qv) return;
     setHighlightQv(false);
+    const hasReturn = !!sessionStorage.getItem("biometrics:returnTo");
     
     const P = qv.protein;
     const C = qv.carbs;
@@ -645,12 +664,15 @@ export default function MyBiometrics() {
 
     clearQuickView();
     setQv(null);
+    if (hasReturn) setShowNextActionModal(true);
   };
 
   const dismissQuickView = () => {
+    const hasReturn = !!sessionStorage.getItem("biometrics:returnTo");
     clearQuickView();
     setQv(null);
     setHighlightQv(false);
+    if (hasReturn) setShowNextActionModal(true);
   };
 
   const addMacros = () => {
@@ -2518,6 +2540,58 @@ export default function MyBiometrics() {
           });
         }}
       />
+
+      {/* MODAL #1 — Guide modal: shown on arrival from Add to Macros / Save Day */}
+      <Dialog open={showGuideModal} onOpenChange={setShowGuideModal}>
+        <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle className="text-white text-lg">Go to Quick View</DialogTitle>
+          </DialogHeader>
+          <p className="text-white/80 text-sm leading-relaxed">
+            To log this into today's macros, use Quick View and tap <strong className="text-white">Add to Today</strong>.
+          </p>
+          <div className="flex justify-end mt-2">
+            <Button
+              onClick={() => setShowGuideModal(false)}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6"
+            >
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL #2 — Next action modal: shown after Add to Today or Dismiss */}
+      <Dialog open={showNextActionModal} onOpenChange={setShowNextActionModal}>
+        <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle className="text-white text-lg">What would you like to do next?</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-2">
+            <Button
+              onClick={() => {
+                const returnTo = sessionStorage.getItem("biometrics:returnTo");
+                sessionStorage.removeItem("biometrics:returnTo");
+                setShowNextActionModal(false);
+                if (returnTo) {
+                  setLocation(returnTo);
+                }
+              }}
+              className="bg-orange-600 hover:bg-orange-700 text-white w-full"
+            >
+              Return to Previous Page
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowNextActionModal(false)}
+              className="border-white/30 text-white hover:bg-white/10 w-full"
+            >
+              Stay on Biometrics
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </motion.div>
   );
 }

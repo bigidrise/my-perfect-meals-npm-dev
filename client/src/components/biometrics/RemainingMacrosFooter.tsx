@@ -114,7 +114,11 @@ export function RemainingMacrosFooter({
         <div className={contentClass}>
           {showSaveButton && onSaveDay && (
             <button
-              onClick={onSaveDay}
+              onClick={() => {
+                sessionStorage.setItem("biometrics:returnTo", window.location.pathname + window.location.search);
+                sessionStorage.setItem("biometrics:showGuide", "1");
+                onSaveDay();
+              }}
               className="w-full mb-3 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-900 hover:from-zinc-900 hover:to-zinc-900 text-white text-sm font-semibold rounded-xl transition-all active:scale-[0.98] shadow-lg border-2 border-zinc-700/90"
             >
               Save Day to Biometrics
