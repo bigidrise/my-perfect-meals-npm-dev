@@ -202,6 +202,10 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
   const [data, setData] = useState<WeekBoardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // saveCooldownRef stores the timestamp until which background board reloads must not
+  // overwrite local state. Set to now+30s at save start, dropped to now+1.5s after save
+  // completes. Checked only by background/resume loaders — NOT by initial load or save().
+  const saveCooldownRef = useRef<number>(0);
 
   useEffect(() => {
     let mounted = true;
@@ -241,7 +245,11 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         loadWeeklyBoard({
           userId,
           weekStartISO: monday,
-          onData: (result) => { setData(result); setError(null); },
+          onData: (result) => {
+            if (Date.now() < saveCooldownRef.current) return;
+            setData(result);
+            setError(null);
+          },
           proClientId,
           namespace,
         }).catch(() => {});
@@ -264,7 +272,11 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       loadWeeklyBoard({
         userId,
         weekStartISO: monday,
-        onData: (result) => { setData(result); setError(null); },
+        onData: (result) => {
+          if (Date.now() < saveCooldownRef.current) return;
+          setData(result);
+          setError(null);
+        },
         proClientId,
         namespace,
       }).catch(() => {});
@@ -311,6 +323,8 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
 
   const save = useCallback(
     async (board: WeekBoard, opId?: string): Promise<void> => {
+      // Block background reloads for up to 30s while save is in flight
+      saveCooldownRef.current = Date.now() + 30_000;
       try {
         const result = await saveWeeklyBoard({
           userId,
@@ -325,6 +339,9 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       } catch (e) {
         setError(e as Error);
         throw e;
+      } finally {
+        // Whether save succeeded or failed, allow background reloads after a short grace period
+        saveCooldownRef.current = Date.now() + 1_500;
       }
     },
     [userId, monday, proClientId, namespace]
