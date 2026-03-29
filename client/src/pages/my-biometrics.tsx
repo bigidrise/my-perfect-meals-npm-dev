@@ -590,6 +590,11 @@ export default function MyBiometrics() {
     return () => clearTimeout(t);
   }, [highlightQv]);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
   // Check for guide modal signal on mount (from MacroBridgeButton or RemainingMacrosFooter)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
