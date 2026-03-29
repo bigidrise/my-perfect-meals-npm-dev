@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2232,7 +2233,7 @@ export default function WeeklyMealBoard() {
                                 description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" }, "America/Chicago")} has been locked.`,
                               });
                               if (!isGuestMode()) {
-                                setLocation("/my-biometrics");
+                                setLocation(buildBiometricsUrl({ section: "macros", from: "weekly-meal-board", highlight: true }));
                               }
                             }
                           }

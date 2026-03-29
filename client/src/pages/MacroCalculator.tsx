@@ -122,6 +122,7 @@ import { calculateWaistHeightRatio, classifyWaistRisk } from "@shared/waistRisk"
 import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
 import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 
 type Goal = "loss" | "maint" | "gain";
 type Sex = "male" | "female";
@@ -2283,12 +2284,7 @@ export default function MacroCounter() {
                             timestamp: Date.now(),
                           }),
                         );
-                        toast({
-                          title: "Weight ready to sync",
-                          description:
-                            "Go to My Biometrics to save it to your history.",
-                        });
-                        advanceGuided("metabolic");
+                        setLocation(buildBiometricsUrl({ section: "weight", from: "macro-calculator" }));
                       }}
                       className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl"
                     >

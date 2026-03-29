@@ -1,6 +1,7 @@
 import { saveDraft, MacroDraft } from "@/lib/macrosDraft";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 
 type Props = { 
   draft: MacroDraft; 
@@ -25,7 +26,7 @@ export default function QuickLogMacrosButton({
       mealSlot: draft.mealSlot,
     };
     saveDraft(clean);
-    setLocation("/my-biometrics?draft=1");
+    setLocation(buildBiometricsUrl({ section: "macros", from: "quick-log", highlight: true, draft: true }));
   }
 
   return (

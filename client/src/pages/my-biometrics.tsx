@@ -63,6 +63,7 @@ import { readDraft, clearDraft } from "@/lib/macrosDraft";
 import { startQueueAutoFlush, queueOrPost } from "@/lib/queue";
 import { normalizeMacros } from "@/lib/macroNormalize";
 import { getQuickView, clearQuickView, QuickView } from "@/lib/macrosQuickView";
+import { parseBiometricsParams, BIOMETRICS_SOURCES, SECTION_IDS } from "@/lib/biometricsNavigation";
 import { getMacroTargets, MacroTargets } from "@/lib/dailyLimits";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { useAuth } from "@/contexts/AuthContext";
@@ -541,7 +542,52 @@ export default function MyBiometrics() {
   // Quick View panel state (non-auto-logging preview from meal cards)
   // SAFE: Start with null, load from storage in useEffect
   const [qv, setQv] = useState<QuickView | null>(null);
-  
+  const [highlightQv, setHighlightQv] = useState(false);
+
+  // Return-to-source state (populated from ?from= param on arrival)
+  const [returnSource, setReturnSource] = useState<{ label: string; path: string } | null>(null);
+
+  // Parse inbound nav params (section, from, highlight) once on mount
+  useEffect(() => {
+    const { section, from: fromKey, highlight } = parseBiometricsParams(window.location.search);
+
+    // Persist the return source for the lifetime of this page visit
+    if (fromKey && BIOMETRICS_SOURCES[fromKey]) {
+      setReturnSource(BIOMETRICS_SOURCES[fromKey]);
+    }
+
+    // Activate highlight state
+    if (highlight) {
+      setHighlightQv(true);
+    }
+
+    // Scroll to the correct section (retry until element mounts)
+    if (section) {
+      const sectionId = SECTION_IDS[section];
+      const attemptScroll = (attempts = 0) => {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (attempts < 12) {
+          requestAnimationFrame(() => attemptScroll(attempts + 1));
+        }
+      };
+      requestAnimationFrame(() => attemptScroll());
+    }
+
+    // Strip consumed params from URL (keep ?draft, ?from won't show in address bar)
+    const url = new URL(window.location.href);
+    ["section", "highlight"].forEach((k) => url.searchParams.delete(k));
+    window.history.replaceState(null, "", url.toString());
+  }, []);
+
+  // Auto-clear QuickView highlight after 5 seconds
+  useEffect(() => {
+    if (!highlightQv) return;
+    const t = setTimeout(() => setHighlightQv(false), 5000);
+    return () => clearTimeout(t);
+  }, [highlightQv]);
+
   // Load Quick View from storage on mount (deferred read)
   useEffect(() => {
     try {
@@ -565,6 +611,7 @@ export default function MyBiometrics() {
 
   const addFromQuickView = () => {
     if (!qv) return;
+    setHighlightQv(false);
     
     const P = qv.protein;
     const C = qv.carbs;
@@ -603,6 +650,7 @@ export default function MyBiometrics() {
   const dismissQuickView = () => {
     clearQuickView();
     setQv(null);
+    setHighlightQv(false);
   };
 
   const addMacros = () => {
@@ -1508,6 +1556,18 @@ export default function MyBiometrics() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 pb-3 flex items-center gap-3">
+          {/* Return to source page (from ?from= param) */}
+          {returnSource && !isProSession && (
+            <Button
+              onClick={() => setLocation(returnSource.path)}
+              variant="ghost"
+              size="sm"
+              className="text-orange-300 hover:bg-orange-500/10 -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back to {returnSource.label}
+            </Button>
+          )}
           {/* Pro Session: Return to Pro Portal */}
           {isProSession && (
             <Button
@@ -1587,6 +1647,7 @@ export default function MyBiometrics() {
 
         {/* MACROS */}
         <Card
+          id="biometrics-macros-section"
           data-testid="biometrics-macro-summary"
           className="bg-black/30 backdrop-blur-lg border border-white/10"
         >
@@ -1807,7 +1868,19 @@ export default function MyBiometrics() {
 
             {/* Quick View Panel (display only, no auto-logging) */}
             {qv && (
-              <div className="rounded-2xl border border-white/20 p-3 mb-3 bg-black/20 backdrop-blur-sm">
+              <div
+                className={[
+                  "rounded-2xl border p-3 mb-3 bg-black/20 backdrop-blur-sm transition-all duration-300",
+                  highlightQv
+                    ? "border-orange-400 shadow-[0_0_16px_2px_rgba(251,146,60,0.45)] animate-pulse"
+                    : "border-white/20",
+                ].join(" ")}
+              >
+                {highlightQv && (
+                  <div className="text-xs font-semibold text-orange-300 mb-2 flex items-center gap-1">
+                    <span>👆</span> Tap <b>Add to Today</b> to log this meal to your macros
+                  </div>
+                )}
                 <div className="text-sm font-semibold mb-2 text-white">
                   Quick View (not logged)
                 </div>
@@ -2083,7 +2156,7 @@ export default function MyBiometrics() {
         </Card>
 
         {/* BODY with weight history */}
-        <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
+        <Card id="biometrics-weight-section" className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
               <Scale className="h-5 w-5" /> Body Stats
