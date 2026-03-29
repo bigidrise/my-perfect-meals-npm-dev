@@ -563,7 +563,7 @@ export default function MyBiometrics() {
       setHighlightQv(true);
     }
 
-    // Scroll to the correct section (retry until element mounts)
+    // Scroll to the correct section (retry until element mounts), or top if no section
     if (section) {
       const sectionId = SECTION_IDS[section];
       const attemptScroll = (attempts = 0) => {
@@ -575,6 +575,8 @@ export default function MyBiometrics() {
         }
       };
       requestAnimationFrame(() => attemptScroll());
+    } else {
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
     }
 
     // Strip consumed params from URL (keep ?draft, ?from won't show in address bar)
@@ -589,11 +591,6 @@ export default function MyBiometrics() {
     const t = setTimeout(() => setHighlightQv(false), 5000);
     return () => clearTimeout(t);
   }, [highlightQv]);
-
-  // Scroll to top on mount
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, []);
 
   // Check for guide modal signal on mount (from MacroBridgeButton or RemainingMacrosFooter)
   useEffect(() => {
