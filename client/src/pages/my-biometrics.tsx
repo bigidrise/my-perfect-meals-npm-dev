@@ -2550,11 +2550,14 @@ export default function MyBiometrics() {
             <DialogTitle className="text-white text-lg">Go to Quick View</DialogTitle>
           </DialogHeader>
           <p className="text-white/80 text-sm leading-relaxed">
-            To log this into today's macros, use Quick View and tap <strong className="text-white">Add to Today</strong>.
+            Scroll up to find the <strong className="text-orange-300">Quick View</strong> section, then tap <strong className="text-white">Add to Today</strong> to log your macros.
           </p>
           <div className="flex justify-end mt-2">
             <Button
-              onClick={() => setShowGuideModal(false)}
+              onClick={() => {
+                setShowGuideModal(false);
+                setHighlightQv(true);
+              }}
               className="bg-orange-600 hover:bg-orange-700 text-white px-6"
             >
               OK
@@ -2584,9 +2587,8 @@ export default function MyBiometrics() {
               Return to Previous Page
             </Button>
             <Button
-              variant="outline"
               onClick={() => setShowNextActionModal(false)}
-              className="border-white/30 text-white hover:bg-white/10 w-full"
+              className="bg-black text-white w-full"
             >
               Stay on Biometrics
             </Button>
