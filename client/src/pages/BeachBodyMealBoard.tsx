@@ -59,7 +59,6 @@ import {
   todayISOInTZ 
 } from "@/utils/midnight";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
-import MealReadySheet from "@/components/MealReadySheet";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
@@ -227,7 +226,6 @@ export default function BeachBodyMealBoard() {
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
-  const [showMealReady, setShowMealReady] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
   const isDesktop = useIsDesktop();
 
@@ -244,7 +242,6 @@ export default function BeachBodyMealBoard() {
       try {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
-        if (!showMealReady) setShowMealReady(true);
         setTimeout(() => setJustSaved(false), 2000);
       } catch (err) {
         console.error("Failed to save board:", err);
@@ -252,7 +249,7 @@ export default function BeachBodyMealBoard() {
         setSaving(false);
       }
     },
-    [saveToHook, showMealReady],
+    [saveToHook],
   );
 
   // Manual save handler for Save Plan button
@@ -1011,9 +1008,6 @@ export default function BeachBodyMealBoard() {
         }
 
         // Dispatch board update event
-        window.dispatchEvent(
-          new CustomEvent("board:updated", { detail: { weekStartISO } }),
-        );
         window.dispatchEvent(new Event("macros:updated"));
       } catch (error) {
         console.error("Failed to add snack:", error);
@@ -1082,9 +1076,6 @@ export default function BeachBodyMealBoard() {
       }
 
       try {
-        window.dispatchEvent(
-          new CustomEvent("board:updated", { detail: { weekStartISO } }),
-        );
         window.dispatchEvent(new Event("macros:updated"));
       } catch {}
     } catch (error) {
@@ -2237,13 +2228,6 @@ export default function BeachBodyMealBoard() {
           })()}
       </div>
     </motion.div>
-
-    <MealReadySheet
-      show={showMealReady}
-      board={board}
-      onRefresh={refreshBoard}
-      onClose={() => setShowMealReady(false)}
-    />
   </>
   );
 }
