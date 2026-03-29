@@ -46,10 +46,10 @@ export default function MacroBridgeButton({
       dateISO: meal.dateISO ?? new Date().toISOString().slice(0, 10),
       mealSlot: meal.mealSlot ?? null,
     });
-    const url = source 
-      ? `/biometrics?from=${source}&view=macros`
-      : "/biometrics?view=macros";
-    nav(url);
+
+    sessionStorage.setItem("biometrics:returnTo", window.location.pathname + window.location.search);
+
+    nav("/my-biometrics?showGuide=1");
   }
 
   return (
