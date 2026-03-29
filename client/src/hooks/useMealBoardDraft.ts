@@ -84,6 +84,7 @@ export function useMealBoardDraft(
   const initializedRef = useRef(false);
   const draftRestoredRef = useRef(false);
   const dirtyRef = useRef(false);
+  const savingRef = useRef(false);
   const lastSavedHashRef = useRef<string>('');
   const initialBoardHashRef = useRef<string>('');
   optionsRef.current = options;
@@ -235,7 +236,7 @@ export function useMealBoardDraft(
 
   const skipServerSyncRef = useRef(false);
   useEffect(() => {
-    skipServerSyncRef.current = initializedRef.current && (draftRestoredRef.current || dirtyRef.current);
+    skipServerSyncRef.current = initializedRef.current && (draftRestoredRef.current || dirtyRef.current || savingRef.current);
   });
 
   const skipServerSync = useCallback(() => skipServerSyncRef.current, []);
@@ -247,10 +248,14 @@ export function useMealBoardDraft(
     skipServerSync,
     markClean: () => {
       dirtyRef.current = false;
+      savingRef.current = false;
       skipServerSyncRef.current = false;
       if (board) {
         initialBoardHashRef.current = computeBoardHash(board);
       }
+    },
+    markSaving: (active: boolean) => {
+      savingRef.current = active;
     },
   };
 }
