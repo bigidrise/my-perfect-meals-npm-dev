@@ -58,8 +58,22 @@ export function MealCard({
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
   const [ingredientsExpanded, setIngredientsExpanded] = React.useState(false);
-  
+  const [translatedContent, setTranslatedContent] = React.useState<{
+    name?: string;
+    description?: string;
+    ingredients?: any[];
+    instructions?: any[] | string;
+  }>({});
+
+  React.useEffect(() => {
+    setTranslatedContent({});
+  }, [meal.id]);
+
   const title = meal.title || meal.name || "Meal";
+  const displayTitle = translatedContent.name ?? title;
+  const displayDescription = translatedContent.description ?? (meal as any).description;
+  const displayIngredients = translatedContent.ingredients ?? meal.ingredients;
+  const displayInstructions = translatedContent.instructions ?? meal.instructions;
   const kcal = meal.nutrition?.calories ?? 0;
   const protein = meal.nutrition?.protein ?? 0;
   const carbs = meal.nutrition?.carbs ?? 0;
@@ -139,24 +153,24 @@ export function MealCard({
         <div className="pr-12">
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-white font-semibold leading-snug text-lg flex-1">
-              {title.includes('(') ? (
+              {displayTitle.includes('(') ? (
                 <>
-                  {title.split('(')[0].trim()}
+                  {displayTitle.split('(')[0].trim()}
                   <br />
-                  ({title.split('(')[1]}
+                  ({displayTitle.split('(')[1]}
                 </>
               ) : (
-                title
+                displayTitle
               )}
             </h3>
             {showStarchBadge && (
-              <StarchMealBadge meal={{ name: title, ingredients: meal.ingredients }} />
+              <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
             )}
           </div>
           
           {/* Description (EXACT COPY FROM FRIDGE RESCUE) */}
-          {(meal as any).description && (
-            <p className="text-sm text-white/80 mt-1">{(meal as any).description}</p>
+          {displayDescription && (
+            <p className="text-sm text-white/80 mt-1">{displayDescription}</p>
           )}
 
           {/* Medical Badges - RESTORED DROPDOWN (EXACT COPY FROM FRIDGE RESCUE) */}
@@ -203,11 +217,11 @@ export function MealCard({
         )}
 
         {/* Ingredients - Expandable */}
-        {Array.isArray(meal?.ingredients) && meal.ingredients.length > 0 && (
+        {Array.isArray(displayIngredients) && displayIngredients.length > 0 && (
           <div className="mt-3 space-y-2">
             <h4 className="text-sm font-semibold text-white">Ingredients:</h4>
             <ul className="text-xs text-white/80 space-y-1">
-              {(ingredientsExpanded ? meal.ingredients : meal.ingredients.slice(0, 4)).map((ing: any, i: number) => {
+              {(ingredientsExpanded ? displayIngredients : displayIngredients.slice(0, 4)).map((ing: any, i: number) => {
                 if (typeof ing === "string") {
                   return (
                     <li key={i} className="flex items-start">
@@ -221,25 +235,25 @@ export function MealCard({
                 const unit = ing.unit || "";
                 
                 // Use formatIngredientWithGrams for proper display
-                const displayText = qty && unit 
+                const ingDisplayText = qty && unit 
                   ? formatIngredientWithGrams(qty, unit, name)
                   : name;
                 
                 return (
                   <li key={i} className="flex items-start">
                     <span className="text-green-400 mr-1">•</span>
-                    <span>{displayText}</span>
+                    <span>{ingDisplayText}</span>
                   </li>
                 );
               })}
-              {meal.ingredients.length > 4 && (
+              {displayIngredients.length > 4 && (
                 <li 
                   className="text-xs text-orange-400 cursor-pointer active:text-orange-300 select-none"
                   onClick={() => setIngredientsExpanded(!ingredientsExpanded)}
                 >
                   {ingredientsExpanded 
                     ? "Show less" 
-                    : `+ ${meal.ingredients.length - 4} more...`}
+                    : `+ ${displayIngredients.length - 4} more...`}
                 </li>
               )}
             </ul>
@@ -247,15 +261,15 @@ export function MealCard({
         )}
 
         {/* Cooking Instructions - handles both string and array formats */}
-        {meal?.instructions && (
+        {displayInstructions && (
           <div className="mt-3 space-y-2">
             <h4 className="text-sm font-semibold text-white">Instructions:</h4>
             <div className="text-xs text-white/80">
-              {typeof meal.instructions === "string" ? (
-                <p>{meal.instructions}</p>
-              ) : Array.isArray(meal.instructions) ? (
+              {typeof displayInstructions === "string" ? (
+                <p>{displayInstructions}</p>
+              ) : Array.isArray(displayInstructions) ? (
                 <ol className="list-decimal list-inside space-y-1">
-                  {meal.instructions.map((step, i) => (
+                  {displayInstructions.map((step, i) => (
                     <li key={i}>{step}</li>
                   ))}
                 </ol>
@@ -284,16 +298,17 @@ export function MealCard({
           )}
           <MealCardActions
             meal={{
-              name: title,
-              description: meal.description,
-              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
+              name: displayTitle,
+              description: displayDescription,
+              ingredients: (displayIngredients ?? []).map((ing: any) => ({
                 name: typeof ing === "string" ? ing : (ing.name || ing.item),
                 amount: typeof ing === "string" ? "" : (ing.quantity || ing.amount),
                 unit: typeof ing === "string" ? "" : ing.unit,
               })),
-              instructions: meal.instructions || [],
+              instructions: displayInstructions || [],
               nutrition: meal.nutrition,
             }}
+            onContentUpdate={(updated) => setTranslatedContent((prev) => ({ ...prev, ...updated }))}
           />
         </div>
         </div>
