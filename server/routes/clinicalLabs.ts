@@ -2,13 +2,14 @@ import express from "express";
 import { db } from "../db";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { clinicalProtocolRecommendations } from "../db/schema/clinicalProtocolRecommendations";
-import { studioMemberships } from "../db/schema/studio";
+import { studioMemberships, studios } from "../db/schema/studio";
 import { users } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
 import { resolveProtocolFromLabs, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
+import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 
 const router = express.Router();
 
@@ -30,7 +31,15 @@ const router = express.Router();
  *
  * Future fields: follow this convention. Add to labsPayloadSchema,
  * the Drizzle schema, the POST insert, and the GET response shape.
+ *
+ * Authorization model:
+ *   A requester may read or write clinical data for targetUserId only if:
+ *   (a) requester IS the target user (self-access), OR
+ *   (b) requester owns a studio that the target user is a member of
+ *       (verified clinician-client relationship — see verifyClinicalAccess).
+ *   Any other attempt returns 403.
  */
+
 const labsPayloadSchema = z.object({
   userId: z.string().optional(),
   a1c: z.number().optional().nullable(),
@@ -77,6 +86,13 @@ router.post("/", requireAuth, async (req, res) => {
     const body = labsPayloadSchema.parse(req.body);
 
     const targetUserId = body.userId || requesterId;
+
+    // Security: verify the requester is allowed to write for this target user
+    const hasAccess = await verifyClinicalAccess(requesterId as string, targetUserId as string);
+    if (!hasAccess) {
+      console.warn(`[clinicalLabs POST] UNAUTHORIZED: requester ${requesterId} attempted to write labs for user ${targetUserId}`);
+      return res.status(403).json({ error: "You are not authorized to submit labs for this user" });
+    }
 
     const inserted = await db
       .insert(clinicalLabs)
@@ -195,7 +211,15 @@ router.post("/recommendation", requireAuth, async (req, res) => {
 // ---------------------------------------------------------------------------
 router.get("/:userId", requireAuth, async (req, res) => {
   try {
+    const requesterId = getAuthUserId(req);
     const { userId } = req.params;
+
+    // Security: verify the requester is allowed to read data for this user
+    const hasAccess = await verifyClinicalAccess(requesterId as string, userId);
+    if (!hasAccess) {
+      console.warn(`[clinicalLabs GET] UNAUTHORIZED: requester ${requesterId} attempted to read labs for user ${userId}`);
+      return res.status(403).json({ error: "You are not authorized to view labs for this user" });
+    }
 
     const rows = await db
       .select()

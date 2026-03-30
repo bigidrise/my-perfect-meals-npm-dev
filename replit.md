@@ -189,6 +189,51 @@ Client receives email → taps "Accept Invitation" → creates account / logs in
 
 ### Rule: Never store coach user IDs on the frontend. Always use slug only.
 
+## Cancer Support Nutrition (oncology_support_v1)
+
+Physician-assigned clinical overlay. Not public-facing or self-selectable.
+
+### Architecture: Overlay on Anti-Inflammatory
+Built on top of the anti-inflammatory builder — not a standalone engine.
+
+### Authorization model (HARDENED)
+`verifyClinicalAccess(requesterId, targetUserId)` in `server/utils/verifyClinicalAccess.ts`:
+- Self-access always permitted
+- Cross-user access: requester must own the studio that the target user is a member of
+- Applied in: `clinicalLabs.ts` (POST and GET), `procareRoutes.ts` (oncology endpoints)
+
+### DB field
+`oncology_support_context jsonb` on `users` table (nullable — null = feature inactive for user).
+Typed as `OncologySupportContext` in `shared/schema.ts`.
+
+### Context shape
+```
+{ enabled, symptoms[], emphasis: { highProteinNutrientDensity }, source, updatedBy, updatedAt }
+```
+Symptoms: `low_appetite | nausea | mouth_sensitivity | fatigue_low_prep | gi_sensitivity`
+
+### Key files
+- `server/services/guardrails/prompt/oncologySupportPromptBuilder.ts` — overlay prompt composer
+- `server/services/guardrails/validators/oncologySupportValidator.ts` — post-generation safety validator
+- `server/utils/verifyClinicalAccess.ts` — shared clinician-client auth helper
+- ProCare endpoints: `GET/PUT /api/pro/oncology-support/:clientUserId`
+
+### Feature flag
+`ONCOLOGY_SUPPORT_V1` env var. Default: active. Set to `"off"` for instant disable.
+
+### Prompt injection path
+`stableMealGenerator.ts` loads `oncologySupportContext` from DB alongside palate prefs. 
+`buildOncologySupportPrompt()` is injected after existing hub context (diabetes/GLP-1/anti-inflammatory).
+
+### Safety validator (mandatory)
+`filterOncologySafeMeals()` / `validateOncologyMealSafety()` — scans generated meal names, descriptions, and instructions for forbidden patterns (cure claims, treatment language, supplement dosing). Rejection is logged.
+
+### Safety wording — non-negotiable
+No treatment claims, cure claims, diagnosis recommendations, or medication/supplement directives. Prompt includes: "nutrition support only — not medical treatment — follow oncology team guidance."
+
+### Phase 0 security hardening (COMPLETED)
+`clinicalLabs.ts` POST `/api/biometrics/labs` and GET `/api/biometrics/labs/:userId` now both call `verifyClinicalAccess()` and return 403 on unauthorized attempts.
+
 ## Heat Preference Feature
 
 `heatPreference` is a first-class user profile field, separate from `flavorPreference`.

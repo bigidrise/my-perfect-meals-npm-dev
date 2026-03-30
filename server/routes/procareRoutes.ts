@@ -2,6 +2,7 @@ import { Router } from "express";
 import express from "express";
 import { db } from "../db";
 import { proAccounts, clientLinks, subscriptions, payouts } from "../db/schema/procare";
+import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import {
   createConnectAccount,
@@ -13,6 +14,9 @@ import {
 } from "../services/stripeProcare";
 import { endLink, getActiveLink } from "../services/clientLinkService";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
+import { isOncologySupportEnabled, type OncologySupportContext } from "../services/guardrails/prompt/oncologySupportPromptBuilder";
+import { z } from "zod";
 
 const router = Router();
 
@@ -328,6 +332,106 @@ router.post("/end-relationship", async (req, res) => {
   } catch (error) {
     console.error("❌ Error ending relationship:", error);
     res.status(500).json({ error: "Failed to end relationship" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Cancer Support Nutrition — ProCare Assignment Endpoints
+// Feature flag: oncology_support_v1 (ONCOLOGY_SUPPORT_V1 env var)
+// Only verified studio owners may read or write a client's oncologySupportContext.
+// ---------------------------------------------------------------------------
+
+const oncologySupportSchema = z.object({
+  enabled: z.boolean(),
+  symptoms: z.array(
+    z.enum(["low_appetite", "nausea", "mouth_sensitivity", "fatigue_low_prep", "gi_sensitivity"])
+  ),
+  emphasis: z.object({
+    highProteinNutrientDensity: z.boolean(),
+  }),
+});
+
+/**
+ * GET /api/pro/oncology-support/:clientUserId
+ * Retrieve the current Cancer Support Nutrition context for a client.
+ * Only accessible by the verified studio owner for this client.
+ */
+router.get("/oncology-support/:clientUserId", async (req, res) => {
+  try {
+    if (!isOncologySupportEnabled()) {
+      return res.status(404).json({ error: "Feature not available" });
+    }
+
+    const requesterId = getUserId(req);
+    const { clientUserId } = req.params;
+
+    const hasAccess = await verifyClinicalAccess(requesterId, clientUserId);
+    if (!hasAccess) {
+      console.warn(`[oncology-support GET] UNAUTHORIZED: ${requesterId} attempted to read oncology context for ${clientUserId}`);
+      return res.status(403).json({ error: "You are not authorized to view this client's support context" });
+    }
+
+    const rows = await db
+      .select({ oncologySupportContext: users.oncologySupportContext })
+      .from(users)
+      .where(eq(users.id, clientUserId as any))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    res.json({ oncologySupportContext: rows[0].oncologySupportContext ?? null });
+  } catch (error: any) {
+    console.error("[oncology-support GET]", error);
+    res.status(500).json({ error: "Failed to retrieve oncology support context" });
+  }
+});
+
+/**
+ * PUT /api/pro/oncology-support/:clientUserId
+ * Assign or update a Cancer Support Nutrition context for a client.
+ * Only accessible by the verified studio owner for this client.
+ *
+ * Body: { enabled, symptoms[], emphasis: { highProteinNutrientDensity } }
+ *
+ * To disable: send { enabled: false, symptoms: [], emphasis: { highProteinNutrientDensity: false } }
+ */
+router.put("/oncology-support/:clientUserId", async (req, res) => {
+  try {
+    if (!isOncologySupportEnabled()) {
+      return res.status(404).json({ error: "Feature not available" });
+    }
+
+    const requesterId = getUserId(req);
+    const { clientUserId } = req.params;
+
+    const hasAccess = await verifyClinicalAccess(requesterId, clientUserId);
+    if (!hasAccess) {
+      console.warn(`[oncology-support PUT] UNAUTHORIZED: ${requesterId} attempted to write oncology context for ${clientUserId}`);
+      return res.status(403).json({ error: "You are not authorized to update this client's support context" });
+    }
+
+    const body = oncologySupportSchema.parse(req.body);
+
+    const context: OncologySupportContext = {
+      ...body,
+      source: "physician",
+      updatedBy: requesterId,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db
+      .update(users)
+      .set({ oncologySupportContext: context as any, updatedAt: new Date() })
+      .where(eq(users.id, clientUserId as any));
+
+    console.log(`[oncology-support PUT] Physician ${requesterId} ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId}. Symptoms: [${body.symptoms.join(", ")}]`);
+
+    res.json({ ok: true, oncologySupportContext: context });
+  } catch (error: any) {
+    console.error("[oncology-support PUT]", error);
+    res.status(400).json({ error: "Failed to update oncology support context", detail: error?.message });
   }
 });
 
