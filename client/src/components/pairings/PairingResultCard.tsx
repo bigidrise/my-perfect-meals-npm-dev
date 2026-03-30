@@ -1,3 +1,4 @@
+import { useState } from "react";
 import GeneratedCardShell from "@/components/cards/GeneratedCardShell";
 import FavoriteButton from "@/components/FavoriteButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -56,6 +57,18 @@ function AttributePill({ label, value }: { label: string; value: string }) {
 }
 
 export default function PairingResultCard({ pairing, foodContext, sourceType }: PairingResultCardProps) {
+  const [translatedContent, setTranslatedContent] = useState<{
+    name?: string;
+    description?: string;
+    notes?: string;
+    ingredients?: string[];
+  }>({});
+
+  const displayName = translatedContent.name ?? pairing.name;
+  const displayExplanation = translatedContent.description ?? pairing.explanation;
+  const displayServingTips = translatedContent.notes ?? pairing.servingTips;
+  const displayAlternatives = (translatedContent.ingredients as string[] | undefined) ?? pairing.alternatives;
+
   const favoriteMealData = {
     category: pairing.category,
     drinkName: pairing.name,
@@ -70,7 +83,7 @@ export default function PairingResultCard({ pairing, foodContext, sourceType }: 
 
   return (
     <GeneratedCardShell
-      title={pairing.name}
+      title={displayName}
       icon={getCategoryIcon(pairing.category)}
       description={getCategoryLabel(pairing.category)}
       imageUrl={pairing.imageUrl}
@@ -91,7 +104,7 @@ export default function PairingResultCard({ pairing, foodContext, sourceType }: 
       <div className="space-y-3">
         <div>
           <h4 className="text-sm font-semibold text-orange-400 mb-1">Why This Works</h4>
-          <p className="text-sm text-white/80 leading-relaxed">{pairing.explanation}</p>
+          <p className="text-sm text-white/80 leading-relaxed">{displayExplanation}</p>
         </div>
 
         {pairing.flavorProfile && pairing.flavorProfile.length > 0 && (
@@ -119,11 +132,11 @@ export default function PairingResultCard({ pairing, foodContext, sourceType }: 
           </div>
         )}
 
-        {pairing.alternatives && pairing.alternatives.length > 0 && (
+        {displayAlternatives && displayAlternatives.length > 0 && (
           <div>
             <h4 className="text-sm font-semibold text-orange-400 mb-1">Alternatives</h4>
             <div className="flex flex-wrap gap-1.5">
-              {pairing.alternatives.map((alt, i) => (
+              {displayAlternatives.map((alt, i) => (
                 <span
                   key={i}
                   className="px-2 py-0.5 bg-white/10 rounded-full text-xs text-white/70 border border-white/10"
@@ -135,17 +148,27 @@ export default function PairingResultCard({ pairing, foodContext, sourceType }: 
           </div>
         )}
 
-        {pairing.servingTips && (
+        {displayServingTips && (
           <div>
             <h4 className="text-sm font-semibold text-orange-400 mb-1">Serving Tips</h4>
-            <p className="text-xs text-white/60">{pairing.servingTips}</p>
+            <p className="text-xs text-white/60">{displayServingTips}</p>
           </div>
         )}
 
         <div className="pt-1">
           <TranslateToggle
-            content={`${pairing.name}: ${pairing.explanation}`}
-            type="pairing"
+            content={{
+              name: pairing.name,
+              description: pairing.explanation,
+              notes: pairing.servingTips || "",
+              ingredients: pairing.alternatives || [],
+            }}
+            onTranslate={(t) => setTranslatedContent({
+              name: t.name,
+              description: t.description,
+              notes: t.notes,
+              ingredients: t.ingredients as string[] | undefined,
+            })}
           />
         </div>
       </div>
