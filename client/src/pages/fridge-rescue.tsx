@@ -1303,9 +1303,9 @@ const FridgeRescuePage = () => {
                                           "string"
                                             ? translated.instructions
                                             : m.instructions,
-                                        ingredients:
-                                          (translated.ingredients as StructuredIngredient[]) ||
-                                          m.ingredients,
+                                        ingredients: translated.ingredients
+                                          ? (translated.ingredients as StructuredIngredient[]).map((ing: any) => ({ ...ing, displayText: undefined }))
+                                          : m.ingredients,
                                       }
                                     : m,
                                 ),
