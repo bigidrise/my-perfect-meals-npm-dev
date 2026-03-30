@@ -3217,7 +3217,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1, safetyMode, overrideToken } = req.body;
+      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken } = req.body;
+
+      // Fix A: Resolve authenticated user from session/token (server-authoritative).
+      // Never rely solely on client-sent userId — client may not send it at all.
+      let userId: string | undefined = (req.session as any)?.userId as string | undefined;
+      if (!userId) {
+        const token = req.headers["x-auth-token"] as string | undefined;
+        if (token) {
+          try {
+            const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, token)).limit(1);
+            if (tokenUser) userId = tokenUser.id;
+          } catch { /* non-fatal */ }
+        }
+      }
+      // Final fallback: body-provided userId (legacy / admin callers only)
+      if (!userId && bodyUserId) userId = bodyUserId;
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;

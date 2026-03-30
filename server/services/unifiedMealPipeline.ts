@@ -765,7 +765,8 @@ function buildVarietyPrompt(
   dishFamily: string,
   dietBlock: string,
   dietRestrictions: string[],
-  excludeClause: string
+  excludeClause: string,
+  allergyBlock: string = ''
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -779,7 +780,7 @@ function buildVarietyPrompt(
     : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
 
   return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
-
+${allergyBlock ? allergyBlock + '\n' : ''}
 ═══════════════════════════════════════
 HIERARCHY (follow in this EXACT order):
 ═══════════════════════════════════════
@@ -884,15 +885,31 @@ export async function generateCravingMealOptions(
   const dishFamily = extractDishFamily(cravingInput);
   console.log(`🎲 [VARIETY ENGINE] "${cravingInput}" → category: ${category}, dish: ${dishFamily}`);
 
-  // Fetch + merge dietary restrictions
+  // Fix B: Fetch dietary restrictions, allergies, AND health conditions from the user profile
   let dietRestrictions: string[] = [];
+  let allergyBlock = '';
   if (userId) {
     try {
-      const [u] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
-        .from(users).where(eq(users.id, userId)).limit(1);
+      const [u] = await db.select({
+        dietaryRestrictions: users.dietaryRestrictions,
+        allergies: users.allergies,
+        healthConditions: users.healthConditions,
+      }).from(users).where(eq(users.id, userId)).limit(1);
+
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
+
+      const allergies: string[] = (u?.allergies as string[]) || [];
+      if (allergies.length > 0) {
+        allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
+        console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.join(', ')}`);
+      }
+
+      const healthConditions: string[] = (u?.healthConditions as string[]) || [];
+      if (healthConditions.length > 0) {
+        console.log(`[VARIETY ENGINE] Health conditions for user ${userId}: ${healthConditions.join(', ')}`);
+      }
     } catch (err) {
-      console.warn("[VARIETY ENGINE] Could not fetch dietary restrictions:", err);
+      console.warn("[VARIETY ENGINE] Could not fetch user profile:", err);
     }
   }
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
@@ -909,7 +926,7 @@ export async function generateCravingMealOptions(
 
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean): Promise<any[]> => {
-    const prompt = buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause);
+    const prompt = buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
