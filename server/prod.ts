@@ -225,12 +225,16 @@ async function initializeApp() {
     const restaurantRoutes = (await import("./routes/restaurants")).default;
     const manualMacrosRouter = (await import("./routes/manualMacros")).default;
     const clinicalLabsRouter = (await import("./routes/clinicalLabs")).default;
+    const translateRouter = (await import("./routes/translate")).default;
+    const { requireAuth } = await import("./middleware/requireAuth");
+    const { requireActiveAccess } = await import("./middleware/requireActiveAccess");
     
     app.use("/api/meals/dessert-creator", dessertCreatorRouter);
     app.use("/api/meals/beverage-creator", beverageCreatorRouter);
     app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
     app.use("/api/biometrics/labs", clinicalLabsRouter);
+    app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
     console.log("✅ [INIT] Additional routes mounted");
     
     // Register main routes
