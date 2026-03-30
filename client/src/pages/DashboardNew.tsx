@@ -110,7 +110,13 @@ export default function DashboardNew() {
       }
       const data = await res.json();
       const msgs = data.messages || [];
-      setTabletMessages(msgs);
+      setTabletMessages((prev) => {
+        const prevMap = new Map(prev.map((m: any) => [m.id, m]));
+        return msgs.map((m: any) => ({
+          ...m,
+          translatedBody: prevMap.get(m.id)?.translatedBody,
+        }));
+      });
 
       const lastSeenKey = "mpm.tablet.client.lastSeen";
       const lastSeen = localStorage.getItem(lastSeenKey);
