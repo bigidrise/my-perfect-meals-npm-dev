@@ -2011,6 +2011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medicalConditions: user.medicalConditions || [],
         preferredBuilder: user.preferredBuilder || null,
         flavorPreference: user.flavorPreference || null,
+        heatPreference: user.heatPreference || null,
         hasAllergyPin: !!user.safetyPinHash,
         fontSizePreference: user.fontSizePreference || "standard",
         dailyCalorieTarget: user.dailyCalorieTarget ?? null,
@@ -2062,6 +2063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medicalConditions,
         preferredBuilder,
         flavorPreference,
+        heatPreference,
         sweetenerPreferences,
         goalType,
         goalTarget,
@@ -2091,6 +2093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (medicalConditions !== undefined) updateData.medicalConditions = medicalConditions;
       if (preferredBuilder !== undefined) updateData.preferredBuilder = preferredBuilder;
       if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
+      if (heatPreference !== undefined) updateData.heatPreference = heatPreference;
       if (sweetenerPreferences !== undefined) updateData.sweetenerPreferences = sweetenerPreferences;
       if (goalType !== undefined) updateData.goalType = goalType;
       if (goalTarget !== undefined) updateData.goalTarget = goalTarget;

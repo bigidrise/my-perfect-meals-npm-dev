@@ -53,11 +53,20 @@ const MEDICAL_CONDITIONS = [
 ];
 
 const FLAVOR_OPTIONS = [
-  { label: "Bold & Spicy", value: "bold-spicy" },
+  { label: "Bold & Flavorful", value: "bold-spicy" },
   { label: "Comfort Style", value: "comfort" },
   { label: "Mediterranean", value: "mediterranean" },
   { label: "Balanced", value: "balanced" },
   { label: "Not sure", value: "unsure" },
+];
+
+const HEAT_OPTIONS = [
+  { label: "No Heat", value: "none", description: "I want flavor, not spice" },
+  { label: "Mild", value: "mild", description: "A little kick is okay" },
+  { label: "Medium", value: "medium", description: "I like noticeable heat" },
+  { label: "Hot", value: "hot", description: "I enjoy spicy food regularly" },
+  { label: "Very Hot", value: "very-hot", description: "Bring the fire" },
+  { label: "Not Sure", value: "unsure", description: "Surprise me" },
 ];
 
 const SWEETENER_OPTIONS = [
@@ -111,6 +120,7 @@ export default function OnboardingV3() {
   const [medicalConditions, setMedicalConditions] = useState<string[]>([]);
   const [customConditionInput, setCustomConditionInput] = useState("");
   const [flavorPreference, setFlavorPreference] = useState("");
+  const [heatPreference, setHeatPreference] = useState("");
   const [sweetenerPreferences, setSweetenerPreferences] = useState<string[]>([]);
   const [goalType, setGoalType] = useState<"lose" | "maintain" | "gain" | "">("");
   const [goalTarget, setGoalTarget] = useState("");
@@ -235,6 +245,7 @@ export default function OnboardingV3() {
           }
           await saveProfile({
             flavorPreference,
+            heatPreference: heatPreference || "unsure",
             sweetenerPreferences
           });
           break;
@@ -556,6 +567,29 @@ export default function OnboardingV3() {
                   }`}
                 >
                   {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="text-center space-y-2 mt-8">
+              <h2 className="text-xl font-bold text-white">How much heat do you like?</h2>
+              <p className="text-white/60 text-sm">This is separate from flavor — you can love bold food with zero heat</p>
+            </div>
+            <div className="flex flex-col gap-2 max-w-sm mx-auto">
+              {HEAT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setHeatPreference(opt.value)}
+                  className={`flex items-center justify-between px-5 py-3 rounded-xl border text-left text-sm font-medium transition-all ${
+                    heatPreference === opt.value
+                      ? "bg-orange-500 border-orange-500 text-white"
+                      : "bg-white/5 border-white/20 text-white/80 hover:border-white/30"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  <span className={`text-xs ${heatPreference === opt.value ? "text-white/80" : "text-white/40"}`}>
+                    {opt.description}
+                  </span>
                 </button>
               ))}
             </div>

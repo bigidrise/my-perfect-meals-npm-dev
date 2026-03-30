@@ -84,6 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           medicalConditions: userData.medicalConditions || [],
           preferredBuilder: userData.preferredBuilder || null,
           flavorPreference: userData.flavorPreference || null,
+          heatPreference: userData.heatPreference || null,
           hasAllergyPin: userData.hasAllergyPin || false,
           studioMembership: userData.studioMembership || null,
           dailyCalorieTarget: userData.dailyCalorieTarget ?? null,
