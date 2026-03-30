@@ -5,6 +5,9 @@ import { resolveUserId, getWeekBoard, upsertWeekBoard, AuthenticationRequiredErr
 import { processMealImageForSave } from '../services/imageLifecycle';
 import { logActivityFireAndForget } from '../services/activityLog';
 import { pushToCoachOfClient } from '../services/pushNotify';
+import { db } from '../db';
+import { clientLinks } from '../db/schema/procare';
+import { eq, and } from 'drizzle-orm';
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -529,6 +532,21 @@ export default function weekBoardRoutes(app: Express) {
     }
   });
 
+  // GET board lock status — client checks if their board is professionally controlled
+  app.get("/api/me/board-lock", async (req: Request, res: Response) => {
+    try {
+      const userId = await resolveUserId(req);
+      const [link] = await db
+        .select({ mealBoardControl: clientLinks.mealBoardControl })
+        .from(clientLinks)
+        .where(and(eq(clientLinks.clientUserId, userId), eq(clientLinks.active, true)))
+        .limit(1);
+      return res.json({ locked: link?.mealBoardControl === 'professional' });
+    } catch {
+      return res.json({ locked: false });
+    }
+  });
+
   // PUT weekly board with idempotent saves (query param version)
   // Canva-style image lifecycle: Process all images before save
   // Supports ?bt= for builder type isolation; ?ns= accepted as fallback
@@ -539,6 +557,18 @@ export default function weekBoardRoutes(app: Express) {
     
     try {
       const userId = await resolveUserId(req);
+
+      // Board authority check — reject if a professional controls this board
+      const [link] = await db
+        .select({ mealBoardControl: clientLinks.mealBoardControl })
+        .from(clientLinks)
+        .where(and(eq(clientLinks.clientUserId, userId), eq(clientLinks.active, true)))
+        .limit(1);
+      if (link?.mealBoardControl === 'professional') {
+        return res.status(403).json({
+          error: 'Your meal board is currently managed by your professional. Contact them to make changes.'
+        });
+      }
       const incoming = normalizeBoard(req.body?.week ?? req.body);
       const opId = req.body?.opId; // Idempotent operation ID (for future use)
       

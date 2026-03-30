@@ -259,6 +259,51 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
   }
 });
 
+// GET /api/pro/clients/:clientId/board-control — read current board control setting
+router.get("/clients/:clientId/board-control", async (req, res) => {
+  try {
+    const proUserId = getUserId(req);
+    const { clientId } = req.params;
+    const [link] = await db
+      .select({ mealBoardControl: clientLinks.mealBoardControl })
+      .from(clientLinks)
+      .where(and(eq(clientLinks.clientUserId, clientId), eq(clientLinks.proUserId, proUserId), eq(clientLinks.active, true)))
+      .limit(1);
+    if (!link) return res.status(404).json({ error: "No active relationship found with this client" });
+    return res.json({ control: link.mealBoardControl });
+  } catch (error) {
+    console.error("❌ Error reading board control:", error);
+    res.status(500).json({ error: "Failed to read board control" });
+  }
+});
+
+// PATCH /api/pro/clients/:clientId/board-control — set board control ("client" or "professional")
+router.patch("/clients/:clientId/board-control", async (req, res) => {
+  try {
+    const proUserId = getUserId(req);
+    const { clientId } = req.params;
+    const { control } = req.body as { control: 'client' | 'professional' };
+    if (control !== 'client' && control !== 'professional') {
+      return res.status(400).json({ error: "control must be 'client' or 'professional'" });
+    }
+    const [existing] = await db
+      .select({ id: clientLinks.id })
+      .from(clientLinks)
+      .where(and(eq(clientLinks.clientUserId, clientId), eq(clientLinks.proUserId, proUserId), eq(clientLinks.active, true)))
+      .limit(1);
+    if (!existing) return res.status(404).json({ error: "No active relationship found with this client" });
+    await db
+      .update(clientLinks)
+      .set({ mealBoardControl: control })
+      .where(eq(clientLinks.id, existing.id));
+    console.log(`🔒 Board control for client ${clientId} set to '${control}' by pro ${proUserId}`);
+    return res.json({ control });
+  } catch (error) {
+    console.error("❌ Error setting board control:", error);
+    res.status(500).json({ error: "Failed to set board control" });
+  }
+});
+
 router.post("/end-relationship", async (req, res) => {
   try {
     const authUser = (req as AuthenticatedRequest).authUser;
