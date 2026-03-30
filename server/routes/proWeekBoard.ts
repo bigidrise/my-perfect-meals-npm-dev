@@ -206,14 +206,16 @@ router.get(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekParam = req.query.week as string | undefined;
-      const weekStartISO =
-        weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const nsParam = req.query.ns as string | undefined;
+      const plainDate = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      // Reconstruct the namespaced key the client uses: e.g. "antiInflammatory:2026-03-30"
+      const weekStartISO = nsParam ? `${nsParam}:${plainDate}` : plainDate;
 
       let board = await getWeekBoard(clientUserId, weekStartISO);
       let source = "db";
 
       if (!board) {
-        board = getOrCreateWeek(weekStartISO);
+        board = getOrCreateWeek(plainDate);
         await upsertWeekBoard(clientUserId, weekStartISO, board);
         source = "seed";
       }
@@ -307,8 +309,10 @@ router.put(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekParam = req.query.week as string | undefined;
-      const weekStartISO =
-        weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const nsParam = req.query.ns as string | undefined;
+      const plainDate = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      // Reconstruct the namespaced key the client uses: e.g. "antiInflammatory:2026-03-30"
+      const weekStartISO = nsParam ? `${nsParam}:${plainDate}` : plainDate;
 
       const incoming = normalizeBoard(req.body?.week ?? req.body);
 
