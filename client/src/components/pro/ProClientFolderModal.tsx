@@ -181,7 +181,13 @@ export default function ProClientFolderModal({
       }
       const data = await res.json();
       const msgs: TabletEntry[] = data.messages || [];
-      setMessages(msgs);
+      setMessages((prev) => {
+        const prevMap = new Map(prev.map((m) => [m.id, m]));
+        return msgs.map((m) => ({
+          ...m,
+          translatedBody: prevMap.get(m.id)?.translatedBody,
+        }));
+      });
       setNotes(data.notes || []);
 
       const lastSeenKey = `mpm.tablet.lastSeen.${clientId}`;
