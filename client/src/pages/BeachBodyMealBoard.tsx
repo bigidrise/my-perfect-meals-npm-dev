@@ -84,7 +84,6 @@ import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
-import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import {
   Dialog,
   DialogContent,
@@ -348,8 +347,6 @@ export default function BeachBodyMealBoard() {
   >("breakfast");
 
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
-    React.useState(false);
-  const [showDuplicateWeekModal, setShowDuplicateWeekModal] =
     React.useState(false);
 
   // Shopping list modal state
@@ -730,57 +727,6 @@ export default function BeachBodyMealBoard() {
     [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
-  const handleDuplicateWeek = useCallback(
-    async (targetWeekStartISO: string) => {
-      if (!board) return;
-
-      // Guard: Check if any day in TARGET week is locked
-      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ
-      const targetWeekDates = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
-      const lockedTarget = targetWeekDates.find((d) =>
-        isDayLocked(d, effectiveUserId),
-      );
-      if (lockedTarget) {
-        setPendingLockedDayISO(lockedTarget);
-        setLockedDayDialogOpen(true);
-        return;
-      }
-
-      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
-      const clonedBoard = {
-        ...board,
-        id: `week-${targetWeekStartISO}`,
-        days: board.days
-          ? Object.fromEntries(
-              Object.entries(board.days).map(([oldDateISO, lists]) => {
-                const dayIndex = weekDatesList.indexOf(oldDateISO);
-                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
-                const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
-                return [newDateISO, cloneDayLists(lists)];
-              }),
-            )
-          : undefined,
-      };
-
-      try {
-        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.BEACH_BODY);
-        primeCache(targetWeekStartISO, duplicated);
-        setWeekStartISO(targetWeekStartISO);
-        toast({
-          title: "Week duplicated",
-          description: `Copied to week of ${targetWeekStartISO}`,
-        });
-      } catch (error) {
-        console.error("Failed to duplicate week:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      }
-    },
-    [board, weekDatesList, toast],
-  );
 
   const handleAddToShoppingList = useCallback(() => {
     if (!board) {
@@ -2046,14 +1992,6 @@ export default function BeachBodyMealBoard() {
           />
         )}
 
-        {FEATURES.dayPlanning === "alpha" && (
-          <DuplicateWeekModal
-            isOpen={showDuplicateWeekModal}
-            onClose={() => setShowDuplicateWeekModal(false)}
-            onConfirm={handleDuplicateWeek}
-            sourceWeekStartISO={weekStartISO}
-          />
-        )}
 
         <ShoppingListPreviewModal
           isOpen={shoppingListModal.isOpen}

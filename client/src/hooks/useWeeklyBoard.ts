@@ -208,14 +208,19 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
   // overwrite local state. Set to now+30s at save start, dropped to now+1.5s after save
   // completes. Checked only by background/resume loaders — NOT by initial load or save().
   const saveCooldownRef = useRef<number>(0);
+  // requestVersionRef prevents stale week responses from overwriting newer week data
+  // when the user navigates weeks quickly.
+  const requestVersionRef = useRef<number>(0);
 
   useEffect(() => {
     let mounted = true;
-    setData(null);
+    // Do NOT clear data to null here — keep the previous week visible while the
+    // next week loads so the board never flashes blank during week navigation.
     setLoading(true);
+    const version = ++requestVersionRef.current;
 
     const handleData = (boardData: WeekBoardResponse) => {
-      if (mounted) {
+      if (mounted && version === requestVersionRef.current) {
         setData(boardData);
         setLoading(false);
       }
