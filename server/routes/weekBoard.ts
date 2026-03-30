@@ -681,6 +681,9 @@ export default function weekBoardRoutes(app: Express) {
     try {
       const { dateISO, slot, meal } = req.body;
 
+      // Resolve builder type — same normalization as GET /api/weekly-board and PUT /api/weekly-board
+      const builderType: string = (req.body.bt as string) || (req.query.bt as string) || '';
+
       // Validate inputs
       if (!dateISO || !isValidISODate(dateISO)) {
         return res.status(400).json({ error: "Invalid or missing dateISO (YYYY-MM-DD format required)" });
@@ -699,8 +702,8 @@ export default function weekBoardRoutes(app: Express) {
       const mondayISO = toMondayISO(dateISO);
       const userId = await resolveUserId(req);
 
-      // Get or create the week board
-      let board = await getWeekBoard(userId, mondayISO);
+      // Get or create the week board — scoped to the correct builder namespace
+      let board = await getWeekBoard(userId, mondayISO, builderType);
       if (!board) {
         board = getOrCreateWeek(mondayISO);
       }
@@ -766,10 +769,10 @@ export default function weekBoardRoutes(app: Express) {
       // Update metadata
       board.meta.lastUpdatedAt = new Date().toISOString();
 
-      // Save the board
-      await upsertWeekBoard(userId, mondayISO, board);
+      // Save the board — scoped to the same builder namespace used for the read
+      await upsertWeekBoard(userId, mondayISO, board, builderType);
 
-      console.log(`✅ Added meal "${mealToAdd.title}" to ${dateISO} ${slot}`);
+      console.log(`✅ Added meal "${mealToAdd.title}" to ${dateISO} ${slot}${builderType ? ` [bt=${builderType}]` : ''}`);
 
       return res.json({
         success: true,

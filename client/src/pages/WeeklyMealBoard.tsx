@@ -96,6 +96,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { getMondayISO } from "@/../../shared/schema/weeklyBoard";
 import { v4 as uuidv4 } from "uuid";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -226,6 +227,11 @@ export default function WeeklyMealBoard() {
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const boardRef = React.useRef<WeekBoard | null>(null);
+
+  // Register WeeklyMealBoard as the active board (default namespace — no bt)
+  React.useEffect(() => {
+    setActiveBuilderNs(undefined);
+  }, []);
 
   // Reset the initial-hydration gate whenever the viewed week changes.
   // This ensures incoming server data for the new week bypasses skipServerSync()
