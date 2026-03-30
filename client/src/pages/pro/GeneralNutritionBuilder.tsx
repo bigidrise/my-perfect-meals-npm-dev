@@ -53,7 +53,6 @@ import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
-import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { WhyChip } from "@/components/WhyChip";
 import { WhyDrawer } from "@/components/WhyDrawer";
 import { getWeeklyPlanningWhy } from "@/utils/reasons";
@@ -143,6 +142,12 @@ export default function WeeklyMealBoard() {
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const boardRef = React.useRef<WeekBoard | null>(null);
+
+  // Reset the initial-hydration gate on week change so new week data bypasses skipServerSync()
+  React.useEffect(() => {
+    boardRef.current = null;
+  }, [weekStartISO]);
+
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
@@ -210,7 +215,6 @@ export default function WeeklyMealBoard() {
   // Why drawer state
   const [boardWhyOpen, setBoardWhyOpen] = React.useState(false);
   const [showDuplicateDayModal, setShowDuplicateDayModal] = React.useState(false);
-  const [showDuplicateWeekModal, setShowDuplicateWeekModal] = React.useState(false);
 
   // Shopping list v2 modal state
   const [shoppingListModal, setShoppingListModal] = useState<{ isOpen: boolean; meal: any | null }>({ isOpen: false, meal: null });
@@ -500,38 +504,6 @@ export default function WeeklyMealBoard() {
       toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
     }
   }, [board, activeDayISO, weekStartISO, saveBoard, toast]);
-
-  // Duplicate week handler
-  const handleDuplicateWeek = useCallback(async (targetWeekStartISO: string) => {
-    if (!board) return;
-
-    // Deep clone the entire week
-    // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
-    const clonedBoard = {
-      ...board,
-      id: `week-${targetWeekStartISO}`,
-      days: board.days ? Object.fromEntries(
-        Object.entries(board.days).map(([oldDateISO, lists]) => {
-          const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
-          const dayIndex = weekDatesList.indexOf(oldDateISO);
-          const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
-
-          return [newDateISO, cloneDayLists(lists)];
-        })
-      ) : undefined
-    };
-
-    try {
-      // Save to the target week (this will use a separate hook instance when we navigate)
-      const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.GENERAL_NUTRITION);
-      primeCache(targetWeekStartISO, duplicated);
-      setWeekStartISO(targetWeekStartISO);
-      toast({ title: "Week duplicated", description: `Copied to week of ${targetWeekStartISO}` });
-    } catch (error) {
-      console.error('Failed to duplicate week:', error);
-      toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
-    }
-  }, [board, weekDatesList, toast]);
 
   // Shopping list v2 handler - Single day
   const handleAddToShoppingList = useCallback(() => {
@@ -1562,15 +1534,6 @@ export default function WeeklyMealBoard() {
         />
       )}
 
-      {/* NEW: Duplicate Week Modal */}
-      {FEATURES.dayPlanning === 'alpha' && (
-        <DuplicateWeekModal
-          isOpen={showDuplicateWeekModal}
-          onClose={() => setShowDuplicateWeekModal(false)}
-          onConfirm={handleDuplicateWeek}
-          sourceWeekStartISO={weekStartISO}
-        />
-      )}
 
       {/* Why Drawer */}
       {FEATURES.explainMode === 'alpha' && (
