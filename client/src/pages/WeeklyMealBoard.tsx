@@ -221,6 +221,7 @@ export default function WeeklyMealBoard() {
     save: saveToHook,
     source,
     refresh: refreshBoard,
+    primeCache,
   } = useWeeklyBoard("1", weekStartISO, proClientId);
 
   // Local mutable board state for optimistic updates
@@ -871,6 +872,7 @@ export default function WeeklyMealBoard() {
           targetDates,
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
+          cacheUserId: proClientId || "1",
         });
 
         if (result.currentWeekBoard) {
@@ -959,8 +961,8 @@ export default function WeeklyMealBoard() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
-        // Navigate to the new week
+        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId);
+        primeCache(targetWeekStartISO, duplicated);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",
