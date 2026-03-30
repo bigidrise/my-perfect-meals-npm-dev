@@ -370,6 +370,12 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     }
   }, [userId, monday, proClientId, namespace]);
 
+  const primeCache = useCallback((targetWeekISO: string, data: WeekBoardResponse): void => {
+    if (proClientId) return;
+    const key = cacheKey(userId, targetWeekISO, namespace);
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
+  }, [userId, proClientId, namespace]);
+
   return {
     board: data?.week ?? null,
     weekStartISO: monday,
@@ -378,5 +384,6 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     error,
     save,
     refresh,
+    primeCache,
   };
 }

@@ -229,6 +229,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     save: saveToHook,
     source,
     refresh: refreshBoard,
+    primeCache,
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
 
   // Local mutable board state for optimistic updates
@@ -560,6 +561,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
           namespace: BUILDER_NS.PERFORMANCE_COMPETITION,
+          cacheUserId: proClientId || clientId,
         });
 
         if (result.currentWeekBoard) {
@@ -606,7 +608,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       };
 
       try {
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
+        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
+        primeCache(targetWeekStartISO, duplicated);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",
