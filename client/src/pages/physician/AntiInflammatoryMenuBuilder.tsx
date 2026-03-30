@@ -65,6 +65,7 @@ import {
   BarChart3,
   ShoppingCart,
   X,
+  Lock,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
@@ -77,6 +78,7 @@ import { getWeeklyPlanningWhy } from "@/utils/reasons";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
+import { useBoardLockStatus } from "@/hooks/useBoardLockStatus";
 
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
@@ -149,6 +151,9 @@ export default function AntiInflammatoryMenuBuilder() {
   const [matchesLiverDisease, proParamsLiverDisease] = useRoute("/pro/clients/:id/liver-disease-builder");
   const proParams = proParamsAntiInflam || proParamsKidney || proParamsHeart || proParamsLiverDisease;
   const proClientId = proParams?.id;
+
+  const { locked: boardLocked } = useBoardLockStatus();
+  const readOnly = !proClientId && boardLocked;
 
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
@@ -1395,6 +1400,15 @@ export default function AntiInflammatoryMenuBuilder() {
 
       <TrialBanner />
 
+      {readOnly && (
+        <div className="mx-4 mt-2 px-4 py-3 rounded-xl bg-red-900/30 border border-red-500/40 flex items-center gap-3">
+          <Lock className="h-4 w-4 text-red-400 flex-shrink-0" />
+          <p className="text-sm text-red-200">
+            Your meal board is managed by your professional. You can view your plan but cannot make changes.
+          </p>
+        </div>
+      )}
+
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
@@ -1694,8 +1708,9 @@ export default function AntiInflammatoryMenuBuilder() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white/80 hover:bg-white/10"
+                        className="text-white/80 hover:bg-white/10 disabled:opacity-30"
                         onClick={() => openManualModal(key)}
+                        disabled={readOnly}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
@@ -1705,8 +1720,9 @@ export default function AntiInflammatoryMenuBuilder() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-white/70 hover:bg-white/10 text-xs font-medium"
+                          className="text-white/70 hover:bg-white/10 text-xs font-medium disabled:opacity-30"
                           onClick={() => openPicker("snacks")}
+                          disabled={readOnly}
                         >
                           Add Snack
                         </Button>

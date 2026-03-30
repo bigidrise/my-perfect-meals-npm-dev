@@ -102,10 +102,11 @@ export function putWeekBoard(
   namespace?: string
 ): Promise<WeekBoardResponse> {
   if (proClientId) {
-    return apiPut<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}`, { week });
+    const btPart = namespace ? `?bt=${encodeURIComponent(namespace)}` : '';
+    return apiPut<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}${btPart}`, { week });
   }
   const url = namespace
-    ? `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}&ns=${encodeURIComponent(namespace)}`
+    ? `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}&bt=${encodeURIComponent(namespace)}`
     : `/api/week-board/${weekStartISO}`;
   return apiPut<WeekBoardResponse>(url, { week });
 }

@@ -47,6 +47,7 @@ import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -814,6 +815,12 @@ export default function DessertCreator() {
                       )}
                     </div>
                   </div>
+
+                  <ServingInstructionsBlock
+                    servings={generatedDessert.totalSlices || 1}
+                    mealName={generatedDessert.name}
+                    description={generatedDessert.description}
+                  />
 
                   {generatedDessert.perSliceNutrition && (
                     <div className="mb-4 flex items-center justify-center gap-2">

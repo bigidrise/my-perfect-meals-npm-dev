@@ -25,7 +25,7 @@ function cacheKey(userId: string, weekStartISO: string, namespace?: string): str
 
 function buildWeekUrl(weekStartISO: string, namespace?: string): string {
   const base = `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`;
-  return namespace ? `${base}&ns=${encodeURIComponent(namespace)}` : base;
+  return namespace ? `${base}&bt=${encodeURIComponent(namespace)}` : base;
 }
 
 async function fetchWithTimeout(
@@ -125,7 +125,8 @@ function loadWeeklyBoard({
   onData(empty);
   return (async () => {
     try {
-      const url = apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}`);
+      const btPart = namespace ? `&bt=${encodeURIComponent(namespace)}` : '';
+      const url = apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}${btPart}`);
       const res = await fetchWithRetry(url, {
         credentials: "include",
         headers: { ...getAuthHeaders() },
@@ -160,8 +161,9 @@ async function saveWeeklyBoard({
   proClientId?: string;
   namespace?: string;
 }): Promise<WeekBoardResponse> {
+  const btPart = namespace ? `&bt=${encodeURIComponent(namespace)}` : '';
   const url = proClientId
-    ? apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}`)
+    ? apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}${btPart}`)
     : apiUrl(buildWeekUrl(weekStartISO, namespace));
   const payload = { week: board, opId };
 

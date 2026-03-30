@@ -14,6 +14,7 @@ export const clientLinks = pgTable("client_links", {
   clientUserId: text("client_user_id").notNull(),
   proUserId: text("pro_user_id").notNull(),
   active: boolean("active").notNull().default(true),
+  mealBoardControl: text("meal_board_control").notNull().default("client"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
