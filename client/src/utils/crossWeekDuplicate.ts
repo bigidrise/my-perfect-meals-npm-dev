@@ -55,9 +55,9 @@ export async function duplicateAcrossWeeks({
 
   for (const [weekStart, dates] of otherWeeks) {
     try {
-      const nsParam = namespace ? `&ns=${encodeURIComponent(namespace)}` : "";
+      const btParam = namespace ? `&bt=${encodeURIComponent(namespace)}` : "";
       const response = await apiJSON<{ week: WeekBoard }>(
-        `/api/weekly-board?week=${encodeURIComponent(weekStart)}${nsParam}`,
+        `/api/weekly-board?week=${encodeURIComponent(weekStart)}${btParam}`,
         { method: "GET" }
       );
       let remoteBoard: WeekBoard = response.week;
@@ -68,7 +68,7 @@ export async function duplicateAcrossWeeks({
       }
 
       await apiJSON(
-        `/api/weekly-board?week=${encodeURIComponent(weekStart)}${nsParam}`,
+        `/api/weekly-board?week=${encodeURIComponent(weekStart)}${btParam}`,
         { method: "PUT", json: { week: remoteBoard } }
       );
 
