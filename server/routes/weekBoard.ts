@@ -499,21 +499,20 @@ export default function weekBoardRoutes(app: Express) {
   // BULLETPROOF WEEKLY BOARD API (guarantees response, create-if-missing)
   
   // GET weekly board with guaranteed response (query param version)
-  // Supports ?ns= for builder namespace isolation (medical/pro builders)
+  // Supports ?bt= for builder type isolation (medical/pro builders); ?ns= accepted as fallback
   app.get("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-    const ns = req.query.ns as string | undefined;
-    const storeKey = ns ? `${ns}:${weekStartISO}` : weekStartISO;
+    const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
     
     try {
       const userId = await resolveUserId(req);
-      let board = await getWeekBoard(userId, storeKey);
+      let board = await getWeekBoard(userId, weekStartISO, builderType);
       let source = "db";
       
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(userId, storeKey, board);
+        await upsertWeekBoard(userId, weekStartISO, board, builderType);
         source = "seed";
       }
       
@@ -532,12 +531,11 @@ export default function weekBoardRoutes(app: Express) {
 
   // PUT weekly board with idempotent saves (query param version)
   // Canva-style image lifecycle: Process all images before save
-  // Supports ?ns= for builder namespace isolation (medical/pro builders)
+  // Supports ?bt= for builder type isolation; ?ns= accepted as fallback
   app.put("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-    const ns = req.query.ns as string | undefined;
-    const storeKey = ns ? `${ns}:${weekStartISO}` : weekStartISO;
+    const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
     
     try {
       const userId = await resolveUserId(req);
@@ -547,14 +545,14 @@ export default function weekBoardRoutes(app: Express) {
       // Canva-style image gate: Process all meal images before save
       const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
       if (imagesProcessed > 0) {
-        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}${ns ? ` [ns=${ns}]` : ''}`);
+        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}${builderType ? ` [bt=${builderType}]` : ''}`);
       }
       
       const now = new Date().toISOString();
-      const existingBoard = await getWeekBoard(userId, storeKey);
+      const existingBoard = await getWeekBoard(userId, weekStartISO, builderType);
       const saved: WeekBoard = {
         ...processedBoard,
-        id: ns ? `${ns}:week-${weekStartISO}` : `week-${weekStartISO}`,
+        id: `week-${weekStartISO}`,
         meta: {
           ...existingBoard?.meta,
           ...processedBoard.meta,
@@ -563,7 +561,7 @@ export default function weekBoardRoutes(app: Express) {
         },
       };
       
-      await upsertWeekBoard(userId, storeKey, saved);
+      await upsertWeekBoard(userId, weekStartISO, saved, builderType);
 
       logActivityFireAndForget(
         userId,
@@ -571,7 +569,7 @@ export default function weekBoardRoutes(app: Express) {
         "board_updated",
         "weekly_board",
         `week-${weekStartISO}`,
-        { weekStartISO, imagesProcessed, imagesPending }
+        { weekStartISO, builderType, imagesProcessed, imagesPending }
       );
 
       pushToCoachOfClient(userId, {

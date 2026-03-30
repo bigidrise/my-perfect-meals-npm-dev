@@ -1643,12 +1643,13 @@ export type InsertBiometricsVitals = typeof biometricsVitals.$inferInsert;
 export const weekBoards = pgTable("week_boards", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   weekStartISO: varchar("week_start_iso").notNull(), // e.g. "2025-09-08" (Monday)
+  builderType: varchar("builder_type").notNull().default(''), // e.g. "antiInflammatory"; '' = general
   boardJSON: jsonb("board_json").notNull(), // entire WeekBoard shape
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
-  pk: primaryKey({ columns: [table.userId, table.weekStartISO] }),
-  userWeekIdx: index("week_boards_user_week_idx").on(table.userId, table.weekStartISO),
+  pk: primaryKey({ columns: [table.userId, table.weekStartISO, table.builderType] }),
+  userWeekIdx: index("week_boards_user_week_idx").on(table.userId, table.weekStartISO, table.builderType),
 }));
 
 export type WeekBoard = typeof weekBoards.$inferSelect;

@@ -154,11 +154,12 @@ router.get(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekStartISO = getWeekStartISO();
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
-      let board = await getWeekBoard(clientUserId, weekStartISO);
+      let board = await getWeekBoard(clientUserId, weekStartISO, builderType);
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(clientUserId, weekStartISO, board);
+        await upsertWeekBoard(clientUserId, weekStartISO, board, builderType);
       }
 
       return res.json({ weekStartISO, week: normalizeBoard(board), source: "db" });
@@ -178,15 +179,16 @@ router.get(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const { weekStartISO } = req.params;
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
       if (!isValidISODate(weekStartISO)) {
         return res.status(400).json({ error: "Invalid weekStartISO format (YYYY-MM-DD)" });
       }
 
-      let board = await getWeekBoard(clientUserId, weekStartISO);
+      let board = await getWeekBoard(clientUserId, weekStartISO, builderType);
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(clientUserId, weekStartISO, board);
+        await upsertWeekBoard(clientUserId, weekStartISO, board, builderType);
       }
 
       return res.json({ weekStartISO, week: normalizeBoard(board), source: "db" });
@@ -206,17 +208,15 @@ router.get(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekParam = req.query.week as string | undefined;
-      const nsParam = req.query.ns as string | undefined;
-      const plainDate = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-      // Reconstruct the namespaced key the client uses: e.g. "antiInflammatory:2026-03-30"
-      const weekStartISO = nsParam ? `${nsParam}:${plainDate}` : plainDate;
+      const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
-      let board = await getWeekBoard(clientUserId, weekStartISO);
+      let board = await getWeekBoard(clientUserId, weekStartISO, builderType);
       let source = "db";
 
       if (!board) {
-        board = getOrCreateWeek(plainDate);
-        await upsertWeekBoard(clientUserId, weekStartISO, board);
+        board = getOrCreateWeek(weekStartISO);
+        await upsertWeekBoard(clientUserId, weekStartISO, board, builderType);
         source = "seed";
       }
 
@@ -237,6 +237,7 @@ router.put(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const { weekStartISO } = req.params;
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
       if (!isValidISODate(weekStartISO)) {
         return res.status(400).json({ error: "Invalid weekStartISO format (YYYY-MM-DD)" });
@@ -257,7 +258,7 @@ router.put(
       }
 
       const now = new Date().toISOString();
-      const existingBoard = await getWeekBoard(clientUserId, weekStartISO);
+      const existingBoard = await getWeekBoard(clientUserId, weekStartISO, builderType);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
@@ -269,7 +270,7 @@ router.put(
         },
       };
 
-      await upsertWeekBoard(clientUserId, weekStartISO, saved);
+      await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
 
       logActivityFireAndForget(
         access.proUserId,
@@ -277,7 +278,7 @@ router.put(
         "board_updated",
         "weekly_board",
         `week-${weekStartISO}`,
-        { weekStartISO, imagesProcessed, imagesPending, updatedBy: "pro" }
+        { weekStartISO, builderType, imagesProcessed, imagesPending, updatedBy: "pro" }
       );
 
       pushToUser(clientUserId, {
@@ -309,10 +310,8 @@ router.put(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekParam = req.query.week as string | undefined;
-      const nsParam = req.query.ns as string | undefined;
-      const plainDate = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-      // Reconstruct the namespaced key the client uses: e.g. "antiInflammatory:2026-03-30"
-      const weekStartISO = nsParam ? `${nsParam}:${plainDate}` : plainDate;
+      const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
       const incoming = normalizeBoard(req.body?.week ?? req.body);
 
@@ -329,7 +328,7 @@ router.put(
       }
 
       const now = new Date().toISOString();
-      const existingBoard = await getWeekBoard(clientUserId, weekStartISO);
+      const existingBoard = await getWeekBoard(clientUserId, weekStartISO, builderType);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
@@ -341,7 +340,7 @@ router.put(
         },
       };
 
-      await upsertWeekBoard(clientUserId, weekStartISO, saved);
+      await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
 
       logActivityFireAndForget(
         access.proUserId,
@@ -349,7 +348,7 @@ router.put(
         "board_updated",
         "weekly_board",
         `week-${weekStartISO}`,
-        { weekStartISO, imagesProcessed, imagesPending, updatedBy: "pro" }
+        { weekStartISO, builderType, imagesProcessed, imagesPending, updatedBy: "pro" }
       );
 
       pushToUser(clientUserId, {

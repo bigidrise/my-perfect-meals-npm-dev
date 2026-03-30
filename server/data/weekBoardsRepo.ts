@@ -20,14 +20,15 @@ function simpleNormalizeBoard(board: any): any {
 }
 
 // Repository for week board database operations
-export async function getWeekBoard(userId: string, weekStartISO: string) {
+export async function getWeekBoard(userId: string, weekStartISO: string, builderType: string = '') {
   try {
     const [row] = await db
       .select()
       .from(weekBoards)
       .where(and(
         eq(weekBoards.userId, userId),
-        eq(weekBoards.weekStartISO, weekStartISO)
+        eq(weekBoards.weekStartISO, weekStartISO),
+        eq(weekBoards.builderType, builderType)
       ))
       .limit(1);
     
@@ -41,19 +42,20 @@ export async function getWeekBoard(userId: string, weekStartISO: string) {
   }
 }
 
-export async function upsertWeekBoard(userId: string, weekStartISO: string, board: any) {
+export async function upsertWeekBoard(userId: string, weekStartISO: string, board: any, builderType: string = '') {
   try {
     await db
       .insert(weekBoards)
       .values({
         userId,
         weekStartISO,
+        builderType,
         boardJSON: board,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
-        target: [weekBoards.userId, weekBoards.weekStartISO],
+        target: [weekBoards.userId, weekBoards.weekStartISO, weekBoards.builderType],
         set: {
           boardJSON: board,
           updatedAt: new Date(),
