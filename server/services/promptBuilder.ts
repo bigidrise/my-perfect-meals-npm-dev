@@ -117,9 +117,70 @@ export interface PalatePreferences {
   palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
   palateSeasoningIntensity?: "light" | "balanced" | "bold";
   palateFlavorStyle?: "classic" | "herb" | "savory" | "bright";
+  // Onboarding-sourced preferences (override palate* fields when present)
+  flavorPreference?: string | null;  // bold-spicy, bold-flavorful, comfort, mediterranean, balanced, unsure
+  heatPreference?: string | null;    // none, mild, medium, hot, very-hot, unsure
+  medicalConditions?: string[];      // used to cap heat when clinical context demands it
+}
+
+// Medical conditions that require heat to be capped at mild regardless of user preference
+const HEAT_SENSITIVE_CONDITIONS = [
+  "diabetes-type1", "diabetes-type2", "prediabetes",
+  "crohns", "ulcerative-colitis", "ibs",
+  "anti-inflammatory", "rheumatoid-arthritis", "psoriasis", "lupus",
+];
+
+function effectiveHeat(
+  heatPreference: string | null | undefined,
+  medicalConditions: string[] | undefined,
+): string {
+  const requested = heatPreference || "mild";
+  const isSensitive = medicalConditions?.some(c => HEAT_SENSITIVE_CONDITIONS.includes(c));
+
+  if (!isSensitive) return requested;
+
+  // Cap heat at mild for clinical conditions
+  const heatRank: Record<string, number> = { none: 0, mild: 1, medium: 2, hot: 3, "very-hot": 4, unsure: 1 };
+  const requestedRank = heatRank[requested] ?? 1;
+  return requestedRank > 1 ? "mild" : requested;
 }
 
 export function buildPalateSection(profile: PalatePreferences): string {
+  // If onboarding fields are present, they take priority over the old palate* fields
+  const hasOnboardingPrefs = profile.flavorPreference || profile.heatPreference;
+
+  if (hasOnboardingPrefs) {
+    const heat = effectiveHeat(profile.heatPreference, profile.medicalConditions);
+    const flavor = profile.flavorPreference || "balanced";
+
+    const heatMap: Record<string, string> = {
+      none: "NO heat or spice — no chili, hot sauce, cayenne, jalapeño, or any burning heat; flavor through herbs, garlic, and seasoning only",
+      mild: "mild warmth only — light black pepper or a pinch of paprika acceptable, no burn",
+      medium: "noticeable heat welcome — cumin, paprika, mild chilies, light sriracha acceptable",
+      hot: "clear spice presence — jalapeños, chili flakes, hot sauce, gochujang encouraged",
+      "very-hot": "strong spice-forward — ghost pepper, habanero, heavy hot sauce, aggressive heat encouraged",
+      unsure: "moderate seasoning — not bland, not spicy; aim for broad appeal",
+    };
+
+    const flavorMap: Record<string, string> = {
+      "bold-spicy": "bold, richly seasoned flavors — smoky, savory, deeply seasoned",
+      "bold-flavorful": "bold, richly seasoned flavors — smoky, savory, deeply seasoned",
+      comfort: "comfort-style — hearty, familiar, cozy preparations",
+      mediterranean: "Mediterranean-inspired — olive oil, fresh herbs, lemon, tomatoes, garlic",
+      balanced: "balanced, well-rounded flavors — appealing without being overpowering",
+      unsure: "balanced, well-rounded flavors",
+    };
+
+    const heatInstruction = heatMap[heat] || heatMap["unsure"];
+    const flavorInstruction = flavorMap[flavor] || flavorMap["balanced"];
+    const clinicalNote = profile.medicalConditions?.some(c => HEAT_SENSITIVE_CONDITIONS.includes(c)) && heat !== (profile.heatPreference || "mild")
+      ? " (heat moderated for clinical dietary requirements)"
+      : "";
+
+    return `Flavor preferences: ${flavorInstruction}. Heat level: ${heatInstruction}${clinicalNote}.`;
+  }
+
+  // Legacy palate* field path
   const spice = profile.palateSpiceTolerance || "mild";
   const seasoning = profile.palateSeasoningIntensity || "balanced";
   const flavor = profile.palateFlavorStyle || "classic";

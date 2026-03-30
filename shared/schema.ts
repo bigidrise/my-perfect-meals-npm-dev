@@ -369,6 +369,7 @@ export const users = pgTable("users", {
   medicalConditions: text("medical_conditions").array().default(sql`ARRAY[]::text[]`), // diabetes-type1, diabetes-type2, prediabetes, glp1, anti-inflammatory, none
   preferredBuilder: text("preferred_builder"), // diabetic, glp1, anti-inflammatory, general — starting recommendation from onboarding
   flavorPreference: text("flavor_preference"), // bold-spicy, comfort, mediterranean, balanced, unsure
+  heatPreference: text("heat_preference"), // none, mild, medium, hot, very-hot, unsure
   sweetenerPreferences: text("sweetener_preferences").array(),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder
   goalType: text("goal_type").$type<"lose"|"maintain"|"gain">(),

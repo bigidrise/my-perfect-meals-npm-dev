@@ -20,6 +20,7 @@ const UpdateProfileSchema = z.object({
   allergies: z.array(z.string()).optional(),
   medicalConditions: z.array(z.string()).optional(),
   flavorPreference: z.string().max(60).optional(),
+  heatPreference: z.enum(["none", "mild", "medium", "hot", "very-hot", "unsure"]).optional().nullable(),
   preferredBuilder: z.string().max(60).optional(),
   palateSpiceTolerance: z.enum(["none", "mild", "medium", "hot"]).optional(),
   palateSeasoningIntensity: z.enum(["light", "balanced", "bold"]).optional(),
@@ -68,6 +69,7 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.allergies !== undefined) updateData.allergies = patch.allergies;
     if (patch.medicalConditions !== undefined) updateData.medicalConditions = patch.medicalConditions;
     if (patch.flavorPreference !== undefined) updateData.flavorPreference = patch.flavorPreference;
+    if (patch.heatPreference !== undefined) updateData.heatPreference = patch.heatPreference;
     if (patch.preferredBuilder !== undefined) updateData.preferredBuilder = patch.preferredBuilder;
     if (patch.palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = patch.palateSpiceTolerance;
     if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;

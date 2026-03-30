@@ -85,6 +85,7 @@ export interface User {
   medicalConditions?: string[];
   preferredBuilder?: string | null;
   flavorPreference?: string | null;
+  heatPreference?: string | null;
   hasAllergyPin?: boolean;
   // Macro targets (from DB — survive reinstall)
   dailyCalorieTarget?: number | null;

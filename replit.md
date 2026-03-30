@@ -189,6 +189,27 @@ Client receives email → taps "Accept Invitation" → creates account / logs in
 
 ### Rule: Never store coach user IDs on the frontend. Always use slug only.
 
+## Heat Preference Feature
+
+`heatPreference` is a first-class user profile field, separate from `flavorPreference`.
+
+### Values
+`none | mild | medium | hot | very-hot | unsure`
+
+### How it works
+- Stored as `heat_preference text` in the `users` DB table
+- Collected in onboarding step 5 (alongside flavor style and sweeteners)
+- Editable in Edit Profile → Flavor Preferences section
+- Flows through `PalatePreferences` in `server/services/promptBuilder.ts` via `buildPalateSection()`
+- **Medical override**: users with diabetes, GI conditions, anti-inflammatory, or RA/psoriasis/lupus are automatically capped at "mild" heat regardless of preference — clinical safety overrides user preference
+- `flavorPreference` and `heatPreference` are combined to give the AI a coherent flavor+heat instruction rather than two separate signals
+
+### Key rule: "Bold & Flavorful" slug stays as `bold-spicy`
+The display label was renamed but the stored value `bold-spicy` remains unchanged — safe for existing users, analytics, and prompt logic.
+
+### Prompt path
+`stableMealGenerator.ts` and `dessert-creator.ts` both load `flavorPreference`, `heatPreference`, and `medicalConditions` from the DB and pass them into `buildPalateSection()`. No scattered prompt edits — one central function.
+
 ## External Dependencies
 -   **PostgreSQL**: Primary database.
 -   **OpenAI API**: AI-powered features.

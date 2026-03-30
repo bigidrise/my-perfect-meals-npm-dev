@@ -775,6 +775,9 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
           palateSpiceTolerance: users.palateSpiceTolerance,
           palateSeasoningIntensity: users.palateSeasoningIntensity,
           palateFlavorStyle: users.palateFlavorStyle,
+          flavorPreference: users.flavorPreference,
+          heatPreference: users.heatPreference,
+          medicalConditions: users.medicalConditions,
         }).from(users).where(eq(users.id, userPrefs.userId)).limit(1);
         
         if (user) {
@@ -782,6 +785,9 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
             palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
             palateSeasoningIntensity: user.palateSeasoningIntensity as PalatePreferences['palateSeasoningIntensity'],
             palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
+            flavorPreference: user.flavorPreference,
+            heatPreference: user.heatPreference,
+            medicalConditions: (user.medicalConditions as string[]) || [],
           };
         }
       } catch (err) {
@@ -790,7 +796,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
     
     if (palatePrefs) {
-      console.log(`🎨 Loaded palate preferences: spice=${palatePrefs.palateSpiceTolerance}, seasoning=${palatePrefs.palateSeasoningIntensity}, flavor=${palatePrefs.palateFlavorStyle}`);
+      console.log(`🎨 Loaded palate preferences: flavor=${palatePrefs.flavorPreference}, heat=${palatePrefs.heatPreference}, spice=${palatePrefs.palateSpiceTolerance}`);
     }
   } else if (skipPalate) {
     console.log(`🎨 Palate preferences skipped - using neutral seasoning for shared meal`);
