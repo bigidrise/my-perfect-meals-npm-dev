@@ -775,7 +775,6 @@ export default function ChefsKitchenPage() {
                       </div>
                       <button
                         onClick={async () => {
-                          setMealOptions([]);
                           addRecentMealChef(option.name);
                           setIsPlatingMeal(true);
                           let finalMeal = { ...option };
@@ -825,6 +824,7 @@ export default function ChefsKitchenPage() {
                             servings: finalMeal.servings || servings,
                             reasoning: finalMeal.reasoning,
                           };
+                          setMealOptions([]);
                           setGeneratedMeal(normalizedOption);
                           setIsPlatingMeal(false);
                         }}
