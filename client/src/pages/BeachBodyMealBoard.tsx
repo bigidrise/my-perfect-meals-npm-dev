@@ -62,6 +62,7 @@ import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
+import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -222,6 +223,11 @@ export default function BeachBodyMealBoard() {
     refresh: refreshBoard,
     primeCache,
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.BEACH_BODY);
+
+  // Register this builder's board namespace so cross-context features (Add to Plan, etc.) write to the correct board
+  React.useEffect(() => {
+    setActiveBuilderNs(BUILDER_NS.BEACH_BODY);
+  }, []);
 
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
   const [loading, setLoading] = React.useState(true);

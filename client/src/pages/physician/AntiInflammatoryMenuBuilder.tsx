@@ -81,6 +81,7 @@ import { useBoardLockStatus } from "@/hooks/useBoardLockStatus";
 
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
+import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
@@ -278,6 +279,11 @@ export default function AntiInflammatoryMenuBuilder() {
 
   // Sync hook board to local state — initial hydration must ALWAYS succeed
   const boardInitializedRef = React.useRef(false);
+
+  // Register this builder's board namespace (dynamic — resolves after clinical mode check)
+  React.useEffect(() => {
+    setActiveBuilderNs(namespace);
+  }, [namespace]);
 
   // Reset the initial-hydration gate on week change so new week data bypasses skipServerSync()
   React.useEffect(() => {
