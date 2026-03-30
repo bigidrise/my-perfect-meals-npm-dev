@@ -77,6 +77,13 @@ export function enforceAssignedBuilder(allowedBuilders: string[]) {
       return next();
     }
 
+    // Studio owner is never blocked by builder assignment — they may be enrolled
+    // in their own studio as a test client and need access to all routes.
+    const userId = getUserId(req);
+    if (req.studioMembership.studioOwnerUserId === userId) {
+      return next();
+    }
+
     const { assignedBuilder } = req.studioMembership;
     
     if (!assignedBuilder) {
@@ -117,6 +124,11 @@ export function getStudioInfo(req: Request): { studioId: string; studioName: str
 export function enforceBuilderFromParam(paramName: string = "program") {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.studioMembership) {
+      return next();
+    }
+
+    const userId = getUserId(req);
+    if (req.studioMembership.studioOwnerUserId === userId) {
       return next();
     }
 
