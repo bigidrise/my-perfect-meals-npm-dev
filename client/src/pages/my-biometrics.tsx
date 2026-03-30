@@ -608,11 +608,20 @@ export default function MyBiometrics() {
     }
   }, []);
 
-  // Load Quick View from storage on mount (deferred read)
+  // Load Quick View from storage on mount — pre-fill the manual input fields
   useEffect(() => {
     try {
       const stored = getQuickView();
-      if (stored) setQv(stored);
+      if (stored) {
+        setP(String(stored.protein));
+        setC(String(stored.carbs));
+        setF(String(stored.fat));
+        setK(String(stored.calories));
+        if (stored.starchyCarbs) setSc(String(stored.starchyCarbs));
+        if (stored.fibrousCarbs) setFc(String(stored.fibrousCarbs));
+        setQv(stored);
+        clearQuickView();
+      }
     } catch (e) {
       console.error("Failed to load quick view:", e);
     }
@@ -1900,13 +1909,8 @@ export default function MyBiometrics() {
                     : "border-white/20",
                 ].join(" ")}
               >
-                {highlightQv && (
-                  <div className="text-xs font-semibold text-orange-300 mb-2 flex items-center gap-1">
-                    <span>👆</span> Tap <b>Add to Today</b> to log this meal to your macros
-                  </div>
-                )}
-                <div className="text-sm font-semibold mb-2 text-white">
-                  Quick View (not logged)
+                <div className="text-sm font-semibold mb-2 text-white flex items-center gap-2">
+                  <span>🍽️</span> Meal values pre-filled below
                 </div>
                 <div className="text-sm text-white/90 mb-2">
                   Protein <b className="text-white">{qv.protein} g</b> · Carbs{" "}
@@ -1914,29 +1918,16 @@ export default function MyBiometrics() {
                   <b className="text-white">{qv.fat} g</b> · Calories{" "}
                   <b className="text-white">{qv.calories}</b>
                 </div>
-                <div className="text-xs text-white/60 mb-2">
-                  Date: {qv.dateISO}
-                  {qv.mealSlot ? ` · ${qv.mealSlot}` : ""}
+                <div className="text-[11px] text-white/60 mb-2">
+                  Review the fields below, then tap <b>Add</b> to save to your macros.
                 </div>
-                <div className="flex gap-2 mb-2">
-                  <Button
-                    onClick={addFromQuickView}
-                    className="px-3 py-1 rounded-lg border border-lime-500/30 bg-lime-600/20 text-lime-300 hover:bg-lime-600/30 text-sm"
-                    data-testid="button-add-to-today"
-                  >
-                    Add to Today
-                  </Button>
-                  <Button
-                    onClick={dismissQuickView}
-                    className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
-                    data-testid="button-dismiss-quickview"
-                  >
-                    Dismiss
-                  </Button>
-                </div>
-                <div className="text-[11px] text-white/60">
-                  Tip: Review the values above, then tap <b>Add to Today</b> to log.
-                </div>
+                <Button
+                  onClick={dismissQuickView}
+                  className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
+                  data-testid="button-dismiss-quickview"
+                >
+                  Dismiss
+                </Button>
               </div>
             )}
 
