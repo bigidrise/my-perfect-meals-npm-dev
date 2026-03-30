@@ -89,7 +89,6 @@ import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
-import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { setMacroTargets } from "@/lib/dailyLimits";
 import { proStore } from "@/lib/proData";
 import { linkUserToClient } from "@/lib/macroResolver";
@@ -253,6 +252,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Sync hook board to local state — initial hydration must ALWAYS succeed
   const boardInitializedRef = React.useRef(false);
+
+  // Reset the initial-hydration gate on week change so new week data bypasses skipServerSync()
+  React.useEffect(() => {
+    boardInitializedRef.current = false;
+  }, [weekStartISO]);
+
   React.useEffect(() => {
     if (hookBoard) {
       if (!boardInitializedRef.current) {
@@ -352,8 +357,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [hasSeenDailyTotalsInfo, setHasSeenDailyTotalsInfo] = useState(false);
 
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
-    React.useState(false);
-  const [showDuplicateWeekModal, setShowDuplicateWeekModal] =
     React.useState(false);
 
   // Shopping list modal state
@@ -584,47 +587,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
-  );
-
-  // Duplicate week handler
-  const handleDuplicateWeek = useCallback(
-    async (targetWeekStartISO: string) => {
-      if (!board) return;
-
-      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
-      const clonedBoard = {
-        ...board,
-        id: `week-${targetWeekStartISO}`,
-        days: board.days
-          ? Object.fromEntries(
-              Object.entries(board.days).map(([oldDateISO, lists]) => {
-                const dayIndex = weekDatesList.indexOf(oldDateISO);
-                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
-                const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
-                return [newDateISO, cloneDayLists(lists)];
-              }),
-            )
-          : undefined,
-      };
-
-      try {
-        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
-        primeCache(targetWeekStartISO, duplicated);
-        setWeekStartISO(targetWeekStartISO);
-        toast({
-          title: "Week duplicated",
-          description: `Copied to week of ${targetWeekStartISO}`,
-        });
-      } catch (error) {
-        console.error("Failed to duplicate week:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      }
-    },
-    [board, weekDatesList, toast],
   );
 
   // Shopping list handler - Single day
@@ -1970,14 +1932,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           />
         )}
 
-        {FEATURES.dayPlanning === "alpha" && (
-          <DuplicateWeekModal
-            isOpen={showDuplicateWeekModal}
-            onClose={() => setShowDuplicateWeekModal(false)}
-            onConfirm={handleDuplicateWeek}
-            sourceWeekStartISO={weekStartISO}
-          />
-        )}
 
         <ShoppingListPreviewModal
           isOpen={shoppingListModal.isOpen}
