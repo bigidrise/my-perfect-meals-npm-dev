@@ -200,6 +200,10 @@ export default function EditProfilePage() {
     initial.sweetenerPreferences || []
   );
 
+  const [heatPreference, setHeatPreference] = useState<string>(
+    user?.heatPreference || "unsure"
+  );
+
   const [goalType, setGoalType] = useState<GoalType | null>(((user as any)?.goalType as GoalType) || null);
   const [goalTarget, setGoalTarget] = useState<string>((user as any)?.goalTarget || "");
   const [goalTimelineWeeks, setGoalTimelineWeeks] = useState<number | null>((user as any)?.goalTimelineWeeks || null);
@@ -332,11 +336,12 @@ export default function EditProfilePage() {
       const originalGoalTimelineWeeks = (user as any)?.goalTimelineWeeks || null;
       const goalChanged = goalTarget !== originalGoalTarget || goalTimelineWeeks !== originalGoalTimelineWeeks;
 
-      const payload: EditProfilePayload & { allergyEditToken?: string } = {
+      const payload: EditProfilePayload & { allergyEditToken?: string; heatPreference?: string } = {
         ...form,
         dietaryRestrictions: dietaryArray,
         allergies: allergiesChanged ? allergiesArray : undefined,
         sweetenerPreferences,
+        heatPreference,
         goalType: goalType || null,
         goalTarget: goalTarget.trim() || null,
         goalTimelineWeeks: goalTimelineWeeks,
@@ -721,6 +726,24 @@ export default function EditProfilePage() {
                 </p>
 
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-xs flex items-center gap-1">
+                      <span>🔥</span> Heat Preference
+                    </label>
+                    <p className="text-white/40 text-xs">Separate from flavor style — bold food doesn't have to mean spicy</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(["none", "mild", "medium", "hot", "very-hot", "unsure"] as const).map((level) => (
+                        <PillButton
+                          key={level}
+                          active={heatPreference === level}
+                          onClick={() => setHeatPreference(level)}
+                        >
+                          {level === "none" ? "No Heat" : level === "mild" ? "Mild" : level === "medium" ? "Medium" : level === "hot" ? "Hot" : level === "very-hot" ? "Very Hot" : "Not Sure"}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-white/80 text-xs flex items-center gap-1">
                       <span>🌶️</span> Spice Tolerance

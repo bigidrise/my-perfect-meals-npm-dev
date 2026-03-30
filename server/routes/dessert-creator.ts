@@ -152,18 +152,24 @@ dessertCreatorRouter.post("/", async (req, res) => {
           palateSpiceTolerance: users.palateSpiceTolerance,
           palateSeasoningIntensity: users.palateSeasoningIntensity,
           palateFlavorStyle: users.palateFlavorStyle,
+          flavorPreference: users.flavorPreference,
+          heatPreference: users.heatPreference,
+          medicalConditions: users.medicalConditions,
           dietaryRestrictions: users.dietaryRestrictions,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
-          if (!skipPalate && (user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
+          if (!skipPalate && (user.flavorPreference || user.heatPreference || user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
             const palatePrefs: PalatePreferences = {
               palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
               palateSeasoningIntensity: user.palateSeasoningIntensity as PalatePreferences['palateSeasoningIntensity'],
               palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
+              flavorPreference: user.flavorPreference,
+              heatPreference: user.heatPreference,
+              medicalConditions: (user.medicalConditions as string[]) || [],
             };
             palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
-            console.log(`🎨 [DESSERT] Loaded palate preferences for user`);
+            console.log(`🎨 [DESSERT] Loaded palate preferences: flavor=${user.flavorPreference}, heat=${user.heatPreference}`);
           }
           // Dietary constraints always enforced regardless of skipPalate
           const restrictions = (user.dietaryRestrictions as string[]) || [];
