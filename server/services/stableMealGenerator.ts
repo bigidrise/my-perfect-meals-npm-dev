@@ -21,6 +21,8 @@ import {
   isValidHubType
 } from "./hubCoupling";
 import { buildPalateSection, PalatePreferences } from "./promptBuilder";
+import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from "./guardrails/prompt/oncologySupportPromptBuilder";
+import { filterOncologySafeMeals } from "./guardrails/validators/oncologySupportValidator";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -778,6 +780,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
           flavorPreference: users.flavorPreference,
           heatPreference: users.heatPreference,
           medicalConditions: users.medicalConditions,
+          oncologySupportContext: users.oncologySupportContext,
         }).from(users).where(eq(users.id, userPrefs.userId)).limit(1);
         
         if (user) {
@@ -789,6 +792,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
             heatPreference: user.heatPreference,
             medicalConditions: (user.medicalConditions as string[]) || [],
           };
+          // Store oncology context for prompt injection below
+          (userPrefs as any)._oncologySupportContext = user.oncologySupportContext ?? null;
         }
       } catch (err) {
         console.warn('⚠️ Could not load palate preferences:', err);
@@ -1265,6 +1270,16 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       } else if (antiInflammatoryHubContext?.promptFragment) {
         console.log(`🌿 [ANTI-INFLAMMATORY AI] Injecting diet guidance into AI prompt`);
         enhancedCraving = `${craving}\n\n${antiInflammatoryHubContext.promptFragment}`;
+      }
+
+      // 🎗️ CANCER SUPPORT NUTRITION OVERLAY: Inject symptom-aware guidance if active
+      const oncologyCtx = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
+      if (isOncologySupportEnabled() && oncologyCtx?.enabled) {
+        const oncologyPrompt = buildOncologySupportPrompt(oncologyCtx);
+        if (oncologyPrompt) {
+          console.log(`🎗️ [CANCER SUPPORT] Injecting oncology nutrition overlay. Symptoms: [${oncologyCtx.symptoms.join(", ")}]`);
+          enhancedCraving = `${enhancedCraving}\n\n${oncologyPrompt}`;
+        }
       }
       
       // Use Universal AI Meal Generator as fallback (it has its own telemetry session)
