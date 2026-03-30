@@ -254,13 +254,13 @@ export default function GeneratedMealCard({
       )}
 
       {/* 6. Ingredients */}
-      {generatedMeal.ingredients?.length > 0 && (
+      {mealToShow.ingredients?.length > 0 && (
         <div>
           <h4 className="font-semibold mb-2 text-white">
             Ingredients{s > 1 ? ` (for ${s} servings)` : ""}:
           </h4>
           <ul className="text-sm text-white/80 space-y-1">
-            {generatedMeal.ingredients.map((ing, i) => (
+            {mealToShow.ingredients.map((ing, i) => (
               <li key={i}>
                 {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
               </li>
